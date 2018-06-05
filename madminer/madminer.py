@@ -123,7 +123,7 @@ class MadMiner():
             param_card = file.read()
 
         # Replace parameter values
-        for parameter_name, parameter_value in benchmark.keys():
+        for parameter_name, parameter_value in benchmark.items():
             parameter_lha_block = self.parameters[parameter_name][0]
             parameter_lha_id = self.parameters[parameter_name][1]
 
@@ -131,7 +131,7 @@ class MadMiner():
             if block_begin < 0:
                 raise ValueError('Could not find block {0} in param_card template!'.format(parameter_lha_block))
 
-            block_end = param_card.find('Block', beg=block_begin)
+            block_end = param_card.find('Block', block_begin + 5)
             if block_end < 0:
                 block_end = len(param_card)
 
@@ -144,10 +144,13 @@ class MadMiner():
                 line = line.strip()
                 elements = line.split()
                 if len(elements) >= 2:
-                    if elements[0] == parameter_lha_id:
-                        block[i] = str(parameter_lha_id) + '    ' + str(parameter_value) + '    # MadMiner'
-                        changed_line = True
-                        break
+                    try:
+                        if int(elements[0]) == parameter_lha_id:
+                            block[i] = '    ' + str(parameter_lha_id) + '    ' + str(parameter_value) + '    # MadMiner'
+                            changed_line = True
+                            break
+                    except ValueError:
+                        pass
 
             if not changed_line:
                 raise ValueError('Could not find LHA ID {0} in param_card template!'.format(parameter_lha_id))
@@ -155,7 +158,7 @@ class MadMiner():
             param_card = param_card[:block_begin] + '\n'.join(block) + param_card[block_end:]
 
         # Save param_card.dat
-        with open(mg_process_directory + '/Cards/param_card.dat') as file:
+        with open(mg_process_directory + '/Cards/param_card.dat', 'w') as file:
             file.write(param_card)
 
         # Open reweight_card template
@@ -163,22 +166,22 @@ class MadMiner():
             reweight_card = file.read()
 
         # Put in parameter values
-        block_end = reweight_card.search('# Manual')
+        block_end = reweight_card.find('# Manual')
         assert block_end >= 0, 'Cannot find "# Manual" string in reweight_card template'
 
-        insert_pos = reweight_card.rsearch('\n\n')
+        insert_pos = reweight_card.rfind('\n\n', 0, block_end)
         assert insert_pos >= 0, 'Cannot find empty line in reweight_card template'
 
         lines = []
-        for benchmark_name, benchmark in self.benchmarks:
+        for benchmark_name, benchmark in self.benchmarks.items():
             if benchmark_name == sample_benchmark:
                 continue
 
             lines.append('')
             lines.append('# MadMiner benchmark ' + benchmark_name)
-            lines.append('launch')
+            lines.append('launch --rwgt_name=' + benchmark_name)
 
-            for parameter_name, parameter_value in benchmark.keys():
+            for parameter_name, parameter_value in benchmark.items():
                 parameter_lha_block = self.parameters[parameter_name][0]
                 parameter_lha_id = self.parameters[parameter_name][1]
 
@@ -186,8 +189,8 @@ class MadMiner():
 
             lines.append('')
 
-            reweight_card = reweight_card[:insert_pos] + '\n'.join(lines) + reweight_card[insert_pos:]
+        reweight_card = reweight_card[:insert_pos] + '\n'.join(lines) + reweight_card[insert_pos:]
 
         # Save param_card.dat
-        with open(mg_process_directory + '/Cards/reweight_card.dat') as file:
+        with open(mg_process_directory + '/Cards/reweight_card.dat', 'w') as file:
             file.write(reweight_card)
