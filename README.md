@@ -1,0 +1,3 @@
+# MadMiner
+
+Work in progress
