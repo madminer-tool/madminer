@@ -182,7 +182,7 @@ class MadMiner():
                 parameter_lha_block = self.parameters[parameter_name][0]
                 parameter_lha_id = self.parameters[parameter_name][1]
 
-                lines.append('  set {0} {1} {2}')
+                lines.append('  set {0} {1} {2}'.format(parameter_lha_block, parameter_lha_id, parameter_value))
 
             lines.append('')
 
@@ -191,4 +191,3 @@ class MadMiner():
         # Save param_card.dat
         with open(mg_process_directory + '/Cards/reweight_card.dat') as file:
             file.write(reweight_card)
-
