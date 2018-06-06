@@ -1,3 +1,7 @@
+from .morphing import MadMorpher
+from .mg_interface import export_param_card, export_reweight_card
+
+
 class MadMiner():
 
     def __init__(self):
@@ -11,7 +15,9 @@ class MadMiner():
     def add_parameter(self,
                       lha_block,
                       lha_id,
-                      parameter_name=None):
+                      parameter_name=None,
+                      morphing_max_power=None,
+                      morphing_parameter_range=None):
 
         """ Adds an individual parameter """
 
@@ -27,24 +33,41 @@ class MadMiner():
         assert parameter_name not in self.parameters, 'Parameter name exists already: {}'.format(parameter_name)
 
         # Add parameter
-        self.parameters[parameter_name] = (lha_block, lha_id)
+        self.parameters[parameter_name] = (lha_block, lha_id, morphing_max_power, morphing_range)
 
     def set_parameters(self,
                        parameters):
 
-        """ Defines whole parameter space
+        """ Defines whole parameter space.
 
-        :type parameters: dict or list that specifies all parameters. If dict, keys are the parameter names and values
-                          are tuples (LHA block, LHA id). If list, entries are tuples (LHA block, LHA id) (the parameter
-                          names are chosen automatically).
+        :type parameters: dict or list that specifies all parameters. If dict, the keys are the parameter names and the
+                          values describe the parameter properties. If list, the entries are tuples that describe the
+                          parameter properties (the parameter names are chosen automatically). In both cases, the
+                          parameter property tuples can have the form (LHA block, LHA id) or (LHA block, LHA id,
+                          maximal power of this parameter in squared matrix element, minimum value, maximum value). The
+                          last three parameters are only important for morphing.
         """
 
         self.parameters = {}
 
         if isinstance(parameters, dict):
-            for name, values in parameters.items():
-                assert len(values) == 2, 'Parameter dict entry does not have length 2: {0}'.format(values)
-                self.add_parameter(values[0], values[1], name)
+            for key, values in parameters.items():
+                if len(values) == 5:
+                    self.add_parameter(
+                        lha_block=values[0],
+                        lha_id=values[1],
+                        parameter_name=key,
+                        morphing_parameter_range=[values[3], values[4]],
+                        morphing_max_power=values[2]
+                    )
+                elif len(values) == 2:
+                    self.add_parameter(
+                        lha_block=values[0],
+                        lha_id=values[1],
+                        parameter_name=key
+                    )
+                else:
+                    raise ValueError('Parameter properties has unexpected length: {0}'.format(values))
 
         else:
             for values in parameters:
@@ -99,6 +122,20 @@ class MadMiner():
             for values in benchmarks:
                 self.add_benchmark(values)
 
+    def set_benchmarks_from_morphing(self,
+                                     max_overall_power=4,
+                                     n_bases=1):
+
+        morpher = MadMorpher(self.parameters,
+                             max_overall_power=max_overall_power,
+                             n_bases=n_bases)
+
+        basis = morpher.find_basis_simple()
+        self.set_benchmarks(basis)
+
+    def set_benchmarks_from_finite_differences(self):
+        raise NotImplementedError
+
     def export_cards(self,
                      param_card_template_file,
                      reweight_card_template_file,
@@ -115,82 +152,15 @@ class MadMiner():
         if sample_benchmark is None:
             sample_benchmark = self.default_benchmark
 
-        # Parameters for param_card
-        benchmark = self.benchmarks[sample_benchmark]
+        # Export param card
+        export_param_card(benchmark=self.benchmarks[sample_benchmark],
+                          parameters=self.parameters,
+                          param_card_template_file=param_card_template_file,
+                          mg_process_directory=mg_process_directory)
 
-        # Open parameter card template
-        with open(param_card_template_file) as file:
-            param_card = file.read()
-
-        # Replace parameter values
-        for parameter_name, parameter_value in benchmark.items():
-            parameter_lha_block = self.parameters[parameter_name][0]
-            parameter_lha_id = self.parameters[parameter_name][1]
-
-            block_begin = param_card.find('Block ' + parameter_lha_block)
-            if block_begin < 0:
-                raise ValueError('Could not find block {0} in param_card template!'.format(parameter_lha_block))
-
-            block_end = param_card.find('Block', block_begin + 5)
-            if block_end < 0:
-                block_end = len(param_card)
-
-            block = param_card[block_begin:block_end].split('\n')
-            changed_line = False
-            for i, line in enumerate(block):
-                comment_pos = line.find('#')
-                if i >= 0:
-                    line = line[:comment_pos]
-                line = line.strip()
-                elements = line.split()
-                if len(elements) >= 2:
-                    try:
-                        if int(elements[0]) == parameter_lha_id:
-                            block[i] = '    ' + str(parameter_lha_id) + '    ' + str(parameter_value) + '    # MadMiner'
-                            changed_line = True
-                            break
-                    except ValueError:
-                        pass
-
-            if not changed_line:
-                raise ValueError('Could not find LHA ID {0} in param_card template!'.format(parameter_lha_id))
-
-            param_card = param_card[:block_begin] + '\n'.join(block) + param_card[block_end:]
-
-        # Save param_card.dat
-        with open(mg_process_directory + '/Cards/param_card.dat', 'w') as file:
-            file.write(param_card)
-
-        # Open reweight_card template
-        with open(reweight_card_template_file) as file:
-            reweight_card = file.read()
-
-        # Put in parameter values
-        block_end = reweight_card.find('# Manual')
-        assert block_end >= 0, 'Cannot find "# Manual" string in reweight_card template'
-
-        insert_pos = reweight_card.rfind('\n\n', 0, block_end)
-        assert insert_pos >= 0, 'Cannot find empty line in reweight_card template'
-
-        lines = []
-        for benchmark_name, benchmark in self.benchmarks.items():
-            if benchmark_name == sample_benchmark:
-                continue
-
-            lines.append('')
-            lines.append('# MadMiner benchmark ' + benchmark_name)
-            lines.append('launch --rwgt_name=' + benchmark_name)
-
-            for parameter_name, parameter_value in benchmark.items():
-                parameter_lha_block = self.parameters[parameter_name][0]
-                parameter_lha_id = self.parameters[parameter_name][1]
-
-                lines.append('  set {0} {1} {2}'.format(parameter_lha_block, parameter_lha_id, parameter_value))
-
-            lines.append('')
-
-        reweight_card = reweight_card[:insert_pos] + '\n'.join(lines) + reweight_card[insert_pos:]
-
-        # Save param_card.dat
-        with open(mg_process_directory + '/Cards/reweight_card.dat', 'w') as file:
-            file.write(reweight_card)
+        # Export reweight card
+        export_reweight_card(sample_benchmark=sample_benchmark,
+                             benchmarks=self.benchmarks,
+                             parameters=self.parameters,
+                             reweight_card_template_file=reweight_card_template_file,
+                             mg_process_directory=mg_process_directory)
