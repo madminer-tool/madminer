@@ -1,3 +1,5 @@
+from collections import OrderedDict
+
 from .morphing import MadMorpher
 from .mg_interface import export_param_card, export_reweight_card
 
@@ -8,8 +10,8 @@ class MadMiner():
 
         """ Constructor """
 
-        self.parameters = {}
-        self.benchmarks = {}
+        self.parameters = OrderedDict()
+        self.benchmarks = OrderedDict()
         self.default_benchmark = None
 
     def add_parameter(self,
@@ -25,10 +27,14 @@ class MadMiner():
         if parameter_name is None:
             parameter_name = 'param' + str(len(self.parameters))
 
-        # Check input
+        # Check and sanitize input
         assert isinstance(parameter_name, str), 'Parameter name is not a string: {}'.format(parameter_name)
         assert isinstance(lha_block, str), 'LHA block is not a string: {}'.format(lha_block)
         assert isinstance(lha_id, int), 'LHA id is not an integer: {}'.format(lha_id)
+
+        parameter_name = parameter_name.trim()
+        parameter_name = parameter_name.replace(' ', '_')
+        parameter_name = parameter_name.replace('-', '_')
 
         assert parameter_name not in self.parameters, 'Parameter name exists already: {}'.format(parameter_name)
 
@@ -48,7 +54,7 @@ class MadMiner():
                           last three parameters are only important for morphing.
         """
 
-        self.parameters = {}
+        self.parameters = OrderedDict()
 
         if isinstance(parameters, dict):
             for key, values in parameters.items():
@@ -113,7 +119,7 @@ class MadMiner():
                            {parameter_name:value} (and the benchmark names are chosen automatically).
         """
 
-        self.benchmarks = {}
+        self.benchmarks = OrderedDict()
 
         if isinstance(benchmarks, dict):
             for name, values in benchmarks.items():

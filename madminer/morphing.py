@@ -1,4 +1,5 @@
 import numpy as np
+from collections import OrderedDict
 
 
 class MadMorpher():
@@ -56,10 +57,10 @@ class MadMorpher():
             return best_basis, best_morphing_matrix
 
         # Export as nested dict
-        basis_export = {}
+        basis_export = OrderedDict()
         for benchmark in best_basis:
             benchmark_name = 'benchmark' + str(len(basis_export))
-            parameter = {}
+            parameter = OrderedDict()
             for p, pname in enumerate(self.parameter_names):
                 parameter[pname] = benchmark[p]
             basis_export[benchmark_name] = parameter
