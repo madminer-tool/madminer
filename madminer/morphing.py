@@ -9,6 +9,14 @@ class MadMorpher():
                  max_overall_power=4,
                  n_bases=1):
 
+        """
+        Constructor.
+
+        :param parameters:
+        :param max_overall_power:
+        :param n_bases:
+        """
+
         if n_bases != 1:
             raise NotImplementedError('Basis oversampling (n_bases > 1) is not supported yet')
 
@@ -36,12 +44,20 @@ class MadMorpher():
                           n_trials=100,
                           return_morphing_matrix=False):
 
+        """
+        Finds a set of basis parameter vectors, based on a rudimentary optimization algorithm.
+
+        :param n_trials:
+        :param return_morphing_matrix:
+        :return:
+        """
+
         best_basis = None
         best_morphing_matrix = None
         best_performance = None
 
         for i in range(n_trials):
-            basis = self._draw_random_basis()
+            basis = self._draw_random_thetas()
             morphing_matrix = self._calculate_morphing_matrix(basis)
             performance = self._evaluate_morphing(basis, morphing_matrix)
 
@@ -53,9 +69,6 @@ class MadMorpher():
                 best_basis = basis
                 best_morphing_matrix = morphing_matrix
 
-        if return_morphing_matrix:
-            return best_basis, best_morphing_matrix
-
         # Export as nested dict
         basis_export = OrderedDict()
         for benchmark in best_basis:
@@ -65,10 +78,15 @@ class MadMorpher():
                 parameter[pname] = benchmark[p]
             basis_export[benchmark_name] = parameter
 
+        if return_morphing_matrix:
+            return basis_export, self.components, best_morphing_matrix
+
         return basis_export
 
     def _find_components(self):
-        # Find all components with their parameter powers
+
+        """ Find and return a list of components with their power dependence on the parameters """
+
         c = 0
         powers = np.zeros(self.n_parameters, dtype=np.int16)
         components = []
@@ -102,9 +120,15 @@ class MadMorpher():
 
         return components
 
-    def _draw_random_basis(self):
+    def _draw_random_thetas(self, n_thetas=None):
+
+        """ Randomly draws basis vectors within the specified parameter ranges """
+
+        if n_thetas is None:
+            n_thetas = self.n_benchmarks
+
         # First draw random numbers in range [0, 1)^n_parameters
-        u = np.random.rand((self.n_benchmarks, self.n_parameters))
+        u = np.random.rand((n_thetas, self.n_parameters))
 
         # Transform to right range
         basis = self.parameter_range[:, 0] + u * (self.parameter_range[:, 1] - self.parameter_range[:, 0])
@@ -112,6 +136,9 @@ class MadMorpher():
         return basis
 
     def _calculate_morphing_matrix(self, basis):
+
+        """ Calculates the morphing matrix that links the components to the basis parameter vectors """
+
         # Basis points expressed in components
         inv_morphing_matrix = np.zeros((self.n_benchmarks, self.n_components))
 
@@ -131,6 +158,8 @@ class MadMorpher():
 
     def _calculate_morphing_weights(self, theta, basis, morphing_matrix=None):
 
+        """ Calculates the morphing weights w_b(theta) for a given basis {theta_b} """
+
         if morphing_matrix is None:
             morphing_matrix = self._calculate_morphing_matrix(basis)
 
@@ -148,5 +177,18 @@ class MadMorpher():
 
         return weights
 
-    def _evaluate_morphing(self, basis, morphing_matrix):
-        pass
+    def _evaluate_morphing(self, basis, morphing_matrix=None, n_test_thetas=100):
+
+        """ Evaluates an objective function for a given basis """
+
+        thetas_test = self._draw_random_thetas(n_thetas=n_test_thetas)
+
+        squared_weights = 0.
+
+        for theta in thetas_test:
+            weights = self._calculate_morphing_weights(theta, basis, morphing_matrix)
+            squared_weights += np.sum(weights * weights)
+
+        squared_weights /= float(n_test_thetas)
+
+        return - squared_weights
