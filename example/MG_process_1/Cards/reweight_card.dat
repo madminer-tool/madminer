@@ -25,16 +25,88 @@ launch
 # set sminputs 1 130 # modify 1/alpha_EW
 
 
-# MadMiner benchmark oranges
-launch --rwgt_name=oranges
-  set sminputs 1 125.0
-  set sminputs 2 1.16e-06
+# MadMiner benchmark benchmark1
+launch --rwgt_name=benchmark1
+  set sminputs 1 122.65312014642488
+  set sminputs 2 1.169169748642442e-06
 
 
-# MadMiner benchmark avocados
-launch --rwgt_name=avocados
-  set sminputs 1 130.0
-  set sminputs 2 1.15e-06
+# MadMiner benchmark benchmark2
+launch --rwgt_name=benchmark2
+  set sminputs 1 120.7667397727041
+  set sminputs 2 1.1641260076815075e-06
+
+
+# MadMiner benchmark benchmark3
+launch --rwgt_name=benchmark3
+  set sminputs 1 121.68354369671177
+  set sminputs 2 1.1594735407209303e-06
+
+
+# MadMiner benchmark benchmark4
+launch --rwgt_name=benchmark4
+  set sminputs 1 128.02634145128852
+  set sminputs 2 1.1564132965975343e-06
+
+
+# MadMiner benchmark benchmark5
+launch --rwgt_name=benchmark5
+  set sminputs 1 127.35592407614449
+  set sminputs 2 1.1536491460032607e-06
+
+
+# MadMiner benchmark benchmark6
+launch --rwgt_name=benchmark6
+  set sminputs 1 120.57815023781738
+  set sminputs 2 1.1538222901389903e-06
+
+
+# MadMiner benchmark benchmark7
+launch --rwgt_name=benchmark7
+  set sminputs 1 124.32469736862693
+  set sminputs 2 1.1658351210679754e-06
+
+
+# MadMiner benchmark benchmark8
+launch --rwgt_name=benchmark8
+  set sminputs 1 124.48426581831751
+  set sminputs 2 1.1620699402100177e-06
+
+
+# MadMiner benchmark benchmark9
+launch --rwgt_name=benchmark9
+  set sminputs 1 128.1961037347825
+  set sminputs 2 1.1672780948377926e-06
+
+
+# MadMiner benchmark benchmark10
+launch --rwgt_name=benchmark10
+  set sminputs 1 122.58947591664618
+  set sminputs 2 1.162259025032246e-06
+
+
+# MadMiner benchmark benchmark11
+launch --rwgt_name=benchmark11
+  set sminputs 1 120.38050378438265
+  set sminputs 2 1.1625063488749453e-06
+
+
+# MadMiner benchmark benchmark12
+launch --rwgt_name=benchmark12
+  set sminputs 1 126.61036817569463
+  set sminputs 2 1.155769124084575e-06
+
+
+# MadMiner benchmark benchmark13
+launch --rwgt_name=benchmark13
+  set sminputs 1 128.6430155868263
+  set sminputs 2 1.1552464784249156e-06
+
+
+# MadMiner benchmark benchmark14
+launch --rwgt_name=benchmark14
+  set sminputs 1 128.8696750508575
+  set sminputs 2 1.1617122453947653e-06
 
 
 #************************************************************************

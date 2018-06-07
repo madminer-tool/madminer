@@ -39,8 +39,8 @@ Block mass
 ## INFORMATION FOR SMINPUTS
 ###################################
 Block sminputs 
-    1    120.0    # MadMiner
-    2    1.17e-06    # MadMiner
+    1    127.08962214743102    # MadMiner
+    2    1.1680812424773628e-06    # MadMiner
     3 1.180000e-01 # aS 
 
 ###################################

@@ -4,7 +4,7 @@ from .morphing import MadMorpher
 from .mg_interface import export_param_card, export_reweight_card
 
 
-class MadMiner():
+class MadMiner:
 
     def __init__(self):
 
@@ -13,6 +13,7 @@ class MadMiner():
         self.parameters = OrderedDict()
         self.benchmarks = OrderedDict()
         self.default_benchmark = None
+        self.current_morpher = None
 
     def add_parameter(self,
                       lha_block,
@@ -25,24 +26,23 @@ class MadMiner():
 
         # Default names
         if parameter_name is None:
-            parameter_name = 'param' + str(len(self.parameters))
+            parameter_name = 'parameter_' + str(len(self.parameters))
 
         # Check and sanitize input
         assert isinstance(parameter_name, str), 'Parameter name is not a string: {}'.format(parameter_name)
         assert isinstance(lha_block, str), 'LHA block is not a string: {}'.format(lha_block)
         assert isinstance(lha_id, int), 'LHA id is not an integer: {}'.format(lha_id)
 
-        parameter_name = parameter_name.trim()
         parameter_name = parameter_name.replace(' ', '_')
         parameter_name = parameter_name.replace('-', '_')
 
         assert parameter_name not in self.parameters, 'Parameter name exists already: {}'.format(parameter_name)
 
         # Add parameter
-        self.parameters[parameter_name] = (lha_block, lha_id, morphing_max_power, morphing_range)
+        self.parameters[parameter_name] = (lha_block, lha_id, morphing_max_power, morphing_parameter_range)
 
     def set_parameters(self,
-                       parameters):
+                       parameters=None):
 
         """ Defines whole parameter space.
 
@@ -53,6 +53,9 @@ class MadMiner():
                           maximal power of this parameter in squared matrix element, minimum value, maximum value). The
                           last three parameters are only important for morphing.
         """
+
+        if parameters is None:
+            parameters = OrderedDict()
 
         self.parameters = OrderedDict()
 
@@ -92,7 +95,7 @@ class MadMiner():
 
         # Default names
         if benchmark_name is None:
-            benchmark_name = 'benchmark' + str(len(self.benchmarks))
+            benchmark_name = 'benchmark_' + str(len(self.benchmarks))
 
         # Check input
         assert isinstance(parameter_values, dict), 'Parameter values are not a dict: {}'.format(parameter_values)
@@ -110,7 +113,7 @@ class MadMiner():
             self.default_benchmark = benchmark_name
 
     def set_benchmarks(self,
-                       benchmarks):
+                       benchmarks=None):
         """
         Sets all parameter benchmarks.
 
@@ -118,6 +121,9 @@ class MadMiner():
                            the values are dicts {parameter_name:value}. If list, the entries are dicts
                            {parameter_name:value} (and the benchmark names are chosen automatically).
         """
+
+        if benchmarks is None:
+            benchmarks = OrderedDict()
 
         self.benchmarks = OrderedDict()
 
@@ -130,13 +136,24 @@ class MadMiner():
 
     def set_benchmarks_from_morphing(self,
                                      max_overall_power=4,
-                                     n_bases=1):
+                                     n_bases=1,
+                                     keep_existing_benchmarks=False,
+                                     n_trials=100,
+                                     n_test_thetas=100):
 
-        morpher = MadMorpher(self.parameters,
-                             max_overall_power=max_overall_power,
-                             n_bases=n_bases)
+        if keep_existing_benchmarks:
+            morpher = MadMorpher(self.parameters,
+                                 self.benchmarks,
+                                 max_overall_power=max_overall_power,
+                                 n_bases=n_bases)
+        else:
+            morpher = MadMorpher(self.parameters,
+                                 max_overall_power=max_overall_power,
+                                 n_bases=n_bases)
 
-        basis = morpher.find_basis_simple()
+        self.current_morpher = morpher
+
+        basis = morpher.find_basis_simple(n_trials=n_trials)
         self.set_benchmarks(basis)
 
     def set_benchmarks_from_finite_differences(self):

@@ -6,6 +6,7 @@ class MadMorpher():
 
     def __init__(self,
                  parameters,
+                 fixed_benchmarks=None,
                  max_overall_power=4,
                  n_bases=1):
 
@@ -35,13 +36,31 @@ class MadMorpher():
             [self.parameters[key][3] for key in self.parameter_names]
         )
 
+        # External fixed benchmarks
+        if fixed_benchmarks is None:
+            fixed_benchmarks = OrderedDict()
+
+        self.fixed_benchmarks = []
+        for _, benchmark_in in fixed_benchmarks.items():
+            self.fixed_benchmarks.append(
+                [benchmark_in[key] for key in self.parameter_names]
+            )
+        self.fixed_benchmarks = np.array(self.fixed_benchmarks)
+
         # Components
         self.components = self._find_components()
         self.n_components = len(self.components)
         self.n_benchmarks = self.n_bases * self.n_components
+        self.n_missing_benchmarks = self.n_benchmarks - len(self.fixed_benchmarks)
+
+        assert(self.n_missing_benchmarks >= 0, 'Too many fixed benchmarks!')
+
+        # Current chosen basis
+        self.current_basis = None
 
     def find_basis_simple(self,
                           n_trials=100,
+                          n_test_thetas=100,
                           return_morphing_matrix=False):
 
         """
@@ -57,9 +76,9 @@ class MadMorpher():
         best_performance = None
 
         for i in range(n_trials):
-            basis = self._draw_random_thetas()
+            basis = self._propose_basis()
             morphing_matrix = self._calculate_morphing_matrix(basis)
-            performance = self._evaluate_morphing(basis, morphing_matrix)
+            performance = self._evaluate_morphing(basis, morphing_matrix, n_test_thetas=n_test_thetas)
 
             if (best_performance is None
                     or best_basis is None
@@ -69,10 +88,12 @@ class MadMorpher():
                 best_basis = basis
                 best_morphing_matrix = morphing_matrix
 
+        self.current_basis = best_basis
+
         # Export as nested dict
         basis_export = OrderedDict()
         for benchmark in best_basis:
-            benchmark_name = 'benchmark' + str(len(basis_export))
+            benchmark_name = 'morphing_basis_vector_' + str(len(basis_export))
             parameter = OrderedDict()
             for p, pname in enumerate(self.parameter_names):
                 parameter[pname] = benchmark[p]
@@ -80,7 +101,6 @@ class MadMorpher():
 
         if return_morphing_matrix:
             return basis_export, self.components, best_morphing_matrix
-
         return basis_export
 
     def _find_components(self):
@@ -118,26 +138,40 @@ class MadMorpher():
                     powers[pos] = 0
                     powers[pos - 1] += 1
 
+        components = np.array(components, dtype=np.int)
+
         return components
 
-    def _draw_random_thetas(self, n_thetas=None):
+    def _propose_basis(self):
+
+        if len(self.fixed_benchmarks) > 0:
+            basis = np.vstack([
+                self.fixed_benchmarks,
+                self._draw_random_thetas(self.n_missing_benchmarks)
+            ])
+        else:
+            basis = self._draw_random_thetas(self.n_missing_benchmarks)
+
+        return basis
+
+    def _draw_random_thetas(self, n_thetas):
 
         """ Randomly draws basis vectors within the specified parameter ranges """
 
-        if n_thetas is None:
-            n_thetas = self.n_benchmarks
-
         # First draw random numbers in range [0, 1)^n_parameters
-        u = np.random.rand((n_thetas, self.n_parameters))
+        u = np.random.rand(n_thetas, self.n_parameters)
 
         # Transform to right range
         basis = self.parameter_range[:, 0] + u * (self.parameter_range[:, 1] - self.parameter_range[:, 0])
 
         return basis
 
-    def _calculate_morphing_matrix(self, basis):
+    def _calculate_morphing_matrix(self, basis=None):
 
         """ Calculates the morphing matrix that links the components to the basis parameter vectors """
+
+        if basis is None:
+            basis = self.current_basis
 
         # Basis points expressed in components
         inv_morphing_matrix = np.zeros((self.n_benchmarks, self.n_components))
@@ -146,8 +180,8 @@ class MadMorpher():
             for c in range(self.n_components):
                 factor = 1.
                 for p in range(self.n_parameters):
-                    factor *= float(basis[b, p] ** self.components[1 + c, p])
-                self.dictionary_sample_component[b, c] = factor
+                    factor *= float(basis[b, p] ** self.components[c, p])
+                inv_morphing_matrix[b, c] = factor
 
         # Invert
         # Components expressed in basis points. Shape (n_components, n_benchmarks)
@@ -156,19 +190,22 @@ class MadMorpher():
 
         return morphing_matrix
 
-    def _calculate_morphing_weights(self, theta, basis, morphing_matrix=None):
+    def _calculate_morphing_weights(self, theta, basis=None, morphing_matrix=None):
 
         """ Calculates the morphing weights w_b(theta) for a given basis {theta_b} """
+
+        if basis is None:
+            basis = self.current_basis
 
         if morphing_matrix is None:
             morphing_matrix = self._calculate_morphing_matrix(basis)
 
         # Calculate component weights
-        component_weights = np.zeros(self.n_parameters)
+        component_weights = np.zeros(self.n_components)
         for c in range(self.n_components):
             factor = 1.
             for p in range(self.n_parameters):
-                factor *= float(theta[p] ** self.components[1 + c, p])
+                factor *= float(theta[p] ** self.components[c, p])
             component_weights[c] = factor
         component_weights = np.array(component_weights)
 
@@ -177,12 +214,17 @@ class MadMorpher():
 
         return weights
 
-    def _evaluate_morphing(self, basis, morphing_matrix=None, n_test_thetas=100):
+    def _evaluate_morphing(self, basis=None, morphing_matrix=None, n_test_thetas=100):
 
         """ Evaluates an objective function for a given basis """
 
-        thetas_test = self._draw_random_thetas(n_thetas=n_test_thetas)
+        if basis is None:
+            basis = self.current_basis
 
+        if morphing_matrix is None:
+            morphing_matrix = self._calculate_morphing_matrix(basis)
+
+        thetas_test = self._draw_random_thetas(n_thetas=n_test_thetas)
         squared_weights = 0.
 
         for theta in thetas_test:
