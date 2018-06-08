@@ -28,13 +28,13 @@ class MadMorpher:
         if parameters_from_madminer is not None:
             self.use_madminer_interface = True
             self.n_parameters = len(parameters_from_madminer)
-            self.parameter_names = [key for key in self.parameters_from_madminer]
+            self.parameter_names = [key for key in parameters_from_madminer]
             self.parameter_max_power = np.array(
-                [self.parameters_from_madminer[key][2] for key in self.parameter_names],
+                [parameters_from_madminer[key][2] for key in self.parameter_names],
                 dtype=np.int
             )
             self.parameter_range = np.array(
-                [self.parameters_from_madminer[key][3] for key in self.parameter_names]
+                [parameters_from_madminer[key][3] for key in self.parameter_names]
             )
 
             if fixed_benchmarks is None:

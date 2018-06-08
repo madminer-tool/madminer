@@ -81,11 +81,11 @@ DECAY  251 2.085000 # G+ : WW
 Block ANOINPUTS 
     1 0.000000e+00 # FB 
     2 0.000000e+00 # imFB 
-    3    0.8357861219040685    # MadMiner
+    3    0.0    # MadMiner
     4 0.000000e+00 # imFW 
     5 0.000000e+00 # FBB 
     6 0.000000e+00 # imFBB 
-    7    0.30256933233024474    # MadMiner
+    7    0.0    # MadMiner
     8 0.000000e+00 # imFWW 
     9 0.000000e+00 # FBBtilde 
    10 0.000000e+00 # imFBBtilde 

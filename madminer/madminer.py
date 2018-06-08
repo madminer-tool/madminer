@@ -13,7 +13,7 @@ class MadMiner:
         self.parameters = OrderedDict()
         self.benchmarks = OrderedDict()
         self.default_benchmark = None
-        self.current_morpher = None
+        self.morpher = None
 
     def add_parameter(self,
                       lha_block,
@@ -175,7 +175,7 @@ class MadMiner:
                                  max_overall_power=max_overall_power,
                                  n_bases=n_bases)
 
-        self.current_morpher = morpher
+        self.morpher = morpher
 
         basis = morpher.find_basis_simple(n_trials=n_trials,
                                           n_test_thetas=n_test_thetas)
