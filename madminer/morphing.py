@@ -5,7 +5,9 @@ from collections import OrderedDict
 class MadMorpher:
 
     def __init__(self,
-                 parameters,
+                 parameters_from_madminer=None,
+                 parameter_max_power=None,
+                 parameter_range=None,
                  fixed_benchmarks=None,
                  max_overall_power=4,
                  n_bases=1):
@@ -18,31 +20,43 @@ class MadMorpher:
         :param n_bases:
         """
 
-        self.parameters = parameters
-        self.n_parameters = len(parameters)
+        # Input
         self.n_bases = n_bases
         self.max_overall_power = max_overall_power
 
-        # For the morphing, we need an order
-        self.parameter_names = [key for key in self.parameters]
-        self.parameter_max_power = np.array(
-            [self.parameters[key][2] for key in self.parameter_names],
-            dtype=np.int
-        )
-        self.parameter_range = np.array(
-            [self.parameters[key][3] for key in self.parameter_names]
-        )
-
-        # External fixed benchmarks
-        if fixed_benchmarks is None:
-            fixed_benchmarks = OrderedDict()
-
-        self.fixed_benchmarks = []
-        for _, benchmark_in in fixed_benchmarks.items():
-            self.fixed_benchmarks.append(
-                [benchmark_in[key] for key in self.parameter_names]
+        # MadMiner interface
+        if parameters_from_madminer is not None:
+            self.use_madminer_interface = True
+            self.n_parameters = len(parameters_from_madminer)
+            self.parameter_names = [key for key in self.parameters_from_madminer]
+            self.parameter_max_power = np.array(
+                [self.parameters_from_madminer[key][2] for key in self.parameter_names],
+                dtype=np.int
             )
-        self.fixed_benchmarks = np.array(self.fixed_benchmarks)
+            self.parameter_range = np.array(
+                [self.parameters_from_madminer[key][3] for key in self.parameter_names]
+            )
+
+            if fixed_benchmarks is None:
+                fixed_benchmarks = OrderedDict()
+            self.fixed_benchmarks = []
+            for _, benchmark_in in fixed_benchmarks.items():
+                self.fixed_benchmarks.append(
+                    [benchmark_in[key] for key in self.parameter_names]
+                )
+            self.fixed_benchmarks = np.array(self.fixed_benchmarks)
+
+        # Generic interface
+        else:
+            self.use_madminer_interface = False
+            self.n_parameters = len(parameter_max_power)
+            self.parameter_names = None
+            self.parameter_max_power = np.array(parameter_max_power, dtype=np.int)
+            self.parameter_range = np.array(parameter_range)
+
+            if fixed_benchmarks is None:
+                fixed_benchmarks = np.array([])
+            self.fixed_benchmarks = np.array(fixed_benchmarks)
 
         # Components
         self.components = self._find_components()
@@ -69,6 +83,7 @@ class MadMorpher:
         :return:
         """
 
+        # Optimization
         best_basis = None
         best_morphing_matrix = None
         best_performance = None
@@ -88,18 +103,24 @@ class MadMorpher:
 
         self.current_basis = best_basis
 
-        # Export as nested dict
-        basis_export = OrderedDict()
-        for benchmark in best_basis:
-            benchmark_name = 'morphing_basis_vector_' + str(len(basis_export))
-            parameter = OrderedDict()
-            for p, pname in enumerate(self.parameter_names):
-                parameter[pname] = benchmark[p]
-            basis_export[benchmark_name] = parameter
+        # Export to MadMiner
+        if self.use_madminer_interface:
+            basis_madminer = OrderedDict()
+            for benchmark in best_basis:
+                benchmark_name = 'morphing_basis_vector_' + str(len(basis_madminer))
+                parameter = OrderedDict()
+                for p, pname in enumerate(self.parameter_names):
+                    parameter[pname] = benchmark[p]
+                basis_madminer[benchmark_name] = parameter
 
+            if return_morphing_matrix:
+                return basis_madminer, self.components, best_morphing_matrix
+            return basis_madminer
+
+        # Normal return
         if return_morphing_matrix:
-            return basis_export, self.components, best_morphing_matrix
-        return basis_export
+            return best_basis, self.components, best_morphing_matrix
+        return best_basis
 
     def _find_components(self):
 
@@ -192,6 +213,9 @@ class MadMorpher:
 
             # Invert -? components expressed in basis points. Shape (n_components, n_benchmarks_this_basis)
             morphing_submatrix = np.linalg.inv(inv_morphing_submatrix)
+
+            # For now, just use 1 / n_bases times the weights of each basis
+            morphing_submatrix = morphing_submatrix / float(self.n_bases)
 
             # Write into full morphing matrix
             morphing_submatrix = morphing_submatrix.T

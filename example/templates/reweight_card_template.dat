@@ -17,13 +17,6 @@
 # ENTER YOUR COMMANDS BELOW. 
 #************************************************************************
 
-change mode NLO    # Define type of Reweighting. For LO sample this command
-                   # has no effect since only "LO" mode is allowed.
-                   
-launch
-#  SPECIFY A PATH OR USE THE SET COMMAND LIKE THIS:
-# set sminputs 1 130 # modify 1/alpha_EW
-
 
 
 #************************************************************************

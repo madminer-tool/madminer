@@ -166,12 +166,12 @@ class MadMiner:
                               weight.
         """
         if keep_existing_benchmarks:
-            morpher = MadMorpher(self.parameters,
-                                 self.benchmarks,
+            morpher = MadMorpher(parameters_from_madminer=self.parameters,
+                                 fixed_benchmarks=self.benchmarks,
                                  max_overall_power=max_overall_power,
                                  n_bases=n_bases)
         else:
-            morpher = MadMorpher(self.parameters,
+            morpher = MadMorpher(parameters_from_madminer=self.parameters,
                                  max_overall_power=max_overall_power,
                                  n_bases=n_bases)
 

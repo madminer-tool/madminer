@@ -17,96 +17,179 @@
 # ENTER YOUR COMMANDS BELOW. 
 #************************************************************************
 
-change mode NLO    # Define type of Reweighting. For LO sample this command
-                   # has no effect since only "LO" mode is allowed.
-                   
-launch
-#  SPECIFY A PATH OR USE THE SET COMMAND LIKE THIS:
-# set sminputs 1 130 # modify 1/alpha_EW
+
+# MadMiner benchmark morphing_basis_vector_1
+launch --rwgt_name=morphing_basis_vector_1
+  set ANOINPUTS 3 -0.09157005540880081
+  set ANOINPUTS 7 -0.9659565438921418
 
 
-# MadMiner benchmark benchmark1
-launch --rwgt_name=benchmark1
-  set sminputs 1 122.65312014642488
-  set sminputs 2 1.169169748642442e-06
+# MadMiner benchmark morphing_basis_vector_2
+launch --rwgt_name=morphing_basis_vector_2
+  set ANOINPUTS 3 -0.6353449916035174
+  set ANOINPUTS 7 -0.04093993216770242
 
 
-# MadMiner benchmark benchmark2
-launch --rwgt_name=benchmark2
-  set sminputs 1 120.7667397727041
-  set sminputs 2 1.1641260076815075e-06
+# MadMiner benchmark morphing_basis_vector_3
+launch --rwgt_name=morphing_basis_vector_3
+  set ANOINPUTS 3 -0.34721409206350073
+  set ANOINPUTS 7 -0.15218542097393728
 
 
-# MadMiner benchmark benchmark3
-launch --rwgt_name=benchmark3
-  set sminputs 1 121.68354369671177
-  set sminputs 2 1.1594735407209303e-06
+# MadMiner benchmark morphing_basis_vector_4
+launch --rwgt_name=morphing_basis_vector_4
+  set ANOINPUTS 3 -0.4369922820871004
+  set ANOINPUTS 7 0.8613568494476105
 
 
-# MadMiner benchmark benchmark4
-launch --rwgt_name=benchmark4
-  set sminputs 1 128.02634145128852
-  set sminputs 2 1.1564132965975343e-06
+# MadMiner benchmark morphing_basis_vector_5
+launch --rwgt_name=morphing_basis_vector_5
+  set ANOINPUTS 3 -0.4244795423708383
+  set ANOINPUTS 7 -0.7450952204946588
 
 
-# MadMiner benchmark benchmark5
-launch --rwgt_name=benchmark5
-  set sminputs 1 127.35592407614449
-  set sminputs 2 1.1536491460032607e-06
+# MadMiner benchmark morphing_basis_vector_6
+launch --rwgt_name=morphing_basis_vector_6
+  set ANOINPUTS 3 0.02720522776887213
+  set ANOINPUTS 7 0.6829569928664292
 
 
-# MadMiner benchmark benchmark6
-launch --rwgt_name=benchmark6
-  set sminputs 1 120.57815023781738
-  set sminputs 2 1.1538222901389903e-06
+# MadMiner benchmark morphing_basis_vector_7
+launch --rwgt_name=morphing_basis_vector_7
+  set ANOINPUTS 3 0.4762841234891939
+  set ANOINPUTS 7 -0.8492875008969796
 
 
-# MadMiner benchmark benchmark7
-launch --rwgt_name=benchmark7
-  set sminputs 1 124.32469736862693
-  set sminputs 2 1.1658351210679754e-06
+# MadMiner benchmark morphing_basis_vector_8
+launch --rwgt_name=morphing_basis_vector_8
+  set ANOINPUTS 3 0.19374936315714475
+  set ANOINPUTS 7 0.19224550117714512
 
 
-# MadMiner benchmark benchmark8
-launch --rwgt_name=benchmark8
-  set sminputs 1 124.48426581831751
-  set sminputs 2 1.1620699402100177e-06
+# MadMiner benchmark morphing_basis_vector_9
+launch --rwgt_name=morphing_basis_vector_9
+  set ANOINPUTS 3 0.4501089347333427
+  set ANOINPUTS 7 -0.15767162305849092
 
 
-# MadMiner benchmark benchmark9
-launch --rwgt_name=benchmark9
-  set sminputs 1 128.1961037347825
-  set sminputs 2 1.1672780948377926e-06
+# MadMiner benchmark morphing_basis_vector_10
+launch --rwgt_name=morphing_basis_vector_10
+  set ANOINPUTS 3 0.37641231874119296
+  set ANOINPUTS 7 0.7002846837839556
 
 
-# MadMiner benchmark benchmark10
-launch --rwgt_name=benchmark10
-  set sminputs 1 122.58947591664618
-  set sminputs 2 1.162259025032246e-06
+# MadMiner benchmark morphing_basis_vector_11
+launch --rwgt_name=morphing_basis_vector_11
+  set ANOINPUTS 3 -0.7087170798631066
+  set ANOINPUTS 7 -0.8719920416847944
 
 
-# MadMiner benchmark benchmark11
-launch --rwgt_name=benchmark11
-  set sminputs 1 120.38050378438265
-  set sminputs 2 1.1625063488749453e-06
+# MadMiner benchmark morphing_basis_vector_12
+launch --rwgt_name=morphing_basis_vector_12
+  set ANOINPUTS 3 0.7752216678008872
+  set ANOINPUTS 7 0.5916974173516651
 
 
-# MadMiner benchmark benchmark12
-launch --rwgt_name=benchmark12
-  set sminputs 1 126.61036817569463
-  set sminputs 2 1.155769124084575e-06
+# MadMiner benchmark morphing_basis_vector_13
+launch --rwgt_name=morphing_basis_vector_13
+  set ANOINPUTS 3 -0.9495325515735236
+  set ANOINPUTS 7 0.009013227091083875
 
 
-# MadMiner benchmark benchmark13
-launch --rwgt_name=benchmark13
-  set sminputs 1 128.6430155868263
-  set sminputs 2 1.1552464784249156e-06
+# MadMiner benchmark morphing_basis_vector_14
+launch --rwgt_name=morphing_basis_vector_14
+  set ANOINPUTS 3 -0.7902003088428011
+  set ANOINPUTS 7 -0.7233138631162621
 
 
-# MadMiner benchmark benchmark14
-launch --rwgt_name=benchmark14
-  set sminputs 1 128.8696750508575
-  set sminputs 2 1.1617122453947653e-06
+# MadMiner benchmark morphing_basis_vector_15
+launch --rwgt_name=morphing_basis_vector_15
+  set ANOINPUTS 3 -0.08234274461546942
+  set ANOINPUTS 7 0.8181155584631716
+
+
+# MadMiner benchmark morphing_basis_vector_16
+launch --rwgt_name=morphing_basis_vector_16
+  set ANOINPUTS 3 -0.761874702270144
+  set ANOINPUTS 7 -0.8859930755373249
+
+
+# MadMiner benchmark morphing_basis_vector_17
+launch --rwgt_name=morphing_basis_vector_17
+  set ANOINPUTS 3 0.555453618968442
+  set ANOINPUTS 7 0.9190111215791188
+
+
+# MadMiner benchmark morphing_basis_vector_18
+launch --rwgt_name=morphing_basis_vector_18
+  set ANOINPUTS 3 -0.10717451345764095
+  set ANOINPUTS 7 -0.4499278553854249
+
+
+# MadMiner benchmark morphing_basis_vector_19
+launch --rwgt_name=morphing_basis_vector_19
+  set ANOINPUTS 3 0.9466979907495894
+  set ANOINPUTS 7 -0.3680888058482241
+
+
+# MadMiner benchmark morphing_basis_vector_20
+launch --rwgt_name=morphing_basis_vector_20
+  set ANOINPUTS 3 0.5602319876495645
+  set ANOINPUTS 7 0.7693160930695739
+
+
+# MadMiner benchmark morphing_basis_vector_21
+launch --rwgt_name=morphing_basis_vector_21
+  set ANOINPUTS 3 -0.13586457421073428
+  set ANOINPUTS 7 -0.8177912583986484
+
+
+# MadMiner benchmark morphing_basis_vector_22
+launch --rwgt_name=morphing_basis_vector_22
+  set ANOINPUTS 3 0.8967760259450372
+  set ANOINPUTS 7 -0.7936298416634071
+
+
+# MadMiner benchmark morphing_basis_vector_23
+launch --rwgt_name=morphing_basis_vector_23
+  set ANOINPUTS 3 -0.6448861876186871
+  set ANOINPUTS 7 0.9224940115348661
+
+
+# MadMiner benchmark morphing_basis_vector_24
+launch --rwgt_name=morphing_basis_vector_24
+  set ANOINPUTS 3 -0.8201787965394849
+  set ANOINPUTS 7 0.4009043372400305
+
+
+# MadMiner benchmark morphing_basis_vector_25
+launch --rwgt_name=morphing_basis_vector_25
+  set ANOINPUTS 3 0.5165339577590276
+  set ANOINPUTS 7 -0.6678548571529901
+
+
+# MadMiner benchmark morphing_basis_vector_26
+launch --rwgt_name=morphing_basis_vector_26
+  set ANOINPUTS 3 0.4387994793764438
+  set ANOINPUTS 7 0.21504464855674943
+
+
+# MadMiner benchmark morphing_basis_vector_27
+launch --rwgt_name=morphing_basis_vector_27
+  set ANOINPUTS 3 -0.9034791148241272
+  set ANOINPUTS 7 0.15647973222209455
+
+
+# MadMiner benchmark morphing_basis_vector_28
+launch --rwgt_name=morphing_basis_vector_28
+  set ANOINPUTS 3 -0.9102065552024989
+  set ANOINPUTS 7 0.4910492921769469
+
+
+# MadMiner benchmark morphing_basis_vector_29
+launch --rwgt_name=morphing_basis_vector_29
+  set ANOINPUTS 3 0.5146637224089314
+  set ANOINPUTS 7 -0.34342952513791847
 
 
 #************************************************************************
