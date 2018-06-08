@@ -2,7 +2,7 @@ import numpy as np
 from collections import OrderedDict
 
 
-class MadMorpher():
+class MadMorpher:
 
     def __init__(self,
                  parameters,
@@ -17,9 +17,6 @@ class MadMorpher():
         :param max_overall_power:
         :param n_bases:
         """
-
-        if n_bases != 1:
-            raise NotImplementedError('Basis oversampling (n_bases > 1) is not supported yet')
 
         self.parameters = parameters
         self.n_parameters = len(parameters)
@@ -53,7 +50,7 @@ class MadMorpher():
         self.n_benchmarks = self.n_bases * self.n_components
         self.n_missing_benchmarks = self.n_benchmarks - len(self.fixed_benchmarks)
 
-        assert(self.n_missing_benchmarks >= 0, 'Too many fixed benchmarks!')
+        assert (self.n_missing_benchmarks >= 0, 'Too many fixed benchmarks!')
 
         # Current chosen basis
         self.current_basis = None
@@ -67,6 +64,7 @@ class MadMorpher():
         Finds a set of basis parameter vectors, based on a rudimentary optimization algorithm.
 
         :param n_trials:
+        :param n_test_thetas:
         :param return_morphing_matrix:
         :return:
         """
@@ -144,6 +142,8 @@ class MadMorpher():
 
     def _propose_basis(self):
 
+        """ Propose a random basis """
+
         if len(self.fixed_benchmarks) > 0:
             basis = np.vstack([
                 self.fixed_benchmarks,
@@ -156,7 +156,7 @@ class MadMorpher():
 
     def _draw_random_thetas(self, n_thetas):
 
-        """ Randomly draws basis vectors within the specified parameter ranges """
+        """ Randomly draws parameter vectors within the specified parameter ranges """
 
         # First draw random numbers in range [0, 1)^n_parameters
         u = np.random.rand(n_thetas, self.n_parameters)
@@ -173,20 +173,31 @@ class MadMorpher():
         if basis is None:
             basis = self.current_basis
 
-        # Basis points expressed in components
-        inv_morphing_matrix = np.zeros((self.n_benchmarks, self.n_components))
+        # Full morphing matrix. Will have shape (n_components, n_benchmarks) (note transposition later)
+        morphing_matrix = np.zeros((self.n_benchmarks, self.n_components))
 
-        for b in range(self.n_benchmarks):
-            for c in range(self.n_components):
-                factor = 1.
-                for p in range(self.n_parameters):
-                    factor *= float(basis[b, p] ** self.components[c, p])
-                inv_morphing_matrix[b, c] = factor
+        # Morphing submatrix for each basis
+        for i in range(self.n_bases):
+            n_benchmarks_this_basis = self.n_components
+            this_basis = basis[i * n_benchmarks_this_basis:(i + 1) * n_benchmarks_this_basis]
 
-        # Invert
-        # Components expressed in basis points. Shape (n_components, n_benchmarks)
-        # TODO: oversampling
-        morphing_matrix = np.linalg.inv(inv_morphing_matrix)
+            inv_morphing_submatrix = np.zeros((n_benchmarks_this_basis, self.n_components))
+
+            for b in range(n_benchmarks_this_basis):
+                for c in range(self.n_components):
+                    factor = 1.
+                    for p in range(self.n_parameters):
+                        factor *= float(this_basis[b, p] ** self.components[c, p])
+                    inv_morphing_submatrix[b, c] = factor
+
+            # Invert -? components expressed in basis points. Shape (n_components, n_benchmarks_this_basis)
+            morphing_submatrix = np.linalg.inv(inv_morphing_submatrix)
+
+            # Write into full morphing matrix
+            morphing_submatrix = morphing_submatrix.T
+            morphing_matrix[i * n_benchmarks_this_basis:(i + 1) * n_benchmarks_this_basis] = morphing_submatrix
+
+        morphing_matrix = morphing_matrix.T
 
         return morphing_matrix
 
@@ -210,7 +221,7 @@ class MadMorpher():
         component_weights = np.array(component_weights)
 
         # Transform to basis weights
-        weights = morphing_matrix.T.dot(component_weights)  # TODO: Cross-check
+        weights = morphing_matrix.T.dot(component_weights)
 
         return weights
 
@@ -233,4 +244,4 @@ class MadMorpher():
 
         squared_weights /= float(n_test_thetas)
 
-        return - squared_weights
+        return -squared_weights
