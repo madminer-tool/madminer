@@ -1,6 +1,7 @@
 from collections import OrderedDict
 
 from .morphing import MadMorpher
+from .h5_interface import save_madminer_file
 from .mg_interface import export_param_card, export_reweight_card
 
 
@@ -14,13 +15,14 @@ class MadMiner:
         self.benchmarks = OrderedDict()
         self.default_benchmark = None
         self.morpher = None
+        self.export_morphing = False
 
     def add_parameter(self,
                       lha_block,
                       lha_id,
                       parameter_name=None,
                       morphing_max_power=2,
-                      morphing_parameter_range=(0.,1.)):
+                      morphing_parameter_range=(0., 1.)):
 
         """ Adds an individual parameter
 
@@ -51,6 +53,9 @@ class MadMiner:
 
         # Add parameter
         self.parameters[parameter_name] = (lha_block, lha_id, morphing_max_power, morphing_parameter_range)
+
+        # After manually adding parameters, the morphing information is not accurate anymore
+        self.export_morphing = False
 
     def set_parameters(self,
                        parameters=None):
@@ -94,6 +99,9 @@ class MadMiner:
                 assert len(values) == 2, 'Parameter list entry does not have length 2: {0}'.format(values)
                 self.add_parameter(values[0], values[1])
 
+        # After manually adding parameters, the morphing information is not accurate anymore
+        self.export_morphing = False
+
     def add_benchmark(self,
                       parameter_values,
                       benchmark_name=None):
@@ -123,6 +131,9 @@ class MadMiner:
         if len(self.benchmarks) == 1:
             self.default_benchmark = benchmark_name
 
+        # After manually adding benchmarks, the morphing information is not accurate anymore
+        self.export_morphing = False
+
     def set_benchmarks(self,
                        benchmarks=None):
         """
@@ -145,6 +156,9 @@ class MadMiner:
         else:
             for values in benchmarks:
                 self.add_benchmark(values)
+
+        # After manually adding benchmarks, the morphing information is not accurate anymore
+        self.export_morphing = False
 
     def set_benchmarks_from_morphing(self,
                                      max_overall_power=4,
@@ -180,9 +194,22 @@ class MadMiner:
         basis = morpher.find_basis_simple(n_trials=n_trials,
                                           n_test_thetas=n_test_thetas)
         self.set_benchmarks(basis)
+        self.export_morphing = True
 
     def set_benchmarks_from_finite_differences(self):
         raise NotImplementedError
+
+    def save(self, filename):
+        if self.export_morphing and self.morpher is not None:
+            save_madminer_file(filename=filename,
+                               parameters=self.parameters,
+                               benchmarks=self.benchmarks,
+                               morphing_components=self.morpher.components,
+                               morphing_matrix=self.morpher.morphing_matrix)
+        else:
+            save_madminer_file(filename=filename,
+                               parameters=self.parameters,
+                               benchmarks=self.benchmarks)
 
     def export_cards(self,
                      param_card_template_file,
@@ -192,8 +219,8 @@ class MadMiner:
 
         """
         Writes out param_card and reweight_card for MadGraph. Currently, this is the final output of this package.
-        Future versions are scheduled to support the automatic running of MadGraph, and the automated conversion of event
-        files.
+        Future versions are scheduled to support the automatic running of MadGraph, and the automated conversion of
+        event files.
 
         :param param_card_template_file: Path to a param_card.dat of the used model.
         :param reweight_card_template_file: Path to an empty reweight_card.dat (no commands, the default 'launch' should
