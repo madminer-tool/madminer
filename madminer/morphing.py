@@ -15,7 +15,10 @@ class MadMorpher:
         """
         Constructor.
 
-        :param parameters:
+        :param parameters_from_madminer:
+        :param parameter_max_power:
+        :param parameter_range:
+        :param fixed_benchmarks:
         :param max_overall_power:
         :param n_bases:
         """
@@ -40,7 +43,9 @@ class MadMorpher:
             if fixed_benchmarks is None:
                 fixed_benchmarks = OrderedDict()
             self.fixed_benchmarks = []
-            for _, benchmark_in in fixed_benchmarks.items():
+            self.fixed_benchmark_names = []
+            for bname, benchmark_in in fixed_benchmarks.items():
+                self.fixed_benchmark_names.append(bname)
                 self.fixed_benchmarks.append(
                     [benchmark_in[key] for key in self.parameter_names]
                 )
@@ -57,6 +62,7 @@ class MadMorpher:
             if fixed_benchmarks is None:
                 fixed_benchmarks = np.array([])
             self.fixed_benchmarks = np.array(fixed_benchmarks)
+            self.fixed_benchmark_names = []
 
         # Components
         self.components = self._find_components()
@@ -64,10 +70,11 @@ class MadMorpher:
         self.n_benchmarks = self.n_bases * self.n_components
         self.n_missing_benchmarks = self.n_benchmarks - len(self.fixed_benchmarks)
 
-        assert (self.n_missing_benchmarks >= 0, 'Too many fixed benchmarks!')
+        assert self.n_missing_benchmarks >= 0, 'Too many fixed benchmarks!'
 
         # Current chosen basis
-        self.current_basis = None
+        self.basis = None
+        self.morphing_matrix = None
 
     def find_basis_simple(self,
                           n_trials=100,
@@ -101,13 +108,17 @@ class MadMorpher:
                 best_basis = basis
                 best_morphing_matrix = morphing_matrix
 
-        self.current_basis = best_basis
+        self.basis = best_basis
+        self.morphing_matrix = best_morphing_matrix
 
         # Export to MadMiner
         if self.use_madminer_interface:
             basis_madminer = OrderedDict()
-            for benchmark in best_basis:
-                benchmark_name = 'morphing_basis_vector_' + str(len(basis_madminer))
+            for i, benchmark in enumerate(best_basis):
+                if i < len(self.fixed_benchmark_names):
+                    benchmark_name = self.fixed_benchmark_names[i]
+                else:
+                    benchmark_name = 'morphing_basis_vector_' + str(len(basis_madminer))
                 parameter = OrderedDict()
                 for p, pname in enumerate(self.parameter_names):
                     parameter[pname] = benchmark[p]
@@ -192,7 +203,7 @@ class MadMorpher:
         """ Calculates the morphing matrix that links the components to the basis parameter vectors """
 
         if basis is None:
-            basis = self.current_basis
+            basis = self.basis
 
         # Full morphing matrix. Will have shape (n_components, n_benchmarks) (note transposition later)
         morphing_matrix = np.zeros((self.n_benchmarks, self.n_components))
@@ -230,7 +241,8 @@ class MadMorpher:
         """ Calculates the morphing weights w_b(theta) for a given basis {theta_b} """
 
         if basis is None:
-            basis = self.current_basis
+            basis = self.basis
+            morphing_matrix = self.morphing_matrix
 
         if morphing_matrix is None:
             morphing_matrix = self._calculate_morphing_matrix(basis)
@@ -254,7 +266,8 @@ class MadMorpher:
         """ Evaluates an objective function for a given basis """
 
         if basis is None:
-            basis = self.current_basis
+            basis = self.basis
+            morphing_matrix = self.morphing_matrix
 
         if morphing_matrix is None:
             morphing_matrix = self._calculate_morphing_matrix(basis)
