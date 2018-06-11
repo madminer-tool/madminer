@@ -2,10 +2,12 @@ import numpy as np
 from collections import OrderedDict
 
 
-class MadMorpher():
+class MadMorpher:
 
     def __init__(self,
-                 parameters,
+                 parameters_from_madminer=None,
+                 parameter_max_power=None,
+                 parameter_range=None,
                  fixed_benchmarks=None,
                  max_overall_power=4,
                  n_bases=1):
@@ -18,34 +20,43 @@ class MadMorpher():
         :param n_bases:
         """
 
-        if n_bases != 1:
-            raise NotImplementedError('Basis oversampling (n_bases > 1) is not supported yet')
-
-        self.parameters = parameters
-        self.n_parameters = len(parameters)
+        # Input
         self.n_bases = n_bases
         self.max_overall_power = max_overall_power
 
-        # For the morphing, we need an order
-        self.parameter_names = [key for key in self.parameters]
-        self.parameter_max_power = np.array(
-            [self.parameters[key][2] for key in self.parameter_names],
-            dtype=np.int
-        )
-        self.parameter_range = np.array(
-            [self.parameters[key][3] for key in self.parameter_names]
-        )
-
-        # External fixed benchmarks
-        if fixed_benchmarks is None:
-            fixed_benchmarks = OrderedDict()
-
-        self.fixed_benchmarks = []
-        for _, benchmark_in in fixed_benchmarks.items():
-            self.fixed_benchmarks.append(
-                [benchmark_in[key] for key in self.parameter_names]
+        # MadMiner interface
+        if parameters_from_madminer is not None:
+            self.use_madminer_interface = True
+            self.n_parameters = len(parameters_from_madminer)
+            self.parameter_names = [key for key in parameters_from_madminer]
+            self.parameter_max_power = np.array(
+                [parameters_from_madminer[key][2] for key in self.parameter_names],
+                dtype=np.int
             )
-        self.fixed_benchmarks = np.array(self.fixed_benchmarks)
+            self.parameter_range = np.array(
+                [parameters_from_madminer[key][3] for key in self.parameter_names]
+            )
+
+            if fixed_benchmarks is None:
+                fixed_benchmarks = OrderedDict()
+            self.fixed_benchmarks = []
+            for _, benchmark_in in fixed_benchmarks.items():
+                self.fixed_benchmarks.append(
+                    [benchmark_in[key] for key in self.parameter_names]
+                )
+            self.fixed_benchmarks = np.array(self.fixed_benchmarks)
+
+        # Generic interface
+        else:
+            self.use_madminer_interface = False
+            self.n_parameters = len(parameter_max_power)
+            self.parameter_names = None
+            self.parameter_max_power = np.array(parameter_max_power, dtype=np.int)
+            self.parameter_range = np.array(parameter_range)
+
+            if fixed_benchmarks is None:
+                fixed_benchmarks = np.array([])
+            self.fixed_benchmarks = np.array(fixed_benchmarks)
 
         # Components
         self.components = self._find_components()
@@ -53,7 +64,7 @@ class MadMorpher():
         self.n_benchmarks = self.n_bases * self.n_components
         self.n_missing_benchmarks = self.n_benchmarks - len(self.fixed_benchmarks)
 
-        assert(self.n_missing_benchmarks >= 0, 'Too many fixed benchmarks!')
+        assert (self.n_missing_benchmarks >= 0, 'Too many fixed benchmarks!')
 
         # Current chosen basis
         self.current_basis = None
@@ -67,10 +78,12 @@ class MadMorpher():
         Finds a set of basis parameter vectors, based on a rudimentary optimization algorithm.
 
         :param n_trials:
+        :param n_test_thetas:
         :param return_morphing_matrix:
         :return:
         """
 
+        # Optimization
         best_basis = None
         best_morphing_matrix = None
         best_performance = None
@@ -90,18 +103,24 @@ class MadMorpher():
 
         self.current_basis = best_basis
 
-        # Export as nested dict
-        basis_export = OrderedDict()
-        for benchmark in best_basis:
-            benchmark_name = 'morphing_basis_vector_' + str(len(basis_export))
-            parameter = OrderedDict()
-            for p, pname in enumerate(self.parameter_names):
-                parameter[pname] = benchmark[p]
-            basis_export[benchmark_name] = parameter
+        # Export to MadMiner
+        if self.use_madminer_interface:
+            basis_madminer = OrderedDict()
+            for benchmark in best_basis:
+                benchmark_name = 'morphing_basis_vector_' + str(len(basis_madminer))
+                parameter = OrderedDict()
+                for p, pname in enumerate(self.parameter_names):
+                    parameter[pname] = benchmark[p]
+                basis_madminer[benchmark_name] = parameter
 
+            if return_morphing_matrix:
+                return basis_madminer, self.components, best_morphing_matrix
+            return basis_madminer
+
+        # Normal return
         if return_morphing_matrix:
-            return basis_export, self.components, best_morphing_matrix
-        return basis_export
+            return best_basis, self.components, best_morphing_matrix
+        return best_basis
 
     def _find_components(self):
 
@@ -144,6 +163,8 @@ class MadMorpher():
 
     def _propose_basis(self):
 
+        """ Propose a random basis """
+
         if len(self.fixed_benchmarks) > 0:
             basis = np.vstack([
                 self.fixed_benchmarks,
@@ -156,7 +177,7 @@ class MadMorpher():
 
     def _draw_random_thetas(self, n_thetas):
 
-        """ Randomly draws basis vectors within the specified parameter ranges """
+        """ Randomly draws parameter vectors within the specified parameter ranges """
 
         # First draw random numbers in range [0, 1)^n_parameters
         u = np.random.rand(n_thetas, self.n_parameters)
@@ -173,20 +194,34 @@ class MadMorpher():
         if basis is None:
             basis = self.current_basis
 
-        # Basis points expressed in components
-        inv_morphing_matrix = np.zeros((self.n_benchmarks, self.n_components))
+        # Full morphing matrix. Will have shape (n_components, n_benchmarks) (note transposition later)
+        morphing_matrix = np.zeros((self.n_benchmarks, self.n_components))
 
-        for b in range(self.n_benchmarks):
-            for c in range(self.n_components):
-                factor = 1.
-                for p in range(self.n_parameters):
-                    factor *= float(basis[b, p] ** self.components[c, p])
-                inv_morphing_matrix[b, c] = factor
+        # Morphing submatrix for each basis
+        for i in range(self.n_bases):
+            n_benchmarks_this_basis = self.n_components
+            this_basis = basis[i * n_benchmarks_this_basis:(i + 1) * n_benchmarks_this_basis]
 
-        # Invert
-        # Components expressed in basis points. Shape (n_components, n_benchmarks)
-        # TODO: oversampling
-        morphing_matrix = np.linalg.inv(inv_morphing_matrix)
+            inv_morphing_submatrix = np.zeros((n_benchmarks_this_basis, self.n_components))
+
+            for b in range(n_benchmarks_this_basis):
+                for c in range(self.n_components):
+                    factor = 1.
+                    for p in range(self.n_parameters):
+                        factor *= float(this_basis[b, p] ** self.components[c, p])
+                    inv_morphing_submatrix[b, c] = factor
+
+            # Invert -? components expressed in basis points. Shape (n_components, n_benchmarks_this_basis)
+            morphing_submatrix = np.linalg.inv(inv_morphing_submatrix)
+
+            # For now, just use 1 / n_bases times the weights of each basis
+            morphing_submatrix = morphing_submatrix / float(self.n_bases)
+
+            # Write into full morphing matrix
+            morphing_submatrix = morphing_submatrix.T
+            morphing_matrix[i * n_benchmarks_this_basis:(i + 1) * n_benchmarks_this_basis] = morphing_submatrix
+
+        morphing_matrix = morphing_matrix.T
 
         return morphing_matrix
 
@@ -210,7 +245,7 @@ class MadMorpher():
         component_weights = np.array(component_weights)
 
         # Transform to basis weights
-        weights = morphing_matrix.T.dot(component_weights)  # TODO: Cross-check
+        weights = morphing_matrix.T.dot(component_weights)
 
         return weights
 
@@ -233,4 +268,4 @@ class MadMorpher():
 
         squared_weights /= float(n_test_thetas)
 
-        return - squared_weights
+        return -squared_weights

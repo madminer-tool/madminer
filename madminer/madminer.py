@@ -13,16 +13,27 @@ class MadMiner:
         self.parameters = OrderedDict()
         self.benchmarks = OrderedDict()
         self.default_benchmark = None
-        self.current_morpher = None
+        self.morpher = None
 
     def add_parameter(self,
                       lha_block,
                       lha_id,
                       parameter_name=None,
-                      morphing_max_power=None,
-                      morphing_parameter_range=None):
+                      morphing_max_power=2,
+                      morphing_parameter_range=(0.,1.)):
 
-        """ Adds an individual parameter """
+        """ Adds an individual parameter
+
+        :param lha_block: str, the name of the LHA block as used in the param_card. Case-sensitive.
+        :param lha_id: int, the LHA id as used in the param_card.
+        :param parameter_name: an internal name for the parameter. If None, a the default 'benchmark_i' is used.
+        :param morphing_max_power: the maximal power with which this parameter contributes to the squared matrix element
+                                   of the process of interest. Typically at tree level, this is 2 for parameters that
+                                   affect one vertex (e.g. only production or only decay of a particle), and 4 for
+                                   parameters that affect two vertices (e.g. production and decay).
+        :param morphing_parameter_range: tuple, the range of parameter values of primary interest. Only affects the
+                                         basis optimization.
+        """
 
         # Default names
         if parameter_name is None:
@@ -126,6 +137,7 @@ class MadMiner:
             benchmarks = OrderedDict()
 
         self.benchmarks = OrderedDict()
+        self.default_benchmark = None
 
         if isinstance(benchmarks, dict):
             for name, values in benchmarks.items():
@@ -140,20 +152,33 @@ class MadMiner:
                                      keep_existing_benchmarks=False,
                                      n_trials=100,
                                      n_test_thetas=100):
+        """
+        Sets all parameter benchmarks based on a morphing algorithm. The morphing basis is optimized with respect to the
+        expected mean squared morphing weights over the parameter region of interest.
 
+        :param max_overall_power: The maximal sum of powers of all parameters.
+        :param n_bases: The number of morphing bases generated. If n_bases > 1, multiple bases are combined, and the
+                        weights for each basis are reduced by a factor 1 / n_bases. Currently not supported.
+        :param keep_existing_benchmarks: Whether the previously defined benchmarks are included in the basis. In that
+                                         case, the number of free parameters in the optimization routine is reduced.
+        :param n_trials: Number of candidate bases used in the optimization.
+        :param n_test_thetas: Number of validation benchmark points used to calculate the expected mean squared morphing
+                              weight.
+        """
         if keep_existing_benchmarks:
-            morpher = MadMorpher(self.parameters,
-                                 self.benchmarks,
+            morpher = MadMorpher(parameters_from_madminer=self.parameters,
+                                 fixed_benchmarks=self.benchmarks,
                                  max_overall_power=max_overall_power,
                                  n_bases=n_bases)
         else:
-            morpher = MadMorpher(self.parameters,
+            morpher = MadMorpher(parameters_from_madminer=self.parameters,
                                  max_overall_power=max_overall_power,
                                  n_bases=n_bases)
 
-        self.current_morpher = morpher
+        self.morpher = morpher
 
-        basis = morpher.find_basis_simple(n_trials=n_trials)
+        basis = morpher.find_basis_simple(n_trials=n_trials,
+                                          n_test_thetas=n_test_thetas)
         self.set_benchmarks(basis)
 
     def set_benchmarks_from_finite_differences(self):
@@ -165,7 +190,18 @@ class MadMiner:
                      mg_process_directory,
                      sample_benchmark=None):
 
-        """ Writes out param_card and reweight_card for MadGraph """
+        """
+        Writes out param_card and reweight_card for MadGraph. Currently, this is the final output of this package.
+        Future versions are scheduled to support the automatic running of MadGraph, and the automated conversion of event
+        files.
+
+        :param param_card_template_file: Path to a param_card.dat of the used model.
+        :param reweight_card_template_file: Path to an empty reweight_card.dat (no commands, the default 'launch' should
+                                            be commented out or removed).
+        :param mg_process_directory: Path to the directory of the MG process.
+        :param sample_benchmark: Name of the benchmark used for sampling. If None, the very first defined benchmark is
+                                 used.
+        """
 
         # Check status
         assert self.default_benchmark is not None
