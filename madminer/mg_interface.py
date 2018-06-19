@@ -1,3 +1,8 @@
+import os
+import sys
+
+import shutil
+from .utils import call_command
 
 
 def export_param_card(benchmark,
@@ -86,3 +91,85 @@ def export_reweight_card(sample_benchmark,
     # Save param_card.dat
     with open(mg_process_directory + '/Cards/reweight_card.dat', 'w') as file:
         file.write(reweight_card)
+
+
+# Everything below from Felix
+
+def generate_mg_process(mg_directory,
+                        temp_directory,
+                        proc_card_file,
+                        mg_process_directory,
+                        initial_command=None):
+
+    print('Generating MG process from', proc_card_file)
+    print('temp:', temp_directory)
+
+    # Copy proc_card
+    shutil.copyfile(proc_card_file, temp_directory + '/proc_card.dat')
+
+    # Name of Process Dir
+    with open(temp_directory + '/proc_card.dat', "a") as myfile:
+        myfile.write('output ' + mg_process_directory)
+
+    # Call MG5
+    if initial_command is None:
+        initial_command = ''
+    else:
+        initial_command = initial_command + '; '
+    _ = call_command(initial_command + mg_directory + '/bin/mg5_aMC ' + temp_directory + '/proc_card.dat')
+
+    # Remove useless proc_card
+    os.remove(temp_directory + '/proc_card.dat')
+
+
+def run_mg_pythia(mg_process_directory,
+                  run_card_file=None,
+                  param_card_file=None,
+                  reweight_card_file=None,
+                  pythia8_card_file=None,
+                  initial_command=None):
+    # Copy cards
+    if run_card_file is not None:
+        shutil.copyfile(run_card_file, mg_process_directory + '/Cards/run_card.dat')
+    if param_card_file is not None:
+        shutil.copyfile(param_card_file, mg_process_directory + '/Cards/param_card.dat')
+    if reweight_card_file is not None:
+        shutil.copyfile(reweight_card_file, mg_process_directory + '/Cards/reweight_card.dat')
+    if pythia8_card_file is not None:
+        shutil.copyfile(pythia8_card_file, mg_process_directory + '/Cards/pythia8_card.dat')
+
+    # Remove unneeded cards
+    if os.path.isfile(mg_process_directory + '/Cards/delphes_card.dat'):
+        os.remove(mg_process_directory + '/Cards/delphes_card.dat')
+    if os.path.isfile(mg_process_directory + '/Cards/pythia_card.dat'):
+        os.remove(mg_process_directory + '/Cards/pythia_card.dat')
+    if os.path.isfile(mg_process_directory + '/Cards/madanalysis5_hadron_card.dat'):
+        os.remove(mg_process_directory + '/Cards/madanalysis5_hadron_card.dat')
+    if os.path.isfile(mg_process_directory + '/Cards/madanalysis5_parton_card.dat'):
+        os.remove(mg_process_directory + '/Cards/madanalysis5_parton_card.dat')
+
+    if os.path.isfile(mg_process_directory + '/RunWeb'):
+        os.remove(mg_process_directory + '/RunWeb')
+    if os.path.isfile(mg_process_directory + '/index.html'):
+        os.remove(mg_process_directory + '/index.html')
+    if os.path.isfile(mg_process_directory + '/crossx.html'):
+        os.remove(mg_process_directory + '/crossx.html')
+
+    if os.path.isdir(mg_process_directory + '/HTML'):
+        shutil.rmtree(mg_process_directory + '/HTML')
+    if os.path.isdir(mg_process_directory + '/Events'):
+        shutil.rmtree(mg_process_directory + '/Events')
+    if os.path.isdir(mg_process_directory + '/rw_me'):
+        shutil.rmtree(mg_process_directory + '/rw_me')
+    if os.path.isdir(mg_process_directory + '/rw_me_second'):
+        shutil.rmtree(mg_process_directory + '/rw_me_second')
+
+    os.mkdir(mg_process_directory + '/HTML')
+    os.mkdir(mg_process_directory + '/Events')
+
+    # Call MG5
+    if initial_command is None:
+        initial_command = ''
+    else:
+        initial_command = initial_command + '; '
+    _ =  call_command(initial_command + mg_process_directory + '/bin/generate_events -f')
