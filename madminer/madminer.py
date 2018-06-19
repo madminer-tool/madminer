@@ -216,13 +216,15 @@ class MadMiner:
                              mg_directory,
                              temp_directory,
                              proc_card_file,
-                             mg_process_directory):
+                             mg_process_directory,
+                             initial_command=None):
 
         generate_mg_process(
             mg_directory,
             temp_directory,
             proc_card_file,
-            mg_process_directory
+            mg_process_directory,
+            initial_command=initial_command
         )
 
     def export_cards(self,
@@ -270,14 +272,16 @@ class MadMiner:
                       run_card_file=None,
                       param_card_file=None,
                       reweight_card_file=None,
-                      pythia8_card_file=None):
+                      pythia8_card_file=None,
+                      initial_command=None):
 
         run_mg_pythia(
             mg_process_directory,
             run_card_file,
             param_card_file,
             reweight_card_file,
-            pythia8_card_file
+            pythia8_card_file,
+            initial_command=initial_command
         )
 
     def run(self,
@@ -289,7 +293,8 @@ class MadMiner:
             pythia8_card_file=None,
             mg_process_directory=None,
             temp_directory=None,
-            sample_benchmark=None):
+            sample_benchmark=None,
+            initial_command=None):
 
         if mg_process_directory is None:
             mg_process_directory = mg_directory + '/' + 'MadMiner_process'
@@ -300,7 +305,8 @@ class MadMiner:
         self.generate_m5g_process(mg_directory,
                                   temp_directory,
                                   proc_card_file,
-                                  mg_process_directory)
+                                  mg_process_directory,
+                                  initial_command=initial_command)
 
         self.export_cards(param_card_template_file,
                           reweight_card_template_file,
@@ -311,4 +317,5 @@ class MadMiner:
                            run_card_file,
                            None,
                            None,
-                           pythia8_card_file)
+                           pythia8_card_file,
+                           initial_command=initial_command)

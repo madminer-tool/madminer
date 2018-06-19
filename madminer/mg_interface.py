@@ -2,7 +2,7 @@ import os
 import sys
 
 import shutil
-from subprocess import call
+from .utils import call_command
 
 
 def export_param_card(benchmark,
@@ -98,7 +98,12 @@ def export_reweight_card(sample_benchmark,
 def generate_mg_process(mg_directory,
                         temp_directory,
                         proc_card_file,
-                        mg_process_directory):
+                        mg_process_directory,
+                        initial_command=None):
+
+    print('Generating MG process from', proc_card_file)
+    print('temp:', temp_directory)
+
     # Copy proc_card
     shutil.copyfile(proc_card_file, temp_directory + '/proc_card.dat')
 
@@ -107,7 +112,11 @@ def generate_mg_process(mg_directory,
         myfile.write('output ' + mg_process_directory)
 
     # Call MG5
-    call([mg_directory + '/bin/mg5_aMC', temp_directory + '/proc_card.dat'])
+    if initial_command is None:
+        initial_command = ''
+    else:
+        initial_command = initial_command + '; '
+    _ = call_command(initial_command + mg_directory + '/bin/mg5_aMC ' + temp_directory + '/proc_card.dat')
 
     # Remove useless proc_card
     os.remove(temp_directory + '/proc_card.dat')
@@ -117,7 +126,8 @@ def run_mg_pythia(mg_process_directory,
                   run_card_file=None,
                   param_card_file=None,
                   reweight_card_file=None,
-                  pythia8_card_file=None):
+                  pythia8_card_file=None,
+                  initial_command=None):
     # Copy cards
     if run_card_file is not None:
         shutil.copyfile(run_card_file, mg_process_directory + '/Cards/run_card.dat')
@@ -158,4 +168,8 @@ def run_mg_pythia(mg_process_directory,
     os.mkdir(mg_process_directory + '/Events')
 
     # Call MG5
-    call([mg_process_directory + '/bin/generate_events', '-f'])
+    if initial_command is None:
+        initial_command = ''
+    else:
+        initial_command = initial_command + '; '
+    _ =  call_command(initial_command + mg_process_directory + '/bin/generate_events -f')
