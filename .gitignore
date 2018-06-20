@@ -115,4 +115,6 @@ venv.bak/
 # Data
 goldmine/data
 example/animations
+example/temp
+example/nsqso_born.inc
 Felix
