@@ -99,16 +99,13 @@ def generate_mg_process(mg_directory,
                         temp_directory,
                         proc_card_file,
                         mg_process_directory,
-                        initial_command=None):
+                        initial_command=None,
+                        log_file=None):
+    # MG commands
+    temp_proc_card_file = temp_directory + '/generate.mg5'
+    shutil.copyfile(proc_card_file, temp_proc_card_file)
 
-    print('Generating MG process from', proc_card_file)
-    print('temp:', temp_directory)
-
-    # Copy proc_card
-    shutil.copyfile(proc_card_file, temp_directory + '/proc_card.dat')
-
-    # Name of Process Dir
-    with open(temp_directory + '/proc_card.dat', "a") as myfile:
+    with open(temp_proc_card_file, "a") as myfile:
         myfile.write('output ' + mg_process_directory)
 
     # Call MG5
@@ -116,18 +113,21 @@ def generate_mg_process(mg_directory,
         initial_command = ''
     else:
         initial_command = initial_command + '; '
-    _ = call_command(initial_command + mg_directory + '/bin/mg5_aMC ' + temp_directory + '/proc_card.dat')
 
-    # Remove useless proc_card
-    os.remove(temp_directory + '/proc_card.dat')
+    _ = call_command(initial_command + mg_directory + '/bin/mg5_aMC ' + temp_proc_card_file,
+                     log_file=log_file)
 
 
-def run_mg_pythia(mg_process_directory,
+def run_mg_pythia(mg_directory,
+                  mg_process_directory,
+                  temp_directory,
                   run_card_file=None,
                   param_card_file=None,
                   reweight_card_file=None,
                   pythia8_card_file=None,
-                  initial_command=None):
+                  initial_command=None,
+                  log_file=None):
+
     # Copy cards
     if run_card_file is not None:
         shutil.copyfile(run_card_file, mg_process_directory + '/Cards/run_card.dat')
@@ -167,9 +167,27 @@ def run_mg_pythia(mg_process_directory,
     os.mkdir(mg_process_directory + '/HTML')
     os.mkdir(mg_process_directory + '/Events')
 
+    # MG commands
+    temp_proc_card_file = temp_directory + '/run.mg5'
+
+    mg_commands = '''
+    launch {}
+    shower=Pythia8
+    detector=OFF
+    analysis=OFF
+    madspin=OFF
+    reweight=ON
+    done
+    '''.format(mg_process_directory)
+
+    with open(temp_proc_card_file, 'w') as file:
+        file.write(mg_commands)
+
     # Call MG5
     if initial_command is None:
         initial_command = ''
     else:
         initial_command = initial_command + '; '
-    _ =  call_command(initial_command + mg_process_directory + '/bin/generate_events -f')
+    _ = call_command(initial_command + mg_directory + '/bin/mg5_aMC ' + temp_proc_card_file,
+                     log_file=log_file)
+

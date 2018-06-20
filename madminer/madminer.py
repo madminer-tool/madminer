@@ -212,19 +212,21 @@ class MadMiner:
                                parameters=self.parameters,
                                benchmarks=self.benchmarks)
 
-    def generate_m5g_process(self,
+    def generate_mg_process(self,
                              mg_directory,
                              temp_directory,
                              proc_card_file,
                              mg_process_directory,
-                             initial_command=None):
+                             initial_command=None,
+                             log_file=None):
 
         generate_mg_process(
             mg_directory,
             temp_directory,
             proc_card_file,
             mg_process_directory,
-            initial_command=initial_command
+            initial_command=initial_command,
+            log_file=log_file
         )
 
     def export_cards(self,
@@ -268,20 +270,26 @@ class MadMiner:
                              mg_process_directory=mg_process_directory)
 
     def run_mg_pythia(self,
+                      mg_directory,
                       mg_process_directory,
+                      temp_directory,
                       run_card_file=None,
                       param_card_file=None,
                       reweight_card_file=None,
                       pythia8_card_file=None,
-                      initial_command=None):
+                      initial_command=None,
+                      log_file=None):
 
         run_mg_pythia(
+            mg_directory,
             mg_process_directory,
+            temp_directory,
             run_card_file,
             param_card_file,
             reweight_card_file,
             pythia8_card_file,
-            initial_command=initial_command
+            initial_command=initial_command,
+            log_file=log_file
         )
 
     def run(self,
@@ -294,28 +302,39 @@ class MadMiner:
             mg_process_directory=None,
             temp_directory=None,
             sample_benchmark=None,
-            initial_command=None):
+            initial_command=None,
+            log_directory=None):
 
         if mg_process_directory is None:
-            mg_process_directory = mg_directory + '/' + 'MadMiner_process'
+            mg_process_directory = mg_directory + '/MadMiner_process'
 
         if temp_directory is None:
             temp_directory = tempfile.gettempdir()
 
-        self.generate_m5g_process(mg_directory,
+        log_file_generate = None
+        log_file_run = None
+        if log_directory is not None:
+            log_file_generate = log_directory + '/generate.log'
+            log_file_run = log_directory + '/run.log'
+
+        self.generate_mg_process(mg_directory,
                                   temp_directory,
                                   proc_card_file,
                                   mg_process_directory,
-                                  initial_command=initial_command)
+                                  initial_command=initial_command,
+                                  log_file=log_file_generate)
 
         self.export_cards(param_card_template_file,
                           reweight_card_template_file,
                           mg_process_directory,
                           sample_benchmark)
 
-        self.run_mg_pythia(mg_process_directory,
+        self.run_mg_pythia(mg_directory,
+                           mg_process_directory,
+                           temp_directory,
                            run_card_file,
                            None,
                            None,
                            pythia8_card_file,
-                           initial_command=initial_command)
+                           initial_command=initial_command,
+                           log_file=log_file_run)
