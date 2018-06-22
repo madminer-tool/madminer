@@ -27,7 +27,6 @@ def save_madminer_file(filename,
         parameter_names = [pname for pname in parameters]
         n_parameters = len(parameter_names)
         parameter_names_ascii = [pname.encode("ascii", "ignore") for pname in parameter_names]
-        print(parameter_names_ascii)
         parameter_ranges = np.array(
             [parameters[key][3] for key in parameter_names],
             dtype=np.float

@@ -21,8 +21,6 @@ def call_command(cmd, log_file=None):
         out, err = proc.communicate()
         exitcode = proc.returncode
 
-        print(exitcode)
-
         if exitcode != 0:
             raise RuntimeError(
                 'Calling command {} returned exit code {}.\n\nStd output:\n\n{}Error output:\n\n{}'.format(

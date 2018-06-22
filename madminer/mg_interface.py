@@ -1,5 +1,4 @@
 import os
-import sys
 
 import shutil
 from .utils import call_command
