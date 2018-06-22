@@ -213,12 +213,24 @@ class MadMiner:
                                benchmarks=self.benchmarks)
 
     def generate_mg_process(self,
-                             mg_directory,
-                             temp_directory,
-                             proc_card_file,
-                             mg_process_directory,
-                             initial_command=None,
-                             log_file=None):
+                            mg_directory,
+                            temp_directory,
+                            proc_card_file,
+                            mg_process_directory,
+                            initial_command=None,
+                            log_file=None):
+
+        """
+        Lets MadGraph create the process folder.
+
+        :param mg_directory: MadGraph 5 directory.
+        :param temp_directory: A temporary directory.
+        :param proc_card_file: Path to the process card that tells MadGraph how to generate the process.
+        :param mg_process_directory: Path to the MG process directory.
+        :param initial_command: Initial shell commands that have to be executed before MG is run (e.g. loading a virtual
+                                environment).
+        :param log_file: Path to a log file in which the MadGraph output is saved.
+        """
 
         generate_mg_process(
             mg_directory,
@@ -280,6 +292,23 @@ class MadMiner:
                       initial_command=None,
                       log_file=None):
 
+        """
+        Runs the event generation with MadGraph and Pythia.
+
+        :param mg_directory: Path to the MadGraph 5 base directory.
+        :param mg_process_directory: Path to the MG process directory.
+        :param temp_directory: Path to a temporary directory.
+        :param run_card_file: Path to the MadGraph run card. If None, the card present in the process folder is used.
+        :param param_card_file: Path to the MadGraph run card. If None, the card present in the process folder is used.
+        :param reweight_card_file: Path to the MadGraph reweight card. If None, the card present in the process folder
+                                   is used.
+        :param pythia8_card_file: Path to the MadGraph Pythia8 card. If None, the card present in the process folder
+                                  is used.
+        :param initial_command: Initial shell commands that have to be executed before MG is run (e.g. loading a virtual
+                                environment).
+        :param log_file: Path to a log file in which the MadGraph output is saved.
+        """
+
         run_mg_pythia(
             mg_directory,
             mg_process_directory,
@@ -305,6 +334,25 @@ class MadMiner:
             initial_command=None,
             log_directory=None):
 
+        """
+        Runs the event generation with MadGraph and Pythia.
+
+        :param mg_directory: Path to the MadGraph 5 base directory.
+        :param proc_card_file: Path to the process card that tells MadGraph how to generate the process.
+        :param temp_directory: Path to a temporary directory.
+        :param run_card_file: Path to the MadGraph run card. If None, the card present in the process folder is used.
+        :param param_card_file: Path to the MadGraph run card. If None, the card present in the process folder is used.
+        :param reweight_card_file: Path to the MadGraph reweight card. If None, the card present in the process folder
+                                   is used.
+        :param pythia8_card_file: Path to the MadGraph Pythia8 card. If None, the card present in the process folder
+                                  is used.
+        :param mg_process_directory: Path to the MG process directory. If None, use
+                                     <MadGraph directory>/MadMiner_process.
+        :param initial_command: Initial shell commands that have to be executed before MG is run (e.g. loading a virtual
+                                environment).
+        :param log_directory: Directory for log files with the MadGraph output.
+        """
+
         if mg_process_directory is None:
             mg_process_directory = mg_directory + '/MadMiner_process'
 
@@ -318,11 +366,11 @@ class MadMiner:
             log_file_run = log_directory + '/run.log'
 
         self.generate_mg_process(mg_directory,
-                                  temp_directory,
-                                  proc_card_file,
-                                  mg_process_directory,
-                                  initial_command=initial_command,
-                                  log_file=log_file_generate)
+                                 temp_directory,
+                                 proc_card_file,
+                                 mg_process_directory,
+                                 initial_command=initial_command,
+                                 log_file=log_file_generate)
 
         self.export_cards(param_card_template_file,
                           reweight_card_template_file,
