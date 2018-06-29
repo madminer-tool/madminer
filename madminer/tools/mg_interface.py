@@ -1,7 +1,7 @@
 import os
 
 import shutil
-from .utils import call_command
+from madminer.tools.utils import call_command
 
 
 def export_param_card(benchmark,
