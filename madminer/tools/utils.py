@@ -1,9 +1,13 @@
 from subprocess import Popen, PIPE
 import io
+import numpy as np
+
+
+def normalize_xsecs(weights):
+    return weights / np.sum(weights, axis=0)
 
 
 def call_command(cmd, log_file=None):
-
     if log_file is not None:
         with io.open(log_file, 'wb') as log:
             proc = Popen(cmd, stdout=log, stderr=log, shell=True)

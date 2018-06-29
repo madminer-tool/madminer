@@ -1,9 +1,8 @@
 from collections import OrderedDict
-import tempfile
 
 from madminer.tools.morphing import MadMorpher
-from madminer.tools.h5_interface import save_madminer_file
-from madminer.tools.mg_interface import export_param_card, export_reweight_card, generate_mg_process, run_mg_pythia
+from madminer.tools.h5_interface import load_madminer_file
+from madminer.tools.utils import normalize_xsecs
 
 
 def constant_benchmark_theta(benchmark_name):
@@ -26,16 +25,18 @@ def random_morphing_thetas(n_thetas, prior):
     raise NotImplementedError
 
 
-class GoldSmelter:
+class Smithy:
 
     def __init__(self, filename):
-        self.filename = filename
+        self.madminer_filename = filename
 
-        # Load file
+        # Load data
+        (self.parameters, self.benchmarks, self.morphing_components, self.morphing_matrix, self.observables,
+         self.observations, self.weights) = load_madminer_file(filename)
 
-        # Normalize xsecs of benchmarks already
+        # Normalize xsecs of benchmarks
+        self.p_x_benchmarks = normalize_xsecs(self.weights)
 
-        raise NotImplementedError
 
     def _normalize_xsecs(self):
         raise NotImplementedError

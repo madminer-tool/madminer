@@ -1,5 +1,6 @@
 import h5py
 import numpy as np
+from collections import OrderedDict
 
 
 def save_madminer_file(filename,
@@ -63,3 +64,79 @@ def save_madminer_file(filename,
             f.create_dataset("morphing/components", data=morphing_components.astype(np.int))
         if morphing_matrix is not None:
             f.create_dataset("morphing/morphing_matrix", data=morphing_matrix.astype(np.float))
+
+
+def load_madminer_file(filename):
+    """ Loads MadMiner settings, observables, and weights from a HDF5 file. """
+
+    with h5py.File(filename, 'r') as f:
+
+        # Parameters
+        try:
+            parameter_names = f['parameters/names'][()]
+            parameter_ranges = f['parameters/ranges'][()]
+            parameter_lha_blocks = f['parameters/lha_blocks'][()]
+            parameter_lha_ids = f['parameters/lha_ids'][()]
+
+            parameters = OrderedDict()
+
+            for pname, prange, pblock, pid in zip(parameter_names, parameter_ranges, parameter_lha_blocks,
+                                                  parameter_lha_ids):
+                parameters[pname] = (
+                    str(pblock),
+                    int(pid),
+                    tuple(prange)
+                )
+
+        except:
+            raise IOError('Cannot read parameters from HDF5 file')
+
+        # Benchmarks
+        try:
+            benchmark_names = f['benchmarks/names'][()]
+            benchmark_values = f['benchmarks/values'][()]
+
+            benchmarks = OrderedDict()
+
+            for bname, bvalue_matrix in zip(benchmark_names, benchmark_values):
+                bvalues = OrderedDict()
+                for pname, pvalue in zip(parameter_names, bvalue_matrix):
+                    bvalues[pname] = pvalue
+
+                benchmarks[bname] = bvalues
+
+        except:
+            raise IOError('Cannot read benchmarks from HDF5 file')
+
+        # Morphing
+        try:
+            morphing_components = np.asarray(f['morphing/components'][()], dtype=np.int)
+            morphing_matrix = np.asarray(f['morphing/components'][()], dtype=np.int)
+
+        except:
+            morphing_components = None
+            morphing_matrix = None
+
+        # Observables
+        try:
+            observables = OrderedDict()
+
+            observable_names = f['observables/names'][()]
+            observable_names = [str(oname) for oname in observable_names]
+            observable_definitions = f['observables/definitions'][()]
+            observable_definitions = [str(odef) for odef in observable_definitions]
+
+            for oname, odef in zip(observable_names, observable_definitions):
+                observables[oname] = odef
+        except:
+            observables = None
+
+        # Observations
+        try:
+            observations = np.asarray(f['samples/observations'][()], dtype=np.float)
+            weights = np.asarray(f['samples/weights'][()], dtype=np.float64)
+        except:
+            observations = None
+            weights = None
+
+        return parameters, benchmarks, morphing_components, morphing_matrix, observables, observations, weights
