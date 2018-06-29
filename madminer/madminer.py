@@ -1,9 +1,9 @@
 from collections import OrderedDict
 import tempfile
 
-from .morphing import MadMorpher
-from .h5_interface import save_madminer_file
-from .mg_interface import export_param_card, export_reweight_card, generate_mg_process, run_mg_pythia
+from madminer.tools.morphing import MadMorpher
+from madminer.tools.h5_interface import save_madminer_file
+from madminer.tools.mg_interface import export_param_card, export_reweight_card, generate_mg_process, run_mg_pythia
 
 
 class MadMiner:
