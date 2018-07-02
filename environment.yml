@@ -1,0 +1,9 @@
+name: madminer
+
+dependencies:
+  - python
+  - numpy
+  - matplotlib
+  - jupyter
+  - h5py
+  - six
