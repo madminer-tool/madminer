@@ -312,6 +312,43 @@ class Morpher:
 
         return weights
 
+    def calculate_morphing_weight_gradient(self, theta, basis=None, morphing_matrix=None):
+
+        """ Calculates the gradient of the morphing weights grad_i w_b(theta). Output shape is (gradient
+        direction, basis vector). """
+
+        raise NotImplementedError
+
+        # Check all data is there
+        if self.components is None or self.n_components is None or self.n_components <= 0:
+            raise RuntimeError('No components defined. Use morpher.set_components() or morpher.find_components() '
+                               'first!')
+
+        if basis is None:
+            basis = self.basis
+            morphing_matrix = self.morphing_matrix
+
+        if basis is None:
+            raise RuntimeError('No basis defined or given. Use Morpher.set_basis(), Morpher.optimize_basis(), or the '
+                               'basis keyword.')
+
+        if morphing_matrix is None:
+            morphing_matrix = self.calculate_morphing_matrix(basis)
+
+        # Calculate component weights
+        component_weights = np.zeros(self.n_components)
+        for c in range(self.n_components):
+            factor = 1.
+            for p in range(self.n_parameters):
+                factor *= float(theta[p] ** self.components[c, p])
+            component_weights[c] = factor
+        component_weights = np.array(component_weights)
+
+        # Transform to basis weights
+        weights = morphing_matrix.T.dot(component_weights)
+
+        return weights
+
     def evaluate_morphing(self, basis=None, morphing_matrix=None, n_test_thetas=100):
 
         """ Evaluates an objective function for a given basis """

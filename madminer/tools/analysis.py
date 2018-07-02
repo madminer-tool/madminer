@@ -41,8 +41,7 @@ def get_dtheta_benchmark_matrix(theta_type, theta_value, n_benchmarks, morpher=N
         raise NotImplementedError
 
     elif theta_type == 'morphing':
-        raise NotImplementedError
-        # theta_matrix = morpher.calculate_morphing_weights(theta_value)
+        theta_matrix = morpher.calculate_morphing_weight_gradient(theta_value)
 
     else:
         raise ValueError('Unknown theta {}'.format(theta_type))
