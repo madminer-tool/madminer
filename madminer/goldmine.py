@@ -61,7 +61,7 @@ class GoldMine:
         self.parameters[parameter_name] = (lha_block, lha_id, morphing_max_power, morphing_parameter_range)
 
         # After manually adding parameters, the morphing information is not accurate anymore
-        self.export_morphing = False
+        self.morpher = None
 
     def set_parameters(self,
                        parameters=None):
@@ -106,7 +106,7 @@ class GoldMine:
                 self.add_parameter(values[0], values[1])
 
         # After manually adding parameters, the morphing information is not accurate anymore
-        self.export_morphing = False
+        self.morpher = None
 
     def add_benchmark(self,
                       parameter_values,
@@ -138,7 +138,7 @@ class GoldMine:
             self.default_benchmark = benchmark_name
 
         # After manually adding benchmarks, the morphing information is not accurate anymore
-        self.export_morphing = False
+        self.morpher = None
 
     def set_benchmarks(self,
                        benchmarks=None):
@@ -164,7 +164,7 @@ class GoldMine:
                 self.add_benchmark(values)
 
         # After manually adding benchmarks, the morphing information is not accurate anymore
-        self.export_morphing = False
+        self.morpher = None
 
     def set_benchmarks_from_morphing(self,
                                      max_overall_power=4,
@@ -185,20 +185,21 @@ class GoldMine:
         :param n_test_thetas: Number of validation benchmark points used to calculate the expected mean squared morphing
                               weight.
         """
+
+        self.morpher = Morpher(parameters_from_madminer=self.parameters)
+        self.morpher.find_components(max_overall_power)
+
         if keep_existing_benchmarks:
-            morpher = Morpher(parameters_from_madminer=self.parameters,
-                              fixed_benchmarks=self.benchmarks,
-                              max_overall_power=max_overall_power,
-                              n_bases=n_bases)
+            basis = self.morpher.optimize_basis(n_bases=n_bases,
+                                                fixed_benchmarks_from_madminer=self.benchmarks,
+                                                n_trials=n_trials,
+                                                n_test_thetas=n_test_thetas)
         else:
-            morpher = Morpher(parameters_from_madminer=self.parameters,
-                              max_overall_power=max_overall_power,
-                              n_bases=n_bases)
+            basis = self.morpher.optimize_basis(n_bases=n_bases,
+                                                fixed_benchmarks_from_madminer=None,
+                                                n_trials=n_trials,
+                                                n_test_thetas=n_test_thetas)
 
-        self.morpher = morpher
-
-        basis = morpher.optimize_basis(n_trials=n_trials,
-                                       n_test_thetas=n_test_thetas)
         self.set_benchmarks(basis)
         self.export_morphing = True
 
@@ -206,7 +207,7 @@ class GoldMine:
         raise NotImplementedError
 
     def save(self, filename):
-        if self.export_morphing and self.morpher is not None:
+        if self.morpher is not None:
             save_madminer_settings(filename=filename,
                                    parameters=self.parameters,
                                    benchmarks=self.benchmarks,
@@ -217,10 +218,8 @@ class GoldMine:
                                    parameters=self.parameters,
                                    benchmarks=self.benchmarks)
 
-        # TODO: Save overall max power, n_bases
-
-    def generate_mg_process(self,
-                            mg_directory,
+    @staticmethod
+    def generate_mg_process(mg_directory,
                             temp_directory,
                             proc_card_file,
                             mg_process_directory,
@@ -290,8 +289,8 @@ class GoldMine:
                              reweight_card_template_file=reweight_card_template_file,
                              mg_process_directory=mg_process_directory)
 
-    def run_mg_pythia(self,
-                      mg_directory,
+    @staticmethod
+    def run_mg_pythia(mg_directory,
                       mg_process_directory,
                       temp_directory,
                       run_card_file=None,

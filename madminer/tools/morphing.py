@@ -10,10 +10,7 @@ class Morpher:
     def __init__(self,
                  parameters_from_madminer=None,
                  parameter_max_power=None,
-                 parameter_range=None,
-                 fixed_benchmarks=None,
-                 max_overall_power=4,
-                 n_bases=1):
+                 parameter_range=None):
 
         """
         Constructor.
@@ -21,14 +18,7 @@ class Morpher:
         :param parameters_from_madminer:
         :param parameter_max_power:
         :param parameter_range:
-        :param fixed_benchmarks:
-        :param max_overall_power:
-        :param n_bases:
         """
-
-        # Input
-        self.n_bases = n_bases
-        self.max_overall_power = max_overall_power
 
         # GoldMine interface
         if parameters_from_madminer is not None:
@@ -43,17 +33,6 @@ class Morpher:
                 [parameters_from_madminer[key][3] for key in self.parameter_names]
             )
 
-            if fixed_benchmarks is None:
-                fixed_benchmarks = OrderedDict()
-            self.fixed_benchmarks = []
-            self.fixed_benchmark_names = []
-            for bname, benchmark_in in six.iteritems(fixed_benchmarks):
-                self.fixed_benchmark_names.append(bname)
-                self.fixed_benchmarks.append(
-                    [benchmark_in[key] for key in self.parameter_names]
-                )
-            self.fixed_benchmarks = np.array(self.fixed_benchmarks)
-
         # Generic interface
         else:
             self.use_madminer_interface = False
@@ -62,98 +41,21 @@ class Morpher:
             self.parameter_max_power = np.array(parameter_max_power, dtype=np.int)
             self.parameter_range = np.array(parameter_range)
 
-            if fixed_benchmarks is None:
-                fixed_benchmarks = np.array([])
-            self.fixed_benchmarks = np.array(fixed_benchmarks)
-            self.fixed_benchmark_names = []
-
-        # TODO: disentangle components from constructor
-
-        # Components
-        self.components = self.find_components()
-        self.n_components = len(self.components)
-        self.n_benchmarks = self.n_bases * self.n_components
-        self.n_missing_benchmarks = self.n_benchmarks - len(self.fixed_benchmarks)
-
-        assert self.n_missing_benchmarks >= 0, 'Too many fixed benchmarks!'
-
-        # Current chosen basis
+        # Currently empty
+        self.components = None
+        self.n_components = None
         self.basis = None
+        self.n_bases = None
         self.morphing_matrix = None
 
-    def load_basis(self,
-                   basis,
-                   components=None,
-                   morphing_matrix=None):
+    def set_components(self,
+                       components):
 
-        if components is not None:
-            self.components = components
+        self.components = components
+        self.n_components = len(self.components)
 
-        self.basis = basis
-
-        if morphing_matrix is None:
-            self.calculate_morphing_matrix()
-        else:
-            self.morphing_matrix = morphing_matrix
-
-    def optimize_basis(self,
-                       n_trials=100,
-                       n_test_thetas=100,
-                       return_morphing_matrix=False):
-
-        """
-        Finds a set of basis parameter vectors, based on a rudimentary optimization algorithm.
-
-        :param n_trials:
-        :param n_test_thetas:
-        :param return_morphing_matrix:
-        :return:
-        """
-
-        # Optimization
-        best_basis = None
-        best_morphing_matrix = None
-        best_performance = None
-
-        for i in range(n_trials):
-            basis = self._propose_basis()
-            morphing_matrix = self.calculate_morphing_matrix(basis)
-            performance = self.evaluate_morphing(basis, morphing_matrix, n_test_thetas=n_test_thetas)
-
-            if (best_performance is None
-                    or best_basis is None
-                    or best_morphing_matrix is None
-                    or performance > best_performance):
-                best_performance = performance
-                best_basis = basis
-                best_morphing_matrix = morphing_matrix
-
-        self.basis = best_basis
-        self.morphing_matrix = best_morphing_matrix
-
-        # Export to MadMiner
-        if self.use_madminer_interface:
-            basis_madminer = OrderedDict()
-            for i, benchmark in enumerate(best_basis):
-                if i < len(self.fixed_benchmark_names):
-                    benchmark_name = self.fixed_benchmark_names[i]
-                else:
-                    benchmark_name = 'morphing_basis_vector_' + str(len(basis_madminer))
-                parameter = OrderedDict()
-                for p, pname in enumerate(self.parameter_names):
-                    parameter[pname] = benchmark[p]
-                basis_madminer[benchmark_name] = parameter
-
-            if return_morphing_matrix:
-                return basis_madminer, self.components, best_morphing_matrix
-            return basis_madminer
-
-        # Normal return
-        if return_morphing_matrix:
-            return best_basis, self.components, best_morphing_matrix
-        return best_basis
-
-    def find_components(self):
+    def find_components(self,
+                        max_overall_power=4):
 
         """ Find and return a list of components with their power dependence on the parameters """
 
@@ -169,7 +71,7 @@ class Morpher:
             c += 1
 
             # if we are below max_power in total, increase rightest digit
-            if sum(powers) < self.max_overall_power:
+            if sum(powers) < max_overall_power:
                 powers[self.n_parameters - 1] += 1
 
             # if we are at max_power, set to zero from the right and increase left neighbour
@@ -188,21 +90,128 @@ class Morpher:
                     powers[pos] = 0
                     powers[pos - 1] += 1
 
-        components = np.array(components, dtype=np.int)
+        self.components = np.array(components, dtype=np.int)
+        self.n_components = len(self.components)
 
-        return components
+        return self.components
 
-    def _propose_basis(self):
+    def set_basis(self,
+                  basis_from_madminer=None,
+                  basis_numpy=None,
+                  morphing_matrix=None):
+
+        if basis_from_madminer is not None:
+            self.basis = []
+            for bname, benchmark_in in six.iteritems(basis_from_madminer):
+                self.basis.append(
+                    [benchmark_in[key] for key in self.parameter_names]
+                )
+                self.basis = np.array(self.basis)
+        elif basis_numpy is not None:
+            self.basis = np.array(basis_numpy)
+        else:
+            raise RuntimeError('No basis given')
+
+        if morphing_matrix is None:
+            self.calculate_morphing_matrix()
+        else:
+            self.morphing_matrix = morphing_matrix
+
+    def optimize_basis(self,
+                       n_bases=1,
+                       fixed_benchmarks_from_madminer=None,
+                       fixed_benchmarks_numpy=None,
+                       n_trials=100,
+                       n_test_thetas=100):
+
+        """
+        Finds a set of basis parameter vectors, based on a rudimentary optimization algorithm.
+
+        :param fixed_benchmarks_numpy:
+        :param fixed_benchmarks_from_madminer:
+        :param n_bases:
+        :param n_trials:
+        :param n_test_thetas:
+        :return:
+        """
+
+        # Check all data is there
+        if self.components is None or self.n_components is None or self.n_components <= 0:
+            raise RuntimeError('No components defined. Use morpher.set_components() or morpher.find_components() '
+                               'first!')
+
+        # Fixed benchmarks
+        if fixed_benchmarks_from_madminer is not None:
+            fixed_benchmarks = []
+            fixed_benchmark_names = []
+            for bname, benchmark_in in six.iteritems(fixed_benchmarks_from_madminer):
+                fixed_benchmark_names.append(bname)
+                fixed_benchmarks.append(
+                    [benchmark_in[key] for key in self.parameter_names]
+                )
+            fixed_benchmarks = np.array(fixed_benchmarks)
+        elif fixed_benchmarks_numpy is not None:
+            fixed_benchmarks = np.array(fixed_benchmarks_numpy)
+            fixed_benchmark_names = []
+        else:
+            fixed_benchmarks = np.array([])
+
+        # Missing benchmarks
+        n_benchmarks = n_bases * self.n_components
+        n_missing_benchmarks = n_benchmarks - len(fixed_benchmarks)
+
+        assert n_missing_benchmarks >= 0, 'Too many fixed benchmarks!'
+
+        # Optimization
+        best_basis = None
+        best_morphing_matrix = None
+        best_performance = None
+
+        for i in range(n_trials):
+            basis = self._propose_basis(fixed_benchmarks, n_missing_benchmarks)
+            morphing_matrix = self.calculate_morphing_matrix(basis)
+            performance = self.evaluate_morphing(basis, morphing_matrix, n_test_thetas=n_test_thetas)
+
+            if (best_performance is None
+                    or best_basis is None
+                    or best_morphing_matrix is None
+                    or performance > best_performance):
+                best_performance = performance
+                best_basis = basis
+                best_morphing_matrix = morphing_matrix
+
+        self.basis = best_basis
+        self.morphing_matrix = best_morphing_matrix
+
+        # GoldMine output
+        if self.use_madminer_interface:
+            basis_madminer = OrderedDict()
+            for i, benchmark in enumerate(best_basis):
+                if i < len(fixed_benchmark_names):
+                    benchmark_name = fixed_benchmark_names[i]
+                else:
+                    benchmark_name = 'morphing_basis_vector_' + str(len(basis_madminer))
+                parameter = OrderedDict()
+                for p, pname in enumerate(self.parameter_names):
+                    parameter[pname] = benchmark[p]
+                basis_madminer[benchmark_name] = parameter
+
+            return basis_madminer
+
+        # Normal output
+        return best_basis
+
+    def _propose_basis(self, fixed_benchmarks, n_missing_benchmarks):
 
         """ Propose a random basis """
 
-        if len(self.fixed_benchmarks) > 0:
+        if len(fixed_benchmarks) > 0:
             basis = np.vstack([
-                self.fixed_benchmarks,
-                self._draw_random_thetas(self.n_missing_benchmarks)
+                fixed_benchmarks,
+                self._draw_random_thetas(n_missing_benchmarks)
             ])
         else:
-            basis = self._draw_random_thetas(self.n_missing_benchmarks)
+            basis = self._draw_random_thetas(n_missing_benchmarks)
 
         return basis
 
@@ -222,11 +231,24 @@ class Morpher:
 
         """ Calculates the morphing matrix that links the components to the basis parameter vectors """
 
+        # Check all data is there
+        if self.components is None or self.n_components is None or self.n_components <= 0:
+            raise RuntimeError('No components defined. Use morpher.set_components() or morpher.find_components() '
+                               'first!')
+
         if basis is None:
             basis = self.basis
 
+        if basis is None:
+            raise RuntimeError('No basis defined or given. Use Morpher.set_basis(), Morpher.optimize_basis(), or the '
+                               'basis keyword.')
+
+        n_benchmarks = len(basis)
+        n_bases = n_benchmarks // self.n_components
+        assert n_bases * self.n_components == n_benchmarks, 'Basis and number of components incompatible!'
+
         # Full morphing matrix. Will have shape (n_components, n_benchmarks) (note transposition later)
-        morphing_matrix = np.zeros((self.n_benchmarks, self.n_components))
+        morphing_matrix = np.zeros((n_benchmarks, self.n_components))
 
         # Morphing submatrix for each basis
         for i in range(self.n_bases):
@@ -260,9 +282,18 @@ class Morpher:
 
         """ Calculates the morphing weights w_b(theta) for a given basis {theta_b} """
 
+        # Check all data is there
+        if self.components is None or self.n_components is None or self.n_components <= 0:
+            raise RuntimeError('No components defined. Use morpher.set_components() or morpher.find_components() '
+                               'first!')
+
         if basis is None:
             basis = self.basis
             morphing_matrix = self.morphing_matrix
+
+        if basis is None:
+            raise RuntimeError('No basis defined or given. Use Morpher.set_basis(), Morpher.optimize_basis(), or the '
+                               'basis keyword.')
 
         if morphing_matrix is None:
             morphing_matrix = self.calculate_morphing_matrix(basis)
@@ -285,9 +316,18 @@ class Morpher:
 
         """ Evaluates an objective function for a given basis """
 
+        # Check all data is there
+        if self.components is None or self.n_components is None or self.n_components <= 0:
+            raise RuntimeError('No components defined. Use morpher.set_components() or morpher.find_components() '
+                               'first!')
+
         if basis is None:
             basis = self.basis
             morphing_matrix = self.morphing_matrix
+
+        if basis is None:
+            raise RuntimeError('No basis defined or given. Use Morpher.set_basis(), Morpher.optimize_basis(), or the '
+                               'basis keyword.')
 
         if morphing_matrix is None:
             morphing_matrix = self.calculate_morphing_matrix(basis)

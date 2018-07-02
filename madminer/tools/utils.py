@@ -4,8 +4,6 @@ import os
 from subprocess import Popen, PIPE
 import io
 
-from madminer.tools.h5_interface import madminer_event_loader
-
 
 def call_command(cmd, log_file=None):
     if log_file is not None:

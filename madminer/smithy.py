@@ -41,11 +41,8 @@ class Smithy:
         self.morpher = None
         if self.morphing_matrix is not None and self.morphing_components is not None:
             self.morpher = Morpher(self.parameters)
-            self.morpher.load_basis(
-                basis=self.benchmarks,
-                components=self.morphing_components,
-                morphing_matrix=self.morphing_matrix
-            )
+            self.morpher.set_components(self.morphing_components)
+            self.morpher.set_basis(self.benchmarks, self.morphing_matrix)
 
     def extract_samples_local(self,
                               theta,
@@ -151,7 +148,7 @@ class Smithy:
 
             # Theta
             theta_values = get_theta_value(theta, self.benchmarks)
-            theta_values = theta_values.broadcast_to((n_samples), theta_values.size)
+            theta_values = theta_values.broadcast_to((n_samples, theta_values.size))
 
             theta_matrix = get_theta_benchmark_matrix(theta, n_benchmarks, self.morpher)
 

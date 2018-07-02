@@ -49,12 +49,10 @@ def extract_augmented_data(types,
                            thetas_matrix_den,
                            weights_benchmarks,
                            xsecs_benchmarks):
-    n_augmented_data = len(thetas_matrix_num)
-    n_samples = weights_benchmarks.shape[0]
 
     augmented_data = []
 
-    for type, theta_matrix_num, theta_matrix_den in zip(types, thetas_matrix_num, thetas_matrix_den):
+    for data_type, theta_matrix_num, theta_matrix_den in zip(types, thetas_matrix_num, thetas_matrix_den):
 
         # Numerator of ratio / d_i p(x|theta) for score
         dsigma_num = theta_matrix_num.dot(weights_benchmarks)
@@ -65,11 +63,11 @@ def extract_augmented_data(types,
         sigma_den = theta_matrix_den.dot(xsecs_benchmarks)
 
         # Calculate ratio
-        if type == 'ratio':
+        if data_type == 'ratio':
             augmented_datum = (dsigma_num / sigma_num) / (dsigma_den / sigma_num)
 
         # Calculate score
-        elif type == 'score':
+        elif data_type == 'score':
             augmented_datum = (dsigma_num / dsigma_den) - (sigma_num / sigma_den)
 
         else:
