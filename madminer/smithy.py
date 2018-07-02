@@ -3,7 +3,9 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import numpy as np
 
 from madminer.tools.h5_interface import load_madminer_settings, madminer_event_loader
-from madminer.tools.analysis import get_theta_benchmark_matrix, get_dtheta_benchmark_matrix, extract_augmented_data
+from madminer.tools.analysis import get_theta_value, get_theta_benchmark_matrix, get_dtheta_benchmark_matrix
+from madminer.tools.analysis import extract_augmented_data
+from madminer.tools.morphing import Morpher
 
 
 def constant_benchmark_theta(benchmark_name):
@@ -35,8 +37,15 @@ class Smithy:
         (self.parameters, self.benchmarks, self.morphing_components, self.morphing_matrix,
          self.observables) = load_madminer_settings(filename)
 
-        # Normalize xsecs of benchmarks
-        # self.total_xsecs = calculate_total_xsecs(self.madminer_filename)
+        # Morphing
+        self.morpher = None
+        if self.morphing_matrix is not None and self.morphing_components is not None:
+            self.morpher = Morpher(self.parameters)
+            self.morpher.load_basis(
+                basis=self.benchmarks,
+                components=self.morphing_components,
+                morphing_matrix=self.morphing_matrix
+            )
 
     def extract_samples_local(self,
                               theta,
@@ -113,22 +122,18 @@ class Smithy:
 
             if augmented_data_types[-1] == 'ratio':
                 augmented_data_theta_matrices_num.append(
-                    get_theta_benchmark_matrix(augmented_data_definition[1], n_benchmarks,
-                                               self.morphing_matrix, self.morphing_components)
+                    get_theta_benchmark_matrix(augmented_data_definition[1], n_benchmarks, self.morpher)
                 )
                 augmented_data_theta_matrices_den.append(
-                    get_theta_benchmark_matrix(augmented_data_definition[2], n_benchmarks,
-                                               self.morphing_matrix, self.morphing_components)
+                    get_theta_benchmark_matrix(augmented_data_definition[2], n_benchmarks, self.morpher)
                 )
 
             elif augmented_data_types[-1] == 'score':
                 augmented_data_theta_matrices_num.append(
-                    get_dtheta_benchmark_matrix(augmented_data_definition[1], n_benchmarks,
-                                                self.morphing_matrix, self.morphing_components)
+                    get_dtheta_benchmark_matrix(augmented_data_definition[1], n_benchmarks, self.morpher)
                 )
                 augmented_data_theta_matrices_den.append(
-                    get_theta_benchmark_matrix(augmented_data_definition[1], n_benchmarks,
-                                               self.morphing_matrix, self.morphing_components)
+                    get_theta_benchmark_matrix(augmented_data_definition[1], n_benchmarks, self.morpher)
                 )
 
         # Prepare output
@@ -147,8 +152,8 @@ class Smithy:
             # Theta
             theta_values = get_theta_value(theta, self.benchmarks)
             theta_values = theta_values.broadcast_to((n_samples), theta_values.size)
-            theta_matrix = get_theta_benchmark_matrix(theta, n_benchmarks, self.morphing_matrix,
-                                                      self.morphing_components)
+
+            theta_matrix = get_theta_benchmark_matrix(theta, n_benchmarks, self.morpher)
 
             # Total xsec for this theta
             xsec_theta = theta_matrix.dot(xsecs_benchmarks)

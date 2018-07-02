@@ -30,7 +30,7 @@ class Morpher:
         self.n_bases = n_bases
         self.max_overall_power = max_overall_power
 
-        # MadMiner interface
+        # GoldMine interface
         if parameters_from_madminer is not None:
             self.use_madminer_interface = True
             self.n_parameters = len(parameters_from_madminer)
@@ -67,8 +67,10 @@ class Morpher:
             self.fixed_benchmarks = np.array(fixed_benchmarks)
             self.fixed_benchmark_names = []
 
+        # TODO: disentangle components from constructor
+
         # Components
-        self.components = self._find_components()
+        self.components = self.find_components()
         self.n_components = len(self.components)
         self.n_benchmarks = self.n_bases * self.n_components
         self.n_missing_benchmarks = self.n_benchmarks - len(self.fixed_benchmarks)
@@ -79,10 +81,25 @@ class Morpher:
         self.basis = None
         self.morphing_matrix = None
 
-    def find_basis_simple(self,
-                          n_trials=100,
-                          n_test_thetas=100,
-                          return_morphing_matrix=False):
+    def load_basis(self,
+                   basis,
+                   components=None,
+                   morphing_matrix=None):
+
+        if components is not None:
+            self.components = components
+
+        self.basis = basis
+
+        if morphing_matrix is None:
+            self.calculate_morphing_matrix()
+        else:
+            self.morphing_matrix = morphing_matrix
+
+    def optimize_basis(self,
+                       n_trials=100,
+                       n_test_thetas=100,
+                       return_morphing_matrix=False):
 
         """
         Finds a set of basis parameter vectors, based on a rudimentary optimization algorithm.
@@ -100,8 +117,8 @@ class Morpher:
 
         for i in range(n_trials):
             basis = self._propose_basis()
-            morphing_matrix = self._calculate_morphing_matrix(basis)
-            performance = self._evaluate_morphing(basis, morphing_matrix, n_test_thetas=n_test_thetas)
+            morphing_matrix = self.calculate_morphing_matrix(basis)
+            performance = self.evaluate_morphing(basis, morphing_matrix, n_test_thetas=n_test_thetas)
 
             if (best_performance is None
                     or best_basis is None
@@ -136,7 +153,7 @@ class Morpher:
             return best_basis, self.components, best_morphing_matrix
         return best_basis
 
-    def _find_components(self):
+    def find_components(self):
 
         """ Find and return a list of components with their power dependence on the parameters """
 
@@ -197,11 +214,11 @@ class Morpher:
         u = np.random.rand(n_thetas, self.n_parameters)
 
         # Transform to right range
-        basis = self.parameter_range[:, 0] + u * (self.parameter_range[:, 1] - self.parameter_range[:, 0])
+        thetas = self.parameter_range[:, 0] + u * (self.parameter_range[:, 1] - self.parameter_range[:, 0])
 
-        return basis
+        return thetas
 
-    def _calculate_morphing_matrix(self, basis=None):
+    def calculate_morphing_matrix(self, basis=None):
 
         """ Calculates the morphing matrix that links the components to the basis parameter vectors """
 
@@ -239,7 +256,7 @@ class Morpher:
 
         return morphing_matrix
 
-    def _calculate_morphing_weights(self, theta, basis=None, morphing_matrix=None):
+    def calculate_morphing_weights(self, theta, basis=None, morphing_matrix=None):
 
         """ Calculates the morphing weights w_b(theta) for a given basis {theta_b} """
 
@@ -248,7 +265,7 @@ class Morpher:
             morphing_matrix = self.morphing_matrix
 
         if morphing_matrix is None:
-            morphing_matrix = self._calculate_morphing_matrix(basis)
+            morphing_matrix = self.calculate_morphing_matrix(basis)
 
         # Calculate component weights
         component_weights = np.zeros(self.n_components)
@@ -264,7 +281,7 @@ class Morpher:
 
         return weights
 
-    def _evaluate_morphing(self, basis=None, morphing_matrix=None, n_test_thetas=100):
+    def evaluate_morphing(self, basis=None, morphing_matrix=None, n_test_thetas=100):
 
         """ Evaluates an objective function for a given basis """
 
@@ -273,13 +290,13 @@ class Morpher:
             morphing_matrix = self.morphing_matrix
 
         if morphing_matrix is None:
-            morphing_matrix = self._calculate_morphing_matrix(basis)
+            morphing_matrix = self.calculate_morphing_matrix(basis)
 
         thetas_test = self._draw_random_thetas(n_thetas=n_test_thetas)
         squared_weights = 0.
 
         for theta in thetas_test:
-            weights = self._calculate_morphing_weights(theta, basis, morphing_matrix)
+            weights = self.calculate_morphing_weights(theta, basis, morphing_matrix)
             squared_weights += np.sum(weights * weights)
 
         squared_weights /= float(n_test_thetas)

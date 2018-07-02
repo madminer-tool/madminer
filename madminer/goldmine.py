@@ -197,8 +197,8 @@ class GoldMine:
 
         self.morpher = morpher
 
-        basis = morpher.find_basis_simple(n_trials=n_trials,
-                                          n_test_thetas=n_test_thetas)
+        basis = morpher.optimize_basis(n_trials=n_trials,
+                                       n_test_thetas=n_test_thetas)
         self.set_benchmarks(basis)
         self.export_morphing = True
 
@@ -216,6 +216,8 @@ class GoldMine:
             save_madminer_settings(filename=filename,
                                    parameters=self.parameters,
                                    benchmarks=self.benchmarks)
+
+        # TODO: Save overall max power, n_bases
 
     def generate_mg_process(self,
                             mg_directory,

@@ -5,16 +5,18 @@ import numpy as np
 
 def get_theta_value(theta, benchmarks):
     if theta[0] == 'benchmark':
-        return list(benchmarks.items())[theta[1]][1]
+        benchmark = benchmarks[theta[1]]
+        benchmark_theta = np.array([benchmark[key] for key in benchmark])
+        return benchmark_theta
 
-    elif theta[1] == 'morphing':
-        raise NotImplementedError
+    elif theta[0] == 'morphing':
+        return theta[1]
 
     else:
         raise ValueError('Unknown theta {}'.format(theta))
 
 
-def get_theta_benchmark_matrix(theta, n_benchmarks, morphing_matrix, morphing_components):
+def get_theta_benchmark_matrix(theta, n_benchmarks, morpher=None):
     """ Calculates vector A such that dsigma(theta) = A * dsigma_benchmarks  """
 
     if theta[0] == 'benchmark':
@@ -28,7 +30,7 @@ def get_theta_benchmark_matrix(theta, n_benchmarks, morphing_matrix, morphing_co
         raise ValueError('Unknown theta {}'.format(theta))
 
 
-def get_dtheta_benchmark_matrix(theta, n_benchmarks, morphing_matrix, morphing_components):
+def get_dtheta_benchmark_matrix(theta, n_benchmarks, morpher=None):
     """ Calculates matrix A_ij such that d dsigma(theta) / d theta_i = A_ij * dsigma (benchmark j)  """
 
     if theta[0] == 'benchmark':
