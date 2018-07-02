@@ -3,6 +3,17 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import numpy as np
 
 
+def get_theta_value(theta, benchmarks):
+    if theta[0] == 'benchmark':
+        return list(benchmarks.items())[theta[1]][1]
+
+    elif theta[1] == 'morphing':
+        raise NotImplementedError
+
+    else:
+        raise ValueError('Unknown theta {}'.format(theta))
+
+
 def get_theta_benchmark_matrix(theta, n_benchmarks, morphing_matrix, morphing_components):
     """ Calculates vector A such that dsigma(theta) = A * dsigma_benchmarks  """
 

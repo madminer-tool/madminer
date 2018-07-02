@@ -131,6 +131,11 @@ class Smithy:
                                                self.morphing_matrix, self.morphing_components)
                 )
 
+        # Prepare output
+        all_theta = []
+        all_x = []
+        all_augmented_data = []
+
         # Loop over thetas
         for theta, n_samples in zip(thetas, n_samples_per_theta):
 
@@ -139,7 +144,9 @@ class Smithy:
             samples_x = np.zeros((n_samples, n_observables))
             samples_augmented_data = np.zeros((n_samples, n_augmented_data))
 
-            # Find theta_matrix
+            # Theta
+            theta_values = get_theta_value(theta, self.benchmarks)
+            theta_values = theta_values.broadcast_to((n_samples), theta_values.size)
             theta_matrix = get_theta_benchmark_matrix(theta, n_benchmarks, self.morphing_matrix,
                                                       self.morphing_components)
 
@@ -174,3 +181,19 @@ class Smithy:
                     weights_benchmarks_batch,
                     xsecs_benchmarks
                 )
+
+                samples_done[found_now] = True
+
+                if np.all(samples_done):
+                    break
+
+            # Check that we got 'em all
+            if not np.all(samples_done):
+                raise ValueError('{} / {} samples not found, u = {}', np.sum(np.invert(samples_done)),
+                                 samples_done.size, u[np.invert(samples_done)])
+
+            all_x.append(samples_x)
+            all_augmented_data.append(samples_augmented_data)
+            all_theta.append(theta_values)
+
+        return all_theta, all_x, all_augmented_data
