@@ -1,4 +1,5 @@
-from madminer.madminer import MadMiner
-from madminer.tools.morphing import MadMorpher
+from madminer.goldmine import GoldMine
+from madminer.tools.morphing import Morpher
+from madminer.smithy import Smithy
 
-__all__ = ("MadMiner", "MadMorpher")
+__all__ = ("GoldMine", "Morpher", "Smithy")

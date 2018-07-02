@@ -1,12 +1,17 @@
+from __future__ import absolute_import, division, print_function, unicode_literals
+import six
+
+import os
 from collections import OrderedDict
 import tempfile
 
-from madminer.tools.morphing import MadMorpher
+from madminer.tools.morphing import Morpher
 from madminer.tools.h5_interface import save_madminer_file
 from madminer.tools.mg_interface import export_param_card, export_reweight_card, generate_mg_process, run_mg_pythia
+from madminer.tools.utils import create_missing_folders
 
 
-class MadMiner:
+class GoldMine:
 
     def __init__(self):
 
@@ -77,7 +82,7 @@ class MadMiner:
         self.parameters = OrderedDict()
 
         if isinstance(parameters, dict):
-            for key, values in parameters.items():
+            for key, values in six.iteritems(parameters):
                 if len(values) == 5:
                     self.add_parameter(
                         lha_block=values[0],
@@ -120,7 +125,7 @@ class MadMiner:
         # Check input
         assert isinstance(parameter_values, dict), 'Parameter values are not a dict: {}'.format(parameter_values)
 
-        for key, value in parameter_values.items():
+        for key, value in six.iteritems(parameter_values):
             assert key in self.parameters, 'Unknown parameter: {0}'.format(key)
 
         assert benchmark_name not in self.benchmarks, 'Benchmark name exists already: {}'.format(benchmark_name)
@@ -152,7 +157,7 @@ class MadMiner:
         self.default_benchmark = None
 
         if isinstance(benchmarks, dict):
-            for name, values in benchmarks.items():
+            for name, values in six.iteritems(benchmarks):
                 self.add_benchmark(values, name)
         else:
             for values in benchmarks:
@@ -181,14 +186,14 @@ class MadMiner:
                               weight.
         """
         if keep_existing_benchmarks:
-            morpher = MadMorpher(parameters_from_madminer=self.parameters,
-                                 fixed_benchmarks=self.benchmarks,
-                                 max_overall_power=max_overall_power,
-                                 n_bases=n_bases)
+            morpher = Morpher(parameters_from_madminer=self.parameters,
+                              fixed_benchmarks=self.benchmarks,
+                              max_overall_power=max_overall_power,
+                              n_bases=n_bases)
         else:
-            morpher = MadMorpher(parameters_from_madminer=self.parameters,
-                                 max_overall_power=max_overall_power,
-                                 n_bases=n_bases)
+            morpher = Morpher(parameters_from_madminer=self.parameters,
+                              max_overall_power=max_overall_power,
+                              n_bases=n_bases)
 
         self.morpher = morpher
 
@@ -231,6 +236,8 @@ class MadMiner:
                                 environment).
         :param log_file: Path to a log file in which the MadGraph output is saved.
         """
+
+        create_missing_folders([temp_directory, mg_process_directory, os.path.dirname(log_file)])
 
         generate_mg_process(
             mg_directory,
@@ -309,6 +316,8 @@ class MadMiner:
         :param log_file: Path to a log file in which the MadGraph output is saved.
         """
 
+        create_missing_folders([temp_directory, mg_process_directory, os.path.dirname(log_file)])
+
         run_mg_pythia(
             mg_directory,
             mg_process_directory,
@@ -337,13 +346,13 @@ class MadMiner:
         """
         Runs the event generation with MadGraph and Pythia.
 
+        :param param_card_template_file:
+        :param reweight_card_template_file:
+        :param sample_benchmark:
         :param mg_directory: Path to the MadGraph 5 base directory.
         :param proc_card_file: Path to the process card that tells MadGraph how to generate the process.
         :param temp_directory: Path to a temporary directory.
         :param run_card_file: Path to the MadGraph run card. If None, the card present in the process folder is used.
-        :param param_card_file: Path to the MadGraph run card. If None, the card present in the process folder is used.
-        :param reweight_card_file: Path to the MadGraph reweight card. If None, the card present in the process folder
-                                   is used.
         :param pythia8_card_file: Path to the MadGraph Pythia8 card. If None, the card present in the process folder
                                   is used.
         :param mg_process_directory: Path to the MG process directory. If None, use
@@ -354,16 +363,16 @@ class MadMiner:
         """
 
         if mg_process_directory is None:
-            mg_process_directory = mg_directory + '/MadMiner_process'
+            mg_process_directory = './MG_process'
 
         if temp_directory is None:
             temp_directory = tempfile.gettempdir()
 
-        log_file_generate = None
-        log_file_run = None
-        if log_directory is not None:
-            log_file_generate = log_directory + '/generate.log'
-            log_file_run = log_directory + '/run.log'
+        if log_directory is None:
+            log_directory = './logs'
+
+        log_file_generate = log_directory + '/generate.log'
+        log_file_run = log_directory + '/run.log'
 
         self.generate_mg_process(mg_directory,
                                  temp_directory,
