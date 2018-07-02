@@ -1,6 +1,7 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import numpy as np
+import collections
 
 from madminer.tools.h5_interface import load_madminer_settings, madminer_event_loader
 from madminer.tools.analysis import get_theta_value, get_theta_benchmark_matrix, get_dtheta_benchmark_matrix
@@ -75,11 +76,25 @@ class Smithy:
         raise NotImplementedError
 
     def extract_sample(self,
-                       thetas,
+                       theta_sampling_types,
+                       theta_sampling_values,
                        n_samples_per_theta,
                        augmented_data_definitions,
                        start_event=0,
                        end_event=None):
+        """
+        Low-level function for the extraction of information from the event samples.
+
+        :param theta_sampling_types: list, each entry is either 'benchmark' or 'morphing'
+        :param theta_sampling_values: list, each entry is int and labels the benchmark index (if the corresponding
+                                      theta_sampling_types entry is 'benchmark') or a numpy array with the theta values
+                                      (of the corresponding theta_sampling_types entry is 'morphing')
+        :param n_samples_per_theta:
+        :param augmented_data_definitions:
+        :param start_event:
+        :param end_event:
+        :return:
+        """
 
         # Calculate total xsecs
         xsecs_benchmarks = None
@@ -119,19 +134,44 @@ class Smithy:
 
             if augmented_data_types[-1] == 'ratio':
                 augmented_data_theta_matrices_num.append(
-                    get_theta_benchmark_matrix(augmented_data_definition[1], n_benchmarks, self.morpher)
+                    get_theta_benchmark_matrix(
+                        augmented_data_definition[1],
+                        augmented_data_definition[2],
+
+                        n_benchmarks,
+                        self.morpher
+                    )
                 )
                 augmented_data_theta_matrices_den.append(
-                    get_theta_benchmark_matrix(augmented_data_definition[2], n_benchmarks, self.morpher)
+                    get_theta_benchmark_matrix(
+                        augmented_data_definition[3],
+                        augmented_data_definition[4],
+                        n_benchmarks,
+                        self.morpher
+                    )
                 )
 
             elif augmented_data_types[-1] == 'score':
                 augmented_data_theta_matrices_num.append(
-                    get_dtheta_benchmark_matrix(augmented_data_definition[1], n_benchmarks, self.morpher)
+                    get_dtheta_benchmark_matrix(
+                        augmented_data_definition[1],
+                        augmented_data_definition[2],
+                        n_benchmarks,
+                        self.morpher
+                    )
                 )
                 augmented_data_theta_matrices_den.append(
-                    get_theta_benchmark_matrix(augmented_data_definition[1], n_benchmarks, self.morpher)
+                    get_theta_benchmark_matrix(
+                        augmented_data_definition[1],
+                        augmented_data_definition[2],
+                        n_benchmarks,
+                        self.morpher
+                    )
                 )
+
+        # Samples per theta
+        if not isinstance(n_samples_per_theta, collections.Iterable) or len(n_samples_per_theta) == 1:
+            n_samples_per_theta = [n_samples_per_theta] * len(theta_sampling_types)
 
         # Prepare output
         all_theta = []
@@ -139,18 +179,17 @@ class Smithy:
         all_augmented_data = []
 
         # Loop over thetas
-        for theta, n_samples in zip(thetas, n_samples_per_theta):
+        for theta_type, theta_value, n_samples in zip(theta_sampling_types, theta_sampling_values, n_samples_per_theta):
 
             # Prepare output
             samples_done = np.zeros(n_samples, dtype=np.bool)
             samples_x = np.zeros((n_samples, n_observables))
             samples_augmented_data = np.zeros((n_samples, n_augmented_data))
 
-            # Theta
-            theta_values = get_theta_value(theta, self.benchmarks)
+            # Sampling theta
+            theta_values = get_theta_value(theta_type, theta_value, self.benchmarks)
             theta_values = theta_values.broadcast_to((n_samples, theta_values.size))
-
-            theta_matrix = get_theta_benchmark_matrix(theta, n_benchmarks, self.morpher)
+            theta_matrix = get_theta_benchmark_matrix(theta_type, theta_value, n_benchmarks, self.morpher)
 
             # Total xsec for this theta
             xsec_theta = theta_matrix.dot(xsecs_benchmarks)

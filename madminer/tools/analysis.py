@@ -3,56 +3,60 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import numpy as np
 
 
-def get_theta_value(theta, benchmarks):
-    if theta[0] == 'benchmark':
-        benchmark = benchmarks[theta[1]]
+def get_theta_value(theta_type, theta_value, benchmarks):
+    if theta_type == 'benchmark':
+        benchmark = benchmarks[theta_value]
         benchmark_theta = np.array([benchmark[key] for key in benchmark])
         return benchmark_theta
 
-    elif theta[0] == 'morphing':
-        return theta[1]
+    elif theta_type == 'morphing':
+        return theta_value
 
     else:
-        raise ValueError('Unknown theta {}'.format(theta))
+        raise ValueError('Unknown theta {}'.format(theta_type))
 
 
-def get_theta_benchmark_matrix(theta, n_benchmarks, morpher=None):
+def get_theta_benchmark_matrix(theta_type, theta_value, n_benchmarks, morpher=None):
     """ Calculates vector A such that dsigma(theta) = A * dsigma_benchmarks  """
 
-    if theta[0] == 'benchmark':
+    if theta_type == 'benchmark':
         theta_matrix = np.zeros(n_benchmarks)
-        theta_matrix[theta[1]] = 1.
+        theta_matrix[theta_value] = 1.
 
-    elif theta[1] == 'morphing':
-        raise NotImplementedError
+    elif theta_type == 'morphing':
+        theta_matrix = morpher.calculate_morphing_weights(theta_value)
 
     else:
-        raise ValueError('Unknown theta {}'.format(theta))
+        raise ValueError('Unknown theta {}'.format(theta_type))
+
+    return theta_matrix
 
 
-def get_dtheta_benchmark_matrix(theta, n_benchmarks, morpher=None):
+def get_dtheta_benchmark_matrix(theta_type, theta_value, n_benchmarks, morpher=None):
     """ Calculates matrix A_ij such that d dsigma(theta) / d theta_i = A_ij * dsigma (benchmark j)  """
 
-    if theta[0] == 'benchmark':
-        theta_matrix = np.zeros(n_benchmarks)
-        theta_matrix[theta[1]] = 1.
+    # TODO
 
-    elif theta[1] == 'morphing':
+    if theta_type == 'benchmark':
         raise NotImplementedError
 
+    elif theta_type == 'morphing':
+        raise NotImplementedError
+        # theta_matrix = morpher.calculate_morphing_weights(theta_value)
+
     else:
-        raise ValueError('Unknown theta {}'.format(theta))
+        raise ValueError('Unknown theta {}'.format(theta_type))
 
 
 def extract_augmented_data(types,
-                           thetas_matrix_num,
-                           thetas_matrix_den,
+                           theta_matrices_num,
+                           theta_matrices_den,
                            weights_benchmarks,
                            xsecs_benchmarks):
 
     augmented_data = []
 
-    for data_type, theta_matrix_num, theta_matrix_den in zip(types, thetas_matrix_num, thetas_matrix_den):
+    for data_type, theta_matrix_num, theta_matrix_den in zip(types, theta_matrices_num, theta_matrices_den):
 
         # Numerator of ratio / d_i p(x|theta) for score
         dsigma_num = theta_matrix_num.dot(weights_benchmarks)
@@ -71,7 +75,7 @@ def extract_augmented_data(types,
             augmented_datum = (dsigma_num / dsigma_den) - (sigma_num / sigma_den)
 
         else:
-            raise ValueError("Unknown augmented data type {}", type)
+            raise ValueError("Unknown augmented data type {}", data_type)
 
         augmented_data.append(augmented_datum)
 
