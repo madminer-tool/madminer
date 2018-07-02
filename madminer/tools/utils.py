@@ -3,11 +3,8 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import os
 from subprocess import Popen, PIPE
 import io
-import numpy as np
 
-
-def normalize_xsecs(weights):
-    return weights / np.sum(weights, axis=0)
+from madminer.tools.h5_interface import madminer_event_loader
 
 
 def call_command(cmd, log_file=None):

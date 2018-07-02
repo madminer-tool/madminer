@@ -6,7 +6,7 @@ from collections import OrderedDict
 import tempfile
 
 from madminer.tools.morphing import Morpher
-from madminer.tools.h5_interface import save_madminer_file
+from madminer.tools.h5_interface import save_madminer_settings
 from madminer.tools.mg_interface import export_param_card, export_reweight_card, generate_mg_process, run_mg_pythia
 from madminer.tools.utils import create_missing_folders
 
@@ -207,15 +207,15 @@ class GoldMine:
 
     def save(self, filename):
         if self.export_morphing and self.morpher is not None:
-            save_madminer_file(filename=filename,
-                               parameters=self.parameters,
-                               benchmarks=self.benchmarks,
-                               morphing_components=self.morpher.components,
-                               morphing_matrix=self.morpher.morphing_matrix)
+            save_madminer_settings(filename=filename,
+                                   parameters=self.parameters,
+                                   benchmarks=self.benchmarks,
+                                   morphing_components=self.morpher.components,
+                                   morphing_matrix=self.morpher.morphing_matrix)
         else:
-            save_madminer_file(filename=filename,
-                               parameters=self.parameters,
-                               benchmarks=self.benchmarks)
+            save_madminer_settings(filename=filename,
+                                   parameters=self.parameters,
+                                   benchmarks=self.benchmarks)
 
     def generate_mg_process(self,
                             mg_directory,

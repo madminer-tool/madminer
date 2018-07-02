@@ -5,12 +5,12 @@ import numpy as np
 from collections import OrderedDict
 
 
-def save_madminer_file(filename,
-                       parameters,
-                       benchmarks,
-                       morphing_components=None,
-                       morphing_matrix=None,
-                       overwrite_existing_files=True):
+def save_madminer_settings(filename,
+                           parameters,
+                           benchmarks,
+                           morphing_components=None,
+                           morphing_matrix=None,
+                           overwrite_existing_files=True):
     """
     Saves all MadMiner settings into an HDF5 file.
 
@@ -68,7 +68,7 @@ def save_madminer_file(filename,
             f.create_dataset("morphing/morphing_matrix", data=morphing_matrix.astype(np.float))
 
 
-def load_madminer_file(filename):
+def load_madminer_settings(filename):
     """ Loads MadMiner settings, observables, and weights from a HDF5 file. """
 
     with h5py.File(filename, 'r') as f:
@@ -133,12 +133,33 @@ def load_madminer_file(filename):
         except:
             observables = None
 
-        # Observations
-        try:
-            observations = np.asarray(f['samples/observations'][()], dtype=np.float)
-            weights = np.asarray(f['samples/weights'][()], dtype=np.float64)
-        except:
-            observations = None
-            weights = None
+        return parameters, benchmarks, morphing_components, morphing_matrix, observables
 
-        return parameters, benchmarks, morphing_components, morphing_matrix, observables, observations, weights
+
+def madminer_event_loader(filename, start=0, end=None, batch_size=100000):
+
+    with h5py.File(filename, 'r') as f:
+
+        # Handles to data
+        observations = f['samples/observations']
+        weights = f['samples/weights']
+
+        # Preparations
+        n_samples = observations.shape[0]
+        if weights.shape[0] != n_samples:
+            raise ValueError("Number of weights and observations don't match: {}, {}", weights.shape[0], n_samples)
+
+        if end is None:
+            end = n_samples
+        end = min(n_samples, end)
+
+        current = start
+
+        # Loop over data
+        while current < end:
+            this_end = min(current + batch_size, end)
+
+            yield (np.array(observations[current:this_end]),
+                   np.array(weights[current:current + this_end]))
+
+            current += batch_size
