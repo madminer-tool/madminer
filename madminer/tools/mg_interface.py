@@ -1,3 +1,6 @@
+from __future__ import absolute_import, division, print_function, unicode_literals
+import six
+
 import os
 
 import shutil
@@ -13,7 +16,7 @@ def export_param_card(benchmark,
         param_card = file.read()
 
     # Replace parameter values
-    for parameter_name, parameter_value in benchmark.items():
+    for parameter_name, parameter_value in six.iteritems(benchmark):
         parameter_lha_block = parameters[parameter_name][0]
         parameter_lha_id = parameters[parameter_name][1]
 
@@ -69,7 +72,7 @@ def export_reweight_card(sample_benchmark,
     assert insert_pos >= 0, 'Cannot find empty line in reweight_card template'
 
     lines = []
-    for benchmark_name, benchmark in benchmarks.items():
+    for benchmark_name, benchmark in six.iteritems(benchmarks):
         if benchmark_name == sample_benchmark:
             continue
 
@@ -77,7 +80,7 @@ def export_reweight_card(sample_benchmark,
         lines.append('# MadMiner benchmark ' + benchmark_name)
         lines.append('launch --rwgt_name=' + benchmark_name)
 
-        for parameter_name, parameter_value in benchmark.items():
+        for parameter_name, parameter_value in six.iteritems(benchmark):
             parameter_lha_block = parameters[parameter_name][0]
             parameter_lha_id = parameters[parameter_name][1]
 

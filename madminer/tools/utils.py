@@ -1,3 +1,6 @@
+from __future__ import absolute_import, division, print_function, unicode_literals
+
+import os
 from subprocess import Popen, PIPE
 import io
 import numpy as np
@@ -33,3 +36,12 @@ def call_command(cmd, log_file=None):
             )
 
     return exitcode
+
+
+def create_missing_folders(folders):
+    for folder in folders:
+        if not os.path.exists(folder):
+            os.makedirs(folder)
+
+        elif not os.path.isdir(folder):
+            raise OSError('Path {} exists, but is no directory!'.format(folder))

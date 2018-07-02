@@ -1,6 +1,8 @@
+from __future__ import absolute_import, division, print_function, unicode_literals
+
 from collections import OrderedDict
 
-from madminer.tools.morphing import MadMorpher
+from madminer.tools.morphing import Morpher
 from madminer.tools.h5_interface import load_madminer_file
 from madminer.tools.utils import normalize_xsecs
 
@@ -36,7 +38,6 @@ class Smithy:
 
         # Normalize xsecs of benchmarks
         self.p_x_benchmarks = normalize_xsecs(self.weights)
-
 
     def _normalize_xsecs(self):
         raise NotImplementedError

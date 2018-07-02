@@ -1,8 +1,11 @@
+from __future__ import absolute_import, division, print_function, unicode_literals
+import six
+
 import numpy as np
 from collections import OrderedDict
 
 
-class MadMorpher:
+class Morpher:
 
     def __init__(self,
                  parameters_from_madminer=None,
@@ -44,7 +47,7 @@ class MadMorpher:
                 fixed_benchmarks = OrderedDict()
             self.fixed_benchmarks = []
             self.fixed_benchmark_names = []
-            for bname, benchmark_in in fixed_benchmarks.items():
+            for bname, benchmark_in in six.iteritems(fixed_benchmarks):
                 self.fixed_benchmark_names.append(bname)
                 self.fixed_benchmarks.append(
                     [benchmark_in[key] for key in self.parameter_names]
