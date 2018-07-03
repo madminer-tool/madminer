@@ -45,7 +45,6 @@ class Morpher:
         self.components = None
         self.n_components = None
         self.basis = None
-        self.n_bases = None
         self.morphing_matrix = None
 
     def set_components(self,
@@ -106,7 +105,7 @@ class Morpher:
                 self.basis.append(
                     [benchmark_in[key] for key in self.parameter_names]
                 )
-                self.basis = np.array(self.basis)
+            self.basis = np.array(self.basis)
         elif basis_numpy is not None:
             self.basis = np.array(basis_numpy)
         else:
@@ -180,6 +179,7 @@ class Morpher:
                 best_basis = basis
                 best_morphing_matrix = morphing_matrix
 
+        # Save
         self.basis = best_basis
         self.morphing_matrix = best_morphing_matrix
 
@@ -251,7 +251,7 @@ class Morpher:
         morphing_matrix = np.zeros((n_benchmarks, self.n_components))
 
         # Morphing submatrix for each basis
-        for i in range(self.n_bases):
+        for i in range(n_bases):
             n_benchmarks_this_basis = self.n_components
             this_basis = basis[i * n_benchmarks_this_basis:(i + 1) * n_benchmarks_this_basis]
 
@@ -268,7 +268,7 @@ class Morpher:
             morphing_submatrix = np.linalg.inv(inv_morphing_submatrix)
 
             # For now, just use 1 / n_bases times the weights of each basis
-            morphing_submatrix = morphing_submatrix / float(self.n_bases)
+            morphing_submatrix = morphing_submatrix / float(n_bases)
 
             # Write into full morphing matrix
             morphing_submatrix = morphing_submatrix.T

@@ -31,7 +31,7 @@ def random_morphing_thetas(n_thetas, prior):
 
 class Smithy:
 
-    def __init__(self, filename):
+    def __init__(self, filename, disable_morphing=False):
         self.madminer_filename = filename
 
         # Load data
@@ -40,7 +40,7 @@ class Smithy:
 
         # Morphing
         self.morpher = None
-        if self.morphing_matrix is not None and self.morphing_components is not None:
+        if self.morphing_matrix is not None and self.morphing_components is not None and not disable_morphing:
             self.morpher = Morpher(self.parameters)
             self.morpher.set_components(self.morphing_components)
             self.morpher.set_basis(self.benchmarks, self.morphing_matrix)
@@ -102,9 +102,9 @@ class Smithy:
 
         for obs, weights in madminer_event_loader(self.madminer_filename, start=start_event, end=end_event):
             if xsecs_benchmarks is None:
-                xsecs_benchmarks = weights
+                xsecs_benchmarks = np.sum(weights, axis=0)
             else:
-                xsecs_benchmarks += weights
+                xsecs_benchmarks += np.sum(weights, axis=0)
 
             n_observables = obs.shape[1]
 

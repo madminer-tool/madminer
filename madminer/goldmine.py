@@ -28,7 +28,7 @@ class GoldMine:
                       lha_id,
                       parameter_name=None,
                       morphing_max_power=2,
-                      morphing_parameter_range=(0., 1.)):
+                      parameter_range=(0., 1.)):
 
         """ Adds an individual parameter
 
@@ -39,7 +39,7 @@ class GoldMine:
                                    of the process of interest. Typically at tree level, this is 2 for parameters that
                                    affect one vertex (e.g. only production or only decay of a particle), and 4 for
                                    parameters that affect two vertices (e.g. production and decay).
-        :param morphing_parameter_range: tuple, the range of parameter values of primary interest. Only affects the
+        :param parameter_range: tuple, the range of parameter values of primary interest. Only affects the
                                          basis optimization.
         """
 
@@ -58,7 +58,7 @@ class GoldMine:
         assert parameter_name not in self.parameters, 'Parameter name exists already: {}'.format(parameter_name)
 
         # Add parameter
-        self.parameters[parameter_name] = (lha_block, lha_id, morphing_max_power, morphing_parameter_range)
+        self.parameters[parameter_name] = (lha_block, lha_id, morphing_max_power, parameter_range)
 
         # After manually adding parameters, the morphing information is not accurate anymore
         self.morpher = None
@@ -88,7 +88,7 @@ class GoldMine:
                         lha_block=values[0],
                         lha_id=values[1],
                         parameter_name=key,
-                        morphing_parameter_range=[values[3], values[4]],
+                        parameter_range=[values[3], values[4]],
                         morphing_max_power=values[2]
                     )
                 elif len(values) == 2:
@@ -186,21 +186,22 @@ class GoldMine:
                               weight.
         """
 
-        self.morpher = Morpher(parameters_from_madminer=self.parameters)
-        self.morpher.find_components(max_overall_power)
+        morpher = Morpher(parameters_from_madminer=self.parameters)
+        morpher.find_components(max_overall_power)
 
         if keep_existing_benchmarks:
-            basis = self.morpher.optimize_basis(n_bases=n_bases,
-                                                fixed_benchmarks_from_madminer=self.benchmarks,
-                                                n_trials=n_trials,
-                                                n_test_thetas=n_test_thetas)
+            basis = morpher.optimize_basis(n_bases=n_bases,
+                                           fixed_benchmarks_from_madminer=self.benchmarks,
+                                           n_trials=n_trials,
+                                           n_test_thetas=n_test_thetas)
         else:
-            basis = self.morpher.optimize_basis(n_bases=n_bases,
-                                                fixed_benchmarks_from_madminer=None,
-                                                n_trials=n_trials,
-                                                n_test_thetas=n_test_thetas)
+            basis = morpher.optimize_basis(n_bases=n_bases,
+                                           fixed_benchmarks_from_madminer=None,
+                                           n_trials=n_trials,
+                                           n_test_thetas=n_test_thetas)
 
         self.set_benchmarks(basis)
+        self.morpher = morpher
         self.export_morphing = True
 
     def set_benchmarks_from_finite_differences(self):
