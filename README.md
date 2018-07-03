@@ -5,7 +5,8 @@ and Felix Kling. Note that this is a prototype and all the interfaces are still 
 
 ## Introduction
 
-See ["Mining gold from implicit models to improve likelihood-free inference"](https://arxiv.org/abs/1805.12244) by
+See ["Constraining Effective Field Theories With Machine Learning"](https://arxiv.org/abs/1805.00013) and
+["A Guide to Constraining Effective Field Theories With Machine Learning"](https://arxiv.org/abs/1805.00020), both by
 Johann Brehmer, Gilles Louppe, Juan Pavez, and Kyle Cranmer.
 
 ## Preparation
