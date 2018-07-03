@@ -6,7 +6,7 @@ from collections import OrderedDict
 import tempfile
 
 from madminer.tools.morphing import Morpher
-from madminer.tools.h5_interface import save_madminer_file
+from madminer.tools.h5_interface import save_madminer_settings
 from madminer.tools.mg_interface import export_param_card, export_reweight_card, generate_mg_process, run_mg_pythia
 from madminer.tools.utils import create_missing_folders
 
@@ -28,7 +28,7 @@ class GoldMine:
                       lha_id,
                       parameter_name=None,
                       morphing_max_power=2,
-                      morphing_parameter_range=(0., 1.)):
+                      parameter_range=(0., 1.)):
 
         """ Adds an individual parameter
 
@@ -39,7 +39,7 @@ class GoldMine:
                                    of the process of interest. Typically at tree level, this is 2 for parameters that
                                    affect one vertex (e.g. only production or only decay of a particle), and 4 for
                                    parameters that affect two vertices (e.g. production and decay).
-        :param morphing_parameter_range: tuple, the range of parameter values of primary interest. Only affects the
+        :param parameter_range: tuple, the range of parameter values of primary interest. Only affects the
                                          basis optimization.
         """
 
@@ -58,10 +58,10 @@ class GoldMine:
         assert parameter_name not in self.parameters, 'Parameter name exists already: {}'.format(parameter_name)
 
         # Add parameter
-        self.parameters[parameter_name] = (lha_block, lha_id, morphing_max_power, morphing_parameter_range)
+        self.parameters[parameter_name] = (lha_block, lha_id, morphing_max_power, parameter_range)
 
         # After manually adding parameters, the morphing information is not accurate anymore
-        self.export_morphing = False
+        self.morpher = None
 
     def set_parameters(self,
                        parameters=None):
@@ -88,7 +88,7 @@ class GoldMine:
                         lha_block=values[0],
                         lha_id=values[1],
                         parameter_name=key,
-                        morphing_parameter_range=[values[3], values[4]],
+                        parameter_range=[values[3], values[4]],
                         morphing_max_power=values[2]
                     )
                 elif len(values) == 2:
@@ -106,7 +106,7 @@ class GoldMine:
                 self.add_parameter(values[0], values[1])
 
         # After manually adding parameters, the morphing information is not accurate anymore
-        self.export_morphing = False
+        self.morpher = None
 
     def add_benchmark(self,
                       parameter_values,
@@ -138,7 +138,7 @@ class GoldMine:
             self.default_benchmark = benchmark_name
 
         # After manually adding benchmarks, the morphing information is not accurate anymore
-        self.export_morphing = False
+        self.morpher = None
 
     def set_benchmarks(self,
                        benchmarks=None):
@@ -164,7 +164,7 @@ class GoldMine:
                 self.add_benchmark(values)
 
         # After manually adding benchmarks, the morphing information is not accurate anymore
-        self.export_morphing = False
+        self.morpher = None
 
     def set_benchmarks_from_morphing(self,
                                      max_overall_power=4,
@@ -185,40 +185,42 @@ class GoldMine:
         :param n_test_thetas: Number of validation benchmark points used to calculate the expected mean squared morphing
                               weight.
         """
+
+        morpher = Morpher(parameters_from_madminer=self.parameters)
+        morpher.find_components(max_overall_power)
+
         if keep_existing_benchmarks:
-            morpher = Morpher(parameters_from_madminer=self.parameters,
-                              fixed_benchmarks=self.benchmarks,
-                              max_overall_power=max_overall_power,
-                              n_bases=n_bases)
+            basis = morpher.optimize_basis(n_bases=n_bases,
+                                           fixed_benchmarks_from_madminer=self.benchmarks,
+                                           n_trials=n_trials,
+                                           n_test_thetas=n_test_thetas)
         else:
-            morpher = Morpher(parameters_from_madminer=self.parameters,
-                              max_overall_power=max_overall_power,
-                              n_bases=n_bases)
+            basis = morpher.optimize_basis(n_bases=n_bases,
+                                           fixed_benchmarks_from_madminer=None,
+                                           n_trials=n_trials,
+                                           n_test_thetas=n_test_thetas)
 
-        self.morpher = morpher
-
-        basis = morpher.find_basis_simple(n_trials=n_trials,
-                                          n_test_thetas=n_test_thetas)
         self.set_benchmarks(basis)
+        self.morpher = morpher
         self.export_morphing = True
 
     def set_benchmarks_from_finite_differences(self):
         raise NotImplementedError
 
     def save(self, filename):
-        if self.export_morphing and self.morpher is not None:
-            save_madminer_file(filename=filename,
-                               parameters=self.parameters,
-                               benchmarks=self.benchmarks,
-                               morphing_components=self.morpher.components,
-                               morphing_matrix=self.morpher.morphing_matrix)
+        if self.morpher is not None:
+            save_madminer_settings(filename=filename,
+                                   parameters=self.parameters,
+                                   benchmarks=self.benchmarks,
+                                   morphing_components=self.morpher.components,
+                                   morphing_matrix=self.morpher.morphing_matrix)
         else:
-            save_madminer_file(filename=filename,
-                               parameters=self.parameters,
-                               benchmarks=self.benchmarks)
+            save_madminer_settings(filename=filename,
+                                   parameters=self.parameters,
+                                   benchmarks=self.benchmarks)
 
-    def generate_mg_process(self,
-                            mg_directory,
+    @staticmethod
+    def generate_mg_process(mg_directory,
                             temp_directory,
                             proc_card_file,
                             mg_process_directory,
@@ -288,8 +290,8 @@ class GoldMine:
                              reweight_card_template_file=reweight_card_template_file,
                              mg_process_directory=mg_process_directory)
 
-    def run_mg_pythia(self,
-                      mg_directory,
+    @staticmethod
+    def run_mg_pythia(mg_directory,
                       mg_process_directory,
                       temp_directory,
                       run_card_file=None,

@@ -5,12 +5,12 @@ import numpy as np
 from collections import OrderedDict
 
 
-def save_madminer_file(filename,
-                       parameters,
-                       benchmarks,
-                       morphing_components=None,
-                       morphing_matrix=None,
-                       overwrite_existing_files=True):
+def save_madminer_settings(filename,
+                           parameters,
+                           benchmarks,
+                           morphing_components=None,
+                           morphing_matrix=None,
+                           overwrite_existing_files=True):
     """
     Saves all MadMiner settings into an HDF5 file.
 
@@ -30,21 +30,26 @@ def save_madminer_file(filename,
         parameter_names = [pname for pname in parameters]
         n_parameters = len(parameter_names)
         parameter_names_ascii = [pname.encode("ascii", "ignore") for pname in parameter_names]
-        parameter_ranges = np.array(
-            [parameters[key][3] for key in parameter_names],
-            dtype=np.float
-        )
         parameter_lha_blocks = [parameters[key][0].encode("ascii", "ignore") for key in parameter_names]
         parameter_lha_ids = np.array(
             [parameters[key][1] for key in parameter_names],
             dtype=np.int
         )
+        parameter_max_power = np.array(
+            [parameters[key][2] for key in parameter_names],
+            dtype=np.int
+        )
+        parameter_ranges = np.array(
+            [parameters[key][3] for key in parameter_names],
+            dtype=np.float
+        )
 
         # Store parameters
         f.create_dataset('parameters/names', (n_parameters,), dtype='S256', data=parameter_names_ascii)
-        f.create_dataset('parameters/ranges', data=parameter_ranges)
         f.create_dataset('parameters/lha_blocks', (n_parameters,), dtype='S256', data=parameter_lha_blocks)
         f.create_dataset("parameters/lha_ids", data=parameter_lha_ids)
+        f.create_dataset('parameters/max_power', data=parameter_max_power)
+        f.create_dataset('parameters/ranges', data=parameter_ranges)
 
         # Prepare benchmarks
         benchmark_names = [bname for bname in benchmarks]
@@ -68,7 +73,7 @@ def save_madminer_file(filename,
             f.create_dataset("morphing/morphing_matrix", data=morphing_matrix.astype(np.float))
 
 
-def load_madminer_file(filename):
+def load_madminer_settings(filename):
     """ Loads MadMiner settings, observables, and weights from a HDF5 file. """
 
     with h5py.File(filename, 'r') as f:
@@ -76,27 +81,34 @@ def load_madminer_file(filename):
         # Parameters
         try:
             parameter_names = f['parameters/names'][()]
-            parameter_ranges = f['parameters/ranges'][()]
             parameter_lha_blocks = f['parameters/lha_blocks'][()]
             parameter_lha_ids = f['parameters/lha_ids'][()]
+            parameter_ranges = f['parameters/ranges'][()]
+            parameter_max_power = f['parameters/max_power'][()]
+
+            parameter_names = [pname.decode("ascii") for pname in parameter_names]
+            parameter_lha_blocks = [pblock.decode("ascii") for pblock in parameter_lha_blocks]
 
             parameters = OrderedDict()
 
-            for pname, prange, pblock, pid in zip(parameter_names, parameter_ranges, parameter_lha_blocks,
-                                                  parameter_lha_ids):
+            for pname, prange, pblock, pid, p_maxpower in zip(parameter_names, parameter_ranges, parameter_lha_blocks,
+                                                              parameter_lha_ids, parameter_max_power):
                 parameters[pname] = (
-                    str(pblock),
+                    pblock,
                     int(pid),
+                    int(p_maxpower),
                     tuple(prange)
                 )
 
-        except:
+        except IOError:
             raise IOError('Cannot read parameters from HDF5 file')
 
         # Benchmarks
         try:
             benchmark_names = f['benchmarks/names'][()]
             benchmark_values = f['benchmarks/values'][()]
+
+            benchmark_names = [bname.decode("ascii") for bname in benchmark_names]
 
             benchmarks = OrderedDict()
 
@@ -107,15 +119,15 @@ def load_madminer_file(filename):
 
                 benchmarks[bname] = bvalues
 
-        except:
+        except IOError:
             raise IOError('Cannot read benchmarks from HDF5 file')
 
         # Morphing
         try:
             morphing_components = np.asarray(f['morphing/components'][()], dtype=np.int)
-            morphing_matrix = np.asarray(f['morphing/components'][()], dtype=np.int)
+            morphing_matrix = np.asarray(f['morphing/components'][()])
 
-        except:
+        except IOError:
             morphing_components = None
             morphing_matrix = None
 
@@ -124,21 +136,41 @@ def load_madminer_file(filename):
             observables = OrderedDict()
 
             observable_names = f['observables/names'][()]
-            observable_names = [str(oname) for oname in observable_names]
+            observable_names = [oname.decode("ascii") for oname in observable_names]
             observable_definitions = f['observables/definitions'][()]
-            observable_definitions = [str(odef) for odef in observable_definitions]
+            observable_definitions = [odef.decode("ascii") for odef in observable_definitions]
 
             for oname, odef in zip(observable_names, observable_definitions):
                 observables[oname] = odef
-        except:
+        except IOError:
             observables = None
 
-        # Observations
-        try:
-            observations = np.asarray(f['samples/observations'][()], dtype=np.float)
-            weights = np.asarray(f['samples/weights'][()], dtype=np.float64)
-        except:
-            observations = None
-            weights = None
+        return parameters, benchmarks, morphing_components, morphing_matrix, observables
 
-        return parameters, benchmarks, morphing_components, morphing_matrix, observables, observations, weights
+
+def madminer_event_loader(filename, start=0, end=None, batch_size=100000):
+    with h5py.File(filename, 'r') as f:
+
+        # Handles to data
+        observations = f['samples/observations']
+        weights = f['samples/weights']
+
+        # Preparations
+        n_samples = observations.shape[0]
+        if weights.shape[0] != n_samples:
+            raise ValueError("Number of weights and observations don't match: {}, {}", weights.shape[0], n_samples)
+
+        if end is None:
+            end = n_samples
+        end = min(n_samples, end)
+
+        current = start
+
+        # Loop over data
+        while current < end:
+            this_end = min(current + batch_size, end)
+
+            yield (np.array(observations[current:this_end]),
+                   np.array(weights[current:current + this_end]))
+
+            current += batch_size
