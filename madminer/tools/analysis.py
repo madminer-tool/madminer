@@ -5,7 +5,7 @@ import numpy as np
 
 def get_theta_value(theta_type, theta_value, benchmarks):
     if theta_type == 'benchmark':
-        benchmark = benchmarks[theta_value]
+        benchmark = benchmarks[list(benchmarks.keys())[theta_value]]
         benchmark_theta = np.array([benchmark[key] for key in benchmark])
         return benchmark_theta
 
@@ -58,12 +58,12 @@ def extract_augmented_data(types,
     for data_type, theta_matrix_num, theta_matrix_den in zip(types, theta_matrices_num, theta_matrices_den):
 
         # Numerator of ratio / d_i p(x|theta) for score
-        dsigma_num = theta_matrix_num.dot(weights_benchmarks)
-        sigma_num = theta_matrix_num.dot(xsecs_benchmarks)
+        dsigma_num = theta_matrix_num.dot(weights_benchmarks.T)
+        sigma_num = theta_matrix_num.dot(xsecs_benchmarks.T)
 
         # Denominator of ratio / p(x|theta) for score
-        dsigma_den = theta_matrix_den.dot(weights_benchmarks)
-        sigma_den = theta_matrix_den.dot(xsecs_benchmarks)
+        dsigma_den = theta_matrix_den.dot(weights_benchmarks.T)
+        sigma_den = theta_matrix_den.dot(xsecs_benchmarks.T)
 
         # Calculate ratio
         if data_type == 'ratio':

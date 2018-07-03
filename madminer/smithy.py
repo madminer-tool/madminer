@@ -188,7 +188,7 @@ class Smithy:
 
             # Sampling theta
             theta_values = get_theta_value(theta_type, theta_value, self.benchmarks)
-            theta_values = theta_values.broadcast_to((n_samples, theta_values.size))
+            theta_values = np.broadcast_to(theta_values, (n_samples, theta_values.size))
             theta_matrix = get_theta_benchmark_matrix(theta_type, theta_value, n_benchmarks, self.morpher)
 
             # Total xsec for this theta
@@ -203,25 +203,28 @@ class Smithy:
                                                                            start=start_event,
                                                                            end=end_event):
                 # Evaluate cumulative p(x | theta)
-                weights_theta = theta_matrix.dot(weights_benchmarks_batch)  # Shape (n_events_in_batch,)
+                weights_theta = theta_matrix.dot(weights_benchmarks_batch.T)  # Shape (n_events_in_batch,)
                 p_theta = weights_theta / xsec_theta
                 cumulative_p = cumulative_p[-1] + np.cumsum(p_theta)
 
                 # Check what we've found
-                indices = np.searchsorted(cumulative_p, u, side='left')
-                found_now = ((not samples_done) & (indices < len(cumulative_p)))
+                indices = np.searchsorted(cumulative_p, u, side='left').flatten()
+
+                found_now = (np.invert(samples_done) & (indices < len(cumulative_p)))
 
                 # Save x
                 samples_x[found_now] = x_batch[indices[found_now]]
 
                 # Extract augmented data
-                samples_augmented_data[found_now] = extract_augmented_data(
+                relevant_augmented_data = extract_augmented_data(
                     augmented_data_types,
                     augmented_data_theta_matrices_num,
                     augmented_data_theta_matrices_den,
-                    weights_benchmarks_batch,
+                    weights_benchmarks_batch[indices[found_now], :],
                     xsecs_benchmarks
                 )
+
+                samples_augmented_data[found_now] = relevant_augmented_data
 
                 samples_done[found_now] = True
 
