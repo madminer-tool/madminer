@@ -14,7 +14,7 @@ Johann Brehmer, Gilles Louppe, Juan Pavez, and Kyle Cranmer.
 
 Core dependencies:
 - MadGraph interfaced to Pythia 8
-- standard packages as given in [environment.yml](environment.yml)
+- Python packages as given in [environment.yml](environment.yml)
 
 For a simple, automatized detector simulation and observable calculation:
 - Delphes
