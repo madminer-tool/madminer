@@ -35,16 +35,17 @@ def get_theta_benchmark_matrix(theta_type, theta_value, n_benchmarks, morpher=No
 def get_dtheta_benchmark_matrix(theta_type, theta_value, n_benchmarks, morpher=None):
     """ Calculates matrix A_ij such that d dsigma(theta) / d theta_i = A_ij * dsigma (benchmark j)  """
 
-    # TODO
-
     if theta_type == 'benchmark':
-        raise NotImplementedError
+        raise RuntimeError("Cannot calculate score without morphing or finite differences")
 
     elif theta_type == 'morphing':
-        theta_matrix = morpher.calculate_morphing_weight_gradient(theta_value)
+        theta_matrix = morpher.calculate_morphing_weight_gradient(theta_value)  # Shape (n_benchmarks, n_parameters)
+        theta_matrix = theta_matrix.T  # Shape (n_parameters, n_benchmarks)
 
     else:
         raise ValueError('Unknown theta {}'.format(theta_type))
+
+    return theta_matrix
 
 
 def extract_augmented_data(types,
