@@ -312,12 +312,10 @@ class Morpher:
 
         return weights
 
-    def calculate_morphing_weight_gradient(self, theta, basis=None, morphing_matrix=None):
+    def calculate_morphing_weight_gradient(self, theta, basis=None, morphing_matrix=None, epsilon=1.e-9):
 
         """ Calculates the gradient of the morphing weights grad_i w_b(theta). Output shape is (gradient
         direction, basis vector). """
-
-        raise NotImplementedError
 
         # Check all data is there
         if self.components is None or self.n_components is None or self.n_components <= 0:
@@ -335,19 +333,26 @@ class Morpher:
         if morphing_matrix is None:
             morphing_matrix = self.calculate_morphing_matrix(basis)
 
-        # Calculate component weights
-        component_weights = np.zeros(self.n_components)
+        # Calculate gradients of component weights wrt theta
+        component_weight_gradients = np.zeros((self.n_components, self.n_parameters))
+
         for c in range(self.n_components):
-            factor = 1.
-            for p in range(self.n_parameters):
-                factor *= float(theta[p] ** self.components[c, p])
-            component_weights[c] = factor
-        component_weights = np.array(component_weights)
+            for i in range(self.n_parameters):
+                factor = 1.
+                for p in range(self.n_parameters):
+                    if p == i and self.components[c,p] > 0:
+                        factor *= float(self.components[c, p]) * theta[p] ** (self.components[c, p] - 1)
+                    elif p == i:
+                        factor = 0.
+                        break
+                    else:
+                        factor *= float(theta[p] ** self.components[c, p])
+                component_weight_gradients[c, i] = factor
 
         # Transform to basis weights
-        weights = morphing_matrix.T.dot(component_weights)
+        weight_gradients = morphing_matrix.T.dot(component_weight_gradients)  # Shape (n_benchmarks, n_parameters)
 
-        return weights
+        return weight_gradients
 
     def evaluate_morphing(self, basis=None, morphing_matrix=None, n_test_thetas=100):
 
