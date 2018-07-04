@@ -45,33 +45,60 @@ class Smithy:
             self.morpher.set_components(self.morphing_components)
             self.morpher.set_basis(self.benchmarks, self.morphing_matrix)
 
-    def extract_samples_local(self,
-                              theta,
-                              n_samples_train,
-                              n_samples_test,
-                              folder,
-                              filename,
-                              test_split):
+    def extract_samples_train_onlysamples(self,
+                                          theta,
+                                          n_samples,
+                                          folder,
+                                          filename,
+                                          test_split=0.3):
         """
-        Extracts samples for SALLY and SALLINO
+        Extracts training samples for histograms and ABC
+
+        Sampling: according to theta. theta can be fixed or varying.
+        Data: theta, x
+        """
+        raise NotImplementedError
+
+    def extract_samples_train_local(self,
+                                    theta,
+                                    n_samples,
+                                    folder,
+                                    filename,
+                                    test_split=0.3):
+        """
+        Extracts training samples for SALLY and SALLINO
 
         Sampling: according to theta.
         Data: theta, x, t(x,z)
         """
         raise NotImplementedError
 
-    def extract_samples_ratio(self,
-                              theta0,
-                              theta1,
-                              n_samples_train,
-                              n_samples_test,
-                              folder,
-                              filename):
+    def extract_samples_train_ratio(self,
+                                    theta0,
+                                    theta1,
+                                    n_samples,
+                                    folder,
+                                    filename,
+                                    test_split=0.3):
         """
-        Extracts samples for CARL, ROLR, CASCAL, RASCAL
+        Extracts training samples for CARL, ROLR, CASCAL, RASCAL
 
-        Sampling: 50% according to theta0, 50% according to theta1. theta0 can be fixed or varying, theta1 can be
+        Sampling: 50% according to theta0, 50% according to theta1. theta0 can be fixed or varying.
         Data: theta0, theta1, x, y, r(x,z), t(x,z)
+        """
+        raise NotImplementedError
+
+    def extract_samples_test(self,
+                             theta,
+                             n_samples,
+                             folder,
+                             filename,
+                             test_split=0.3):
+        """
+        Extracts evaluation samples for all methods
+
+        Sampling: according to theta
+        Data: x
         """
         raise NotImplementedError
 
