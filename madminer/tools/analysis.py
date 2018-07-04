@@ -26,6 +26,12 @@ def get_theta_benchmark_matrix(theta_type, theta_value, n_benchmarks, morpher=No
     elif theta_type == 'morphing':
         theta_matrix = morpher.calculate_morphing_weights(theta_value)
 
+    elif theta_type == 'sampling':
+        theta_matrix = 'sampling'
+
+    elif theta_type == 'auxiliary':
+        theta_matrix = 'auxiliary'
+
     else:
         raise ValueError('Unknown theta {}'.format(theta_type))
 
@@ -39,24 +45,29 @@ def get_dtheta_benchmark_matrix(theta_type, theta_value, n_benchmarks, morpher=N
         raise RuntimeError("Cannot calculate score without morphing or finite differences")
 
     elif theta_type == 'morphing':
-        theta_matrix = morpher.calculate_morphing_weight_gradient(theta_value)  # Shape (n_benchmarks, n_parameters)
-        theta_matrix = theta_matrix.T  # Shape (n_parameters, n_benchmarks)
+        dtheta_matrix = morpher.calculate_morphing_weight_gradient(theta_value)  # Shape (n_parameters, n_benchmarks)
 
     else:
         raise ValueError('Unknown theta {}'.format(theta_type))
 
-    return theta_matrix
+    return dtheta_matrix
 
 
 def extract_augmented_data(types,
                            theta_matrices_num,
                            theta_matrices_den,
                            weights_benchmarks,
-                           xsecs_benchmarks):
-
+                           xsecs_benchmarks,
+                           theta_sampling_matrix,
+                           theta_auxiliary_matrix):
     augmented_data = []
 
     for data_type, theta_matrix_num, theta_matrix_den in zip(types, theta_matrices_num, theta_matrices_den):
+
+        if theta_matrix_num == 'sampling':
+            theta_matrix_num = theta_sampling_matrix
+        elif theta_matrix_num == 'auxiliary':
+            theta_matrix_num = theta_auxiliary_matrix
 
         # Numerator of ratio / d_i p(x|theta) for score
         dsigma_num = theta_matrix_num.dot(weights_benchmarks.T)
@@ -79,5 +90,62 @@ def extract_augmented_data(types,
 
         augmented_data.append(augmented_datum)
 
-    augmented_data = np.array(augmented_data).T
     return augmented_data
+
+
+def parse_theta(theta, n_samples):
+    theta_type_in = theta[0]
+    theta_value_in = theta[1]
+
+    if theta_type_in == 'benchmark':
+        theta_types = ['benchmark']
+        theta_values = [theta_value_in]
+        n_samples_per_theta = n_samples
+
+    elif theta_type_in == 'benchmarks':
+        n_benchmarks = len(theta_value_in)
+        theta_types = ['benchmark'] * n_benchmarks
+        theta_values = theta_value_in
+        n_samples_per_theta = int(round(n_samples / n_benchmarks, 0))
+
+    elif theta_type_in == 'theta':
+        theta_types = ['morphing']
+        theta_values = [theta_value_in]
+        n_samples_per_theta = n_samples
+
+    elif theta_type_in == 'thetas':
+        n_benchmarks = len(theta_value_in)
+        theta_types = ['morphing'] * n_benchmarks
+        theta_values = theta_value_in
+        n_samples_per_theta = int(round(n_samples / n_benchmarks, 0))
+
+    elif theta_type_in == 'random':
+        n_benchmarks, priors = theta_value_in
+
+        theta_values = []
+        for prior in priors:
+            if prior[0] == 'flat':
+                prior_min = prior[1]
+                prior_max = prior[2]
+                theta_values.append(
+                    prior_min + (prior_max - prior_min) * np.random.rand(n_benchmarks)
+                )
+
+            elif prior[0] == 'gaussian':
+                prior_mean = prior[1]
+                prior_std = prior[2]
+                theta_values.append(
+                    np.random.normal(loc=prior_mean, scale=prior_std).rvs(n_benchmarks)
+                )
+
+            else:
+                raise ValueError('Unknown prior {}'.format(prior))
+
+        theta_types = ['morphing'] * n_benchmarks
+        theta_values = np.array(theta_values).T
+        n_samples_per_theta = int(round(n_samples / n_benchmarks, 0))
+
+    else:
+        raise ValueError('Unknown theta {}'.format(theta))
+
+    return theta_types, theta_values, n_samples_per_theta

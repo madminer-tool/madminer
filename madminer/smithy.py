@@ -5,7 +5,7 @@ import collections
 
 from madminer.tools.h5_interface import load_madminer_settings, madminer_event_loader
 from madminer.tools.analysis import get_theta_value, get_theta_benchmark_matrix, get_dtheta_benchmark_matrix
-from madminer.tools.analysis import extract_augmented_data
+from madminer.tools.analysis import extract_augmented_data, parse_theta
 from madminer.tools.morphing import Morpher
 
 
@@ -25,8 +25,8 @@ def multiple_morphing_thetas(thetas):
     return 'thetas', thetas
 
 
-def random_morphing_thetas(n_thetas, prior):
-    return 'random', n_thetas, prior
+def random_morphing_thetas(n_thetas, priors):
+    return 'random', (n_thetas, priors)
 
 
 class Smithy:
@@ -36,7 +36,7 @@ class Smithy:
 
         # Load data
         (self.parameters, self.benchmarks, self.morphing_components, self.morphing_matrix,
-         self.observables) = load_madminer_settings(filename)
+         self.observables, self.n_samples) = load_madminer_settings(filename)
 
         # Morphing
         self.morpher = None
@@ -57,7 +57,35 @@ class Smithy:
         Sampling: according to theta. theta can be fixed or varying.
         Data: theta, x
         """
-        raise NotImplementedError
+
+        # Thetas
+        theta_types, theta_values, n_samples_per_theta = parse_theta(theta, n_samples)
+
+        # Augmented data (gold)
+        augmented_data_definitions = []
+
+        # Train / test split
+        if test_split is None or test_split <= 0. or test_split >= 1.:
+            last_train_index = None
+        else:
+            last_train_index = int(round((1. - test_split) * self.n_samples, 0))
+
+            if last_train_index < 0 or last_train_index > self.n_samples:
+                raise ValueError("Irregular train / test split: sample {} / {}", last_train_index, self.n_samples)
+
+        # Start
+        x, _, theta, _ = self.extract_sample(
+            theta_sampling_types=theta_types,
+            theta_sampling_values=theta_values,
+            n_samples_per_theta=n_samples_per_theta,
+            augmented_data_definitions=augmented_data_definitions,
+            start_event=0,
+            end_event=last_train_index
+        )
+
+        # Save data
+        np.save(folder + '/theta_' + filename + '.npy', theta)
+        np.save(folder + '/x_' + filename + '.npy', x)
 
     def extract_samples_train_local(self,
                                     theta,
@@ -71,7 +99,40 @@ class Smithy:
         Sampling: according to theta.
         Data: theta, x, t(x,z)
         """
-        raise NotImplementedError
+
+        # Thetas
+        theta_types, theta_values, n_samples_per_theta = parse_theta(theta, n_samples)
+
+        if len(theta_types) > 0:
+            raise ValueError('Local training samples only support one theta. Please use theta = "benchmark" or '
+                             'theta = "theta".')
+
+        # Augmented data (gold)
+        augmented_data_definitions = ['score', (theta_types[0], theta_values[0])]
+
+        # Train / test split
+        if test_split is None or test_split <= 0. or test_split >= 1.:
+            last_train_index = None
+        else:
+            last_train_index = int(round((1. - test_split) * self.n_samples, 0))
+
+            if last_train_index < 0 or last_train_index > self.n_samples:
+                raise ValueError("Irregular train / test split: sample {} / {}", last_train_index, self.n_samples)
+
+        # Start
+        x, gold, theta, _ = self.extract_sample(
+            theta_sampling_types=theta_types,
+            theta_sampling_values=theta_values,
+            n_samples_per_theta=n_samples_per_theta,
+            augmented_data_definitions=augmented_data_definitions,
+            start_event=0,
+            end_event=last_train_index
+        )
+
+        # Save data
+        np.save(folder + '/theta_' + filename + '.npy', theta)
+        np.save(folder + '/x_' + filename + '.npy', x)
+        np.save(folder + '/t_xz_' + filename + '.npy', gold[0])
 
     def extract_samples_train_ratio(self,
                                     theta0,
@@ -86,7 +147,39 @@ class Smithy:
         Sampling: 50% according to theta0, 50% according to theta1. theta0 can be fixed or varying.
         Data: theta0, theta1, x, y, r(x,z), t(x,z)
         """
-        raise NotImplementedError
+
+        # Thetas
+        theta0_types, theta0_values, n_samples_per_theta0 = parse_theta(theta0, n_samples // 2)
+        theta1_types, theta1_values, n_samples_per_theta1 = parse_theta(theta1, n_samples // 2)
+
+        # Augmented data (gold)
+        augmented_data_definitions = ['score', (theta_types[0], theta_values[0])]
+
+        # Train / test split
+        if test_split is None or test_split <= 0. or test_split >= 1.:
+            last_train_index = None
+        else:
+            last_train_index = int(round((1. - test_split) * self.n_samples, 0))
+
+            if last_train_index < 0 or last_train_index > self.n_samples:
+                raise ValueError("Irregular train / test split: sample {} / {}", last_train_index, self.n_samples)
+
+        # TODO
+
+        # Start
+        x, gold, theta, _ = self.extract_sample(
+            theta_sampling_types=theta_types,
+            theta_sampling_values=theta_values,
+            n_samples_per_theta=n_samples_per_theta,
+            augmented_data_definitions=augmented_data_definitions,
+            start_event=0,
+            end_event=last_train_index
+        )
+
+        # Save data
+        np.save(folder + '/theta_' + filename + '.npy', theta)
+        np.save(folder + '/x_' + filename + '.npy', x)
+        np.save(folder + '/t_xz_' + filename + '.npy', gold[0])
 
     def extract_samples_test(self,
                              theta,
@@ -100,13 +193,43 @@ class Smithy:
         Sampling: according to theta
         Data: x
         """
-        raise NotImplementedError
+
+        # Thetas
+        theta_types, theta_values, n_samples_per_theta = parse_theta(theta, n_samples)
+
+        # Augmented data (gold)
+        augmented_data_definitions = []
+
+        # Train / test split
+        if test_split is None or test_split <= 0. or test_split >= 1.:
+            first_test_index = 0
+        else:
+            first_test_index = int(round((1. - test_split) * self.n_samples, 0)) + 1
+
+            if first_test_index < 0 or first_test_index > self.n_samples:
+                raise ValueError("Irregular in train / test split: sample {} / {}", first_test_index, self.n_samples)
+
+        # Extract information
+        x, _, theta, _ = self.extract_sample(
+            theta_sampling_types=theta_types,
+            theta_sampling_values=theta_values,
+            n_samples_per_theta=n_samples_per_theta,
+            augmented_data_definitions=augmented_data_definitions,
+            start_event=first_test_index,
+            end_event=None
+        )
+
+        # Save data
+        np.save(folder + '/theta_' + filename + '.npy', theta)
+        np.save(folder + '/x_' + filename + '.npy', x)
 
     def extract_sample(self,
                        theta_sampling_types,
                        theta_sampling_values,
                        n_samples_per_theta,
-                       augmented_data_definitions,
+                       theta_auxiliary_types=None,
+                       theta_auxiliary_values=None,
+                       augmented_data_definitions=[],
                        start_event=0,
                        end_event=None):
         """
@@ -155,6 +278,7 @@ class Smithy:
         augmented_data_types = []
         augmented_data_theta_matrices_num = []
         augmented_data_theta_matrices_den = []
+        augmented_data_sizes = []
 
         for augmented_data_definition in augmented_data_definitions:
             augmented_data_types.append(augmented_data_definition[0])
@@ -164,7 +288,6 @@ class Smithy:
                     get_theta_benchmark_matrix(
                         augmented_data_definition[1],
                         augmented_data_definition[2],
-
                         n_benchmarks,
                         self.morpher
                     )
@@ -177,6 +300,7 @@ class Smithy:
                         self.morpher
                     )
                 )
+                augmented_data_sizes.append(1)
 
             elif augmented_data_types[-1] == 'score':
                 augmented_data_theta_matrices_num.append(
@@ -195,31 +319,55 @@ class Smithy:
                         self.morpher
                     )
                 )
+                augmented_data_sizes.append(len(self.parameters))
 
         # Samples per theta
-        if not isinstance(n_samples_per_theta, collections.Iterable) or len(n_samples_per_theta) == 1:
+        if not isinstance(n_samples_per_theta, collections.Iterable):
             n_samples_per_theta = [n_samples_per_theta] * len(theta_sampling_types)
+        elif len(n_samples_per_theta) == 1:
+            n_samples_per_theta = [n_samples_per_theta[0]] * len(theta_sampling_types)
+
+        # Auxiliary thetas
+        if theta_auxiliary_types is None or theta_auxiliary_values is None:
+            theta_auxiliary_types = [None for _ in theta_sampling_types]
+            theta_auxiliary_values = [None for _ in theta_sampling_values]
 
         # Prepare output
-        all_theta = []
         all_x = []
-        all_augmented_data = []
+        all_augmented_data = ([] for _ in range(n_augmented_data))
+        all_theta_sampling = []
+        all_theta_auxiliary = []
 
         # Loop over thetas
-        for theta_type, theta_value, n_samples in zip(theta_sampling_types, theta_sampling_values, n_samples_per_theta):
+        for (theta_sampling_type, theta_sampling_value, n_samples, theta_auxiliary_type,
+             theta_auxiliary_value) in zip(theta_sampling_types, theta_sampling_values, n_samples_per_theta,
+                                           theta_auxiliary_types, theta_auxiliary_values):
 
             # Prepare output
             samples_done = np.zeros(n_samples, dtype=np.bool)
             samples_x = np.zeros((n_samples, n_observables))
-            samples_augmented_data = np.zeros((n_samples, n_augmented_data))
+            samples_augmented_data = (np.zeros((n_samples, augmented_data_sizes[i])) for i in range(n_augmented_data))
 
             # Sampling theta
-            theta_values = get_theta_value(theta_type, theta_value, self.benchmarks)
-            theta_values = np.broadcast_to(theta_values, (n_samples, theta_values.size))
-            theta_matrix = get_theta_benchmark_matrix(theta_type, theta_value, n_benchmarks, self.morpher)
+            theta_sampling = get_theta_value(theta_sampling_type, theta_sampling_value, self.benchmarks)
+            theta_sampling = np.broadcast_to(theta_sampling, (n_samples, theta_sampling.size))
+            theta_sampling_matrix = get_theta_benchmark_matrix(theta_sampling_type, theta_sampling_value, n_benchmarks,
+                                                               self.morpher)
 
             # Total xsec for this theta
-            xsec_theta = theta_matrix.dot(xsecs_benchmarks)
+            xsec_sampling_theta = theta_sampling_matrix.dot(xsecs_benchmarks)
+
+            # Auxiliary theta
+            if theta_auxiliary_type is not None:
+                theta_auxiliary = get_theta_value(theta_auxiliary_type, theta_auxiliary_value, self.benchmarks)
+                theta_auxiliary = np.broadcast_to(theta_auxiliary, (n_samples, theta_auxiliary.size))
+                theta_auxiliary_matrix = get_theta_benchmark_matrix(theta_auxiliary_type, theta_auxiliary_value,
+                                                                    n_benchmarks, self.morpher)
+
+                xsec_auxiliary_theta = theta_auxiliary_matrix.dot(xsecs_benchmarks)
+            else:
+                theta_auxiliary = None
+                theta_auxiliary_matrix = None
 
             # Draw random numbers in [0, 1]
             u = np.random.rand(n_samples)
@@ -230,8 +378,8 @@ class Smithy:
                                                                            start=start_event,
                                                                            end=end_event):
                 # Evaluate cumulative p(x | theta)
-                weights_theta = theta_matrix.dot(weights_benchmarks_batch.T)  # Shape (n_events_in_batch,)
-                p_theta = weights_theta / xsec_theta
+                weights_theta = theta_sampling_matrix.dot(weights_benchmarks_batch.T)  # Shape (n_events_in_batch,)
+                p_theta = weights_theta / xsec_sampling_theta
                 cumulative_p = cumulative_p[-1] + np.cumsum(p_theta)
 
                 # Check what we've found
@@ -248,10 +396,13 @@ class Smithy:
                     augmented_data_theta_matrices_num,
                     augmented_data_theta_matrices_den,
                     weights_benchmarks_batch[indices[found_now], :],
-                    xsecs_benchmarks
+                    xsecs_benchmarks,
+                    theta_sampling_matrix,
+                    theta_auxiliary_matrix
                 )
 
-                samples_augmented_data[found_now] = relevant_augmented_data
+                for i, this_relevant_augmented_data in enumerate(relevant_augmented_data):
+                    samples_augmented_data[i][found_now] = this_relevant_augmented_data
 
                 samples_done[found_now] = True
 
@@ -264,7 +415,15 @@ class Smithy:
                                  samples_done.size, u[np.invert(samples_done)])
 
             all_x.append(samples_x)
-            all_augmented_data.append(samples_augmented_data)
-            all_theta.append(theta_values)
+            all_theta_sampling.append(theta_sampling)
+            all_theta_auxiliary.append(theta_auxiliary)
+            for i, this_samples_augmented_data in enumerate(samples_augmented_data):
+                all_augmented_data[i].append(this_samples_augmented_data)
 
-        return all_theta, all_x, all_augmented_data
+        all_x = np.vstack(all_x)
+        all_theta_sampling = np.vstack(all_theta_sampling)
+        all_theta_auxiliary = np.vstack(all_theta_auxiliary)
+        for i in range(n_augmented_data):
+            all_augmented_data[i] = np.vstack(all_augmented_data[i])
+
+        return all_x, all_augmented_data, all_theta_sampling, all_theta_auxiliary

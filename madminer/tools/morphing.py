@@ -315,7 +315,7 @@ class Morpher:
     def calculate_morphing_weight_gradient(self, theta, basis=None, morphing_matrix=None, epsilon=1.e-9):
 
         """ Calculates the gradient of the morphing weights grad_i w_b(theta). Output shape is (gradient
-        direction, basis vector). """
+        direction, basis benchmarks). """
 
         # Check all data is there
         if self.components is None or self.n_components is None or self.n_components <= 0:
@@ -350,7 +350,7 @@ class Morpher:
                 component_weight_gradients[c, i] = factor
 
         # Transform to basis weights
-        weight_gradients = morphing_matrix.T.dot(component_weight_gradients)  # Shape (n_benchmarks, n_parameters)
+        weight_gradients = morphing_matrix.T.dot(component_weight_gradients).T  # Shape (n_parameters, n_benchmarks)
 
         return weight_gradients
 

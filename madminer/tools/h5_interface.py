@@ -145,7 +145,20 @@ def load_madminer_settings(filename):
         except IOError:
             observables = None
 
-        return parameters, benchmarks, morphing_components, morphing_matrix, observables
+        # Number of samples
+        try:
+            observations = f['samples/observations']
+            weights = f['samples/weights']
+
+            n_samples = observations.shape[0]
+
+            if weights.shape[0] != n_samples:
+                raise ValueError("Number of weights and observations don't match: {}, {}", weights.shape[0], n_samples)
+
+        except IOError:
+            raise IOError('Cannot read samples from HDF5 file')
+
+        return parameters, benchmarks, morphing_components, morphing_matrix, observables, n_samples
 
 
 def madminer_event_loader(filename, start=0, end=None, batch_size=100000):
