@@ -317,7 +317,9 @@ class Smithy:
                                       (of the corresponding theta_sampling_types entry is 'morphing')
         :param start_event: Index of first event to consider.
         :param end_event: Index of last event to consider.
-        :return:
+        :return: tuple (x, augmented_data_list, theta_sampling, theta_auxiliary). x, theta_sampling, theta_auxiliary,
+                 and all elements of the list augmented_data_list are ndarrays with the number of samples as first
+                 dimension.
         """
 
         # Calculate total xsecs
