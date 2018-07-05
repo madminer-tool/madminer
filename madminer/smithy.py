@@ -187,11 +187,31 @@ class Smithy:
             end_event=last_train_index
         )
 
-        # Combine and shuffle
+        # Combine
+        x = np.vstack([x0, x1])
+        r_xz = np.vstack([r_xz0, r_xz1])
+        t_xz = np.vstack([t_xz0, t_xz1])
+        theta0 = np.vstack([theta0_0, theta0_1])
+        theta1 = np.vstack([theta1_0, theta1_1])
+        y = np.zeros(x.shape[0])
+        y[x0.shape[0]:] = 1.
 
-        # TODO
+        # Shuffle
+        permutation = np.random.permutation(x.shape[0])
+        x = x[permutation]
+        r_xz = r_xz[permutation]
+        t_xz = t_xz[permutation]
+        theta0 = theta0[permutation]
+        theta1 = theta1[permutation]
+        y = y[permutation]
 
         # Save data
+        np.save(folder + '/theta0_' + filename + '.npy', theta0)
+        np.save(folder + '/theta1_' + filename + '.npy', theta1)
+        np.save(folder + '/x_' + filename + '.npy', x)
+        np.save(folder + '/y_' + filename + '.npy', y)
+        np.save(folder + '/r_xz_' + filename + '.npy', r_xz)
+        np.save(folder + '/t_xz_' + filename + '.npy', t_xz)
 
     def extract_samples_test(self,
                              theta,
@@ -381,8 +401,6 @@ class Smithy:
                 theta_auxiliary = np.broadcast_to(theta_auxiliary, (n_samples, theta_auxiliary.size))
                 theta_auxiliary_matrix = get_theta_benchmark_matrix(theta_auxiliary_type, theta_auxiliary_value,
                                                                     n_benchmarks, self.morpher)
-
-                xsec_auxiliary_theta = theta_auxiliary_matrix.dot(xsecs_benchmarks)
             else:
                 theta_auxiliary = None
                 theta_auxiliary_matrix = None
