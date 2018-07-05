@@ -2,6 +2,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import numpy as np
 import six
+import logging
 
 
 def get_theta_value(theta_type, theta_value, benchmarks):
@@ -80,10 +81,12 @@ def extract_augmented_data(types,
                            theta_sampling_gradient_matrix,
                            theta_auxiliary_matrix,
                            theta_auxiliary_gradient_matrix):
+
     augmented_data = []
 
     for data_type, theta_matrix_num, theta_matrix_den in zip(types, theta_matrices_num, theta_matrices_den):
 
+        # Dynamic numerator / denominators
         if theta_matrix_num == 'sampling':
             theta_matrix_num = theta_sampling_matrix
         elif theta_matrix_num == 'sampling_gradient':
@@ -93,6 +96,16 @@ def extract_augmented_data(types,
         elif theta_matrix_num == 'auxiliary_gradient':
             theta_matrix_num = theta_auxiliary_gradient_matrix
 
+        if theta_matrix_den == 'sampling':
+            theta_matrix_den = theta_sampling_matrix
+        elif theta_matrix_den == 'sampling_gradient':
+            raise ValueError(theta_matrix_den)
+        elif theta_matrix_den == 'auxiliary':
+            theta_matrix_den = theta_auxiliary_matrix
+        elif theta_matrix_den == 'auxiliary_gradient':
+            raise ValueError(theta_matrix_den)
+
+
         # Numerator of ratio / d_i p(x|theta) for score
         dsigma_num = theta_matrix_num.dot(weights_benchmarks.T)
         sigma_num = theta_matrix_num.dot(xsecs_benchmarks.T)
@@ -101,13 +114,27 @@ def extract_augmented_data(types,
         dsigma_den = theta_matrix_den.dot(weights_benchmarks.T)
         sigma_den = theta_matrix_den.dot(xsecs_benchmarks.T)
 
+        # Shapes
+        # theta_matrices_num: (n_benchmarks) or (n_gradients, n_benchmarks)
+        # theta_matrices_den: (n_benchmarks)
+        # weights_benchmarks: (n_samples, n_benchmarks)
+        # xsecs_benchmarks:   (n_benchmarks)
+        # dsigma_num: (n_samples) or (n_gradients, n_samples)
+        # sigma_num: () or (n_gradients)
+        # dsigma_den: (n_samples)
+        # sigma_den: ()
+
         # Calculate ratio
         if data_type == 'ratio':
             augmented_datum = (dsigma_num / sigma_num) / (dsigma_den / sigma_num)
 
+            # augmented_datum: (n_samples)
+
         # Calculate score
         elif data_type == 'score':
-            augmented_datum = (dsigma_num / dsigma_den) - (sigma_num / sigma_den)
+            augmented_datum = (dsigma_num / dsigma_den)  # (n_gradients, n_samples)
+            augmented_datum = augmented_datum.T  # (n_samples, n_gradients)
+            augmented_datum = augmented_datum - np.broadcast_to(sigma_num / sigma_den, augmented_datum.shape)
 
         else:
             raise ValueError("Unknown augmented data type {}", data_type)

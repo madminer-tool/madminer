@@ -436,7 +436,6 @@ class Smithy:
                 augmented_data_sizes.append(1)
 
             elif augmented_data_types[-1] == 'score':
-
                 if not self.has_morphing:
                     raise RuntimeError('No morphing setup loaded. Cannot calculate score.')
 
@@ -480,7 +479,7 @@ class Smithy:
 
         # Prepare output
         all_x = []
-        all_augmented_data = ([] for _ in range(n_augmented_data))
+        all_augmented_data = [[] for _ in range(n_augmented_data)]
         all_theta_sampling = []
         all_theta_auxiliary = []
 
@@ -497,11 +496,6 @@ class Smithy:
             logging.debug('  Sampling theta: {}, {}'.format(theta_sampling_type, theta_sampling_value))
             logging.debug('  Auxiliary theta: {}, {}'.format(theta_auxiliary_type, theta_auxiliary_value))
             logging.debug('  # samples: {}'.format(n_samples))
-
-            # Prepare output
-            samples_done = np.zeros(n_samples, dtype=np.bool)
-            samples_x = np.zeros((n_samples, n_observables))
-            samples_augmented_data = (np.zeros((n_samples, augmented_data_sizes[i])) for i in range(n_augmented_data))
 
             # Sampling theta
             theta_sampling = get_theta_value(theta_sampling_type, theta_sampling_value, self.benchmarks)
@@ -542,6 +536,11 @@ class Smithy:
                 theta_auxiliary = None
                 theta_auxiliary_matrix = None
                 theta_auxiliary_gradients_matrix = None
+
+            # Prepare output
+            samples_done = np.zeros(n_samples, dtype=np.bool)
+            samples_x = np.zeros((n_samples, n_observables))
+            samples_augmented_data = [np.zeros((n_samples, augmented_data_sizes[i])) for i in range(n_augmented_data)]
 
             # Draw random numbers in [0, 1]
             u = np.random.rand(n_samples)
