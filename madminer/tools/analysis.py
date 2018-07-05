@@ -47,6 +47,12 @@ def get_dtheta_benchmark_matrix(theta_type, theta_value, n_benchmarks, morpher=N
     elif theta_type == 'morphing':
         dtheta_matrix = morpher.calculate_morphing_weight_gradient(theta_value)  # Shape (n_parameters, n_benchmarks)
 
+    elif theta_type == 'sampling':
+        dtheta_matrix = 'sampling_gradient'
+
+    elif theta_type == 'auxiliary':
+        dtheta_matrix = 'auxiliary_gradient'
+
     else:
         raise ValueError('Unknown theta {}'.format(theta_type))
 
@@ -59,15 +65,21 @@ def extract_augmented_data(types,
                            weights_benchmarks,
                            xsecs_benchmarks,
                            theta_sampling_matrix,
-                           theta_auxiliary_matrix):
+                           theta_sampling_gradient_matrix,
+                           theta_auxiliary_matrix,
+                           theta_auxiliary_gradient_matrix):
     augmented_data = []
 
     for data_type, theta_matrix_num, theta_matrix_den in zip(types, theta_matrices_num, theta_matrices_den):
 
         if theta_matrix_num == 'sampling':
             theta_matrix_num = theta_sampling_matrix
+        elif theta_matrix_num == 'sampling_gradient':
+            theta_matrix_num = theta_sampling_gradient_matrix
         elif theta_matrix_num == 'auxiliary':
             theta_matrix_num = theta_auxiliary_matrix
+        elif theta_matrix_num == 'auxiliary_gradient':
+            theta_matrix_num = theta_auxiliary_gradient_matrix
 
         # Numerator of ratio / d_i p(x|theta) for score
         dsigma_num = theta_matrix_num.dot(weights_benchmarks.T)
@@ -122,6 +134,9 @@ def parse_theta(theta, n_samples):
     elif theta_type_in == 'random':
         n_benchmarks, priors = theta_value_in
 
+        if n_benchmarks is None or n_benchmarks <= 0:
+            n_benchmarks = n_samples
+
         theta_values = []
         for prior in priors:
             if prior[0] == 'flat':
@@ -135,7 +150,7 @@ def parse_theta(theta, n_samples):
                 prior_mean = prior[1]
                 prior_std = prior[2]
                 theta_values.append(
-                    np.random.normal(loc=prior_mean, scale=prior_std).rvs(n_benchmarks)
+                    np.random.normal(loc=prior_mean, scale=prior_std, size=n_benchmarks)
                 )
 
             else:
