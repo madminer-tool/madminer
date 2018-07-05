@@ -1,11 +1,12 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import numpy as np
+import six
 
 
 def get_theta_value(theta_type, theta_value, benchmarks):
     if theta_type == 'benchmark':
-        benchmark = benchmarks[list(benchmarks.keys())[theta_value]]
+        benchmark = benchmarks[theta_value]
         benchmark_theta = np.array([benchmark[key] for key in benchmark])
         return benchmark_theta
 
@@ -16,12 +17,14 @@ def get_theta_value(theta_type, theta_value, benchmarks):
         raise ValueError('Unknown theta {}'.format(theta_type))
 
 
-def get_theta_benchmark_matrix(theta_type, theta_value, n_benchmarks, morpher=None):
+def get_theta_benchmark_matrix(theta_type, theta_value, benchmarks, morpher=None):
     """ Calculates vector A such that dsigma(theta) = A * dsigma_benchmarks  """
 
     if theta_type == 'benchmark':
+        n_benchmarks = len(benchmarks)
+        index = list(benchmarks).index(theta_value)
         theta_matrix = np.zeros(n_benchmarks)
-        theta_matrix[theta_value] = 1.
+        theta_matrix[index] = 1.
 
     elif theta_type == 'morphing':
         theta_matrix = morpher.calculate_morphing_weights(theta_value)
@@ -38,13 +41,22 @@ def get_theta_benchmark_matrix(theta_type, theta_value, n_benchmarks, morpher=No
     return theta_matrix
 
 
-def get_dtheta_benchmark_matrix(theta_type, theta_value, n_benchmarks, morpher=None):
+def get_dtheta_benchmark_matrix(theta_type, theta_value, benchmarks, morpher=None):
     """ Calculates matrix A_ij such that d dsigma(theta) / d theta_i = A_ij * dsigma (benchmark j)  """
 
     if theta_type == 'benchmark':
-        raise RuntimeError("Cannot calculate score without morphing or finite differences")
+        if morpher is None:
+            raise RuntimeError("Cannot calculate score without morphing")
+
+        theta = benchmarks[theta_value]
+        theta = np.array([value for _, value in six.iteritems(theta)])
+
+        return get_dtheta_benchmark_matrix('morphing', theta, benchmarks, morpher)
 
     elif theta_type == 'morphing':
+        if morpher is None:
+            raise RuntimeError("Cannot calculate score without morphing")
+
         dtheta_matrix = morpher.calculate_morphing_weight_gradient(theta_value)  # Shape (n_parameters, n_benchmarks)
 
     elif theta_type == 'sampling':

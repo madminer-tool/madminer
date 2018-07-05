@@ -146,6 +146,9 @@ class Smithy:
         logging.info('Extracting training sample for local score regression. Sampling and score evaluation according to'
                      ' %s', theta)
 
+        if not self.has_morphing:
+            raise RuntimeError('No morphing setup loaded. Cannot calculate score.')
+
         # Thetas
         theta_types, theta_values, n_samples_per_theta = parse_theta(theta, n_samples)
 
@@ -211,6 +214,9 @@ class Smithy:
                                        ('score', 'sampling', None)]
         augmented_data_definitions1 = [('ratio', 'auxiliary', None, 'sampling', None),
                                        ('score', 'auxiliary', None)]
+
+        if not self.has_morphing:
+            raise RuntimeError('No morphing setup loaded. Cannot calculate score.')
 
         # Train / test split
         if test_split is None or test_split <= 0. or test_split >= 1.:
@@ -354,7 +360,7 @@ class Smithy:
         :param augmented_data_definitions: list of tuples. Each tuple can either be ('ratio', num_type, num_value,
                                            den_type, den_value) or ('score', theta_type, theta_value). The theta types
                                            can either be 'benchmark', 'morphing', 'sampling', or 'auxiliary'. The
-                                           corresponding theta values are then either the benchmark index, the theta
+                                           corresponding theta values are then either the benchmark name, the theta
                                            value, None, or None.
         :param theta_auxiliary_values: list of str, each entry can be 'benchmark' or 'morphing'
         :param theta_auxiliary_types: list, each entry is int and labels the benchmark index (if the corresponding
@@ -415,7 +421,7 @@ class Smithy:
                     get_theta_benchmark_matrix(
                         augmented_data_definition[1],
                         augmented_data_definition[2],
-                        n_benchmarks,
+                        self.benchmarks,
                         self.morpher
                     )
                 )
@@ -423,18 +429,22 @@ class Smithy:
                     get_theta_benchmark_matrix(
                         augmented_data_definition[3],
                         augmented_data_definition[4],
-                        n_benchmarks,
+                        self.benchmarks,
                         self.morpher
                     )
                 )
                 augmented_data_sizes.append(1)
 
             elif augmented_data_types[-1] == 'score':
+
+                if not self.has_morphing:
+                    raise RuntimeError('No morphing setup loaded. Cannot calculate score.')
+
                 augmented_data_theta_matrices_num.append(
                     get_dtheta_benchmark_matrix(
                         augmented_data_definition[1],
                         augmented_data_definition[2],
-                        n_benchmarks,
+                        self.benchmarks,
                         self.morpher
                     )
                 )
@@ -442,7 +452,7 @@ class Smithy:
                     get_theta_benchmark_matrix(
                         augmented_data_definition[1],
                         augmented_data_definition[2],
-                        n_benchmarks,
+                        self.benchmarks,
                         self.morpher
                     )
                 )
@@ -460,10 +470,13 @@ class Smithy:
             theta_auxiliary_values = [None for _ in theta_sampling_values]
 
         if len(theta_auxiliary_types) != len(theta_sampling_types):
-            theta_auxiliary_types = [theta_auxiliary_types[i // len(theta_auxiliary_types)]
+            theta_auxiliary_types = [theta_auxiliary_types[i % len(theta_auxiliary_types)]
                                      for i in range(len(theta_sampling_types))]
-            theta_auxiliary_values = [theta_auxiliary_values[i // len(theta_auxiliary_types)]
+            theta_auxiliary_values = [theta_auxiliary_values[i % len(theta_auxiliary_values)]
                                       for i in range(len(theta_sampling_types))]
+
+        assert (len(theta_sampling_types) == len(theta_sampling_values)
+                == len(theta_auxiliary_values) == len(theta_auxiliary_types))
 
         # Prepare output
         all_x = []
@@ -475,6 +488,9 @@ class Smithy:
         for (theta_sampling_type, theta_sampling_value, n_samples, theta_auxiliary_type,
              theta_auxiliary_value) in zip(theta_sampling_types, theta_sampling_values, n_samples_per_theta,
                                            theta_auxiliary_types, theta_auxiliary_values):
+
+            if not self.has_morphing  and (theta_sampling_type == 'morphing' or theta_auxiliary_type == 'morphing'):
+                raise RuntimeError('Theta defined through morphing, but no morphing setup has been loaded.')
 
             # Debug
             logging.debug('New theta configuration')
@@ -490,10 +506,18 @@ class Smithy:
             # Sampling theta
             theta_sampling = get_theta_value(theta_sampling_type, theta_sampling_value, self.benchmarks)
             theta_sampling = np.broadcast_to(theta_sampling, (n_samples, theta_sampling.size))
-            theta_sampling_matrix = get_theta_benchmark_matrix(theta_sampling_type, theta_sampling_value, n_benchmarks,
-                                                               self.morpher)
-            theta_sampling_gradients_matrix = get_dtheta_benchmark_matrix(theta_sampling_type, theta_sampling_value, n_benchmarks,
-                                                                          self.morpher)
+            theta_sampling_matrix = get_theta_benchmark_matrix(
+                theta_sampling_type,
+                theta_sampling_value,
+                self.benchmarks,
+                self.morpher
+            )
+            theta_sampling_gradients_matrix = get_dtheta_benchmark_matrix(
+                theta_sampling_type,
+                theta_sampling_value,
+                self.benchmarks,
+                self.morpher
+            )
 
             # Total xsec for this theta
             xsec_sampling_theta = theta_sampling_matrix.dot(xsecs_benchmarks)
@@ -502,10 +526,18 @@ class Smithy:
             if theta_auxiliary_type is not None:
                 theta_auxiliary = get_theta_value(theta_auxiliary_type, theta_auxiliary_value, self.benchmarks)
                 theta_auxiliary = np.broadcast_to(theta_auxiliary, (n_samples, theta_auxiliary.size))
-                theta_auxiliary_matrix = get_theta_benchmark_matrix(theta_auxiliary_type, theta_auxiliary_value,
-                                                                    n_benchmarks, self.morpher)
-                theta_auxiliary_gradients_matrix = get_dtheta_benchmark_matrix(theta_auxiliary_type, theta_auxiliary_value,
-                                                                               n_benchmarks, self.morpher)
+                theta_auxiliary_matrix = get_theta_benchmark_matrix(
+                    theta_auxiliary_type,
+                    theta_auxiliary_value,
+                    self.benchmarks,
+                    self.morpher
+                )
+                theta_auxiliary_gradients_matrix = get_dtheta_benchmark_matrix(
+                    theta_auxiliary_type,
+                    theta_auxiliary_value,
+                    self.benchmarks,
+                    self.morpher
+                )
             else:
                 theta_auxiliary = None
                 theta_auxiliary_matrix = None
