@@ -9,7 +9,7 @@ from madminer.tools.h5_interface import load_madminer_settings, madminer_event_l
 from madminer.tools.analysis import get_theta_value, get_theta_benchmark_matrix, get_dtheta_benchmark_matrix
 from madminer.tools.analysis import extract_augmented_data, parse_theta
 from madminer.tools.morphing import Morpher
-from madminer.tools.utils import general_init, format_benchmark
+from madminer.tools.utils import general_init, format_benchmark, create_missing_folders
 
 
 def constant_benchmark_theta(benchmark_name):
@@ -45,7 +45,6 @@ class Smithy:
         # Load data
         (self.parameters, self.benchmarks, self.morphing_components, self.morphing_matrix,
          self.observables, self.n_samples) = load_madminer_settings(filename)
-        self.has_morphing = self.morphing_components is not None and self.morphing_matrix is not None
 
         logging.info('Found %s parameters:', len(self.parameters))
         for key, values in six.iteritems(self.parameters):
@@ -57,11 +56,6 @@ class Smithy:
             logging.info('   %s: %s',
                          key, format_benchmark(values))
 
-        if self.has_morphing:
-            logging.info('Found morphing setup with %s components', len(self.morphing_components))
-        else:
-            logging.info('Did not find morphing setup.')
-
         logging.info('Found %s observables: %s', len(self.observables), ', '.join(self.observables))
         logging.info('Found %s events', self.n_samples)
 
@@ -70,7 +64,12 @@ class Smithy:
         if self.morphing_matrix is not None and self.morphing_components is not None and not disable_morphing:
             self.morpher = Morpher(self.parameters)
             self.morpher.set_components(self.morphing_components)
-            self.morpher.set_basis(self.benchmarks, self.morphing_matrix)
+            self.morpher.set_basis(self.benchmarks, morphing_matrix = self.morphing_matrix)
+            
+            logging.info('Found morphing setup with %s components', len(self.morphing_components))
+            
+        else:
+            logging.info('Did not find morphing setup.')
 
     def extract_samples_train_plain(self,
                                     theta,
@@ -92,6 +91,8 @@ class Smithy:
         """
 
         logging.info('Extracting plain training sample. Sampling according to %s', theta)
+
+        create_missing_folders([folder])
 
         # Thetas
         theta_types, theta_values, n_samples_per_theta = parse_theta(theta, n_samples)
@@ -146,14 +147,16 @@ class Smithy:
         logging.info('Extracting training sample for local score regression. Sampling and score evaluation according to'
                      ' %s', theta)
 
-        if not self.has_morphing:
+        create_missing_folders([folder])
+
+        if self.morpher is None:
             raise RuntimeError('No morphing setup loaded. Cannot calculate score.')
 
         # Thetas
         theta_types, theta_values, n_samples_per_theta = parse_theta(theta, n_samples)
 
         # Augmented data (gold)
-        augmented_data_definitions = ['score', 'sampling', None]
+        augmented_data_definitions = [('score', 'sampling', None)]
 
         # Train / test split
         if test_split is None or test_split <= 0. or test_split >= 1.:
@@ -209,13 +212,15 @@ class Smithy:
         logging.info('Extracting training sample for ratio-based methods. Numerator hypothesis: %s, denominator '
                      'hypothesis: %s', theta0, theta1)
 
+        create_missing_folders([folder])
+
         # Augmented data (gold)
         augmented_data_definitions0 = [('ratio', 'sampling', None, 'auxiliary', None),
                                        ('score', 'sampling', None)]
         augmented_data_definitions1 = [('ratio', 'auxiliary', None, 'sampling', None),
                                        ('score', 'auxiliary', None)]
 
-        if not self.has_morphing:
+        if self.morpher is None:
             raise RuntimeError('No morphing setup loaded. Cannot calculate score.')
 
         # Train / test split
@@ -308,6 +313,8 @@ class Smithy:
         """
 
         logging.info('Extracting evaluation sample. Sampling according to %s', theta)
+
+        create_missing_folders([folder])
 
         # Thetas
         theta_types, theta_values, n_samples_per_theta = parse_theta(theta, n_samples)
@@ -436,7 +443,7 @@ class Smithy:
                 augmented_data_sizes.append(1)
 
             elif augmented_data_types[-1] == 'score':
-                if not self.has_morphing:
+                if self.morpher is None:
                     raise RuntimeError('No morphing setup loaded. Cannot calculate score.')
 
                 augmented_data_theta_matrices_num.append(
@@ -488,7 +495,7 @@ class Smithy:
              theta_auxiliary_value) in zip(theta_sampling_types, theta_sampling_values, n_samples_per_theta,
                                            theta_auxiliary_types, theta_auxiliary_values):
 
-            if not self.has_morphing  and (theta_sampling_type == 'morphing' or theta_auxiliary_type == 'morphing'):
+            if self.morpher is None and (theta_sampling_type == 'morphing' or theta_auxiliary_type == 'morphing'):
                 raise RuntimeError('Theta defined through morphing, but no morphing setup has been loaded.')
 
             # Debug
@@ -553,7 +560,21 @@ class Smithy:
                 # Evaluate cumulative p(x | theta)
                 weights_theta = theta_sampling_matrix.dot(weights_benchmarks_batch.T)  # Shape (n_events_in_batch,)
                 p_theta = weights_theta / xsec_sampling_theta
+
+                n_negative_weights = np.sum(p_theta < 0.)
+                if n_negative_weights > 0:
+                    logging.debug('%s negative weights (%s)', n_negative_weights, n_negative_weights / p_theta.size)
+
+                p_theta[p_theta < 0.] = 0.
+
                 cumulative_p = cumulative_p[-1] + np.cumsum(p_theta)
+
+                # TODO: Something going wrong with the sampling. Negative probabilities, plus, often only counting up to 0.98
+
+                logging.debug(' weights: %s - %s, mean %s\n\n%s', np.min(weights_benchmarks_batch), np.max(weights_benchmarks_batch), np.mean(weights_benchmarks_batch), weights_benchmarks_batch)
+                logging.debug(' weights theta: %s - %s, mean %s\n\n%s', np.min(weights_theta), np.max(weights_theta), np.mean(weights_theta), weights_theta)
+                logging.debug(' p: %s - %s, mean %s\n\n%s', np.min(p_theta), np.max(p_theta), np.mean(p_theta), p_theta)
+                logging.debug(' cumulative p: max %s\n\n%s', np.max(cumulative_p), cumulative_p)
 
                 # Check what we've found
                 indices = np.searchsorted(cumulative_p, u, side='left').flatten()
@@ -586,8 +607,12 @@ class Smithy:
 
             # Check that we got 'em all
             if not np.all(samples_done):
-                raise ValueError('{} / {} samples not found, u = {}', np.sum(np.invert(samples_done)),
-                                 samples_done.size, u[np.invert(samples_done)])
+                raise ValueError('{} / {} samples not found, u = {}, sum p = {}'.format(
+                    np.sum(np.invert(samples_done)),
+                    samples_done.size,
+                    u[np.invert(samples_done)],
+                    cumulative_p
+                ))
 
             all_x.append(samples_x)
             all_theta_sampling.append(theta_sampling)

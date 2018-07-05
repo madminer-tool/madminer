@@ -125,7 +125,7 @@ def load_madminer_settings(filename):
         # Morphing
         try:
             morphing_components = np.asarray(f['morphing/components'][()], dtype=np.int)
-            morphing_matrix = np.asarray(f['morphing/components'][()])
+            morphing_matrix = np.asarray(f['morphing/morphing_matrix'][()])
 
         except IOError:
             morphing_components = None

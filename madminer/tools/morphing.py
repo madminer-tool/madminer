@@ -112,7 +112,7 @@ class Morpher:
             raise RuntimeError('No basis given')
 
         if morphing_matrix is None:
-            self.calculate_morphing_matrix()
+            self.morphing_matrix = self.calculate_morphing_matrix()
         else:
             self.morphing_matrix = morphing_matrix
 

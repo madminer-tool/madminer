@@ -126,9 +126,10 @@ def extract_augmented_data(types,
 
         # Calculate ratio
         if data_type == 'ratio':
-            augmented_datum = (dsigma_num / sigma_num) / (dsigma_den / sigma_num)
+            augmented_datum = (dsigma_num / sigma_num) / (dsigma_den / sigma_den)
+            augmented_datum = augmented_datum.reshape((-1,1))
 
-            # augmented_datum: (n_samples)
+            # augmented_datum: (n_samples, 1)
 
         # Calculate score
         elif data_type == 'score':
@@ -139,6 +140,7 @@ def extract_augmented_data(types,
         else:
             raise ValueError("Unknown augmented data type {}", data_type)
 
+        # Let's check shape
         augmented_data.append(augmented_datum)
 
     return augmented_data

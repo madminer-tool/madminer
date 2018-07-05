@@ -26,8 +26,8 @@ def general_init(debug=False):
 
     logging.info('Hi! How are you today?')
 
-    #np.seterr(divide='ignore', invalid='ignore')
-    np.set_printoptions(formatter={'float_kind': lambda x: "%.2f" % x})
+    # np.seterr(divide='ignore', invalid='ignore')
+    # np.set_printoptions(formatter={'float_kind': lambda x: "%.2f" % x})
 
 
 def call_command(cmd, log_file=None):
