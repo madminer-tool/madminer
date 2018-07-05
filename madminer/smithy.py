@@ -103,12 +103,8 @@ class Smithy:
         # Thetas
         theta_types, theta_values, n_samples_per_theta = parse_theta(theta, n_samples)
 
-        if len(theta_types) > 0:
-            raise ValueError('Local training samples only support one theta. Please use theta = "benchmark" or '
-                             'theta = "theta".')
-
         # Augmented data (gold)
-        augmented_data_definitions = ['score', (theta_types[0], theta_values[0])]
+        augmented_data_definitions = ['score', ('sampling', None)]
 
         # Train / test split
         if test_split is None or test_split <= 0. or test_split >= 1.:
@@ -120,7 +116,7 @@ class Smithy:
                 raise ValueError("Irregular train / test split: sample {} / {}", last_train_index, self.n_samples)
 
         # Start
-        x, gold, theta, _ = self.extract_sample(
+        x, (r_xz,), theta, _ = self.extract_sample(
             theta_sampling_types=theta_types,
             theta_sampling_values=theta_values,
             n_samples_per_theta=n_samples_per_theta,
@@ -132,7 +128,7 @@ class Smithy:
         # Save data
         np.save(folder + '/theta_' + filename + '.npy', theta)
         np.save(folder + '/x_' + filename + '.npy', x)
-        np.save(folder + '/t_xz_' + filename + '.npy', gold[0])
+        np.save(folder + '/t_xz_' + filename + '.npy', r_xz)
 
     def extract_samples_train_ratio(self,
                                     theta0,
@@ -153,7 +149,10 @@ class Smithy:
         theta1_types, theta1_values, n_samples_per_theta1 = parse_theta(theta1, n_samples // 2)
 
         # Augmented data (gold)
-        augmented_data_definitions = ['score', (theta_types[0], theta_values[0])]
+        augmented_data_definitions0 = [('ratio', ('sampling', None), ('auxiliary', None)),
+                                       ('score', ('sampling', None))]
+        augmented_data_definitions1 = [('ratio', ('auxiliary', None), ('sampling', None)),
+                                       ('score', ('auxiliary', None))]
 
         # Train / test split
         if test_split is None or test_split <= 0. or test_split >= 1.:
@@ -164,22 +163,35 @@ class Smithy:
             if last_train_index < 0 or last_train_index > self.n_samples:
                 raise ValueError("Irregular train / test split: sample {} / {}", last_train_index, self.n_samples)
 
-        # TODO
-
-        # Start
-        x, gold, theta, _ = self.extract_sample(
-            theta_sampling_types=theta_types,
-            theta_sampling_values=theta_values,
-            n_samples_per_theta=n_samples_per_theta,
-            augmented_data_definitions=augmented_data_definitions,
+        # Start for theta0
+        x0, (r_xz0, t_xz0), theta0_0, theta1_0 = self.extract_sample(
+            theta_sampling_types=theta0_types,
+            theta_sampling_values=theta0_values,
+            theta_auxiliary_types=theta1_types,
+            theta_auxiliary_values=theta1_values,
+            n_samples_per_theta=n_samples_per_theta0,
+            augmented_data_definitions=augmented_data_definitions0,
             start_event=0,
             end_event=last_train_index
         )
 
+        # Start for theta1
+        x1, (r_xz1, t_xz1), theta1_1, theta0_1 = self.extract_sample(
+            theta_sampling_types=theta1_types,
+            theta_sampling_values=theta1_values,
+            theta_auxiliary_types=theta0_types,
+            theta_auxiliary_values=theta0_values,
+            n_samples_per_theta=n_samples_per_theta1,
+            augmented_data_definitions=augmented_data_definitions1,
+            start_event=0,
+            end_event=last_train_index
+        )
+
+        # Combine and shuffle
+
+        # TODO
+
         # Save data
-        np.save(folder + '/theta_' + filename + '.npy', theta)
-        np.save(folder + '/x_' + filename + '.npy', x)
-        np.save(folder + '/t_xz_' + filename + '.npy', gold[0])
 
     def extract_samples_test(self,
                              theta,
@@ -229,7 +241,7 @@ class Smithy:
                        n_samples_per_theta,
                        theta_auxiliary_types=None,
                        theta_auxiliary_values=None,
-                       augmented_data_definitions=[],
+                       augmented_data_definitions=None,
                        start_event=0,
                        end_event=None):
         """
@@ -241,6 +253,8 @@ class Smithy:
                                       (of the corresponding theta_sampling_types entry is 'morphing')
         :param n_samples_per_theta:
         :param augmented_data_definitions:
+        :param theta_auxiliary_values:
+        :param theta_auxiliary_types:
         :param start_event:
         :param end_event:
         :return:
@@ -275,10 +289,14 @@ class Smithy:
 
         # Prepare augmented data
         n_augmented_data = len(augmented_data_definitions)
+
         augmented_data_types = []
         augmented_data_theta_matrices_num = []
         augmented_data_theta_matrices_den = []
         augmented_data_sizes = []
+
+        if augmented_data_definitions is None:
+            augmented_data_definitions = []
 
         for augmented_data_definition in augmented_data_definitions:
             augmented_data_types.append(augmented_data_definition[0])
