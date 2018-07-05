@@ -52,10 +52,16 @@ class Smithy:
                                           filename,
                                           test_split=0.3):
         """
-        Extracts training samples for histograms and ABC
+        Extracts training samples x ~ p(x|theta) for methods such as histograms or ABC.
 
-        Sampling: according to theta. theta can be fixed or varying.
-        Data: theta, x
+        :param theta: tuple (type, value) that defines the parameter point or prior over parameter points for the
+                      sampling. Use the helper functions constant_benchmark_theta(), multiple_benchmark_thetas(),
+                      constant_morphing_theta(), multiple_morphing_thetas(), or random_morphing_thetas().
+        :param n_samples: Total number of samples to be drawn.
+        :param folder: Folder for the resulting samples.
+        :param filename: Label for the filenames. The actual filenames will add a prefix such as 'x_', and the extension
+                         '.npy'.
+        :param test_split: Fraction of events reserved for the test sample (will not be used for any training samples).
         """
 
         # Thetas
@@ -94,10 +100,16 @@ class Smithy:
                                     filename,
                                     test_split=0.3):
         """
-        Extracts training samples for SALLY and SALLINO
+        Extracts training samples x ~ p(x|theta) as well as the joint score t(x, z|theta) for SALLY and SALLINO.
 
-        Sampling: according to theta.
-        Data: theta, x, t(x,z)
+        :param theta: tuple (type, value) that defines the parameter point or prior over parameter points for the
+                      sampling. This is also where the score is evaluated. Use the helper functions, in particular
+                      constant_benchmark_theta() and constant_morphing_theta().
+        :param n_samples: Total number of samples to be drawn.
+        :param folder: Folder for the resulting samples.
+        :param filename: Label for the filenames. The actual filenames will add a prefix such as 'x_', and the extension
+                         '.npy'.
+        :param test_split: Fraction of events reserved for the test sample (will not be used for any training samples).
         """
 
         # Thetas
@@ -138,10 +150,21 @@ class Smithy:
                                     filename,
                                     test_split=0.3):
         """
-        Extracts training samples for CARL, ROLR, CASCAL, RASCAL
+        Extracts training samples x ~ p(x|theta0) and x ~ p(x|theta1) together with the class label y, the joint
+        likelihood ratio r(x,z|theta0, theta1), and the joint score t(x,z|theta0) for methods such as CARL, ROLR,
+        CASCAL, and RASCAL.
 
-        Sampling: 50% according to theta0, 50% according to theta1. theta0 can be fixed or varying.
-        Data: theta0, theta1, x, y, r(x,z), t(x,z)
+        :param theta0: tuple (type, value) that defines the numerator parameter point or prior over parameter points.
+                       Use the helper functions constant_benchmark_theta(), multiple_benchmark_thetas(),
+                       constant_morphing_theta(), multiple_morphing_thetas(), or random_morphing_thetas().
+        :param theta1: tuple (type, value) that defines the numerator parameter point or prior over parameter points.
+                       Use the helper functions constant_benchmark_theta(), multiple_benchmark_thetas(),
+                       constant_morphing_theta(), multiple_morphing_thetas(), or random_morphing_thetas().
+        :param n_samples: Total number of samples to be drawn.
+        :param folder: Folder for the resulting samples.
+        :param filename: Label for the filenames. The actual filenames will add a prefix such as 'x_', and the extension
+                         '.npy'.
+        :param test_split: Fraction of events reserved for the test sample (will not be used for any training samples).
         """
 
         # Thetas
@@ -220,11 +243,19 @@ class Smithy:
                              filename,
                              test_split=0.3):
         """
-        Extracts evaluation samples for all methods
+        Extracts evaluation samples x ~ p(x|theta).
 
-        Sampling: according to theta
-        Data: x
+        :param theta: tuple (type, value) that defines the parameter point or prior over parameter points used for the
+                      sampling. Use the helper functions constant_benchmark_theta(), multiple_benchmark_thetas(),
+                      constant_morphing_theta(), multiple_morphing_thetas(), or random_morphing_thetas().
+        :param n_samples: Total number of samples to be drawn.
+        :param folder: Folder for the resulting samples.
+        :param filename: Label for the filenames. The actual filenames will add a prefix such as 'x_', and the extension
+                         '.npy'.
+        :param test_split: Fraction of events reserved for this evaluation sample (will not be used for any training
+                           samples).
         """
+
 
         # Thetas
         theta_types, theta_values, n_samples_per_theta = parse_theta(theta, n_samples)
@@ -267,16 +298,25 @@ class Smithy:
         """
         Low-level function for the extraction of information from the event samples.
 
-        :param theta_sampling_types: list, each entry is either 'benchmark' or 'morphing'
+        :param theta_sampling_types: list of str, each entry can be 'benchmark' or 'morphing'
         :param theta_sampling_values: list, each entry is int and labels the benchmark index (if the corresponding
                                       theta_sampling_types entry is 'benchmark') or a numpy array with the theta values
                                       (of the corresponding theta_sampling_types entry is 'morphing')
-        :param n_samples_per_theta:
-        :param augmented_data_definitions:
-        :param theta_auxiliary_values:
-        :param theta_auxiliary_types:
-        :param start_event:
-        :param end_event:
+        :param n_samples_per_theta: Number of samples to be drawn per entry in theta_sampling_types.
+        :param augmented_data_definitions: list of tuples. The first entry of each tuple can be 'ratio' or 'score'. If
+                                           it is 'ratio', the second and third entry define the numerator and
+                                           denominator for the calculation of the joint likelihood ratio. If it is
+                                           'score', the second entry of the tuple defines the joint score evaluation
+                                           point. In each case, parameter points are given as a tuple (theta_type,
+                                           theta_value). theta_type can be 'benchmark', 'morphing', 'sampling', or
+                                           'auxiliary'. theta_value is then either the benchmark index, the theta value,
+                                           None, or None.
+        :param theta_auxiliary_values: list of str, each entry can be 'benchmark' or 'morphing'
+        :param theta_auxiliary_types: list, each entry is int and labels the benchmark index (if the corresponding
+                                      theta_sampling_types entry is 'benchmark') or a numpy array with the theta values
+                                      (of the corresponding theta_sampling_types entry is 'morphing')
+        :param start_event: Index of first event to consider.
+        :param end_event: Index of last event to consider.
         :return:
         """
 
