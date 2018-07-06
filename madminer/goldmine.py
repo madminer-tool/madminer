@@ -54,8 +54,8 @@ class GoldMine:
             parameter_name = 'parameter_' + str(len(self.parameters))
 
         # Check and sanitize input
-        assert isinstance(parameter_name, str), 'Parameter name is not a string: {}'.format(parameter_name)
-        assert isinstance(lha_block, str), 'LHA block is not a string: {}'.format(lha_block)
+        assert isinstance(parameter_name, six.string_types), 'Parameter name is not a string: {}'.format(parameter_name)
+        assert isinstance(lha_block, six.string_types), 'LHA block is not a string: {}'.format(lha_block)
         assert isinstance(lha_id, int), 'LHA id is not an integer: {}'.format(lha_id)
 
         parameter_name = parameter_name.replace(' ', '_')
