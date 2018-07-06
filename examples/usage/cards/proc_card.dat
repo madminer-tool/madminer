@@ -1,2 +1,2 @@
 import model dim6_for_information
-generate u d > h u d /a QCD=0 QED=99 ANO=99, h > e+ e- mu+ mu- /a QCD=0 QED=99 ANO=99
+generate u d > h u d /a QCD=0 QED=99 ANO=99, h > ta+ ta- QCD=0 QED=99 ANO=0

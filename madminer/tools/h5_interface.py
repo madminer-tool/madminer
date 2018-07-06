@@ -100,7 +100,7 @@ def load_madminer_settings(filename):
                     tuple(prange)
                 )
 
-        except IOError:
+        except KeyError:
             raise IOError('Cannot read parameters from HDF5 file')
 
         # Benchmarks
@@ -119,7 +119,7 @@ def load_madminer_settings(filename):
 
                 benchmarks[bname] = bvalues
 
-        except IOError:
+        except KeyError:
             raise IOError('Cannot read benchmarks from HDF5 file')
 
         # Morphing
@@ -127,7 +127,7 @@ def load_madminer_settings(filename):
             morphing_components = np.asarray(f['morphing/components'][()], dtype=np.int)
             morphing_matrix = np.asarray(f['morphing/morphing_matrix'][()])
 
-        except IOError:
+        except KeyError:
             morphing_components = None
             morphing_matrix = None
 
@@ -142,7 +142,7 @@ def load_madminer_settings(filename):
 
             for oname, odef in zip(observable_names, observable_definitions):
                 observables[oname] = odef
-        except IOError:
+        except KeyError:
             observables = None
 
         # Number of samples
@@ -155,7 +155,7 @@ def load_madminer_settings(filename):
             if weights.shape[0] != n_samples:
                 raise ValueError("Number of weights and observations don't match: {}, {}", weights.shape[0], n_samples)
 
-        except IOError:
+        except KeyError:
             raise IOError('Cannot read samples from HDF5 file')
 
         return parameters, benchmarks, morphing_components, morphing_matrix, observables, n_samples

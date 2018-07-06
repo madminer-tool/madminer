@@ -3,6 +3,7 @@ import six
 
 import numpy as np
 from collections import OrderedDict
+import itertools
 
 
 class Morpher:
@@ -58,36 +59,18 @@ class Morpher:
 
         """ Find and return a list of components with their power dependence on the parameters """
 
-        c = 0
-        powers = np.zeros(self.n_parameters, dtype=np.int16)
         components = []
-        continue_loop = True
 
-        while continue_loop:
+        c = 0
+        powers_each_component = [range(self.parameter_max_power[i] + 1) for i in range(self.n_parameters)]
+
+        for powers in itertools.product(*powers_each_component):
+            powers = np.array(powers, dtype=np.int)
+
+            if np.sum(powers) > max_overall_power:
+                continue
+
             components.append(np.copy(powers))
-
-            # next setting
-            c += 1
-
-            # if we are below max_power in total, increase rightest digit
-            if sum(powers) < max_overall_power:
-                powers[self.n_parameters - 1] += 1
-
-            # if we are at max_power, set to zero from the right and increase left neighbour
-            else:
-                continue_loop = False
-                for pos in range(self.n_parameters - 1, 0, -1):
-                    if powers[pos] > 0:
-                        continue_loop = True
-                        powers[pos] = 0
-                        powers[pos - 1] += 1
-                        break
-
-            # go through individual digits and check self.operator_maxpowers
-            for pos in range(self.n_parameters - 1, 0, -1):
-                if powers[pos] > self.parameter_max_power[pos]:
-                    powers[pos] = 0
-                    powers[pos - 1] += 1
 
         self.components = np.array(components, dtype=np.int)
         self.n_components = len(self.components)
@@ -154,6 +137,7 @@ class Morpher:
             fixed_benchmark_names = []
         else:
             fixed_benchmarks = np.array([])
+            fixed_benchmark_names = []
 
         # Missing benchmarks
         n_benchmarks = n_bases * self.n_components
