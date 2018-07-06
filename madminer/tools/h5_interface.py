@@ -100,7 +100,7 @@ def load_madminer_settings(filename):
                     tuple(prange)
                 )
 
-        except IOError:
+        except KeyError:
             raise IOError('Cannot read parameters from HDF5 file')
 
         # Benchmarks
@@ -119,15 +119,15 @@ def load_madminer_settings(filename):
 
                 benchmarks[bname] = bvalues
 
-        except IOError:
+        except KeyError:
             raise IOError('Cannot read benchmarks from HDF5 file')
 
         # Morphing
         try:
             morphing_components = np.asarray(f['morphing/components'][()], dtype=np.int)
-            morphing_matrix = np.asarray(f['morphing/components'][()])
+            morphing_matrix = np.asarray(f['morphing/morphing_matrix'][()])
 
-        except IOError:
+        except KeyError:
             morphing_components = None
             morphing_matrix = None
 
@@ -142,10 +142,23 @@ def load_madminer_settings(filename):
 
             for oname, odef in zip(observable_names, observable_definitions):
                 observables[oname] = odef
-        except IOError:
+        except KeyError:
             observables = None
 
-        return parameters, benchmarks, morphing_components, morphing_matrix, observables
+        # Number of samples
+        try:
+            observations = f['samples/observations']
+            weights = f['samples/weights']
+
+            n_samples = observations.shape[0]
+
+            if weights.shape[0] != n_samples:
+                raise ValueError("Number of weights and observations don't match: {}, {}", weights.shape[0], n_samples)
+
+        except KeyError:
+            raise IOError('Cannot read samples from HDF5 file')
+
+        return parameters, benchmarks, morphing_components, morphing_matrix, observables, n_samples
 
 
 def madminer_event_loader(filename, start=0, end=None, batch_size=100000):

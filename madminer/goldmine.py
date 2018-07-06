@@ -2,20 +2,23 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import six
 
 import os
+import logging
 from collections import OrderedDict
 import tempfile
 
 from madminer.tools.morphing import Morpher
 from madminer.tools.h5_interface import save_madminer_settings
 from madminer.tools.mg_interface import export_param_card, export_reweight_card, generate_mg_process, run_mg_pythia
-from madminer.tools.utils import create_missing_folders
+from madminer.tools.utils import create_missing_folders, general_init, format_benchmark
 
 
 class GoldMine:
 
-    def __init__(self):
+    def __init__(self, debug=False):
 
         """ Constructor """
+
+        general_init(debug=debug)
 
         self.parameters = OrderedDict()
         self.benchmarks = OrderedDict()
@@ -27,6 +30,7 @@ class GoldMine:
                       lha_block,
                       lha_id,
                       parameter_name=None,
+                      param_card_transform=None,
                       morphing_max_power=2,
                       parameter_range=(0., 1.)):
 
@@ -39,6 +43,8 @@ class GoldMine:
                                    of the process of interest. Typically at tree level, this is 2 for parameters that
                                    affect one vertex (e.g. only production or only decay of a particle), and 4 for
                                    parameters that affect two vertices (e.g. production and decay).
+        :param param_card_transform: None or a one-parameter function that takes as input the value of the parameter
+                                     and as output returns the value that should be written in the parameter cards.
         :param parameter_range: tuple, the range of parameter values of primary interest. Only affects the
                                          basis optimization.
         """
@@ -58,10 +64,14 @@ class GoldMine:
         assert parameter_name not in self.parameters, 'Parameter name exists already: {}'.format(parameter_name)
 
         # Add parameter
-        self.parameters[parameter_name] = (lha_block, lha_id, morphing_max_power, parameter_range)
+        self.parameters[parameter_name] = (lha_block, lha_id,
+                                           morphing_max_power, parameter_range, param_card_transform)
 
         # After manually adding parameters, the morphing information is not accurate anymore
         self.morpher = None
+
+        logging.info('Added parameter %s (LHA: %s %s, maximal power in squared ME: %s, range: %s)', parameter_name,
+                     lha_block, lha_id, morphing_max_power, parameter_range)
 
     def set_parameters(self,
                        parameters=None):
@@ -140,6 +150,8 @@ class GoldMine:
         # After manually adding benchmarks, the morphing information is not accurate anymore
         self.morpher = None
 
+        logging.info('Added benchmark %s: %s)', benchmark_name, format_benchmark(parameter_values))
+
     def set_benchmarks(self,
                        benchmarks=None):
         """
@@ -186,6 +198,8 @@ class GoldMine:
                               weight.
         """
 
+        logging.info('Optimizing basis for morphing')
+
         morpher = Morpher(parameters_from_madminer=self.parameters)
         morpher.find_components(max_overall_power)
 
@@ -208,13 +222,20 @@ class GoldMine:
         raise NotImplementedError
 
     def save(self, filename):
+
+        create_missing_folders([os.path.dirname(filename)])
+
         if self.morpher is not None:
+            logging.info('Saving setup (including morphing) to %s', filename)
+
             save_madminer_settings(filename=filename,
                                    parameters=self.parameters,
                                    benchmarks=self.benchmarks,
                                    morphing_components=self.morpher.components,
                                    morphing_matrix=self.morpher.morphing_matrix)
         else:
+            logging.info('Saving setup (without morphing) to %s', filename)
+
             save_madminer_settings(filename=filename,
                                    parameters=self.parameters,
                                    benchmarks=self.benchmarks)
@@ -238,6 +259,8 @@ class GoldMine:
                                 environment).
         :param log_file: Path to a log file in which the MadGraph output is saved.
         """
+
+        logging.info('Generating MadGraph process folder from %s at %s', proc_card_file, mg_process_directory)
 
         create_missing_folders([temp_directory, mg_process_directory, os.path.dirname(log_file)])
 
@@ -268,6 +291,8 @@ class GoldMine:
         :param sample_benchmark: Name of the benchmark used for sampling. If None, the very first defined benchmark is
                                  used.
         """
+
+        logging.info('Creating param and reweight cards in %s', mg_process_directory)
 
         # Check status
         assert self.default_benchmark is not None
@@ -317,6 +342,8 @@ class GoldMine:
                                 environment).
         :param log_file: Path to a log file in which the MadGraph output is saved.
         """
+
+        logging.info('Starting MadGraph and Pythia in %s', mg_process_directory)
 
         create_missing_folders([temp_directory, mg_process_directory, os.path.dirname(log_file)])
 

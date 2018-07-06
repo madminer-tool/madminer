@@ -3,6 +3,7 @@ import six
 
 import numpy as np
 from collections import OrderedDict
+import itertools
 
 
 class Morpher:
@@ -58,36 +59,18 @@ class Morpher:
 
         """ Find and return a list of components with their power dependence on the parameters """
 
-        c = 0
-        powers = np.zeros(self.n_parameters, dtype=np.int16)
         components = []
-        continue_loop = True
 
-        while continue_loop:
+        c = 0
+        powers_each_component = [range(self.parameter_max_power[i] + 1) for i in range(self.n_parameters)]
+
+        for powers in itertools.product(*powers_each_component):
+            powers = np.array(powers, dtype=np.int)
+
+            if np.sum(powers) > max_overall_power:
+                continue
+
             components.append(np.copy(powers))
-
-            # next setting
-            c += 1
-
-            # if we are below max_power in total, increase rightest digit
-            if sum(powers) < max_overall_power:
-                powers[self.n_parameters - 1] += 1
-
-            # if we are at max_power, set to zero from the right and increase left neighbour
-            else:
-                continue_loop = False
-                for pos in range(self.n_parameters - 1, 0, -1):
-                    if powers[pos] > 0:
-                        continue_loop = True
-                        powers[pos] = 0
-                        powers[pos - 1] += 1
-                        break
-
-            # go through individual digits and check self.operator_maxpowers
-            for pos in range(self.n_parameters - 1, 0, -1):
-                if powers[pos] > self.parameter_max_power[pos]:
-                    powers[pos] = 0
-                    powers[pos - 1] += 1
 
         self.components = np.array(components, dtype=np.int)
         self.n_components = len(self.components)
@@ -112,7 +95,7 @@ class Morpher:
             raise RuntimeError('No basis given')
 
         if morphing_matrix is None:
-            self.calculate_morphing_matrix()
+            self.morphing_matrix = self.calculate_morphing_matrix()
         else:
             self.morphing_matrix = morphing_matrix
 
@@ -154,6 +137,7 @@ class Morpher:
             fixed_benchmark_names = []
         else:
             fixed_benchmarks = np.array([])
+            fixed_benchmark_names = []
 
         # Missing benchmarks
         n_benchmarks = n_bases * self.n_components
@@ -312,12 +296,10 @@ class Morpher:
 
         return weights
 
-    def calculate_morphing_weight_gradient(self, theta, basis=None, morphing_matrix=None):
+    def calculate_morphing_weight_gradient(self, theta, basis=None, morphing_matrix=None, epsilon=1.e-9):
 
         """ Calculates the gradient of the morphing weights grad_i w_b(theta). Output shape is (gradient
-        direction, basis vector). """
-
-        raise NotImplementedError
+        direction, basis benchmarks). """
 
         # Check all data is there
         if self.components is None or self.n_components is None or self.n_components <= 0:
@@ -335,19 +317,26 @@ class Morpher:
         if morphing_matrix is None:
             morphing_matrix = self.calculate_morphing_matrix(basis)
 
-        # Calculate component weights
-        component_weights = np.zeros(self.n_components)
+        # Calculate gradients of component weights wrt theta
+        component_weight_gradients = np.zeros((self.n_components, self.n_parameters))
+
         for c in range(self.n_components):
-            factor = 1.
-            for p in range(self.n_parameters):
-                factor *= float(theta[p] ** self.components[c, p])
-            component_weights[c] = factor
-        component_weights = np.array(component_weights)
+            for i in range(self.n_parameters):
+                factor = 1.
+                for p in range(self.n_parameters):
+                    if p == i and self.components[c,p] > 0:
+                        factor *= float(self.components[c, p]) * theta[p] ** (self.components[c, p] - 1)
+                    elif p == i:
+                        factor = 0.
+                        break
+                    else:
+                        factor *= float(theta[p] ** self.components[c, p])
+                component_weight_gradients[c, i] = factor
 
         # Transform to basis weights
-        weights = morphing_matrix.T.dot(component_weights)
+        weight_gradients = morphing_matrix.T.dot(component_weight_gradients).T  # Shape (n_parameters, n_benchmarks)
 
-        return weights
+        return weight_gradients
 
     def evaluate_morphing(self, basis=None, morphing_matrix=None, n_test_thetas=100):
 
