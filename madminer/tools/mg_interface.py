@@ -24,11 +24,11 @@ def export_param_card(benchmark,
         if parameter_transform is not None:
             parameter_value = parameter_transform(parameter_value)
 
-        block_begin = param_card.find('Block ' + parameter_lha_block)
+        block_begin = param_card.lower().find(('Block ' + parameter_lha_block).lower())
         if block_begin < 0:
             raise ValueError('Could not find block {0} in param_card template!'.format(parameter_lha_block))
 
-        block_end = param_card.find('Block', block_begin + 5)
+        block_end = param_card.lower().find('Block'.lower(), block_begin + 5)
         if block_end < 0:
             block_end = len(param_card)
 

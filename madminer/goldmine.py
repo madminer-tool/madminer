@@ -223,6 +223,8 @@ class GoldMine:
 
     def save(self, filename):
 
+        create_missing_folders([os.path.dirname(filename)])
+
         if self.morpher is not None:
             logging.info('Saving setup (including morphing) to %s', filename)
 
