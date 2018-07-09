@@ -1,2 +1,2 @@
-import model SMEFT_alpha_MFV_UFO
-generate u d > h u d /a QCD=0 QED=99 NP=1, (h > ta+ ta- NP=0, ta+ > e+ ve vt~ NP=0,  ta- > mu- vm~ vt NP=0)
+import model EWdim6
+generate u u~ > w+ w- / u u~ QCD=0 QED=99 NP=1, w+ > e+ ve, w- > mu- vm~
