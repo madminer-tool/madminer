@@ -9,7 +9,7 @@ import numpy as np
 
 
 def general_init(debug=False):
-    logging.basicConfig(format='%(asctime)s  %(message)s', datefmt='%H:%m',
+    logging.basicConfig(format='%(asctime)s  %(message)s', datefmt='%H:%M',
                         level=logging.DEBUG if debug else logging.INFO)
 
     logging.info('')
@@ -17,7 +17,7 @@ def general_init(debug=False):
     logging.info('|                                                          |')
     logging.info('|  MadMiner                                                |')
     logging.info('|                                                          |')
-    logging.info('|  Version from July 5, 2018                               |')
+    logging.info('|  Version from July 9, 2018                               |')
     logging.info('|                                                          |')
     logging.info('|           Johann Brehmer, Kyle Cranmer, and Felix Kling  |')
     logging.info('|                                                          |')
