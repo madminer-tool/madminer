@@ -9,222 +9,91 @@
 ######################################################################
 
 ###################################
-## INFORMATION FOR CKMBLOCK
+## INFORMATION FOR DIM6
 ###################################
-Block ckmblock 
-    1 2.277360e-01 # cabi 
-    2 9.743400e-01 # CKM11 
-    3 2.250600e-01 # CKM12 
-    4 3.570000e-03 # CKM13 
-    5 2.249200e-01 # CKM21 
-    6 9.735100e-01 # CKM22 
-    7 4.110000e-02 # CKM23 
-    8 8.750000e-03 # CKM31 
-    9 4.030000e-02 # CKM32 
-   10 9.991500e-01 # CKM33 
-
-###################################
-## INFORMATION FOR FRBLOCK
-###################################
-Block frblock 
-    1 0.000000e+00 # appZERO 
+Block dim6
+    1 0.000000e+00 # CWWWL2
+    2 0.000000e+00 # CWL2
+    3 0.000000e+00 # CBL2
+    4 0.000000e+00 # CPWWWL2
+    5 0.000000e+00 # CPWL2
 
 ###################################
 ## INFORMATION FOR MASS
 ###################################
-Block mass 
-    1 4.700000e-03 # MD 
-    2 2.200000e-03 # MU 
-    3 9.600000e-02 # MS 
-    4 1.280000e+00 # MC 
-    5 4.180000e+00 # MB 
-    6 1.731000e+02 # MT 
-   11 5.110000e-04 # Me 
-   13 1.056600e-01 # MMU 
-   15 1.777000e+00 # MTA 
-   23 9.118750e+01 # MZ 
-   25 1.250900e+02 # MH 
+Block mass
+    5 4.700000e+00 # MB
+    6 1.720000e+02 # MT
+   15 1.777000e+00 # MTA
+   23 9.118760e+01 # MZ
+   25 1.250000e+02 # MH
+  9000006 1.250120e+02 # MP
 ## Dependent parameters, given by model restrictions.
-## Those values should be edited following the 
-## analytical expression. MG5 ignores those values 
+## Those values should be edited following the
+## analytical expression. MG5 ignores those values
 ## but they are important for interfacing the output of MG5
 ## to external program such as Pythia.
-  12 0.000000 # ve : 0.0 
-  14 0.000000 # vm : 0.0 
-  16 0.000000 # vt : 0.0 
-  21 0.000000 # g : 0.0 
-  22 0.000000 # a : 0.0 
-  24 79.824234 # w+ : dMW + MW0 
-
-###################################
-## INFORMATION FOR MFVNEWCOUP
-###################################
-Block mfvnewcoup 
-    1 0.000000e+00 # dCHqu1 
-    2 0.000000e+00 # dCHqd1 
-    3 0.000000e+00 # dCHQu3 
-    4 0.000000e+00 # dCHQd3 
-    5 0.000000e+00 # dCHu 
-    6 0.000000e+00 # dCHd 
-    7 0.000000e+00 # dCqq1ua1 
-    8 0.000000e+00 # dCqq1ua2 
-    9 0.000000e+00 # dCqq1ub1 
-   10 0.000000e+00 # dCqq1ub2 
-   11 0.000000e+00 # dCqq1da1 
-   12 0.000000e+00 # dCqq1da2 
-   13 0.000000e+00 # dCqq1db1 
-   14 0.000000e+00 # dCqq1db2 
-   15 0.000000e+00 # dCQQ3ua1 
-   16 0.000000e+00 # dCQQ3ua2 
-   17 0.000000e+00 # dCQQ3ub1 
-   18 0.000000e+00 # dCQQ3ub2 
-   19 0.000000e+00 # dCQQ3da1 
-   20 0.000000e+00 # dCQQ3da2 
-   21 0.000000e+00 # dCQQ3db1 
-   22 0.000000e+00 # dCQQ3db2 
-   23 0.000000e+00 # dClq1ua 
-   24 0.000000e+00 # dClq1da 
-   25 0.000000e+00 # dCLQ3ua 
-   26 0.000000e+00 # dCLQ3da 
-   27 0.000000e+00 # dCuua1 
-   28 0.000000e+00 # dCuua2 
-   29 0.000000e+00 # dCuub1 
-   30 0.000000e+00 # dCuub2 
-   31 0.000000e+00 # dCdda1 
-   32 0.000000e+00 # dCdda2 
-   33 0.000000e+00 # dCddb1 
-   34 0.000000e+00 # dCddb2 
-   35 0.000000e+00 # dCud1a1 
-   36 0.000000e+00 # dCud1a2 
-   37 0.000000e+00 # dCUD8a1 
-   38 0.000000e+00 # dCUD8a2 
-   39 0.000000e+00 # dCeua 
-   40 0.000000e+00 # dCeda 
-   41 0.000000e+00 # dCqu1ua1 
-   42 0.000000e+00 # dCqu1da1 
-   43 0.000000e+00 # dCqu1a2 
-   44 0.000000e+00 # dCQU8ua1 
-   45 0.000000e+00 # dCQU8da1 
-   46 0.000000e+00 # dCQU8a2 
-   47 0.000000e+00 # dCqd1ua1 
-   48 0.000000e+00 # dCqd1da1 
-   49 0.000000e+00 # dCqd1a2 
-   50 0.000000e+00 # dCQD8ua1 
-   51 0.000000e+00 # dCQD8da1 
-   52 0.000000e+00 # dCQD8a2 
-   53 0.000000e+00 # dClua 
-   54 0.000000e+00 # dClda 
-   55 0.000000e+00 # dCqeua 
-   56 0.000000e+00 # dCqeda 
-
-###################################
-## INFORMATION FOR NEWCOUP
-###################################
-Block newcoup 
-    0 5.000000e+02 # Lambda 
-    1 0.000000e+00 # cw 
-    2 0.000000e+00 # cG 
-    3 0.000000e+00 # cH 
-    4 0.000000e+00 # cHBox 
-    5 0.000000e+00 # cHDD 
-    6 0.000000e+00 # cHB 
-    7 0.000000e+00 # cHW 
-    8 0.000000e+00 # cHWB 
-    9 0.000000e+00 # cHG 
-   10 0.000000e+00 # CtH 
-   11 0.000000e+00 # CbH 
-   12 0.000000e+00 # CtB 
-   13 0.000000e+00 # CtW 
-   14 0.000000e+00 # CtG 
-   15 0.000000e+00 # CbB 
-   16 0.000000e+00 # CbW 
-   17 0.000000e+00 # CbG 
-   18 0.000000e+00 # CHq1a 
-   19 0.000000e+00 # CHQ3a 
-   20 0.000000e+00 # CHl1a 
-   21 0.000000e+00 # CHL3a 
-   22 0.000000e+00 # CHua 
-   23 0.000000e+00 # CHda 
-   24 0.000000e+00 # CHe 
-   25 0.000000e+00 # CHud 
-   26 0.000000e+00 # Clla 
-   27 0.000000e+00 # Cllb 
-   28 0.000000e+00 # Cqq1a 
-   29 0.000000e+00 # Cqq1b 
-   30 0.000000e+00 # CQQ3a 
-   31 0.000000e+00 # CQQ3b 
-   32 0.000000e+00 # Clq1a 
-   33 0.000000e+00 # CLQ3a 
-   34 0.000000e+00 # Cuua 
-   35 0.000000e+00 # Cuub 
-   36 0.000000e+00 # Cdda 
-   37 0.000000e+00 # Cddb 
-   38 0.000000e+00 # Ceea 
-   39 0.000000e+00 # Cud1a 
-   40 0.000000e+00 # CUD8a 
-   41 0.000000e+00 # Ceua 
-   42 0.000000e+00 # Ceda 
-   43 0.000000e+00 # Cqu1a 
-   44 0.000000e+00 # CQU8a 
-   45 0.000000e+00 # Cqd1a 
-   46 0.000000e+00 # CQD8a 
-   47 0.000000e+00 # Clea 
-   48 0.000000e+00 # Clua 
-   49 0.000000e+00 # Clda 
-   50 0.000000e+00 # Cqea 
-   51 0.000000e+00 # Cquqd1a 
-   52 0.000000e+00 # CQUQD8a 
-
-###################################
-## INFORMATION FOR NEWCOUPAUX
-###################################
-Block newcoupaux 
-    0 1.000000e+00 # WC 
+  1 0.000000 # d : 0.0
+  2 0.000000 # u : 0.0
+  3 0.000000 # s : 0.0
+  4 0.000000 # c : 0.0
+  11 0.000000 # e- : 0.0
+  12 0.000000 # ve : 0.0
+  13 0.000000 # mu- : 0.0
+  14 0.000000 # vm : 0.0
+  16 0.000000 # vt : 0.0
+  21 0.000000 # g : 0.0
+  22 0.000000 # a : 0.0
+  24 79.824360 # w+ : cmath.sqrt(MZ__exp__2/2. + cmath.sqrt(MZ__exp__4/4. - (aEW*cmath.pi*MZ__exp__2)/(Gf*sqrt__2)))
 
 ###################################
 ## INFORMATION FOR SMINPUTS
 ###################################
-Block sminputs 
-    1 1.279000e+02 # aEWM1 
-    2 1.166370e-05 # Gf 
-    3 1.181000e-01 # aS 
+Block sminputs
+    1 1.279000e+02 # aEWM1
+    2 1.166370e-05 # Gf
+    3 1.184000e-01 # aS
 
 ###################################
 ## INFORMATION FOR YUKAWA
 ###################################
-Block yukawa 
-    1 4.700000e-03 # ymdo 
-    2 2.200000e-03 # ymup 
-    3 9.600000e-02 # yms 
-    4 1.280000e+00 # ymc 
-    5 4.180000e+00 # ymb 
-    6 1.731000e+02 # ymt 
-   11 5.110000e-04 # yme 
-   13 1.056600e-01 # ymm 
-   15 1.777000e+00 # ymtau 
+Block yukawa
+    5 4.700000e+00 # ymb
+    6 1.720000e+02 # ymt
+   15 1.777000e+00 # ymtau
 
 ###################################
 ## INFORMATION FOR DECAY
 ###################################
-DECAY   6 1.508336e+00 # WT 
-DECAY  23 2.495200e+00 # WZ 
-DECAY  24 2.085000e+00 # WW 
-DECAY  25 4.070000e-03 # WH 
+DECAY   6 1.508336e+00 # WT
+DECAY  15 2.270000e-12 # WTau
+DECAY  23 2.495200e+00 # WZ
+DECAY  24 2.085000e+00 # WW
+DECAY  25 6.382339e-03 # WH
+DECAY 9000006 6.382339e-03 # WH1
 ## Dependent parameters, given by model restrictions.
-## Those values should be edited following the 
-## analytical expression. MG5 ignores those values 
+## Those values should be edited following the
+## analytical expression. MG5 ignores those values
 ## but they are important for interfacing the output of MG5
 ## to external program such as Pythia.
-DECAY  1 0.000000 # d : 0.0 
-DECAY  2 0.000000 # u : 0.0 
-DECAY  3 0.000000 # s : 0.0 
-DECAY  4 0.000000 # c : 0.0 
-DECAY  5 0.000000 # b : 0.0 
-DECAY  11 0.000000 # e- : 0.0 
-DECAY  12 0.000000 # ve : 0.0 
-DECAY  13 0.000000 # mu- : 0.0 
-DECAY  14 0.000000 # vm : 0.0 
-DECAY  15 0.000000 # ta- : 0.0 
-DECAY  16 0.000000 # vt : 0.0 
-DECAY  21 0.000000 # g : 0.0 
-DECAY  22 0.000000 # a : 0.0 
+DECAY  1 0.000000 # d : 0.0
+DECAY  2 0.000000 # u : 0.0
+DECAY  3 0.000000 # s : 0.0
+DECAY  4 0.000000 # c : 0.0
+DECAY  5 0.000000 # b : 0.0
+DECAY  11 0.000000 # e- : 0.0
+DECAY  12 0.000000 # ve : 0.0
+DECAY  13 0.000000 # mu- : 0.0
+DECAY  14 0.000000 # vm : 0.0
+DECAY  16 0.000000 # vt : 0.0
+DECAY  21 0.000000 # g : 0.0
+DECAY  22 0.000000 # a : 0.0
+#===========================================================
+# QUANTUM NUMBERS OF NEW STATE(S) (NON SM PDG CODE)
+#===========================================================
+
+Block QNUMBERS 9000006  # h1
+        1 0  # 3 times electric charge
+        2 1  # number of spin states (2S+1)
+        3 1  # colour rep (1: singlet, 3: triplet, 8: octet)
+        4 0  # Particle/Antiparticle distinction (0=own anti)
