@@ -5,11 +5,65 @@ import numpy as np
 import collections
 import six
 
-from madminer.tools.h5_interface import load_madminer_settings, madminer_event_loader
+from madminer.tools.h5_interface import load_madminer_settings, madminer_event_loader, save_events_to_madminer_file
 from madminer.tools.analysis import get_theta_value, get_theta_benchmark_matrix, get_dtheta_benchmark_matrix
 from madminer.tools.analysis import extract_augmented_data, parse_theta
 from madminer.tools.morphing import Morpher
-from madminer.tools.utils import general_init, format_benchmark, create_missing_folders
+from madminer.tools.utils import general_init, format_benchmark, create_missing_folders, shuffle
+
+
+def combine_and_shuffle(input_filenames,
+                        output_filename,
+                        overwrite_existing_file=True,
+                        debug=False):
+    """
+    Combines multiple HDF5 files into one, and shuffles the order of the events. It is recommended to run this tool
+    before the Refinery.
+
+    :param input_filenames: list of filenames of the input HDF5 files
+    :param output_filename: filename for the output HDF5 file
+    :param overwrite_existing_file:
+    :param debug:
+    """
+
+    general_init(debug=debug)
+
+    if len(input_filenames) > 1:
+        logging.warning('Careful: this tool assumes that all samples are generated with the same setup, including'
+                        ' identical benchmarks (and thus morphing setup). If it is used with samples with different'
+                        ' settings, there will be wrong results! There are no explicit cross checks in place yet.')
+
+    # Copy first file to output_filename
+    logging.info('Copying setup from %s to %s', input_filenames[0], output_filename)
+
+    # TODO: More memory efficient strategy
+
+    # Load events
+    all_observations = None
+    all_weights = None
+
+    for i, filename in enumerate(input_filenames):
+        logging.info('Loading samples from file %s / %s at %s', i + 1, len(input_filenames), filename)
+
+        for observations, weights in madminer_event_loader(filename):
+            if all_observations is None:
+                all_observations = observations
+                all_weights = weights
+            else:
+                all_observations = np.vstack((all_observations, observations))
+                all_weights = np.vstack((all_weights, weights))
+
+    # Shuffle
+    all_observations, all_weights = shuffle(all_observations, all_weights)
+
+    # Save result
+    save_events_to_madminer_file(
+        filename=output_filename,
+        observations=all_observations,
+        weights=all_weights,
+        copy_setup_from=input_filenames[0],
+        overwrite_existing_samples=overwrite_existing_file
+    )
 
 
 def constant_benchmark_theta(benchmark_name):

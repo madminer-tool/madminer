@@ -1,5 +1,6 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+import shutil
 import h5py
 import numpy as np
 from collections import OrderedDict
@@ -177,6 +178,9 @@ def madminer_event_loader(filename, start=0, end=None, batch_size=100000):
             end = n_samples
         end = min(n_samples, end)
 
+        if batch_size is None:
+            batch_size = n_samples
+
         current = start
 
         # Loop over data
@@ -187,3 +191,35 @@ def madminer_event_loader(filename, start=0, end=None, batch_size=100000):
                    np.array(weights[current:current + this_end]))
 
             current += batch_size
+
+
+
+def save_events_to_madminer_file(filename,
+                                 observations,
+                                 weights,
+                                 copy_setup_from,
+                                 overwrite_existing_samples=True):
+
+    if copy_setup_from is not None:
+        try:
+            shutil.copyfile(copy_setup_from, filename)
+        except IOError:
+            if not overwrite_existing_samples:
+                raise()
+
+    io_tag = 'a'  # Read-write if file exists, otherwise create
+
+    with h5py.File(filename, io_tag) as f:
+
+        # Check if groups exist already
+        if overwrite_existing_samples:
+            try:
+                del f['samples']
+            except:
+                pass
+
+        # Save weights
+        f.create_dataset("samples/weights", data=weights)
+
+        # Prepare observable values
+        f.create_dataset("samples/observations", data=observations)
