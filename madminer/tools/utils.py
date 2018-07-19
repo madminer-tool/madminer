@@ -17,14 +17,14 @@ def general_init(debug=False):
     logging.info('|                                                          |')
     logging.info('|  MadMiner                                                |')
     logging.info('|                                                          |')
-    logging.info('|  Version from July 12, 2018                              |')
+    logging.info('|  Version from July 19, 2018                              |')
     logging.info('|                                                          |')
     logging.info('|           Johann Brehmer, Kyle Cranmer, and Felix Kling  |')
     logging.info('|                                                          |')
     logging.info('------------------------------------------------------------')
     logging.info('')
 
-    logging.info("""
+    logging.debug("""
     
                                                       @ @ @ @   @ @ @ @                                
                                                      @. . . . @ . . . . @                              
@@ -127,9 +127,32 @@ def format_benchmark(parameters, precision=2):
 
         value = float(value)
 
-        if value < 2. * 10.**(- precision) or value > 100.:
+        if value < 2. * 10. ** (- precision) or value > 100.:
             output += str(key) + (' = {0:.' + str(precision) + 'e}').format(value)
         else:
             output += str(key) + (' = {0:.' + str(precision) + 'f}').format(value)
 
     return output
+
+
+def shuffle(*arrays):
+    """ Shuffles multiple arrays simultaneously"""
+
+    permutation = None
+    n_samples = None
+    shuffled_arrays = []
+
+    for i, a in enumerate(arrays):
+        if a is None:
+            shuffled_arrays.append(a)
+            continue
+
+        if permutation is None:
+            n_samples = a.shape[0]
+            permutation = np.random.permutation(n_samples)
+
+        assert a.shape[0] == n_samples
+        shuffled_a = a[permutation]
+        shuffled_arrays.append(shuffled_a)
+
+    return shuffled_arrays

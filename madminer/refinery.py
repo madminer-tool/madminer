@@ -5,11 +5,65 @@ import numpy as np
 import collections
 import six
 
-from madminer.tools.h5_interface import load_madminer_settings, madminer_event_loader
+from madminer.tools.h5_interface import load_madminer_settings, madminer_event_loader, save_events_to_madminer_file
 from madminer.tools.analysis import get_theta_value, get_theta_benchmark_matrix, get_dtheta_benchmark_matrix
 from madminer.tools.analysis import extract_augmented_data, parse_theta
 from madminer.tools.morphing import Morpher
-from madminer.tools.utils import general_init, format_benchmark, create_missing_folders
+from madminer.tools.utils import general_init, format_benchmark, create_missing_folders, shuffle
+
+
+def combine_and_shuffle(input_filenames,
+                        output_filename,
+                        overwrite_existing_file=True,
+                        debug=False):
+    """
+    Combines multiple HDF5 files into one, and shuffles the order of the events. It is recommended to run this tool
+    before the Refinery.
+
+    :param input_filenames: list of filenames of the input HDF5 files
+    :param output_filename: filename for the output HDF5 file
+    :param overwrite_existing_file:
+    :param debug:
+    """
+
+    general_init(debug=debug)
+
+    if len(input_filenames) > 1:
+        logging.warning('Careful: this tool assumes that all samples are generated with the same setup, including'
+                        ' identical benchmarks (and thus morphing setup). If it is used with samples with different'
+                        ' settings, there will be wrong results! There are no explicit cross checks in place yet.')
+
+    # Copy first file to output_filename
+    logging.info('Copying setup from %s to %s', input_filenames[0], output_filename)
+
+    # TODO: More memory efficient strategy
+
+    # Load events
+    all_observations = None
+    all_weights = None
+
+    for i, filename in enumerate(input_filenames):
+        logging.info('Loading samples from file %s / %s at %s', i + 1, len(input_filenames), filename)
+
+        for observations, weights in madminer_event_loader(filename):
+            if all_observations is None:
+                all_observations = observations
+                all_weights = weights
+            else:
+                all_observations = np.vstack((all_observations, observations))
+                all_weights = np.vstack((all_weights, weights))
+
+    # Shuffle
+    all_observations, all_weights = shuffle(all_observations, all_weights)
+
+    # Save result
+    save_events_to_madminer_file(
+        filename=output_filename,
+        observations=all_observations,
+        weights=all_weights,
+        copy_setup_from=input_filenames[0],
+        overwrite_existing_samples=overwrite_existing_file
+    )
 
 
 def constant_benchmark_theta(benchmark_name):
@@ -32,7 +86,7 @@ def random_morphing_thetas(n_thetas, priors):
     return 'random', (n_thetas, priors)
 
 
-class Smithy:
+class Refinery:
 
     def __init__(self, filename, disable_morphing=False, debug=False):
 
@@ -64,10 +118,10 @@ class Smithy:
         if self.morphing_matrix is not None and self.morphing_components is not None and not disable_morphing:
             self.morpher = Morpher(self.parameters)
             self.morpher.set_components(self.morphing_components)
-            self.morpher.set_basis(self.benchmarks, morphing_matrix = self.morphing_matrix)
-            
+            self.morpher.set_basis(self.benchmarks, morphing_matrix=self.morphing_matrix)
+
             logging.info('Found morphing setup with %s components', len(self.morphing_components))
-            
+
         else:
             logging.info('Did not find morphing setup.')
 
@@ -550,69 +604,75 @@ class Smithy:
             samples_augmented_data = [np.zeros((n_samples, augmented_data_sizes[i])) for i in range(n_augmented_data)]
 
             # Draw random numbers in [0, 1]
-            u = np.random.rand(n_samples)
 
-            cumulative_p = [0.]
+            while not np.all(samples_done):
+                u = np.random.rand(n_samples)
 
-            for x_batch, weights_benchmarks_batch in madminer_event_loader(self.madminer_filename,
-                                                                           start=start_event,
-                                                                           end=end_event):
-                # Evaluate cumulative p(x | theta)
-                weights_theta = theta_sampling_matrix.dot(weights_benchmarks_batch.T)  # Shape (n_events_in_batch,)
-                p_theta = weights_theta / xsec_sampling_theta
+                cumulative_p = [0.]
 
-                n_negative_weights = np.sum(p_theta < 0.)
-                if n_negative_weights > 0:
-                    logging.debug('%s negative weights (%s)', n_negative_weights, n_negative_weights / p_theta.size)
+                for x_batch, weights_benchmarks_batch in madminer_event_loader(self.madminer_filename,
+                                                                               start=start_event,
+                                                                               end=end_event):
+                    # Evaluate cumulative p(x | theta)
+                    weights_theta = theta_sampling_matrix.dot(weights_benchmarks_batch.T)  # Shape (n_events_in_batch,)
+                    p_theta = weights_theta / xsec_sampling_theta
 
-                p_theta[p_theta < 0.] = 0.
+                    n_negative_weights = np.sum(p_theta < 0.)
+                    if n_negative_weights > 0:
+                        logging.warning('%s negative weights (%s)',
+                                        n_negative_weights, n_negative_weights / p_theta.size)
 
-                cumulative_p = cumulative_p[-1] + np.cumsum(p_theta)
+                    p_theta[p_theta < 0.] = 0.
 
-                # TODO: Something going wrong with the sampling. Negative probabilities, plus, often only counting up to 0.98
+                    cumulative_p = cumulative_p[-1] + np.cumsum(p_theta)
 
-                logging.debug(' weights: %s - %s, mean %s\n\n%s', np.min(weights_benchmarks_batch), np.max(weights_benchmarks_batch), np.mean(weights_benchmarks_batch), weights_benchmarks_batch)
-                logging.debug(' weights theta: %s - %s, mean %s\n\n%s', np.min(weights_theta), np.max(weights_theta), np.mean(weights_theta), weights_theta)
-                logging.debug(' p: %s - %s, mean %s\n\n%s', np.min(p_theta), np.max(p_theta), np.mean(p_theta), p_theta)
-                logging.debug(' cumulative p: max %s\n\n%s', np.max(cumulative_p), cumulative_p)
+                    # logging.debug(' weights: %s - %s, mean %s\n\n%s', np.min(weights_benchmarks_batch),
+                    #               np.max(weights_benchmarks_batch), np.mean(weights_benchmarks_batch),
+                    #               weights_benchmarks_batch)
+                    # logging.debug(' weights theta: %s - %s, mean %s\n\n%s', np.min(weights_theta),
+                    #               np.max(weights_theta), np.mean(weights_theta), weights_theta)
+                    # logging.debug(' p: %s - %s, mean %s\n\n%s', np.min(p_theta), np.max(p_theta), np.mean(p_theta),
+                    #               p_theta)
+                    # logging.debug(' cumulative p: max %s\n\n%s', np.max(cumulative_p), cumulative_p)
 
-                # Check what we've found
-                indices = np.searchsorted(cumulative_p, u, side='left').flatten()
+                    # Check what we've found
+                    indices = np.searchsorted(cumulative_p, u, side='left').flatten()
 
-                found_now = (np.invert(samples_done) & (indices < len(cumulative_p)))
+                    found_now = (np.invert(samples_done) & (indices < len(cumulative_p)))
 
-                # Save x
-                samples_x[found_now] = x_batch[indices[found_now]]
+                    # Save x
+                    samples_x[found_now] = x_batch[indices[found_now]]
 
-                # Extract augmented data
-                relevant_augmented_data = extract_augmented_data(
-                    augmented_data_types,
-                    augmented_data_theta_matrices_num,
-                    augmented_data_theta_matrices_den,
-                    weights_benchmarks_batch[indices[found_now], :],
-                    xsecs_benchmarks,
-                    theta_sampling_matrix,
-                    theta_sampling_gradients_matrix,
-                    theta_auxiliary_matrix,
-                    theta_auxiliary_gradients_matrix
-                )
+                    # Extract augmented data
+                    relevant_augmented_data = extract_augmented_data(
+                        augmented_data_types,
+                        augmented_data_theta_matrices_num,
+                        augmented_data_theta_matrices_den,
+                        weights_benchmarks_batch[indices[found_now], :],
+                        xsecs_benchmarks,
+                        theta_sampling_matrix,
+                        theta_sampling_gradients_matrix,
+                        theta_auxiliary_matrix,
+                        theta_auxiliary_gradients_matrix
+                    )
 
-                for i, this_relevant_augmented_data in enumerate(relevant_augmented_data):
-                    samples_augmented_data[i][found_now] = this_relevant_augmented_data
+                    for i, this_relevant_augmented_data in enumerate(relevant_augmented_data):
+                        samples_augmented_data[i][found_now] = this_relevant_augmented_data
 
-                samples_done[found_now] = True
+                    samples_done[found_now] = True
 
-                if np.all(samples_done):
-                    break
+                    if np.all(samples_done):
+                        break
 
-            # Check that we got 'em all
-            if not np.all(samples_done):
-                raise ValueError('{} / {} samples not found, u = {}, sum p = {}'.format(
-                    np.sum(np.invert(samples_done)),
-                    samples_done.size,
-                    u[np.invert(samples_done)],
-                    cumulative_p
-                ))
+                # Check that we got 'em all
+                if not np.all(samples_done):
+                    logging.debug(
+                        'After full pass through event files, {} / {} samples not found, u = {}, sum p = {}'.format(
+                            np.sum(np.invert(samples_done)),
+                            samples_done.size,
+                            u[np.invert(samples_done)],
+                            cumulative_p
+                        ))
 
             all_x.append(samples_x)
             all_theta_sampling.append(theta_sampling)
