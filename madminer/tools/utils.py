@@ -24,7 +24,7 @@ def general_init(debug=False):
     logging.info('------------------------------------------------------------')
     logging.info('')
 
-    logging.info("""
+    logging.debug("""
     
                                                       @ @ @ @   @ @ @ @                                
                                                      @. . . . @ . . . . @                              

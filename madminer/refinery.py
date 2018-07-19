@@ -32,7 +32,7 @@ def random_morphing_thetas(n_thetas, priors):
     return 'random', (n_thetas, priors)
 
 
-class Smithy:
+class Refinery:
 
     def __init__(self, filename, disable_morphing=False, debug=False):
 

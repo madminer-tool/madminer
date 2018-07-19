@@ -26,7 +26,7 @@ Main:numberOfEvents      = -1
 ! -------------------------------------------------------------------
 !
 HEPMCoutput:file         = auto
-HEPMCoutput:useWeightIDs = off
+HEPMCoutput:useWeightIDs = on
 !
 ! --------------------------------------------------------------------
 ! Parameters relevant only when performing MLM merging, which can be
@@ -81,4 +81,4 @@ SysCalc:fullCutVariation = off
 ! By default, Pythia8 generates multi-parton interaction events. This is
 ! often irrelevant for phenomenology and very slow. You can turn this 
 ! feature off by uncommenting the line below if so desired.
-!partonlevel:mpi = off
+partonlevel:mpi = off
