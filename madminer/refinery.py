@@ -615,7 +615,7 @@ class Refinery:
                                                                                end=end_event):
                     # Evaluate cumulative p(x | theta)
                     weights_theta = theta_sampling_matrix.dot(weights_benchmarks_batch.T)  # Shape (n_batch_size,)
-                    p_theta = weights_theta / xsec_sampling_theta   # Shape: (n_batch_size,)
+                    p_theta = weights_theta / xsec_sampling_theta  # Shape: (n_batch_size,)
 
                     n_negative_weights = np.sum(p_theta < 0.)
                     if n_negative_weights > 0:
@@ -627,7 +627,8 @@ class Refinery:
                     cumulative_p = cumulative_p.flatten()[-1] + np.cumsum(p_theta)  # Shape: (n_batch_size,)
 
                     # Check what we've found
-                    indices = np.searchsorted(cumulative_p, u, side='left').flatten()  # Shape: (n_samples,), values: [0, ..., n_batch_size]
+                    indices = np.searchsorted(cumulative_p, u,
+                                              side='left').flatten()  # Shape: (n_samples,), values: [0, ..., n_batch_size]
 
                     found_now = (np.invert(samples_done) & (indices < len(cumulative_p)))  # Shape: (n_samples,)
 
@@ -690,3 +691,9 @@ class Refinery:
             all_augmented_data[i] = np.vstack(all_augmented_data[i])
 
         return all_x, all_augmented_data, all_theta_sampling, all_theta_auxiliary
+
+    def extract_raw_data(self):
+
+        x, weights = next(madminer_event_loader(self.madminer_filename, batch_size=None))
+
+        return x, weights
