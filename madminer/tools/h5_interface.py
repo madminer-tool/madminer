@@ -188,7 +188,7 @@ def madminer_event_loader(filename, start=0, end=None, batch_size=100000):
             this_end = min(current + batch_size, end)
 
             yield (np.array(observations[current:this_end]),
-                   np.array(weights[current:current + this_end]))
+                   np.array(weights[current:this_end]))
 
             current += batch_size
 
