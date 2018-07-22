@@ -692,8 +692,27 @@ class Refinery:
 
         return all_x, all_augmented_data, all_theta_sampling, all_theta_auxiliary
 
-    def extract_raw_data(self):
+    def extract_raw_data(self, theta=None):
 
-        x, weights = next(madminer_event_loader(self.madminer_filename, batch_size=None))
+        """
 
-        return x, weights
+        :param theta: if not None, uses morphing to calculate the weights for this value of theta. If None, returns
+                      the weights in fb for all benchmark points, as in the file.
+        :return: x, weights
+        """
+
+        x, weights_benchmarks = next(madminer_event_loader(self.madminer_filename, batch_size=None))
+
+        if theta is not None:
+            theta_matrix = get_theta_benchmark_matrix(
+                'morphing',
+                theta,
+                self.benchmarks,
+                self.morpher
+            )
+
+            weights_theta = theta_matrix.dot(weights_benchmarks.T)
+
+            return x, weights_theta
+
+        return x, weights_benchmarks
