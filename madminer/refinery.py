@@ -606,16 +606,16 @@ class Refinery:
             # Draw random numbers in [0, 1]
 
             while not np.all(samples_done):
-                u = np.random.rand(n_samples)
+                u = np.random.rand(n_samples)  # Shape: (n_samples,)
 
-                cumulative_p = [0.]
+                cumulative_p = np.array([0.])
 
                 for x_batch, weights_benchmarks_batch in madminer_event_loader(self.madminer_filename,
                                                                                start=start_event,
                                                                                end=end_event):
                     # Evaluate cumulative p(x | theta)
-                    weights_theta = theta_sampling_matrix.dot(weights_benchmarks_batch.T)  # Shape (n_events_in_batch,)
-                    p_theta = weights_theta / xsec_sampling_theta
+                    weights_theta = theta_sampling_matrix.dot(weights_benchmarks_batch.T)  # Shape (n_batch_size,)
+                    p_theta = weights_theta / xsec_sampling_theta  # Shape: (n_batch_size,)
 
                     n_negative_weights = np.sum(p_theta < 0.)
                     if n_negative_weights > 0:
@@ -624,21 +624,25 @@ class Refinery:
 
                     p_theta[p_theta < 0.] = 0.
 
-                    cumulative_p = cumulative_p[-1] + np.cumsum(p_theta)
-
-                    # logging.debug(' weights: %s - %s, mean %s\n\n%s', np.min(weights_benchmarks_batch),
-                    #               np.max(weights_benchmarks_batch), np.mean(weights_benchmarks_batch),
-                    #               weights_benchmarks_batch)
-                    # logging.debug(' weights theta: %s - %s, mean %s\n\n%s', np.min(weights_theta),
-                    #               np.max(weights_theta), np.mean(weights_theta), weights_theta)
-                    # logging.debug(' p: %s - %s, mean %s\n\n%s', np.min(p_theta), np.max(p_theta), np.mean(p_theta),
-                    #               p_theta)
-                    # logging.debug(' cumulative p: max %s\n\n%s', np.max(cumulative_p), cumulative_p)
+                    cumulative_p = cumulative_p.flatten()[-1] + np.cumsum(p_theta)  # Shape: (n_batch_size,)
 
                     # Check what we've found
-                    indices = np.searchsorted(cumulative_p, u, side='left').flatten()
+                    indices = np.searchsorted(cumulative_p, u,
+                                              side='left').flatten()  # Shape: (n_samples,), values: [0, ..., n_batch_size]
 
-                    found_now = (np.invert(samples_done) & (indices < len(cumulative_p)))
+                    found_now = (np.invert(samples_done) & (indices < len(cumulative_p)))  # Shape: (n_samples,)
+
+                    # # Debug
+                    # logging.debug('New batch:')
+                    # logging.debug("  weights: %s\n%s", weights_theta.shape, weights_theta)
+                    # logging.debug("  p: %s\n%s", p_theta.shape, p_theta)
+                    # logging.debug("  Cumulative p: %s\n%s", cumulative_p.shape, cumulative_p)
+                    # logging.debug("  Samples done: %s\n%s", samples_done.shape, samples_done)
+                    # logging.debug("  Found now: %s\n%s", found_now.shape, found_now)
+                    # logging.debug("  Indices: %s, %s ... %s\n%s", indices.shape, np.min(indices), np.max(indices), indices)
+                    # logging.debug("  Indices [found now]: %s, %s ... %s\n%s", indices[found_now].shape, np.min(indices[found_now]), np.max(indices[found_now]), indices[found_now])
+                    # logging.debug("  Samples x: %s\n%s", samples_x.shape, samples_x)
+                    # logging.debug("  x batch: %s\n%s", x_batch.shape, x_batch)
 
                     # Save x
                     samples_x[found_now] = x_batch[indices[found_now]]
@@ -687,3 +691,28 @@ class Refinery:
             all_augmented_data[i] = np.vstack(all_augmented_data[i])
 
         return all_x, all_augmented_data, all_theta_sampling, all_theta_auxiliary
+
+    def extract_raw_data(self, theta=None):
+
+        """
+
+        :param theta: if not None, uses morphing to calculate the weights for this value of theta. If None, returns
+                      the weights in fb for all benchmark points, as in the file.
+        :return: x, weights
+        """
+
+        x, weights_benchmarks = next(madminer_event_loader(self.madminer_filename, batch_size=None))
+
+        if theta is not None:
+            theta_matrix = get_theta_benchmark_matrix(
+                'morphing',
+                theta,
+                self.benchmarks,
+                self.morpher
+            )
+
+            weights_theta = theta_matrix.dot(weights_benchmarks.T)
+
+            return x, weights_theta
+
+        return x, weights_benchmarks
