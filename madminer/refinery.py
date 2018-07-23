@@ -529,11 +529,16 @@ class Refinery:
             theta_auxiliary_types = [None for _ in theta_sampling_types]
             theta_auxiliary_values = [None for _ in theta_sampling_values]
 
-        if len(theta_auxiliary_types) != len(theta_sampling_types):
+        if len(theta_auxiliary_types) < len(theta_sampling_types):
             theta_auxiliary_types = [theta_auxiliary_types[i % len(theta_auxiliary_types)]
                                      for i in range(len(theta_sampling_types))]
             theta_auxiliary_values = [theta_auxiliary_values[i % len(theta_auxiliary_values)]
                                       for i in range(len(theta_sampling_types))]
+        elif len(theta_auxiliary_types) > len(theta_sampling_types):
+            theta_sampling_types = [theta_sampling_types[i % len(theta_sampling_types)]
+                                     for i in range(len(theta_auxiliary_types))]
+            theta_sampling_values = [theta_sampling_values[i % len(theta_sampling_values)]
+                                      for i in range(len(theta_auxiliary_types))]
 
         assert (len(theta_sampling_types) == len(theta_sampling_values)
                 == len(theta_auxiliary_values) == len(theta_auxiliary_types))
