@@ -124,5 +124,5 @@ examples/usage/ME5_debug
 examples/usage/MG_process
 examples/usage/py.py
 
-examples/test/datasave
+examples/tests/datasave
 
