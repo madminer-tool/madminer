@@ -435,6 +435,8 @@ class Refinery:
         """
 
         logging.debug('Starting sample extraction')
+        logging.debug('  sampling thetas:  %s', list(zip(theta_sampling_types, theta_sampling_values)))
+        logging.debug('  auxiliary thetas: %s', list(zip(theta_auxiliary_types, theta_auxiliary_values)))
 
         # Calculate total xsecs
         xsecs_benchmarks = None
@@ -518,12 +520,6 @@ class Refinery:
                 )
                 augmented_data_sizes.append(len(self.parameters))
 
-        # Samples per theta
-        if not isinstance(n_samples_per_theta, collections.Iterable):
-            n_samples_per_theta = [n_samples_per_theta] * len(theta_sampling_types)
-        elif len(n_samples_per_theta) == 1:
-            n_samples_per_theta = [n_samples_per_theta[0]] * len(theta_sampling_types)
-
         # Auxiliary thetas
         if theta_auxiliary_types is None or theta_auxiliary_values is None:
             theta_auxiliary_types = [None for _ in theta_sampling_types]
@@ -539,6 +535,16 @@ class Refinery:
                                      for i in range(len(theta_auxiliary_types))]
             theta_sampling_values = [theta_sampling_values[i % len(theta_sampling_values)]
                                       for i in range(len(theta_auxiliary_types))]
+
+        # Samples per theta
+        if not isinstance(n_samples_per_theta, collections.Iterable):
+            n_samples_per_theta = [n_samples_per_theta] * len(theta_sampling_types)
+        elif len(n_samples_per_theta) == 1:
+            n_samples_per_theta = [n_samples_per_theta[0]] * len(theta_sampling_types)
+
+        logging.debug('After balancing:')
+        logging.debug('  sampling thetas:  %s', list(zip(theta_sampling_types, theta_sampling_values)))
+        logging.debug('  auxiliary thetas: %s', list(zip(theta_auxiliary_types, theta_auxiliary_values)))
 
         assert (len(theta_sampling_types) == len(theta_sampling_values)
                 == len(theta_auxiliary_values) == len(theta_auxiliary_types))
