@@ -113,8 +113,8 @@ venv.bak/
 .idea
 
 # Data
-goldmine/data
 examples/basis_choices/animations
+
 examples/usage/temp
 examples/usage/nsqso_born.inc
 examples/usage/data
@@ -123,3 +123,6 @@ examples/usage/logs
 examples/usage/ME5_debug
 examples/usage/MG_process
 examples/usage/py.py
+
+examples/test/datasave
+
