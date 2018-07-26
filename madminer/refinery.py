@@ -434,19 +434,18 @@ class Refinery:
                  dimension.
         """
 
-        logging.debug('Starting sample extraction')
-        logging.debug('  sampling thetas:  %s', list(zip(theta_sampling_types, theta_sampling_values)))
-        logging.debug('  auxiliary thetas: %s', list(zip(theta_auxiliary_types, theta_auxiliary_values)))
-
         # Calculate total xsecs
         xsecs_benchmarks = None
+        squared_weight_sum_benchmarks = None
         n_observables = 0
 
         for obs, weights in madminer_event_loader(self.madminer_filename, start=start_event, end=end_event):
             if xsecs_benchmarks is None:
                 xsecs_benchmarks = np.sum(weights, axis=0)
+                squared_weight_sum_benchmarks = np.sum(weights * weights, axis=0)
             else:
                 xsecs_benchmarks += np.sum(weights, axis=0)
+                squared_weight_sum_benchmarks += np.sum(weights * weights, axis=0)
 
             n_observables = obs.shape[1]
 
@@ -476,6 +475,8 @@ class Refinery:
         if augmented_data_definitions is None:
             augmented_data_definitions = []
 
+        logging.info('Augmented data requested:')
+
         for augmented_data_definition in augmented_data_definitions:
             augmented_data_types.append(augmented_data_definition[0])
 
@@ -497,6 +498,14 @@ class Refinery:
                     )
                 )
                 augmented_data_sizes.append(1)
+
+                logging.debug('  Joint ratio, num %s %s, den %s %s;\nNum matrix:\n%s\nDen matrix:\n%s',
+                              augmented_data_definition[1],
+                              augmented_data_definition[2],
+                              augmented_data_definition[3],
+                              augmented_data_definition[4],
+                              augmented_data_theta_matrices_num[-1],
+                              augmented_data_theta_matrices_den[-1])
 
             elif augmented_data_types[-1] == 'score':
                 if self.morpher is None:
@@ -520,10 +529,23 @@ class Refinery:
                 )
                 augmented_data_sizes.append(len(self.parameters))
 
+                logging.debug('  Joint score, at %s %s;\nNum matrix:\n%s\nDen matrix:\n%s',
+                              augmented_data_definition[1],
+                              augmented_data_definition[2],
+                              augmented_data_theta_matrices_num[-1],
+                              augmented_data_theta_matrices_den[-1])
+
+            else:
+                logging.warning("Unknown augmented data type %s", augmented_data_types[-1])
+
         # Auxiliary thetas
         if theta_auxiliary_types is None or theta_auxiliary_values is None:
             theta_auxiliary_types = [None for _ in theta_sampling_types]
             theta_auxiliary_values = [None for _ in theta_sampling_values]
+
+        logging.debug('Sampling and auxiliary thetas before balancing:')
+        logging.debug('  sampling thetas:  %s', list(zip(theta_sampling_types, theta_sampling_values)))
+        logging.debug('  auxiliary thetas: %s', list(zip(theta_auxiliary_types, theta_auxiliary_values)))
 
         if len(theta_auxiliary_types) < len(theta_sampling_types):
             theta_auxiliary_types = [theta_auxiliary_types[i % len(theta_auxiliary_types)]
@@ -532,9 +554,9 @@ class Refinery:
                                       for i in range(len(theta_sampling_types))]
         elif len(theta_auxiliary_types) > len(theta_sampling_types):
             theta_sampling_types = [theta_sampling_types[i % len(theta_sampling_types)]
-                                     for i in range(len(theta_auxiliary_types))]
+                                    for i in range(len(theta_auxiliary_types))]
             theta_sampling_values = [theta_sampling_values[i % len(theta_sampling_values)]
-                                      for i in range(len(theta_auxiliary_types))]
+                                     for i in range(len(theta_auxiliary_types))]
 
         # Samples per theta
         if not isinstance(n_samples_per_theta, collections.Iterable):
@@ -542,7 +564,7 @@ class Refinery:
         elif len(n_samples_per_theta) == 1:
             n_samples_per_theta = [n_samples_per_theta[0]] * len(theta_sampling_types)
 
-        logging.debug('After balancing:')
+        logging.debug('Sampling and auxiliary thetas after balancing:')
         logging.debug('  sampling thetas:  %s', list(zip(theta_sampling_types, theta_sampling_values)))
         logging.debug('  auxiliary thetas: %s', list(zip(theta_auxiliary_types, theta_auxiliary_values)))
 
@@ -587,6 +609,17 @@ class Refinery:
 
             # Total xsec for this theta
             xsec_sampling_theta = theta_sampling_matrix.dot(xsecs_benchmarks)
+            rms_xsec_sampling_theta = ((theta_sampling_matrix * theta_sampling_matrix).dot(
+                squared_weight_sum_benchmarks)) ** 0.5
+
+            logging.debug('xsec for this sampling theta: (%s +/- %s) pb', xsec_sampling_theta, rms_xsec_sampling_theta)
+
+            if rms_xsec_sampling_theta > 0.1 * xsec_sampling_theta:
+                logging.warning('Warning: large statistical uncertainty on the total cross section for theta = %s: '
+                                '(%s +/- %s) pb',
+                                get_theta_value(theta_sampling_type, theta_sampling_value, self.benchmarks),
+                                xsec_sampling_theta,
+                                rms_xsec_sampling_theta)
 
             # Auxiliary theta
             if theta_auxiliary_type is not None:
@@ -676,17 +709,19 @@ class Refinery:
 
                     samples_done[found_now] = True
 
-                    if np.all(samples_done):
-                        break
+                    # if np.all(samples_done):
+                    #    break
+
+                # Check cumulative probabilities at end. Should be one!
+                logging.debug('Cumulative probability (should be close to 1): %s', cumulative_p[-1])
 
                 # Check that we got 'em all
                 if not np.all(samples_done):
                     logging.debug(
-                        'After full pass through event files, {} / {} samples not found, u = {}, sum p = {}'.format(
+                        'After full pass through event files, {} / {} samples not found, u = {}'.format(
                             np.sum(np.invert(samples_done)),
                             samples_done.size,
-                            u[np.invert(samples_done)],
-                            cumulative_p
+                            u[np.invert(samples_done)]
                         ))
 
             all_x.append(samples_x)
