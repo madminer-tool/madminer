@@ -1,11 +1,23 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import logging
-import six
 import os
 from subprocess import Popen, PIPE
 import io
 import numpy as np
+
+import torch.nn.functional as F
+
+
+def get_activation(activation):
+    if activation == 'relu':
+        return F.relu
+    elif activation == 'tanh':
+        return F.tanh
+    elif activation == 'sigmoid':
+        return F.sigmoid
+    else:
+        raise ValueError('Activation function %s unknown', activation)
 
 
 def general_init(debug=False):
@@ -15,7 +27,7 @@ def general_init(debug=False):
     logging.info('')
     logging.info('------------------------------------------------------------')
     logging.info('|                                                          |')
-    logging.info('|  MadMiner                                                |')
+    logging.info('|  Forge                                                   |')
     logging.info('|                                                          |')
     logging.info('|  Version from July 31, 2018                              |')
     logging.info('|                                                          |')
@@ -26,7 +38,7 @@ def general_init(debug=False):
 
     if False:
         logging.debug("""
-        
+    
                                                           @ @ @ @   @ @ @ @                                
                                                          @. . . . @ . . . . @                              
                                                          @. . . . . . . . . @                              
@@ -75,7 +87,7 @@ def general_init(debug=False):
                                                  @@########@                @########@@                    
                                               @#######@@@@@@                @@@@@@#######@                 
                                       ........@@@@@@@@@..@@@................@@@..@@@@@@@@@........         
-        
+    
         """)
 
     # np.seterr(divide='ignore', invalid='ignore')
@@ -119,41 +131,26 @@ def create_missing_folders(folders):
             raise OSError('Path {} exists, but is no directory!'.format(folder))
 
 
-def format_benchmark(parameters, precision=2):
-    output = ''
+def load_and_check(filename, warning_threshold=1.e9):
 
-    for i, (key, value) in enumerate(six.iteritems(parameters)):
-        if i > 0:
-            output += ', '
+    if filename is None:
+        return None
 
-        value = float(value)
+    data = np.load(filename)
 
-        if value < 2. * 10. ** (- precision) or value > 100.:
-            output += str(key) + (' = {0:.' + str(precision) + 'e}').format(value)
-        else:
-            output += str(key) + (' = {0:.' + str(precision) + 'f}').format(value)
+    n_nans = np.sum(np.isnan(data))
+    n_infs = np.sum(np.isinf(data))
+    n_finite = np.sum(np.isfinite(data))
 
-    return output
+    if n_nans + n_infs > 0:
+        logging.warning('Warning: file %s contains %s NaNs and %s Infs, compared to %s finite numbers!',
+                        filename, n_nans, n_infs, n_finite)
 
+    smallest = np.nanmin(data)
+    largest = np.nanmax(data)
 
-def shuffle(*arrays):
-    """ Shuffles multiple arrays simultaneously"""
+    if np.abs(smallest) > warning_threshold or np.abs(largest) > warning_threshold:
+        logging.warning('Warning: file %s has some large numbers, rangin from %s to %s',
+                        filename, smallest, largest)
 
-    permutation = None
-    n_samples = None
-    shuffled_arrays = []
-
-    for i, a in enumerate(arrays):
-        if a is None:
-            shuffled_arrays.append(a)
-            continue
-
-        if permutation is None:
-            n_samples = a.shape[0]
-            permutation = np.random.permutation(n_samples)
-
-        assert a.shape[0] == n_samples
-        shuffled_a = a[permutation]
-        shuffled_arrays.append(shuffled_a)
-
-    return shuffled_arrays
+    return data

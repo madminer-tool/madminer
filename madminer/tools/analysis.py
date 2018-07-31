@@ -201,6 +201,11 @@ def parse_theta(theta, n_samples):
         theta_values = np.array(theta_values).T
         n_samples_per_theta = int(round(n_samples / n_benchmarks, 0))
 
+        logging.debug('Total n_samples: %s, n_benchmarks: %s, n_samples_per_theta: %s',
+                      n_samples,
+                      n_benchmarks,
+                      n_samples_per_theta)
+
     else:
         raise ValueError('Unknown theta {}'.format(theta))
 

@@ -123,6 +123,7 @@ examples/usage/logs
 examples/usage/ME5_debug
 examples/usage/MG_process
 examples/usage/py.py
+examples/usage/models
 
 examples/tests/datasave
 
