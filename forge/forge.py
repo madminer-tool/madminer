@@ -2,6 +2,9 @@ from __future__ import absolute_import, division, print_function
 
 import logging
 import os
+import json
+
+import torch
 
 from forge.ml import losses
 from forge.ml.models import ParameterizedRatioEstimator
@@ -15,6 +18,11 @@ class Forge:
         general_init(debug=debug)
 
         self.model = None
+        self.method = None
+        self.n_observables = None
+        self.n_parameters = None
+        self.n_hidden = None
+        self.activation = None
 
     def train(self,
               method,
@@ -58,7 +66,7 @@ class Forge:
 
         theta = load_and_check(theta_filename)
         x = load_and_check(x_filename)
-        y = load_and_check(y_filename).reshape((-1,1))
+        y = load_and_check(y_filename).reshape((-1, 1))
         r_xz = load_and_check(r_xz_filename)
         t_xz = load_and_check(t_xz_filename)
 
@@ -67,6 +75,13 @@ class Forge:
         n_observables = x.shape[1]
 
         logging.info('Found %s samples with %s parameters and %s observables', n_samples, n_parameters, n_observables)
+
+        # Save setup
+        self.method = method
+        self.n_observables = n_observables
+        self.n_parameters = n_parameters
+        self.n_hidden = n_hidden
+        self.activation = activation
 
         # Create model
         logging.info('Creating model for method %s', method)
@@ -145,14 +160,50 @@ class Forge:
         # Check paths
         create_missing_folders([os.path.dirname(filename)])
 
-        # Save models
-        logging.info('Saving learned model to %s', filename)
-        self.model.save_state_dict(filename)
+        # Save settings
+        logging.info('Saving settings to %s_settings.json', filename)
+
+        settings = {'method': self.method,
+                    'n_observables': self.n_observables,
+                    'n_parameters': self.n_parameters,
+                    'n_hidden': list(self.n_hidden),
+                    'activation': self.activation}
+
+        with open(filename + '_settings.json', 'w') as f:
+            json.dump(settings, f)
+
+        # Save state dict
+        logging.info('Saving state dictionary to %s_state_dict.pt', filename)
+        torch.save(self.model.state_dict(), filename + '_state_dict.pt')
 
     def load(self,
-             filename,
-             method):
+             filename):
 
         """ Loads model state dict from file """
 
-        raise NotImplementedError
+        # Load settings
+        logging.info('Loading settings from %s_settings.json', filename)
+
+        with open(filename + '_settings.json', 'r') as f:
+            settings = json.load(f)
+
+        self.method = settings['method']
+        self.n_observables = int(settings['n_observables'])
+        self.n_parameters = int(settings['n_parameters'])
+        self.n_hidden = tuple([int(item) for item in settings['n_hidden']])
+        self.activation = str(settings['activation'])
+
+        # Create model
+        if self.method in ['rolr', 'rascal', 'alice', 'alices']:
+            self.model = ParameterizedRatioEstimator(
+                n_observables=self.n_observables,
+                n_parameters=self.n_parameters,
+                n_hidden=self.n_hidden,
+                activation=self.activation
+            )
+        else:
+            raise NotImplementedError('Unknown method {}'.format(self.method))
+
+        # Load state dict
+        logging.info('Loading state dictionary from %s_state_dict.pt', filename)
+        self.model.load_state_dict(torch.load(filename + '_state_dict.pt'))
