@@ -53,6 +53,7 @@ def train(model,
           verbose='some'):
     """
 
+    :param early_stopping_patience:
     :param model:
     :param loss_functions:
     :param thetas:
@@ -189,9 +190,9 @@ def train(model,
             optimizer.zero_grad()
 
             # Evaluate loss
-            _ = model(theta, x)
+            s_hat, log_r_hat, t_hat = model(theta, x)
 
-            losses = [loss_function(model, y, r_xz, t_xz) for loss_function in loss_functions]
+            losses = [loss_function(s_hat, log_r_hat, t_hat, y, r_xz, t_xz) for loss_function in loss_functions]
             loss = loss_weights[0] * losses[0]
             for _w, _l in zip(loss_weights[1:], losses[1:]):
                 loss += _w * _l
