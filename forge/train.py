@@ -83,7 +83,7 @@ def train(model_filename,
         loss_labels = ['mse_r']
 
     elif method == 'rascal':
-        loss_functions = [losses.ratio_mse, losses.score_mse]
+        loss_functions = [losses.ratio_mse, losses.score_mse_num]
         loss_weights = [1., alpha]
         loss_labels = ['mse_r', 'mse_score']
 
@@ -93,7 +93,7 @@ def train(model_filename,
         loss_labels = ['improved_xe']
 
     elif method == 'alices':
-        loss_functions = [losses.augmented_cross_entropy, losses.score_mse]
+        loss_functions = [losses.augmented_cross_entropy, losses.score_mse_num]
         loss_weights = [1., alpha]
         loss_labels = ['improved_xe', 'mse_score']
 
