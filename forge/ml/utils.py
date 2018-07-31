@@ -1,12 +1,10 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import logging
-import six
 import os
 from subprocess import Popen, PIPE
 import io
 import numpy as np
-import logging
 
 import torch.nn.functional as F
 
