@@ -14,7 +14,7 @@ def general_init(debug=False):
     logging.info('|                                                          |')
     logging.info('|  DelphesProcessor                                        |')
     logging.info('|                                                          |')
-    logging.info('|  Version from July 19, 2018                              |')
+    logging.info('|  Version from July 31, 2018                              |')
     logging.info('|                                                          |')
     logging.info('|           Johann Brehmer, Kyle Cranmer, and Felix Kling  |')
     logging.info('|                                                          |')

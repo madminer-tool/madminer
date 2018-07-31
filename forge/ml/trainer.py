@@ -39,18 +39,18 @@ class GoldDataset(torch.utils.data.Dataset):
         return self.n
 
 
-def train(model,
-          loss_functions,
-          thetas, xs, ys=None, r_xzs=None, t_xzs=None,
-          loss_weights=None,
-          loss_labels=None,
-          batch_size=64,
-          initial_learning_rate=0.001, final_learning_rate=0.0001, n_epochs=50,
-          clip_gradient=1.,
-          run_on_gpu=True,
-          validation_split=0.2, early_stopping=True, early_stopping_patience=20,
-          learning_curve_folder=None, learning_curve_filename=None,
-          verbose='some'):
+def run_training(model,
+                 loss_functions,
+                 thetas, xs, ys=None, r_xzs=None, t_xzs=None,
+                 loss_weights=None,
+                 loss_labels=None,
+                 batch_size=64,
+                 initial_learning_rate=0.001, final_learning_rate=0.0001, n_epochs=50,
+                 clip_gradient=1.,
+                 run_on_gpu=True,
+                 validation_split=0.2, early_stopping=True, early_stopping_patience=20,
+                 learning_curve_folder=None, learning_curve_filename=None,
+                 verbose='some'):
     """
 
     :param early_stopping_patience:
