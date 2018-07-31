@@ -50,6 +50,7 @@ def run_training(model,
                  initial_learning_rate=0.001, final_learning_rate=0.0001, n_epochs=50,
                  clip_gradient=1.,
                  run_on_gpu=True,
+                 double_precision=False,
                  validation_split=0.2, early_stopping=True, early_stopping_patience=20,
                  learning_curve_folder=None, learning_curve_filename=None,
                  verbose='some'):
@@ -83,9 +84,10 @@ def run_training(model,
     # CPU or GPU?
     run_on_gpu = run_on_gpu and torch.cuda.is_available()
     device = torch.device("cuda" if run_on_gpu else "cpu")
+    dtype = torch.double if double_precision else torch.float
 
     # Move model to device
-    model = model.to(device)
+    model = model.to(device, dtype)
 
     # Convert to Tensor
     thetas = torch.stack([tensor(i, requires_grad=True) for i in thetas])
@@ -177,15 +179,15 @@ def run_training(model,
 
         # Loop over batches
         for i_batch, (theta, x, y, r_xz, t_xz) in enumerate(train_loader):
-            theta = theta.to(device)
-            x = x.to(device)
-            y = y.to(device)
+            theta = theta.to(device, dtype)
+            x = x.to(device, dtype)
+            y = y.to(device, dtype)
             try:
-                r_xz = r_xz.to(device)
+                r_xz = r_xz.to(device, dtype)
             except:
                 pass
             try:
-                t_xz = t_xz.to(device)
+                t_xz = t_xz.to(device, dtype)
             except:
                 pass
 
@@ -232,22 +234,22 @@ def run_training(model,
         for i_batch, (theta, x, y, r_xz, t_xz) in enumerate(validation_loader):
 
             # Put on device
-            theta = theta.to(device)
-            x = x.to(device)
-            y = y.to(device)
+            theta = theta.to(device, dtype)
+            x = x.to(device, dtype)
+            y = y.to(device, dtype)
             try:
-                r_xz = r_xz.to(device)
+                r_xz = r_xz.to(device, dtype)
             except:
                 pass
             try:
-                t_xz = t_xz.to(device)
+                t_xz = t_xz.to(device, dtype)
             except:
                 pass
 
             # Evaluate loss
-            _ = model(theta, x)
+            s_hat, log_r_hat, t_hat = model(theta, x)
 
-            losses = [loss_function(model, y, r_xz, t_xz) for loss_function in loss_functions]
+            losses = [loss_function(s_hat, log_r_hat, t_hat, y, r_xz, t_xz) for loss_function in loss_functions]
             loss = loss_weights[0] * losses[0]
             for _w, _l in zip(loss_weights[1:], losses[1:]):
                 loss += _w * _l

@@ -340,6 +340,9 @@ class Refinery:
         theta1 = theta1[permutation]
         y = y[permutation]
 
+        # y shape
+        y = y.reshape((-1, 1))
+
         # Save data
         np.save(folder + '/theta0_' + filename + '.npy', theta0)
         np.save(folder + '/theta1_' + filename + '.npy', theta1)
@@ -588,10 +591,11 @@ class Refinery:
                 raise RuntimeError('Theta defined through morphing, but no morphing setup has been loaded.')
 
             # Debug
-            logging.debug('New theta configuration')
-            logging.debug('  Sampling theta: {}, {}'.format(theta_sampling_type, theta_sampling_value))
-            logging.debug('  Auxiliary theta: {}, {}'.format(theta_auxiliary_type, theta_auxiliary_value))
-            logging.debug('  # samples: {}'.format(n_samples))
+            logging.debug(
+                'Sampling {} samples from {} theta {} (compare to {} theta {})'.format(n_samples, theta_sampling_type,
+                                                                                       theta_sampling_value,
+                                                                                       theta_auxiliary_type,
+                                                                                       theta_auxiliary_value))
 
             # Sampling theta
             theta_sampling = get_theta_value(theta_sampling_type, theta_sampling_value, self.benchmarks)
@@ -614,7 +618,7 @@ class Refinery:
             rms_xsec_sampling_theta = ((theta_sampling_matrix * theta_sampling_matrix).dot(
                 squared_weight_sum_benchmarks)) ** 0.5
 
-            logging.debug('xsec for this sampling theta: (%s +/- %s) pb', xsec_sampling_theta, rms_xsec_sampling_theta)
+            logging.debug('  xsec: (%s +/- %s) pb', xsec_sampling_theta, rms_xsec_sampling_theta)
 
             if rms_xsec_sampling_theta > 0.1 * xsec_sampling_theta:
                 logging.warning('Warning: large statistical uncertainty on the total cross section for theta = %s: '
@@ -715,7 +719,7 @@ class Refinery:
                     #    break
 
                 # Check cumulative probabilities at end. Should be one!
-                logging.debug('Cumulative probability (should be close to 1): %s', cumulative_p[-1])
+                logging.debug('  Cumulative probability (should be close to 1): %s', cumulative_p[-1])
 
                 # Check that we got 'em all
                 if not np.all(samples_done):
@@ -731,8 +735,6 @@ class Refinery:
             all_theta_auxiliary.append(theta_auxiliary)
             for i, this_samples_augmented_data in enumerate(samples_augmented_data):
                 all_augmented_data[i].append(this_samples_augmented_data)
-
-            logging.debug('Cumulative x shape: %s', np.array(all_x).shape)
 
         all_x = np.vstack(all_x)
         all_theta_sampling = np.vstack(all_theta_sampling)

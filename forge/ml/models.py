@@ -1,10 +1,12 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+import logging
+
 import torch
 import torch.nn as nn
 from torch.autograd import grad
 
-from forge.ml.utils import get_activation
+from forge.ml.utils import get_activation, general_init
 
 
 class ParameterizedRatioEstimator(nn.Module):
@@ -69,3 +71,12 @@ class ParameterizedRatioEstimator(nn.Module):
             t_hat = None
 
         return s_hat, log_r_hat, t_hat
+
+    def to(self, *args, **kwargs):
+        logging.debug('Transforming ParameterizedRatioEstimator to %s', args)
+        self = super().to(*args, **kwargs)
+
+        for i, layer in enumerate(self.layers):
+            self.layers[i] = layer.to(*args, **kwargs)
+
+        return self
