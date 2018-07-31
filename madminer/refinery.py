@@ -290,13 +290,15 @@ class Refinery:
         theta0_types, theta0_values, n_samples_per_theta0 = parse_theta(theta0, n_samples // 2)
         theta1_types, theta1_values, n_samples_per_theta1 = parse_theta(theta1, n_samples // 2)
 
+        n_samples_per_theta = min(n_samples_per_theta0, n_samples_per_theta1)
+
         # Start for theta0
         x0, (r_xz0, t_xz0), theta0_0, theta1_0 = self.extract_sample(
             theta_sampling_types=theta0_types,
             theta_sampling_values=theta0_values,
             theta_auxiliary_types=theta1_types,
             theta_auxiliary_values=theta1_values,
-            n_samples_per_theta=n_samples_per_theta0,
+            n_samples_per_theta=n_samples_per_theta,
             augmented_data_definitions=augmented_data_definitions0,
             start_event=0,
             end_event=last_train_index
@@ -306,13 +308,15 @@ class Refinery:
         theta0_types, theta0_values, n_samples_per_theta0 = parse_theta(theta0, n_samples // 2)
         theta1_types, theta1_values, n_samples_per_theta1 = parse_theta(theta1, n_samples // 2)
 
+        n_samples_per_theta = min(n_samples_per_theta0, n_samples_per_theta1)
+
         # Start for theta1
         x1, (r_xz1, t_xz1), theta1_1, theta0_1 = self.extract_sample(
             theta_sampling_types=theta1_types,
             theta_sampling_values=theta1_values,
             theta_auxiliary_types=theta0_types,
             theta_auxiliary_values=theta0_values,
-            n_samples_per_theta=n_samples_per_theta1,
+            n_samples_per_theta=n_samples_per_theta,
             augmented_data_definitions=augmented_data_definitions1,
             start_event=0,
             end_event=last_train_index
@@ -499,13 +503,11 @@ class Refinery:
                 )
                 augmented_data_sizes.append(1)
 
-                logging.debug('  Joint ratio, num %s %s, den %s %s;\nNum matrix:\n%s\nDen matrix:\n%s',
+                logging.debug('  Joint ratio, num %s %s, den %s %s',
                               augmented_data_definition[1],
                               augmented_data_definition[2],
                               augmented_data_definition[3],
-                              augmented_data_definition[4],
-                              augmented_data_theta_matrices_num[-1],
-                              augmented_data_theta_matrices_den[-1])
+                              augmented_data_definition[4])
 
             elif augmented_data_types[-1] == 'score':
                 if self.morpher is None:
@@ -529,11 +531,9 @@ class Refinery:
                 )
                 augmented_data_sizes.append(len(self.parameters))
 
-                logging.debug('  Joint score, at %s %s;\nNum matrix:\n%s\nDen matrix:\n%s',
+                logging.debug('  Joint score, at %s %s',
                               augmented_data_definition[1],
-                              augmented_data_definition[2],
-                              augmented_data_theta_matrices_num[-1],
-                              augmented_data_theta_matrices_den[-1])
+                              augmented_data_definition[2])
 
             else:
                 logging.warning("Unknown augmented data type %s", augmented_data_types[-1])
@@ -544,8 +544,9 @@ class Refinery:
             theta_auxiliary_values = [None for _ in theta_sampling_values]
 
         logging.debug('Sampling and auxiliary thetas before balancing:')
-        logging.debug('  sampling thetas:  %s', list(zip(theta_sampling_types, theta_sampling_values)))
-        logging.debug('  auxiliary thetas: %s', list(zip(theta_auxiliary_types, theta_auxiliary_values)))
+        logging.debug('  sampling thetas:  %s types, %s values', len(theta_sampling_types), len(theta_sampling_values))
+        logging.debug('  auxiliary thetas: %s types, %s values', len(theta_auxiliary_types),
+                      len(theta_auxiliary_values))
 
         if len(theta_auxiliary_types) < len(theta_sampling_types):
             theta_auxiliary_types = [theta_auxiliary_types[i % len(theta_auxiliary_types)]
@@ -565,8 +566,9 @@ class Refinery:
             n_samples_per_theta = [n_samples_per_theta[0]] * len(theta_sampling_types)
 
         logging.debug('Sampling and auxiliary thetas after balancing:')
-        logging.debug('  sampling thetas:  %s', list(zip(theta_sampling_types, theta_sampling_values)))
-        logging.debug('  auxiliary thetas: %s', list(zip(theta_auxiliary_types, theta_auxiliary_values)))
+        logging.debug('  sampling thetas:  %s types, %s values', len(theta_sampling_types), len(theta_sampling_values))
+        logging.debug('  auxiliary thetas: %s types, %s values', len(theta_auxiliary_types),
+                      len(theta_auxiliary_values))
 
         assert (len(theta_sampling_types) == len(theta_sampling_values)
                 == len(theta_auxiliary_values) == len(theta_auxiliary_types))
@@ -730,11 +732,15 @@ class Refinery:
             for i, this_samples_augmented_data in enumerate(samples_augmented_data):
                 all_augmented_data[i].append(this_samples_augmented_data)
 
+            logging.debug('Cumulative x shape: %s', np.array(all_x).shape)
+
         all_x = np.vstack(all_x)
         all_theta_sampling = np.vstack(all_theta_sampling)
         all_theta_auxiliary = np.vstack(all_theta_auxiliary)
         for i in range(n_augmented_data):
             all_augmented_data[i] = np.vstack(all_augmented_data[i])
+
+        logging.debug('Combined x shape: %s', all_x.shape)
 
         return all_x, all_augmented_data, all_theta_sampling, all_theta_auxiliary
 
