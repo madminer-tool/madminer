@@ -1,2 +1,3 @@
-import model EWdim6
-generate u u~ > w+ w- / u u~ d d~ QCD=0 QED=99 NP=2, w+ > e+ ve, w- > mu- vm~
+import model EWdim6-full
+#generate u u~ > w+ w- / u u~ d d~ QCD=0 QED=99 NP=2, w+ > e+ ve, w- > mu- vm~
+generate u d > u d h QCD=0 QED=99 NP=2

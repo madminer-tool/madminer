@@ -116,7 +116,7 @@ def generate_mg_process(mg_directory,
     shutil.copyfile(proc_card_file, temp_proc_card_file)
 
     with open(temp_proc_card_file, "a") as myfile:
-        myfile.write('output ' + mg_process_directory)
+        myfile.write('\n\noutput ' + mg_process_directory)
 
     # Call MG5
     if initial_command is None:

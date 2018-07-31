@@ -99,9 +99,9 @@ class DelphesProcessor:
                 raise ValueError("Number of weights in different Delphes files incompatible: {} vs {}".format(
                     self.weights.shape[0], this_weights.shape[0]
                 ))
-            if self.observations.shape[0] != this_observations.shape[0]:
+            if len(self.observations) != len(this_observations):
                 raise ValueError("Number of observations in different Delphes files incompatible: {} vs {}".format(
-                    self.observations.shape[0], this_observations.shape[0]
+                    len(self.observations), len(this_observations)
                 ))
 
             self.weights = np.hstack([self.weights, this_weights])
