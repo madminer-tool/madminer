@@ -348,8 +348,8 @@ def evaluate_model(model,
     s_hat, log_r_hat, t_hat = model(thetas, xs)
 
     # Get data and return
-    s_hat = s_hat.detach().numpy()
-    log_r_hat = log_r_hat.detach().numpy()
+    s_hat = s_hat.detach().numpy().flatten()
+    log_r_hat = log_r_hat.detach().numpy().flatten()
     t_hat = t_hat.detach().numpy()
 
     return s_hat, log_r_hat, t_hat

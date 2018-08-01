@@ -73,7 +73,6 @@ class ParameterizedRatioEstimator(nn.Module):
         return s_hat, log_r_hat, t_hat
 
     def to(self, *args, **kwargs):
-        logging.debug('Transforming ParameterizedRatioEstimator to %s', args)
         self = super().to(*args, **kwargs)
 
         for i, layer in enumerate(self.layers):
