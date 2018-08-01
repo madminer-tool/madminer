@@ -379,6 +379,8 @@ class Refinery:
         :param test_split: Fraction of events reserved for the test sample (will not be used for any training samples).
         """
 
+        raise NotImplementedError
+
         logging.info('Extracting training sample for ratio-based methods. Numerator hypothesis: %s, denominator '
                      'hypothesis: %s', theta0, theta1)
 
@@ -547,6 +549,68 @@ class Refinery:
         np.save(folder + '/x_' + filename + '.npy', x)
 
         return x, theta
+
+    def extract_cross_sections(self,
+                               theta):
+
+        """
+        Calculates the total cross sections for all specified thetas.
+
+        :param theta: tuple (type, value) that defines the parameter point or prior over parameter points used for the
+                      sampling. Use the helper functions constant_benchmark_theta(), multiple_benchmark_thetas(),
+                      constant_morphing_theta(), multiple_morphing_thetas(), or random_morphing_thetas().
+        :return: thetas, xsecs, xsec_uncertainties. xsecs and xsec_uncertainties are in pb.
+        """
+
+        # Total xsecs for benchmarks
+        xsecs_benchmarks = None
+        squared_weight_sum_benchmarks = None
+
+        for obs, weights in madminer_event_loader(self.madminer_filename):
+            if xsecs_benchmarks is None:
+                xsecs_benchmarks = np.sum(weights, axis=0)
+                squared_weight_sum_benchmarks = np.sum(weights * weights, axis=0)
+            else:
+                xsecs_benchmarks += np.sum(weights, axis=0)
+                squared_weight_sum_benchmarks += np.sum(weights * weights, axis=0)
+
+        # Parse thetas for evaluation
+        theta_types, theta_values, _ = parse_theta(theta, 1)
+
+        # Loop over thetas
+        all_thetas = []
+        all_xsecs = []
+        all_xsec_uncertainties = []
+
+        for (theta_type, theta_value) in zip(theta_types, theta_values):
+
+            if self.morpher is None and theta_type == 'morphing':
+                raise RuntimeError('Theta defined through morphing, but no morphing setup has been loaded.')
+
+            theta = get_theta_value(theta_type, theta_value, self.benchmarks)
+            theta_matrix = get_theta_benchmark_matrix(
+                theta_type,
+                theta_value,
+                self.benchmarks,
+                self.morpher
+            )
+
+            # Total xsec for this theta
+            xsec_theta = theta_matrix.dot(xsecs_benchmarks)
+            rms_xsec_theta = ((theta_matrix * theta_matrix).dot(squared_weight_sum_benchmarks)) ** 0.5
+
+            all_thetas.append(theta)
+            all_xsecs.append(xsec_theta)
+            all_xsec_uncertainties.append(rms_xsec_theta)
+
+            logging.info('theta %s: xsec = (%s +/- %s) pb', theta, xsec_theta, rms_xsec_theta)
+
+        # Return
+        all_thetas = np.array(all_thetas)
+        all_xsecs = np.array(all_xsecs)
+        all_xsec_uncertainties = np.array(all_xsec_uncertainties)
+
+        return all_thetas, all_xsecs, all_xsec_uncertainties
 
     def extract_sample(self,
                        theta_sampling_types,
