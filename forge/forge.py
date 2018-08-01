@@ -3,12 +3,13 @@ from __future__ import absolute_import, division, print_function
 import logging
 import os
 import json
+import numpy as np
 
 import torch
 
 from forge.ml import losses
 from forge.ml.models import ParameterizedRatioEstimator
-from forge.ml.trainer import run_training
+from forge.ml.trainer import train_model, evaluate_model
 from forge.ml.utils import create_missing_folders, load_and_check, general_init
 
 
@@ -122,7 +123,7 @@ class Forge:
         # Train model
         logging.info('Training model')
 
-        run_training(
+        train_model(
             model=self.model,
             loss_functions=loss_functions,
             loss_weights=loss_weights,
@@ -142,12 +143,43 @@ class Forge:
 
     def evaluate(self,
                  theta_filename,
-                 x_filename,
-                 evaluate_all_theta_x_combinations=True):
+                 x_filename):
 
-        """ Predicts log likelihood ratio """
+        """ Predicts log likelihood ratio for all combinations of theta and x """
 
-        raise NotImplementedError
+        if self.model is None:
+            raise ValueError('No model -- train or load model before evaluating it!')
+
+        logging.info('Starting evaluation')
+
+        # Load training data
+        logging.info('Loading training data')
+
+        thetas = load_and_check(theta_filename)
+        xs = load_and_check(x_filename)
+
+        # Loop over thetas
+        all_log_r_hat = []
+        all_t_hat = []
+
+        for i, theta in enumerate(thetas):
+            logging.debug('Starting evaluation for theta %s / %s, %s',
+                          i + 1, len(thetas), theta)
+
+            _, log_r_hat, t_hat = evaluate_model(
+                model=self.model,
+                thetas=[theta],
+                xs=xs
+            )
+
+            all_log_r_hat.append(log_r_hat)
+            all_t_hat.append(t_hat)
+
+        # Return
+        all_log_r_hat = np.array(all_log_r_hat)
+        all_t_hat = np.array(all_t_hat)
+
+        return all_log_r_hat, all_t_hat
 
     def save(self,
              filename):
