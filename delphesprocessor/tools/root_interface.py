@@ -70,14 +70,15 @@ def extract_observables_from_delphes_file(delphes_sample_file,
             else:
                 combined_filter = np.logical_and(combined_filter, this_filter)
 
-    if np.sum(combined_filter) == 0:
-        raise RuntimeError('No observations remainining!')
-
     # Apply filter
-    for obs_name in observable_values:
-        observable_values[obs_name] = observable_values[obs_name][combined_filter]
+    if combined_filter is not None:
+        if np.sum(combined_filter) == 0:
+            raise RuntimeError('No observations remainining!')
 
-    weights = weights[:, combined_filter]
+        for obs_name in observable_values:
+            observable_values[obs_name] = observable_values[obs_name][combined_filter]
+
+        weights = weights[:, combined_filter]
 
     return observable_values, weights
 
