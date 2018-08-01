@@ -1,23 +1,30 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-import logging
+import numpy as np
+
 import torch
 from torch.nn import BCELoss, MSELoss
 
 
-def ratio_mse_num(s_hat, log_r_hat, t_hat, y_true, r_true, t_true):
+def ratio_mse_num(s_hat, log_r_hat, t_hat, y_true, r_true, t_true, log_r_clip=10.):
+    r_true = torch.clamp(r_true, np.exp(-log_r_clip), np.exp(log_r_clip))
+    log_r_hat = torch.clamp(log_r_hat, -log_r_clip, log_r_clip)
+
     inverse_r_hat = torch.exp(- log_r_hat)
     return MSELoss()((1. - y_true) * inverse_r_hat, (1. - y_true) * (1. / r_true))
 
 
-def ratio_mse_den(s_hat, log_r_hat, t_hat, y_true, r_true, t_true):
+def ratio_mse_den(s_hat, log_r_hat, t_hat, y_true, r_true, t_true, log_r_clip=10.):
+    r_true = torch.clamp(r_true, np.exp(-log_r_clip), np.exp(log_r_clip))
+    log_r_hat = torch.clamp(log_r_hat, -log_r_clip, log_r_clip)
+
     r_hat = torch.exp(log_r_hat)
     return MSELoss()(y_true * r_hat, y_true * r_true)
 
 
-def ratio_mse(s_hat, log_r_hat, t_hat, y_true, r_true, t_true):
-    return (ratio_mse_num(s_hat, log_r_hat, t_hat, y_true, r_true, t_true)
-            + ratio_mse_den(s_hat, log_r_hat, t_hat, y_true, r_true, t_true))
+def ratio_mse(s_hat, log_r_hat, t_hat, y_true, r_true, t_true, log_r_clip=10.):
+    return (ratio_mse_num(s_hat, log_r_hat, t_hat, y_true, r_true, t_true, log_r_clip)
+            + ratio_mse_den(s_hat, log_r_hat, t_hat, y_true, r_true, t_true, log_r_clip))
 
 
 def score_mse_num(s_hat, log_r_hat, t_hat, y_true, r_true, t_true):

@@ -1,9 +1,19 @@
 name: madminer
-
+channels:
+- pytorch
+- anaconda
+- defaults
 dependencies:
-- python
+- python=3.6.*
 - numpy
+- h5py
+- scipy=1.0.*
+- scikit-learn=0.19.*
 - matplotlib
 - jupyter
 - h5py
 - six
+- pytorch=0.4.*
+- pip:
+  - uproot
+  - scikit-hep

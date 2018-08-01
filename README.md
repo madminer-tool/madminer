@@ -11,20 +11,28 @@ Johann Brehmer, Gilles Louppe, Juan Pavez, and Kyle Cranmer.
 
 ## Preparation
 
-### Prerequisites
+### Core dependencies
 
 Core dependencies:
 - MadGraph interfaced to Pythia 8
 - Python packages as given in [environment.yml](environment.yml)
 
-For a simple, automatized detector simulation and observable calculation:
+The MadGraph-Pythia interface has issues with the treatment of multiple weights. Until this is fixed
+in the official releases, the user has to install patches manually.  These patches are available upon request.
+
+### Detector simulation
+
+For an automized fast detector simulation and observable calculation:
 - Delphes
-- [DelphesMiner](https://github.com/johannbrehmer/delphesminer)
+- Python packages as given in [environment.yml](environment.yml)
+
+Delphes has issues with the treatment of multiple weights. Until this is fixed in the official releases, the user has to install a patch
+manually. This patch is available upon request.
 
 If Delphes and Delphes miner are not used, the user has to take care of the detector simulation and extraction of observables themselves.
 
-The MadGraph-Pythia interface and Delphes have issues with the treatment of multiple weights. Until this is fixed
-in the official releases, the user has to install patches manually.  These patches are available upon request.
+Delphes also has issues with the treatment of multiple weights. Until this is fixed in the official releases, the user
+has to install patches (available upon request) manually.
 
 ### Installation
 
@@ -33,3 +41,11 @@ Clone repository and make sure it is in the PYTHONPATH.
 ## Usage
 
 See [example.ipynb](examples/usage/example.ipynb).
+
+Note that the suite consists of three packages:
+- `madminer` is the core package responsible for the setup of the process, morphing, and the final extraction
+  (unweighting) of train and test samples.
+- `delphesprocessor` is one example implementation of a detector simulation and observable calculation. This part is
+   likely to swapped out depending on the use case.
+- `forge`  contains an implementation of the machine learning part, i.e. trains likelihood ratio estimators on the
+  output from the `madminer` package.
