@@ -266,6 +266,9 @@ class Refinery:
         logging.info('Extracting training sample for ratio-based methods. Numerator hypothesis: %s, denominator '
                      'hypothesis: %s', theta0, theta1)
 
+        if self.morpher is None:
+            raise RuntimeError('No morphing setup loaded. Cannot calculate score.')
+
         create_missing_folders([folder])
 
         # Augmented data (gold)
@@ -273,9 +276,6 @@ class Refinery:
                                        ('score', 'sampling', None)]
         augmented_data_definitions1 = [('ratio', 'auxiliary', None, 'sampling', None),
                                        ('score', 'auxiliary', None)]
-
-        if self.morpher is None:
-            raise RuntimeError('No morphing setup loaded. Cannot calculate score.')
 
         # Train / test split
         if test_split is None or test_split <= 0. or test_split >= 1.:
@@ -321,6 +321,148 @@ class Refinery:
             start_event=0,
             end_event=last_train_index
         )
+
+        # Combine
+        x = np.vstack([x0, x1])
+        r_xz = np.vstack([r_xz0, r_xz1])
+        t_xz = np.vstack([t_xz0, t_xz1])
+        theta0 = np.vstack([theta0_0, theta0_1])
+        theta1 = np.vstack([theta1_0, theta1_1])
+        y = np.zeros(x.shape[0])
+        y[x0.shape[0]:] = 1.
+
+        # Shuffle
+        permutation = np.random.permutation(x.shape[0])
+        x = x[permutation]
+        r_xz = r_xz[permutation]
+        t_xz = t_xz[permutation]
+        theta0 = theta0[permutation]
+        theta1 = theta1[permutation]
+        y = y[permutation]
+
+        # y shape
+        y = y.reshape((-1, 1))
+
+        # Save data
+        np.save(folder + '/theta0_' + filename + '.npy', theta0)
+        np.save(folder + '/theta1_' + filename + '.npy', theta1)
+        np.save(folder + '/x_' + filename + '.npy', x)
+        np.save(folder + '/y_' + filename + '.npy', y)
+        np.save(folder + '/r_xz_' + filename + '.npy', r_xz)
+        np.save(folder + '/t_xz_' + filename + '.npy', t_xz)
+
+        return x, theta0, theta1, y, r_xz, t_xz
+
+    def extract_samples_train_ratio_double(self,
+                                           theta0,
+                                           theta1,
+                                           n_samples,
+                                           folder,
+                                           filename,
+                                           additional_theta_eval=None,
+                                           test_split=0.3):
+        """
+        Extracts training samples x ~ p(x|theta0) and x ~ p(x|theta1) together with the class label y, the joint
+        likelihood ratio r(x,z|theta0, theta1), and the joint score t(x,z|theta0) for methods such as CARL, ROLR,
+        CASCAL, and RASCAL.
+
+        :param theta0: tuple (type, value) that defines the numerator parameter point or prior over parameter points.
+                       Use the helper functions constant_benchmark_theta(), multiple_benchmark_thetas(),
+                       constant_morphing_theta(), multiple_morphing_thetas(), or random_morphing_thetas().
+        :param theta1: tuple (type, value) that defines the numerator parameter point or prior over parameter points.
+                       Use the helper functions constant_benchmark_theta(), multiple_benchmark_thetas(),
+                       constant_morphing_theta(), multiple_morphing_thetas(), or random_morphing_thetas().
+        :param n_samples: Total number of samples to be drawn.
+        :param folder: Folder for the resulting samples.
+        :param filename: Label for the filenames. The actual filenames will add a prefix such as 'x_', and the extension
+                         '.npy'.
+        :param test_split: Fraction of events reserved for the test sample (will not be used for any training samples).
+        """
+
+        raise NotImplementedError
+
+        logging.info('Extracting training sample for ratio-based methods. Numerator hypothesis: %s, denominator '
+                     'hypothesis: %s', theta0, theta1)
+
+        if self.morpher is None:
+            raise RuntimeError('No morphing setup loaded. Cannot calculate score.')
+
+        create_missing_folders([folder])
+
+        # Augmented data (gold)
+        augmented_data_definitions0 = [('ratio', 'sampling', None, 'auxiliary', None),
+                                       ('score', 'sampling', None),
+                                       ('score', 'auxiliary', None)]
+        augmented_data_definitions1 = [('ratio', 'auxiliary', None, 'sampling', None),
+                                       ('score', 'auxiliary', None),
+                                       ('score', 'sampling', None)]
+
+        # Additional evaluation thetas
+        if additional_theta_eval is not None:
+            theta_eval_types, theta_eval_values, _ = parse_theta(theta_eval, 1)
+
+            for theta_eval_type, theta_eval_value in zip(theta_eval_types, theta_eval_values):
+                augmented_data_definitions0.append(
+                    ('ratio', 'sampling', None, 'morphing', (theta_eval_type, theta_eval_value))
+                )
+                augmented_data_definitions0.append(
+                    ('score', 'morphing', (theta_eval_type, theta_eval_value))
+                )
+                augmented_data_definitions1.append(
+                    ('ratio', 'morphing', (theta_eval_type, theta_eval_value), 'sampling', None)
+                )
+                augmented_data_definitions1.append(
+                    ('score', 'morphing', (theta_eval_type, theta_eval_value))
+                )
+
+        # Train / test split
+        if test_split is None or test_split <= 0. or test_split >= 1.:
+            last_train_index = None
+        else:
+            last_train_index = int(round((1. - test_split) * self.n_samples, 0))
+
+            if last_train_index < 0 or last_train_index > self.n_samples:
+                raise ValueError("Irregular train / test split: sample {} / {}", last_train_index, self.n_samples)
+
+        # Thetas for theta0 sampling
+        theta0_types, theta0_values, n_samples_per_theta0 = parse_theta(theta0, n_samples // 2)
+        theta1_types, theta1_values, n_samples_per_theta1 = parse_theta(theta1, n_samples // 2)
+
+        n_samples_per_theta = min(n_samples_per_theta0, n_samples_per_theta1)
+
+        # TODO: Handle additional augmented data
+
+        # Start for theta0
+        x0, (r_xz0, t_xz0), theta0_0, theta1_0 = self.extract_sample(
+            theta_sampling_types=theta0_types,
+            theta_sampling_values=theta0_values,
+            theta_auxiliary_types=theta1_types,
+            theta_auxiliary_values=theta1_values,
+            n_samples_per_theta=n_samples_per_theta,
+            augmented_data_definitions=augmented_data_definitions0,
+            start_event=0,
+            end_event=last_train_index
+        )
+
+        # Thetas for theta1 sampling (could be different if num or denom are random)
+        theta0_types, theta0_values, n_samples_per_theta0 = parse_theta(theta0, n_samples // 2)
+        theta1_types, theta1_values, n_samples_per_theta1 = parse_theta(theta1, n_samples // 2)
+
+        n_samples_per_theta = min(n_samples_per_theta0, n_samples_per_theta1)
+
+        # Start for theta1
+        x1, (r_xz1, t_xz1), theta1_1, theta0_1 = self.extract_sample(
+            theta_sampling_types=theta1_types,
+            theta_sampling_values=theta1_values,
+            theta_auxiliary_types=theta0_types,
+            theta_auxiliary_values=theta0_values,
+            n_samples_per_theta=n_samples_per_theta,
+            augmented_data_definitions=augmented_data_definitions1,
+            start_event=0,
+            end_event=last_train_index
+        )
+
+        # TODO: Copy events with additional theta_not_sampling / r_xz / t_xz
 
         # Combine
         x = np.vstack([x0, x1])
@@ -407,6 +549,68 @@ class Refinery:
         np.save(folder + '/x_' + filename + '.npy', x)
 
         return x, theta
+
+    def extract_cross_sections(self,
+                               theta):
+
+        """
+        Calculates the total cross sections for all specified thetas.
+
+        :param theta: tuple (type, value) that defines the parameter point or prior over parameter points used for the
+                      sampling. Use the helper functions constant_benchmark_theta(), multiple_benchmark_thetas(),
+                      constant_morphing_theta(), multiple_morphing_thetas(), or random_morphing_thetas().
+        :return: thetas, xsecs, xsec_uncertainties. xsecs and xsec_uncertainties are in pb.
+        """
+
+        # Total xsecs for benchmarks
+        xsecs_benchmarks = None
+        squared_weight_sum_benchmarks = None
+
+        for obs, weights in madminer_event_loader(self.madminer_filename):
+            if xsecs_benchmarks is None:
+                xsecs_benchmarks = np.sum(weights, axis=0)
+                squared_weight_sum_benchmarks = np.sum(weights * weights, axis=0)
+            else:
+                xsecs_benchmarks += np.sum(weights, axis=0)
+                squared_weight_sum_benchmarks += np.sum(weights * weights, axis=0)
+
+        # Parse thetas for evaluation
+        theta_types, theta_values, _ = parse_theta(theta, 1)
+
+        # Loop over thetas
+        all_thetas = []
+        all_xsecs = []
+        all_xsec_uncertainties = []
+
+        for (theta_type, theta_value) in zip(theta_types, theta_values):
+
+            if self.morpher is None and theta_type == 'morphing':
+                raise RuntimeError('Theta defined through morphing, but no morphing setup has been loaded.')
+
+            theta = get_theta_value(theta_type, theta_value, self.benchmarks)
+            theta_matrix = get_theta_benchmark_matrix(
+                theta_type,
+                theta_value,
+                self.benchmarks,
+                self.morpher
+            )
+
+            # Total xsec for this theta
+            xsec_theta = theta_matrix.dot(xsecs_benchmarks)
+            rms_xsec_theta = ((theta_matrix * theta_matrix).dot(squared_weight_sum_benchmarks)) ** 0.5
+
+            all_thetas.append(theta)
+            all_xsecs.append(xsec_theta)
+            all_xsec_uncertainties.append(rms_xsec_theta)
+
+            logging.info('theta %s: xsec = (%s +/- %s) pb', theta, xsec_theta, rms_xsec_theta)
+
+        # Return
+        all_thetas = np.array(all_thetas)
+        all_xsecs = np.array(all_xsecs)
+        all_xsec_uncertainties = np.array(all_xsec_uncertainties)
+
+        return all_thetas, all_xsecs, all_xsec_uncertainties
 
     def extract_sample(self,
                        theta_sampling_types,

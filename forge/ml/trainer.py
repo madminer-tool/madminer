@@ -16,7 +16,7 @@ class GoldDataset(torch.utils.data.Dataset):
     def __init__(self, theta, x, y=None, r_xz=None, t_xz=None):
         self.n = theta.shape[0]
 
-        placeholder = torch.stack([tensor([0.]) for i in range(self.n)])
+        placeholder = torch.stack([tensor([0.]) for _ in range(self.n)])
 
         self.theta = theta
         self.x = x
@@ -41,21 +41,22 @@ class GoldDataset(torch.utils.data.Dataset):
         return self.n
 
 
-def run_training(model,
-                 loss_functions,
-                 thetas, xs, ys=None, r_xzs=None, t_xzs=None,
-                 loss_weights=None,
-                 loss_labels=None,
-                 batch_size=64,
-                 initial_learning_rate=0.001, final_learning_rate=0.0001, n_epochs=50,
-                 clip_gradient=1.,
-                 run_on_gpu=True,
-                 double_precision=False,
-                 validation_split=0.2, early_stopping=True, early_stopping_patience=20,
-                 learning_curve_folder=None, learning_curve_filename=None,
-                 verbose='some'):
+def train_model(model,
+                loss_functions,
+                thetas, xs, ys=None, r_xzs=None, t_xzs=None,
+                loss_weights=None,
+                loss_labels=None,
+                batch_size=64,
+                initial_learning_rate=0.001, final_learning_rate=0.0001, n_epochs=50,
+                clip_gradient=1.,
+                run_on_gpu=True,
+                double_precision=False,
+                validation_split=0.2, early_stopping=True, early_stopping_patience=20,
+                learning_curve_folder=None, learning_curve_filename=None,
+                verbose='some'):
     """
 
+    :param double_precision:
     :param early_stopping_patience:
     :param model:
     :param loss_functions:
@@ -79,7 +80,6 @@ def run_training(model,
     :param verbose: 'some', 'all', 'none'
     :return:
     """
-    logging.info('Starting training')
 
     # CPU or GPU?
     run_on_gpu = run_on_gpu and torch.cuda.is_available()
@@ -321,3 +321,35 @@ def run_training(model,
     logging.info('Finished training')
 
     return total_losses_train, total_losses_val
+
+
+def evaluate_model(model,
+                   thetas, xs,
+                   run_on_gpu=True,
+                   double_precision=False):
+    # CPU or GPU?
+    run_on_gpu = run_on_gpu and torch.cuda.is_available()
+    device = torch.device("cuda" if run_on_gpu else "cpu")
+    dtype = torch.double if double_precision else torch.float
+
+    # Prepare data
+    n_thetas = len(thetas)
+    n_xs = len(xs)
+    thetas = torch.stack([tensor(thetas[i % n_thetas], requires_grad=True) for i in range(n_xs)])
+    xs = torch.stack([tensor(i) for i in xs])
+
+    model = model.to(device, dtype)
+    thetas = thetas.to(device, dtype)
+    xs = xs.to(device, dtype)
+
+    # Evaluate networks
+    # with torch.no_grad(): # doesn't work with score
+    model.eval()
+    s_hat, log_r_hat, t_hat = model(thetas, xs)
+
+    # Get data and return
+    s_hat = s_hat.detach().numpy().flatten()
+    log_r_hat = log_r_hat.detach().numpy().flatten()
+    t_hat = t_hat.detach().numpy()
+
+    return s_hat, log_r_hat, t_hat
