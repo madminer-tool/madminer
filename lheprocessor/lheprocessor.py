@@ -21,6 +21,7 @@ class LHEProcessor:
 
         # Initialize samples
         self.lhe_sample_filenames = []
+        self.sampling_benchmark = []
 
         # Initialize observables
         self.observables = OrderedDict()
@@ -30,11 +31,12 @@ class LHEProcessor:
         self.observations = None
         self.weights = None
 
-    def add_lhe_sample(self, filename):
+    def add_lhe_sample(self, filename, sampled_from_benchmark):
 
         logging.info('Adding LHE sample at %s', filename)
 
         self.lhe_sample_filenames.append(filename)
+        self.sampling_benchmarks.append(sampled_from_benchmark)
 
     """
     def run_delphes(self, delphes_directory, delphes_card, initial_command=None, log_directory=None):
@@ -76,13 +78,14 @@ class LHEProcessor:
     
     def analyse_lhe_samples(self):
 
-        for lhe_file in self.lhe_sample_filenames:
+        for lhe_file, sampling_benchmark in zip(self.lhe_sample_filenames, self.sampling_benchmarks):
 
             logging.info('Analysing LHE sample %s', lhe_file)
 
             # Calculate observables and weights
             this_observations, this_weights = extract_observables_from_lhe_file(
                 lhe_file,
+                sampling_benchmark,
                 self.observables,
                 self.observables_required
             )

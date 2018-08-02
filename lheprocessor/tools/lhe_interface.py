@@ -10,6 +10,7 @@ import logging
 from lheprocessor.tools.lheanalyzer import LHEAnalysis
 
 def extract_observables_from_lhe_file(lhe_sample_file,
+                                      sampling_benchmark,
                                       observables,
                                       observables_required):
     # Load LHE file
@@ -22,18 +23,14 @@ def extract_observables_from_lhe_file(lhe_sample_file,
     nevents = 0
     for event in analysis:
   
-        # count
+        # Count events
         nevents = nevents+1
         
-        # weights
-        ##NOTE THAT THE WEIGHTS MIGHT NOT BE IN CORRECT ORDER. HOWEVER WE ALSO HAVE WEIGHTNAME.
-        weights_event=[]
-        weights_event.append(event.weight)
+        # Obtain weights for each event
+        weights_event = OrderedDict()
+        weights_event[sampling_benchmark]=event.weight
         for weightname,weight in event.rwgts.items():
-            weights_event.append(weight)
-            print (weightname, weight)
-        print (weights_event)
-        #np.append[ar_weights,weights_event]
+            weights_event[weightname]=weight
         ar_weights.append(weights_event)
         
         # particles
@@ -41,7 +38,7 @@ def extract_observables_from_lhe_file(lhe_sample_file,
 
     print (len(ar_weights))
     print (len(ar_weights[0]))
-    print (ar_weights)
+    print (ar_weights[0])
             
     """
     # Delphes ROOT file
@@ -218,7 +215,7 @@ def _get_4vectors_jets(tree):
         array_out.append(array_this_event)
 
     return array_out
-"""
+
 
 def _get_4vectors_met(tree):
     met = tree.array('MissingET.MET')
@@ -242,4 +239,4 @@ def _get_4vectors_met(tree):
         array_out.append(array_this_event)
 
     return array_out
-
+"""
