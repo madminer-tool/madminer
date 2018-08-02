@@ -3,21 +3,22 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import h5py
 import numpy as np
 import shutil
+import logging
 
 
 def save_madminer_file(filename,
                        observables,
                        observations,
                        weights,
+                       weight_labels,
                        copy_from=None,
                        overwrite_existing_samples=True):
-
     if copy_from is not None:
         try:
             shutil.copyfile(copy_from, filename)
         except IOError:
             if not overwrite_existing_samples:
-                raise()
+                raise ()
 
     io_tag = 'a'  # Read-write if file exists, otherwise create
 
@@ -41,9 +42,23 @@ def save_madminer_file(filename,
         f.create_dataset('observables/names', (n_observables,), dtype='S256', data=observable_names_ascii)
         f.create_dataset('observables/definitions', (n_observables,), dtype='S256', data=observable_definitions)
 
+        # Try to find benchmarks in file
+        logging.debug('Weight names found in Delphes files: %s', weight_labels)
+        try:
+            benchmark_names = f['benchmarks/names'][()]
+            logging.debug('Benchmarks found in MadMiner file: %s', benchmark_names)
+
+            weights_sorted = [weights[key] for key in benchmark_names]
+
+        except Exception as e:
+            logging.warning('Issue matching weight names in HepMC file to benchmark names in MadMiner file:\n%s', e)
+
+            weights_sorted = [weights[key] for key in weight_labels]
+
         # Save weights
-        weights_event_benchmark = weights.T
-        f.create_dataset("samples/weights", data=weights_event_benchmark)
+        weights_sorted = np.array(weights_sorted)
+        weights_sorted = weights_sorted.T  # Shape (n_events, n_benchmarks)
+        f.create_dataset("samples/weights", data=weights_sorted)
 
         # Prepare observable values
         observations = np.array(

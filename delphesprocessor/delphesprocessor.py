@@ -7,6 +7,7 @@ import logging
 from delphesprocessor.tools.h5_interface import save_madminer_file
 from delphesprocessor.tools.delphes_interface import run_delphes
 from delphesprocessor.tools.root_interface import extract_observables_from_delphes_file
+from delphesprocessor.tools.hepmc_interface import extract_weight_order
 from delphesprocessor.tools.utils import general_init
 
 
@@ -21,6 +22,8 @@ class DelphesProcessor:
         # Initialize samples
         self.hepmc_sample_filenames = []
         self.delphes_sample_filenames = []
+        self.hepmc_sample_weight_labels = []
+        self.hepmc_sampled_from_benchmark = []
 
         # Initialize observables
         self.observables = OrderedDict()
@@ -30,11 +33,12 @@ class DelphesProcessor:
         self.observations = None
         self.weights = None
 
-    def add_hepmc_sample(self, filename):
+    def add_hepmc_sample(self, filename, sampled_from_benchmark):
 
         logging.info('Adding HepMC sample at %s', filename)
 
         self.hepmc_sample_filenames.append(filename)
+        self.hepmc_sample_weight_labels.append(extract_weight_order(filename, sampled_from_benchmark))
 
     def run_delphes(self, delphes_directory, delphes_card, initial_command=None, log_directory=None):
 
@@ -56,9 +60,11 @@ class DelphesProcessor:
 
     def add_delphes_sample(self, filename):
 
-        logging.info('Adding Delphes sample at %s', filename)
+        raise NotImplementedError('Direct use of Delphes samples is currently disabled since the Delphes file alone '
+                                  'does not contain any information about the weight order')
 
-        self.delphes_sample_filenames.append(filename)
+        # logging.info('Adding Delphes sample at %s', filename)
+        # self.delphes_sample_filenames.append(filename)
 
     def add_observable(self, name, definition, required=False):
 
@@ -78,7 +84,7 @@ class DelphesProcessor:
 
     def analyse_delphes_samples(self):
 
-        for delphes_file in self.delphes_sample_filenames:
+        for delphes_file, weight_labels in zip(self.delphes_sample_filenames, self.hepmc_sample_weight_labels):
 
             logging.info('Analysing Delphes sample %s', delphes_file)
 
@@ -86,7 +92,8 @@ class DelphesProcessor:
             this_observations, this_weights = extract_observables_from_delphes_file(
                 delphes_file,
                 self.observables,
-                self.observables_required
+                self.observables_required,
+                weight_labels
             )
 
             # Merge
@@ -95,16 +102,20 @@ class DelphesProcessor:
                 self.weights = this_weights
                 continue
 
-            if self.weights.shape[0] != this_weights.shape[0]:
+            if len(self.weights) != len(this_weights):
                 raise ValueError("Number of weights in different Delphes files incompatible: {} vs {}".format(
-                    self.weights.shape[0], this_weights.shape[0]
+                    len(self.weights), len(this_weights)
                 ))
             if len(self.observations) != len(this_observations):
                 raise ValueError("Number of observations in different Delphes files incompatible: {} vs {}".format(
                     len(self.observations), len(this_observations)
                 ))
 
-            self.weights = np.hstack([self.weights, this_weights])
+            for key in self.weights:
+                assert key in this_observations, "Weight label {} not found in Delphes sample!".format(
+                    key
+                )
+                self.weights[key] = np.hstack([self.weights[key], this_weights[key]])
 
             for key in self.observations:
                 assert key in this_observations, "Observable {} not found in Delphes sample!".format(
