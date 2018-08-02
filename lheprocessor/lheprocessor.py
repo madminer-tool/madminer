@@ -4,13 +4,14 @@ from collections import OrderedDict
 import numpy as np
 import logging
 
-from delphesprocessor.tools.h5_interface import save_madminer_file
-from delphesprocessor.tools.delphes_interface import run_delphes
-from delphesprocessor.tools.root_interface import extract_observables_from_delphes_file
-from delphesprocessor.tools.utils import general_init
+#from lheprocessor.tools.h5_interface import save_madminer_file
+#from lheprocessor.tools.delphes_interface import run_delphes
+#from lheprocessor.tools.root_interface import extract_observables_from_delphes_file
+from lheprocessor.tools.lhe_interface import extract_observables_from_lhe_file
+from lheprocessor.tools.utils import general_init
 
 
-class DelphesProcessor:
+class LHEProcessor:
     """ """
 
     def __init__(self, debug=False):
@@ -19,8 +20,7 @@ class DelphesProcessor:
         general_init(debug=debug)
 
         # Initialize samples
-        self.hepmc_sample_filenames = []
-        self.delphes_sample_filenames = []
+        self.lhe_sample_filenames = []
 
         # Initialize observables
         self.observables = OrderedDict()
@@ -30,12 +30,13 @@ class DelphesProcessor:
         self.observations = None
         self.weights = None
 
-    def add_hepmc_sample(self, filename):
+    def add_lhe_sample(self, filename):
 
-        logging.info('Adding HepMC sample at %s', filename)
+        logging.info('Adding LHE sample at %s', filename)
 
-        self.hepmc_sample_filenames.append(filename)
+        self.lhe_sample_filenames.append(filename)
 
+    """
     def run_delphes(self, delphes_directory, delphes_card, initial_command=None, log_directory=None):
 
         logging.info('Running Delphes at %s', delphes_directory)
@@ -53,12 +54,7 @@ class DelphesProcessor:
                 log_file=log_file
             )
             self.delphes_sample_filenames.append(delphes_sample_filename)
-
-    def add_delphes_sample(self, filename):
-
-        logging.info('Adding Delphes sample at %s', filename)
-
-        self.delphes_sample_filenames.append(filename)
+        """
 
     def add_observable(self, name, definition, required=False):
 
@@ -70,21 +66,23 @@ class DelphesProcessor:
         self.observables[name] = definition
         self.observables_required[name] = required
 
+    """
     def read_observables_from_file(self, filename):
         raise NotImplementedError
 
     def set_default_observables(self):
         raise NotImplementedError
+    """
+    
+    def analyse_lhe_samples(self):
 
-    def analyse_delphes_samples(self):
+        for lhe_file in self.lhe_sample_filenames:
 
-        for delphes_file in self.delphes_sample_filenames:
-
-            logging.info('Analysing Delphes sample %s', delphes_file)
+            logging.info('Analysing LHE sample %s', lhe_file)
 
             # Calculate observables and weights
-            this_observations, this_weights = extract_observables_from_delphes_file(
-                delphes_file,
+            this_observations, this_weights = extract_observables_from_lhe_file(
+                lhe_file,
                 self.observables,
                 self.observables_required
             )
@@ -107,11 +105,12 @@ class DelphesProcessor:
             self.weights = np.hstack([self.weights, this_weights])
 
             for key in self.observations:
-                assert key in this_observations, "Observable {} not found in Delphes sample!".format(
+                assert key in this_observations, "Observable {} not found in LHE sample!".format(
                     key
                 )
                 self.observations[key] = np.hstack([self.observations[key], this_observations[key]])
 
+    """
     def save(self, filename_out, filename_in=None):
 
         assert (self.observables is not None and self.observations is not None
@@ -127,3 +126,4 @@ class DelphesProcessor:
                            self.observations,
                            self.weights,
                            copy_from=filename_in)
+    """
