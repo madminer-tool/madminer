@@ -50,3 +50,47 @@ def save_madminer_file(filename,
             [observations[oname] for oname in observable_names]
         ).T
         f.create_dataset("samples/observations", data=observations)
+
+def load_madminer_settings(filename):
+    """ Loads MadMiner settings, observables, and weights from a HDF5 file. """
+    
+    with h5py.File(filename, 'r') as f:
+        
+        # Parameters
+        try:
+            parameter_names = f['parameters/names'][()]
+            parameter_lha_blocks = f['parameters/lha_blocks'][()]
+            parameter_lha_ids = f['parameters/lha_ids'][()]
+            parameter_ranges = f['parameters/ranges'][()]
+            parameter_max_power = f['parameters/max_power'][()]
+            
+            parameter_names = [pname.decode("ascii") for pname in parameter_names]
+            parameter_lha_blocks = [pblock.decode("ascii") for pblock in parameter_lha_blocks]
+            
+            parameters = OrderedDict()
+            
+            for pname, prange, pblock, pid, p_maxpower in zip(parameter_names, parameter_ranges, parameter_lha_blocks,
+                                                              parameter_lha_ids, parameter_max_power):
+                parameters[pname] = (
+                                     pblock,
+                                     int(pid),
+                                     int(p_maxpower),
+                                     tuple(prange)
+                                     )
+    
+        except KeyError:
+            raise IOError('Cannot read parameters from HDF5 file')
+
+def load_benchmark_names(filename):
+    """ Loads MadMiner Benchmarks Names from a HDF5 file. """
+    
+    with h5py.File(filename, 'r') as f:
+
+        # Benchmarks
+        try:
+            benchmark_names = f['benchmarks/names'][()]
+            benchmark_names = [bname.decode("ascii") for bname in benchmark_names]
+        except KeyError:
+            raise IOError('Cannot read benchmarks from HDF5 file')
+
+        return benchmark_names

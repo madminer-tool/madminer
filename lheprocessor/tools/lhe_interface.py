@@ -11,7 +11,8 @@ from lheprocessor.tools.lheanalyzer import LHEAnalysis
 
 def extract_observables_from_lhe_file(lhe_sample_file,
                                       sampling_benchmark,
-                                      observables
+                                      observables,
+                                      benchmark_names
                                       ):
     # Load LHE file
     analysis = LHEAnalysis(lhe_sample_file)
@@ -44,13 +45,21 @@ def extract_observables_from_lhe_file(lhe_sample_file,
     # Get number of Weights, Events and Reshape
     n_weights = len(weights_all_events[0])
     n_events = len(weights_all_events)
-    
-    weights = OrderedDict()
-    for key , _ in weights_all_events[0].items():
+
+    weights = []
+    for benchmarkname in benchmark_names:
         key_weights = []
         for weight_event in weights_all_events:
-            key_weights.append(weight_event[key])
-        weights[key] = key_weights
+            key_weights.append(weight_event[benchmarkname])
+        weights.append(key_weights)
+    weights = np.array(weights)
+
+    #weights = OrderedDict()
+    #for key , _ in weights_all_events[0].items():
+    #    key_weights = []
+    #    for weight_event in weights_all_events:
+    #        key_weights.append(weight_event[key])
+    #    weights[key] = key_weights
 
     # Obtain values for each observable in each event
     observable_values = OrderedDict()

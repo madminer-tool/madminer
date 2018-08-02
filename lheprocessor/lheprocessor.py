@@ -4,7 +4,8 @@ from collections import OrderedDict
 import numpy as np
 import logging
 
-#from lheprocessor.tools.h5_interface import save_madminer_file
+from lheprocessor.tools.h5_interface import save_madminer_file
+from lheprocessor.tools.h5_interface import load_benchmark_names
 #from lheprocessor.tools.delphes_interface import run_delphes
 #from lheprocessor.tools.root_interface import extract_observables_from_delphes_file
 from lheprocessor.tools.lhe_interface import extract_observables_from_lhe_file
@@ -30,6 +31,12 @@ class LHEProcessor:
         # Initialize samples
         self.observations = None
         self.weights = None
+    
+        #Initialze Benchmark Names
+        self.benchmark_names = None
+    
+    def read_benchmark_names(self, filename):
+        self.benchmark_names=load_benchmark_names(filename)
 
     def add_lhe_sample(self, filename, sampling_benchmark):
 
@@ -64,7 +71,8 @@ class LHEProcessor:
             this_observations, this_weights = extract_observables_from_lhe_file(
                 lhe_file,
                 sampling_benchmark,
-                self.observables
+                self.observables,
+                self.benchmark_names
             )
 
             # Merge
@@ -73,18 +81,15 @@ class LHEProcessor:
                 self.weights = this_weights
                 continue
 
-            #Warning: 'OrderedDict' object has no attribute 'shape'
-            if self.weights.shape[0] != this_weights.shape[0]:
+            if len(self.weights) != len(this_weights):
                 raise ValueError("Number of weights in different Delphes files incompatible: {} vs {}".format(
-                    self.weights.shape[0], this_weights.shape[0]
+                       len(self.weights), len(this_weights)
                 ))
             if len(self.observations) != len(this_observations):
                 raise ValueError("Number of observations in different Delphes files incompatible: {} vs {}".format(
                     len(self.observations), len(this_observations)
                 ))
 
-            #Warning: this_weights in a OrderedDict. Does hstack work here?
-            print ('FelixWarning: I am not sure if the hstack works for my weight format. Improve.')
             self.weights = np.hstack([self.weights, this_weights])
 
             for key in self.observations:
@@ -109,4 +114,4 @@ class LHEProcessor:
                            self.observations,
                            self.weights,
                            copy_from=filename_in)
-    
+
