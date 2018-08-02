@@ -68,7 +68,6 @@ class LHEAnalysis:
     """Iterator for looping over a sequence backwards."""
     def __init__(self, filename):
         self.lhefile=LHEFile(filename)
-        self.nevents=0
         line=self.lhefile.next()
         ls = line.split()
         try:
@@ -89,7 +88,6 @@ class LHEAnalysis:
         return self
 
     def next(self):
-        self.nevents=self.nevents+1
         beginevent=False
         endevent=False
         beginweights=False

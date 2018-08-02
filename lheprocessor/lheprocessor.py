@@ -21,7 +21,7 @@ class LHEProcessor:
 
         # Initialize samples
         self.lhe_sample_filenames = []
-        self.sampling_benchmark = []
+        self.sampling_benchmarks = []
 
         # Initialize observables
         self.observables = OrderedDict()
@@ -31,32 +31,12 @@ class LHEProcessor:
         self.observations = None
         self.weights = None
 
-    def add_lhe_sample(self, filename, sampled_from_benchmark):
+    def add_lhe_sample(self, filename, sampling_benchmark):
 
         logging.info('Adding LHE sample at %s', filename)
 
         self.lhe_sample_filenames.append(filename)
-        self.sampling_benchmarks.append(sampled_from_benchmark)
-
-    """
-    def run_delphes(self, delphes_directory, delphes_card, initial_command=None, log_directory=None):
-
-        logging.info('Running Delphes at %s', delphes_directory)
-
-        if log_directory is None:
-            log_directory = './logs'
-        log_file = log_directory + '/delphes.log'
-
-        for hepmc_sample_filename in self.hepmc_sample_filenames:
-            delphes_sample_filename = run_delphes(
-                delphes_directory,
-                delphes_card,
-                hepmc_sample_filename,
-                initial_command=initial_command,
-                log_file=log_file
-            )
-            self.delphes_sample_filenames.append(delphes_sample_filename)
-        """
+        self.sampling_benchmarks.append(sampling_benchmark)
 
     def add_observable(self, name, definition, required=False):
 
@@ -68,13 +48,11 @@ class LHEProcessor:
         self.observables[name] = definition
         self.observables_required[name] = required
 
-    """
     def read_observables_from_file(self, filename):
         raise NotImplementedError
 
     def set_default_observables(self):
         raise NotImplementedError
-    """
     
     def analyse_lhe_samples(self):
 
@@ -86,8 +64,7 @@ class LHEProcessor:
             this_observations, this_weights = extract_observables_from_lhe_file(
                 lhe_file,
                 sampling_benchmark,
-                self.observables,
-                self.observables_required
+                self.observables
             )
 
             # Merge
@@ -96,6 +73,7 @@ class LHEProcessor:
                 self.weights = this_weights
                 continue
 
+            #Warning: 'OrderedDict' object has no attribute 'shape'
             if self.weights.shape[0] != this_weights.shape[0]:
                 raise ValueError("Number of weights in different Delphes files incompatible: {} vs {}".format(
                     self.weights.shape[0], this_weights.shape[0]
@@ -105,6 +83,8 @@ class LHEProcessor:
                     len(self.observations), len(this_observations)
                 ))
 
+            #Warning: this_weights in a OrderedDict. Does hstack work here?
+            print ('FelixWarning: I am not sure if the hstack works for my weight format. Improve.')
             self.weights = np.hstack([self.weights, this_weights])
 
             for key in self.observations:
@@ -113,7 +93,7 @@ class LHEProcessor:
                 )
                 self.observations[key] = np.hstack([self.observations[key], this_observations[key]])
 
-    """
+
     def save(self, filename_out, filename_in=None):
 
         assert (self.observables is not None and self.observations is not None
@@ -129,4 +109,4 @@ class LHEProcessor:
                            self.observations,
                            self.weights,
                            copy_from=filename_in)
-    """
+    

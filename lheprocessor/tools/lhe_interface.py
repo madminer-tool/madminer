@@ -11,13 +11,14 @@ from lheprocessor.tools.lheanalyzer import LHEAnalysis
 
 def extract_observables_from_lhe_file(lhe_sample_file,
                                       sampling_benchmark,
-                                      observables,
-                                      observables_required):
+                                      observables
+                                      ):
     # Load LHE file
     analysis = LHEAnalysis(lhe_sample_file)
     
     # Define arrays
-    ar_weights = []
+    weights_all_events = []
+    partons_all_events = []
     
     # Scan though events
     nevents = 0
@@ -31,36 +32,25 @@ def extract_observables_from_lhe_file(lhe_sample_file,
         weights_event[sampling_benchmark]=event.weight
         for weightname,weight in event.rwgts.items():
             weights_event[weightname]=weight
-        ar_weights.append(weights_event)
+        weights_all_events.append(weights_event)
         
-        # particles
-        n_particles = len(event.particles)
+        # Obtain particles for each event
+        partons = []
+        for particle in event.particles:
+            if particle.status==1:
+                partons.append(particle.LorentzVector)
+        partons_all_events.append(partons)
 
-    print (len(ar_weights))
-    print (len(ar_weights[0]))
-    print (ar_weights[0])
-            
-    """
-    # Delphes ROOT file
-    root_file = uproot.open(delphes_sample_file)
-
-    # Delphes tree
-    tree = root_file['Delphes']
-
-    # Weight
-    ar_weights = tree.array("Weight.Weight")
-
-    n_weights = len(ar_weights[0])
-    n_events = len(ar_weights)
-
-    weights = np.array(ar_weights).reshape((n_events, n_weights)).T
-
-    # Get all particle properties
-    photons_all_events = _get_4vectors_photons(tree)
-    electrons_all_events = _get_4vectors_electrons(tree)
-    muons_all_events = _get_4vectors_muons(tree)
-    jets_all_events = _get_4vectors_jets(tree)
-    met_all_events = _get_4vectors_met(tree)
+    # Get number of Weights, Events and Reshape
+    n_weights = len(weights_all_events[0])
+    n_events = len(weights_all_events)
+    
+    weights = OrderedDict()
+    for key , _ in weights_all_events[0].items():
+        key_weights = []
+        for weight_event in weights_all_events:
+            key_weights.append(weight_event[key])
+        weights[key] = key_weights
 
     # Obtain values for each observable in each event
     observable_values = OrderedDict()
@@ -69,11 +59,7 @@ def extract_observables_from_lhe_file(lhe_sample_file,
         values_this_observable = []
 
         for event in range(n_events):
-            variables = {'e': electrons_all_events[event],
-                         'j': jets_all_events[event],
-                         'a': photons_all_events[event],
-                         'mu': muons_all_events[event],
-                         'met': met_all_events[event][0]}
+            variables = {'p': partons_all_events[event]}
 
             try:
                 values_this_observable.append(eval(obs_definition, variables))
@@ -83,6 +69,7 @@ def extract_observables_from_lhe_file(lhe_sample_file,
         values_this_observable = np.array(values_this_observable, dtype=np.float)
         observable_values[obs_name] = values_this_observable
 
+    """
     # Check for existence of required observables
     combined_filter = None
 
@@ -109,134 +96,5 @@ def extract_observables_from_lhe_file(lhe_sample_file,
 
     weights = weights[:, combined_filter]
     """
-    observable_values = []
-    weights = []
-    
+
     return observable_values, weights
-
-"""
-def _get_4vectors_electrons(tree):
-    pt = tree.array('Electron.PT')
-    eta = tree.array('Electron.Eta')
-    phi = tree.array('Electron.Phi')
-
-    array_out = []
-
-    for ievent, sub_list in enumerate(pt):
-        array_this_event = []
-
-        for iobject, value in enumerate(sub_list):
-            vec = skhep.math.vectors.LorentzVector()
-
-            vec.setptetaphim(pt[ievent][iobject],
-                             eta[ievent][iobject],
-                             phi[ievent][iobject],
-                             0.000511)
-
-            array_this_event.append(vec)
-
-        array_out.append(array_this_event)
-
-    return array_out
-
-
-def _get_4vectors_muons(tree):
-    pt = tree.array('Muon.PT')
-    eta = tree.array('Muon.Eta')
-    phi = tree.array('Muon.Phi')
-
-    array_out = []
-
-    for ievent, sub_list in enumerate(pt):
-        array_this_event = []
-
-        for iobject, value in enumerate(sub_list):
-            vec = skhep.math.vectors.LorentzVector()
-
-            vec.setptetaphim(pt[ievent][iobject],
-                             eta[ievent][iobject],
-                             phi[ievent][iobject],
-                             0.105)
-
-            array_this_event.append(vec)
-
-        array_out.append(array_this_event)
-
-    return array_out
-
-
-def _get_4vectors_photons(tree):
-    pt = tree.array('Photon.PT')
-    eta = tree.array('Photon.Eta')
-    phi = tree.array('Photon.Phi')
-    e = tree.array('Photon.E')
-
-    array_out = []
-
-    for ievent, sub_list in enumerate(pt):
-        array_this_event = []
-
-        for iobject, value in enumerate(sub_list):
-            vec = skhep.math.vectors.LorentzVector()
-
-            vec.setptetaphie(pt[ievent][iobject],
-                             eta[ievent][iobject],
-                             phi[ievent][iobject],
-                             e[ievent][iobject])
-
-            array_this_event.append(vec)
-
-        array_out.append(array_this_event)
-
-    return array_out
-
-
-def _get_4vectors_jets(tree):
-    pt = tree.array('Jet.PT')
-    eta = tree.array('Jet.Eta')
-    phi = tree.array('Jet.Phi')
-    m = tree.array('Jet.Mass')
-
-    array_out = []
-
-    for ievent, sub_list in enumerate(pt):
-        array_this_event = []
-
-        for iobject, value in enumerate(sub_list):
-            vec = skhep.math.vectors.LorentzVector()
-
-            vec.setptetaphim(pt[ievent][iobject],
-                             eta[ievent][iobject],
-                             phi[ievent][iobject],
-                             m[ievent][iobject])
-
-            array_this_event.append(vec)
-
-        array_out.append(array_this_event)
-
-    return array_out
-
-
-def _get_4vectors_met(tree):
-    met = tree.array('MissingET.MET')
-    phi = tree.array('MissingET.Phi')
-
-    array_out = []
-
-    for ievent, sub_list in enumerate(met):
-        array_this_event = []
-
-        for iobject, value in enumerate(sub_list):
-            vec = skhep.math.vectors.LorentzVector()
-
-            vec.setptetaphim(met[ievent][iobject],
-                             0.,
-                             phi[ievent][iobject],
-                             0.)
-
-            array_this_event.append(vec)
-
-        array_out.append(array_this_event)
-
-    return array_out
-"""
