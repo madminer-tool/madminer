@@ -10,7 +10,8 @@ import logging
 
 def extract_observables_from_delphes_file(delphes_sample_file,
                                           observables,
-                                          observables_required):
+                                          observables_required,
+                                          weight_labels):
     # Delphes ROOT file
     root_file = uproot.open(delphes_sample_file)
 
@@ -22,6 +23,8 @@ def extract_observables_from_delphes_file(delphes_sample_file,
 
     n_weights = len(ar_weights[0])
     n_events = len(ar_weights)
+
+    assert n_weights == len(weight_labels)
 
     weights = np.array(ar_weights).reshape((n_events, n_weights)).T
 
@@ -70,16 +73,22 @@ def extract_observables_from_delphes_file(delphes_sample_file,
             else:
                 combined_filter = np.logical_and(combined_filter, this_filter)
 
-    if np.sum(combined_filter) == 0:
-        raise RuntimeError('No observations remainining!')
-
     # Apply filter
-    for obs_name in observable_values:
-        observable_values[obs_name] = observable_values[obs_name][combined_filter]
+    if combined_filter is not None:
+        if np.sum(combined_filter) == 0:
+            raise RuntimeError('No observations remainining!')
 
-    weights = weights[:, combined_filter]
+        for obs_name in observable_values:
+            observable_values[obs_name] = observable_values[obs_name][combined_filter]
 
-    return observable_values, weights
+        weights = weights[:, combined_filter]
+
+    # Wrap weights
+    weights_dict = OrderedDict()
+    for weight_label, this_weights in zip(weight_labels, weights):
+        weights_dict[weight_label] = this_weights
+
+    return observable_values, weights_dict
 
 
 def _get_4vectors_electrons(tree):
