@@ -4,7 +4,7 @@ from collections import OrderedDict
 import numpy as np
 import logging
 
-from delphesprocessor.tools.h5_interface import save_madminer_file
+from delphesprocessor.tools.h5_interface import add_events_to_madminer_file
 from delphesprocessor.tools.delphes_interface import run_delphes
 from delphesprocessor.tools.root_interface import extract_observables_from_delphes_file
 from delphesprocessor.tools.hepmc_interface import extract_weight_order
@@ -133,8 +133,8 @@ class DelphesProcessor:
         else:
             logging.info('Loading HDF5 data from %s and saving file to %s', filename_in, filename_out)
 
-        save_madminer_file(filename_out,
-                           self.observables,
-                           self.observations,
-                           self.weights,
-                           copy_from=filename_in)
+        add_events_to_madminer_file(filename_out,
+                                    self.observables,
+                                    self.observations,
+                                    self.weights,
+                                    copy_from=filename_in)

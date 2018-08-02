@@ -6,13 +6,12 @@ import shutil
 import logging
 
 
-def save_madminer_file(filename,
-                       observables,
-                       observations,
-                       weights,
-                       weight_labels,
-                       copy_from=None,
-                       overwrite_existing_samples=True):
+def add_events_to_madminer_file(filename,
+                                observables,
+                                observations,
+                                weights,
+                                copy_from=None,
+                                overwrite_existing_samples=True):
     if copy_from is not None:
         try:
             shutil.copyfile(copy_from, filename)
@@ -43,9 +42,11 @@ def save_madminer_file(filename,
         f.create_dataset('observables/definitions', (n_observables,), dtype='S256', data=observable_definitions)
 
         # Try to find benchmarks in file
-        logging.debug('Weight names found in Delphes files: %s', weight_labels)
+        logging.debug('Weight names found in Delphes files: %s', [key for key in weights])
         try:
             benchmark_names = f['benchmarks/names'][()]
+            benchmark_names = [bname.decode("ascii") for bname in benchmark_names]
+
             logging.debug('Benchmarks found in MadMiner file: %s', benchmark_names)
 
             weights_sorted = [weights[key] for key in benchmark_names]
@@ -53,7 +54,7 @@ def save_madminer_file(filename,
         except Exception as e:
             logging.warning('Issue matching weight names in HepMC file to benchmark names in MadMiner file:\n%s', e)
 
-            weights_sorted = [weights[key] for key in weight_labels]
+            weights_sorted = [weights[key] for key in weights]
 
         # Save weights
         weights_sorted = np.array(weights_sorted)
