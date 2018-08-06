@@ -353,14 +353,14 @@ class Refinery:
 
         return x, theta0, theta1, y, r_xz, t_xz
 
-    def extract_samples_train_ratio_double(self,
-                                           theta0,
-                                           theta1,
-                                           n_samples,
-                                           folder,
-                                           filename,
-                                           additional_theta_eval=None,
-                                           test_split=0.3):
+    def extract_samples_train_more_ratios(self,
+                                          theta0,
+                                          theta1,
+                                          n_samples,
+                                          folder,
+                                          filename,
+                                          additional_theta_eval=None,
+                                          test_split=0.3):
         """
         Extracts training samples x ~ p(x|theta0) and x ~ p(x|theta1) together with the class label y, the joint
         likelihood ratio r(x,z|theta0, theta1), and the joint score t(x,z|theta0) for methods such as CARL, ROLR,
@@ -376,10 +376,13 @@ class Refinery:
         :param folder: Folder for the resulting samples.
         :param filename: Label for the filenames. The actual filenames will add a prefix such as 'x_', and the extension
                          '.npy'.
+        :param additional_theta_eval: tuple (type, value) that defines additional theta points at which ratio and score
+                                      are evaluated, and which are then used to create additional training data points.
+                                      Use the helper functions constant_benchmark_theta(), multiple_benchmark_thetas(),
+                                      constant_morphing_theta(), multiple_morphing_thetas(), or
+                                      random_morphing_thetas().
         :param test_split: Fraction of events reserved for the test sample (will not be used for any training samples).
         """
-
-        raise NotImplementedError
 
         logging.info('Extracting training sample for ratio-based methods. Numerator hypothesis: %s, denominator '
                      'hypothesis: %s', theta0, theta1)
@@ -398,10 +401,13 @@ class Refinery:
                                        ('score', 'sampling', None)]
 
         # Additional evaluation thetas
+        thetas_eval = []
         if additional_theta_eval is not None:
-            theta_eval_types, theta_eval_values, _ = parse_theta(theta_eval, 1)
+            theta_eval_types, theta_eval_values, _ = parse_theta(additional_theta_eval, 1)
 
             for theta_eval_type, theta_eval_value in zip(theta_eval_types, theta_eval_values):
+                thetas_eval.append(get_theta_value(theta_eval_type, theta_eval_value, self.benchmarks))
+
                 augmented_data_definitions0.append(
                     ('ratio', 'sampling', None, 'morphing', (theta_eval_type, theta_eval_value))
                 )
@@ -414,6 +420,7 @@ class Refinery:
                 augmented_data_definitions1.append(
                     ('score', 'morphing', (theta_eval_type, theta_eval_value))
                 )
+        n_thetas_eval = len(thetas_eval)
 
         # Train / test split
         if test_split is None or test_split <= 0. or test_split >= 1.:
@@ -430,10 +437,8 @@ class Refinery:
 
         n_samples_per_theta = min(n_samples_per_theta0, n_samples_per_theta1)
 
-        # TODO: Handle additional augmented data
-
         # Start for theta0
-        x0, (r_xz0, t_xz0), theta0_0, theta1_0 = self.extract_sample(
+        x0, augmented_data0, theta0_0, theta1_0 = self.extract_sample(
             theta_sampling_types=theta0_types,
             theta_sampling_values=theta0_values,
             theta_auxiliary_types=theta1_types,
@@ -444,6 +449,24 @@ class Refinery:
             end_event=last_train_index
         )
 
+        # Analyse augmented data from theta0 run
+        r_xz0 = augmented_data0[0]
+        t_xz0_0 = augmented_data0[1]
+        t_xz1_0 = augmented_data0[2]
+
+        r_xz_eval = []
+        t_xz_eval = []
+        for i, theta_eval in enumerate(thetas_eval):
+            r_xz_eval.append(augmented_data0[3 + i * 2])
+            t_xz_eval.append(augmented_data0[4 + i * 2])
+
+        x0 = np.vstack([x0 for _ in range(1 + n_thetas_eval)])
+        r_xz0 = np.vstack([r_xz0] + r_xz_eval)
+        t_xz0_0 = np.vstack([t_xz0_0 for _ in range(1 + n_thetas_eval)])
+        t_xz1_0 = np.vstack([t_xz1_0] + t_xz_eval)
+        theta0_0 = np.vstack([theta0_0 for _ in range(1 + n_thetas_eval)])
+        theta1_0 = np.vstack([theta1_0] + thetas_eval)
+
         # Thetas for theta1 sampling (could be different if num or denom are random)
         theta0_types, theta0_values, n_samples_per_theta0 = parse_theta(theta0, n_samples // 2)
         theta1_types, theta1_values, n_samples_per_theta1 = parse_theta(theta1, n_samples // 2)
@@ -451,7 +474,7 @@ class Refinery:
         n_samples_per_theta = min(n_samples_per_theta0, n_samples_per_theta1)
 
         # Start for theta1
-        x1, (r_xz1, t_xz1), theta1_1, theta0_1 = self.extract_sample(
+        x1, augmented_data1, theta1_1, theta0_1 = self.extract_sample(
             theta_sampling_types=theta1_types,
             theta_sampling_values=theta1_values,
             theta_auxiliary_types=theta0_types,
@@ -462,12 +485,29 @@ class Refinery:
             end_event=last_train_index
         )
 
-        # TODO: Copy events with additional theta_not_sampling / r_xz / t_xz
+        # Analyse augmented data from theta1 run
+        r_xz1 = augmented_data1[0]
+        t_xz0_1 = augmented_data1[1]
+        t_xz1_1 = augmented_data1[2]
+
+        r_xz_eval = []
+        t_xz_eval = []
+        for i, theta_eval in enumerate(thetas_eval):
+            r_xz_eval.append(augmented_data1[3 + i * 2])
+            t_xz_eval.append(augmented_data1[4 + i * 2])
+
+        x1 = np.vstack([x1 for _ in range(1 + n_thetas_eval)])
+        r_xz1 = np.vstack([r_xz1] + r_xz_eval)
+        t_xz0_1 = np.vstack([t_xz0_1] + t_xz_eval)
+        t_xz1_1 = np.vstack([t_xz1_1 for _ in range(1 + n_thetas_eval)])
+        theta0_1 = np.vstack([theta0_1] + thetas_eval)
+        theta1_1 = np.vstack([theta1_1 for _ in range(1 + n_thetas_eval)])
 
         # Combine
         x = np.vstack([x0, x1])
         r_xz = np.vstack([r_xz0, r_xz1])
-        t_xz = np.vstack([t_xz0, t_xz1])
+        t_xz0 = np.vstack([t_xz0_0, t_xz0_1])
+        t_xz1 = np.vstack([t_xz1_0, t_xz1_1])
         theta0 = np.vstack([theta0_0, theta0_1])
         theta1 = np.vstack([theta1_0, theta1_1])
         y = np.zeros(x.shape[0])
@@ -477,7 +517,8 @@ class Refinery:
         permutation = np.random.permutation(x.shape[0])
         x = x[permutation]
         r_xz = r_xz[permutation]
-        t_xz = t_xz[permutation]
+        t_xz0 = t_xz0[permutation]
+        t_xz1 = t_xz1[permutation]
         theta0 = theta0[permutation]
         theta1 = theta1[permutation]
         y = y[permutation]
@@ -491,9 +532,10 @@ class Refinery:
         np.save(folder + '/x_' + filename + '.npy', x)
         np.save(folder + '/y_' + filename + '.npy', y)
         np.save(folder + '/r_xz_' + filename + '.npy', r_xz)
-        np.save(folder + '/t_xz_' + filename + '.npy', t_xz)
+        np.save(folder + '/t_xz0_' + filename + '.npy', t_xz0)
+        np.save(folder + '/t_xz1_' + filename + '.npy', t_xz1)
 
-        return x, theta0, theta1, y, r_xz, t_xz
+        return x, theta0, theta1, y, r_xz, t_xz0, t_xz1
 
     def extract_samples_test(self,
                              theta,
@@ -881,22 +923,10 @@ class Refinery:
                     cumulative_p = cumulative_p.flatten()[-1] + np.cumsum(p_theta)  # Shape: (n_batch_size,)
 
                     # Check what we've found
-                    indices = np.searchsorted(cumulative_p, u,
-                                              side='left').flatten()  # Shape: (n_samples,), values: [0, ..., n_batch_size]
+                    indices = np.searchsorted(cumulative_p, u, side='left').flatten()
+                    # Shape: (n_samples,), values: [0, ..., n_batch_size]
 
                     found_now = (np.invert(samples_done) & (indices < len(cumulative_p)))  # Shape: (n_samples,)
-
-                    # # Debug
-                    # logging.debug('New batch:')
-                    # logging.debug("  weights: %s\n%s", weights_theta.shape, weights_theta)
-                    # logging.debug("  p: %s\n%s", p_theta.shape, p_theta)
-                    # logging.debug("  Cumulative p: %s\n%s", cumulative_p.shape, cumulative_p)
-                    # logging.debug("  Samples done: %s\n%s", samples_done.shape, samples_done)
-                    # logging.debug("  Found now: %s\n%s", found_now.shape, found_now)
-                    # logging.debug("  Indices: %s, %s ... %s\n%s", indices.shape, np.min(indices), np.max(indices), indices)
-                    # logging.debug("  Indices [found now]: %s, %s ... %s\n%s", indices[found_now].shape, np.min(indices[found_now]), np.max(indices[found_now]), indices[found_now])
-                    # logging.debug("  Samples x: %s\n%s", samples_x.shape, samples_x)
-                    # logging.debug("  x batch: %s\n%s", x_batch.shape, x_batch)
 
                     # Save x
                     samples_x[found_now] = x_batch[indices[found_now]]
