@@ -74,7 +74,7 @@ class ParameterizedRatioEstimator(nn.Module):
         return s_hat, log_r_hat, t_hat
 
     def to(self, *args, **kwargs):
-        self = super().to(*args, **kwargs)
+        self = super(ParameterizedRatioEstimator, self).to(*args, **kwargs)
 
         for i, layer in enumerate(self.layers):
             self.layers[i] = layer.to(*args, **kwargs)
@@ -97,7 +97,7 @@ class DoublyParameterizedRatioEstimator(nn.Module):
 
     def __init__(self, n_observables, n_parameters, n_hidden, activation='tanh'):
 
-        super(ParameterizedRatioEstimator, self).__init__()
+        super(DoublyParameterizedRatioEstimator, self).__init__()
 
         # Save input
         self.n_hidden = n_hidden
@@ -105,7 +105,7 @@ class DoublyParameterizedRatioEstimator(nn.Module):
 
         # Build network
         self.layers = nn.ModuleList()
-        n_last = n_observables + n_parameters
+        n_last = n_observables + 2*n_parameters
 
         # Hidden layers
         for n_hidden_units in n_hidden:
@@ -173,7 +173,7 @@ class DoublyParameterizedRatioEstimator(nn.Module):
         return s_hat, log_r_hat, t_hat0, t_hat1
 
     def to(self, *args, **kwargs):
-        self = super().to(*args, **kwargs)
+        self = super(DoublyParameterizedRatioEstimator, self).to(*args, **kwargs)
 
         for i, layer in enumerate(self.layers):
             self.layers[i] = layer.to(*args, **kwargs)

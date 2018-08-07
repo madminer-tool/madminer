@@ -80,6 +80,18 @@ class Forge:
         t_xz0 = load_and_check(t_xz0_filename)
         t_xz1 = load_and_check(t_xz1_filename)
 
+        # Check necessary information is theere
+        assert theta0 is not None
+        assert x is not None
+        assert y is not None
+        assert r_xz is not None
+        if method in ['rascal', 'alices', 'rascal2', 'alices2']:
+            assert t_xz0 is not None
+        if method in ['rolr2', 'alice2', 'rascal2', 'alices2']:
+            assert theta1 is not None
+        if method in ['rascal2', 'alices2']:
+            assert t_xz1 is not None
+
         n_samples = theta0.shape[0]
         n_parameters = theta0.shape[1]
         n_observables = x.shape[1]
@@ -153,7 +165,7 @@ class Forge:
 
         train_model(
             model=self.model,
-            method_type=self.method,
+            method_type=self.method_type,
             loss_functions=loss_functions,
             loss_weights=loss_weights,
             loss_labels=loss_labels,
@@ -211,7 +223,7 @@ class Forge:
 
             _, log_r_hat, t_hat0, t_hat1 = evaluate_model(
                 model=self.model,
-                method_type=self.method,
+                method_type=self.method_type,
                 theta0s=[theta0],
                 theta1s=[theta1] if theta1 is not None else None,
                 xs=xs

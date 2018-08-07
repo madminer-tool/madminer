@@ -7,9 +7,9 @@ import six
 
 from madminer.tools.h5_interface import load_madminer_settings, madminer_event_loader, save_events_to_madminer_file
 from madminer.tools.analysis import get_theta_value, get_theta_benchmark_matrix, get_dtheta_benchmark_matrix
-from madminer.tools.analysis import extract_augmented_data, parse_theta, balance_thetas
+from madminer.tools.analysis import extract_augmented_data, parse_theta
 from madminer.tools.morphing import Morpher
-from madminer.tools.utils import general_init, format_benchmark, create_missing_folders, shuffle
+from madminer.tools.utils import general_init, format_benchmark, create_missing_folders, shuffle, balance_thetas
 
 
 def combine_and_shuffle(input_filenames,
@@ -693,6 +693,15 @@ class Refinery:
                  dimension.
         """
 
+        logging.debug('Starting sample extraction')
+
+        if augmented_data_definitions is None:
+            augmented_data_definitions = []
+
+        logging.debug('Augmented data requested:')
+        for augmented_data_definition in augmented_data_definitions:
+            logging.debug('  %s', augmented_data_definition)
+
         # Calculate total xsecs for benchmarks
         xsecs_benchmarks = None
         squared_weight_sum_benchmarks = None
@@ -707,6 +716,8 @@ class Refinery:
                 squared_weight_sum_benchmarks += np.sum(weights * weights, axis=0)
 
             n_observables = obs.shape[1]
+
+        logging.debug('Benchmark cross sections [pb]: %s', xsecs_benchmarks)
 
         # Balance thetas
         theta_sets_types, theta_sets_values = balance_thetas(theta_sets_types, theta_sets_values)
@@ -728,15 +739,16 @@ class Refinery:
         n_thetas = len(theta_sets_types)
         assert n_thetas == len(theta_sets_values)
 
-        n_sets = len(theta_sets_types[sampling_theta_index])
+        n_sets = len(theta_sets_types[sampling_theta_index])  # Within each set, all thetas (sampling, numerator, ...)
+                                                              # have a constant value
         for theta_types, theta_values in zip(theta_sets_types, theta_sets_values):
             assert n_sets == len(theta_types) == len(theta_values)
 
         # Number of samples to be drawn
         if not isinstance(n_samples_per_theta, collections.Iterable):
-            n_samples_per_theta = [n_samples_per_theta] * n_thetas
+            n_samples_per_theta = [n_samples_per_theta] * n_sets
         elif len(n_samples_per_theta) == 1:
-            n_samples_per_theta = [n_samples_per_theta[0]] * n_thetas
+            n_samples_per_theta = [n_samples_per_theta[0]] * n_sets
 
         # Prepare output
         all_x = []
@@ -759,7 +771,9 @@ class Refinery:
             theta_matrices = []
             theta_gradient_matrices = []
 
-            for theta_type, theta_value in zip(theta_types, theta_values):
+            logging.debug('Drawing %s events for the following thetas:', n_samples)
+
+            for i_theta, (theta_type, theta_value) in enumerate(zip(theta_types, theta_values)):
                 theta = get_theta_value(theta_type, theta_value, self.benchmarks)
                 theta = np.broadcast_to(theta, (n_samples, theta.size))
                 thetas.append(theta)
@@ -770,6 +784,10 @@ class Refinery:
                 theta_gradient_matrices.append(
                     get_dtheta_benchmark_matrix(theta_type, theta_value, self.benchmarks, self.morpher)
                 )
+
+                logging.debug('  theta %s = %s%s',
+                              i_theta, theta[0,:],
+                              ' (sampling)' if i_theta == sampling_theta_index else '')
 
             sampling_theta_matrix = theta_matrices[sampling_theta_index]
 
@@ -849,7 +867,7 @@ class Refinery:
                 # Check that we got 'em all, otherwise repeat
                 if not np.all(samples_done):
                     logging.debug(
-                        'After full pass through event files, {} / {} samples not found, u = {}'.format(
+                        '  After full pass through event files, {} / {} samples not found, u = {}'.format(
                             np.sum(np.invert(samples_done)),
                             samples_done.size,
                             u[np.invert(samples_done)]

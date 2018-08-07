@@ -95,7 +95,7 @@ def extract_augmented_data(augmented_data_definitions,
 
             augmented_data.append(ratio)
 
-        elif definition[1] == 'score':
+        elif definition[0] == 'score':
             i = definition[1]
 
             gradient_dsigma = theta_gradient_matrices[i].dot(weights_benchmarks.T)

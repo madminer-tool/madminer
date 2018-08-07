@@ -10,6 +10,8 @@ from torch.utils.data import Dataset, DataLoader
 from torch.utils.data.sampler import SubsetRandomSampler
 from torch.nn.utils import clip_grad_norm_
 
+from forge.ml.models import ParameterizedRatioEstimator, DoublyParameterizedRatioEstimator
+
 
 class GoldDataset(torch.utils.data.Dataset):
 
@@ -18,8 +20,11 @@ class GoldDataset(torch.utils.data.Dataset):
 
         placeholder = torch.stack([tensor([0.]) for _ in range(self.n)])
 
+        assert x is not None
+        assert theta0 is not None
+
         self.theta0 = theta0
-        self.theta1 = theta1
+        self.theta1 = placeholder if theta1 is None else theta1
         self.x = x
         self.y = placeholder if y is None else y
         self.r_xz = placeholder if r_xz is None else r_xz
@@ -224,7 +229,7 @@ def train_model(model,
             elif method_type == 'doubly_parameterized':
                 s_hat, log_r_hat, t_hat0, t_hat1 = model(theta0, theta1, x)
             else:
-                raise ValueError('Unknown method type %s', method_type)
+                raise ValueError('Unknown method type {}'.format(method_type))
 
             losses = [loss_function(s_hat, log_r_hat, t_hat0, t_hat1, y, r_xz, t_xz0, t_xz1)
                       for loss_function in loss_functions]
@@ -369,11 +374,10 @@ def train_model(model,
 
 
 def evaluate_model(model,
-                   method_type='parameterized',
+                   method_type=None,
                    theta0s=None, theta1s=None, xs=None,
                    run_on_gpu=True,
                    double_precision=False):
-
     """
 
     :param model:
@@ -390,6 +394,15 @@ def evaluate_model(model,
     run_on_gpu = run_on_gpu and torch.cuda.is_available()
     device = torch.device("cuda" if run_on_gpu else "cpu")
     dtype = torch.double if double_precision else torch.float
+
+    # Figure out method type
+    if method_type is None:
+        if isinstance(model, ParameterizedRatioEstimator):
+            method_type = 'parameterized'
+        elif isinstance(model, DoublyParameterizedRatioEstimator):
+            method_type = 'doubly_parameterized'
+        else:
+            raise RuntimeError('Cannot infer method type automatically')
 
     # Balance theta0 and theta1
     if theta1s is None:
