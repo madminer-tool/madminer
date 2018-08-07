@@ -136,13 +136,24 @@ class DoublyParameterizedRatioEstimator(nn.Module):
         if track_scores and not theta1.requires_grad:
             theta1.requires_grad = True
 
-        # log r estimator
-        log_r_hat = torch.cat((theta0, theta1, x), 1)
+        # f(x | theta0, theta1)
+        f_th0_th1 = torch.cat((theta0, theta1, x), 1)
 
         for i, layer in enumerate(self.layers):
             if i > 0:
-                log_r_hat = self.activation(log_r_hat)
-            log_r_hat = layer(log_r_hat)
+                f_th0_th1 = self.activation(f_th0_th1)
+            f_th0_th1 = layer(f_th0_th1)
+
+        # f(x | theta1, theta0)
+        f_th1_th0 = torch.cat((theta1, theta0, x), 1)
+
+        for i, layer in enumerate(self.layers):
+            if i > 0:
+                f_th1_th0 = self.activation(f_th1_th0)
+            f_th1_th0 = layer(f_th1_th0)
+            
+        # Antisymmetric combination
+        log_r_hat = f_th0_th1 - f_th1_th0
 
         # Bayes-optimal s
         s_hat = 1. / (1. + torch.exp(log_r_hat))
