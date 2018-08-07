@@ -8,7 +8,7 @@ import numpy as np
 import torch
 
 from forge.ml import losses
-from forge.ml.models import ParameterizedRatioEstimator
+from forge.ml.models import ParameterizedRatioEstimator, DoublyParameterizedRatioEstimator
 from forge.ml.trainer import train_model, evaluate_model
 from forge.ml.utils import create_missing_folders, load_and_check, general_init
 
@@ -18,6 +18,7 @@ class Forge:
     def __init__(self, debug=False):
         general_init(debug=debug)
 
+        self.method_type = None
         self.model = None
         self.method = None
         self.n_observables = None
@@ -27,11 +28,13 @@ class Forge:
 
     def train(self,
               method,
-              theta_filename,
               x_filename,
               y_filename,
+              theta0_filename,
+              theta1_filename=None,
               r_xz_filename=None,
-              t_xz_filename=None,
+              t_xz0_filename=None,
+              t_xz1_filename=None,
               n_hidden=(100, 100, 100),
               activation='tanh',
               alpha=1.,
@@ -46,13 +49,17 @@ class Forge:
 
         logging.info('Starting training')
         logging.info('  Method:                 %s', method)
-        logging.info('  Training data: theta at %s', theta_filename)
-        logging.info('                 x at     %s', x_filename)
-        logging.info('                 y at     %s', y_filename)
+        logging.info('  Training data: theta0 at %s', theta0_filename)
+        if theta1_filename is not None:
+            logging.info('                 theta1 at %s', theta1_filename)
+        logging.info('                 x at %s', x_filename)
+        logging.info('                 y at %s', y_filename)
         if r_xz_filename is not None:
-            logging.info('                 r_xz at  %s', r_xz_filename)
-        if t_xz_filename is not None:
-            logging.info('                 t_xz at  %s', t_xz_filename)
+            logging.info('                 r_xz at %s', r_xz_filename)
+        if t_xz0_filename is not None:
+            logging.info('                 t_xz (theta0) at  %s', t_xz0_filename)
+        if t_xz1_filename is not None:
+            logging.info('                 t_xz (theta1) at  %s', t_xz1_filename)
         logging.info('  Method:                 %s', method)
         logging.info('  Hidden layers:          %s', n_hidden)
         logging.info('  Activation function:    %s', activation)
@@ -65,14 +72,16 @@ class Forge:
         # Load training data
         logging.info('Loading training data')
 
-        theta = load_and_check(theta_filename)
+        theta0 = load_and_check(theta0_filename)
+        theta1 = load_and_check(theta1_filename)
         x = load_and_check(x_filename)
         y = load_and_check(y_filename).reshape((-1, 1))
         r_xz = load_and_check(r_xz_filename)
-        t_xz = load_and_check(t_xz_filename)
+        t_xz0 = load_and_check(t_xz0_filename)
+        t_xz1 = load_and_check(t_xz1_filename)
 
-        n_samples = theta.shape[0]
-        n_parameters = theta.shape[1]
+        n_samples = theta0.shape[0]
+        n_parameters = theta0.shape[1]
         n_observables = x.shape[1]
 
         logging.info('Found %s samples with %s parameters and %s observables', n_samples, n_parameters, n_observables)
@@ -87,7 +96,16 @@ class Forge:
         # Create model
         logging.info('Creating model for method %s', method)
         if method in ['rolr', 'rascal', 'alice', 'alices']:
+            self.method_type = 'parameterized'
             self.model = ParameterizedRatioEstimator(
+                n_observables=n_observables,
+                n_parameters=n_parameters,
+                n_hidden=n_hidden,
+                activation=activation
+            )
+        elif method in ['rolr2', 'rascal2', 'alice2', 'alices2']:
+            self.method_type = 'doubly_parameterized'
+            self.model = DoublyParameterizedRatioEstimator(
                 n_observables=n_observables,
                 n_parameters=n_parameters,
                 n_hidden=n_hidden,
@@ -97,22 +115,22 @@ class Forge:
             raise NotImplementedError('Unknown method {}'.format(method))
 
         # Loss fn
-        if method == 'rolr':
+        if method in ['rolr', 'rolr2']:
             loss_functions = [losses.ratio_mse]
             loss_weights = [1.]
             loss_labels = ['mse_r']
 
-        elif method == 'rascal':
+        elif method == ['rascal', 'rascal2']:
             loss_functions = [losses.ratio_mse, losses.score_mse_num]
             loss_weights = [1., alpha]
             loss_labels = ['mse_r', 'mse_score']
 
-        elif method == 'alice':
+        elif method == ['alice', 'alice2']:
             loss_functions = [losses.augmented_cross_entropy]
             loss_weights = [1.]
             loss_labels = ['improved_xe']
 
-        elif method == 'alices':
+        elif method == ['alices', 'alices2']:
             loss_functions = [losses.augmented_cross_entropy, losses.score_mse_num]
             loss_weights = [1., alpha]
             loss_labels = ['improved_xe', 'mse_score']
@@ -128,11 +146,13 @@ class Forge:
             loss_functions=loss_functions,
             loss_weights=loss_weights,
             loss_labels=loss_labels,
-            thetas=theta,
+            theta0s=theta0,
+            theta1s=theta1,
             xs=x,
             ys=y,
             r_xzs=r_xz,
-            t_xzs=t_xz,
+            t_xz0s=t_xz0,
+            t_xz1s=t_xz1,
             batch_size=batch_size,
             n_epochs=n_epochs,
             initial_learning_rate=initial_lr,
@@ -142,8 +162,9 @@ class Forge:
         )
 
     def evaluate(self,
-                 theta_filename,
-                 x_filename):
+                 x_filename,
+                 theta0_filename,
+                 theta1_filename=None):
 
         """ Predicts log likelihood ratio for all combinations of theta and x """
 
@@ -155,31 +176,45 @@ class Forge:
         # Load training data
         logging.info('Loading training data')
 
-        thetas = load_and_check(theta_filename)
+        theta0s = load_and_check(theta0_filename)
+        theta1s = load_and_check(theta1_filename)
         xs = load_and_check(x_filename)
+
+        # Balance thetas
+        if theta1s is None:
+            theta1s = [None for _ in theta0s]
+        else:
+            if len(theta1s) > len(theta0s):
+                theta0s = [theta0s[i % len(theta0s)] for i in range(len(theta1s))]
+            elif len(theta1s) < len(theta1s):
+                theta1s = [theta1s[i % len(theta1s)] for i in range(len(theta0s))]
 
         # Loop over thetas
         all_log_r_hat = []
-        all_t_hat = []
+        all_t_hat0 = []
+        all_t_hat1 = []
 
-        for i, theta in enumerate(thetas):
-            logging.debug('Starting evaluation for theta %s / %s, %s',
-                          i + 1, len(thetas), theta)
+        for i, (theta0, theta1) in enumerate(zip(theta0s, theta1s)):
+            logging.debug('Starting evaluation for thetas %s / %s: %s vs %s',
+                          i + 1, len(theta0s), theta0, theta1)
 
-            _, log_r_hat, t_hat = evaluate_model(
+            _, log_r_hat, t_hat0, t_hat1 = evaluate_model(
                 model=self.model,
-                thetas=[theta],
+                theta0s=[theta0],
+                theta1s=[theta1] if theta1 is not None else None,
                 xs=xs
             )
 
             all_log_r_hat.append(log_r_hat)
-            all_t_hat.append(t_hat)
+            all_t_hat0.append(t_hat0)
+            all_t_hat1.append(t_hat1)
 
         # Return
         all_log_r_hat = np.array(all_log_r_hat)
-        all_t_hat = np.array(all_t_hat)
+        all_t_hat0 = np.array(all_t_hat0)
+        all_t_hat1 = np.array(all_t_hat1)
 
-        return all_log_r_hat, all_t_hat
+        return all_log_r_hat, all_t_hat0, all_t_hat1
 
     def save(self,
              filename):

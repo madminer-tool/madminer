@@ -151,7 +151,7 @@ class DoublyParameterizedRatioEstimator(nn.Module):
             if i > 0:
                 f_th1_th0 = self.activation(f_th1_th0)
             f_th1_th0 = layer(f_th1_th0)
-            
+
         # Antisymmetric combination
         log_r_hat = f_th0_th1 - f_th1_th0
 
