@@ -87,24 +87,25 @@ def extract_augmented_data(types,
     for data_type, theta_matrix_num, theta_matrix_den in zip(types, theta_matrices_num, theta_matrices_den):
 
         # Dynamic numerator / denominators
-        if theta_matrix_num == 'sampling':
-            theta_matrix_num = theta_sampling_matrix
-        elif theta_matrix_num == 'sampling_gradient':
-            theta_matrix_num = theta_sampling_gradient_matrix
-        elif theta_matrix_num == 'auxiliary':
-            theta_matrix_num = theta_auxiliary_matrix
-        elif theta_matrix_num == 'auxiliary_gradient':
-            theta_matrix_num = theta_auxiliary_gradient_matrix
+        if isinstance(theta_matrix_num, six.string_types):
+            if theta_matrix_num == 'sampling':
+                theta_matrix_num = theta_sampling_matrix
+            elif theta_matrix_num == 'sampling_gradient':
+                theta_matrix_num = theta_sampling_gradient_matrix
+            elif theta_matrix_num == 'auxiliary':
+                theta_matrix_num = theta_auxiliary_matrix
+            elif theta_matrix_num == 'auxiliary_gradient':
+                theta_matrix_num = theta_auxiliary_gradient_matrix
 
-        if theta_matrix_den == 'sampling':
-            theta_matrix_den = theta_sampling_matrix
-        elif theta_matrix_den == 'sampling_gradient':
-            raise ValueError(theta_matrix_den)
-        elif theta_matrix_den == 'auxiliary':
-            theta_matrix_den = theta_auxiliary_matrix
-        elif theta_matrix_den == 'auxiliary_gradient':
-            raise ValueError(theta_matrix_den)
-
+        if isinstance(theta_matrix_den, six.string_types):
+            if theta_matrix_den == 'sampling':
+                theta_matrix_den = theta_sampling_matrix
+            elif theta_matrix_den == 'sampling_gradient':
+                raise ValueError(theta_matrix_den)
+            elif theta_matrix_den == 'auxiliary':
+                theta_matrix_den = theta_auxiliary_matrix
+            elif theta_matrix_den == 'auxiliary_gradient':
+                raise ValueError(theta_matrix_den)
 
         # Numerator of ratio / d_i p(x|theta) for score
         dsigma_num = theta_matrix_num.dot(weights_benchmarks.T)

@@ -363,8 +363,8 @@ class Refinery:
                                           test_split=0.3):
         """
         Extracts training samples x ~ p(x|theta0) and x ~ p(x|theta1) together with the class label y, the joint
-        likelihood ratio r(x,z|theta0, theta1), and the joint score t(x,z|theta0) for methods such as CARL, ROLR,
-        CASCAL, and RASCAL.
+        likelihood ratio r(x,z|theta0, theta1), and the joint scores t(x,z|theta0) as well as t(x,z|theta1) for methods
+        such as CARL, ROLR, CASCAL, and RASCAL.
 
         :param theta0: tuple (type, value) that defines the numerator parameter point or prior over parameter points.
                        Use the helper functions constant_benchmark_theta(), multiple_benchmark_thetas(),
@@ -393,12 +393,12 @@ class Refinery:
         create_missing_folders([folder])
 
         # Augmented data (gold)
-        augmented_data_definitions0 = [('ratio', 'sampling', None, 'auxiliary', None),
-                                       ('score', 'sampling', None),
-                                       ('score', 'auxiliary', None)]
-        augmented_data_definitions1 = [('ratio', 'auxiliary', None, 'sampling', None),
-                                       ('score', 'auxiliary', None),
-                                       ('score', 'sampling', None)]
+        augmented_data_definitions_0 = [('ratio', 'sampling', None, 'auxiliary', None),
+                                        ('score', 'sampling', None),
+                                        ('score', 'auxiliary', None)]
+        augmented_data_definitions_1 = [('ratio', 'auxiliary', None, 'sampling', None),
+                                        ('score', 'auxiliary', None),
+                                        ('score', 'sampling', None)]
 
         # Additional evaluation thetas
         thetas_eval = []
@@ -408,19 +408,19 @@ class Refinery:
             for theta_eval_type, theta_eval_value in zip(theta_eval_types, theta_eval_values):
                 thetas_eval.append(get_theta_value(theta_eval_type, theta_eval_value, self.benchmarks))
 
-                logging.debug('Found additional eval theta: %s %s %s', theta_eval_type, theta_eval_value,
-                              thetas_eval[-1])
+                # logging.debug('Found additional eval theta: %s %s %s', theta_eval_type, theta_eval_value,
+                #               thetas_eval[-1])
 
-                augmented_data_definitions0.append(
+                augmented_data_definitions_0.append(
                     ('ratio', 'sampling', None, theta_eval_type, theta_eval_value)
                 )
-                augmented_data_definitions0.append(
+                augmented_data_definitions_0.append(
                     ('score', theta_eval_type, theta_eval_value)
                 )
-                augmented_data_definitions1.append(
+                augmented_data_definitions_1.append(
                     ('ratio', theta_eval_type, theta_eval_value, 'sampling', None)
                 )
-                augmented_data_definitions1.append(
+                augmented_data_definitions_1.append(
                     ('score', theta_eval_type, theta_eval_value)
                 )
         n_thetas_eval = len(thetas_eval)
@@ -441,34 +441,36 @@ class Refinery:
         n_samples_per_theta = min(n_samples_per_theta0, n_samples_per_theta1)
 
         # Start for theta0
-        x0, augmented_data0, theta0_0, theta1_0 = self.extract_sample(
+        x_0, augmented_data_0, theta0_0, theta1_0 = self.extract_sample(
             theta_sampling_types=theta0_types,
             theta_sampling_values=theta0_values,
             theta_auxiliary_types=theta1_types,
             theta_auxiliary_values=theta1_values,
             n_samples_per_theta=n_samples_per_theta,
-            augmented_data_definitions=augmented_data_definitions0,
+            augmented_data_definitions=augmented_data_definitions_0,
             start_event=0,
             end_event=last_train_index
         )
 
+        n_actual_samples = x_0.shape[0]
+
         # Analyse augmented data from theta0 run
-        r_xz0 = augmented_data0[0]
-        t_xz0_0 = augmented_data0[1]
-        t_xz1_0 = augmented_data0[2]
+        r_xz_0 = augmented_data_0[0]
+        t_xz0_0 = augmented_data_0[1]
+        t_xz1_0 = augmented_data_0[2]
 
         r_xz_eval = []
         t_xz_eval = []
         for i, theta_eval in enumerate(thetas_eval):
-            r_xz_eval.append(augmented_data0[3 + i * 2])
-            t_xz_eval.append(augmented_data0[4 + i * 2])
+            r_xz_eval.append(augmented_data_0[3 + i * 2])
+            t_xz_eval.append(augmented_data_0[4 + i * 2])
 
-        x0 = np.vstack([x0 for _ in range(1 + n_thetas_eval)])
-        r_xz0 = np.vstack([r_xz0] + r_xz_eval)
+        x_0 = np.vstack([x_0 for _ in range(1 + n_thetas_eval)])
+        r_xz_0 = np.vstack([r_xz_0] + r_xz_eval)
         t_xz0_0 = np.vstack([t_xz0_0 for _ in range(1 + n_thetas_eval)])
         t_xz1_0 = np.vstack([t_xz1_0] + t_xz_eval)
         theta0_0 = np.vstack([theta0_0 for _ in range(1 + n_thetas_eval)])
-        theta1_0 = np.vstack([theta1_0] + thetas_eval)
+        theta1_0 = np.vstack([theta1_0] + [np.repeat(thetas_eval, theta0_0.shape[0], axis=0)])
 
         # Thetas for theta1 sampling (could be different if num or denom are random)
         theta0_types, theta0_values, n_samples_per_theta0 = parse_theta(theta0, n_samples // 2)
@@ -477,44 +479,50 @@ class Refinery:
         n_samples_per_theta = min(n_samples_per_theta0, n_samples_per_theta1)
 
         # Start for theta1
-        x1, augmented_data1, theta1_1, theta0_1 = self.extract_sample(
+        x_1, augmented_data_1, theta1_1, theta0_1 = self.extract_sample(
             theta_sampling_types=theta1_types,
             theta_sampling_values=theta1_values,
             theta_auxiliary_types=theta0_types,
             theta_auxiliary_values=theta0_values,
             n_samples_per_theta=n_samples_per_theta,
-            augmented_data_definitions=augmented_data_definitions1,
+            augmented_data_definitions=augmented_data_definitions_1,
             start_event=0,
             end_event=last_train_index
         )
 
+        n_actual_samples += x_1.shape[0]
+
         # Analyse augmented data from theta1 run
-        r_xz1 = augmented_data1[0]
-        t_xz0_1 = augmented_data1[1]
-        t_xz1_1 = augmented_data1[2]
+        r_xz_1 = augmented_data_1[0]
+        t_xz0_1 = augmented_data_1[1]
+        t_xz1_1 = augmented_data_1[2]
 
         r_xz_eval = []
         t_xz_eval = []
         for i, theta_eval in enumerate(thetas_eval):
-            r_xz_eval.append(augmented_data1[3 + i * 2])
-            t_xz_eval.append(augmented_data1[4 + i * 2])
+            r_xz_eval.append(augmented_data_1[3 + i * 2])
+            t_xz_eval.append(augmented_data_1[4 + i * 2])
 
-        x1 = np.vstack([x1 for _ in range(1 + n_thetas_eval)])
-        r_xz1 = np.vstack([r_xz1] + r_xz_eval)
+        x_1 = np.vstack([x_1 for _ in range(1 + n_thetas_eval)])
+        r_xz_1 = np.vstack([r_xz_1] + r_xz_eval)
         t_xz0_1 = np.vstack([t_xz0_1] + t_xz_eval)
         t_xz1_1 = np.vstack([t_xz1_1 for _ in range(1 + n_thetas_eval)])
-        theta0_1 = np.vstack([theta0_1] + thetas_eval)
+        theta0_1 = np.vstack([theta0_1] + [np.repeat(thetas_eval, theta0_1.shape[0], axis=0)])
         theta1_1 = np.vstack([theta1_1 for _ in range(1 + n_thetas_eval)])
 
         # Combine
-        x = np.vstack([x0, x1])
-        r_xz = np.vstack([r_xz0, r_xz1])
+        x = np.vstack([x_0, x_1])
+        r_xz = np.vstack([r_xz_0, r_xz_1])
         t_xz0 = np.vstack([t_xz0_0, t_xz0_1])
         t_xz1 = np.vstack([t_xz1_0, t_xz1_1])
         theta0 = np.vstack([theta0_0, theta0_1])
         theta1 = np.vstack([theta1_0, theta1_1])
         y = np.zeros(x.shape[0])
-        y[x0.shape[0]:] = 1.
+        y[x_0.shape[0]:] = 1.
+
+        if additional_theta_eval is not None:
+            logging.info('Oversampling: created %s training samples from %s original unweighted events',
+                         x.shape[0], n_actual_samples)
 
         # Shuffle
         permutation = np.random.permutation(x.shape[0])
@@ -731,11 +739,9 @@ class Refinery:
         if augmented_data_definitions is None:
             augmented_data_definitions = []
 
-        logging.info('Augmented data requested:')
+        logging.debug('Augmented data requested:')
 
         for augmented_data_definition in augmented_data_definitions:
-
-            logging.debug('  Raw augmented data def: %s', augmented_data_definition)
 
             augmented_data_types.append(augmented_data_definition[0])
 
@@ -803,6 +809,7 @@ class Refinery:
         logging.debug('  auxiliary thetas: %s types, %s values', len(theta_auxiliary_types),
                       len(theta_auxiliary_values))
 
+        # Balance number of auxiliary and sampling thetas
         if len(theta_auxiliary_types) < len(theta_sampling_types):
             theta_auxiliary_types = [theta_auxiliary_types[i % len(theta_auxiliary_types)]
                                      for i in range(len(theta_sampling_types))]
@@ -814,12 +821,6 @@ class Refinery:
             theta_sampling_values = [theta_sampling_values[i % len(theta_sampling_values)]
                                      for i in range(len(theta_auxiliary_types))]
 
-        # Samples per theta
-        if not isinstance(n_samples_per_theta, collections.Iterable):
-            n_samples_per_theta = [n_samples_per_theta] * len(theta_sampling_types)
-        elif len(n_samples_per_theta) == 1:
-            n_samples_per_theta = [n_samples_per_theta[0]] * len(theta_sampling_types)
-
         logging.debug('Sampling and auxiliary thetas after balancing:')
         logging.debug('  sampling thetas:  %s types, %s values', len(theta_sampling_types), len(theta_sampling_values))
         logging.debug('  auxiliary thetas: %s types, %s values', len(theta_auxiliary_types),
@@ -828,13 +829,19 @@ class Refinery:
         assert (len(theta_sampling_types) == len(theta_sampling_values)
                 == len(theta_auxiliary_values) == len(theta_auxiliary_types))
 
+        # Samples per theta
+        if not isinstance(n_samples_per_theta, collections.Iterable):
+            n_samples_per_theta = [n_samples_per_theta] * len(theta_sampling_types)
+        elif len(n_samples_per_theta) == 1:
+            n_samples_per_theta = [n_samples_per_theta[0]] * len(theta_sampling_types)
+
         # Prepare output
         all_x = []
         all_augmented_data = [[] for _ in range(n_augmented_data)]
         all_theta_sampling = []
         all_theta_auxiliary = []
 
-        # Loop over thetas
+        # Main loop over thetas
         for (theta_sampling_type, theta_sampling_value, n_samples, theta_auxiliary_type,
              theta_auxiliary_value) in zip(theta_sampling_types, theta_sampling_values, n_samples_per_theta,
                                            theta_auxiliary_types, theta_auxiliary_values):
@@ -865,7 +872,7 @@ class Refinery:
                 self.morpher
             )
 
-            # Total xsec for this theta
+            # Total xsec for sampling theta
             xsec_sampling_theta = theta_sampling_matrix.dot(xsecs_benchmarks)
             rms_xsec_sampling_theta = ((theta_sampling_matrix * theta_sampling_matrix).dot(
                 squared_weight_sum_benchmarks)) ** 0.5
@@ -905,17 +912,19 @@ class Refinery:
             samples_x = np.zeros((n_samples, n_observables))
             samples_augmented_data = [np.zeros((n_samples, augmented_data_sizes[i])) for i in range(n_augmented_data)]
 
-            # Draw random numbers in [0, 1]
-
+            # Main sampling loop
             while not np.all(samples_done):
+
+                # Draw random numbers in [0, 1]
                 u = np.random.rand(n_samples)  # Shape: (n_samples,)
 
+                # Loop over weighted events
                 cumulative_p = np.array([0.])
 
                 for x_batch, weights_benchmarks_batch in madminer_event_loader(self.madminer_filename,
                                                                                start=start_event,
                                                                                end=end_event):
-                    # Evaluate cumulative p(x | theta)
+                    # Evaluate p(x | sampling theta) and cumulate
                     weights_theta = theta_sampling_matrix.dot(weights_benchmarks_batch.T)  # Shape (n_batch_size,)
                     p_theta = weights_theta / xsec_sampling_theta  # Shape: (n_batch_size,)
 
@@ -928,14 +937,13 @@ class Refinery:
 
                     cumulative_p = cumulative_p.flatten()[-1] + np.cumsum(p_theta)  # Shape: (n_batch_size,)
 
-                    # Check what we've found
+                    # When cumulative_p hits u, we store the events
                     indices = np.searchsorted(cumulative_p, u, side='left').flatten()
                     # Shape: (n_samples,), values: [0, ..., n_batch_size]
 
                     found_now = (np.invert(samples_done) & (indices < len(cumulative_p)))  # Shape: (n_samples,)
-
-                    # Save x
                     samples_x[found_now] = x_batch[indices[found_now]]
+                    samples_done[found_now] = True
 
                     # Extract augmented data
                     relevant_augmented_data = extract_augmented_data(
@@ -949,19 +957,16 @@ class Refinery:
                         theta_auxiliary_matrix,
                         theta_auxiliary_gradients_matrix
                     )
-
                     for i, this_relevant_augmented_data in enumerate(relevant_augmented_data):
                         samples_augmented_data[i][found_now] = this_relevant_augmented_data
 
-                    samples_done[found_now] = True
+                    if np.all(samples_done):
+                        break
 
-                    # if np.all(samples_done):
-                    #    break
-
-                # Check cumulative probabilities at end. Should be one!
+                # Cross-check cumulative probabilities at end
                 logging.debug('  Cumulative probability (should be close to 1): %s', cumulative_p[-1])
 
-                # Check that we got 'em all
+                # Check that we got 'em all, otherwise repeat
                 if not np.all(samples_done):
                     logging.debug(
                         'After full pass through event files, {} / {} samples not found, u = {}'.format(
@@ -976,6 +981,7 @@ class Refinery:
             for i, this_samples_augmented_data in enumerate(samples_augmented_data):
                 all_augmented_data[i].append(this_samples_augmented_data)
 
+        # Combine and return results
         all_x = np.vstack(all_x)
         all_theta_sampling = np.vstack(all_theta_sampling)
         all_theta_auxiliary = np.vstack(all_theta_auxiliary)
