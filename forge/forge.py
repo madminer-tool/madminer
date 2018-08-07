@@ -153,6 +153,7 @@ class Forge:
 
         train_model(
             model=self.model,
+            method_type=self.method,
             loss_functions=loss_functions,
             loss_weights=loss_weights,
             loss_labels=loss_labels,
@@ -210,6 +211,7 @@ class Forge:
 
             _, log_r_hat, t_hat0, t_hat1 = evaluate_model(
                 model=self.model,
+                method_type=self.method,
                 theta0s=[theta0],
                 theta1s=[theta1] if theta1 is not None else None,
                 xs=xs
@@ -241,6 +243,7 @@ class Forge:
         logging.info('Saving settings to %s_settings.json', filename)
 
         settings = {'method': self.method,
+                    'method_type': self.method_type,
                     'n_observables': self.n_observables,
                     'n_parameters': self.n_parameters,
                     'n_hidden': list(self.n_hidden),
@@ -265,6 +268,7 @@ class Forge:
             settings = json.load(f)
 
         self.method = settings['method']
+        self.method_type = settings['method_type']
         self.n_observables = int(settings['n_observables'])
         self.n_parameters = int(settings['n_parameters'])
         self.n_hidden = tuple([int(item) for item in settings['n_hidden']])
@@ -272,7 +276,16 @@ class Forge:
 
         # Create model
         if self.method in ['rolr', 'rascal', 'alice', 'alices']:
+            assert self.method_type == 'parameterized'
             self.model = ParameterizedRatioEstimator(
+                n_observables=self.n_observables,
+                n_parameters=self.n_parameters,
+                n_hidden=self.n_hidden,
+                activation=self.activation
+            )
+        elif self.method in ['rolr2', 'rascal2', 'alice2', 'alices2']:
+            assert self.method_type == 'doubly_parameterized'
+            self.model = DoublyParameterizedRatioEstimator(
                 n_observables=self.n_observables,
                 n_parameters=self.n_parameters,
                 n_hidden=self.n_hidden,
