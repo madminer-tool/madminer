@@ -72,6 +72,48 @@ def get_dtheta_benchmark_matrix(theta_type, theta_value, benchmarks, morpher=Non
     return dtheta_matrix
 
 
+def parse_augmented_data_definition(augmented_data_definition, parameters, benchmarks, morpher=None):
+    augmented_data_type = augmented_data_definition[0]
+
+    if augmented_data_type == 'ratio':
+        matrix_num = get_theta_benchmark_matrix(
+            augmented_data_definition[1],
+            augmented_data_definition[2],
+            benchmarks,
+            morpher
+        )
+        matrix_den = get_theta_benchmark_matrix(
+            augmented_data_definition[3],
+            augmented_data_definition[4],
+            benchmarks,
+            morpher
+        )
+        size = 1
+
+    elif augmented_data_type == 'score':
+        if morpher is None:
+            raise RuntimeError('No morphing setup provided. Cannot calculate score.')
+
+        matrix_num = get_dtheta_benchmark_matrix(
+            augmented_data_definition[1],
+            augmented_data_definition[2],
+            benchmarks,
+            morpher
+        )
+        matrix_den = get_theta_benchmark_matrix(
+            augmented_data_definition[1],
+            augmented_data_definition[2],
+            benchmarks,
+            morpher
+        )
+        size = len(parameters)
+
+    else:
+        raise ValueError("Unknown augmented data type {}".format(type))
+
+    return augmented_data_type, matrix_num, matrix_den, size
+
+
 def extract_augmented_data(types,
                            theta_matrices_num,
                            theta_matrices_den,
@@ -81,7 +123,6 @@ def extract_augmented_data(types,
                            theta_sampling_gradient_matrix,
                            theta_auxiliary_matrix,
                            theta_auxiliary_gradient_matrix):
-
     augmented_data = []
 
     for data_type, theta_matrix_num, theta_matrix_den in zip(types, theta_matrices_num, theta_matrices_den):
@@ -128,7 +169,7 @@ def extract_augmented_data(types,
         # Calculate ratio
         if data_type == 'ratio':
             augmented_datum = (dsigma_num / sigma_num) / (dsigma_den / sigma_den)
-            augmented_datum = augmented_datum.reshape((-1,1))
+            augmented_datum = augmented_datum.reshape((-1, 1))
 
             # augmented_datum: (n_samples, 1)
 

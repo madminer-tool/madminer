@@ -7,7 +7,7 @@ import six
 
 from madminer.tools.h5_interface import load_madminer_settings, madminer_event_loader, save_events_to_madminer_file
 from madminer.tools.analysis import get_theta_value, get_theta_benchmark_matrix, get_dtheta_benchmark_matrix
-from madminer.tools.analysis import extract_augmented_data, parse_theta
+from madminer.tools.analysis import extract_augmented_data, parse_theta, parse_augmented_data_definition
 from madminer.tools.morphing import Morpher
 from madminer.tools.utils import general_init, format_benchmark, create_missing_folders, shuffle
 
@@ -332,13 +332,7 @@ class Refinery:
         y[x0.shape[0]:] = 1.
 
         # Shuffle
-        permutation = np.random.permutation(x.shape[0])
-        x = x[permutation]
-        r_xz = r_xz[permutation]
-        t_xz = t_xz[permutation]
-        theta0 = theta0[permutation]
-        theta1 = theta1[permutation]
-        y = y[permutation]
+        x, r_xz, t_xz, theta0, theta1, y = shuffle(x, r_xz, t_xz, theta0, theta1, y)
 
         # y shape
         y = y.reshape((-1, 1))
@@ -407,9 +401,6 @@ class Refinery:
 
             for theta_eval_type, theta_eval_value in zip(theta_eval_types, theta_eval_values):
                 thetas_eval.append(get_theta_value(theta_eval_type, theta_eval_value, self.benchmarks))
-
-                # logging.debug('Found additional eval theta: %s %s %s', theta_eval_type, theta_eval_value,
-                #               thetas_eval[-1])
 
                 augmented_data_definitions_0.append(
                     ('ratio', 'sampling', None, theta_eval_type, theta_eval_value)
@@ -525,14 +516,7 @@ class Refinery:
                          x.shape[0], n_actual_samples)
 
         # Shuffle
-        permutation = np.random.permutation(x.shape[0])
-        x = x[permutation]
-        r_xz = r_xz[permutation]
-        t_xz0 = t_xz0[permutation]
-        t_xz1 = t_xz1[permutation]
-        theta0 = theta0[permutation]
-        theta1 = theta1[permutation]
-        y = y[permutation]
+        x, r_xz, t_xz0, t_xz1, theta0, theta1, y = shuffle(x, r_xz, t_xz0, t_xz1, theta0, theta1, y)
 
         # y shape
         y = y.reshape((-1, 1))
@@ -682,21 +666,24 @@ class Refinery:
                                       theta_sampling_types entry is 'benchmark') or a numpy array with the theta values
                                       (of the corresponding theta_sampling_types entry is 'morphing')
         :param n_samples_per_theta: Number of samples to be drawn per entry in theta_sampling_types.
+        :param theta_auxiliary_values: list of str, each entry can be 'benchmark' or 'morphing'
+        :param theta_auxiliary_types: list, each entry is int and labels the benchmark index (if the corresponding
+                                      theta_sampling_types entry is 'benchmark') or a numpy array with the theta values
+                                      (of the corresponding theta_sampling_types entry is 'morphing')
         :param augmented_data_definitions: list of tuples. Each tuple can either be ('ratio', num_type, num_value,
                                            den_type, den_value) or ('score', theta_type, theta_value). The theta types
                                            can either be 'benchmark', 'morphing', 'sampling', or 'auxiliary'. The
                                            corresponding theta values are then either the benchmark name, the theta
                                            value, None, or None.
-        :param theta_auxiliary_values: list of str, each entry can be 'benchmark' or 'morphing'
-        :param theta_auxiliary_types: list, each entry is int and labels the benchmark index (if the corresponding
-                                      theta_sampling_types entry is 'benchmark') or a numpy array with the theta values
-                                      (of the corresponding theta_sampling_types entry is 'morphing')
         :param start_event: Index of first event to consider.
         :param end_event: Index of last event to consider.
         :return: tuple (x, augmented_data_list, theta_sampling, theta_auxiliary). x, theta_sampling, theta_auxiliary,
                  and all elements of the list augmented_data_list are ndarrays with the number of samples as first
                  dimension.
         """
+
+        # TODO: refactor this function to have an arbitrary number of thetas, one of which is used for sampling,
+        #       all other replace "auxiliary" and the manual definitions in "augmented_data_definitions"
 
         # Calculate total xsecs
         xsecs_benchmarks = None
@@ -728,7 +715,7 @@ class Refinery:
             raise ValueError('Inconsistent numbers of observables: {} in observations,'
                              '{} in observable list'.format(n_observables, len(self.observables)))
 
-        # Prepare augmented data
+        # Parse augmented data
         n_augmented_data = len(augmented_data_definitions)
 
         augmented_data_types = []
@@ -739,75 +726,23 @@ class Refinery:
         if augmented_data_definitions is None:
             augmented_data_definitions = []
 
-        logging.debug('Augmented data requested:')
+        if len(augmented_data_definitions) > 0:
+            logging.debug('Augmented data requested:')
 
         for augmented_data_definition in augmented_data_definitions:
+            augmented_data_type, augmented_data_theta_matrix_num, augmented_data_theta_matrix_den, augmented_data_size \
+                = parse_augmented_data_definition(augmented_data_definition, self.parameters, self.benchmarks,
+                                                  self.morpher)
 
-            augmented_data_types.append(augmented_data_definition[0])
-
-            if augmented_data_types[-1] == 'ratio':
-                augmented_data_theta_matrices_num.append(
-                    get_theta_benchmark_matrix(
-                        augmented_data_definition[1],
-                        augmented_data_definition[2],
-                        self.benchmarks,
-                        self.morpher
-                    )
-                )
-                augmented_data_theta_matrices_den.append(
-                    get_theta_benchmark_matrix(
-                        augmented_data_definition[3],
-                        augmented_data_definition[4],
-                        self.benchmarks,
-                        self.morpher
-                    )
-                )
-                augmented_data_sizes.append(1)
-
-                logging.debug('  Joint ratio, num %s %s, den %s %s',
-                              augmented_data_definition[1],
-                              augmented_data_definition[2],
-                              augmented_data_definition[3],
-                              augmented_data_definition[4])
-
-            elif augmented_data_types[-1] == 'score':
-                if self.morpher is None:
-                    raise RuntimeError('No morphing setup loaded. Cannot calculate score.')
-
-                augmented_data_theta_matrices_num.append(
-                    get_dtheta_benchmark_matrix(
-                        augmented_data_definition[1],
-                        augmented_data_definition[2],
-                        self.benchmarks,
-                        self.morpher
-                    )
-                )
-                augmented_data_theta_matrices_den.append(
-                    get_theta_benchmark_matrix(
-                        augmented_data_definition[1],
-                        augmented_data_definition[2],
-                        self.benchmarks,
-                        self.morpher
-                    )
-                )
-                augmented_data_sizes.append(len(self.parameters))
-
-                logging.debug('  Joint score, at %s %s',
-                              augmented_data_definition[1],
-                              augmented_data_definition[2])
-
-            else:
-                logging.warning("Unknown augmented data type %s", augmented_data_types[-1])
+            augmented_data_types.append(augmented_data_type)
+            augmented_data_theta_matrices_num.append(augmented_data_theta_matrix_num)
+            augmented_data_theta_matrices_den.append(augmented_data_theta_matrix_den)
+            augmented_data_sizes.append(augmented_data_size)
 
         # Auxiliary thetas
         if theta_auxiliary_types is None or theta_auxiliary_values is None:
             theta_auxiliary_types = [None for _ in theta_sampling_types]
             theta_auxiliary_values = [None for _ in theta_sampling_values]
-
-        logging.debug('Sampling and auxiliary thetas before balancing:')
-        logging.debug('  sampling thetas:  %s types, %s values', len(theta_sampling_types), len(theta_sampling_values))
-        logging.debug('  auxiliary thetas: %s types, %s values', len(theta_auxiliary_types),
-                      len(theta_auxiliary_values))
 
         # Balance number of auxiliary and sampling thetas
         if len(theta_auxiliary_types) < len(theta_sampling_types):
@@ -821,15 +756,10 @@ class Refinery:
             theta_sampling_values = [theta_sampling_values[i % len(theta_sampling_values)]
                                      for i in range(len(theta_auxiliary_types))]
 
-        logging.debug('Sampling and auxiliary thetas after balancing:')
-        logging.debug('  sampling thetas:  %s types, %s values', len(theta_sampling_types), len(theta_sampling_values))
-        logging.debug('  auxiliary thetas: %s types, %s values', len(theta_auxiliary_types),
-                      len(theta_auxiliary_values))
-
         assert (len(theta_sampling_types) == len(theta_sampling_values)
                 == len(theta_auxiliary_values) == len(theta_auxiliary_types))
 
-        # Samples per theta
+        # Number of samples to be drawn
         if not isinstance(n_samples_per_theta, collections.Iterable):
             n_samples_per_theta = [n_samples_per_theta] * len(theta_sampling_types)
         elif len(n_samples_per_theta) == 1:
@@ -851,10 +781,10 @@ class Refinery:
 
             # Debug
             logging.debug(
-                'Sampling {} samples from {} theta {} (compare to {} theta {})'.format(n_samples, theta_sampling_type,
-                                                                                       theta_sampling_value,
-                                                                                       theta_auxiliary_type,
-                                                                                       theta_auxiliary_value))
+                'Sampling {} samples from {} theta {} (comparing to {} theta {})'.format(n_samples, theta_sampling_type,
+                                                                                         theta_sampling_value,
+                                                                                         theta_auxiliary_type,
+                                                                                         theta_auxiliary_value))
 
             # Sampling theta
             theta_sampling = get_theta_value(theta_sampling_type, theta_sampling_value, self.benchmarks)
@@ -879,7 +809,7 @@ class Refinery:
 
             logging.debug('  xsec: (%s +/- %s) pb', xsec_sampling_theta, rms_xsec_sampling_theta)
 
-            if rms_xsec_sampling_theta > 0.1 * xsec_sampling_theta:
+            if rms_xsec_sampling_theta > 0.2 * xsec_sampling_theta:
                 logging.warning('Warning: large statistical uncertainty on the total cross section for theta = %s: '
                                 '(%s +/- %s) pb',
                                 get_theta_value(theta_sampling_type, theta_sampling_value, self.benchmarks),
