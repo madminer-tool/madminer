@@ -7,7 +7,7 @@ import six
 
 from madminer.tools.h5_interface import load_madminer_settings, madminer_event_loader, save_events_to_madminer_file
 from madminer.tools.analysis import get_theta_value, get_theta_benchmark_matrix, get_dtheta_benchmark_matrix
-from madminer.tools.analysis import extract_augmented_data, parse_theta
+from madminer.tools.analysis import extract_augmented_data, parse_theta, balance_thetas
 from madminer.tools.morphing import Morpher
 from madminer.tools.utils import general_init, format_benchmark, create_missing_folders, shuffle
 
@@ -708,11 +708,11 @@ class Refinery:
 
             n_observables = obs.shape[1]
 
-        # TODO: balance theta sets
+        # Balance thetas
+        theta_sets_types, theta_sets_values = balance_thetas(theta_sets_types, theta_sets_values)
 
         # Consistency checks
         n_benchmarks = xsecs_benchmarks.shape[0]
-
         if n_benchmarks != len(self.benchmarks) and self.morphing_matrix is None:
             raise ValueError('Inconsistent numbers of benchmarks: {} in observations,'
                              '{} in benchmark list'.format(n_benchmarks, len(self.benchmarks)))
@@ -729,7 +729,6 @@ class Refinery:
         assert n_thetas == len(theta_sets_values)
 
         n_sets = len(theta_sets_types[sampling_theta_index])
-
         for theta_types, theta_values in zip(theta_sets_types, theta_sets_values):
             assert n_sets == len(theta_types) == len(theta_values)
 

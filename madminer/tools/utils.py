@@ -157,3 +157,19 @@ def shuffle(*arrays):
         shuffled_arrays.append(shuffled_a)
 
     return shuffled_arrays
+
+
+def balance_thetas(theta_sets_types, theta_sets_values):
+    """ Repeats theta values such that all thetas lists have the same length """
+
+    n_sets = max([len(thetas) for thetas in theta_sets_types])
+
+    for i, (types, values) in enumerate(zip(theta_sets_types, theta_sets_values)):
+        assert len(types) == len(values)
+        n_sets_before = len(types)
+
+        if n_sets_before != n_sets:
+            theta_sets_types[i] = [types[i % n_sets_before] for i in range(n_sets)]
+            theta_sets_values[i] = [values[i % n_sets_before] for i in range(n_sets)]
+
+    return theta_sets_types, theta_sets_values
