@@ -120,18 +120,28 @@ class Forge:
             loss_weights = [1.]
             loss_labels = ['mse_r']
 
-        elif method == ['rascal', 'rascal2']:
+        elif method == 'rascal':
             loss_functions = [losses.ratio_mse, losses.score_mse_num]
             loss_weights = [1., alpha]
             loss_labels = ['mse_r', 'mse_score']
 
-        elif method == ['alice', 'alice2']:
+        elif method == 'rascal2':
+            loss_functions = [losses.ratio_mse, losses.score_mse]
+            loss_weights = [1., alpha]
+            loss_labels = ['mse_r', 'mse_score']
+
+        elif method in ['alice', 'alice2']:
             loss_functions = [losses.augmented_cross_entropy]
             loss_weights = [1.]
             loss_labels = ['improved_xe']
 
-        elif method == ['alices', 'alices2']:
+        elif method == 'alices':
             loss_functions = [losses.augmented_cross_entropy, losses.score_mse_num]
+            loss_weights = [1., alpha]
+            loss_labels = ['improved_xe', 'mse_score']
+
+        elif method == 'alices2':
+            loss_functions = [losses.augmented_cross_entropy, losses.score_mse]
             loss_weights = [1., alpha]
             loss_labels = ['improved_xe', 'mse_score']
 
