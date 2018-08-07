@@ -7,7 +7,7 @@ import six
 
 from madminer.tools.h5_interface import load_madminer_settings, madminer_event_loader, save_events_to_madminer_file
 from madminer.tools.analysis import get_theta_value, get_theta_benchmark_matrix, get_dtheta_benchmark_matrix
-from madminer.tools.analysis import extract_augmented_data, parse_theta, parse_augmented_data_definition
+from madminer.tools.analysis import extract_augmented_data, parse_theta
 from madminer.tools.morphing import Morpher
 from madminer.tools.utils import general_init, format_benchmark, create_missing_folders, shuffle
 
@@ -153,9 +153,6 @@ class Refinery:
         # Thetas
         theta_types, theta_values, n_samples_per_theta = parse_theta(theta, n_samples)
 
-        # Augmented data (gold)
-        augmented_data_definitions = []
-
         # Train / test split
         if test_split is None or test_split <= 0. or test_split >= 1.:
             last_train_index = None
@@ -166,11 +163,10 @@ class Refinery:
                 raise ValueError("Irregular train / test split: sample {} / {}", last_train_index, self.n_samples)
 
         # Start
-        x, _, theta, _ = self.extract_sample(
-            theta_sampling_types=theta_types,
-            theta_sampling_values=theta_values,
+        x, _, (theta,) = self.extract_sample(
+            theta_sets_types=[theta_types],
+            theta_sets_values=[theta_values],
             n_samples_per_theta=n_samples_per_theta,
-            augmented_data_definitions=augmented_data_definitions,
             start_event=0,
             end_event=last_train_index
         )
@@ -212,7 +208,7 @@ class Refinery:
         theta_types, theta_values, n_samples_per_theta = parse_theta(theta, n_samples)
 
         # Augmented data (gold)
-        augmented_data_definitions = [('score', 'sampling', None)]
+        augmented_data_definitions = [('score', 0)]
 
         # Train / test split
         if test_split is None or test_split <= 0. or test_split >= 1.:
@@ -224,9 +220,9 @@ class Refinery:
                 raise ValueError("Irregular train / test split: sample {} / {}", last_train_index, self.n_samples)
 
         # Start
-        x, (r_xz,), theta, _ = self.extract_sample(
-            theta_sampling_types=theta_types,
-            theta_sampling_values=theta_values,
+        x, (r_xz,), (theta,) = self.extract_sample(
+            theta_sets_types=[theta_types],
+            theta_sets_values=[theta_values],
             n_samples_per_theta=n_samples_per_theta,
             augmented_data_definitions=augmented_data_definitions,
             start_event=0,
@@ -274,10 +270,8 @@ class Refinery:
         create_missing_folders([folder])
 
         # Augmented data (gold)
-        augmented_data_definitions0 = [('ratio', 'sampling', None, 'auxiliary', None),
-                                       ('score', 'sampling', None)]
-        augmented_data_definitions1 = [('ratio', 'auxiliary', None, 'sampling', None),
-                                       ('score', 'auxiliary', None)]
+        augmented_data_definitions = [('ratio', 0, 1),
+                                      ('score', 0)]
 
         # Train / test split
         if test_split is None or test_split <= 0. or test_split >= 1.:
@@ -295,13 +289,12 @@ class Refinery:
         n_samples_per_theta = min(n_samples_per_theta0, n_samples_per_theta1)
 
         # Start for theta0
-        x0, (r_xz0, t_xz0), theta0_0, theta1_0 = self.extract_sample(
-            theta_sampling_types=theta0_types,
-            theta_sampling_values=theta0_values,
-            theta_auxiliary_types=theta1_types,
-            theta_auxiliary_values=theta1_values,
+        x0, (r_xz0, t_xz0), (theta0_0, theta1_0) = self.extract_sample(
+            theta_sets_types=[theta0_types, theta1_types],
+            theta_sets_values=[theta0_values, theta1_values],
+            sampling_theta_index=0,
             n_samples_per_theta=n_samples_per_theta,
-            augmented_data_definitions=augmented_data_definitions0,
+            augmented_data_definitions=augmented_data_definitions,
             start_event=0,
             end_event=last_train_index
         )
@@ -313,13 +306,12 @@ class Refinery:
         n_samples_per_theta = min(n_samples_per_theta0, n_samples_per_theta1)
 
         # Start for theta1
-        x1, (r_xz1, t_xz1), theta1_1, theta0_1 = self.extract_sample(
-            theta_sampling_types=theta1_types,
-            theta_sampling_values=theta1_values,
-            theta_auxiliary_types=theta0_types,
-            theta_auxiliary_values=theta0_values,
+        x1, (r_xz1, t_xz1), (theta1_1, theta0_1) = self.extract_sample(
+            theta_sets_types=[theta0_types, theta1_types],
+            theta_sets_values=[theta0_values, theta1_values],
+            sampling_theta_index=1,
             n_samples_per_theta=n_samples_per_theta,
-            augmented_data_definitions=augmented_data_definitions1,
+            augmented_data_definitions=augmented_data_definitions,
             start_event=0,
             end_event=last_train_index
         )
@@ -355,7 +347,7 @@ class Refinery:
                                           n_samples,
                                           folder,
                                           filename,
-                                          additional_theta_eval=None,
+                                          additional_thetas=None,
                                           test_split=0.3):
         """
         Extracts training samples x ~ p(x|theta0) and x ~ p(x|theta1) together with the class label y, the joint
@@ -372,11 +364,11 @@ class Refinery:
         :param folder: Folder for the resulting samples.
         :param filename: Label for the filenames. The actual filenames will add a prefix such as 'x_', and the extension
                          '.npy'.
-        :param additional_theta_eval: tuple (type, value) that defines additional theta points at which ratio and score
-                                      are evaluated, and which are then used to create additional training data points.
-                                      Use the helper functions constant_benchmark_theta(), multiple_benchmark_thetas(),
-                                      constant_morphing_theta(), multiple_morphing_thetas(), or
-                                      random_morphing_thetas().
+        :param additional_thetas: list of tuples (type, value) that defines additional theta points at which ratio and
+                                  score are evaluated, and which are then used to create additional training data
+                                  points. Use the helper functions constant_benchmark_theta(),
+                                  multiple_benchmark_thetas(), constant_morphing_theta(), multiple_morphing_thetas(), or
+                                  random_morphing_thetas().
         :param test_split: Fraction of events reserved for the test sample (will not be used for any training samples).
         """
 
@@ -388,35 +380,22 @@ class Refinery:
 
         create_missing_folders([folder])
 
+        if additional_thetas is None:
+            additional_thetas = []
+        n_additional_thetas = len(additional_thetas)
+
         # Augmented data (gold)
-        augmented_data_definitions_0 = [('ratio', 'sampling', None, 'auxiliary', None),
-                                        ('score', 'sampling', None),
-                                        ('score', 'auxiliary', None)]
-        augmented_data_definitions_1 = [('ratio', 'auxiliary', None, 'sampling', None),
-                                        ('score', 'auxiliary', None),
-                                        ('score', 'sampling', None)]
-
-        # Additional evaluation thetas
-        thetas_eval = []
-        if additional_theta_eval is not None:
-            theta_eval_types, theta_eval_values, _ = parse_theta(additional_theta_eval, 1)
-
-            for theta_eval_type, theta_eval_value in zip(theta_eval_types, theta_eval_values):
-                thetas_eval.append(get_theta_value(theta_eval_type, theta_eval_value, self.benchmarks))
-
-                augmented_data_definitions_0.append(
-                    ('ratio', 'sampling', None, theta_eval_type, theta_eval_value)
-                )
-                augmented_data_definitions_0.append(
-                    ('score', theta_eval_type, theta_eval_value)
-                )
-                augmented_data_definitions_1.append(
-                    ('ratio', theta_eval_type, theta_eval_value, 'sampling', None)
-                )
-                augmented_data_definitions_1.append(
-                    ('score', theta_eval_type, theta_eval_value)
-                )
-        n_thetas_eval = len(thetas_eval)
+        augmented_data_definitions_0 = [('ratio', 0, 1),
+                                        ('score', 0),
+                                        ('score', 1)]
+        augmented_data_definitions_1 = [('ratio', 0, 1),
+                                        ('score', 0),
+                                        ('score', 1)]
+        for i in range(n_additional_thetas):
+            augmented_data_definitions_0.append(('ratio', 0, i + 2))
+            augmented_data_definitions_0.append(('score', i + 2))
+            augmented_data_definitions_1.append(('ratio', i + 2, 1))
+            augmented_data_definitions_1.append(('score', i + 2))
 
         # Train / test split
         if test_split is None or test_split <= 0. or test_split >= 1.:
@@ -427,25 +406,44 @@ class Refinery:
             if last_train_index < 0 or last_train_index > self.n_samples:
                 raise ValueError("Irregular train / test split: sample {} / {}", last_train_index, self.n_samples)
 
-        # Thetas for theta0 sampling
-        theta0_types, theta0_values, n_samples_per_theta0 = parse_theta(theta0, n_samples // 2)
-        theta1_types, theta1_values, n_samples_per_theta1 = parse_theta(theta1, n_samples // 2)
+        # Parse thetas for theta0 sampling
+        theta_types = []
+        theta_values = []
+        n_samples_per_theta = 1000000
 
-        n_samples_per_theta = min(n_samples_per_theta0, n_samples_per_theta1)
+        theta0_types, theta0_values, this_n_samples = parse_theta(theta0, n_samples // 2)
+        theta_types.append(theta0_types)
+        theta_values.append(theta0_values)
+        n_samples_per_theta = min(this_n_samples, n_samples_per_theta)
+
+        theta1_types, theta1_values, this_n_samples = parse_theta(theta1, n_samples // 2)
+        theta_types.append(theta1_types)
+        theta_values.append(theta1_values)
+        n_samples_per_theta = min(this_n_samples, n_samples_per_theta)
+
+        for additional_theta in additional_thetas:
+            additional_theta_types, additional_theta_values, this_n_samples = parse_theta(additional_theta,
+                                                                                          n_samples // 2)
+            theta_types.append(additional_theta_types)
+            theta_values.append(additional_theta_values)
+            n_samples_per_theta = min(this_n_samples, n_samples_per_theta)
 
         # Start for theta0
-        x_0, augmented_data_0, theta0_0, theta1_0 = self.extract_sample(
-            theta_sampling_types=theta0_types,
-            theta_sampling_values=theta0_values,
-            theta_auxiliary_types=theta1_types,
-            theta_auxiliary_values=theta1_values,
+        x_0, augmented_data_0, thetas_0 = self.extract_sample(
+            theta_sets_types=theta_types,
+            theta_sets_values=theta_values,
             n_samples_per_theta=n_samples_per_theta,
             augmented_data_definitions=augmented_data_definitions_0,
+            sampling_theta_index=0,
             start_event=0,
             end_event=last_train_index
         )
-
         n_actual_samples = x_0.shape[0]
+
+        # Analyse theta values from theta0 run
+        theta0_0 = thetas_0[0]
+        theta1_0 = thetas_0[1]
+        thetas_eval = thetas_0[2:]
 
         # Analyse augmented data from theta0 run
         r_xz_0 = augmented_data_0[0]
@@ -458,32 +456,51 @@ class Refinery:
             r_xz_eval.append(augmented_data_0[3 + i * 2])
             t_xz_eval.append(augmented_data_0[4 + i * 2])
 
-        x_0 = np.vstack([x_0 for _ in range(1 + n_thetas_eval)])
+        x_0 = np.vstack([x_0 for _ in range(1 + n_additional_thetas)])
         r_xz_0 = np.vstack([r_xz_0] + r_xz_eval)
-        t_xz0_0 = np.vstack([t_xz0_0 for _ in range(1 + n_thetas_eval)])
+        t_xz0_0 = np.vstack([t_xz0_0 for _ in range(1 + n_additional_thetas)])
         t_xz1_0 = np.vstack([t_xz1_0] + t_xz_eval)
-        theta0_0 = np.vstack([theta0_0 for _ in range(1 + n_thetas_eval)])
-        theta1_0 = np.vstack([theta1_0] + [np.repeat(thetas_eval, theta0_0.shape[0], axis=0)])
+        theta0_0 = np.vstack([theta0_0 for _ in range(1 + n_additional_thetas)])
+        theta1_0 = np.vstack([theta1_0] + thetas_eval)
 
-        # Thetas for theta1 sampling (could be different if num or denom are random)
-        theta0_types, theta0_values, n_samples_per_theta0 = parse_theta(theta0, n_samples // 2)
-        theta1_types, theta1_values, n_samples_per_theta1 = parse_theta(theta1, n_samples // 2)
+        # Parse thetas for theta1 sampling
+        theta_types = []
+        theta_values = []
+        n_samples_per_theta = 1000000
 
-        n_samples_per_theta = min(n_samples_per_theta0, n_samples_per_theta1)
+        theta0_types, theta0_values, this_n_samples = parse_theta(theta0, n_samples // 2)
+        theta_types.append(theta0_types)
+        theta_values.append(theta0_values)
+        n_samples_per_theta = min(this_n_samples, n_samples_per_theta)
+
+        theta1_types, theta1_values, this_n_samples = parse_theta(theta1, n_samples // 2)
+        theta_types.append(theta1_types)
+        theta_values.append(theta1_values)
+        n_samples_per_theta = min(this_n_samples, n_samples_per_theta)
+
+        for additional_theta in additional_thetas:
+            additional_theta_types, additional_theta_values, this_n_samples = parse_theta(additional_theta,
+                                                                                          n_samples // 2)
+            theta_types.append(additional_theta_types)
+            theta_values.append(additional_theta_values)
+            n_samples_per_theta = min(this_n_samples, n_samples_per_theta)
 
         # Start for theta1
-        x_1, augmented_data_1, theta1_1, theta0_1 = self.extract_sample(
-            theta_sampling_types=theta1_types,
-            theta_sampling_values=theta1_values,
-            theta_auxiliary_types=theta0_types,
-            theta_auxiliary_values=theta0_values,
+        x_1, augmented_data_1, thetas_1 = self.extract_sample(
+            theta_sets_types=theta_types,
+            theta_sets_values=theta_values,
             n_samples_per_theta=n_samples_per_theta,
             augmented_data_definitions=augmented_data_definitions_1,
+            sampling_theta_index=1,
             start_event=0,
             end_event=last_train_index
         )
-
         n_actual_samples += x_1.shape[0]
+
+        # Analyse theta values from theta1 run
+        theta0_1 = thetas_1[0]
+        theta1_1 = thetas_1[1]
+        thetas_eval = thetas_1[2:]
 
         # Analyse augmented data from theta1 run
         r_xz_1 = augmented_data_1[0]
@@ -496,12 +513,12 @@ class Refinery:
             r_xz_eval.append(augmented_data_1[3 + i * 2])
             t_xz_eval.append(augmented_data_1[4 + i * 2])
 
-        x_1 = np.vstack([x_1 for _ in range(1 + n_thetas_eval)])
+        x_1 = np.vstack([x_1 for _ in range(1 + n_additional_thetas)])
         r_xz_1 = np.vstack([r_xz_1] + r_xz_eval)
         t_xz0_1 = np.vstack([t_xz0_1] + t_xz_eval)
-        t_xz1_1 = np.vstack([t_xz1_1 for _ in range(1 + n_thetas_eval)])
-        theta0_1 = np.vstack([theta0_1] + [np.repeat(thetas_eval, theta0_1.shape[0], axis=0)])
-        theta1_1 = np.vstack([theta1_1 for _ in range(1 + n_thetas_eval)])
+        t_xz1_1 = np.vstack([t_xz1_1 for _ in range(1 + n_additional_thetas)])
+        theta0_1 = np.vstack([theta0_1] + thetas_eval)
+        theta1_1 = np.vstack([theta1_1 for _ in range(1 + n_additional_thetas)])
 
         # Combine
         x = np.vstack([x_0, x_1])
@@ -513,7 +530,7 @@ class Refinery:
         y = np.zeros(x.shape[0])
         y[x_0.shape[0]:] = 1.
 
-        if additional_theta_eval is not None:
+        if n_additional_thetas > 0:
             logging.info('Oversampling: created %s training samples from %s original unweighted events',
                          x.shape[0], n_actual_samples)
 
@@ -561,9 +578,6 @@ class Refinery:
         # Thetas
         theta_types, theta_values, n_samples_per_theta = parse_theta(theta, n_samples)
 
-        # Augmented data (gold)
-        augmented_data_definitions = []
-
         # Train / test split
         if test_split is None or test_split <= 0. or test_split >= 1.:
             first_test_index = 0
@@ -574,11 +588,10 @@ class Refinery:
                 raise ValueError("Irregular in train / test split: sample {} / {}", first_test_index, self.n_samples)
 
         # Extract information
-        x, _, theta, _ = self.extract_sample(
-            theta_sampling_types=theta_types,
-            theta_sampling_values=theta_values,
+        x, _, (theta,) = self.extract_sample(
+            theta_sets_types=[theta_types],
+            theta_sets_values=[theta_values],
             n_samples_per_theta=n_samples_per_theta,
-            augmented_data_definitions=augmented_data_definitions,
             start_event=first_test_index,
             end_event=None
         )
@@ -662,8 +675,8 @@ class Refinery:
         """
         Low-level function for the extraction of information from the event samples.
 
-        :param theta_sampling_types: list of str, each entry can be 'benchmark' or 'morphing'
-        :param theta_sampling_values: list, each entry is int and labels the benchmark index (if the corresponding
+        :param theta_sets_types: list of lists of str, each entry can be 'benchmark' or 'morphing'
+        :param theta_sets_values: list of lists, each entry is int and labels the benchmark index (if the corresponding
                                       theta_sampling_types entry is 'benchmark') or a numpy array with the theta values
                                       (of the corresponding theta_sampling_types entry is 'morphing')
         :param n_samples_per_theta: Number of samples to be drawn per entry in theta_sampling_types.
