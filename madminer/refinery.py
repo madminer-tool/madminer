@@ -408,17 +408,20 @@ class Refinery:
             for theta_eval_type, theta_eval_value in zip(theta_eval_types, theta_eval_values):
                 thetas_eval.append(get_theta_value(theta_eval_type, theta_eval_value, self.benchmarks))
 
+                logging.debug('Found additional eval theta: %s %s %s', theta_eval_type, theta_eval_value,
+                              thetas_eval[-1])
+
                 augmented_data_definitions0.append(
-                    ('ratio', 'sampling', None, 'morphing', (theta_eval_type, theta_eval_value))
+                    ('ratio', 'sampling', None, theta_eval_type, theta_eval_value)
                 )
                 augmented_data_definitions0.append(
-                    ('score', 'morphing', (theta_eval_type, theta_eval_value))
+                    ('score', theta_eval_type, theta_eval_value)
                 )
                 augmented_data_definitions1.append(
-                    ('ratio', 'morphing', (theta_eval_type, theta_eval_value), 'sampling', None)
+                    ('ratio', theta_eval_type, theta_eval_value, 'sampling', None)
                 )
                 augmented_data_definitions1.append(
-                    ('score', 'morphing', (theta_eval_type, theta_eval_value))
+                    ('score', theta_eval_type, theta_eval_value)
                 )
         n_thetas_eval = len(thetas_eval)
 
@@ -731,6 +734,9 @@ class Refinery:
         logging.info('Augmented data requested:')
 
         for augmented_data_definition in augmented_data_definitions:
+
+            logging.debug('  Raw augmented data def: %s', augmented_data_definition)
+
             augmented_data_types.append(augmented_data_definition[0])
 
             if augmented_data_types[-1] == 'ratio':
