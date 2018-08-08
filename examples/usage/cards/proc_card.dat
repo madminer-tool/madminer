@@ -1,3 +1,3 @@
 import model EWdim6-full
 # generate u u~ > w+ w- / u u~ d d~ QCD=0 QED=99 NP=2, w+ > e+ ve, w- > mu- vm~
-generate u d > u d h / a z QCD=0 QED=99 NP=2, (h > ta+ ta-, ta+ > e+ ve vt~, ta- > mu- vm~ vt)
+generate u d > u d h / a z QCD=0 QED=99 NP=2, h > a a QCD=0 QED=99 NP=0

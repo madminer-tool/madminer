@@ -182,7 +182,7 @@ def train_model(model,
     if verbose == 'all':  # Print output after every epoch
         n_epochs_verbose = 1
     elif verbose == 'some':  # Print output after 10%, 20%, ..., 100% progress
-        n_epochs_verbose = int(round(n_epochs / 10, 0))
+        n_epochs_verbose = max(int(round(n_epochs / 10, 0)), 1)
 
     # Loop over epochs
     for epoch in range(n_epochs):
@@ -428,7 +428,7 @@ def evaluate_model(model,
     model = model.to(device, dtype)
     theta0s = theta0s.to(device, dtype)
     if theta1s is not None:
-        theta1s = theta0s.to(device, dtype)
+        theta1s = theta1s.to(device, dtype)
     xs = xs.to(device, dtype)
 
     # Evaluate networks

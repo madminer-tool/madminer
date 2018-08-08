@@ -84,10 +84,11 @@ class Forge:
         assert theta0 is not None
         assert x is not None
         assert y is not None
-        assert r_xz is not None
+        if method in ['rolr', 'alice', 'rascal', 'alices', 'rolr2', 'alice2', 'rascal2', 'alices2']:
+            assert r_xz is not None
         if method in ['rascal', 'alices', 'rascal2', 'alices2']:
             assert t_xz0 is not None
-        if method in ['rolr2', 'alice2', 'rascal2', 'alices2']:
+        if method in ['carl2', 'rolr2', 'alice2', 'rascal2', 'alices2']:
             assert theta1 is not None
         if method in ['rascal2', 'alices2']:
             assert t_xz1 is not None
@@ -107,7 +108,7 @@ class Forge:
 
         # Create model
         logging.info('Creating model for method %s', method)
-        if method in ['rolr', 'rascal', 'alice', 'alices']:
+        if method in ['carl', 'rolr', 'rascal', 'alice', 'alices']:
             self.method_type = 'parameterized'
             self.model = ParameterizedRatioEstimator(
                 n_observables=n_observables,
@@ -115,7 +116,7 @@ class Forge:
                 n_hidden=n_hidden,
                 activation=activation
             )
-        elif method in ['rolr2', 'rascal2', 'alice2', 'alices2']:
+        elif method in ['carl2', 'rolr2', 'rascal2', 'alice2', 'alices2']:
             self.method_type = 'doubly_parameterized'
             self.model = DoublyParameterizedRatioEstimator(
                 n_observables=n_observables,
@@ -127,7 +128,12 @@ class Forge:
             raise NotImplementedError('Unknown method {}'.format(method))
 
         # Loss fn
-        if method in ['rolr', 'rolr2']:
+        if method in ['carl', 'carl2']:
+            loss_functions = [losses.standard_cross_entropy]
+            loss_weights = [1.]
+            loss_labels = ['xe']
+
+        elif method in ['rolr', 'rolr2']:
             loss_functions = [losses.ratio_mse]
             loss_weights = [1.]
             loss_labels = ['mse_r']
@@ -209,7 +215,7 @@ class Forge:
         else:
             if len(theta1s) > len(theta0s):
                 theta0s = [theta0s[i % len(theta0s)] for i in range(len(theta1s))]
-            elif len(theta1s) < len(theta1s):
+            elif len(theta1s) < len(theta0s):
                 theta1s = [theta1s[i % len(theta1s)] for i in range(len(theta0s))]
 
         # Loop over thetas
