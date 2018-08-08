@@ -256,7 +256,7 @@ class Forge:
         all_t_hat1 = []
 
         if self.method in ['sally', 'sallino']:
-            logging.debug('Starting score evaluation')
+            logging.info('Starting score evaluation')
 
             all_t_hat = evaluate_local_score_model(
                 model=self.model,
@@ -266,6 +266,8 @@ class Forge:
             return all_t_hat
 
         if test_all_combinations:
+            logging.info('Starting ratio evaluation for all combinations')
+
             for i, (theta0, theta1) in enumerate(zip(theta0s, theta1s)):
                 logging.debug('Starting ratio evaluation for thetas %s / %s: %s vs %s',
                               i + 1, len(theta0s), theta0, theta1)
@@ -288,7 +290,7 @@ class Forge:
             all_t_hat1 = np.array(all_t_hat1)
 
         else:
-            logging.debug('Starting ratio evaluation for all thetas')
+            logging.info('Starting ratio evaluation')
 
             _, all_log_r_hat, all_t_hat0, all_t_hat1 = evaluate_ratio_model(
                 model=self.model,
@@ -298,6 +300,8 @@ class Forge:
                 xs=xs,
                 evaluate_score=evaluate_score
             )
+
+        logging.info('Evaluation done')
 
         return all_log_r_hat, all_t_hat0, all_t_hat1
 
@@ -347,6 +351,9 @@ class Forge:
         self.n_hidden = tuple([int(item) for item in settings['n_hidden']])
         self.activation = str(settings['activation'])
 
+        logging.info('  Found method %s, %s observables, %s parameters, %s hidden layers, %s activation function',
+                     self.method, self.n_observables, self.n_parameters, self.n_hidden, self.activation)
+
         # Create model
         if self.method in ['carl', 'rolr', 'rascal', 'alice', 'alices']:
             assert self.method_type == 'parameterized'
@@ -364,7 +371,7 @@ class Forge:
                 n_hidden=self.n_hidden,
                 activation=self.activation
             )
-        elif method in ['sally', 'sallino']:
+        elif self.method in ['sally', 'sallino']:
             assert self.method_type == 'local_score'
             self.model = LocalScoreEstimator(
                 n_observables=self.n_observables,
