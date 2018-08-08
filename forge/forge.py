@@ -355,6 +355,14 @@ class Forge:
                 n_hidden=self.n_hidden,
                 activation=self.activation
             )
+        elif method in ['sally', 'sallino']:
+            assert self.method_type == 'local_score'
+            self.model = LocalScoreEstimator(
+                n_observables=self.n_observables,
+                n_parameters=self.n_parameters,
+                n_hidden=self.n_hidden,
+                activation=self.activation
+            )
         else:
             raise NotImplementedError('Unknown method {}'.format(self.method))
 
