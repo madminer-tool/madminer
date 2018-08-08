@@ -68,6 +68,7 @@ class ParameterizedRatioEstimator(nn.Module):
             t_hat = grad(log_r_hat, theta,
                          grad_outputs=torch.ones_like(log_r_hat.data),
                          only_inputs=True, create_graph=True)[0]
+            # TODO: check if grad_outputs has to be moved to GPU when running on GPU
         else:
             t_hat = None
 
@@ -166,6 +167,9 @@ class DoublyParameterizedRatioEstimator(nn.Module):
             t_hat1 = grad(log_r_hat, theta1,
                           grad_outputs=torch.ones_like(log_r_hat.data),
                           only_inputs=True, create_graph=True)[0]
+            # NOTE: this is a factor of 4 slower than the simple parameterized version (2 gradients * 2 times
+            #       slower calculation each)
+            # TODO: check if grad_outputs has to be moved to GPU when running on GPU
         else:
             t_hat0 = None
             t_hat1 = None

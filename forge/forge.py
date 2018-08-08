@@ -9,7 +9,7 @@ import torch
 
 from forge.ml import losses
 from forge.ml.models import ParameterizedRatioEstimator, DoublyParameterizedRatioEstimator
-from forge.ml.trainer import train_model, evaluate_model
+from forge.ml.ratio_trainer import train_model, evaluate_model
 from forge.ml.utils import create_missing_folders, load_and_check, general_init
 
 

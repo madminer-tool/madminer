@@ -66,35 +66,6 @@ def train_model(model,
                 validation_split=0.2, early_stopping=True, early_stopping_patience=20,
                 learning_curve_folder=None, learning_curve_filename=None,
                 verbose='some'):
-    """
-
-    :param model:
-    :param loss_functions:
-    :param method_type:
-    :param theta0s:
-    :param theta1s:
-    :param xs:
-    :param ys:
-    :param r_xzs:
-    :param t_xz0s:
-    :param t_xz1s:
-    :param loss_weights:
-    :param loss_labels:
-    :param batch_size:
-    :param initial_learning_rate:
-    :param final_learning_rate:
-    :param n_epochs:
-    :param clip_gradient:
-    :param run_on_gpu:
-    :param double_precision:
-    :param validation_split:
-    :param early_stopping:
-    :param early_stopping_patience:
-    :param learning_curve_folder:
-    :param learning_curve_filename:
-    :param verbose:
-    :return:
-    """
 
     # CPU or GPU?
     run_on_gpu = run_on_gpu and torch.cuda.is_available()
