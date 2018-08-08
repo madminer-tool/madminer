@@ -75,11 +75,11 @@ def multiple_benchmark_thetas(benchmark_names):
 
 
 def constant_morphing_theta(theta):
-    return 'theta', theta
+    return 'theta', np.asarray(theta)
 
 
 def multiple_morphing_thetas(thetas):
-    return 'thetas', thetas
+    return 'thetas', [np.asarray(theta) for theta in thetas]
 
 
 def random_morphing_thetas(n_thetas, priors):
@@ -306,7 +306,7 @@ class Refinery:
         n_samples_per_theta = min(n_samples_per_theta0, n_samples_per_theta1)
 
         # Start for theta1
-        x1, (r_xz1, t_xz1), (theta1_1, theta0_1) = self.extract_sample(
+        x1, (r_xz1, t_xz1), (theta0_1, theta1_1) = self.extract_sample(
             theta_sets_types=[theta0_types, theta1_types],
             theta_sets_values=[theta0_values, theta1_values],
             sampling_theta_index=1,

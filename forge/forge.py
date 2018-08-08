@@ -193,17 +193,16 @@ class Forge:
     def evaluate(self,
                  x_filename,
                  theta0_filename,
-                 theta1_filename=None):
+                 theta1_filename=None,
+                 test_all_combinations=True):
 
         """ Predicts log likelihood ratio for all combinations of theta and x """
 
         if self.model is None:
             raise ValueError('No model -- train or load model before evaluating it!')
 
-        logging.info('Starting evaluation')
-
         # Load training data
-        logging.info('Loading training data')
+        logging.info('Loading evaluation data')
 
         theta0s = load_and_check(theta0_filename)
         theta1s = load_and_check(theta1_filename)
@@ -223,15 +222,30 @@ class Forge:
         all_t_hat0 = []
         all_t_hat1 = []
 
-        for i, (theta0, theta1) in enumerate(zip(theta0s, theta1s)):
-            logging.debug('Starting evaluation for thetas %s / %s: %s vs %s',
-                          i + 1, len(theta0s), theta0, theta1)
+        if test_all_combinations:
+            for i, (theta0, theta1) in enumerate(zip(theta0s, theta1s)):
+                logging.debug('Starting evaluation for thetas %s / %s: %s vs %s',
+                              i + 1, len(theta0s), theta0, theta1)
+
+                _, log_r_hat, t_hat0, t_hat1 = evaluate_model(
+                    model=self.model,
+                    method_type=self.method_type,
+                    theta0s=[theta0],
+                    theta1s=[theta1] if theta1 is not None else None,
+                    xs=xs
+                )
+
+                all_log_r_hat.append(log_r_hat)
+                all_t_hat0.append(t_hat0)
+                all_t_hat1.append(t_hat1)
+        else:
+            logging.debug('Starting evaluation for all thetas')
 
             _, log_r_hat, t_hat0, t_hat1 = evaluate_model(
                 model=self.model,
                 method_type=self.method_type,
-                theta0s=[theta0],
-                theta1s=[theta1] if theta1 is not None else None,
+                theta0s=theta0s,
+                theta1s=None if None in theta1s else theta1s,
                 xs=xs
             )
 
@@ -293,7 +307,7 @@ class Forge:
         self.activation = str(settings['activation'])
 
         # Create model
-        if self.method in ['rolr', 'rascal', 'alice', 'alices']:
+        if self.method in ['carl', 'rolr', 'rascal', 'alice', 'alices']:
             assert self.method_type == 'parameterized'
             self.model = ParameterizedRatioEstimator(
                 n_observables=self.n_observables,
@@ -301,7 +315,7 @@ class Forge:
                 n_hidden=self.n_hidden,
                 activation=self.activation
             )
-        elif self.method in ['rolr2', 'rascal2', 'alice2', 'alices2']:
+        elif self.method in ['carl2', 'rolr2', 'rascal2', 'alice2', 'alices2']:
             assert self.method_type == 'doubly_parameterized'
             self.model = DoublyParameterizedRatioEstimator(
                 n_observables=self.n_observables,

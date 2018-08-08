@@ -43,11 +43,11 @@ def score_mse(s_hat, log_r_hat, t0_hat, t1_hat, y_true, r_true, t0_true, t1_true
 def standard_cross_entropy(s_hat, log_r_hat, t0_hat, t1_hat, y_true, r_true, t0_true, t1_true):
     s_hat = 1. / (1. + torch.exp(log_r_hat))
 
-    return BCELoss(s_hat, y_true)
+    return BCELoss()(s_hat, y_true)
 
 
 def augmented_cross_entropy(s_hat, log_r_hat, t0_hat, t1_hat, y_true, r_true, t0_true, t1_true):
     s_hat = 1. / (1. + torch.exp(log_r_hat))
     s_true = 1. / (1. + r_true)
 
-    return BCELoss(s_hat, s_true)
+    return BCELoss()(s_hat, s_true)
