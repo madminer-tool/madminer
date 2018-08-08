@@ -13,89 +13,37 @@ from torch.nn.utils import clip_grad_norm_
 from forge.ml.models import ParameterizedRatioEstimator, DoublyParameterizedRatioEstimator
 
 
-class GoldDataset(torch.utils.data.Dataset):
+class LocalScoreDataset(torch.utils.data.Dataset):
 
-    def __init__(self, theta0=None, theta1=None, x=None, y=None, r_xz=None, t_xz0=None, t_xz1=None):
-        self.n = theta0.shape[0]
+    def __init__(self, x, t_xz):
+        self.n = x.shape[0]
 
-        placeholder = torch.stack([tensor([0.]) for _ in range(self.n)])
-
-        assert x is not None
-        assert theta0 is not None
-
-        self.theta0 = theta0
-        self.theta1 = placeholder if theta1 is None else theta1
         self.x = x
-        self.y = placeholder if y is None else y
-        self.r_xz = placeholder if r_xz is None else r_xz
-        self.t_xz0 = placeholder if t_xz0 is None else t_xz0
-        self.t_xz1 = placeholder if t_xz1 is None else t_xz1
+        self.t_xz = t_xz
 
-        assert len(self.theta0) == self.n
-        assert len(self.theta1) == self.n
-        assert len(self.x) == self.n
-        assert len(self.y) == self.n
-        assert len(self.r_xz) == self.n
-        assert len(self.t_xz0) == self.n
-        assert len(self.t_xz1) == self.n
+        assert len(self.t_xz) == self.n
 
     def __getitem__(self, index):
-        return (self.theta0[index],
-                self.theta1[index],
-                self.x[index],
-                self.y[index],
-                self.r_xz[index],
-                self.t_xz0[index],
-                self.t_xz1[index])
+        return (self.x[index],
+                self.t_xz[index])
 
     def __len__(self):
         return self.n
 
 
-def train_model(model,
-                loss_functions,
-                method_type='parameterized',
-                theta0s=None, theta1s=None, xs=None, ys=None, r_xzs=None, t_xz0s=None, t_xz1s=None,
-                loss_weights=None,
-                loss_labels=None,
-                batch_size=64,
-                initial_learning_rate=0.001, final_learning_rate=0.0001, n_epochs=50,
-                clip_gradient=1.,
-                run_on_gpu=True,
-                double_precision=False,
-                validation_split=0.2, early_stopping=True, early_stopping_patience=20,
-                learning_curve_folder=None, learning_curve_filename=None,
-                verbose='some'):
-    """
-
-    :param model:
-    :param loss_functions:
-    :param method_type:
-    :param theta0s:
-    :param theta1s:
-    :param xs:
-    :param ys:
-    :param r_xzs:
-    :param t_xz0s:
-    :param t_xz1s:
-    :param loss_weights:
-    :param loss_labels:
-    :param batch_size:
-    :param initial_learning_rate:
-    :param final_learning_rate:
-    :param n_epochs:
-    :param clip_gradient:
-    :param run_on_gpu:
-    :param double_precision:
-    :param validation_split:
-    :param early_stopping:
-    :param early_stopping_patience:
-    :param learning_curve_folder:
-    :param learning_curve_filename:
-    :param verbose:
-    :return:
-    """
-
+def train_local_score_model(model,
+                            loss_functions,
+                            xs, t_xzs,
+                            loss_weights=None,
+                            loss_labels=None,
+                            batch_size=64,
+                            initial_learning_rate=0.001, final_learning_rate=0.0001, n_epochs=50,
+                            clip_gradient=1.,
+                            run_on_gpu=True,
+                            double_precision=False,
+                            validation_split=0.2, early_stopping=True, early_stopping_patience=20,
+                            learning_curve_folder=None, learning_curve_filename=None,
+                            verbose='some'):
     # CPU or GPU?
     run_on_gpu = run_on_gpu and torch.cuda.is_available()
     device = torch.device("cuda" if run_on_gpu else "cpu")
@@ -105,23 +53,11 @@ def train_model(model,
     model = model.to(device, dtype)
 
     # Convert to Tensor
-    if theta0s is not None:
-        theta0s = torch.stack([tensor(i, requires_grad=True) for i in theta0s])
-    if theta1s is not None:
-        theta1s = torch.stack([tensor(i, requires_grad=True) for i in theta1s])
-    if xs is not None:
-        xs = torch.stack([tensor(i) for i in xs])
-    if ys is not None:
-        ys = torch.stack([tensor(i) for i in ys])
-    if r_xzs is not None:
-        r_xzs = torch.stack([tensor(i) for i in r_xzs])
-    if t_xz0s is not None:
-        t_xz0s = torch.stack([tensor(i) for i in t_xz0s])
-    if t_xz1s is not None:
-        t_xz1s = torch.stack([tensor(i) for i in t_xz1s])
+    xs = torch.stack([tensor(i) for i in xs])
+    t_xzs = torch.stack([tensor(i) for i in t_xzs])
 
     # Dataset
-    dataset = GoldDataset(theta0s, theta1s, xs, ys, r_xzs, t_xz0s, t_xz1s)
+    dataset = LocalScoreDataset(xs, t_xzs)
 
     # Train / validation split
     if validation_split is not None:
@@ -199,40 +135,16 @@ def train_model(model,
                 param_group['lr'] = lr
 
         # Loop over batches
-        for i_batch, (theta0, theta1, x, y, r_xz, t_xz0, t_xz1) in enumerate(train_loader):
-            theta0 = theta0.to(device, dtype)
+        for i_batch, (x, t_xz) in enumerate(train_loader):
             x = x.to(device, dtype)
-            y = y.to(device, dtype)
-            try:
-                theta1 = theta1.to(device, dtype)
-            except:
-                pass
-            try:
-                r_xz = r_xz.to(device, dtype)
-            except:
-                pass
-            try:
-                t_xz0 = t_xz0.to(device, dtype)
-            except:
-                pass
-            try:
-                t_xz1 = t_xz1.to(device, dtype)
-            except:
-                pass
+            t_xz = t_xz.to(device, dtype)
 
             optimizer.zero_grad()
 
             # Evaluate loss
-            if method_type == 'parameterized':
-                s_hat, log_r_hat, t_hat0 = model(theta0, x)
-                t_hat1 = None
-            elif method_type == 'doubly_parameterized':
-                s_hat, log_r_hat, t_hat0, t_hat1 = model(theta0, theta1, x)
-            else:
-                raise ValueError('Unknown method type {}'.format(method_type))
+            t_hat = model(x)
 
-            losses = [loss_function(s_hat, log_r_hat, t_hat0, t_hat1, y, r_xz, t_xz0, t_xz1)
-                      for loss_function in loss_functions]
+            losses = [loss_function(t_hat, t_xz) for loss_function in loss_functions]
             loss = loss_weights[0] * losses[0]
             for _w, _l in zip(loss_weights[1:], losses[1:]):
                 loss += _w * _l
@@ -262,50 +174,26 @@ def train_model(model,
                              % (epoch + 1, total_losses_train[-1], individual_losses_train[-1]))
             continue
 
-        # with torch.no_grad():
-        model.eval()
-        individual_val_loss = np.zeros(n_losses)
-        total_val_loss = 0.0
+        with torch.no_grad():
+            model.eval()
+            individual_val_loss = np.zeros(n_losses)
+            total_val_loss = 0.0
 
-        for i_batch, (theta0, theta1, x, y, r_xz, t_xz0, t_xz1) in enumerate(validation_loader):
-            theta0 = theta0.to(device, dtype)
-            x = x.to(device, dtype)
-            y = y.to(device, dtype)
-            try:
-                theta1 = theta1.to(device, dtype)
-            except:
-                pass
-            try:
-                r_xz = r_xz.to(device, dtype)
-            except:
-                pass
-            try:
-                t_xz0 = t_xz0.to(device, dtype)
-            except:
-                pass
-            try:
-                t_xz1 = t_xz1.to(device, dtype)
-            except:
-                pass
+            for i_batch, (x, t_xz) in enumerate(validation_loader):
+                x = x.to(device, dtype)
+                t_xz = t_xz.to(device, dtype)
 
-            # Evaluate loss
-            if method_type == 'parameterized':
-                s_hat, log_r_hat, t_hat0 = model(theta0, x)
-                t_hat1 = None
-            elif method_type == 'doubly_parameterized':
-                s_hat, log_r_hat, t_hat0, t_hat1 = model(theta0, theta1, x)
-            else:
-                raise ValueError('Unknown method type %s', method_type)
+                # Evaluate loss
+                t_hat = model(x)
 
-            losses = [loss_function(s_hat, log_r_hat, t_hat0, t_hat1, y, r_xz, t_xz0, t_xz1)
-                      for loss_function in loss_functions]
-            loss = loss_weights[0] * losses[0]
-            for _w, _l in zip(loss_weights[1:], losses[1:]):
-                loss += _w * _l
+                losses = [loss_function(t_hat, t_xz) for loss_function in loss_functions]
+                loss = loss_weights[0] * losses[0]
+                for _w, _l in zip(loss_weights[1:], losses[1:]):
+                    loss += _w * _l
 
-            for i, individual_loss in enumerate(losses):
-                individual_val_loss[i] += individual_loss.item()
-            total_val_loss += loss.item()
+                for i, individual_loss in enumerate(losses):
+                    individual_val_loss[i] += individual_loss.item()
+                total_val_loss += loss.item()
 
         individual_val_loss /= len(validation_loader)
         total_val_loss /= len(validation_loader)
@@ -373,81 +261,27 @@ def train_model(model,
     return total_losses_train, total_losses_val
 
 
-def evaluate_model(model,
-                   method_type=None,
-                   theta0s=None, theta1s=None, xs=None,
-                   run_on_gpu=True,
-                   double_precision=False):
-    """
-
-    :param model:
-    :param method_type:
-    :param theta0s:
-    :param theta1s:
-    :param xs:
-    :param run_on_gpu:
-    :param double_precision:
-    :return:
-    """
-
+def evaluate_local_score_model(model,
+                               xs=None,
+                               run_on_gpu=True,
+                               double_precision=False):
     # CPU or GPU?
     run_on_gpu = run_on_gpu and torch.cuda.is_available()
     device = torch.device("cuda" if run_on_gpu else "cpu")
     dtype = torch.double if double_precision else torch.float
 
-    # Figure out method type
-    if method_type is None:
-        if isinstance(model, ParameterizedRatioEstimator):
-            method_type = 'parameterized'
-        elif isinstance(model, DoublyParameterizedRatioEstimator):
-            method_type = 'doubly_parameterized'
-        else:
-            raise RuntimeError('Cannot infer method type automatically')
-
-    # Balance theta0 and theta1
-    if theta1s is None:
-        n_thetas = len(theta0s)
-    else:
-        n_thetas = max(len(theta0s), len(theta1s))
-        if len(theta0s) > len(theta1s):
-            theta1s = np.array([
-                theta1s[i % len(theta1s)] for i in range(len(theta0s))
-            ])
-        elif len(theta0s) < len(theta1s):
-            theta0s = np.array([
-                theta0s[i % len(theta0s)] for i in range(len(theta1s))
-            ])
-
     # Prepare data
     n_xs = len(xs)
-    theta0s = torch.stack([tensor(theta0s[i % n_thetas], requires_grad=True) for i in range(n_xs)])
-    if theta1s is not None:
-        theta1s = torch.stack([tensor(theta1s[i % n_thetas], requires_grad=True) for i in range(n_xs)])
     xs = torch.stack([tensor(i) for i in xs])
 
     model = model.to(device, dtype)
-    theta0s = theta0s.to(device, dtype)
-    if theta1s is not None:
-        theta1s = theta1s.to(device, dtype)
     xs = xs.to(device, dtype)
 
     # Evaluate networks
-    # with torch.no_grad(): # doesn't work with score
-    model.eval()
-
-    if method_type == 'parameterized':
-        s_hat, log_r_hat, t_hat0 = model(theta0s, xs)
-        t_hat1 = None
-    elif method_type == 'doubly_parameterized':
-        s_hat, log_r_hat, t_hat0, t_hat1 = model(theta0s, theta1s, xs)
-    else:
-        raise ValueError('Unknown method type %s', method_type)
+    with torch.no_grad():
+        model.eval()
+        t_hat = model(xs)
 
     # Get data and return
-    s_hat = s_hat.detach().numpy().flatten()
-    log_r_hat = log_r_hat.detach().numpy().flatten()
-    t_hat0 = t_hat0.detach().numpy()
-    if t_hat1 is not None:
-        t_hat1 = t_hat1.detach().numpy()
-
-    return s_hat, log_r_hat, t_hat0, t_hat1
+    t_hat = t_hat.detach().numpy()
+    return t_hat

@@ -8,8 +8,9 @@ import numpy as np
 import torch
 
 from forge.ml import losses
-from forge.ml.models import ParameterizedRatioEstimator, DoublyParameterizedRatioEstimator
-from forge.ml.trainer import train_model, evaluate_model
+from forge.ml.models import ParameterizedRatioEstimator, DoublyParameterizedRatioEstimator, LocalScoreEstimator
+from forge.ml.ratio_trainer import train_ratio_model, evaluate_ratio_model
+from forge.ml.score_trainer import train_local_score_model
 from forge.ml.utils import create_missing_folders, load_and_check, general_init
 
 
@@ -29,8 +30,8 @@ class Forge:
     def train(self,
               method,
               x_filename,
-              y_filename,
-              theta0_filename,
+              y_filename=None,
+              theta0_filename=None,
               theta1_filename=None,
               r_xz_filename=None,
               t_xz0_filename=None,
@@ -49,11 +50,13 @@ class Forge:
 
         logging.info('Starting training')
         logging.info('  Method:                 %s', method)
-        logging.info('  Training data: theta0 at %s', theta0_filename)
+        logging.info('  Training data: x at %s', x_filename)
+        if theta0_filename is not None:
+            logging.info('                 theta0 at %s', theta0_filename)
         if theta1_filename is not None:
             logging.info('                 theta1 at %s', theta1_filename)
-        logging.info('                 x at %s', x_filename)
-        logging.info('                 y at %s', y_filename)
+        if y_filename is not None:
+            logging.info('                 y at %s', y_filename)
         if r_xz_filename is not None:
             logging.info('                 r_xz at %s', r_xz_filename)
         if t_xz0_filename is not None:
@@ -81,12 +84,12 @@ class Forge:
         t_xz1 = load_and_check(t_xz1_filename)
 
         # Check necessary information is theere
-        assert theta0 is not None
         assert x is not None
-        assert y is not None
         if method in ['rolr', 'alice', 'rascal', 'alices', 'rolr2', 'alice2', 'rascal2', 'alices2']:
             assert r_xz is not None
-        if method in ['rascal', 'alices', 'rascal2', 'alices2']:
+            assert theta0 is not None
+            assert y is not None
+        if method in ['rascal', 'alices', 'rascal2', 'alices2', 'sally', 'sallino']:
             assert t_xz0 is not None
         if method in ['carl2', 'rolr2', 'alice2', 'rascal2', 'alices2']:
             assert theta1 is not None
@@ -119,6 +122,14 @@ class Forge:
         elif method in ['carl2', 'rolr2', 'rascal2', 'alice2', 'alices2']:
             self.method_type = 'doubly_parameterized'
             self.model = DoublyParameterizedRatioEstimator(
+                n_observables=n_observables,
+                n_parameters=n_parameters,
+                n_hidden=n_hidden,
+                activation=activation
+            )
+        elif method in ['sally', 'sallino']:
+            self.method_type = 'local_score'
+            self.model = LocalScoreEstimator(
                 n_observables=n_observables,
                 n_parameters=n_parameters,
                 n_hidden=n_hidden,
@@ -163,32 +174,53 @@ class Forge:
             loss_weights = [1., alpha]
             loss_labels = ['improved_xe', 'mse_score']
 
+        elif method in ['sally', 'sallino']:
+            loss_functions = [losses.local_score_mse]
+            loss_weights = [1.]
+            loss_labels = ['mse_score']
+
         else:
             raise NotImplementedError('Unknown method {}'.format(method))
 
         # Train model
         logging.info('Training model')
 
-        train_model(
-            model=self.model,
-            method_type=self.method_type,
-            loss_functions=loss_functions,
-            loss_weights=loss_weights,
-            loss_labels=loss_labels,
-            theta0s=theta0,
-            theta1s=theta1,
-            xs=x,
-            ys=y,
-            r_xzs=r_xz,
-            t_xz0s=t_xz0,
-            t_xz1s=t_xz1,
-            batch_size=batch_size,
-            n_epochs=n_epochs,
-            initial_learning_rate=initial_lr,
-            final_learning_rate=final_lr,
-            validation_split=validation_split,
-            early_stopping=early_stopping
-        )
+        if method in ['sally', 'sallino']:
+            train_local_score_model(
+                model=self.model,
+                loss_functions=loss_functions,
+                loss_weights=loss_weights,
+                loss_labels=loss_labels,
+                xs=x,
+                t_xzs=t_xz0,
+                batch_size=batch_size,
+                n_epochs=n_epochs,
+                initial_learning_rate=initial_lr,
+                final_learning_rate=final_lr,
+                validation_split=validation_split,
+                early_stopping=early_stopping
+            )
+        else:
+            train_ratio_model(
+                model=self.model,
+                method_type=self.method_type,
+                loss_functions=loss_functions,
+                loss_weights=loss_weights,
+                loss_labels=loss_labels,
+                theta0s=theta0,
+                theta1s=theta1,
+                xs=x,
+                ys=y,
+                r_xzs=r_xz,
+                t_xz0s=t_xz0,
+                t_xz1s=t_xz1,
+                batch_size=batch_size,
+                n_epochs=n_epochs,
+                initial_learning_rate=initial_lr,
+                final_learning_rate=final_lr,
+                validation_split=validation_split,
+                early_stopping=early_stopping
+            )
 
     def evaluate(self,
                  x_filename,
@@ -227,7 +259,7 @@ class Forge:
                 logging.debug('Starting evaluation for thetas %s / %s: %s vs %s',
                               i + 1, len(theta0s), theta0, theta1)
 
-                _, log_r_hat, t_hat0, t_hat1 = evaluate_model(
+                _, log_r_hat, t_hat0, t_hat1 = evaluate_ratio_model(
                     model=self.model,
                     method_type=self.method_type,
                     theta0s=[theta0],
@@ -241,7 +273,7 @@ class Forge:
         else:
             logging.debug('Starting evaluation for all thetas')
 
-            _, log_r_hat, t_hat0, t_hat1 = evaluate_model(
+            _, log_r_hat, t_hat0, t_hat1 = evaluate_ratio_model(
                 model=self.model,
                 method_type=self.method_type,
                 theta0s=theta0s,
@@ -318,6 +350,14 @@ class Forge:
         elif self.method in ['carl2', 'rolr2', 'rascal2', 'alice2', 'alices2']:
             assert self.method_type == 'doubly_parameterized'
             self.model = DoublyParameterizedRatioEstimator(
+                n_observables=self.n_observables,
+                n_parameters=self.n_parameters,
+                n_hidden=self.n_hidden,
+                activation=self.activation
+            )
+        elif method in ['sally', 'sallino']:
+            assert self.method_type == 'local_score'
+            self.model = LocalScoreEstimator(
                 n_observables=self.n_observables,
                 n_parameters=self.n_parameters,
                 n_hidden=self.n_hidden,

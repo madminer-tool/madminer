@@ -51,3 +51,7 @@ def augmented_cross_entropy(s_hat, log_r_hat, t0_hat, t1_hat, y_true, r_true, t0
     s_true = 1. / (1. + r_true)
 
     return BCELoss()(s_hat, s_true)
+
+
+def local_score_mse(t_hat, t_true):
+    return MSELoss()(t_hat, t_true)
