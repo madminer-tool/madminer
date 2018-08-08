@@ -125,5 +125,15 @@ examples/usage/MG_process
 examples/usage/py.py
 examples/usage/models
 
+examples/debug/temp
+examples/debug/nsqso_born.inc
+examples/debug/data
+examples/debug/datasave
+examples/debug/logs
+examples/debug/ME5_debug
+examples/debug/MG_process
+examples/debug/py.py
+examples/debug/models
+
 examples/tests/datasave
 

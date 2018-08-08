@@ -74,7 +74,7 @@ class ParameterizedRatioEstimator(nn.Module):
         return s_hat, log_r_hat, t_hat
 
     def to(self, *args, **kwargs):
-        self = super().to(*args, **kwargs)
+        self = super(ParameterizedRatioEstimator, self).to(*args, **kwargs)
 
         for i, layer in enumerate(self.layers):
             self.layers[i] = layer.to(*args, **kwargs)
@@ -97,7 +97,7 @@ class DoublyParameterizedRatioEstimator(nn.Module):
 
     def __init__(self, n_observables, n_parameters, n_hidden, activation='tanh'):
 
-        super(ParameterizedRatioEstimator, self).__init__()
+        super(DoublyParameterizedRatioEstimator, self).__init__()
 
         # Save input
         self.n_hidden = n_hidden
@@ -105,7 +105,7 @@ class DoublyParameterizedRatioEstimator(nn.Module):
 
         # Build network
         self.layers = nn.ModuleList()
-        n_last = n_observables + n_parameters
+        n_last = n_observables + 2*n_parameters
 
         # Hidden layers
         for n_hidden_units in n_hidden:
@@ -136,13 +136,24 @@ class DoublyParameterizedRatioEstimator(nn.Module):
         if track_scores and not theta1.requires_grad:
             theta1.requires_grad = True
 
-        # log r estimator
-        log_r_hat = torch.cat((theta0, theta1, x), 1)
+        # f(x | theta0, theta1)
+        f_th0_th1 = torch.cat((theta0, theta1, x), 1)
 
         for i, layer in enumerate(self.layers):
             if i > 0:
-                log_r_hat = self.activation(log_r_hat)
-            log_r_hat = layer(log_r_hat)
+                f_th0_th1 = self.activation(f_th0_th1)
+            f_th0_th1 = layer(f_th0_th1)
+
+        # f(x | theta1, theta0)
+        f_th1_th0 = torch.cat((theta1, theta0, x), 1)
+
+        for i, layer in enumerate(self.layers):
+            if i > 0:
+                f_th1_th0 = self.activation(f_th1_th0)
+            f_th1_th0 = layer(f_th1_th0)
+
+        # Antisymmetric combination
+        log_r_hat = f_th0_th1 - f_th1_th0
 
         # Bayes-optimal s
         s_hat = 1. / (1. + torch.exp(log_r_hat))
@@ -162,7 +173,7 @@ class DoublyParameterizedRatioEstimator(nn.Module):
         return s_hat, log_r_hat, t_hat0, t_hat1
 
     def to(self, *args, **kwargs):
-        self = super().to(*args, **kwargs)
+        self = super(DoublyParameterizedRatioEstimator, self).to(*args, **kwargs)
 
         for i, layer in enumerate(self.layers):
             self.layers[i] = layer.to(*args, **kwargs)

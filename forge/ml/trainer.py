@@ -10,32 +10,43 @@ from torch.utils.data import Dataset, DataLoader
 from torch.utils.data.sampler import SubsetRandomSampler
 from torch.nn.utils import clip_grad_norm_
 
+from forge.ml.models import ParameterizedRatioEstimator, DoublyParameterizedRatioEstimator
+
 
 class GoldDataset(torch.utils.data.Dataset):
 
-    def __init__(self, theta, x, y=None, r_xz=None, t_xz=None):
-        self.n = theta.shape[0]
+    def __init__(self, theta0=None, theta1=None, x=None, y=None, r_xz=None, t_xz0=None, t_xz1=None):
+        self.n = theta0.shape[0]
 
         placeholder = torch.stack([tensor([0.]) for _ in range(self.n)])
 
-        self.theta = theta
+        assert x is not None
+        assert theta0 is not None
+
+        self.theta0 = theta0
+        self.theta1 = placeholder if theta1 is None else theta1
         self.x = x
         self.y = placeholder if y is None else y
         self.r_xz = placeholder if r_xz is None else r_xz
-        self.t_xz = placeholder if t_xz is None else t_xz
+        self.t_xz0 = placeholder if t_xz0 is None else t_xz0
+        self.t_xz1 = placeholder if t_xz1 is None else t_xz1
 
-        assert len(self.theta) == self.n
+        assert len(self.theta0) == self.n
+        assert len(self.theta1) == self.n
         assert len(self.x) == self.n
         assert len(self.y) == self.n
         assert len(self.r_xz) == self.n
-        assert len(self.t_xz) == self.n
+        assert len(self.t_xz0) == self.n
+        assert len(self.t_xz1) == self.n
 
     def __getitem__(self, index):
-        return (self.theta[index],
+        return (self.theta0[index],
+                self.theta1[index],
                 self.x[index],
                 self.y[index],
                 self.r_xz[index],
-                self.t_xz[index])
+                self.t_xz0[index],
+                self.t_xz1[index])
 
     def __len__(self):
         return self.n
@@ -43,7 +54,8 @@ class GoldDataset(torch.utils.data.Dataset):
 
 def train_model(model,
                 loss_functions,
-                thetas, xs, ys=None, r_xzs=None, t_xzs=None,
+                method_type='parameterized',
+                theta0s=None, theta1s=None, xs=None, ys=None, r_xzs=None, t_xz0s=None, t_xz1s=None,
                 loss_weights=None,
                 loss_labels=None,
                 batch_size=64,
@@ -56,15 +68,16 @@ def train_model(model,
                 verbose='some'):
     """
 
-    :param double_precision:
-    :param early_stopping_patience:
     :param model:
     :param loss_functions:
-    :param thetas:
+    :param method_type:
+    :param theta0s:
+    :param theta1s:
     :param xs:
     :param ys:
     :param r_xzs:
-    :param t_xzs:
+    :param t_xz0s:
+    :param t_xz1s:
     :param loss_weights:
     :param loss_labels:
     :param batch_size:
@@ -73,11 +86,13 @@ def train_model(model,
     :param n_epochs:
     :param clip_gradient:
     :param run_on_gpu:
+    :param double_precision:
     :param validation_split:
     :param early_stopping:
+    :param early_stopping_patience:
     :param learning_curve_folder:
     :param learning_curve_filename:
-    :param verbose: 'some', 'all', 'none'
+    :param verbose:
     :return:
     """
 
@@ -90,17 +105,23 @@ def train_model(model,
     model = model.to(device, dtype)
 
     # Convert to Tensor
-    thetas = torch.stack([tensor(i, requires_grad=True) for i in thetas])
-    xs = torch.stack([tensor(i) for i in xs])
+    if theta0s is not None:
+        theta0s = torch.stack([tensor(i, requires_grad=True) for i in theta0s])
+    if theta1s is not None:
+        theta1s = torch.stack([tensor(i, requires_grad=True) for i in theta1s])
+    if xs is not None:
+        xs = torch.stack([tensor(i) for i in xs])
     if ys is not None:
         ys = torch.stack([tensor(i) for i in ys])
     if r_xzs is not None:
         r_xzs = torch.stack([tensor(i) for i in r_xzs])
-    if t_xzs is not None:
-        t_xzs = torch.stack([tensor(i) for i in t_xzs])
+    if t_xz0s is not None:
+        t_xz0s = torch.stack([tensor(i) for i in t_xz0s])
+    if t_xz1s is not None:
+        t_xz1s = torch.stack([tensor(i) for i in t_xz1s])
 
     # Dataset
-    dataset = GoldDataset(thetas, xs, ys, r_xzs, t_xzs)
+    dataset = GoldDataset(theta0s, theta1s, xs, ys, r_xzs, t_xz0s, t_xz1s)
 
     # Train / validation split
     if validation_split is not None:
@@ -161,7 +182,7 @@ def train_model(model,
     if verbose == 'all':  # Print output after every epoch
         n_epochs_verbose = 1
     elif verbose == 'some':  # Print output after 10%, 20%, ..., 100% progress
-        n_epochs_verbose = int(round(n_epochs / 10, 0))
+        n_epochs_verbose = max(int(round(n_epochs / 10, 0)), 1)
 
     # Loop over epochs
     for epoch in range(n_epochs):
@@ -178,25 +199,40 @@ def train_model(model,
                 param_group['lr'] = lr
 
         # Loop over batches
-        for i_batch, (theta, x, y, r_xz, t_xz) in enumerate(train_loader):
-            theta = theta.to(device, dtype)
+        for i_batch, (theta0, theta1, x, y, r_xz, t_xz0, t_xz1) in enumerate(train_loader):
+            theta0 = theta0.to(device, dtype)
             x = x.to(device, dtype)
             y = y.to(device, dtype)
+            try:
+                theta1 = theta1.to(device, dtype)
+            except:
+                pass
             try:
                 r_xz = r_xz.to(device, dtype)
             except:
                 pass
             try:
-                t_xz = t_xz.to(device, dtype)
+                t_xz0 = t_xz0.to(device, dtype)
+            except:
+                pass
+            try:
+                t_xz1 = t_xz1.to(device, dtype)
             except:
                 pass
 
             optimizer.zero_grad()
 
             # Evaluate loss
-            s_hat, log_r_hat, t_hat = model(theta, x)
+            if method_type == 'parameterized':
+                s_hat, log_r_hat, t_hat0 = model(theta0, x)
+                t_hat1 = None
+            elif method_type == 'doubly_parameterized':
+                s_hat, log_r_hat, t_hat0, t_hat1 = model(theta0, theta1, x)
+            else:
+                raise ValueError('Unknown method type {}'.format(method_type))
 
-            losses = [loss_function(s_hat, log_r_hat, t_hat, y, r_xz, t_xz) for loss_function in loss_functions]
+            losses = [loss_function(s_hat, log_r_hat, t_hat0, t_hat1, y, r_xz, t_xz0, t_xz1)
+                      for loss_function in loss_functions]
             loss = loss_weights[0] * losses[0]
             for _w, _l in zip(loss_weights[1:], losses[1:]):
                 loss += _w * _l
@@ -231,25 +267,38 @@ def train_model(model,
         individual_val_loss = np.zeros(n_losses)
         total_val_loss = 0.0
 
-        for i_batch, (theta, x, y, r_xz, t_xz) in enumerate(validation_loader):
-
-            # Put on device
-            theta = theta.to(device, dtype)
+        for i_batch, (theta0, theta1, x, y, r_xz, t_xz0, t_xz1) in enumerate(validation_loader):
+            theta0 = theta0.to(device, dtype)
             x = x.to(device, dtype)
             y = y.to(device, dtype)
+            try:
+                theta1 = theta1.to(device, dtype)
+            except:
+                pass
             try:
                 r_xz = r_xz.to(device, dtype)
             except:
                 pass
             try:
-                t_xz = t_xz.to(device, dtype)
+                t_xz0 = t_xz0.to(device, dtype)
+            except:
+                pass
+            try:
+                t_xz1 = t_xz1.to(device, dtype)
             except:
                 pass
 
             # Evaluate loss
-            s_hat, log_r_hat, t_hat = model(theta, x)
+            if method_type == 'parameterized':
+                s_hat, log_r_hat, t_hat0 = model(theta0, x)
+                t_hat1 = None
+            elif method_type == 'doubly_parameterized':
+                s_hat, log_r_hat, t_hat0, t_hat1 = model(theta0, theta1, x)
+            else:
+                raise ValueError('Unknown method type %s', method_type)
 
-            losses = [loss_function(s_hat, log_r_hat, t_hat, y, r_xz, t_xz) for loss_function in loss_functions]
+            losses = [loss_function(s_hat, log_r_hat, t_hat0, t_hat1, y, r_xz, t_xz0, t_xz1)
+                      for loss_function in loss_functions]
             loss = loss_weights[0] * losses[0]
             for _w, _l in zip(loss_weights[1:], losses[1:]):
                 loss += _w * _l
@@ -264,13 +313,14 @@ def train_model(model,
         total_losses_val.append(total_val_loss)
         individual_losses_val.append(individual_val_loss)
 
-        # Early stopping
+        # Early stopping: best epoch so far?
         if early_stopping:
             if early_stopping_best_val_loss is None or total_val_loss < early_stopping_best_val_loss:
                 early_stopping_best_val_loss = total_val_loss
                 early_stopping_best_model = model.state_dict()
                 early_stopping_epoch = epoch
 
+        # Print out information
         if n_epochs_verbose is not None and n_epochs_verbose > 0 and (epoch + 1) % n_epochs_verbose == 0:
             if early_stopping and epoch == early_stopping_epoch:
                 logging.info('  Epoch %d: train loss %.2f (%s), validation loss %.2f (%s) (*)'
@@ -281,13 +331,13 @@ def train_model(model,
                              % (epoch + 1, total_losses_train[-1], individual_losses_train[-1],
                                 total_losses_val[-1], individual_losses_val[-1]))
 
-        # Early stopping
+        # Early stopping: actually stop training
         if early_stopping and early_stopping_patience is not None:
             if epoch - early_stopping_epoch >= early_stopping_patience > 0:
                 logging.info('No improvement for %s epochs, stopping training', epoch - early_stopping_epoch)
                 break
 
-    # Early stopping
+    # Early stopping: back to best state
     if early_stopping:
         if early_stopping_best_val_loss < total_val_loss:
             logging.info('Early stopping after epoch %s, with loss %.2f compared to final loss %.2f',
@@ -324,32 +374,80 @@ def train_model(model,
 
 
 def evaluate_model(model,
-                   thetas, xs,
+                   method_type=None,
+                   theta0s=None, theta1s=None, xs=None,
                    run_on_gpu=True,
                    double_precision=False):
+    """
+
+    :param model:
+    :param method_type:
+    :param theta0s:
+    :param theta1s:
+    :param xs:
+    :param run_on_gpu:
+    :param double_precision:
+    :return:
+    """
+
     # CPU or GPU?
     run_on_gpu = run_on_gpu and torch.cuda.is_available()
     device = torch.device("cuda" if run_on_gpu else "cpu")
     dtype = torch.double if double_precision else torch.float
 
+    # Figure out method type
+    if method_type is None:
+        if isinstance(model, ParameterizedRatioEstimator):
+            method_type = 'parameterized'
+        elif isinstance(model, DoublyParameterizedRatioEstimator):
+            method_type = 'doubly_parameterized'
+        else:
+            raise RuntimeError('Cannot infer method type automatically')
+
+    # Balance theta0 and theta1
+    if theta1s is None:
+        n_thetas = len(theta0s)
+    else:
+        n_thetas = max(len(theta0s), len(theta1s))
+        if len(theta0s) > len(theta1s):
+            theta1s = np.array([
+                theta1s[i % len(theta1s)] for i in range(len(theta0s))
+            ])
+        elif len(theta0s) < len(theta1s):
+            theta0s = np.array([
+                theta0s[i % len(theta0s)] for i in range(len(theta1s))
+            ])
+
     # Prepare data
-    n_thetas = len(thetas)
     n_xs = len(xs)
-    thetas = torch.stack([tensor(thetas[i % n_thetas], requires_grad=True) for i in range(n_xs)])
+    theta0s = torch.stack([tensor(theta0s[i % n_thetas], requires_grad=True) for i in range(n_xs)])
+    if theta1s is not None:
+        theta1s = torch.stack([tensor(theta1s[i % n_thetas], requires_grad=True) for i in range(n_xs)])
     xs = torch.stack([tensor(i) for i in xs])
 
     model = model.to(device, dtype)
-    thetas = thetas.to(device, dtype)
+    theta0s = theta0s.to(device, dtype)
+    if theta1s is not None:
+        theta1s = theta1s.to(device, dtype)
     xs = xs.to(device, dtype)
 
     # Evaluate networks
     # with torch.no_grad(): # doesn't work with score
     model.eval()
-    s_hat, log_r_hat, t_hat = model(thetas, xs)
+
+    if method_type == 'parameterized':
+        s_hat, log_r_hat, t_hat0 = model(theta0s, xs)
+        t_hat1 = None
+    elif method_type == 'doubly_parameterized':
+        s_hat, log_r_hat, t_hat0, t_hat1 = model(theta0s, theta1s, xs)
+    else:
+        raise ValueError('Unknown method type %s', method_type)
 
     # Get data and return
     s_hat = s_hat.detach().numpy().flatten()
     log_r_hat = log_r_hat.detach().numpy().flatten()
-    t_hat = t_hat.detach().numpy()
+    t_hat0 = t_hat0.detach().numpy()
+    if t_hat1 is not None:
+        t_hat1 = t_hat1.detach().numpy()
 
-    return s_hat, log_r_hat, t_hat
+    return s_hat, log_r_hat, t_hat0, t_hat1
