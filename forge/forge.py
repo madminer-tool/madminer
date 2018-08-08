@@ -10,7 +10,7 @@ import torch
 from forge.ml import losses
 from forge.ml.models import ParameterizedRatioEstimator, DoublyParameterizedRatioEstimator, LocalScoreEstimator
 from forge.ml.ratio_trainer import train_ratio_model, evaluate_ratio_model
-from forge.ml.score_trainer import train_local_score_model
+from forge.ml.score_trainer import train_local_score_model, evaluate_local_score_model
 from forge.ml.utils import create_missing_folders, load_and_check, general_init
 
 
@@ -226,7 +226,8 @@ class Forge:
                  x_filename,
                  theta0_filename,
                  theta1_filename=None,
-                 test_all_combinations=True):
+                 test_all_combinations=True,
+                 evaluate_score=False):
 
         """ Predicts log likelihood ratio for all combinations of theta and x """
 
@@ -254,9 +255,19 @@ class Forge:
         all_t_hat0 = []
         all_t_hat1 = []
 
+        if self.method in ['sally', 'sallino']:
+            logging.debug('Starting score evaluation')
+
+            all_t_hat = evaluate_local_score_model(
+                model=self.model,
+                xs=xs
+            )
+
+            return all_t_hat
+
         if test_all_combinations:
             for i, (theta0, theta1) in enumerate(zip(theta0s, theta1s)):
-                logging.debug('Starting evaluation for thetas %s / %s: %s vs %s',
+                logging.debug('Starting ratio evaluation for thetas %s / %s: %s vs %s',
                               i + 1, len(theta0s), theta0, theta1)
 
                 _, log_r_hat, t_hat0, t_hat1 = evaluate_ratio_model(
@@ -264,31 +275,29 @@ class Forge:
                     method_type=self.method_type,
                     theta0s=[theta0],
                     theta1s=[theta1] if theta1 is not None else None,
-                    xs=xs
+                    xs=xs,
+                    evaluate_score=evaluate_score
                 )
 
                 all_log_r_hat.append(log_r_hat)
                 all_t_hat0.append(t_hat0)
                 all_t_hat1.append(t_hat1)
-        else:
-            logging.debug('Starting evaluation for all thetas')
 
-            _, log_r_hat, t_hat0, t_hat1 = evaluate_ratio_model(
+            all_log_r_hat = np.array(all_log_r_hat)
+            all_t_hat0 = np.array(all_t_hat0)
+            all_t_hat1 = np.array(all_t_hat1)
+
+        else:
+            logging.debug('Starting ratio evaluation for all thetas')
+
+            _, all_log_r_hat, all_t_hat0, all_t_hat1 = evaluate_ratio_model(
                 model=self.model,
                 method_type=self.method_type,
                 theta0s=theta0s,
                 theta1s=None if None in theta1s else theta1s,
-                xs=xs
+                xs=xs,
+                evaluate_score=evaluate_score
             )
-
-            all_log_r_hat.append(log_r_hat)
-            all_t_hat0.append(t_hat0)
-            all_t_hat1.append(t_hat1)
-
-        # Return
-        all_log_r_hat = np.array(all_log_r_hat)
-        all_t_hat0 = np.array(all_t_hat0)
-        all_t_hat1 = np.array(all_t_hat1)
 
         return all_log_r_hat, all_t_hat0, all_t_hat1
 
