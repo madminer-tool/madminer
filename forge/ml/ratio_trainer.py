@@ -52,20 +52,20 @@ class GoldDataset(torch.utils.data.Dataset):
         return self.n
 
 
-def train_model(model,
-                loss_functions,
-                method_type='parameterized',
-                theta0s=None, theta1s=None, xs=None, ys=None, r_xzs=None, t_xz0s=None, t_xz1s=None,
-                loss_weights=None,
-                loss_labels=None,
-                batch_size=64,
-                initial_learning_rate=0.001, final_learning_rate=0.0001, n_epochs=50,
-                clip_gradient=1.,
-                run_on_gpu=True,
-                double_precision=False,
-                validation_split=0.2, early_stopping=True, early_stopping_patience=20,
-                learning_curve_folder=None, learning_curve_filename=None,
-                verbose='some'):
+def train_ratio_model(model,
+                      loss_functions,
+                      method_type='parameterized',
+                      theta0s=None, theta1s=None, xs=None, ys=None, r_xzs=None, t_xz0s=None, t_xz1s=None,
+                      loss_weights=None,
+                      loss_labels=None,
+                      batch_size=64,
+                      initial_learning_rate=0.001, final_learning_rate=0.0001, n_epochs=50,
+                      clip_gradient=1.,
+                      run_on_gpu=True,
+                      double_precision=False,
+                      validation_split=0.2, early_stopping=True, early_stopping_patience=20,
+                      learning_curve_folder=None, learning_curve_filename=None,
+                      verbose='some'):
 
     # CPU or GPU?
     run_on_gpu = run_on_gpu and torch.cuda.is_available()
@@ -344,11 +344,11 @@ def train_model(model,
     return total_losses_train, total_losses_val
 
 
-def evaluate_model(model,
-                   method_type=None,
-                   theta0s=None, theta1s=None, xs=None,
-                   run_on_gpu=True,
-                   double_precision=False):
+def evaluate_ratio_model(model,
+                         method_type=None,
+                         theta0s=None, theta1s=None, xs=None,
+                         run_on_gpu=True,
+                         double_precision=False):
     """
 
     :param model:
