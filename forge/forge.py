@@ -78,10 +78,13 @@ class Forge:
         theta0 = load_and_check(theta0_filename)
         theta1 = load_and_check(theta1_filename)
         x = load_and_check(x_filename)
-        y = load_and_check(y_filename).reshape((-1, 1))
+        y = load_and_check(y_filename)
         r_xz = load_and_check(r_xz_filename)
         t_xz0 = load_and_check(t_xz0_filename)
         t_xz1 = load_and_check(t_xz1_filename)
+
+        if y is not None:
+            y = y.reshape((-1, 1))
 
         # Check necessary information is theere
         assert x is not None
@@ -96,9 +99,13 @@ class Forge:
         if method in ['rascal2', 'alices2']:
             assert t_xz1 is not None
 
-        n_samples = theta0.shape[0]
-        n_parameters = theta0.shape[1]
+        # Infer dimensions of problem
+        n_samples = x.shape[0]
         n_observables = x.shape[1]
+        if theta0 is not None:
+            n_parameters = theta0.shape[1]
+        else:
+            n_parameters = t_xz0.shape[1]
 
         logging.info('Found %s samples with %s parameters and %s observables', n_samples, n_parameters, n_observables)
 
@@ -224,7 +231,7 @@ class Forge:
 
     def evaluate(self,
                  x_filename,
-                 theta0_filename,
+                 theta0_filename=None,
                  theta1_filename=None,
                  test_all_combinations=True,
                  evaluate_score=False):
@@ -242,9 +249,9 @@ class Forge:
         xs = load_and_check(x_filename)
 
         # Balance thetas
-        if theta1s is None:
+        if theta1s is None and theta0s is not None:
             theta1s = [None for _ in theta0s]
-        else:
+        elif theta1s is not None and theta0s is not None:
             if len(theta1s) > len(theta0s):
                 theta0s = [theta0s[i % len(theta0s)] for i in range(len(theta1s))]
             elif len(theta1s) < len(theta0s):
@@ -304,6 +311,45 @@ class Forge:
         logging.info('Evaluation done')
 
         return all_log_r_hat, all_t_hat0, all_t_hat1
+
+    def calculate_fisher_information(self,
+                                     x_filename,
+                                     n_events=1):
+
+        """ Calculates the expected kinematic Fisher information matrix. Note that x_filename has to be generated
+         according to the same theta that was used to define the score that SALLY / SALLINO was trained on! """
+
+        if self.model is None:
+            raise ValueError('No model -- train or load model before evaluating it!')
+
+        # Load training data
+        logging.info('Loading evaluation data')
+        xs = load_and_check(x_filename)
+        n_samples = xs.shape[0]
+
+        # Estimate scores
+        if self.method in ['sally', 'sallino']:
+            logging.info('Starting score evaluation')
+
+            t_hats = evaluate_local_score_model(
+                model=self.model,
+                xs=xs
+            )
+        else:
+            raise NotImplementedError('Fisher information calculation only implemented for SALLY estimators')
+
+        # Calculate Fisher information
+        n_parameters = t_hats.shape[1]
+        fisher_information = np.zeros((n_parameters, n_parameters))
+        for t_hat in t_hats:
+            fisher_information += np.outer(t_hat, t_hat)
+        fisher_information = float(n_events) / float(n_samples) * fisher_information
+
+        # Calculate expected score
+        expected_score = np.mean(t_hats, axis=0)
+        logging.info('Expected score (should be close to zero): %s', expected_score)
+
+        return fisher_information
 
     def save(self,
              filename):
