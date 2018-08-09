@@ -132,9 +132,9 @@ class DoublyParameterizedRatioEstimator(nn.Module):
         """
 
         # Track gradient wrt thetas
-        if track_scores and not theta0.requires_grad:
+        if track_score and not theta0.requires_grad:
             theta0.requires_grad = True
-        if track_scores and not theta1.requires_grad:
+        if track_score and not theta1.requires_grad:
             theta1.requires_grad = True
 
         # f(x | theta0, theta1)
@@ -160,7 +160,7 @@ class DoublyParameterizedRatioEstimator(nn.Module):
         s_hat = 1. / (1. + torch.exp(log_r_hat))
 
         # Score t
-        if track_scores:
+        if track_score:
             t_hat0 = grad(log_r_hat, theta0,
                           grad_outputs=torch.ones_like(log_r_hat.data),
                           only_inputs=True, create_graph=True)[0]
