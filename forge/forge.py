@@ -78,10 +78,13 @@ class Forge:
         theta0 = load_and_check(theta0_filename)
         theta1 = load_and_check(theta1_filename)
         x = load_and_check(x_filename)
-        y = load_and_check(y_filename).reshape((-1, 1))
+        y = load_and_check(y_filename)
         r_xz = load_and_check(r_xz_filename)
         t_xz0 = load_and_check(t_xz0_filename)
         t_xz1 = load_and_check(t_xz1_filename)
+
+        if y is not None:
+            y = y.reshape((-1, 1))
 
         # Check necessary information is theere
         assert x is not None
@@ -96,9 +99,13 @@ class Forge:
         if method in ['rascal2', 'alices2']:
             assert t_xz1 is not None
 
-        n_samples = theta0.shape[0]
-        n_parameters = theta0.shape[1]
+        # Infer dimensions of problem
+        n_samples = x.shape[0]
         n_observables = x.shape[1]
+        if theta0 is not None:
+            n_parameters = theta0.shape[1]
+        else:
+            n_parameters = t_xz0.shape[1]
 
         logging.info('Found %s samples with %s parameters and %s observables', n_samples, n_parameters, n_observables)
 
@@ -224,7 +231,7 @@ class Forge:
 
     def evaluate(self,
                  x_filename,
-                 theta0_filename,
+                 theta0_filename=None,
                  theta1_filename=None,
                  test_all_combinations=True,
                  evaluate_score=False):
@@ -242,9 +249,9 @@ class Forge:
         xs = load_and_check(x_filename)
 
         # Balance thetas
-        if theta1s is None:
+        if theta1s is None and theta0s is not None:
             theta1s = [None for _ in theta0s]
-        else:
+        elif theta1s is not None and theta0s is not None:
             if len(theta1s) > len(theta0s):
                 theta0s = [theta0s[i % len(theta0s)] for i in range(len(theta1s))]
             elif len(theta1s) < len(theta0s):
