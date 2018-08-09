@@ -66,7 +66,6 @@ def train_ratio_model(model,
                       validation_split=0.2, early_stopping=True, early_stopping_patience=20,
                       learning_curve_folder=None, learning_curve_filename=None,
                       verbose='some'):
-
     # CPU or GPU?
     run_on_gpu = run_on_gpu and torch.cuda.is_available()
     device = torch.device("cuda" if run_on_gpu else "cpu")
@@ -347,6 +346,7 @@ def train_ratio_model(model,
 def evaluate_ratio_model(model,
                          method_type=None,
                          theta0s=None, theta1s=None, xs=None,
+                         evaluate_score=False,
                          run_on_gpu=True,
                          double_precision=False):
     """
@@ -402,23 +402,41 @@ def evaluate_ratio_model(model,
         theta1s = theta1s.to(device, dtype)
     xs = xs.to(device, dtype)
 
-    # Evaluate networks
-    # with torch.no_grad(): # doesn't work with score
-    model.eval()
+    # Evaluate ratio estimator with score:
+    if evaluate_score:
+        # with torch.no_grad(): # doesn't work with score
+        model.eval()
 
-    if method_type == 'parameterized':
-        s_hat, log_r_hat, t_hat0 = model(theta0s, xs)
-        t_hat1 = None
-    elif method_type == 'doubly_parameterized':
-        s_hat, log_r_hat, t_hat0, t_hat1 = model(theta0s, theta1s, xs)
+        if method_type == 'parameterized':
+            s_hat, log_r_hat, t_hat0 = model(theta0s, xs)
+            t_hat1 = None
+        elif method_type == 'doubly_parameterized':
+            s_hat, log_r_hat, t_hat0, t_hat1 = model(theta0s, theta1s, xs)
+        else:
+            raise ValueError('Unknown method type %s', method_type)
+
+        # Get data and return
+        s_hat = s_hat.detach().numpy().flatten()
+        log_r_hat = log_r_hat.detach().numpy().flatten()
+        t_hat0 = t_hat0.detach().numpy()
+        if t_hat1 is not None:
+            t_hat1 = t_hat1.detach().numpy()
+
+    # Evaluate ratio estimator without score:
     else:
-        raise ValueError('Unknown method type %s', method_type)
+        with torch.no_grad():
+            model.eval()
 
-    # Get data and return
-    s_hat = s_hat.detach().numpy().flatten()
-    log_r_hat = log_r_hat.detach().numpy().flatten()
-    t_hat0 = t_hat0.detach().numpy()
-    if t_hat1 is not None:
-        t_hat1 = t_hat1.detach().numpy()
+            if method_type == 'parameterized':
+                s_hat, log_r_hat, _ = model(theta0s, xs, track_score=False)
+            elif method_type == 'doubly_parameterized':
+                s_hat, log_r_hat, _, _ = model(theta0s, theta1s, xs, track_score=False)
+            else:
+                raise ValueError('Unknown method type %s', method_type)
+
+            # Get data and return
+            s_hat = s_hat.detach().numpy().flatten()
+            log_r_hat = log_r_hat.detach().numpy().flatten()
+            t_hat0, t_hat1 = None, None
 
     return s_hat, log_r_hat, t_hat0, t_hat1

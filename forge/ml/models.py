@@ -120,7 +120,7 @@ class DoublyParameterizedRatioEstimator(nn.Module):
             nn.Linear(n_last, 1)
         )
 
-    def forward(self, theta0, theta1, x, track_scores=True):
+    def forward(self, theta0, theta1, x, track_score=True):
 
         """
         Calculates estimated log likelihood ratio and the derived score.
