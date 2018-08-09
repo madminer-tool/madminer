@@ -312,6 +312,45 @@ class Forge:
 
         return all_log_r_hat, all_t_hat0, all_t_hat1
 
+    def calculate_fisher_information(self,
+                                     x_filename,
+                                     n_events=1):
+
+        """ Calculates the expected kinematic Fisher information matrix. Note that x_filename has to be generated
+         according to the same theta that was used to define the score that SALLY / SALLINO was trained on! """
+
+        if self.model is None:
+            raise ValueError('No model -- train or load model before evaluating it!')
+
+        # Load training data
+        logging.info('Loading evaluation data')
+        xs = load_and_check(x_filename)
+        n_samples = xs.shape[0]
+
+        # Estimate scores
+        if self.method in ['sally', 'sallino']:
+            logging.info('Starting score evaluation')
+
+            t_hats = evaluate_local_score_model(
+                model=self.model,
+                xs=xs
+            )
+        else:
+            raise NotImplementedError('Fisher information calculation only implemented for SALLY estimators')
+
+        # Calculate Fisher information
+        n_parameters = t_hats.shape[1]
+        fisher_information = np.zeros((n_parameters, n_parameters))
+        for t_hat in t_hats:
+            fisher_information += np.outer(t_hat, t_hat)
+        fisher_information = float(n_events) / float(n_samples) * fisher_information
+
+        # Calculate expected score
+        expected_score = np.mean(t_hats, axis=0)
+        logging.info('Expected score (should be close to zero): %s', expected_score)
+
+        return fisher_information
+
     def save(self,
              filename):
 
