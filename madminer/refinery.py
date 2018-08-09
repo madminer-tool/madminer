@@ -220,7 +220,7 @@ class Refinery:
                 raise ValueError("Irregular train / test split: sample {} / {}", last_train_index, self.n_samples)
 
         # Start
-        x, (r_xz,), (theta,) = self.extract_sample(
+        x, (t_xz,), (theta,) = self.extract_sample(
             theta_sets_types=[theta_types],
             theta_sets_values=[theta_values],
             n_samples_per_theta=n_samples_per_theta,
@@ -232,9 +232,9 @@ class Refinery:
         # Save data
         np.save(folder + '/theta_' + filename + '.npy', theta)
         np.save(folder + '/x_' + filename + '.npy', x)
-        np.save(folder + '/t_xz_' + filename + '.npy', r_xz)
+        np.save(folder + '/t_xz_' + filename + '.npy', t_xz)
 
-        return x, theta, r_xz
+        return x, theta, t_xz
 
     def extract_samples_train_ratio(self,
                                     theta0,
