@@ -113,17 +113,17 @@ venv.bak/
 .idea
 
 # Data
-examples/basis_choices/animations
+examples/morphing_basis/animations
 
-examples/usage/temp
-examples/usage/nsqso_born.inc
-examples/usage/data
-examples/usage/datasave
-examples/usage/logs
-examples/usage/ME5_debug
-examples/usage/MG_process
-examples/usage/py.py
-examples/usage/models
+examples/tutorial/temp
+examples/tutorial/nsqso_born.inc
+examples/tutorial/data
+examples/tutorial/datasave
+examples/tutorial/logs
+examples/tutorial/ME5_debug
+examples/tutorial/MG_process
+examples/tutorial/py.py
+examples/tutorial/models
 
 examples/debug/temp
 examples/debug/nsqso_born.inc
