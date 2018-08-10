@@ -40,7 +40,7 @@ Clone repository and make sure it is in the PYTHONPATH.
 
 ## Tutorial
 
-See [example.ipynb](examples/tutorial/tutorial.ipynb).
+See [tutorial.ipynb](examples/tutorial/tutorial.ipynb).
 
 Note that the suite consists of three packages:
 - `madminer` is the core package responsible for the setup of the process, morphing, and the final extraction
