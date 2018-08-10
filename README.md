@@ -38,9 +38,9 @@ has to install patches (available upon request) manually.
 
 Clone repository and make sure it is in the PYTHONPATH.
 
-## Usage
+## Tutorial
 
-See [example.ipynb](examples/usage/example.ipynb).
+See [example.ipynb](examples/tutorial/tutorial.ipynb).
 
 Note that the suite consists of three packages:
 - `madminer` is the core package responsible for the setup of the process, morphing, and the final extraction
