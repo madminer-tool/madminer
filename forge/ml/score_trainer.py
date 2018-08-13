@@ -10,8 +10,6 @@ from torch.utils.data import Dataset, DataLoader
 from torch.utils.data.sampler import SubsetRandomSampler
 from torch.nn.utils import clip_grad_norm_
 
-from forge.ml.models import ParameterizedRatioEstimator, DoublyParameterizedRatioEstimator
-
 
 class LocalScoreDataset(torch.utils.data.Dataset):
 
