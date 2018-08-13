@@ -9,15 +9,15 @@ import numpy as np
 
 
 def general_init(debug=False):
-    logging.basicConfig(format='%(asctime)s  %(message)s', datefmt='%H:%M',
-                        level=logging.DEBUG if debug else logging.INFO)
+    logging.basicConfig(format='%(asctime)s  %(message)s', datefmt='%H:%M')
+    logging.getLogger().setLevel(logging.DEBUG if debug else logging.INFO)
 
     logging.info('')
     logging.info('------------------------------------------------------------')
     logging.info('|                                                          |')
     logging.info('|  MadMiner                                                |')
     logging.info('|                                                          |')
-    logging.info('|  Version from July 31, 2018                              |')
+    logging.info('|  Version from August 13, 2018                            |')
     logging.info('|                                                          |')
     logging.info('|           Johann Brehmer, Kyle Cranmer, and Felix Kling  |')
     logging.info('|                                                          |')

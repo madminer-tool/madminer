@@ -614,6 +614,8 @@ class Refinery:
         :return: thetas, xsecs, xsec_uncertainties. xsecs and xsec_uncertainties are in pb.
         """
 
+        logging.info('Starting cross-section calculation')
+
         # Total xsecs for benchmarks
         xsecs_benchmarks = None
         squared_weight_sum_benchmarks = None
@@ -655,7 +657,7 @@ class Refinery:
             all_xsecs.append(xsec_theta)
             all_xsec_uncertainties.append(rms_xsec_theta)
 
-            logging.info('theta %s: xsec = (%s +/- %s) pb', theta, xsec_theta, rms_xsec_theta)
+            logging.debug('theta %s: xsec = (%s +/- %s) pb', theta, xsec_theta, rms_xsec_theta)
 
         # Return
         all_thetas = np.array(all_thetas)
