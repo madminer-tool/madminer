@@ -3,6 +3,9 @@
 Mining gold from MadGraph to improve limit setting in particle physics. Work in progress by Johann Brehmer, Kyle Cranmer,
 and Felix Kling. Note that this is a prototype and all the interfaces are still constantly changing.
 
+[![Binder](https://mybinder.org/badge.svg)](https://mybinder.org/v2/gh/johannbrehmer/madminer/master)
+
+
 ## Introduction
 
 See ["Constraining Effective Field Theories With Machine Learning"](https://arxiv.org/abs/1805.00013) and

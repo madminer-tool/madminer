@@ -3,6 +3,7 @@ channels:
 - pytorch
 - anaconda
 - defaults
+- conda-forge
 dependencies:
 - python=3.6.*
 - numpy
@@ -14,6 +15,7 @@ dependencies:
 - h5py
 - six
 - pytorch=0.4.*
+- bqplot=0.11.0
 - pip:
   - uproot
   - scikit-hep
