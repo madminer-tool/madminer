@@ -3,49 +3,44 @@ import six
 
 import numpy as np
 from collections import OrderedDict
-import uproot
 import skhep.math
 import logging
+import os
 
-from lheprocessor.tools.lheanalyzer import LHEAnalysis
+from lheprocessor.tools.utils import call_command
 
-def extract_observables_from_lhe_file(lhe_sample_file,
+def extract_observables_from_lhe_file(filename,
                                       sampling_benchmark,
                                       observables,
                                       benchmark_names
                                       ):
+    # Untar Event file
+    new_filename, extension = os.path.splitext(filename)
+    if extension == '.gz':
+        if not os.path.exists(new_filename):
+            call_command('gunzip -k {}'.format(filename))
+        filename = new_filename
+
     # Load LHE file
-    analysis = LHEAnalysis(lhe_sample_file)
-    
-    # Define arrays
+    file = open(filename,'r')
+
+    # Go to first event
+    for line in file:
+        if line.strip()=='</init>':
+            break
+
+    # Read events
     weights_all_events = []
     partons_all_events = []
-    
-    # Scan though events
-    nevents = 0
-    for event in analysis:
-  
-        # Count events
-        nevents = nevents+1
-        
-        # Obtain weights for each event
-        weights_event = OrderedDict()
-        weights_event[sampling_benchmark]=event.weight
-        for weightname,weight in event.rwgts.items():
-            weights_event[weightname]=weight
-        weights_all_events.append(weights_event)
-        
-        # Obtain particles for each event
-        partons = []
-        for particle in event.particles:
-            if particle.status==1:
-                partons.append(particle.LorentzVector)
-        partons_all_events.append(partons)
+    end_of_file = False
+    while True:
+        end_of_file, event_partons, event_weights = read_event(file,sampling_benchmark)
+        if end_of_file:
+            break
+        weights_all_events.append(event_weights)
+        partons_all_events.append(event_partons)
 
-    # Get number of Weights, Events and Reshape
-    n_weights = len(weights_all_events[0])
-    n_events = len(weights_all_events)
-
+    #Rewrite weights
     weights = []
     for benchmarkname in benchmark_names:
         key_weights = []
@@ -54,22 +49,15 @@ def extract_observables_from_lhe_file(lhe_sample_file,
         weights.append(key_weights)
     weights = np.array(weights)
 
-    #weights = OrderedDict()
-    #for key , _ in weights_all_events[0].items():
-    #    key_weights = []
-    #    for weight_event in weights_all_events:
-    #        key_weights.append(weight_event[key])
-    #    weights[key] = key_weights
-
     # Obtain values for each observable in each event
     observable_values = OrderedDict()
-
+    n_events = len(partons_all_events)
     for obs_name, obs_definition in six.iteritems(observables):
         values_this_observable = []
-
+    
         for event in range(n_events):
             variables = {'p': partons_all_events[event]}
-
+        
             try:
                 values_this_observable.append(eval(obs_definition, variables))
             except:
@@ -78,32 +66,72 @@ def extract_observables_from_lhe_file(lhe_sample_file,
         values_this_observable = np.array(values_this_observable, dtype=np.float)
         observable_values[obs_name] = values_this_observable
 
-    """
-    # Check for existence of required observables
-    combined_filter = None
-
-    for obs_name, obs_required in six.iteritems(observables_required):
-        if obs_required:
-            this_filter = np.isfinite(observable_values[obs_name])
-            n_pass = np.sum(this_filter)
-            n_fail = np.sum(np.invert(this_filter))
-
-            logging.info('Requiring existence of observable %s: %s events pass, %s events removed',
-                         obs_name, n_pass, n_fail)
-
-            if combined_filter is None:
-                combined_filter = this_filter
-            else:
-                combined_filter = np.logical_and(combined_filter, this_filter)
-
-    if np.sum(combined_filter) == 0:
-        raise RuntimeError('No observations remainining!')
-
-    # Apply filter
-    for obs_name in observable_values:
-        observable_values[obs_name] = observable_values[obs_name][combined_filter]
-
-    weights = weights[:, combined_filter]
-    """
-
     return observable_values, weights
+
+def read_event(file, sampling_benchmark):
+    
+    # Initialize Weights and Momenta
+    event_weights = OrderedDict()
+    event_momenta = []
+    
+    # Some tags so that we know where in the event we are
+    do_tag = False
+    do_momenta = False
+    do_reweight = False
+    
+    #Loop through lines in Event
+    for line in file:
+        # print (line, ' ', do_tag, do_momenta, do_reweight)
+        # Skip empty/commented out lines
+        if len(line)==0:
+            continue
+        if line.split()[0]=='#':
+            continue
+        if line.strip()=='</LesHouchesEvents>':
+            return True, event_momenta, event_weights
+        if line.strip()=='<event>':
+            do_tag = True
+            continue
+        # Read Tag -> first weight
+        if do_tag:
+            event_weights[sampling_benchmark] = float(line.split()[2])
+            do_tag = False
+            do_momenta = True
+            continue
+        # Read Momenta and store as 4-vector
+        if do_momenta:
+            if line.strip() == '<rwgt>':
+                do_momenta = False
+                do_reweight = True
+                continue
+            status = int(line.split()[1])
+            if status == 1:
+                px = float(line.split()[6])
+                py = float(line.split()[7])
+                pz = float(line.split()[8])
+                en = float(line.split()[9])
+                vec = skhep.math.vectors.LorentzVector()
+                vec.setpxpypze(px,py,pz,en)
+                event_momenta.append(vec)
+            continue
+        # Read Reweighted weights
+        if do_reweight:
+            if line.strip() == '</rwgt>':
+                do_reweight = False
+                continue
+            splitline=line.split()
+            rwgtid=line[line.find('<')+1:line.find('>')].split('=')[1][1:-1]
+            rwgtval=float(line[line.find('>')+1:line.find('<',line.find('<')+1)])
+            event_weights[rwgtid] = rwgtval
+            continue
+        # End of Event -> return
+        if line.strip() == '</event>':
+            return False, event_momenta, event_weights
+
+
+
+
+
+
+
+
