@@ -8,7 +8,8 @@ import numpy as np
 import torch
 
 from forge.ml import losses
-from forge.ml.models import ParameterizedRatioEstimator, DoublyParameterizedRatioEstimator, LocalScoreEstimator
+from forge.ml.models.ratio import ParameterizedRatioEstimator, DoublyParameterizedRatioEstimator
+from forge.ml.models.score import LocalScoreEstimator
 from forge.ml.ratio_trainer import train_ratio_model, evaluate_ratio_model
 from forge.ml.score_trainer import train_local_score_model, evaluate_local_score_model
 from forge.ml.utils import create_missing_folders, load_and_check, general_init
