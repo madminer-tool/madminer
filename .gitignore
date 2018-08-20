@@ -125,6 +125,8 @@ examples/tutorial/MG_process
 examples/tutorial/py.py
 examples/tutorial/models
 
+examples/tutorial/smearing_data
+
 examples/debug/temp
 examples/debug/nsqso_born.inc
 examples/debug/data

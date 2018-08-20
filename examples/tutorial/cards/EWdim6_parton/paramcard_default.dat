@@ -12,27 +12,22 @@
 ## INFORMATION FOR DIM6
 ###################################
 Block dim6 
-    1 0.000000e+00 # CWWWL2 
-    2 0.000000e+00 # CWL2 
-    3 0.000000e+00 # CBL2 
-    4 0.000000e+00 # CPWWWL2 
-    5 0.000000e+00 # CPWL2 
-    6 0.000000e+00 # CphidL2 
-    7 0.000000e+00 # CphiWL2 
-    8 0.000000e+00 # CphiBL2 
+    1 1.000000e+00 # CWWWL2 
+    2 1.000000e+00 # CWL2 
+    3 1.000000e+01 # CBL2 
+    4 1.000000e+02 # CPWWWL2 
+    5 1.000000e+03 # CPWL2 
 
 ###################################
 ## INFORMATION FOR MASS
 ###################################
 Block mass 
-    4 1.270000e+00 # MC 
     5 4.700000e+00 # MB 
     6 1.720000e+02 # MT 
-   13 1.056600e-01 # MM 
    15 1.777000e+00 # MTA 
    23 9.118760e+01 # MZ 
    25 1.250000e+02 # MH 
-  9000006 1.250000e+02 # MP 
+  9000006 1.250120e+02 # MP 
 ## Dependent parameters, given by model restrictions.
 ## Those values should be edited following the 
 ## analytical expression. MG5 ignores those values 
@@ -41,8 +36,10 @@ Block mass
   1 0.000000 # d : 0.0 
   2 0.000000 # u : 0.0 
   3 0.000000 # s : 0.0 
+  4 0.000000 # c : 0.0 
   11 0.000000 # e- : 0.0 
   12 0.000000 # ve : 0.0 
+  13 0.000000 # mu- : 0.0 
   14 0.000000 # vm : 0.0 
   16 0.000000 # vt : 0.0 
   21 0.000000 # g : 0.0 
@@ -58,22 +55,11 @@ Block sminputs
     3 1.184000e-01 # aS 
 
 ###################################
-## INFORMATION FOR WOLFENSTEIN
-###################################
-Block wolfenstein 
-    1 0.000000e+00 # lamWS 
-    2 0.000000e+00 # AWS 
-    3 0.000000e+00 # rhoWS 
-    4 0.000000e+00 # etaWS 
-
-###################################
 ## INFORMATION FOR YUKAWA
 ###################################
 Block yukawa 
-    4 1.270000e+00 # ymc 
     5 4.700000e+00 # ymb 
     6 1.720000e+02 # ymt 
-   13 1.056600e-01 # ymm 
    15 1.777000e+00 # ymtau 
 
 ###################################
@@ -83,8 +69,8 @@ DECAY   6 1.508336e+00 # WT
 DECAY  15 2.270000e-12 # WTau 
 DECAY  23 2.495200e+00 # WZ 
 DECAY  24 2.085000e+00 # WW 
-DECAY  25 4.070000e-03 # WH
-DECAY 9000006 4.070000e-03 # WH1 
+DECAY  25 6.382339e-03 # WH 
+DECAY 9000006 6.382339e-03 # WH1 
 ## Dependent parameters, given by model restrictions.
 ## Those values should be edited following the 
 ## analytical expression. MG5 ignores those values 
