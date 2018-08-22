@@ -28,7 +28,7 @@
 # Warning: Do not generate more than 1M events in a single run       *
 # If you want to run Pythia, avoid more than 50k events in a run.    *
 #*********************************************************************
-10000 = nevents ! Number of unweighted events requested
+100 = nevents ! Number of unweighted events requested
   0    = iseed   ! rnd seed (0=assigned automatically=default))
 #*********************************************************************
 # Collider type and energy                                           *
@@ -63,7 +63,7 @@
   -1.0 = time_of_flight ! threshold (in mm) below which the invariant livetime is not written (-1 means not written)
   3.0 = lhe_version       ! Change the way clustering information pass to shower.        
   True = clusinfo         ! include clustering tag in output
-  average =  event_norm       ! average/sum. Normalization of the weight in the LHEF
+  sum =  event_norm       ! average/sum. Normalization of the weight in the LHEF
 
 #*********************************************************************
 # Matching parameter (MLM only)
