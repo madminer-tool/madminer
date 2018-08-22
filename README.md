@@ -39,7 +39,7 @@ has to install patches (available upon request) manually.
 
 ### Installation
 
-Clone repository and make sure it is in the PYTHONPATH.
+Clone the repository and run `pip install -e <path to repository>`.
 
 ## Tutorial
 

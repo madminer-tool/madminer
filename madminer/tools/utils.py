@@ -7,6 +7,8 @@ from subprocess import Popen, PIPE
 import io
 import numpy as np
 
+from madminer import __version__
+
 
 def general_init(debug=False):
     logging.basicConfig(format='%(asctime)s  %(message)s', datefmt='%H:%M')
@@ -15,9 +17,7 @@ def general_init(debug=False):
     logging.info('')
     logging.info('------------------------------------------------------------')
     logging.info('|                                                          |')
-    logging.info('|  MadMiner                                                |')
-    logging.info('|                                                          |')
-    logging.info('|  Version from August 13, 2018                            |')
+    logging.info('|  MadMiner v{}|'.format(__version__.ljust(46)))
     logging.info('|                                                          |')
     logging.info('|           Johann Brehmer, Kyle Cranmer, and Felix Kling  |')
     logging.info('|                                                          |')

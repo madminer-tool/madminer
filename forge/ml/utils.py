@@ -8,6 +8,8 @@ import numpy as np
 
 import torch.nn.functional as F
 
+from madminer import __version__
+
 
 def get_activation(activation):
     if activation == 'relu':
@@ -27,9 +29,7 @@ def general_init(debug=False):
     logging.info('')
     logging.info('------------------------------------------------------------')
     logging.info('|                                                          |')
-    logging.info('|  Forge                                                   |')
-    logging.info('|                                                          |')
-    logging.info('|  Version from August 13, 2018                            |')
+    logging.info('|  MadMiner Forge v{}|'.format(__version__.ljust(40)))
     logging.info('|                                                          |')
     logging.info('|           Johann Brehmer, Kyle Cranmer, and Felix Kling  |')
     logging.info('|                                                          |')
