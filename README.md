@@ -49,6 +49,13 @@ Note that the suite consists of three packages:
 - `madminer` is the core package responsible for the setup of the process, morphing, and the final extraction
   (unweighting) of train and test samples.
 - `delphesprocessor` is one example implementation of a detector simulation and observable calculation. This part is
-   likely to swapped out depending on the use case.
+   likely to be swapped out depending on the use case.
 - `forge`  contains an implementation of the machine learning part, i.e. trains likelihood ratio estimators on the
   output from the `madminer` package.
+
+## Acknowledgements
+
+The SCANDAL inference method is based on the [Masked Autoregressive Flow](https://arxiv.org/abs/1705.07057), and its
+implementation is a pyTorch port of the original code available at [https://github.com/gpapamak/maf](https://github.com/gpapamak/maf).
+
+The [setup.py](setup.py) was adapted from [https://github.com/kennethreitz/setup.py](https://github.com/kennethreitz/setup.py).
