@@ -4,6 +4,8 @@ from subprocess import Popen, PIPE
 import io
 import logging
 
+from madminer import __version__
+
 
 def general_init(debug=False):
     logging.basicConfig(format='%(asctime)s  %(message)s', datefmt='%H:%M')
@@ -12,9 +14,7 @@ def general_init(debug=False):
     logging.info('')
     logging.info('------------------------------------------------------------')
     logging.info('|                                                          |')
-    logging.info('|  DelphesProcessor                                        |')
-    logging.info('|                                                          |')
-    logging.info('|  Version from August 13, 2018                            |')
+    logging.info('|  DelphesProcessor v{}|'.format(__version__.ljust(38)))
     logging.info('|                                                          |')
     logging.info('|           Johann Brehmer, Kyle Cranmer, and Felix Kling  |')
     logging.info('|                                                          |')
