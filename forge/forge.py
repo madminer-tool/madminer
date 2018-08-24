@@ -7,7 +7,7 @@ import numpy as np
 
 import torch
 
-from forge.ml import losses
+from forge.ml import ratio_losses
 from forge.ml.models.ratio import ParameterizedRatioEstimator, DoublyParameterizedRatioEstimator
 from forge.ml.models.score import LocalScoreEstimator
 from forge.ml.ratio_trainer import train_ratio_model, evaluate_ratio_model
@@ -148,42 +148,42 @@ class Forge:
 
         # Loss fn
         if method in ['carl', 'carl2']:
-            loss_functions = [losses.standard_cross_entropy]
+            loss_functions = [ratio_losses.standard_cross_entropy]
             loss_weights = [1.]
             loss_labels = ['xe']
 
         elif method in ['rolr', 'rolr2']:
-            loss_functions = [losses.ratio_mse]
+            loss_functions = [ratio_losses.ratio_mse]
             loss_weights = [1.]
             loss_labels = ['mse_r']
 
         elif method == 'rascal':
-            loss_functions = [losses.ratio_mse, losses.score_mse_num]
+            loss_functions = [ratio_losses.ratio_mse, ratio_losses.score_mse_num]
             loss_weights = [1., alpha]
             loss_labels = ['mse_r', 'mse_score']
 
         elif method == 'rascal2':
-            loss_functions = [losses.ratio_mse, losses.score_mse]
+            loss_functions = [ratio_losses.ratio_mse, ratio_losses.score_mse]
             loss_weights = [1., alpha]
             loss_labels = ['mse_r', 'mse_score']
 
         elif method in ['alice', 'alice2']:
-            loss_functions = [losses.augmented_cross_entropy]
+            loss_functions = [ratio_losses.augmented_cross_entropy]
             loss_weights = [1.]
             loss_labels = ['improved_xe']
 
         elif method == 'alices':
-            loss_functions = [losses.augmented_cross_entropy, losses.score_mse_num]
+            loss_functions = [ratio_losses.augmented_cross_entropy, ratio_losses.score_mse_num]
             loss_weights = [1., alpha]
             loss_labels = ['improved_xe', 'mse_score']
 
         elif method == 'alices2':
-            loss_functions = [losses.augmented_cross_entropy, losses.score_mse]
+            loss_functions = [ratio_losses.augmented_cross_entropy, ratio_losses.score_mse]
             loss_weights = [1., alpha]
             loss_labels = ['improved_xe', 'mse_score']
 
         elif method in ['sally', 'sallino']:
-            loss_functions = [losses.local_score_mse]
+            loss_functions = [ratio_losses.local_score_mse]
             loss_weights = [1.]
             loss_labels = ['mse_score']
 

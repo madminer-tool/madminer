@@ -10,12 +10,12 @@ from torch.utils.data import Dataset, DataLoader
 from torch.utils.data.sampler import SubsetRandomSampler
 from torch.nn.utils import clip_grad_norm_
 
-from forge.ml.models import ParameterizedRatioEstimator, DoublyParameterizedRatioEstimator
+from forge.ml.utils import s_from_r
 
 
-class GoldDataset(torch.utils.data.Dataset):
+class SmallGoldDataset(torch.utils.data.Dataset):
 
-    def __init__(self, theta0=None, theta1=None, x=None, y=None, r_xz=None, t_xz0=None, t_xz1=None):
+    def __init__(self, theta0=None, x=None, t_xz0=None):
         self.n = theta0.shape[0]
 
         placeholder = torch.stack([tensor([0.]) for _ in range(self.n)])
@@ -24,48 +24,35 @@ class GoldDataset(torch.utils.data.Dataset):
         assert theta0 is not None
 
         self.theta0 = theta0
-        self.theta1 = placeholder if theta1 is None else theta1
         self.x = x
-        self.y = placeholder if y is None else y
-        self.r_xz = placeholder if r_xz is None else r_xz
         self.t_xz0 = placeholder if t_xz0 is None else t_xz0
-        self.t_xz1 = placeholder if t_xz1 is None else t_xz1
 
         assert len(self.theta0) == self.n
-        assert len(self.theta1) == self.n
         assert len(self.x) == self.n
-        assert len(self.y) == self.n
-        assert len(self.r_xz) == self.n
         assert len(self.t_xz0) == self.n
-        assert len(self.t_xz1) == self.n
 
     def __getitem__(self, index):
         return (self.theta0[index],
-                self.theta1[index],
                 self.x[index],
-                self.y[index],
-                self.r_xz[index],
-                self.t_xz0[index],
-                self.t_xz1[index])
+                self.t_xz0[index])
 
     def __len__(self):
         return self.n
 
 
-def train_ratio_model(model,
-                      loss_functions,
-                      method_type='parameterized',
-                      theta0s=None, theta1s=None, xs=None, ys=None, r_xzs=None, t_xz0s=None, t_xz1s=None,
-                      loss_weights=None,
-                      loss_labels=None,
-                      batch_size=64,
-                      initial_learning_rate=0.001, final_learning_rate=0.0001, n_epochs=50,
-                      clip_gradient=1.,
-                      run_on_gpu=True,
-                      double_precision=False,
-                      validation_split=0.2, early_stopping=True, early_stopping_patience=20,
-                      learning_curve_folder=None, learning_curve_filename=None,
-                      verbose='some'):
+def train_flow_model(model,
+                     loss_functions,
+                     theta0s=None, xs=None, t_xz0s=None,
+                     loss_weights=None,
+                     loss_labels=None,
+                     batch_size=64,
+                     initial_learning_rate=0.001, final_learning_rate=0.0001, n_epochs=50,
+                     clip_gradient=1.,
+                     run_on_gpu=True,
+                     double_precision=False,
+                     validation_split=0.2, early_stopping=True, early_stopping_patience=20,
+                     learning_curve_folder=None, learning_curve_filename=None,
+                     verbose='some'):
     # CPU or GPU?
     run_on_gpu = run_on_gpu and torch.cuda.is_available()
     device = torch.device("cuda" if run_on_gpu else "cpu")
@@ -77,21 +64,13 @@ def train_ratio_model(model,
     # Convert to Tensor
     if theta0s is not None:
         theta0s = torch.stack([tensor(i, requires_grad=True) for i in theta0s])
-    if theta1s is not None:
-        theta1s = torch.stack([tensor(i, requires_grad=True) for i in theta1s])
     if xs is not None:
         xs = torch.stack([tensor(i) for i in xs])
-    if ys is not None:
-        ys = torch.stack([tensor(i) for i in ys])
-    if r_xzs is not None:
-        r_xzs = torch.stack([tensor(i) for i in r_xzs])
     if t_xz0s is not None:
         t_xz0s = torch.stack([tensor(i) for i in t_xz0s])
-    if t_xz1s is not None:
-        t_xz1s = torch.stack([tensor(i) for i in t_xz1s])
 
     # Dataset
-    dataset = GoldDataset(theta0s, theta1s, xs, ys, r_xzs, t_xz0s, t_xz1s)
+    dataset = SmallGoldDataset(theta0s, xs, t_xz0s)
 
     # Train / validation split
     if validation_split is not None:
@@ -169,40 +148,20 @@ def train_ratio_model(model,
                 param_group['lr'] = lr
 
         # Loop over batches
-        for i_batch, (theta0, theta1, x, y, r_xz, t_xz0, t_xz1) in enumerate(train_loader):
+        for i_batch, (theta0, x, t_xz0) in enumerate(train_loader):
             theta0 = theta0.to(device, dtype)
             x = x.to(device, dtype)
-            y = y.to(device, dtype)
-            try:
-                theta1 = theta1.to(device, dtype)
-            except:
-                pass
-            try:
-                r_xz = r_xz.to(device, dtype)
-            except:
-                pass
             try:
                 t_xz0 = t_xz0.to(device, dtype)
-            except:
-                pass
-            try:
-                t_xz1 = t_xz1.to(device, dtype)
             except:
                 pass
 
             optimizer.zero_grad()
 
             # Evaluate loss
-            if method_type == 'parameterized':
-                s_hat, log_r_hat, t_hat0 = model(theta0, x)
-                t_hat1 = None
-            elif method_type == 'doubly_parameterized':
-                s_hat, log_r_hat, t_hat0, t_hat1 = model(theta0, theta1, x)
-            else:
-                raise ValueError('Unknown method type {}'.format(method_type))
+            _ = model(theta0, x)
 
-            losses = [loss_function(s_hat, log_r_hat, t_hat0, t_hat1, y, r_xz, t_xz0, t_xz1)
-                      for loss_function in loss_functions]
+            losses = [loss_function(model, t_xz0) for loss_function in loss_functions]
             loss = loss_weights[0] * losses[0]
             for _w, _l in zip(loss_weights[1:], losses[1:]):
                 loss += _w * _l
@@ -237,38 +196,18 @@ def train_ratio_model(model,
         individual_val_loss = np.zeros(n_losses)
         total_val_loss = 0.0
 
-        for i_batch, (theta0, theta1, x, y, r_xz, t_xz0, t_xz1) in enumerate(validation_loader):
+        for i_batch, (theta0, x, t_xz0) in enumerate(validation_loader):
             theta0 = theta0.to(device, dtype)
             x = x.to(device, dtype)
-            y = y.to(device, dtype)
-            try:
-                theta1 = theta1.to(device, dtype)
-            except:
-                pass
-            try:
-                r_xz = r_xz.to(device, dtype)
-            except:
-                pass
             try:
                 t_xz0 = t_xz0.to(device, dtype)
             except:
                 pass
-            try:
-                t_xz1 = t_xz1.to(device, dtype)
-            except:
-                pass
 
             # Evaluate loss
-            if method_type == 'parameterized':
-                s_hat, log_r_hat, t_hat0 = model(theta0, x)
-                t_hat1 = None
-            elif method_type == 'doubly_parameterized':
-                s_hat, log_r_hat, t_hat0, t_hat1 = model(theta0, theta1, x)
-            else:
-                raise ValueError('Unknown method type %s', method_type)
+            _ = model(theta0, x)
 
-            losses = [loss_function(s_hat, log_r_hat, t_hat0, t_hat1, y, r_xz, t_xz0, t_xz1)
-                      for loss_function in loss_functions]
+            losses = [loss_function(model, t_xz0) for loss_function in loss_functions]
             loss = loss_weights[0] * losses[0]
             for _w, _l in zip(loss_weights[1:], losses[1:]):
                 loss += _w * _l
@@ -343,100 +282,49 @@ def train_ratio_model(model,
     return total_losses_train, total_losses_val
 
 
-def evaluate_ratio_model(model,
-                         method_type=None,
-                         theta0s=None, theta1s=None, xs=None,
-                         evaluate_score=False,
-                         run_on_gpu=True,
-                         double_precision=False):
-    """
-
-    :param model:
-    :param method_type:
-    :param theta0s:
-    :param theta1s:
-    :param xs:
-    :param run_on_gpu:
-    :param double_precision:
-    :return:
-    """
-
+def evaluate_flow_model(model,
+                        theta0s=None, xs=None,
+                        evaluate_score=False,
+                        run_on_gpu=True,
+                        double_precision=False):
     # CPU or GPU?
     run_on_gpu = run_on_gpu and torch.cuda.is_available()
     device = torch.device("cuda" if run_on_gpu else "cpu")
     dtype = torch.double if double_precision else torch.float
 
-    # Figure out method type
-    if method_type is None:
-        if isinstance(model, ParameterizedRatioEstimator):
-            method_type = 'parameterized'
-        elif isinstance(model, DoublyParameterizedRatioEstimator):
-            method_type = 'doubly_parameterized'
-        else:
-            raise RuntimeError('Cannot infer method type automatically')
-
     # Balance theta0 and theta1
-    if theta1s is None:
-        n_thetas = len(theta0s)
-    else:
-        n_thetas = max(len(theta0s), len(theta1s))
-        if len(theta0s) > len(theta1s):
-            theta1s = np.array([
-                theta1s[i % len(theta1s)] for i in range(len(theta0s))
-            ])
-        elif len(theta0s) < len(theta1s):
-            theta0s = np.array([
-                theta0s[i % len(theta0s)] for i in range(len(theta1s))
-            ])
+    n_thetas = len(theta0s)
 
     # Prepare data
     n_xs = len(xs)
     theta0s = torch.stack([tensor(theta0s[i % n_thetas], requires_grad=True) for i in range(n_xs)])
-    if theta1s is not None:
-        theta1s = torch.stack([tensor(theta1s[i % n_thetas], requires_grad=True) for i in range(n_xs)])
     xs = torch.stack([tensor(i) for i in xs])
 
     model = model.to(device, dtype)
     theta0s = theta0s.to(device, dtype)
-    if theta1s is not None:
-        theta1s = theta1s.to(device, dtype)
     xs = xs.to(device, dtype)
 
     # Evaluate ratio estimator with score:
     if evaluate_score:
-        # with torch.no_grad(): # doesn't work with score
         model.eval()
 
-        if method_type == 'parameterized':
-            s_hat, log_r_hat, t_hat0 = model(theta0s, xs)
-            t_hat1 = None
-        elif method_type == 'doubly_parameterized':
-            s_hat, log_r_hat, t_hat0, t_hat1 = model(theta0s, theta1s, xs)
-        else:
-            raise ValueError('Unknown method type %s', method_type)
+        _ = model(theta0s, xs)
 
         # Get data and return
-        s_hat = s_hat.detach().numpy().flatten()
-        log_r_hat = log_r_hat.detach().numpy().flatten()
-        t_hat0 = t_hat0.detach().numpy()
-        if t_hat1 is not None:
-            t_hat1 = t_hat1.detach().numpy()
+        log_r_hat = model.log_likelihood.detach().numpy().flatten()
+        s_hat = s_from_r(np.exp(log_r_hat))
+        t_hat0 = model.score.detach().numpy()
 
     # Evaluate ratio estimator without score:
     else:
         with torch.no_grad():
             model.eval()
 
-            if method_type == 'parameterized':
-                s_hat, log_r_hat, _ = model(theta0s, xs, track_score=False)
-            elif method_type == 'doubly_parameterized':
-                s_hat, log_r_hat, _, _ = model(theta0s, theta1s, xs, track_score=False)
-            else:
-                raise ValueError('Unknown method type %s', method_type)
+            _ = model(theta0s, xs)
 
             # Get data and return
-            s_hat = s_hat.detach().numpy().flatten()
-            log_r_hat = log_r_hat.detach().numpy().flatten()
-            t_hat0, t_hat1 = None, None
+            log_r_hat = model.log_likelihood.detach().numpy().flatten()
+            s_hat = s_from_r(np.exp(log_r_hat))
+            t_hat0 = None
 
-    return s_hat, log_r_hat, t_hat0, t_hat1
+    return s_hat, log_r_hat, t_hat0
