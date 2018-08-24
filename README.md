@@ -55,7 +55,8 @@ Note that the suite consists of three packages:
 
 ## Acknowledgements
 
-The SCANDAL inference method is based on the [Masked Autoregressive Flow](https://arxiv.org/abs/1705.07057), and its
-implementation is a pyTorch port of the original code available at [https://github.com/gpapamak/maf](https://github.com/gpapamak/maf).
+The SCANDAL inference method is based on [Masked Autoregressive Flows](https://arxiv.org/abs/1705.07057), and its
+implementation is a pyTorch port of the original code by George Papamakarios et al. available at
+[https://github.com/gpapamak/maf](https://github.com/gpapamak/maf).
 
 The [setup.py](setup.py) was adapted from [https://github.com/kennethreitz/setup.py](https://github.com/kennethreitz/setup.py).

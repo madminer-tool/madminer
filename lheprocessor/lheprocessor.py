@@ -6,8 +6,6 @@ import logging
 
 from lheprocessor.tools.h5_interface import save_madminer_file
 from lheprocessor.tools.h5_interface import load_benchmark_names
-#from lheprocessor.tools.delphes_interface import run_delphes
-#from lheprocessor.tools.root_interface import extract_observables_from_delphes_file
 from lheprocessor.tools.lhe_interface import extract_observables_from_lhe_file
 from lheprocessor.tools.utils import general_init
 
@@ -31,12 +29,12 @@ class LHEProcessor:
         # Initialize samples
         self.observations = None
         self.weights = None
-    
-        #Initialze Benchmark Names
+
+        # Initialze Benchmark Names
         self.benchmark_names = None
-    
+
     def read_benchmark_names(self, filename):
-        self.benchmark_names=load_benchmark_names(filename)
+        self.benchmark_names = load_benchmark_names(filename)
 
     def add_lhe_sample(self, filename, sampling_benchmark):
 
@@ -60,7 +58,7 @@ class LHEProcessor:
 
     def set_default_observables(self):
         raise NotImplementedError
-    
+
     def analyse_lhe_samples(self):
 
         for lhe_file, sampling_benchmark in zip(self.lhe_sample_filenames, self.sampling_benchmarks):
@@ -83,7 +81,7 @@ class LHEProcessor:
 
             if len(self.weights) != len(this_weights):
                 raise ValueError("Number of weights in different Delphes files incompatible: {} vs {}".format(
-                       len(self.weights), len(this_weights)
+                    len(self.weights), len(this_weights)
                 ))
             if len(self.observations) != len(this_observations):
                 raise ValueError("Number of observations in different Delphes files incompatible: {} vs {}".format(
@@ -97,7 +95,6 @@ class LHEProcessor:
                     key
                 )
                 self.observations[key] = np.hstack([self.observations[key], this_observations[key]])
-
 
     def save(self, filename_out, filename_in=None):
 
@@ -114,4 +111,3 @@ class LHEProcessor:
                            self.observations,
                            self.weights,
                            copy_from=filename_in)
-

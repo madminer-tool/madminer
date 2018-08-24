@@ -742,7 +742,7 @@ class Refinery:
         assert n_thetas == len(theta_sets_values)
 
         n_sets = len(theta_sets_types[sampling_theta_index])  # Within each set, all thetas (sampling, numerator, ...)
-                                                              # have a constant value
+        # have a constant value
         for theta_types, theta_values in zip(theta_sets_types, theta_sets_values):
             assert n_sets == len(theta_types) == len(theta_values)
 
@@ -788,7 +788,7 @@ class Refinery:
                 )
 
                 logging.debug('  theta %s = %s%s',
-                              i_theta, theta[0,:],
+                              i_theta, theta[0, :],
                               ' (sampling)' if i_theta == sampling_theta_index else '')
 
             sampling_theta_matrix = theta_matrices[sampling_theta_index]

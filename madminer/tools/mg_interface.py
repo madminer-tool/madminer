@@ -182,7 +182,7 @@ def run_mg_pythia(mg_directory,
     # MG commands
     temp_proc_card_file = temp_directory + '/run.mg5'
 
-    if pythia8_card_file != None:
+    if pythia8_card_file is not None:
         mg_commands = '''
             launch {}
             shower=Pythia8

@@ -8,11 +8,10 @@ import matplotlib
 def plot_2d_morphing_basis(morpher,
                            xlabel=r'$\theta_0$',
                            ylabel=r'$\theta_1$',
-                           xrange=(-1.,1.),
-                           yrange=(-1.,1.),
-                           crange=(1.,100.),
+                           xrange=(-1., 1.),
+                           yrange=(-1., 1.),
+                           crange=(1., 100.),
                            resolution=100):
-
     basis = morpher.basis
 
     assert basis is not None, "No basis defined"

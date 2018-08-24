@@ -3,6 +3,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import h5py
 import numpy as np
 import shutil
+from collections import OrderedDict
 
 
 def save_madminer_file(filename,
@@ -11,13 +12,12 @@ def save_madminer_file(filename,
                        weights,
                        copy_from=None,
                        overwrite_existing_samples=True):
-
     if copy_from is not None:
         try:
             shutil.copyfile(copy_from, filename)
         except IOError:
             if not overwrite_existing_samples:
-                raise()
+                raise ()
 
     io_tag = 'a'  # Read-write if file exists, otherwise create
 
@@ -51,11 +51,12 @@ def save_madminer_file(filename,
         ).T
         f.create_dataset("samples/observations", data=observations)
 
+
 def load_madminer_settings(filename):
     """ Loads MadMiner settings, observables, and weights from a HDF5 file. """
-    
+
     with h5py.File(filename, 'r') as f:
-        
+
         # Parameters
         try:
             parameter_names = f['parameters/names'][()]
@@ -63,27 +64,28 @@ def load_madminer_settings(filename):
             parameter_lha_ids = f['parameters/lha_ids'][()]
             parameter_ranges = f['parameters/ranges'][()]
             parameter_max_power = f['parameters/max_power'][()]
-            
+
             parameter_names = [pname.decode("ascii") for pname in parameter_names]
             parameter_lha_blocks = [pblock.decode("ascii") for pblock in parameter_lha_blocks]
-            
+
             parameters = OrderedDict()
-            
+
             for pname, prange, pblock, pid, p_maxpower in zip(parameter_names, parameter_ranges, parameter_lha_blocks,
                                                               parameter_lha_ids, parameter_max_power):
                 parameters[pname] = (
-                                     pblock,
-                                     int(pid),
-                                     int(p_maxpower),
-                                     tuple(prange)
-                                     )
-    
+                    pblock,
+                    int(pid),
+                    int(p_maxpower),
+                    tuple(prange)
+                )
+
         except KeyError:
             raise IOError('Cannot read parameters from HDF5 file')
 
+
 def load_benchmark_names(filename):
     """ Loads MadMiner Benchmarks Names from a HDF5 file. """
-    
+
     with h5py.File(filename, 'r') as f:
 
         # Benchmarks

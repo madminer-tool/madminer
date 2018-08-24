@@ -193,19 +193,17 @@ def madminer_event_loader(filename, start=0, end=None, batch_size=100000):
             current += batch_size
 
 
-
 def save_events_to_madminer_file(filename,
                                  observations,
                                  weights,
                                  copy_setup_from,
                                  overwrite_existing_samples=True):
-
     if copy_setup_from is not None:
         try:
             shutil.copyfile(copy_setup_from, filename)
         except IOError:
             if not overwrite_existing_samples:
-                raise()
+                raise ()
 
     io_tag = 'a'  # Read-write if file exists, otherwise create
 
