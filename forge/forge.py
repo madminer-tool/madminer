@@ -7,9 +7,11 @@ import numpy as np
 
 import torch
 
-from forge.ml import losses
+from forge.ml import ratio_losses, flow_losses
+from forge.ml.models.maf import ConditionalMaskedAutoregressiveFlow
 from forge.ml.models.ratio import ParameterizedRatioEstimator, DoublyParameterizedRatioEstimator
 from forge.ml.models.score import LocalScoreEstimator
+from forge.ml.flow_trainer import train_flow_model, evaluate_flow_model
 from forge.ml.ratio_trainer import train_ratio_model, evaluate_ratio_model
 from forge.ml.score_trainer import train_local_score_model, evaluate_local_score_model
 from forge.ml.utils import create_missing_folders, load_and_check, general_init
@@ -39,6 +41,9 @@ class Forge:
               t_xz1_filename=None,
               n_hidden=(100, 100, 100),
               activation='tanh',
+              maf_n_mades=3,
+              maf_batch_norm=True,
+              maf_batch_norm_alpha=0.1,
               alpha=1.,
               n_epochs=20,
               batch_size=64,
@@ -66,6 +71,10 @@ class Forge:
             logging.info('                 t_xz (theta1) at  %s', t_xz1_filename)
         logging.info('  Method:                 %s', method)
         logging.info('  Hidden layers:          %s', n_hidden)
+        logging.info('  Early stopping:         %s', early_stopping)
+        logging.info('  MAF, number MADEs:      %s', maf_n_mades)
+        logging.info('  MAF, batch norm:        %s', maf_batch_norm)
+        logging.info('  MAF, BN alpha:          %s', maf_batch_norm_alpha)
         logging.info('  Activation function:    %s', activation)
         logging.info('  alpha:                  %s', alpha)
         logging.info('  Batch size:             %s', batch_size)
@@ -89,11 +98,12 @@ class Forge:
 
         # Check necessary information is theere
         assert x is not None
+        if method in ['nde', 'scandal', 'rolr', 'alice', 'rascal', 'alices', 'rolr2', 'alice2', 'rascal2', 'alices2']:
+            assert theta0 is not None
         if method in ['rolr', 'alice', 'rascal', 'alices', 'rolr2', 'alice2', 'rascal2', 'alices2']:
             assert r_xz is not None
-            assert theta0 is not None
             assert y is not None
-        if method in ['rascal', 'alices', 'rascal2', 'alices2', 'sally', 'sallino']:
+        if method in ['scandal', 'rascal', 'alices', 'rascal2', 'alices2', 'sally', 'sallino']:
             assert t_xz0 is not None
         if method in ['carl2', 'rolr2', 'alice2', 'rascal2', 'alices2']:
             assert theta1 is not None
@@ -116,6 +126,9 @@ class Forge:
         self.n_parameters = n_parameters
         self.n_hidden = n_hidden
         self.activation = activation
+        self.maf_n_mades = maf_n_mades
+        self.maf_batch_norm = maf_batch_norm
+        self.maf_batch_norm_alpha = maf_batch_norm_alpha
 
         # Create model
         logging.info('Creating model for method %s', method)
@@ -143,49 +156,70 @@ class Forge:
                 n_hidden=n_hidden,
                 activation=activation
             )
+        elif method in ['nde', 'scandal']:
+            self.method_type = 'nde'
+            self.model = ConditionalMaskedAutoregressiveFlow(
+                n_conditionals=n_parameters,
+                n_inputs=n_observables,
+                n_hiddens=n_hidden,
+                n_mades=maf_n_mades,
+                activation=activation,
+                batch_norm=maf_batch_norm,
+                alpha=maf_batch_norm_alpha
+            )
         else:
             raise NotImplementedError('Unknown method {}'.format(method))
 
         # Loss fn
         if method in ['carl', 'carl2']:
-            loss_functions = [losses.standard_cross_entropy]
+            loss_functions = [ratio_losses.standard_cross_entropy]
             loss_weights = [1.]
             loss_labels = ['xe']
 
         elif method in ['rolr', 'rolr2']:
-            loss_functions = [losses.ratio_mse]
+            loss_functions = [ratio_losses.ratio_mse]
             loss_weights = [1.]
             loss_labels = ['mse_r']
 
         elif method == 'rascal':
-            loss_functions = [losses.ratio_mse, losses.score_mse_num]
+            loss_functions = [ratio_losses.ratio_mse, ratio_losses.score_mse_num]
             loss_weights = [1., alpha]
             loss_labels = ['mse_r', 'mse_score']
 
         elif method == 'rascal2':
-            loss_functions = [losses.ratio_mse, losses.score_mse]
+            loss_functions = [ratio_losses.ratio_mse, ratio_losses.score_mse]
             loss_weights = [1., alpha]
             loss_labels = ['mse_r', 'mse_score']
 
         elif method in ['alice', 'alice2']:
-            loss_functions = [losses.augmented_cross_entropy]
+            loss_functions = [ratio_losses.augmented_cross_entropy]
             loss_weights = [1.]
             loss_labels = ['improved_xe']
 
         elif method == 'alices':
-            loss_functions = [losses.augmented_cross_entropy, losses.score_mse_num]
+            loss_functions = [ratio_losses.augmented_cross_entropy, ratio_losses.score_mse_num]
             loss_weights = [1., alpha]
             loss_labels = ['improved_xe', 'mse_score']
 
         elif method == 'alices2':
-            loss_functions = [losses.augmented_cross_entropy, losses.score_mse]
+            loss_functions = [ratio_losses.augmented_cross_entropy, ratio_losses.score_mse]
             loss_weights = [1., alpha]
             loss_labels = ['improved_xe', 'mse_score']
 
         elif method in ['sally', 'sallino']:
-            loss_functions = [losses.local_score_mse]
+            loss_functions = [ratio_losses.local_score_mse]
             loss_weights = [1.]
             loss_labels = ['mse_score']
+
+        elif method == 'nde':
+            loss_functions = [flow_losses.negative_log_likelihood]
+            loss_weights = [1.]
+            loss_labels = ['nll']
+
+        elif method == 'scandal':
+            loss_functions = [flow_losses.negative_log_likelihood, flow_losses.score_mse()]
+            loss_weights = [1., alpha]
+            loss_labels = ['nll', 'mse_score']
 
         else:
             raise NotImplementedError('Unknown method {}'.format(method))
@@ -201,6 +235,21 @@ class Forge:
                 loss_labels=loss_labels,
                 xs=x,
                 t_xzs=t_xz0,
+                batch_size=batch_size,
+                n_epochs=n_epochs,
+                initial_learning_rate=initial_lr,
+                final_learning_rate=final_lr,
+                validation_split=validation_split,
+                early_stopping=early_stopping
+            )
+        elif method in ['nde', 'scandal']:
+            train_flow_model(
+                model=self.model,
+                loss_functions=loss_functions,
+                loss_weights=loss_weights,
+                loss_labels=loss_labels,
+                xs=x,
+                t_xz0s=t_xz0,
                 batch_size=batch_size,
                 n_epochs=n_epochs,
                 initial_learning_rate=initial_lr,
@@ -280,14 +329,24 @@ class Forge:
                 logging.debug('Starting ratio evaluation for thetas %s / %s: %s vs %s',
                               i + 1, len(theta0s), theta0, theta1)
 
-                _, log_r_hat, t_hat0, t_hat1 = evaluate_ratio_model(
-                    model=self.model,
-                    method_type=self.method_type,
-                    theta0s=[theta0],
-                    theta1s=[theta1] if theta1 is not None else None,
-                    xs=xs,
-                    evaluate_score=evaluate_score
-                )
+                if self.method in ['nde', 'scandal']:
+                    _, log_r_hat, t_hat0 = evaluate_flow_model(
+                        model=self.model,
+                        theta0s=[theta0],
+                        xs=xs,
+                        evaluate_score=evaluate_score
+                    )
+                    t_hat1 = None
+
+                else:
+                    _, log_r_hat, t_hat0, t_hat1 = evaluate_ratio_model(
+                        model=self.model,
+                        method_type=self.method_type,
+                        theta0s=[theta0],
+                        theta1s=[theta1] if theta1 is not None else None,
+                        xs=xs,
+                        evaluate_score=evaluate_score
+                    )
 
                 all_log_r_hat.append(log_r_hat)
                 all_t_hat0.append(t_hat0)
@@ -300,14 +359,24 @@ class Forge:
         else:
             logging.info('Starting ratio evaluation')
 
-            _, all_log_r_hat, all_t_hat0, all_t_hat1 = evaluate_ratio_model(
-                model=self.model,
-                method_type=self.method_type,
-                theta0s=theta0s,
-                theta1s=None if None in theta1s else theta1s,
-                xs=xs,
-                evaluate_score=evaluate_score
-            )
+            if self.method in ['nde', 'scandal']:
+                _, all_log_r_hat, t_hat0 = evaluate_flow_model(
+                    model=self.model,
+                    theta0s=[theta0],
+                    xs=xs,
+                    evaluate_score=evaluate_score
+                )
+                all_t_hat1 = None
+
+            else:
+                _, all_log_r_hat, all_t_hat0, all_t_hat1 = evaluate_ratio_model(
+                    model=self.model,
+                    method_type=self.method_type,
+                    theta0s=theta0s,
+                    theta1s=None if None in theta1s else theta1s,
+                    xs=xs,
+                    evaluate_score=evaluate_score
+                )
 
         logging.info('Evaluation done')
 

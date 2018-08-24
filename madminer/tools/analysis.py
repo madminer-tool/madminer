@@ -91,7 +91,7 @@ def extract_augmented_data(augmented_data_definitions,
             sigma_den = theta_matrices[i_den].dot(xsecs_benchmarks.T)
 
             ratio = (dsigma_num / sigma_num) / (dsigma_den / sigma_den)
-            ratio = ratio.reshape((-1,1))
+            ratio = ratio.reshape((-1, 1))
 
             augmented_data.append(ratio)
 

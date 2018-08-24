@@ -132,7 +132,6 @@ def create_missing_folders(folders):
 
 
 def load_and_check(filename, warning_threshold=1.e9):
-
     if filename is None:
         return None
 
@@ -154,3 +153,15 @@ def load_and_check(filename, warning_threshold=1.e9):
                         filename, smallest, largest)
 
     return data
+
+
+def s_from_r(r):
+    return np.clip(1. / (1. + r), 0., 1.)
+
+
+def r_from_s(s, epsilon=1.e-6):
+    return np.clip((1. - s + epsilon) / (s + epsilon), epsilon, None)
+
+
+def sigmoid(x):
+    return 1. / (1. + np.exp(-x))

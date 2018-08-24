@@ -61,7 +61,6 @@ class Morpher:
 
         components = []
 
-        c = 0
         powers_each_component = [range(self.parameter_max_power[i] + 1) for i in range(self.n_parameters)]
 
         for powers in itertools.product(*powers_each_component):
@@ -296,7 +295,7 @@ class Morpher:
 
         return weights
 
-    def calculate_morphing_weight_gradient(self, theta, basis=None, morphing_matrix=None, epsilon=1.e-9):
+    def calculate_morphing_weight_gradient(self, theta, basis=None, morphing_matrix=None):
 
         """ Calculates the gradient of the morphing weights grad_i w_b(theta). Output shape is (gradient
         direction, basis benchmarks). """
@@ -324,7 +323,7 @@ class Morpher:
             for i in range(self.n_parameters):
                 factor = 1.
                 for p in range(self.n_parameters):
-                    if p == i and self.components[c,p] > 0:
+                    if p == i and self.components[c, p] > 0:
                         factor *= float(self.components[c, p]) * theta[p] ** (self.components[c, p] - 1)
                     elif p == i:
                         factor = 0.
