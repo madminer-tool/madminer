@@ -337,7 +337,7 @@ class Morpher:
 
         return weight_gradients
 
-    def evaluate_morphing(self, basis=None, morphing_matrix=None, n_test_thetas=100):
+    def evaluate_morphing(self, basis=None, morphing_matrix=None, n_test_thetas=100, return_weights_and_thetas=False):
 
         """ Evaluates an objective function for a given basis """
 
@@ -359,10 +359,17 @@ class Morpher:
 
         thetas_test = self._draw_random_thetas(n_thetas=n_test_thetas)
         squared_weights = 0.
+        squared_weight_list = []
 
         for theta in thetas_test:
             weights = self.calculate_morphing_weights(theta, basis, morphing_matrix)
             squared_weights += np.sum(weights * weights)
+
+            if return_weights_and_thetas:
+                squared_weight_list.append(np.sum(weights * weights))
+
+        if return_weights_and_thetas:
+            return thetas_test, np.array(squared_weight_list)
 
         squared_weights /= float(n_test_thetas)
 
