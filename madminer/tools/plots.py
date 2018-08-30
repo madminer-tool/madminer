@@ -47,3 +47,40 @@ def plot_2d_morphing_basis(morpher,
     plt.tight_layout()
 
     return fig
+
+
+def plot_nd_morphing_basis(morpher,
+                           crange=(1., 100.),
+                           n_test_thetas=1000):
+    basis = morpher.basis
+
+    assert basis is not None, "No basis defined"
+
+    n_parameters = basis.shape[1]
+
+    #  Get squared weights
+    thetas, squared_weights = morpher.evaluate_morphing(n_test_thetas=n_test_thetas, return_weights_and_thetas=True)
+
+    # Plot
+    fig = plt.figure(figsize=((n_parameters - 1) * 5., (n_parameters - 1)*4.))
+
+    for iy in range(1, n_parameters):
+        for ix in range(0, iy):
+
+            i_panel = 1 + (iy - 1)*(n_parameters - 1) + ix
+            ax = plt.subplot(n_parameters - 1, n_parameters - 1, i_panel)
+
+            sc = plt.scatter(thetas[:,ix], thetas[:,iy], c=squared_weights, s=20.,
+                            norm=matplotlib.colors.LogNorm(vmin=crange[0], vmax=crange[1]),
+                            cmap='viridis_r')
+            cbar = fig.colorbar(sc, ax=ax, extend='both')
+
+            plt.scatter(basis[:, ix], basis[:, iy], s=100., lw=1., edgecolor='black', c='white')
+
+            plt.xlabel(r'$\theta_' + str(ix) + '$')
+            plt.ylabel(r'$\theta_' + str(iy) + '$')
+            cbar.set_label(r'$\sqrt{\sum w_i^2}$')
+
+    plt.tight_layout()
+
+    return fig
