@@ -412,6 +412,7 @@ class GoldMine:
             mg_process_directory=None,
             temp_directory=None,
             sample_benchmark=None,
+            is_background=False,
             initial_command=None,
             log_directory=None):
 
@@ -429,6 +430,9 @@ class GoldMine:
                                   is used.
         :param mg_process_directory: Path to the MG process directory. If None, use
                                      <MadGraph directory>/MadMiner_process.
+        :param is_background: bool that should be True for background processes, i.e. process in which the differential
+                              cross section does NOT depend on the parameters (and would be the same for all
+                              benchmarks). In this case, no reweighting is run.
         :param initial_command: Initial shell commands that have to be executed before MG is run (e.g. loading a virtual
                                 environment).
         :param log_directory: Directory for log files with the MadGraph output.
@@ -465,5 +469,6 @@ class GoldMine:
                            None,
                            None,
                            pythia8_card_file,
+                           is_background=is_background,
                            initial_command=initial_command,
                            log_file=log_file_run)
