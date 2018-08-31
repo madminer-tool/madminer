@@ -44,6 +44,12 @@ def save_madminer_settings(filename,
             [parameters[key][3] for key in parameter_names],
             dtype=np.float
         )
+        parameter_transforms = []
+        for key in parameter_names:
+            parameter_transform = parameters[key][4]
+            if parameter_transform is None:
+                parameter_transform = ''
+            parameter_transforms.append(parameter_transform.encode("ascii", "ignore"))
 
         # Store parameters
         f.create_dataset('parameters/names', (n_parameters,), dtype='S256', data=parameter_names_ascii)
@@ -51,6 +57,7 @@ def save_madminer_settings(filename,
         f.create_dataset("parameters/lha_ids", data=parameter_lha_ids)
         f.create_dataset('parameters/max_power', data=parameter_max_power)
         f.create_dataset('parameters/ranges', data=parameter_ranges)
+        f.create_dataset('parameters/transforms', (n_parameters,), dtype='S256', data=parameter_transforms)
 
         # Prepare benchmarks
         benchmark_names = [bname for bname in benchmarks]
@@ -86,19 +93,25 @@ def load_madminer_settings(filename):
             parameter_lha_ids = f['parameters/lha_ids'][()]
             parameter_ranges = f['parameters/ranges'][()]
             parameter_max_power = f['parameters/max_power'][()]
+            parameter_transforms = f['parameters/transforms'][()]
 
             parameter_names = [pname.decode("ascii") for pname in parameter_names]
             parameter_lha_blocks = [pblock.decode("ascii") for pblock in parameter_lha_blocks]
+            parameter_transforms = [ptrf.decode("ascii") for ptrf in parameter_transforms]
+            parameter_transforms = [None if ptrf == '' else ptrf for ptrf in parameter_transforms]
 
             parameters = OrderedDict()
 
-            for pname, prange, pblock, pid, p_maxpower in zip(parameter_names, parameter_ranges, parameter_lha_blocks,
-                                                              parameter_lha_ids, parameter_max_power):
+            for pname, prange, pblock, pid, p_maxpower, ptrf in zip(parameter_names, parameter_ranges,
+                                                                    parameter_lha_blocks,
+                                                                    parameter_lha_ids, parameter_max_power,
+                                                                    parameter_transforms):
                 parameters[pname] = (
                     pblock,
                     int(pid),
                     int(p_maxpower),
-                    tuple(prange)
+                    tuple(prange),
+                    ptrf
                 )
 
         except KeyError:
