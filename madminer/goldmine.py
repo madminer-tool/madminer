@@ -43,8 +43,10 @@ class GoldMine:
                                    of the process of interest. Typically at tree level, this is 2 for parameters that
                                    affect one vertex (e.g. only production or only decay of a particle), and 4 for
                                    parameters that affect two vertices (e.g. production and decay).
-        :param param_card_transform: None or a one-parameter function that takes as input the value of the parameter
-                                     and as output returns the value that should be written in the parameter cards.
+        :param param_card_transform: None or str that represents a one-parameter function mapping the parameter
+                                     (`"theta"`) to the value that should be written in the parameter cards. This
+                                     str is parsed by Python's `eval()` function, and `"theta"` is parsed as the
+                                     parameter value.
         :param parameter_range: tuple, the range of parameter values of primary interest. Only affects the
                                          basis optimization.
         """
