@@ -11,6 +11,8 @@ import logging
 def extract_observables_from_delphes_file(delphes_sample_file,
                                           observables,
                                           observables_required,
+                                          cuts,
+                                          cuts_default_pass,
                                           weight_labels):
     # Delphes ROOT file
     root_file = uproot.open(delphes_sample_file)
@@ -56,6 +58,30 @@ def extract_observables_from_delphes_file(delphes_sample_file,
         values_this_observable = np.array(values_this_observable, dtype=np.float)
         observable_values[obs_name] = values_this_observable
 
+    # Obtain values for each cut in each event
+    cut_values = []
+
+    for cut, default_pass in zip(cuts, cuts_default_pass):
+        values_this_cut = []
+
+        for event in range(n_events):
+            variables = {'e': electrons_all_events[event],
+                         'j': jets_all_events[event],
+                         'a': photons_all_events[event],
+                         'mu': muons_all_events[event],
+                         'met': met_all_events[event][0]}
+
+            for obs_name in observable_values:
+                variables[obs_name] = observable_values[obs_name][event]
+
+            try:
+                values_this_cut.append(eval(cut, variables))
+            except:
+                values_this_cut.append(default_pass)
+
+        values_this_cut = np.array(values_this_cut, dtype=np.bool)
+        cut_values.append(values_this_cut)
+
     # Check for existence of required observables
     combined_filter = None
 
@@ -72,6 +98,19 @@ def extract_observables_from_delphes_file(delphes_sample_file,
                 combined_filter = this_filter
             else:
                 combined_filter = np.logical_and(combined_filter, this_filter)
+
+    # Check cuts
+    for cut, values_this_cut in zip(cuts, cut_values):
+        n_pass = np.sum(values_this_cut)
+        n_fail = np.sum(np.invert(values_this_cut))
+
+        logging.info('Cut %s: %s events pass, %s events removed',
+                     cut, n_pass, n_fail)
+
+        if combined_filter is None:
+            combined_filter = cut
+        else:
+            combined_filter = np.logical_and(combined_filter, cut)
 
     # Apply filter
     if combined_filter is not None:

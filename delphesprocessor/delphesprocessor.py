@@ -30,6 +30,10 @@ class DelphesProcessor:
         self.observables = OrderedDict()
         self.observables_required = OrderedDict()
 
+        # Initialize cuts
+        self.cuts = []
+        self.cuts_default_pass = []
+
         # Initialize samples
         self.observations = None
         self.weights = None
@@ -90,6 +94,11 @@ class DelphesProcessor:
     def set_default_observables(self):
         raise NotImplementedError
 
+    def add_cut(self, definition, pass_if_not_parsed=False):
+        logging.info('Adding cut %s', definition)
+        self.cuts.append(definition)
+        self.cuts_default_pass.append(pass_if_not_parsed)
+
     def analyse_delphes_samples(self):
 
         n_benchmarks = self.n_benchmarks
@@ -103,6 +112,8 @@ class DelphesProcessor:
                 delphes_file,
                 self.observables,
                 self.observables_required,
+                self.cuts,
+                self.cuts_default_pass,
                 weight_labels
             )
 
