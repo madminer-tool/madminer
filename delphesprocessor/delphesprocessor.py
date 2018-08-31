@@ -1,10 +1,11 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+import six
 from collections import OrderedDict
 import numpy as np
 import logging
 
-from delphesprocessor.tools.h5_interface import add_events_to_madminer_file
+from delphesprocessor.tools.h5_interface import add_events_to_madminer_file, load_benchmarks_from_madminer_file
 from delphesprocessor.tools.delphes_interface import run_delphes
 from delphesprocessor.tools.root_interface import extract_observables_from_delphes_file
 from delphesprocessor.tools.hepmc_interface import extract_weight_order
@@ -14,7 +15,7 @@ from delphesprocessor.tools.utils import general_init
 class DelphesProcessor:
     """ """
 
-    def __init__(self, debug=False):
+    def __init__(self, filename=None, debug=False):
         """ Constructor """
 
         general_init(debug=debug)
@@ -29,9 +30,20 @@ class DelphesProcessor:
         self.observables = OrderedDict()
         self.observables_required = OrderedDict()
 
+        # Initialize cuts
+        self.cuts = []
+        self.cuts_default_pass = []
+
         # Initialize samples
         self.observations = None
         self.weights = None
+
+        # Information from .h5 file
+        self.filename = filename
+        if self.filename is None:
+            self.benchmark_names = None
+        else:
+            self.benchmark_names = load_benchmarks_from_madminer_file(self.filename)
 
     def add_hepmc_sample(self, filename, sampled_from_benchmark):
 
@@ -82,19 +94,40 @@ class DelphesProcessor:
     def set_default_observables(self):
         raise NotImplementedError
 
+    def add_cut(self, definition, pass_if_not_parsed=False):
+        logging.info('Adding cut %s', definition)
+        self.cuts.append(definition)
+        self.cuts_default_pass.append(pass_if_not_parsed)
+
     def analyse_delphes_samples(self):
+
+        n_benchmarks = None if self.benchmark_names is None else len(self.benchmark_names)
 
         for delphes_file, weight_labels in zip(self.delphes_sample_filenames, self.hepmc_sample_weight_labels):
 
             logging.info('Analysing Delphes sample %s', delphes_file)
 
-            # Calculate observables and weights
+            # Calculate observables and weights in Delphes ROOT file
             this_observations, this_weights = extract_observables_from_delphes_file(
                 delphes_file,
                 self.observables,
                 self.observables_required,
+                self.cuts,
+                self.cuts_default_pass,
                 weight_labels
             )
+
+            # Number of benchmarks
+            if n_benchmarks is None:
+                n_benchmarks = len(this_weights)
+
+            # Background scenario: we only have one set of weights, but these should be true for all benchmarks
+            if len(this_weights) == 1 and self.benchmark_names is not None:
+                original_weights = list(six.itervalues(this_weights))[0]
+
+                this_weights = OrderedDict()
+                for benchmark_name in self.benchmark_names:
+                    this_weights[benchmark_name] = original_weights
 
             # Merge
             if self.observations is None and self.weights is None:
@@ -112,7 +145,7 @@ class DelphesProcessor:
                 ))
 
             for key in self.weights:
-                assert key in this_observations, "Weight label {} not found in Delphes sample!".format(
+                assert key in this_weights, "Weight label {} not found in Delphes sample!".format(
                     key
                 )
                 self.weights[key] = np.hstack([self.weights[key], this_weights[key]])
@@ -123,18 +156,18 @@ class DelphesProcessor:
                 )
                 self.observations[key] = np.hstack([self.observations[key], this_observations[key]])
 
-    def save(self, filename_out, filename_in=None):
+    def save(self, filename_out):
 
         assert (self.observables is not None and self.observations is not None
                 and self.weights is not None), 'Nothing to save!'
 
-        if filename_in is None:
+        if self.filename is None:
             logging.info('Saving HDF5 file to %s', filename_out)
         else:
-            logging.info('Loading HDF5 data from %s and saving file to %s', filename_in, filename_out)
+            logging.info('Loading HDF5 data from %s and saving file to %s', self.filename, filename_out)
 
         add_events_to_madminer_file(filename_out,
                                     self.observables,
                                     self.observations,
                                     self.weights,
-                                    copy_from=filename_in)
+                                    copy_from=self.filename)

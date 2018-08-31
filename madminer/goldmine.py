@@ -7,7 +7,7 @@ from collections import OrderedDict
 import tempfile
 
 from madminer.tools.morphing import Morpher
-from madminer.tools.h5_interface import save_madminer_settings
+from madminer.tools.h5_interface import save_madminer_settings, load_madminer_settings
 from madminer.tools.mg_interface import export_param_card, export_reweight_card, generate_mg_process, run_mg_pythia
 from madminer.tools.utils import create_missing_folders, general_init, format_benchmark
 
@@ -43,8 +43,10 @@ class GoldMine:
                                    of the process of interest. Typically at tree level, this is 2 for parameters that
                                    affect one vertex (e.g. only production or only decay of a particle), and 4 for
                                    parameters that affect two vertices (e.g. production and decay).
-        :param param_card_transform: None or a one-parameter function that takes as input the value of the parameter
-                                     and as output returns the value that should be written in the parameter cards.
+        :param param_card_transform: None or str that represents a one-parameter function mapping the parameter
+                                     (`"theta"`) to the value that should be written in the parameter cards. This
+                                     str is parsed by Python's `eval()` function, and `"theta"` is parsed as the
+                                     parameter value.
         :param parameter_range: tuple, the range of parameter values of primary interest. Only affects the
                                          basis optimization.
         """
@@ -221,7 +223,43 @@ class GoldMine:
     def set_benchmarks_from_finite_differences(self):
         raise NotImplementedError
 
+    def load(self, filename, disable_morphing=False):
+        """ Loads MadMiner setup from HDF5 file """
+
+        # Load data
+        (self.parameters, self.benchmarks, morphing_components, morphing_matrix,
+         _, _) = load_madminer_settings(filename)
+
+        logging.info('Found %s parameters:', len(self.parameters))
+        for key, values in six.iteritems(self.parameters):
+            logging.info('   %s (LHA: %s %s, maximal power in squared ME: %s, range: %s)',
+                         key, values[0], values[1], values[2], values[3])
+
+        logging.info('Found %s benchmarks:', len(self.benchmarks))
+        for key, values in six.iteritems(self.benchmarks):
+            logging.info('   %s: %s',
+                         key, format_benchmark(values))
+
+            if self.default_benchmark is None:
+                self.default_benchmark = key
+
+        # Morphing
+        self.morpher = None
+        self.export_morphing = False
+
+        if morphing_matrix is not None and morphing_components is not None and not disable_morphing:
+            self.morpher = Morpher(self.parameters)
+            self.morpher.set_components(morphing_components)
+            self.morpher.set_basis(self.benchmarks, morphing_matrix=morphing_matrix)
+            self.export_morphing = True
+
+            logging.info('Found morphing setup with %s components', len(morphing_components))
+
+        else:
+            logging.info('Did not find morphing setup.')
+
     def save(self, filename):
+        """ Saves MadMiner setup from HDF5 file """
 
         create_missing_folders([os.path.dirname(filename)])
 
@@ -323,6 +361,7 @@ class GoldMine:
                       param_card_file=None,
                       reweight_card_file=None,
                       pythia8_card_file=None,
+                      is_background=False,
                       initial_command=None,
                       log_file=None):
 
@@ -338,6 +377,9 @@ class GoldMine:
                                    is used.
         :param pythia8_card_file: Path to the MadGraph Pythia8 card. If None, the card present in the process folder
                                   is used.
+        :param is_background: bool that should be True for background processes, i.e. process in which the differential
+                              cross section does NOT depend on the parameters (and would be the same for all
+                              benchmarks). In this case, no reweighting is run.
         :param initial_command: Initial shell commands that have to be executed before MG is run (e.g. loading a virtual
                                 environment).
         :param log_file: Path to a log file in which the MadGraph output is saved.
@@ -355,6 +397,7 @@ class GoldMine:
             param_card_file,
             reweight_card_file,
             pythia8_card_file,
+            is_background=is_background,
             initial_command=initial_command,
             log_file=log_file
         )
@@ -369,6 +412,7 @@ class GoldMine:
             mg_process_directory=None,
             temp_directory=None,
             sample_benchmark=None,
+            is_background=False,
             initial_command=None,
             log_directory=None):
 
@@ -386,6 +430,9 @@ class GoldMine:
                                   is used.
         :param mg_process_directory: Path to the MG process directory. If None, use
                                      <MadGraph directory>/MadMiner_process.
+        :param is_background: bool that should be True for background processes, i.e. process in which the differential
+                              cross section does NOT depend on the parameters (and would be the same for all
+                              benchmarks). In this case, no reweighting is run.
         :param initial_command: Initial shell commands that have to be executed before MG is run (e.g. loading a virtual
                                 environment).
         :param log_directory: Directory for log files with the MadGraph output.
@@ -422,5 +469,6 @@ class GoldMine:
                            None,
                            None,
                            pythia8_card_file,
+                           is_background=is_background,
                            initial_command=initial_command,
                            log_file=log_file_run)

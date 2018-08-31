@@ -5,8 +5,8 @@ import os
 
 from delphesprocessor.tools.utils import call_command
 
-def extract_weight_order(filename, default_weight_label=None):
 
+def extract_weight_order(filename, default_weight_label=None):
     # Untar event file
     new_filename, extension = os.path.splitext(filename)
     if extension == '.gz':
@@ -38,5 +38,7 @@ def extract_weight_order(filename, default_weight_label=None):
 
             return weight_labels
 
-    raise RuntimeError('HEPMC weight labels not found in file {}'.format(filename))
+    # Default result (no reweighting, background scenario)
+    logging.debug('Did not find weight labels in HEPMC file')
 
+    return [default_weight_label]

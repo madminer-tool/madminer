@@ -28,7 +28,7 @@
 # Warning: Do not generate more than 1M events in a single run       *
 # If you want to run Pythia, avoid more than 50k events in a run.    *
 #*********************************************************************
-100 = nevents ! Number of unweighted events requested 
+10000 = nevents ! Number of unweighted events requested 
   0    = iseed   ! rnd seed (0=assigned automatically=default))
 #*********************************************************************
 # Collider type and energy                                           *
@@ -177,11 +177,11 @@
 #*********************************************************************
  0.0   = mmjj    ! min invariant mass of a jet pair 
  0.0   = mmbb    ! min invariant mass of a b pair 
- 0.0   = mmaa    ! min invariant mass of gamma gamma pair
+ 120.0   = mmaa    ! min invariant mass of gamma gamma pair
  0.0   = mmll    ! min invariant mass of l+l- (same flavour) lepton pair
  -1.0  = mmjjmax ! max invariant mass of a jet pair
  -1.0  = mmbbmax ! max invariant mass of a b pair
- -1.0  = mmaamax ! max invariant mass of gamma gamma pair
+ 130.0  = mmaamax ! max invariant mass of gamma gamma pair
  -1.0  = mmllmax ! max invariant mass of l+l- (same flavour) lepton pair
  {} = mxx_min_pdg ! min invariant mass of a pair of particles X/X~ (e.g. {6:250})
  {'default': False} = mxx_only_part_antipart ! if True the invariant mass is applied only 

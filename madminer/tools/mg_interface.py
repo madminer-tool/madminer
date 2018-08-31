@@ -20,9 +20,11 @@ def export_param_card(benchmark,
         parameter_lha_block = parameters[parameter_name][0]
         parameter_lha_id = parameters[parameter_name][1]
 
+        # Transform parameters if needed
         parameter_transform = parameters[parameter_name][4]
         if parameter_transform is not None:
-            parameter_value = parameter_transform(parameter_value)
+            variables = {'theta': parameter_value}
+            parameter_value = eval(parameter_transform, variables)
 
         block_begin = param_card.lower().find(('Block ' + parameter_lha_block).lower())
         if block_begin < 0:
@@ -88,9 +90,11 @@ def export_reweight_card(sample_benchmark,
             parameter_lha_block = parameters[parameter_name][0]
             parameter_lha_id = parameters[parameter_name][1]
 
+            # Transform parameters if needed
             parameter_transform = parameters[parameter_name][4]
             if parameter_transform is not None:
-                parameter_value = parameter_transform(parameter_value)
+                variables = {'theta': parameter_value}
+                parameter_value = eval(parameter_transform, variables)
 
             lines.append('  set {0} {1} {2}'.format(parameter_lha_block, parameter_lha_id, parameter_value))
 
@@ -135,6 +139,7 @@ def run_mg_pythia(mg_directory,
                   param_card_file=None,
                   reweight_card_file=None,
                   pythia8_card_file=None,
+                  is_background=False,
                   initial_command=None,
                   log_file=None):
 
@@ -174,7 +179,7 @@ def run_mg_pythia(mg_directory,
         shutil.copyfile(run_card_file, mg_process_directory + '/Cards/run_card.dat')
     if param_card_file is not None:
         shutil.copyfile(param_card_file, mg_process_directory + '/Cards/param_card.dat')
-    if reweight_card_file is not None:
+    if reweight_card_file is not None and not is_background:
         shutil.copyfile(reweight_card_file, mg_process_directory + '/Cards/reweight_card.dat')
     if pythia8_card_file is not None:
         shutil.copyfile(pythia8_card_file, mg_process_directory + '/Cards/pythia8_card.dat')
@@ -182,26 +187,18 @@ def run_mg_pythia(mg_directory,
     # MG commands
     temp_proc_card_file = temp_directory + '/run.mg5'
 
-    if pythia8_card_file is not None:
-        mg_commands = '''
-            launch {}
-            shower=Pythia8
-            detector=OFF
-            analysis=OFF
-            madspin=OFF
-            reweight=ON
-            done
-            '''.format(mg_process_directory)
-    else:
-        mg_commands = '''
-            launch {}
-            shower=OFF
-            detector=OFF
-            analysis=OFF
-            madspin=OFF
-            reweight=ON
-            done
-            '''.format(mg_process_directory)
+    shower_option = 'OFF' if pythia8_card_file is None else 'Pythia8'
+    reweight_option = 'OFF' if is_background else 'ON'
+
+    mg_commands = '''
+        launch {}
+        shower={}
+        detector=OFF
+        analysis=OFF
+        madspin=OFF
+        reweight={}
+        done
+        '''.format(mg_process_directory, shower_option, reweight_option)
 
     with open(temp_proc_card_file, 'w') as file:
         file.write(mg_commands)

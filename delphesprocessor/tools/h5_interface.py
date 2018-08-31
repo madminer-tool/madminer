@@ -6,6 +6,22 @@ import shutil
 import logging
 
 
+def load_benchmarks_from_madminer_file(filename):
+    with h5py.File(filename, 'r') as f:
+
+        # Benchmarks
+        try:
+            benchmark_names = f['benchmarks/names'][()]
+            benchmark_names = [bname.decode("ascii") for bname in benchmark_names]
+
+            logging.debug('Benchmarks found in MadMiner file: %s', benchmark_names)
+
+        except KeyError:
+            raise IOError('Cannot read benchmarks from HDF5 file')
+
+        return benchmark_names
+
+
 def add_events_to_madminer_file(filename,
                                 observables,
                                 observations,
