@@ -121,11 +121,20 @@ examples/tutorial/data
 examples/tutorial/datasave
 examples/tutorial/logs
 examples/tutorial/ME5_debug
-examples/tutorial/MG_process
+examples/tutorial/mg_processes
 examples/tutorial/py.py
 examples/tutorial/models
 
-examples/tutorial/smearing_data
+examples/tutorial_parton/temp
+examples/tutorial_parton/nsqso_born.inc
+examples/tutorial_parton/data
+examples/tutorial_parton/datasave
+examples/tutorial_parton/logs
+examples/tutorial_parton/ME5_debug
+examples/tutorial_parton/MG_Process
+examples/tutorial_parton/py.py
+examples/tutorial_parton/models
+examples/tutorial_parton/smearing_data
 
 examples/debug/temp
 examples/debug/nsqso_born.inc
