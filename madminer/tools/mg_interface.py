@@ -90,9 +90,11 @@ def export_reweight_card(sample_benchmark,
             parameter_lha_block = parameters[parameter_name][0]
             parameter_lha_id = parameters[parameter_name][1]
 
+            # Transform parameters if needed
             parameter_transform = parameters[parameter_name][4]
             if parameter_transform is not None:
-                parameter_value = parameter_transform(parameter_value)
+                variables = {'theta': parameter_value}
+                parameter_value = eval(parameter_transform, variables)
 
             lines.append('  set {0} {1} {2}'.format(parameter_lha_block, parameter_lha_id, parameter_value))
 
