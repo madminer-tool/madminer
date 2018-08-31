@@ -697,6 +697,8 @@ class Refinery:
 
         logging.debug('Starting sample extraction')
 
+        assert n_samples_per_theta > 0, 'Requested %s samples per theta!'.format(n_samples_per_theta)
+
         if augmented_data_definitions is None:
             augmented_data_definitions = []
 
