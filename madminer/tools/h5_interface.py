@@ -157,7 +157,9 @@ def load_madminer_settings(filename):
                 raise ValueError("Number of weights and observations don't match: {}, {}", weights.shape[0], n_samples)
 
         except KeyError:
-            raise IOError('Cannot read samples from HDF5 file')
+            observations = None
+            weights = None
+            n_samples = 0
 
         return parameters, benchmarks, morphing_components, morphing_matrix, observables, n_samples
 
