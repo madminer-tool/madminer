@@ -8,7 +8,7 @@ import logging
 from delphesprocessor.tools.h5_interface import add_events_to_madminer_file, load_benchmarks_from_madminer_file
 from delphesprocessor.tools.delphes_interface import run_delphes
 from delphesprocessor.tools.root_interface import extract_observables_from_delphes_file
-from delphesprocessor.tools.hepmc_interface import extract_weight_order, extract_number_of_benchmarks
+from delphesprocessor.tools.hepmc_interface import extract_weight_order
 from delphesprocessor.tools.utils import general_init
 
 
