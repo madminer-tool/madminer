@@ -41,9 +41,9 @@ class DelphesProcessor:
         # Information from .h5 file
         self.filename = filename
         if self.filename is None:
-            self.benchmark_names = load_benchmarks_from_madminer_file(self.filename)
-        else:
             self.benchmark_names = None
+        else:
+            self.benchmark_names = load_benchmarks_from_madminer_file(self.filename)
 
     def add_hepmc_sample(self, filename, sampled_from_benchmark):
 
@@ -101,7 +101,7 @@ class DelphesProcessor:
 
     def analyse_delphes_samples(self):
 
-        n_benchmarks = self.n_benchmarks
+        n_benchmarks = None if self.benchmark_names is None else len(self.benchmark_names)
 
         for delphes_file, weight_labels in zip(self.delphes_sample_filenames, self.hepmc_sample_weight_labels):
 
@@ -123,7 +123,7 @@ class DelphesProcessor:
 
             # Background scenario: we only have one set of weights, but these should be true for all benchmarks
             if len(this_weights) == 1 and self.benchmark_names is not None:
-                original_weights = six.itervalues(this_weights)[0]
+                original_weights = list(six.itervalues(this_weights))[0]
 
                 this_weights = OrderedDict()
                 for benchmark_name in self.benchmark_names:
@@ -145,7 +145,7 @@ class DelphesProcessor:
                 ))
 
             for key in self.weights:
-                assert key in this_observations, "Weight label {} not found in Delphes sample!".format(
+                assert key in this_weights, "Weight label {} not found in Delphes sample!".format(
                     key
                 )
                 self.weights[key] = np.hstack([self.weights[key], this_weights[key]])

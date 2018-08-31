@@ -108,9 +108,9 @@ def extract_observables_from_delphes_file(delphes_sample_file,
                      cut, n_pass, n_fail)
 
         if combined_filter is None:
-            combined_filter = cut
+            combined_filter = values_this_cut
         else:
-            combined_filter = np.logical_and(combined_filter, cut)
+            combined_filter = np.logical_and(combined_filter, values_this_cut)
 
     # Apply filter
     if combined_filter is not None:
