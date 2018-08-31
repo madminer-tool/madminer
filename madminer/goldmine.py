@@ -323,6 +323,7 @@ class GoldMine:
                       param_card_file=None,
                       reweight_card_file=None,
                       pythia8_card_file=None,
+                      is_background=False,
                       initial_command=None,
                       log_file=None):
 
@@ -338,6 +339,9 @@ class GoldMine:
                                    is used.
         :param pythia8_card_file: Path to the MadGraph Pythia8 card. If None, the card present in the process folder
                                   is used.
+        :param is_background: bool that should be True for background processes, i.e. process in which the differential
+                              cross section does NOT depend on the parameters (and would be the same for all benchmarks).
+                              In this case, no reweighting is run.
         :param initial_command: Initial shell commands that have to be executed before MG is run (e.g. loading a virtual
                                 environment).
         :param log_file: Path to a log file in which the MadGraph output is saved.
@@ -355,6 +359,7 @@ class GoldMine:
             param_card_file,
             reweight_card_file,
             pythia8_card_file,
+            is_background=is_background,
             initial_command=initial_command,
             log_file=log_file
         )
