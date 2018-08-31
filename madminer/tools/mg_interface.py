@@ -187,7 +187,7 @@ def run_mg_pythia(mg_directory,
     # MG commands
     temp_proc_card_file = temp_directory + '/run.mg5'
 
-    shower_option = 'Pythia8' if pythia8_card_file is None else 'OFF'
+    shower_option = 'OFF' if pythia8_card_file is None else 'Pythia8'
     reweight_option = 'OFF' if is_background else 'ON'
 
     mg_commands = '''

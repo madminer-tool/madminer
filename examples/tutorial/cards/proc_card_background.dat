@@ -1,2 +1,2 @@
 import model EWdim6-full
-generate p p > j j a a / h QCD=99 QED=99 NP=0
+generate u d > u d a a / h QCD=99 QED=99 NP=0
