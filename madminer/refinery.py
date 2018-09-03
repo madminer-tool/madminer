@@ -8,7 +8,7 @@ import six
 from madminer.tools.h5_interface import load_madminer_settings, madminer_event_loader, save_events_to_madminer_file
 from madminer.tools.analysis import get_theta_value, get_theta_benchmark_matrix, get_dtheta_benchmark_matrix
 from madminer.tools.analysis import extract_augmented_data, parse_theta
-from madminer.tools.morphing import Morpher
+from madminer.tools.morphing import AdvancedMorpher
 from madminer.tools.utils import general_init, format_benchmark, create_missing_folders, shuffle, balance_thetas
 
 
@@ -118,7 +118,7 @@ class Refinery:
         # Morphing
         self.morpher = None
         if self.morphing_matrix is not None and self.morphing_components is not None and not disable_morphing:
-            self.morpher = Morpher(self.parameters)
+            self.morpher = AdvancedMorpher(self.parameters)
             self.morpher.set_components(self.morphing_components)
             self.morpher.set_basis(self.benchmarks, morphing_matrix=self.morphing_matrix)
 
