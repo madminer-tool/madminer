@@ -6,7 +6,7 @@ import logging
 from collections import OrderedDict
 import tempfile
 
-from madminer.tools.morphing import Morpher
+from madminer.tools.morphing import AdvancedMorpher
 from madminer.tools.h5_interface import save_madminer_settings, load_madminer_settings
 from madminer.tools.mg_interface import export_param_card, export_reweight_card, generate_mg_process, run_mg_pythia
 from madminer.tools.utils import create_missing_folders, general_init, format_benchmark
@@ -39,10 +39,12 @@ class GoldMine:
         :param lha_block: str, the name of the LHA block as used in the param_card. Case-sensitive.
         :param lha_id: int, the LHA id as used in the param_card.
         :param parameter_name: an internal name for the parameter. If None, a the default 'benchmark_i' is used.
-        :param morphing_max_power: the maximal power with which this parameter contributes to the squared matrix element
-                                   of the process of interest. Typically at tree level, this is 2 for parameters that
-                                   affect one vertex (e.g. only production or only decay of a particle), and 4 for
-                                   parameters that affect two vertices (e.g. production and decay).
+        :param morphing_max_power: int or tuple of ints. The maximal power with which this parameter contributes to the
+                                   squared matrix element of the process of interest. If a tuple is given, gives this
+                                   maximal power for each of several operator configuraations. Typically at tree level,
+                                   this maximal number is 2 for parameters that affect one vertex (e.g. only production
+                                   or only decay of a particle), and 4 for parameters that affect two vertices (e.g.
+                                   production and decay).
         :param param_card_transform: None or str that represents a one-parameter function mapping the parameter
                                      (`"theta"`) to the value that should be written in the parameter cards. This
                                      str is parsed by Python's `eval()` function, and `"theta"` is parsed as the
@@ -64,6 +66,9 @@ class GoldMine:
         parameter_name = parameter_name.replace('-', '_')
 
         assert parameter_name not in self.parameters, 'Parameter name exists already: {}'.format(parameter_name)
+
+        if isinstance(morphing_max_power, int):
+            morphing_max_power = (morphing_max_power,)
 
         # Add parameter
         self.parameters[parameter_name] = (lha_block, lha_id,
@@ -190,7 +195,8 @@ class GoldMine:
         Sets all parameter benchmarks based on a morphing algorithm. The morphing basis is optimized with respect to the
         expected mean squared morphing weights over the parameter region of interest.
 
-        :param max_overall_power: The maximal sum of powers of all parameters.
+        :param max_overall_power: int or tuple of ints. The maximal sum of powers of all parameters, for each operator
+                                  configuration (in the case of a tuple of ints).
         :param n_bases: The number of morphing bases generated. If n_bases > 1, multiple bases are combined, and the
                         weights for each basis are reduced by a factor 1 / n_bases. Currently not supported.
         :param keep_existing_benchmarks: Whether the previously defined benchmarks are included in the basis. In that
@@ -202,7 +208,10 @@ class GoldMine:
 
         logging.info('Optimizing basis for morphing')
 
-        morpher = Morpher(parameters_from_madminer=self.parameters)
+        if isinstance(max_overall_power, int):
+            max_overall_power = (max_overall_power,)
+
+        morpher = AdvancedMorpher(parameters_from_madminer=self.parameters)
         morpher.find_components(max_overall_power)
 
         if keep_existing_benchmarks:
@@ -248,7 +257,7 @@ class GoldMine:
         self.export_morphing = False
 
         if morphing_matrix is not None and morphing_components is not None and not disable_morphing:
-            self.morpher = Morpher(self.parameters)
+            self.morpher = AdvancedMorpher(self.parameters)
             self.morpher.set_components(morphing_components)
             self.morpher.set_basis(self.benchmarks, morphing_matrix=morphing_matrix)
             self.export_morphing = True

@@ -109,7 +109,7 @@ def load_madminer_settings(filename):
                 parameters[pname] = (
                     pblock,
                     int(pid),
-                    int(p_maxpower),
+                    tuple(p_maxpower),
                     tuple(prange),
                     ptrf
                 )
