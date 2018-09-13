@@ -121,6 +121,7 @@ examples/tutorial/data
 examples/tutorial/datasave
 examples/tutorial/logs
 examples/tutorial/ME5_debug
+examples/tutorial/MG_Process
 examples/tutorial/mg_processes
 examples/tutorial/py.py
 examples/tutorial/models
