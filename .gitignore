@@ -148,3 +148,5 @@ examples/debug/models
 
 examples/tests/datasave
 
+# MG / Pythia / Delphes patch
+patches/
