@@ -9,6 +9,7 @@ from madminer.utils.interfaces.hdf5 import load_madminer_settings, madminer_even
 from madminer.utils.analysis import get_theta_benchmark_matrix, get_dtheta_benchmark_matrix
 from madminer.morphing import SimpleMorpher as Morpher
 from madminer.utils.various import general_init, format_benchmark
+from madminer.ml import MLForge
 
 
 class FisherInformation:
@@ -115,7 +116,7 @@ class FisherInformation:
         fisher_info = np.nan_to_num(fisher_info)
         return fisher_info
 
-    def passed_cuts(self, observables, cuts):
+    def _pass_cuts(self, observables, cuts):
         """
         Checks if an event, specified by a list of observables, passes a set of cuts.
 
@@ -135,9 +136,39 @@ class FisherInformation:
                 return False
         return True
 
-    def calculate_truth_fisher_information_full(self, theta, luminosity, cuts):
+    def _calculate_xsec(self, theta, cuts):
         """
-        Calculates the full Fisher information for a given parameter point theta and
+        Calculates the total cross section for a parameter point.
+
+        :param theta: ndarray specifying the parameter point.
+        :param theta: list (cuts) of definition of cuts (string)
+        :return: float, cross section in pb
+        """
+
+        # Total xsecs for benchmarks
+        xsecs_benchmarks = None
+
+        for observations, weights in madminer_event_loader(self.madminer_filename):
+            cut_filter = [self._pass_cuts(obs_event, cuts) for obs_event in observations]
+            if xsecs_benchmarks is None:
+                xsecs_benchmarks = np.sum(weights[cut_filter], axis=0)
+            else:
+                xsecs_benchmarks += np.sum(weights[cut_filter], axis=0)
+
+        # Translate to xsec for theta
+        theta_matrix = get_theta_benchmark_matrix(
+            'morphing',
+            theta,
+            self.benchmarks,
+            self.morpher
+        )
+        xsec = theta_matrix.dot(xsecs_benchmarks)
+
+        return xsec
+
+    def calculate_fisher_information_full_truth(self, theta, luminosity, cuts):
+        """
+        Calculates the full Fisher information at the parton level for a given parameter point theta and
         given luminosity, requiring that the events pass a set of cuts
 
         :param theta: list (components of theta) of float
@@ -152,7 +183,7 @@ class FisherInformation:
         # Select data that passes cuts
         weights_benchmarks = []
         for i in range(len(x_raw)):
-            if self.passed_cuts(x_raw[i], cuts):
+            if self._pass_cuts(x_raw[i], cuts):
                 weights_benchmarks.append(weights_benchmarks_raw[i])
 
         # Convert to array
@@ -166,7 +197,39 @@ class FisherInformation:
 
         return fisher_info
 
-    def calculate_truth_fisher_information_rate(self, theta, luminosity, cuts):
+    def calculate_fisher_information_full_detector(self, theta, luminosity, cuts,
+                                                   model_file, unweighted_x_sample_file):
+        """
+        Calculates the full Fisher information at detector level for a given parameter point theta and
+        given luminosity, requiring that the events pass a set of cuts
+
+        :param theta: list (components of theta) of float
+        :param luminosity: luminosity in fb^-1, float
+        :param cuts: list (cuts) of definition of cuts (string)
+        :param model_file: str, filename of a trained local score regression model that was trained on samples from
+                           theta (see `madminer.ml.MLForge`)
+        :param unweighted_x_sample_file: str, filename of an unweighted x sample that
+                                         - is sampled according to theta
+                                         - obeys the cuts
+                                         (see `madminer.sampling.SampleAugmenter.extract_samples_train_local()`)
+        :return: fisher_info (nxn tensor)
+        """
+
+        # TODO: automate extraction of unweighted x sample through
+        # TODO: madminer.sampling.SampleAugmenter.extract_samples_train_local()?
+
+        # Rate part of Fisher information
+        fisher_info_rate = self.calculate_fisher_information_rate(theta, luminosity, cuts)
+        total_xsec = self._calculate_xsec(theta, cuts)
+
+        # Kinematic part of Fisher information
+        model = MLForge()
+        model.load(model_file)
+        fisher_info_kin = model.calculate_fisher_information(unweighted_x_sample_file, n_events=luminosity*total_xsec)
+
+        return fisher_info_rate + fisher_info_kin
+
+    def calculate_fisher_information_rate(self, theta, luminosity, cuts):
         """
         Calculates the RATE-ONLY Fisher Information for a given parameter point theta and
         luminosity, requiring that the events pass a set of cuts
@@ -181,25 +244,23 @@ class FisherInformation:
         x_raw, weights_benchmarks_raw = next(madminer_event_loader(self.madminer_filename, batch_size=None))
 
         # Select data that passes cuts
-        # x = []
         weights_benchmarks = np.zeros(len(weights_benchmarks_raw[0]))
         for i in range(len(x_raw)):
-            if self.passed_cuts(x_raw[i], cuts):
-                # x.append(x_raw[i])
+            if self._pass_cuts(x_raw[i], cuts):
                 weights_benchmarks += weights_benchmarks_raw[i]
 
-        # Convert to Array
+        # Convert to array
         weights_benchmarks = np.array([weights_benchmarks])
 
-        # Get Fisher Info
+        # Get Fisher info
         fisher_info_events = self._calculate_fisher_information(theta, weights_benchmarks, luminosity)
 
-        # Sum Fisher Infos (shoiuld only contain one entry anyway)
+        # Sum Fisher infos (shoiuld only contain one entry anyway)
         fisher_info = sum(fisher_info_events)
 
         return fisher_info
 
-    def calculate_truth_fisher_information_hist1d(self, theta, luminosity, cuts, observable, nbins, histrange):
+    def calculate_fisher_information_hist1d(self, theta, luminosity, cuts, observable, nbins, histrange):
         """
         Calculates the Fisher information in a 1D histogram for a given benchmark theta and
         luminosity, requiring that the events pass a set of cuts
@@ -209,7 +270,7 @@ class FisherInformation:
         :param cuts: list (cuts) of definition of cuts (string)
         :param observable: string (observable)
         :param nbins: int (number of bins)
-        :param range: (int,int) (range of histogram)
+        :param histrange: (int,int) (range of histogram)
         :return: fisher_info (nxn tensor)
         """
 
@@ -220,7 +281,7 @@ class FisherInformation:
         x = []
         weights_benchmarks = []
         for i in range(len(x_raw)):
-            if self.passed_cuts(x_raw[i], cuts):
+            if self._pass_cuts(x_raw[i], cuts):
                 x.append(x_raw[i])
                 weights_benchmarks.append(weights_benchmarks_raw[i])
 
@@ -234,7 +295,7 @@ class FisherInformation:
                 j += 1
             xobs.append(eval(observable, event_observables))
 
-        # Convert to Array
+        # Convert to array
         xobs = np.array(xobs)
         weights_benchmarks = np.array(weights_benchmarks)
 
