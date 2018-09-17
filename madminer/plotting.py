@@ -87,7 +87,6 @@ def plot_nd_morphing_basis_scatter(morpher,
 
 def plot_nd_morphing_basis_slices(morpher,
                                   crange=(1., 100.),
-                                  n_test_thetas=1000,
                                   resolution=50):
     basis = morpher.basis
 

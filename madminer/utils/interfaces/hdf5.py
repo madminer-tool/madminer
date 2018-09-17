@@ -171,8 +171,6 @@ def load_madminer_settings(filename):
                 raise ValueError("Number of weights and observations don't match: {}, {}", weights.shape[0], n_samples)
 
         except KeyError:
-            observations = None
-            weights = None
             n_samples = 0
 
         return parameters, benchmarks, morphing_components, morphing_matrix, observables, n_samples
@@ -245,7 +243,7 @@ def save_preformatted_events_to_madminer_file(filename,
         if overwrite_existing_samples:
             try:
                 del f['samples']
-            except:
+            except Exception:
                 pass
 
         # Save weights
@@ -277,7 +275,7 @@ def save_events_to_madminer_file(filename,
             try:
                 del f['observables']
                 del f['samples']
-            except:
+            except Exception:
                 pass
 
         # Prepare observable definitions
@@ -339,7 +337,7 @@ def save_madminer_file_from_lhe(filename,
             try:
                 del f['observables']
                 del f['samples']
-            except:
+            except Exception:
                 pass
 
         # Prepare observable definitions

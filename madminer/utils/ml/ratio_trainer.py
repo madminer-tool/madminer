@@ -175,19 +175,19 @@ def train_ratio_model(model,
             y = y.to(device, dtype)
             try:
                 theta1 = theta1.to(device, dtype)
-            except:
+            except NameError:
                 pass
             try:
                 r_xz = r_xz.to(device, dtype)
-            except:
+            except NameError:
                 pass
             try:
                 t_xz0 = t_xz0.to(device, dtype)
-            except:
+            except NameError:
                 pass
             try:
                 t_xz1 = t_xz1.to(device, dtype)
-            except:
+            except NameError:
                 pass
 
             optimizer.zero_grad()
@@ -243,19 +243,19 @@ def train_ratio_model(model,
             y = y.to(device, dtype)
             try:
                 theta1 = theta1.to(device, dtype)
-            except:
+            except NameError:
                 pass
             try:
                 r_xz = r_xz.to(device, dtype)
-            except:
+            except NameError:
                 pass
             try:
                 t_xz0 = t_xz0.to(device, dtype)
-            except:
+            except NameError:
                 pass
             try:
                 t_xz1 = t_xz1.to(device, dtype)
-            except:
+            except NameError:
                 pass
 
             # Evaluate loss

@@ -29,6 +29,9 @@ class MLForge:
         self.n_parameters = None
         self.n_hidden = None
         self.activation = None
+        self.maf_n_mades = None
+        self.maf_batch_norm = None
+        self.maf_batch_norm_alpha = None
 
     def train(self,
               method,
@@ -217,7 +220,7 @@ class MLForge:
             loss_labels = ['nll']
 
         elif method == 'scandal':
-            loss_functions = [flow_losses.negative_log_likelihood, flow_losses.score_mse()]
+            loss_functions = [flow_losses.negative_log_likelihood, flow_losses.score_mse]
             loss_weights = [1., alpha]
             loss_labels = ['nll', 'mse_score']
 
@@ -362,7 +365,7 @@ class MLForge:
             if self.method in ['nde', 'scandal']:
                 _, all_log_r_hat, t_hat0 = evaluate_flow_model(
                     model=self.model,
-                    theta0s=[theta0],
+                    theta0s=theta0s,
                     xs=xs,
                     evaluate_score=evaluate_score
                 )

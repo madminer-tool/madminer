@@ -153,7 +153,7 @@ def train_flow_model(model,
             x = x.to(device, dtype)
             try:
                 t_xz0 = t_xz0.to(device, dtype)
-            except:
+            except NameError:
                 pass
 
             optimizer.zero_grad()
@@ -201,7 +201,7 @@ def train_flow_model(model,
             x = x.to(device, dtype)
             try:
                 t_xz0 = t_xz0.to(device, dtype)
-            except:
+            except NameError:
                 pass
 
             # Evaluate loss

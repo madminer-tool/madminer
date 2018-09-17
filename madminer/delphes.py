@@ -167,7 +167,7 @@ class DelphesProcessor:
             logging.info('Loading HDF5 data from %s and saving file to %s', self.filename, filename_out)
 
         save_events_to_madminer_file(filename_out,
-                                    self.observables,
-                                    self.observations,
-                                    self.weights,
-                                    copy_from=self.filename)
+                                     self.observables,
+                                     self.observations,
+                                     self.weights,
+                                     copy_from=self.filename)

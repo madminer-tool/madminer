@@ -269,7 +269,6 @@ def evaluate_local_score_model(model,
     dtype = torch.double if double_precision else torch.float
 
     # Prepare data
-    n_xs = len(xs)
     xs = torch.stack([tensor(i) for i in xs])
 
     model = model.to(device, dtype)

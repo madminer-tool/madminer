@@ -7,8 +7,8 @@ from torch import tensor
 import torch.nn as nn
 import torch.nn.functional as F
 
-from .masks import create_degrees, create_masks, create_weights, create_weights_conditional
-from goldmine.various.utils import get_activation_function
+from madminer.utils.ml.models.masks import create_degrees, create_masks, create_weights, create_weights_conditional
+from madminer.utils.ml.utils import get_activation_function
 
 
 class GaussianMADE(nn.Module):
@@ -163,7 +163,8 @@ class ConditionalGaussianMADE(nn.Module):
             logging.info('Types: theta %s, Wx %s, x %s, Ms %s, Ws %s, bs %s',
                          type(theta), type(self.Wx), type(x), type(self.Ms[0]), type(self.Ws[0]), type(self.bs[0]))
             logging.info('CUDA: theta %s, Wx %s, x %s, Ms %s, Ws %s, bs %s',
-                         theta.is_cuda, self.Wx.is_cuda, x.is_cuda, self.Ms[0].is_cuda, self.Ws[0].is_cuda, self.bs[0].is_cuda)
+                         theta.is_cuda, self.Wx.is_cuda, x.is_cuda, self.Ms[0].is_cuda, self.Ws[0].is_cuda,
+                         self.bs[0].is_cuda)
             raise
 
         # feedforward propagation

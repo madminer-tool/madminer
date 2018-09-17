@@ -4,7 +4,7 @@ import numpy as np
 import torch
 
 
-def get_activation(activation):
+def get_activation_function(activation):
     if activation == 'relu':
         return torch.relu
     elif activation == 'tanh':

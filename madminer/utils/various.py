@@ -118,8 +118,6 @@ def balance_thetas(theta_sets_types, theta_sets_values):
     return theta_sets_types, theta_sets_values
 
 
-
-
 def load_and_check(filename, warning_threshold=1.e9):
     if filename is None:
         return None

@@ -219,12 +219,6 @@ class ConditionalMaskedAutoregressiveFlow(nn.Module):
         return self.score
 
     def generate_samples(self, theta, u=None):
-        """
-        Generate samples, by propagating random numbers through each made.
-        :param n_samples: number of samples
-        :param u: random numbers to use in generating samples; if None, new random numbers are drawn
-        :return: samples
-        """
 
         n_samples = theta.shape[0]
 

@@ -58,7 +58,7 @@ def extract_observables_from_lhe_file(filename,
 
             try:
                 values_this_observable.append(eval(obs_definition, variables))
-            except:
+            except Exception:
                 values_this_observable.append(np.nan)
 
         values_this_observable = np.array(values_this_observable, dtype=np.float)

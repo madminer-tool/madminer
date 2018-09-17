@@ -2,7 +2,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import torch.nn as nn
 
-from ml.ml.utils import get_activation
+from madminer.utils.ml.utils import get_activation_function
 
 
 class LocalScoreEstimator(nn.Module):
@@ -15,7 +15,7 @@ class LocalScoreEstimator(nn.Module):
 
         # Save input
         self.n_hidden = n_hidden
-        self.activation = get_activation(activation)
+        self.activation = get_activation_function(activation)
 
         # Build network
         self.layers = nn.ModuleList()

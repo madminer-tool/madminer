@@ -1,7 +1,6 @@
 import numpy as np
 import numpy.random as rng
 
-import torch
 from torch import tensor
 import torch.nn as nn
 
