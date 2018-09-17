@@ -6,13 +6,13 @@ import logging
 from collections import OrderedDict
 import tempfile
 
-from madminer.tools.morphing import AdvancedMorpher
-from madminer.tools.h5_interface import save_madminer_settings, load_madminer_settings
-from madminer.tools.mg_interface import export_param_card, export_reweight_card, generate_mg_process, run_mg_pythia
-from madminer.tools.utils import create_missing_folders, general_init, format_benchmark
+from madminer.morphing import AdvancedMorpher
+from madminer.utils.interfaces.hdf5 import save_madminer_settings, load_madminer_settings
+from madminer.utils.interfaces.mg import export_param_card, export_reweight_card, generate_mg_process, run_mg_pythia
+from madminer.utils.utils import create_missing_folders, general_init, format_benchmark
 
 
-class GoldMine:
+class MadMiner:
 
     def __init__(self, debug=False):
 

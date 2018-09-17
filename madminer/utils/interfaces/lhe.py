@@ -6,14 +6,13 @@ from collections import OrderedDict
 import skhep.math
 import os
 
-from lheprocessor.tools.utils import call_command
+from madminer.utils.lhe import call_command
 
 
 def extract_observables_from_lhe_file(filename,
                                       sampling_benchmark,
                                       observables,
-                                      benchmark_names
-                                      ):
+                                      benchmark_names):
     # Untar Event file
     new_filename, extension = os.path.splitext(filename)
     if extension == '.gz':
@@ -33,7 +32,7 @@ def extract_observables_from_lhe_file(filename,
     weights_all_events = []
     partons_all_events = []
     while True:
-        end_of_file, event_partons, event_weights = read_event(file, sampling_benchmark)
+        end_of_file, event_partons, event_weights = _read_lhe_event(file, sampling_benchmark)
         if end_of_file:
             break
         weights_all_events.append(event_weights)
@@ -68,7 +67,7 @@ def extract_observables_from_lhe_file(filename,
     return observable_values, weights
 
 
-def read_event(file, sampling_benchmark):
+def _read_lhe_event(file, sampling_benchmark):
     # Initialize Weights and Momenta
     event_weights = OrderedDict()
     event_momenta = []

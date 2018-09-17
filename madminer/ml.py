@@ -7,17 +7,17 @@ import numpy as np
 
 import torch
 
-from forge.ml import ratio_losses, flow_losses
-from forge.ml.models.maf import ConditionalMaskedAutoregressiveFlow
-from forge.ml.models.ratio import ParameterizedRatioEstimator, DoublyParameterizedRatioEstimator
-from forge.ml.models.score import LocalScoreEstimator
-from forge.ml.flow_trainer import train_flow_model, evaluate_flow_model
-from forge.ml.ratio_trainer import train_ratio_model, evaluate_ratio_model
-from forge.ml.score_trainer import train_local_score_model, evaluate_local_score_model
-from forge.ml.utils import create_missing_folders, load_and_check, general_init
+from ml.ml import ratio_losses, flow_losses
+from ml.ml.models.maf import ConditionalMaskedAutoregressiveFlow
+from ml.ml.models.ratio import ParameterizedRatioEstimator, DoublyParameterizedRatioEstimator
+from ml.ml.models.score import LocalScoreEstimator
+from ml.ml.flow_trainer import train_flow_model, evaluate_flow_model
+from ml.ml.ratio_trainer import train_ratio_model, evaluate_ratio_model
+from ml.ml.score_trainer import train_local_score_model, evaluate_local_score_model
+from ml.ml.utils import create_missing_folders, load_and_check, general_init
 
 
-class Forge:
+class MLForge:
 
     def __init__(self, debug=False):
         general_init(debug=debug)

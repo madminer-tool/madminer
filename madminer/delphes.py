@@ -5,11 +5,11 @@ from collections import OrderedDict
 import numpy as np
 import logging
 
-from delphesprocessor.tools.h5_interface import add_events_to_madminer_file, load_benchmarks_from_madminer_file
-from delphesprocessor.tools.delphes_interface import run_delphes
-from delphesprocessor.tools.root_interface import extract_observables_from_delphes_file
-from delphesprocessor.tools.hepmc_interface import extract_weight_order
-from delphesprocessor.tools.utils import general_init
+from madminer.delphes import add_events_to_madminer_file, load_benchmarks_from_madminer_file
+from madminer.delphes import run_delphes
+from madminer.delphes import extract_observables_from_delphes_file
+from madminer.delphes import extract_weight_order
+from madminer.utils.delphes import general_init
 
 
 class DelphesProcessor:

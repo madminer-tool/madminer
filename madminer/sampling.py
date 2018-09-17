@@ -5,11 +5,11 @@ import numpy as np
 import collections
 import six
 
-from madminer.tools.h5_interface import load_madminer_settings, madminer_event_loader, save_events_to_madminer_file
-from madminer.tools.analysis import get_theta_value, get_theta_benchmark_matrix, get_dtheta_benchmark_matrix
-from madminer.tools.analysis import extract_augmented_data, parse_theta
-from madminer.tools.morphing import AdvancedMorpher
-from madminer.tools.utils import general_init, format_benchmark, create_missing_folders, shuffle, balance_thetas
+from madminer.utils.interfaces.hdf5 import load_madminer_settings, madminer_event_loader, save_preformatted_events_to_madminer_file
+from madminer.utils.analysis import get_theta_value, get_theta_benchmark_matrix, get_dtheta_benchmark_matrix
+from madminer.utils.analysis import extract_augmented_data, parse_theta
+from madminer.morphing import AdvancedMorpher
+from madminer.utils.utils import general_init, format_benchmark, create_missing_folders, shuffle, balance_thetas
 
 
 def combine_and_shuffle(input_filenames,
@@ -57,7 +57,7 @@ def combine_and_shuffle(input_filenames,
     all_observations, all_weights = shuffle(all_observations, all_weights)
 
     # Save result
-    save_events_to_madminer_file(
+    save_preformatted_events_to_madminer_file(
         filename=output_filename,
         observations=all_observations,
         weights=all_weights,
@@ -86,7 +86,7 @@ def random_morphing_thetas(n_thetas, priors):
     return 'random', (n_thetas, priors)
 
 
-class Refinery:
+class SampleAugmenter:
 
     def __init__(self, filename, disable_morphing=False, debug=False):
 

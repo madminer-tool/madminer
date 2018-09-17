@@ -3,7 +3,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import logging
 import os
 
-from delphesprocessor.tools.utils import call_command
+from madminer.utils.delphes import call_command
 
 
 def extract_weight_order(filename, default_weight_label=None):

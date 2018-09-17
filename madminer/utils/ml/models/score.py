@@ -2,7 +2,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import torch.nn as nn
 
-from forge.ml.utils import get_activation
+from ml.ml.utils import get_activation
 
 
 class LocalScoreEstimator(nn.Module):

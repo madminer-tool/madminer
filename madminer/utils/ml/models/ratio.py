@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 from torch.autograd import grad
 
-from forge.ml.utils import get_activation
+from ml.ml.utils import get_activation
 
 
 class ParameterizedRatioEstimator(nn.Module):

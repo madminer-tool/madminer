@@ -5,13 +5,13 @@ import numpy as np
 import six
 from collections import OrderedDict
 
-from madminer.tools.h5_interface import load_madminer_settings, madminer_event_loader
-from madminer.tools.analysis import get_theta_benchmark_matrix, get_dtheta_benchmark_matrix
-from madminer.tools.morphing import SimpleMorpher as Morpher
-from madminer.tools.utils import general_init, format_benchmark
+from madminer.utils.interfaces.hdf5 import load_madminer_settings, madminer_event_loader
+from madminer.utils.analysis import get_theta_benchmark_matrix, get_dtheta_benchmark_matrix
+from madminer.morphing import SimpleMorpher as Morpher
+from madminer.utils.utils import general_init, format_benchmark
 
 
-class MadFisher:
+class FisherInformation:
 
     def __init__(self, filename, debug=False):
 
@@ -185,7 +185,7 @@ class MadFisher:
         
         # Select data that passes cuts
         #x = []
-        weights_benchmarks = y=np.zeros(len(weights_benchmarks_raw[0]))
+        weights_benchmarks = np.zeros(len(weights_benchmarks_raw[0]))
         for i in range(len(x_raw)):
             if self.passed_cuts(x_raw[i], cuts):
                 # x.append(x_raw[i])

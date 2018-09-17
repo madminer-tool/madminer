@@ -4,10 +4,10 @@ from collections import OrderedDict
 import numpy as np
 import logging
 
-from lheprocessor.tools.h5_interface import save_madminer_file
-from lheprocessor.tools.h5_interface import load_benchmark_names
-from lheprocessor.tools.lhe_interface import extract_observables_from_lhe_file
-from lheprocessor.tools.utils import general_init
+from madminer.utils.lhe import save_madminer_file
+from madminer.utils.lhe import load_benchmark_names
+from madminer.utils.lhe import extract_observables_from_lhe_file
+from madminer.utils.lhe import general_init
 
 
 class LHEProcessor:
@@ -106,8 +106,8 @@ class LHEProcessor:
         else:
             logging.info('Loading HDF5 data from %s and saving file to %s', filename_in, filename_out)
 
-        save_madminer_file(filename_out,
-                           self.observables,
-                           self.observations,
-                           self.weights,
-                           copy_from=filename_in)
+        save_madminer_file_from_lhe(filename_out,
+                                    self.observables,
+                                    self.observations,
+                                    self.weights,
+                                    copy_from=filename_in)
