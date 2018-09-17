@@ -10,7 +10,7 @@ from torch.utils.data import Dataset, DataLoader
 from torch.utils.data.sampler import SubsetRandomSampler
 from torch.nn.utils import clip_grad_norm_
 
-from ml.ml.utils import s_from_r
+from madminer.utils.ml.utils import s_from_r
 
 
 class SmallGoldDataset(torch.utils.data.Dataset):

@@ -1,10 +1,9 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
-import six
 
 import os
-
 import shutil
-from madminer.utils.utils import call_command
+
+from madminer.utils.various import call_command
 
 
 def generate_mg_process(mg_directory,

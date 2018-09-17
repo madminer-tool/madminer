@@ -7,14 +7,14 @@ import numpy as np
 
 import torch
 
-from ml.ml import ratio_losses, flow_losses
-from ml.ml.models.maf import ConditionalMaskedAutoregressiveFlow
-from ml.ml.models.ratio import ParameterizedRatioEstimator, DoublyParameterizedRatioEstimator
-from ml.ml.models.score import LocalScoreEstimator
-from ml.ml.flow_trainer import train_flow_model, evaluate_flow_model
-from ml.ml.ratio_trainer import train_ratio_model, evaluate_ratio_model
-from ml.ml.score_trainer import train_local_score_model, evaluate_local_score_model
-from ml.ml.utils import create_missing_folders, load_and_check, general_init
+from madminer.utils.ml import ratio_losses, flow_losses
+from madminer.utils.ml.models.maf import ConditionalMaskedAutoregressiveFlow
+from madminer.utils.ml.models.ratio import ParameterizedRatioEstimator, DoublyParameterizedRatioEstimator
+from madminer.utils.ml.models.score import LocalScoreEstimator
+from madminer.utils.ml.flow_trainer import train_flow_model, evaluate_flow_model
+from madminer.utils.ml.ratio_trainer import train_ratio_model, evaluate_ratio_model
+from madminer.utils.ml.score_trainer import train_local_score_model, evaluate_local_score_model
+from madminer.utils.various import create_missing_folders, load_and_check, general_init
 
 
 class MLForge:

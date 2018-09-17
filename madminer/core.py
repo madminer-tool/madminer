@@ -8,8 +8,9 @@ import tempfile
 
 from madminer.morphing import AdvancedMorpher
 from madminer.utils.interfaces.hdf5 import save_madminer_settings, load_madminer_settings
-from madminer.utils.interfaces.mg import export_param_card, export_reweight_card, generate_mg_process, run_mg_pythia
-from madminer.utils.utils import create_missing_folders, general_init, format_benchmark
+from madminer.utils.interfaces.mg_cards import export_param_card, export_reweight_card
+from madminer.utils.interfaces.mg import generate_mg_process, run_mg_pythia
+from madminer.utils.various import create_missing_folders, general_init, format_benchmark
 
 
 class MadMiner:

@@ -5,11 +5,11 @@ from collections import OrderedDict
 import numpy as np
 import logging
 
-from madminer.delphes import add_events_to_madminer_file, load_benchmarks_from_madminer_file
-from madminer.delphes import run_delphes
-from madminer.delphes import extract_observables_from_delphes_file
-from madminer.delphes import extract_weight_order
-from madminer.utils.delphes import general_init
+from madminer.utils.interfaces.hdf5 import save_events_to_madminer_file, load_benchmarks_from_madminer_file
+from madminer.utils.interfaces.delphes import run_delphes
+from madminer.utils.interfaces.root import extract_observables_from_delphes_file
+from madminer.utils.interfaces.hepmc import extract_weight_order
+from madminer.utils.various import general_init
 
 
 class DelphesProcessor:
@@ -166,7 +166,7 @@ class DelphesProcessor:
         else:
             logging.info('Loading HDF5 data from %s and saving file to %s', self.filename, filename_out)
 
-        add_events_to_madminer_file(filename_out,
+        save_events_to_madminer_file(filename_out,
                                     self.observables,
                                     self.observations,
                                     self.weights,

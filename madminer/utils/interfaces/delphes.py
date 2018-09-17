@@ -2,7 +2,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import os
 
-from madminer.utils.delphes import call_command
+from madminer.utils.various import call_command
 
 
 def run_delphes(delphes_directory,

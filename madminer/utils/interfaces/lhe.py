@@ -6,7 +6,7 @@ from collections import OrderedDict
 import skhep.math
 import os
 
-from madminer.utils.lhe import call_command
+from madminer.utils.various import call_command
 
 
 def extract_observables_from_lhe_file(filename,

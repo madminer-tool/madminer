@@ -8,7 +8,7 @@ from collections import OrderedDict
 from madminer.utils.interfaces.hdf5 import load_madminer_settings, madminer_event_loader
 from madminer.utils.analysis import get_theta_benchmark_matrix, get_dtheta_benchmark_matrix
 from madminer.morphing import SimpleMorpher as Morpher
-from madminer.utils.utils import general_init, format_benchmark
+from madminer.utils.various import general_init, format_benchmark
 
 
 class FisherInformation:

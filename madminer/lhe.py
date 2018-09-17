@@ -4,10 +4,9 @@ from collections import OrderedDict
 import numpy as np
 import logging
 
-from madminer.utils.lhe import save_madminer_file
-from madminer.utils.lhe import load_benchmark_names
-from madminer.utils.lhe import extract_observables_from_lhe_file
-from madminer.utils.lhe import general_init
+from madminer.utils.interfaces.hdf5 import load_benchmarks_from_madminer_file, save_madminer_file_from_lhe
+from madminer.utils.interfaces.lhe import extract_observables_from_lhe_file
+from madminer.utils.various import general_init
 
 
 class LHEProcessor:
@@ -34,7 +33,7 @@ class LHEProcessor:
         self.benchmark_names = None
 
     def read_benchmark_names(self, filename):
-        self.benchmark_names = load_benchmark_names(filename)
+        self.benchmark_names = load_benchmarks_from_madminer_file(filename)
 
     def add_lhe_sample(self, filename, sampling_benchmark):
 
