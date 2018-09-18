@@ -8,7 +8,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from .masks import create_degrees, create_masks, create_weights, create_weights_conditional
-from goldmine.various.utils import get_activation_function
+from forge.ml.utils import get_activation
 
 
 class GaussianMADE(nn.Module):
@@ -37,7 +37,7 @@ class GaussianMADE(nn.Module):
         self.Ws, self.bs, self.Wm, self.bm, self.Wp, self.bp = create_weights(n_inputs, n_hiddens, None)
         self.input_order = self.degrees[0]
 
-        self.activation_function = get_activation_function(activation)
+        self.activation_function = get_activation(activation)
 
         # Output info
         self.m = None
@@ -136,7 +136,7 @@ class ConditionalGaussianMADE(nn.Module):
                                                                                                    n_hiddens, None)
         self.input_order = self.degrees[0]
 
-        self.activation_function = get_activation_function(activation)
+        self.activation_function = get_activation(activation)
 
         # Output info
         self.m = None
