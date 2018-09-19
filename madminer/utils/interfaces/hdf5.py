@@ -41,6 +41,7 @@ def save_madminer_settings(filename,
             [parameters[key][2] for key in parameter_names],
             dtype=np.int
         )
+
         parameter_ranges = np.array(
             [parameters[key][3] for key in parameter_names],
             dtype=np.float
@@ -100,6 +101,9 @@ def load_madminer_settings(filename):
             parameter_lha_blocks = [pblock.decode("ascii") for pblock in parameter_lha_blocks]
             parameter_transforms = [ptrf.decode("ascii") for ptrf in parameter_transforms]
             parameter_transforms = [None if ptrf == '' else ptrf for ptrf in parameter_transforms]
+            parameter_max_power = np.array(parameter_max_power)
+            if len(parameter_max_power.shape) < 2:
+                parameter_max_power = parameter_max_power.reshape((-1, 1))
 
             parameters = OrderedDict()
 
@@ -107,6 +111,7 @@ def load_madminer_settings(filename):
                                                                     parameter_lha_blocks,
                                                                     parameter_lha_ids, parameter_max_power,
                                                                     parameter_transforms):
+
                 parameters[pname] = (
                     pblock,
                     int(pid),

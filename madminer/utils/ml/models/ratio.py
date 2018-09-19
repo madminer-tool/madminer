@@ -100,7 +100,7 @@ class DoublyParameterizedRatioEstimator(nn.Module):
 
         # Save input
         self.n_hidden = n_hidden
-        self.activation = get_activation(activation)
+        self.activation = get_activation_function(activation)
 
         # Build network
         self.layers = nn.ModuleList()
