@@ -2,13 +2,14 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import logging
 import numpy as np
+import math
 import six
 from collections import OrderedDict
 
 from madminer.utils.interfaces.hdf5 import load_madminer_settings, madminer_event_loader
 from madminer.utils.analysis import get_theta_benchmark_matrix, get_dtheta_benchmark_matrix
 from madminer.morphing import SimpleMorpher as Morpher
-from madminer.utils.various import general_init, format_benchmark
+from madminer.utils.various import general_init, format_benchmark, math_commands
 from madminer.ml import MLForge
 
 
@@ -86,7 +87,7 @@ class FisherInformation:
 
         :param theta: list (components of theta) of float
         :param weights_benchmarks: list (events) of lists (morphing benchmarks) of floats
-        :param luminosity: luminosity in fb^-1, float
+        :param luminosity: luminosity in pb^-1, float
         :return: list (events) of fisher_info (nxn tensor)
         """
 
@@ -172,7 +173,7 @@ class FisherInformation:
         given luminosity, requiring that the events pass a set of cuts
 
         :param theta: list (components of theta) of float
-        :param luminosity: luminosity in fb^-1, float
+        :param luminosity: luminosity in pb^-1, float
         :param cuts: list (cuts) of definition of cuts (string)
         :return: fisher_info (nxn tensor)
         """
@@ -204,7 +205,7 @@ class FisherInformation:
         given luminosity, requiring that the events pass a set of cuts
 
         :param theta: list (components of theta) of float
-        :param luminosity: luminosity in fb^-1, float
+        :param luminosity: luminosity in pb^-1, float
         :param cuts: list (cuts) of definition of cuts (string)
         :param model_file: str, filename of a trained local score regression model that was trained on samples from
                            theta (see `madminer.ml.MLForge`)
@@ -235,7 +236,7 @@ class FisherInformation:
         luminosity, requiring that the events pass a set of cuts
 
         :param theta: list (components of theta) of float
-        :param luminosity: luminosity in fb^-1, float
+        :param luminosity: luminosity in pb^-1, float
         :param cuts: list (cuts) of definition of cuts (string)
         :return: fisher_info (nxn tensor)
         """
@@ -266,7 +267,7 @@ class FisherInformation:
         luminosity, requiring that the events pass a set of cuts
 
         :param theta: list (components of theta) of float
-        :param luminosity: luminosity in fb^-1, float
+        :param luminosity: luminosity in pb^-1, float
         :param cuts: list (cuts) of definition of cuts (string)
         :param observable: string (observable)
         :param nbins: int (number of bins)
@@ -300,10 +301,79 @@ class FisherInformation:
         weights_benchmarks = np.array(weights_benchmarks)
 
         # Get 1D Histogram
+        raw_xbins = np.linspace(histrange[0],histrange[1],num=nbins+1)
+        use_xbins = [np.array([-np.inf]),raw_xbins,np.array([np.inf])]
+        use_xbins = np.concatenate(use_xbins)
         histos = []
         for i in range(len(weights_benchmarks.T)):
-            hist, _ = np.histogram(xobs, bins=nbins, range=histrange, weights=weights_benchmarks.T[i])
+            hist, _ = np.histogram(xobs, bins=use_xbins, weights=weights_benchmarks.T[i])
             histos.append(hist)
+        histos = np.array(histos).T
+
+        # Get Fisher Info
+        fisher_info_events = self._calculate_fisher_information(theta, histos, luminosity)
+
+        # Sum Fisher Infos
+        fisher_info = sum(fisher_info_events)
+
+        return fisher_info
+
+    def calculate_fisher_information_hist2d(self, theta, luminosity, cuts, observable1, nbins1, histrange1, observable2, nbins2, histrange2):
+        """
+        Calculates the Fisher information in a 2D histogram for a given benchmark theta and
+        luminosity, requiring that the events pass a set of cuts
+        
+        :param theta: list (components of theta) of float
+        :param luminosity: luminosity in pb^-1, float
+        :param cuts: list (cuts) of definition of cuts (string)
+        :param observable1: string (observable)
+        :param nbins1: int (number of bins)
+        :param histrange1: (int,int) (range of histogram)
+        :param observable2: string (observable)
+        :param nbins2: int (number of bins)
+        :param histrange2: (int,int) (range of histogram)
+        :return: fisher_info (nxn tensor)
+        """
+            
+        # Get raw data
+        x_raw, weights_benchmarks_raw = next(madminer_event_loader(self.madminer_filename, batch_size=None))
+            
+        # Select data that passes cuts
+        x = []
+        weights_benchmarks = []
+        for i in range(len(x_raw)):
+            if self._pass_cuts(x_raw[i], cuts):
+                x.append(x_raw[i])
+                weights_benchmarks.append(weights_benchmarks_raw[i])
+
+        # Evaluate relevant observable
+        x1obs = []
+        x2obs = []
+        for i in range(len(x)):
+            event_observables = OrderedDict()
+            j = 0
+            for key, _ in self.observables.items():
+                event_observables[key] = x[i][j]
+                j += 1
+            x1obs.append(eval(observable1, event_observables, math_commands() ))
+            x2obs.append(eval(observable2, event_observables, math_commands() ))
+    
+        # Convert to array
+        x1obs = np.array(x1obs)
+        x2obs = np.array(x2obs)
+        weights_benchmarks = np.array(weights_benchmarks)
+        
+        # Get 1D Histogram
+        raw_xbins = np.linspace(histrange1[0],histrange1[1],num=nbins1+1)
+        use_xbins = [np.array([-np.inf]),raw_xbins,np.array([np.inf])]
+        use_xbins = np.concatenate(use_xbins)
+        raw_ybins = np.linspace(histrange2[0],histrange2[1],num=nbins2+1)
+        use_ybins = [np.array([-np.inf]),raw_ybins,np.array([np.inf])]
+        use_ybins = np.concatenate(use_ybins)
+        histos = []
+        for i in range(len(weights_benchmarks.T)):
+            hist, _ , _ = np.histogram2d(x1obs, x2obs, bins=(use_xbins,use_ybins), weights=weights_benchmarks.T[i])
+            histos.append(hist.flatten())
         histos = np.array(histos).T
 
         # Get Fisher Info
