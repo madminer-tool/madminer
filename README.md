@@ -45,16 +45,26 @@ Clone the repository and run `pip install -e <path to repository>`.
 
 ## Using MadMiner
 
-In  [tutorial.ipynb](examples/tutorial/tutorial.ipynb) we provide a detailed tutorial that goes through the main steps
-of an analysis.
+### Tutorials
 
-Note that the suite consists of three packages:
-- `madminer` is the core package responsible for the setup of the process, morphing, and the final extraction
-  (unweighting) of train and test samples.
-- `delphesprocessor` is one example implementation of a detector simulation and observable calculation. This part is
-   likely to be swapped out depending on the use case.
-- `forge`  contains an implementation of the machine learning part, i.e. trains likelihood ratio estimators on the
-  output from the `madminer` package.
+In  [tutorial.ipynb](examples/tutorial/tutorial.ipynb) we provide a detailed tutorial that goes through the main steps
+of a detector-level analysis.
+
+In addition, we provide [tutorial_parton.ipynb](examples/tutorial/tutorial.ipynb). This tutorial explains how to perform
+a parton-level Fisher information analysis.
+
+### Package structure
+
+- `madminer.core` contains the functions to set up the process, parameter space, morphing, and to steer MadGraph and
+   Pythia.
+- `madminer.delphes` and `madminer.lhe` contain two example implementations of a detector simulation and observable
+   calculation. This part can easily be swapped out depending on the use case.
+- In `madminer.sampling`, train and test samples for the machine learning part are generated and augmented with the
+  joint score and joint ratio.
+- `madminer.ml`  contains an implementation of the machine learning part. The user can train and evaluate estimators
+  for the likelihood ratio or score.
+- Finally,  `madminer.fisherinformation` contains functions to calculate the Fisher information, both on parton level
+  or detector level, in the full process, individual observables, or the total cross section.
 
 ## Acknowledgements
 
