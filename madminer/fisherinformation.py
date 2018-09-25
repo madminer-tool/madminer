@@ -383,3 +383,57 @@ class FisherInformation:
         fisher_info = sum(fisher_info_events)
 
         return fisher_info
+
+    def ignore_information(self,
+                           fisher_information_old,
+                           remaining_components):
+        """
+        :param fisher_information_old: fisher info (size N x N)
+        :param remaining_components: is list (length M) of indices (integer) of which rows / columns to keep
+        :return: fisher info (size M x M)
+        """
+        fisher_information_new = np.zeros([len(remaining_components),len(remaining_components)])
+        for xnew, xold in enumerate(remaining_components):
+            for ynew, yold in enumerate(remaining_components):
+                fisher_information_new[xnew,ynew] = fisher_information_old[xold,yold]
+        return fisher_information_new
+
+    def profile_information(self,
+                            fisher_information,
+                            remaining_components):
+    
+        """
+        Calculates the profiled Fisher information matrix as defined in Appendix A.4 of 1612.05261.
+        :param fisher_information: is a (N x N) numpy array with the original Fisher information.
+        :param remaining_components:is list (length M) of indices (integer) of which rows / columns to keep, others are profiled over.
+        :return: the profiled Fisher information as a (M x M) numpy array.
+            """
+    
+        # Group components
+        n_components = len(fisher_information)
+        remaining_components_checked = []
+        profiled_components = []
+        for i in range(n_components):
+            if i in remaining_components:
+                remaining_components_checked.append(i)
+            else:
+                profiled_components.append(i)
+        new_index_order = remaining_components + profiled_components
+
+        if len(remaining_components) != len(remaining_components_checked):
+            print ('Warning: ignoring some indices in profile_information: profiled_components =', profiled_components, ', using only', profiled_components_checked)
+    
+        # Sort Fisher information such that the remaining components are
+        # at the beginning and the profiled at the end
+        profiled_fisher_information = np.copy(fisher_information)
+        for i in range(n_components):
+            for j in range(n_components):
+                profiled_fisher_information[i,j] = fisher_information[new_index_order[i],new_index_order[j]]
+
+        # Profile over one component at a time
+        for c in list(reversed(range(len(remaining_components), n_components))):
+            profiled_fisher_information = (profiled_fisher_information[:c,:c]
+                                           - np.outer(profiled_fisher_information[c,:c],profiled_fisher_information[c,:c])
+                                           / profiled_fisher_information[c,c])
+                                   
+        return profiled_fisher_information
