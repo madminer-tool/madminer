@@ -453,3 +453,251 @@ def plot_fisherinfo_barplot(matrices,
     create_missing_folders([os.path.dirname(filename)])
     fig.savefig(filename, dpi=300)
     plt.close()
+
+
+def plot_fisherinfo_contours_2d(matrices_2d,
+                                matrix_labels,
+                                filename,
+                                contour_distance=1.,
+                                axes_max=1.,
+                                xlabel='',
+                                ylabel='',
+                                n_points=100):
+    
+    """
+    :matrices_2d: list of 2 x 2 fisher information matrices
+    :matrix_labels:  list of labels corresponding to the fisher information matrices (list of strings)
+    :filename: output filename (string)
+    :contour_distance: distances drawn  (integer)
+    :axes_max: maximum value on both axis  (integer)
+    :xlabel: label of x-axis (string)
+    :ylabel: label of y-axis (string)
+    :n_points=100):
+    """
+    
+    #################
+    # general
+    global global_A
+    epsilon = 1.e-9
+    
+    n_matrices = len(matrices_2d)
+    
+    #function to evaluate scalar product
+    def xAx(x,y):
+        global global_A
+        xvec = np.array([x,y])
+        return xvec.dot(global_A.dot(xvec))
+    
+    vec_xAx = np.vectorize(xAx)
+    
+    # line styles
+    matrix_color = ['black', 'red', 'blue', 'green', 'darkorange', 'fuchsia', 'turquoise', 'grey']*7*5
+    matrix_linestyle = ['solid', 'dashed', 'dotted', 'dashdot', 'solid', 'dotted', 'dashed']*8*5
+    matrix_linewidth = [1.5,1.5,2.,1.5,1.5,2.,1.5]*8*5
+    
+    styleindex=[t for t in range(n_matrices)]
+    
+    if len(matrix_labels) == 0:
+        matrix_labels = ['']*n_matrices
+    
+    for i in range(n_matrices):
+        assert len(matrices_2d[i]) == 2 , "Fisher Information is not 2D"
+    
+    #################
+    # calculate xy data for tangent-space contour
+    xvalues = np.linspace(-axes_max,axes_max,n_points)
+    yvalues = np.linspace(-axes_max,axes_max,n_points)
+    xy_y, xy_x = np.meshgrid(xvalues,yvalues)
+    xy_linearized_distance = [np.zeros((n_points,n_points)) for i in range(n_matrices)]
+    styleindex_counter = 0
+    for i in range(n_matrices):
+        styleindex[i] = styleindex_counter
+        styleindex_counter += 1
+        global_A = matrices_2d[i]
+        xy_linearized_distance[i] = vec_xAx(xy_x,xy_y)
+    
+    #################
+    # xy plot
+    fig = plt.figure(figsize=(4.5,4.5))
+    fig.subplots_adjust(left=0.17,right=0.97,bottom=0.17,top=0.97)
+
+    for i in range(n_matrices):
+        contour_levels = np.array([contour_distance**2.])
+        contour_labels = [{contour_levels[0]:ml} for ml in matrix_labels]
+    
+        cs = plt.contour(xy_x,xy_y,xy_linearized_distance[i],
+                         contour_levels,
+                         colors=matrix_color[styleindex[i]],
+                         linestyles=matrix_linestyle[styleindex[i]],
+                         linewidths=matrix_linewidth[styleindex[i]])
+        if len(matrix_labels[i]) > 0:
+            plt.clabel(cs, cs.levels, inline=True, fontsize=12, fmt=contour_labels[i])
+
+    plt.axes().set_xlim([-axes_max - epsilon,axes_max + epsilon])
+    plt.axes().set_ylim([-axes_max - epsilon,axes_max + epsilon])
+    plt.axes().set_aspect('equal')
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+    plt.axes().yaxis.set_label_coords(-0.13,0.5)
+
+    #################
+    # Show and Save
+
+    def create_missing_folders(folders):
+        for folder in folders:
+            if not os.path.exists(folder):
+                os.makedirs(folder)
+            elif not os.path.isdir(folder):
+                raise OSError('Path {} exists, but is no directory!'.format(folder))
+
+    plt.show()
+    create_missing_folders([os.path.dirname(filename)])
+    fig.savefig(filename, dpi=300)
+    plt.close()
+
+def kinematic_distribution_of_information(xbins,
+                  xlabel,xmin,xmax,
+                  xsecs,
+                  matrices,
+                  matrices_aux,
+                  filename,
+                  ylabel_addition='',
+                  log_xsec=False,
+                  norm_xsec=True,
+                  show_aux=False,
+                  show_labels=False,
+                  label_pos_information=(0.,0.),
+                  label_pos_sm=(0.,0.),
+                  label_pos_bsm=(0.,0.),
+                  label_pos_bkg=(0.,0.),
+                  label_bsm=r''):
+    
+    epsilon = 1.e-9
+    
+    # Calculate data
+    size = len(matrices[1])
+    exponent = 1./float(size)
+    determinants = [np.linalg.det(m)**exponent for m in matrices]
+    determinants_aux = [np.linalg.det(m)**exponent for m in matrices_aux]
+    
+    determinants = np.nan_to_num(determinants)
+    determinants_aux = np.nan_to_num(determinants_aux)
+    
+    # extract normalized xsec information
+    if norm_xsec:
+        norm = 1./max(sum([xs for xs in xsecs]), epsilon)
+    else:
+        norm = 1.
+    xsec_norm = [norm * xs for xs in xsecs]
+
+    n_entries = len(determinants)
+
+    #Get xvals from xbins
+    xvals = [(xbins[i]+xbins[i+1])/2 for i in range(0,len(xbins)-1)]
+    assert len(xvals) == n_entries
+    
+    # Plotting options
+    xs_color = 'black'
+    xs_linestyle = 'solid'
+    xs_linewidth = 1.5
+    
+    det_color = 'red'
+    det_linestyle = 'solid'
+    det_linewidth = 1.5
+    det_alpha = 0.04
+    
+    det_aux_color = 'red'
+    det_aux_linestyle = 'dashed'
+    det_aux_linewidth = 1.5
+    
+    #################################################################################
+    # Full plot
+    #################################################################################
+    
+    fig = plt.figure(figsize=(5.4,4.5))
+    ax1 = plt.subplot(111)
+    fig.subplots_adjust(left=0.1667,right=0.8333,
+                        bottom=0.17,top=0.97)
+        
+    if log_xsec:
+        ax1.set_yscale('log')
+
+    # SM signal
+    ax1.hist(xvals,
+         weights=xsec_norm,
+         bins=xbins,
+         range=(xmin,xmax),
+         histtype='step',
+         color=xs_color,
+         linewidth=xs_linewidth,
+         linestyle=xs_linestyle)
+
+
+    # axis
+    if norm_xsec:
+        ax1.set_ylabel(r"Normalized distribution",
+                   color=xs_color)
+    else:
+        ax1.set_ylabel(r"$\sigma$ [pb/bin]")
+    ax1.set_xlim([xmin,xmax])
+    ax1.set_ylim([0.,max(xsec_norm)*1.05])
+    ax1.set_xlabel(xlabel)
+    for tl in ax1.get_yticklabels():
+        tl.set_color(xs_color)
+    
+    # plot: determinant
+    ax2 = ax1.twinx()
+    
+    if show_aux:
+        ax2.hist(xvals,
+                 weights=determinants_aux,
+                 bins=xbins,
+                 range=(xmin,xmax),
+                 histtype='step',
+                 color=det_aux_color,
+                 linewidth=det_aux_linewidth,
+                 linestyle=det_aux_linestyle)
+
+    ax2.hist(xvals,
+             weights=determinants,
+             bins=xbins,
+             range=(xmin,xmax),
+             histtype='stepfilled',
+             alpha=det_alpha,
+             color=det_color,
+             linewidth=0.)
+
+    ax2.hist(xvals,
+         weights=determinants,
+         bins=xbins,
+         range=(xmin,xmax),
+         histtype='step',
+         color=det_color,
+         linewidth=det_linewidth,
+         linestyle=det_linestyle)
+        
+    ax2.set_xlim([xmin,xmax])
+    ax2.set_ylim([0.,max(determinants)*1.1])
+    ax2.set_ylabel(r"$(\det \; I_{ij})^{1/" + str(size) + "}$" + ylabel_addition,color=det_color)
+    for tl in ax2.get_yticklabels():
+        tl.set_color(det_color)
+
+
+    #################################################################################
+    # Show and Save
+    #################################################################################
+
+    plt.show()
+
+    def create_missing_folders(folders):
+        for folder in folders:
+            if not os.path.exists(folder):
+                os.makedirs(folder)
+            elif not os.path.isdir(folder):
+                raise OSError('Path {} exists, but is no directory!'.format(folder))
+
+    create_missing_folders([os.path.dirname(filename)])
+    fig.savefig(filename, dpi=300)
+    plt.close()
+
+
