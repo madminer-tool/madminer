@@ -133,9 +133,30 @@ class FisherInformation:
             i += 1
 
         for cut in cuts:
-            if not eval(cut, event_observables):
+            if not eval(cut, event_observables, math_commands()):
+                        ### xxx there is a problem here ....
                 return False
         return True
+            
+    def _eval_efficiency(self, observables, functions):
+        """
+        Checks if an event, specified by a list of observables, passes a set of cuts.
+        
+        :param observables: list (observables) of float
+        :param cuts: list (cuts) of definition of cuts (string)
+        :return: True if the event passes all cuts, False otherwise
+        """
+            
+        event_observables = OrderedDict()
+        i = 0
+        for key, _ in self.observables.items():
+            event_observables[key] = observables[i]
+            i += 1
+               
+        total_efficiency = 1.
+        for function in functions:
+            total_efficiency *= float(eval(function, event_observables, math_commands()) )
+        return total_efficiency
 
     def _calculate_xsec(self, theta, cuts):
         """
@@ -167,7 +188,7 @@ class FisherInformation:
 
         return xsec
 
-    def calculate_fisher_information_full_truth(self, theta, luminosity, cuts):
+    def calculate_fisher_information_full_truth(self, theta, luminosity, cuts=[], efficiencies=[]):
         """
         Calculates the full Fisher information at the parton level for a given parameter point theta and
         given luminosity, requiring that the events pass a set of cuts
@@ -185,7 +206,8 @@ class FisherInformation:
         weights_benchmarks = []
         for i in range(len(x_raw)):
             if self._pass_cuts(x_raw[i], cuts):
-                weights_benchmarks.append(weights_benchmarks_raw[i])
+                event_efficiency = self._eval_efficiency(x_raw[i], efficiencies)
+                weights_benchmarks.append(weights_benchmarks_raw[i]*event_efficiency)
 
         # Convert to array
         weights_benchmarks = np.array(weights_benchmarks)
@@ -230,7 +252,7 @@ class FisherInformation:
 
         return fisher_info_rate + fisher_info_kin
 
-    def calculate_fisher_information_rate(self, theta, luminosity, cuts):
+    def calculate_fisher_information_rate(self, theta, luminosity, cuts=[], efficiencies=[]):
         """
         Calculates the RATE-ONLY Fisher Information for a given parameter point theta and
         luminosity, requiring that the events pass a set of cuts
@@ -248,7 +270,8 @@ class FisherInformation:
         weights_benchmarks = np.zeros(len(weights_benchmarks_raw[0]))
         for i in range(len(x_raw)):
             if self._pass_cuts(x_raw[i], cuts):
-                weights_benchmarks += weights_benchmarks_raw[i]
+                event_efficiency = self._eval_efficiency(x_raw[i], efficiencies)
+                weights_benchmarks += weights_benchmarks_raw[i]*event_efficiency
 
         # Convert to array
         weights_benchmarks = np.array([weights_benchmarks])
@@ -261,7 +284,7 @@ class FisherInformation:
 
         return fisher_info
 
-    def calculate_fisher_information_hist1d(self, theta, luminosity, cuts, observable, nbins, histrange):
+    def calculate_fisher_information_hist1d(self, theta, luminosity, observable, nbins, histrange, cuts=[], efficiencies=[]):
         """
         Calculates the Fisher information in a 1D histogram for a given benchmark theta and
         luminosity, requiring that the events pass a set of cuts
@@ -284,7 +307,8 @@ class FisherInformation:
         for i in range(len(x_raw)):
             if self._pass_cuts(x_raw[i], cuts):
                 x.append(x_raw[i])
-                weights_benchmarks.append(weights_benchmarks_raw[i])
+                event_efficiency = self._eval_efficiency(x_raw[i], efficiencies)
+                weights_benchmarks.append(weights_benchmarks_raw[i]*event_efficiency)
 
         # Eevaluate relevant observable
         xobs = []
@@ -294,7 +318,7 @@ class FisherInformation:
             for key, _ in self.observables.items():
                 event_observables[key] = x[i][j]
                 j += 1
-            xobs.append(eval(observable, event_observables))
+            xobs.append(eval(observable, event_observables, math_commands()))
 
         # Convert to array
         xobs = np.array(xobs)
@@ -318,7 +342,7 @@ class FisherInformation:
 
         return fisher_info
 
-    def calculate_fisher_information_hist2d(self, theta, luminosity, cuts, observable1, nbins1, histrange1, observable2, nbins2, histrange2):
+    def calculate_fisher_information_hist2d(self, theta, luminosity, observable1, nbins1, histrange1, observable2, nbins2, histrange2, cuts=[], efficiencies=[]):
         """
         Calculates the Fisher information in a 2D histogram for a given benchmark theta and
         luminosity, requiring that the events pass a set of cuts
@@ -344,8 +368,9 @@ class FisherInformation:
         for i in range(len(x_raw)):
             if self._pass_cuts(x_raw[i], cuts):
                 x.append(x_raw[i])
-                weights_benchmarks.append(weights_benchmarks_raw[i])
-
+                event_efficiency = self._eval_efficiency(x_raw[i], efficiencies)
+                weights_benchmarks.append(weights_benchmarks_raw[i]*event_efficiency)
+    
         # Evaluate relevant observable
         x1obs = []
         x2obs = []
@@ -437,3 +462,85 @@ class FisherInformation:
                                            / profiled_fisher_information[c,c])
                                    
         return profiled_fisher_information
+
+
+    def histogram_of_fisher_information(self, theta, luminosity, observable, nbins, histrange, cuts=[], efficiencies=[]):
+        """
+        Calculates the Fisher information in a 1D histogram for a given benchmark theta and
+        luminosity, requiring that the events pass a set of cuts
+        
+        :param theta: list (components of theta) of float
+        :param luminosity: luminosity in pb^-1, float
+        :param cuts: list (cuts) of definition of cuts (string)
+        :param observable: string (observable)
+        :param nbins: int (number of bins)
+        :param histrange: (int,int) (range of histogram)
+        :return: fisher_info (nxn tensor)
+        """
+            
+        # Get raw data
+        x_raw, weights_benchmarks_raw = next(madminer_event_loader(self.madminer_filename, batch_size=None))
+            
+        # Select data that passes cuts
+        x = []
+        weights_benchmarks = []
+        for i in range(len(x_raw)):
+            if self._pass_cuts(x_raw[i], cuts):
+                x.append(x_raw[i])
+                event_efficiency = self._eval_efficiency(x_raw[i], efficiencies)
+                weights_benchmarks.append(weights_benchmarks_raw[i]*event_efficiency)
+                        
+        # Eevaluate relevant observable
+        xobs = []
+        for i in range(len(x)):
+            event_observables = OrderedDict()
+            j = 0
+            for key, _ in self.observables.items():
+                event_observables[key] = x[i][j]
+                j += 1
+            xobs.append(eval(observable, event_observables, math_commands()))
+                                            
+        # Convert to array
+        xobs = np.array(xobs)
+        weights_benchmarks = np.array(weights_benchmarks)
+                                            
+        # Get 1D Histogram
+        raw_xbins = np.linspace(histrange[0],histrange[1],num=nbins+1)
+        use_xbins = [np.array([-np.inf]),raw_xbins,np.array([np.inf])]
+        use_xbins = np.concatenate(use_xbins)
+        histos = []
+        for i in range(len(weights_benchmarks.T)):
+            hist, _ = np.histogram(xobs, bins=use_xbins, weights=weights_benchmarks.T[i])
+            histos.append(hist)
+        histos = np.array(histos).T
+
+        #Get weights at theta
+        theta_matrix = get_theta_benchmark_matrix(
+                                          'morphing',
+                                          theta,
+                                          self.benchmarks,
+                                          self.morpher
+                                          )
+
+        weights_in_histo = theta_matrix.dot(histos.T)
+        
+                                                    
+        # Get Fisher Info in each bin
+        fisher_info_histos_rate = self._calculate_fisher_information(theta, histos, luminosity)
+
+        # Calculate FI for each event
+        fisher_info_events = self._calculate_fisher_information(theta, weights_benchmarks, luminosity)
+
+        # Bin those FI
+        # The following part is pretty dumb, I just want an empty Fisher Info ...
+        fisher_info_histos_full = [fisher_info_histos_rate[i]-fisher_info_histos_rate[i] for i in range(len(use_xbins)-1)]
+        for i in range(len(xobs)):
+            for j in range(len(use_xbins)-1):
+                if (xobs[i]>use_xbins[j]) and (xobs[i]<use_xbins[j+1]):
+                    fisher_info_histos_full[j]+=fisher_info_events[i]
+        fisher_info_histos_full=np.array(fisher_info_histos_full)
+                                                    
+        # Sum Fisher Infos
+        fisher_info = sum(fisher_info_events)
+                                                    
+        return use_xbins, weights_in_histo, fisher_info_histos_rate, fisher_info_histos_full
