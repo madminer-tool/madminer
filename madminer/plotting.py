@@ -555,4 +555,149 @@ def plot_fisherinfo_contours_2d(matrices_2d,
     fig.savefig(filename, dpi=300)
     plt.close()
 
+def kinematic_distribution_of_information(xbins,
+                  xlabel,xmin,xmax,
+                  xsecs,
+                  matrices,
+                  matrices_aux,
+                  filename,
+                  ylabel_addition='',
+                  log_xsec=False,
+                  norm_xsec=True,
+                  show_aux=False,
+                  show_labels=False,
+                  label_pos_information=(0.,0.),
+                  label_pos_sm=(0.,0.),
+                  label_pos_bsm=(0.,0.),
+                  label_pos_bkg=(0.,0.),
+                  label_bsm=r''):
+    
+    epsilon = 1.e-9
+    
+    # Calculate data
+    size = len(matrices[1])
+    exponent = 1./float(size)
+    determinants = [np.linalg.det(m)**exponent for m in matrices]
+    determinants_aux = [np.linalg.det(m)**exponent for m in matrices_aux]
+    
+    determinants = np.nan_to_num(determinants)
+    determinants_aux = np.nan_to_num(determinants_aux)
+    
+    # extract normalized xsec information
+    if norm_xsec:
+        norm = 1./max(sum([xs for xs in xsecs]), epsilon)
+    else:
+        norm = 1.
+    xsec_norm = [norm * xs for xs in xsecs]
+
+    n_entries = len(determinants)
+
+    #Get xvals from xbins
+    xvals = [(xbins[i]+xbins[i+1])/2 for i in range(0,len(xbins)-1)]
+    assert len(xvals) == n_entries
+    
+    # Plotting options
+    xs_color = 'black'
+    xs_linestyle = 'solid'
+    xs_linewidth = 1.5
+    
+    det_color = 'red'
+    det_linestyle = 'solid'
+    det_linewidth = 1.5
+    det_alpha = 0.04
+    
+    det_aux_color = 'red'
+    det_aux_linestyle = 'dashed'
+    det_aux_linewidth = 1.5
+    
+    #################################################################################
+    # Full plot
+    #################################################################################
+    
+    fig = plt.figure(figsize=(5.4,4.5))
+    ax1 = plt.subplot(111)
+    fig.subplots_adjust(left=0.1667,right=0.8333,
+                        bottom=0.17,top=0.97)
+        
+    if log_xsec:
+        ax1.set_yscale('log')
+
+    # SM signal
+    ax1.hist(xvals,
+         weights=xsec_norm,
+         bins=xbins,
+         range=(xmin,xmax),
+         histtype='step',
+         color=xs_color,
+         linewidth=xs_linewidth,
+         linestyle=xs_linestyle)
+
+
+    # axis
+    if norm_xsec:
+        ax1.set_ylabel(r"Normalized distribution",
+                   color=xs_color)
+    else:
+        ax1.set_ylabel(r"$\sigma$ [pb/bin]")
+    ax1.set_xlim([xmin,xmax])
+    ax1.set_ylim([0.,max(xsec_norm)*1.05])
+    ax1.set_xlabel(xlabel)
+    for tl in ax1.get_yticklabels():
+        tl.set_color(xs_color)
+    
+    # plot: determinant
+    ax2 = ax1.twinx()
+    
+    if show_aux:
+        ax2.hist(xvals,
+                 weights=determinants_aux,
+                 bins=xbins,
+                 range=(xmin,xmax),
+                 histtype='step',
+                 color=det_aux_color,
+                 linewidth=det_aux_linewidth,
+                 linestyle=det_aux_linestyle)
+
+    ax2.hist(xvals,
+             weights=determinants,
+             bins=xbins,
+             range=(xmin,xmax),
+             histtype='stepfilled',
+             alpha=det_alpha,
+             color=det_color,
+             linewidth=0.)
+
+    ax2.hist(xvals,
+         weights=determinants,
+         bins=xbins,
+         range=(xmin,xmax),
+         histtype='step',
+         color=det_color,
+         linewidth=det_linewidth,
+         linestyle=det_linestyle)
+        
+    ax2.set_xlim([xmin,xmax])
+    ax2.set_ylim([0.,max(determinants)*1.1])
+    ax2.set_ylabel(r"$(\det \; I_{ij})^{1/" + str(size) + "}$" + ylabel_addition,color=det_color)
+    for tl in ax2.get_yticklabels():
+        tl.set_color(det_color)
+
+
+    #################################################################################
+    # Show and Save
+    #################################################################################
+
+    plt.show()
+
+    def create_missing_folders(folders):
+        for folder in folders:
+            if not os.path.exists(folder):
+                os.makedirs(folder)
+            elif not os.path.isdir(folder):
+                raise OSError('Path {} exists, but is no directory!'.format(folder))
+
+    create_missing_folders([os.path.dirname(filename)])
+    fig.savefig(filename, dpi=300)
+    plt.close()
+
 
