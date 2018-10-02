@@ -106,3 +106,13 @@ def run_mg_pythia(mg_directory,
         initial_command = initial_command + '; '
     _ = call_command(initial_command + mg_directory + '/bin/mg5_aMC ' + temp_proc_card_file,
                      log_file=log_file)
+
+
+def copy_ufo_model(ufo_directory, mg_directory):
+    _, model_name = os.path.split(ufo_directory)
+    destination = mg_directory + '/models/' + model_name
+
+    if os.path.isdir(destination):
+        return
+
+    shutil.copytree(ufo_directory, destination)
