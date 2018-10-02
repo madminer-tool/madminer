@@ -1,25 +1,29 @@
+from __future__ import absolute_import, division, print_function
+
+import logging
+import numpy.random as rng
+
 import torch
-import torch.nn as nn
+from torch import tensor
+
+from madminer.utils.ml.models.base import BaseFlow
 
 
-class BatchNorm(nn.Module):
+class BatchNorm(BaseFlow):
     """ BatchNorm implementation """
 
-    def __init__(self, n_units, alpha=0.1, eps=1.e-5):
+    def __init__(self, n_inputs, alpha=0.1, eps=1.e-5):
 
-        super(BatchNorm, self).__init__()
+        super(BatchNorm, self).__init__(n_inputs)
 
-        self.n_units = n_units
+        self.n_inputs = n_inputs
         self.alpha = alpha
         self.eps = eps
 
-        # Batch averages
-        self.mean = None
-        self.var = None
-
         # Running averages: will be created at first call of forward
-        self.running_mean = None
-        self.running_var = None
+        self.calculated_running_mean = False
+        self.running_mean = torch.zeros(self.n_inputs)
+        self.running_var = torch.zeros(self.n_inputs)
 
     def forward(self, x, fixed_params=False):
 
@@ -27,26 +31,28 @@ class BatchNorm(nn.Module):
 
         # batch statistics
         if fixed_params:
-            self.mean = self.running_mean
-            self.var = self.running_var
+            mean = self.running_mean
+            var = self.running_var
         else:
-            self.mean = torch.mean(x, dim=0)
-            self.var = torch.mean((x - self.mean) ** 2, dim=0) + self.eps
+            mean = torch.mean(x, dim=0)
+            var = torch.mean((x - mean) ** 2, dim=0) + self.eps
 
             # keep track of running mean and var (for u -> x direction)
-            if self.running_mean is None:
-                self.running_mean = torch.zeros(self.n_units)
-                self.running_var = torch.zeros(self.n_units)
-                self.running_mean += self.mean
-                self.running_var += self.var
+            if not self.calculated_running_mean:
+                self.running_mean = mean
+                self.running_var = var
             else:
-                self.running_mean = (1. - self.alpha) * self.running_mean + self.alpha * self.mean
-                self.running_var = (1. - self.alpha) * self.running_var + self.alpha * self.var
+                self.running_mean = (1. - self.alpha) * self.running_mean + self.alpha * mean
+                self.running_var = (1. - self.alpha) * self.running_var + self.alpha * var
+                self.calculated_running_mean = True
 
         # transformation
-        u = (x - self.mean) / torch.sqrt(self.var)
+        u = (x - mean) / torch.sqrt(var)
 
-        return u
+        # log det du / dx
+        logdet = - 0.5 * torch.sum(torch.log(var))
+
+        return u, logdet
 
     def inverse(self, u):
 
@@ -55,3 +61,23 @@ class BatchNorm(nn.Module):
         x = torch.sqrt(self.running_var) * u + self.running_mean
 
         return x
+
+    def generate_samples(self, n_samples=1, u=None, **kwargs):
+
+        if u is None:
+            u = tensor(rng.randn(n_samples, self.n_inputs))
+
+        x = torch.sqrt(self.running_var) * u + self.running_mean
+
+        return x
+
+    def to(self, *args, **kwargs):
+
+        logging.debug('Transforming BatchNorm to %s', args)
+
+        self = super().to(*args, **kwargs)
+
+        self.running_mean = self.running_mean.to(*args, **kwargs)
+        self.running_var = self.running_var.to(*args, **kwargs)
+
+        return self

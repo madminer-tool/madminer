@@ -1,3 +1,5 @@
+from __future__ import absolute_import, division, print_function
+
 import numpy as np
 import numpy.random as rng
 import logging
@@ -7,23 +9,15 @@ from torch import tensor
 import torch.nn as nn
 import torch.nn.functional as F
 
+from madminer.utils.ml.models.base import BaseFlow, BaseConditionalFlow
 from madminer.utils.ml.models.masks import create_degrees, create_masks, create_weights, create_weights_conditional
 from madminer.utils.ml.utils import get_activation_function
 
 
-class GaussianMADE(nn.Module):
+class GaussianMADE(BaseFlow):
 
     def __init__(self, n_inputs, n_hiddens, activation='relu', input_order='sequential', mode='sequential'):
-
-        """
-        Constructor.
-        :param n_inputs: number of inputs
-        :param n_hiddens: list with number of hidden units for each hidden layer
-        :param input_order: order of inputs
-        :param mode: strategy for assigning degrees to hidden nodes: can be 'random' or 'sequential'
-        """
-
-        super(GaussianMADE, self).__init__()
+        super(GaussianMADE, self).__init__(n_inputs)
 
         # save input arguments
         self.activation = activation
@@ -42,84 +36,89 @@ class GaussianMADE(nn.Module):
         # Output info
         self.m = None
         self.logp = None
-        self.log_likelihood = None
 
-    def forward(self, x):
+        # Dtype and GPU / CPU management
+        self.to_args = None
+        self.to_kwargs = None
 
-        """ Transforms x into u = f^-1(x) """
-
+    def forward(self, x, **kwargs):
+        # Conditioner
         h = x
 
-        # feedforward propagation
         for M, W, b in zip(self.Ms, self.Ws, self.bs):
-            h = self.activation_function(F.linear(h, torch.t(M * W), b))
+            try:
+                h = self.activation_function(F.linear(h, torch.t(M * W), b))
+            except (RuntimeError, AttributeError):
+                logging.error('Abort! Abort!')
+                logging.info('MADE settings: n_inputs = %s', self.n_inputs)
+                logging.info('Shapes: x %s, h %s, M %s, W %s, b %s',
+                             x.shape, h.shape, M.shape, W.shape, b.shape)
+                logging.info('Types: x %s, h %s, M %s, W %s, b %s',
+                             type(x), type(h), type(M), type(W), type(b))
+                logging.info('CUDA: x %s, h %s, M %s, W %s, b %s',
+                             x.is_cuda, h.is_cuda, M.is_cuda, W.is_cuda, b.is_cuda)
+                raise
 
-        # output means
+        # Gaussian parameters
         self.m = F.linear(h, torch.t(self.Mmp * self.Wm), self.bm)
-
-        # output log precisions
         self.logp = F.linear(h, torch.t(self.Mmp * self.Wp), self.bp)
 
-        # random numbers driving made
+        # u(x)
         u = torch.exp(0.5 * self.logp) * (x - self.m)
 
-        # log likelihoods
-        diff = torch.sum(u ** 2 - self.logp, dim=1)
-        constant = float(self.n_inputs * np.log(2. * np.pi))
-        self.log_likelihood = -0.5 * (constant + diff)
+        # log det du / dx
+        logdet_dudx = 0.5 * torch.sum(self.logp, dim=1)
 
-        return u
+        return u, logdet_dudx
 
-    def log_p(self, x):
+    def generate_samples(self, n_samples=1, u=None, **kwargs):
+        x = torch.zeros([n_samples, self.n_inputs])
+        if u is None:
+            u = tensor(rng.randn(n_samples, self.n_inputs))
 
-        """ Calculates log p(x) """
-
-        _ = self.forward(x)
-
-        return self.log_likelihood
-
-    def gen(self, n_samples=1, u=None):
-        """
-        Generate samples from made. Requires as many evaluations as number of inputs.
-        :param n_samples: number of samples
-        :param u: random numbers to use in generating samples; if None, new random numbers are drawn
-        :return: samples
-        """
-
-        # TODO: reformulate in pyTorch instread of numpy
-
-        x = np.zeros([n_samples, self.n_inputs])
-        u = rng.randn(n_samples, self.n_inputs) if u is None else u.data.numpy()
+        if self.to_args is not None or self.to_kwargs is not None:
+            x = x.to(*self.to_args, **self.to_kwargs)
+            u = u.to(*self.to_args, **self.to_kwargs)
 
         for i in range(1, self.n_inputs + 1):
-            self.forward(tensor(x))  # Sets Gaussian parameters: self.m and self.logp
-            m = self.m.data.numpy()
-            logp = self.logp.data.numpy()
+            self.forward(x)  # Sets Gaussian parameters: self.m and self.logp
 
             idx = np.argwhere(self.input_order == i)[0, 0]
-            x[:, idx] = m[:, idx] + np.exp(np.minimum(-0.5 * logp[:, idx], 10.0)) * u[:, idx]
 
-        return tensor(x)
+            mask = torch.zeros([n_samples, self.n_inputs])
+            if self.to_args is not None or self.to_kwargs is not None:
+                mask = mask.to(*self.to_args, **self.to_kwargs)
+
+            mask[:, idx] = 1.
+
+            x = (1. - mask) * x + mask * (self.m + torch.exp(torch.clamp(-0.5 * self.logp, -10., 10.)) * u)
+
+        return x
+
+    def to(self, *args, **kwargs):
+        self.to_args = args
+        self.to_kwargs = kwargs
+
+        self = super().to(*args, **kwargs)
+
+        for i, (M, W, b) in enumerate(zip(self.Ms, self.Ws, self.bs)):
+            self.Ms[i] = M.to(*args, **kwargs)
+            self.Ws[i] = nn.Parameter(W.to(*args, **kwargs))
+            self.bs[i] = nn.Parameter(b.to(*args, **kwargs))
+
+        self.Mmp = self.Mmp.to(*args, **kwargs)
+        self.Wm = nn.Parameter(self.Wm.to(*args, **kwargs))
+        self.bm = nn.Parameter(self.bm.to(*args, **kwargs))
+        self.Wp = nn.Parameter(self.Wp.to(*args, **kwargs))
+        self.bp = nn.Parameter(self.bp.to(*args, **kwargs))
+
+        return self
 
 
-class ConditionalGaussianMADE(nn.Module):
-    """
-    Implements a Made, where each conditional probability is modelled by a single gaussian component. The made has
-    inputs theta which is always conditioned on, and whose probability it doesn't model.
-    """
-
+class ConditionalGaussianMADE(BaseConditionalFlow):
     def __init__(self, n_conditionals, n_inputs, n_hiddens, activation='relu', input_order='sequential',
                  mode='sequential'):
-        """
-        Constructor.
-        :param n_conditionals: number of (conditional) inputs theta
-        :param n_inputs: number of inputs X
-        :param n_hiddens: list with number of hidden units for each hidden layer
-        :param output_order: order of outputs
-        :param mode: strategy for assigning degrees to hidden nodes: can be 'random' or 'sequential'
-        """
-
-        super(ConditionalGaussianMADE, self).__init__()
+        super(ConditionalGaussianMADE, self).__init__(n_conditionals, n_inputs)
 
         # save input arguments
         self.activation = activation
@@ -138,23 +137,19 @@ class ConditionalGaussianMADE(nn.Module):
 
         self.activation_function = get_activation_function(activation)
 
-        # Output info
+        # Output info. TODO: make these not properties of self
         self.m = None
         self.logp = None
-        self.log_likelihood = None
 
-    def forward(self, theta, x):
+        # Dtype and GPU / CPU management
+        self.to_args = None
+        self.to_kwargs = None
 
-        """ Transforms theta, x into u = f^-1(x | theta) """
-
-        # First hidden layer
-
-        # Debug
-
+    def forward(self, theta, x, **kwargs):
+        # Conditioner
         try:
             h = self.activation_function(
                 F.linear(theta, torch.t(self.Wx)) + F.linear(x, torch.t(self.Ms[0] * self.Ws[0]), self.bs[0]))
-
         except RuntimeError:
             logging.error('Abort! Abort!')
             logging.info('MADE settings: n_inputs = %s, n_conditionals = %s', self.n_inputs, self.n_conditionals)
@@ -167,63 +162,50 @@ class ConditionalGaussianMADE(nn.Module):
                          self.bs[0].is_cuda)
             raise
 
-        # feedforward propagation
         for M, W, b in zip(self.Ms[1:], self.Ws[1:], self.bs[1:]):
             h = self.activation_function(F.linear(h, torch.t(M * W), b))
 
-        # output means
+        # Gaussian parameters
         self.m = F.linear(h, torch.t(self.Mmp * self.Wm), self.bm)
-
-        # output log precisions
         self.logp = F.linear(h, torch.t(self.Mmp * self.Wp), self.bp)
 
-        # random numbers driving made
+        # u(x)
         u = torch.exp(0.5 * self.logp) * (x - self.m)
 
-        # log likelihoods
-        diff = torch.sum(u ** 2 - self.logp, dim=1)
-        constant = float(self.n_inputs * np.log(2. * np.pi))
-        self.log_likelihood = -0.5 * (constant + diff)
+        # log det du/dx
+        logdet_dudx = 0.5 * torch.sum(self.logp, dim=1)
 
-        return u
+        return u, logdet_dudx
 
-    def predict_log_likelihood(self, theta, x):
-
-        """ Calculates log p(x) """
-
-        _ = self.forward(theta, x)
-
-        return self.log_likelihood
-
-    def generate_samples(self, theta, u=None):
-        """
-        Generate samples from made. Requires as many evaluations as number of inputs.
-        :param theta: conditionals
-        :param n_samples: number of samples
-        :param u: random numbers to use in generating samples; if None, new random numbers are drawn
-        :return: samples
-        """
-
-        # TODO: reformulate in pyTorch instread of numpy
-
+    def generate_samples(self, theta, u=None, **kwargs):
         n_samples = theta.shape[0]
 
-        x = np.zeros([n_samples, self.n_inputs])
-        u = rng.randn(n_samples, self.n_inputs) if u is None else u.data.numpy()
+        x = torch.zeros([n_samples, self.n_inputs])
+        if u is None:
+            u = tensor(rng.randn(n_samples, self.n_inputs))
+
+        if self.to_args is not None or self.to_kwargs is not None:
+            x = x.to(*self.to_args, **self.to_kwargs)
+            u = u.to(*self.to_args, **self.to_kwargs)
 
         for i in range(1, self.n_inputs + 1):
-            self.forward(tensor(theta), tensor(x))
-            m = self.m.data.numpy()
-            logp = self.logp.data.numpy()
+            self.forward(theta, x)  # Sets Gaussian parameters: self.m and self.logp
 
             idx = np.argwhere(self.input_order == i)[0, 0]
-            x[:, idx] = m[:, idx] + np.exp(np.minimum(-0.5 * logp[:, idx], 10.0)) * u[:, idx]
 
-        return tensor(x)
+            mask = torch.zeros([n_samples, self.n_inputs])
+            if self.to_args is not None or self.to_kwargs is not None:
+                mask = mask.to(*self.to_args, **self.to_kwargs)
+
+            mask[:, idx] = 1.
+
+            x = (1. - mask) * x + mask * (self.m + torch.exp(torch.clamp(-0.5 * self.logp, -10., 10.)) * u)
+
+        return x
 
     def to(self, *args, **kwargs):
-
-        logging.debug('Transforming MADE to %s', args)
+        self.to_args = args
+        self.to_kwargs = kwargs
 
         self = super().to(*args, **kwargs)
 

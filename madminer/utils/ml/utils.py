@@ -25,3 +25,14 @@ def r_from_s(s, epsilon=1.e-6):
 
 def sigmoid(x):
     return 1. / (1. + np.exp(-x))
+
+
+def check_for_nans_in_parameters(model, check_gradients=True):
+    for param in model.parameters():
+        if torch.any(torch.isnan(param)):
+            return True
+
+        if check_gradients and torch.any(torch.isnan(param.grad)):
+            return True
+
+    return False

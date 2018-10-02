@@ -10,7 +10,7 @@ from torch.utils.data import Dataset, DataLoader
 from torch.utils.data.sampler import SubsetRandomSampler
 from torch.nn.utils import clip_grad_norm_
 
-from madminer.utils.ml.utils import s_from_r
+from madminer.utils.ml.utils import check_for_nans_in_parameters
 
 
 class SmallGoldDataset(torch.utils.data.Dataset):
@@ -46,7 +46,10 @@ def train_flow_model(model,
                      loss_weights=None,
                      loss_labels=None,
                      batch_size=64,
-                     initial_learning_rate=0.001, final_learning_rate=0.0001, n_epochs=50,
+                     trainer='adam',
+                     initial_learning_rate=0.001,
+                     final_learning_rate=0.0001,
+                     n_epochs=50,
                      clip_gradient=1.,
                      run_on_gpu=True,
                      double_precision=False,
@@ -106,7 +109,12 @@ def train_flow_model(model,
         )
 
     # Optimizer
-    optimizer = optim.Adam(model.parameters(), lr=initial_learning_rate)
+    if trainer == 'adam':
+        optimizer = optim.Adam(model.parameters(), lr=initial_learning_rate)
+    elif trainer == 'sgd':
+        optimizer = optim.SGD(model.parameters(), lr=initial_learning_rate)
+    else:
+        raise ValueError('Unknown trainer {}'.format(trainer))
 
     # Early stopping
     early_stopping = early_stopping and (validation_split is not None) and (n_epochs > 1)
@@ -125,6 +133,7 @@ def train_flow_model(model,
     individual_losses_val = []
     total_losses_train = []
     total_losses_val = []
+    total_val_loss = None
 
     # Verbosity
     n_epochs_verbose = None
@@ -158,10 +167,15 @@ def train_flow_model(model,
 
             optimizer.zero_grad()
 
-            # Evaluate loss
-            _ = model(theta0, x)
+            # Forward pass
+            if t_xz0 is not None:
+                _, log_likelihood, score = model.log_likelihood_and_score(theta0, x)
+            else:
+                _, log_likelihood = model.log_likelihood(theta0, x)
+                score = None
 
-            losses = [loss_function(model, t_xz0) for loss_function in loss_functions]
+            # Evaluate loss
+            losses = [fn(log_likelihood, score, t_xz0) for fn in loss_functions]
             loss = loss_weights[0] * losses[0]
             for _w, _l in zip(loss_weights[1:], losses[1:]):
                 loss += _w * _l
@@ -172,11 +186,18 @@ def train_flow_model(model,
 
             # Calculate gradient and update optimizer
             loss.backward()
-            optimizer.step()
 
             # Clip gradients
             if clip_gradient is not None:
                 clip_grad_norm_(model.parameters(), clip_gradient)
+
+            # Check for NaNs
+            if check_for_nans_in_parameters(model):
+                logging.warning('NaNs in parameters or gradients, stopping training!')
+                break
+
+            # Optimizer step
+            optimizer.step()
 
         individual_train_loss /= len(train_loader)
         total_train_loss /= len(train_loader)
@@ -204,10 +225,15 @@ def train_flow_model(model,
             except NameError:
                 pass
 
-            # Evaluate loss
-            _ = model(theta0, x)
+            # Forward pass
+            if t_xz0 is not None:
+                _, log_likelihood, score = model.log_likelihood_and_score(theta0, x)
+            else:
+                _, log_likelihood = model.log_likelihood(theta0, x)
+                score = None
 
-            losses = [loss_function(model, t_xz0) for loss_function in loss_functions]
+            # Evaluate loss
+            losses = [fn(log_likelihood, score, t_xz0) for fn in loss_functions]
             loss = loss_weights[0] * losses[0]
             for _w, _l in zip(loss_weights[1:], losses[1:]):
                 loss += _w * _l
@@ -304,27 +330,23 @@ def evaluate_flow_model(model,
     theta0s = theta0s.to(device, dtype)
     xs = xs.to(device, dtype)
 
-    # Evaluate ratio estimator with score:
+    # Evaluate estimator with score:
     if evaluate_score:
         model.eval()
 
-        _ = model(theta0s, xs)
+        _, log_p_hat, t_hat = model.log_likelihood_and_score(theta0s, xs)
 
-        # Get data and return
-        log_r_hat = model.log_likelihood.detach().numpy().flatten()
-        s_hat = s_from_r(np.exp(log_r_hat))
-        t_hat0 = model.score.detach().numpy()
+        log_p_hat = log_p_hat.detach().numpy().flatten()
+        t_hat = t_hat.detach().numpy().flatten()
 
-    # Evaluate ratio estimator without score:
+    # Evaluate estimator without score:
     else:
         with torch.no_grad():
             model.eval()
 
-            _ = model(theta0s, xs)
+            _, log_p_hat = model.log_likelihood(theta0s, xs)
 
-            # Get data and return
-            log_r_hat = model.log_likelihood.detach().numpy().flatten()
-            s_hat = s_from_r(np.exp(log_r_hat))
-            t_hat0 = None
+            log_p_hat = log_p_hat.detach().numpy().flatten()
+            t_hat = None
 
-    return s_hat, log_r_hat, t_hat0
+    return log_p_hat, t_hat
