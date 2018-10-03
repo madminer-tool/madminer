@@ -1,11 +1,10 @@
+from __future__ import absolute_import, division, print_function
+
 import numpy as np
 import numpy.random as rng
 
 from torch import tensor
 import torch.nn as nn
-
-# TODO: switch to pure torch syntax
-# TODO: consider unifying dtypes (float?)
 
 
 def create_degrees(n_inputs, n_hiddens, input_order, mode):
@@ -42,14 +41,14 @@ def create_degrees(n_inputs, n_hiddens, input_order, mode):
 
     # create degrees for hiddens
     if mode == 'random':
-        for N in n_hiddens:
+        for n in n_hiddens:
             min_prev_degree = min(np.min(degrees[-1]), n_inputs - 1)
-            degrees_l = rng.randint(min_prev_degree, n_inputs, N)
+            degrees_l = rng.randint(min_prev_degree, n_inputs, n)
             degrees.append(degrees_l)
 
     elif mode == 'sequential':
-        for N in n_hiddens:
-            degrees_l = np.arange(N) % max(1, n_inputs - 1) + min(1, n_inputs - 1)
+        for n in n_hiddens:
+            degrees_l = np.arange(n) % max(1, n_inputs - 1) + min(1, n_inputs - 1)
             degrees.append(degrees_l)
 
     else:
@@ -65,17 +64,17 @@ def create_masks(degrees):
     :return: list of all masks, as theano shared variables
     """
 
-    Ms = []
+    ms = []
 
     for l, (d0, d1) in enumerate(zip(degrees[:-1], degrees[1:])):
-        M = (d0[:, np.newaxis] <= d1).astype(np.float)
-        M = tensor(M)
-        Ms.append(M)
+        m = (d0[:, np.newaxis] <= d1).astype(np.float)
+        m = tensor(m)
+        ms.append(m)
 
-    Mmp = (degrees[-1][:, np.newaxis] < degrees[0]).astype(np.float)
-    Mmp = tensor(Mmp)
+    mmp = (degrees[-1][:, np.newaxis] < degrees[0]).astype(np.float)
+    mmp = tensor(mmp)
 
-    return Ms, Mmp
+    return ms, mmp
 
 
 def create_weights(n_inputs, n_hiddens, n_comps=None):
@@ -87,34 +86,34 @@ def create_weights(n_inputs, n_hiddens, n_comps=None):
     :return: weights and biases, as theano shared variables
     """
 
-    Ws = []
-    bs = []
+    ws = nn.ParameterList()
+    bs = nn.ParameterList()
 
     n_units = np.concatenate(([n_inputs], n_hiddens))
 
-    for N0, N1 in zip(n_units[:-1], n_units[1:]):
-        W = nn.Parameter(tensor((rng.randn(N0, N1) / np.sqrt(N0 + 1))))
-        b = nn.Parameter(tensor(np.zeros((N1,))))
-        Ws.append(W)
+    for n0, n1 in zip(n_units[:-1], n_units[1:]):
+        w = nn.Parameter(tensor((rng.randn(n0, n1) / np.sqrt(n0 + 1))))
+        b = nn.Parameter(tensor(np.zeros((n1,))))
+        ws.append(w)
         bs.append(b)
 
     if n_comps is None:
-        Wm = nn.Parameter(tensor((rng.randn(n_units[-1], n_inputs) / np.sqrt(n_units[-1] + 1))))
-        Wp = nn.Parameter(tensor((rng.randn(n_units[-1], n_inputs) / np.sqrt(n_units[-1] + 1))))
+        wm = nn.Parameter(tensor((rng.randn(n_units[-1], n_inputs) / np.sqrt(n_units[-1] + 1))))
+        wp = nn.Parameter(tensor((rng.randn(n_units[-1], n_inputs) / np.sqrt(n_units[-1] + 1))))
         bm = nn.Parameter(tensor(np.zeros((n_inputs,))))
         bp = nn.Parameter(tensor(np.zeros((n_inputs,))))
 
-        return Ws, bs, Wm, bm, Wp, bp
+        return ws, bs, wm, bm, wp, bp
     else:
 
-        Wm = nn.Parameter(tensor((rng.randn(n_units[-1], n_inputs, n_comps) / np.sqrt(n_units[-1] + 1))))
-        Wp = nn.Parameter(tensor((rng.randn(n_units[-1], n_inputs, n_comps) / np.sqrt(n_units[-1] + 1))))
-        Wa = nn.Parameter(tensor((rng.randn(n_units[-1], n_inputs, n_comps) / np.sqrt(n_units[-1] + 1))))
+        wm = nn.Parameter(tensor((rng.randn(n_units[-1], n_inputs, n_comps) / np.sqrt(n_units[-1] + 1))))
+        wp = nn.Parameter(tensor((rng.randn(n_units[-1], n_inputs, n_comps) / np.sqrt(n_units[-1] + 1))))
+        wa = nn.Parameter(tensor((rng.randn(n_units[-1], n_inputs, n_comps) / np.sqrt(n_units[-1] + 1))))
         bm = nn.Parameter(tensor(rng.randn(n_inputs, n_comps)))
         bp = nn.Parameter(tensor(rng.randn(n_inputs, n_comps)))
         ba = nn.Parameter(tensor(rng.randn(n_inputs, n_comps)))
 
-        return Ws, bs, Wm, bm, Wp, bp, Wa, ba
+        return ws, bs, wm, bm, wp, bp, wa, ba
 
 
 def create_weights_conditional(n_conditionals, n_inputs, n_hiddens, n_comps):
@@ -127,5 +126,5 @@ def create_weights_conditional(n_conditionals, n_inputs, n_hiddens, n_comps):
     :return: weights and biases, as theano shared variables
     """
 
-    Wx = nn.Parameter(tensor((rng.randn(n_conditionals, n_hiddens[0]) / np.sqrt(n_conditionals + 1))))
-    return (Wx,) + create_weights(n_inputs, n_hiddens, n_comps)
+    wx = nn.Parameter(tensor((rng.randn(n_conditionals, n_hiddens[0]) / np.sqrt(n_conditionals + 1))))
+    return (wx,) + create_weights(n_inputs, n_hiddens, n_comps)

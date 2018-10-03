@@ -9,7 +9,7 @@ import tempfile
 from madminer.morphing import AdvancedMorpher
 from madminer.utils.interfaces.hdf5 import save_madminer_settings, load_madminer_settings
 from madminer.utils.interfaces.mg_cards import export_param_card, export_reweight_card
-from madminer.utils.interfaces.mg import generate_mg_process, run_mg_pythia
+from madminer.utils.interfaces.mg import generate_mg_process, run_mg_pythia, copy_ufo_model
 from madminer.utils.various import create_missing_folders, general_init, format_benchmark
 
 
@@ -293,6 +293,7 @@ class MadMiner:
                             temp_directory,
                             proc_card_file,
                             mg_process_directory,
+                            ufo_model_directory=None,
                             initial_command=None,
                             log_file=None):
 
@@ -303,6 +304,8 @@ class MadMiner:
         :param temp_directory: A temporary directory.
         :param proc_card_file: Path to the process card that tells MadGraph how to generate the process.
         :param mg_process_directory: Path to the MG process directory.
+        :param ufo_model_directory: Path to a non-standard UFO model, which will be copied to the MG directory before
+                                    executing the process card.
         :param initial_command: Initial shell commands that have to be executed before MG is run (e.g. loading a virtual
                                 environment).
         :param log_file: Path to a log file in which the MadGraph output is saved.
@@ -311,6 +314,9 @@ class MadMiner:
         logging.info('Generating MadGraph process folder from %s at %s', proc_card_file, mg_process_directory)
 
         create_missing_folders([temp_directory, mg_process_directory, os.path.dirname(log_file)])
+
+        if ufo_model_directory is not None:
+            copy_ufo_model(ufo_model_directory, mg_directory)
 
         generate_mg_process(
             mg_directory,
@@ -420,6 +426,7 @@ class MadMiner:
             run_card_file=None,
             pythia8_card_file=None,
             mg_process_directory=None,
+            ufo_model_directory=None,
             temp_directory=None,
             sample_benchmark=None,
             is_background=False,
@@ -464,6 +471,7 @@ class MadMiner:
                                  temp_directory,
                                  proc_card_file,
                                  mg_process_directory,
+                                 ufo_model_directory=ufo_model_directory,
                                  initial_command=initial_command,
                                  log_file=log_file_generate)
 

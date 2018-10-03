@@ -9,6 +9,7 @@ import torch
 
 from madminer.utils.ml import ratio_losses, flow_losses
 from madminer.utils.ml.models.maf import ConditionalMaskedAutoregressiveFlow
+from madminer.utils.ml.models.maf_mog import ConditionalMixtureMaskedAutoregressiveFlow
 from madminer.utils.ml.models.ratio import ParameterizedRatioEstimator, DoublyParameterizedRatioEstimator
 from madminer.utils.ml.models.score import LocalScoreEstimator
 from madminer.utils.ml.flow_trainer import train_flow_model, evaluate_flow_model
@@ -25,6 +26,7 @@ class MLForge:
         self.method_type = None
         self.model = None
         self.method = None
+        self.nde_type = None
         self.n_observables = None
         self.n_parameters = None
         self.n_hidden = None
@@ -42,11 +44,13 @@ class MLForge:
               r_xz_filename=None,
               t_xz0_filename=None,
               t_xz1_filename=None,
+              nde_type='maf',
               n_hidden=(100, 100, 100),
               activation='tanh',
               maf_n_mades=3,
               maf_batch_norm=True,
               maf_batch_norm_alpha=0.1,
+              maf_mog_n_components=10,
               alpha=1.,
               n_epochs=20,
               batch_size=64,
@@ -73,11 +77,14 @@ class MLForge:
         if t_xz1_filename is not None:
             logging.info('                 t_xz (theta1) at  %s', t_xz1_filename)
         logging.info('  Method:                 %s', method)
+        if method in ['nde', 'scandal']:
+            logging.info('  Neural density est.:    %s', nde_type)
         logging.info('  Hidden layers:          %s', n_hidden)
         logging.info('  Early stopping:         %s', early_stopping)
         logging.info('  MAF, number MADEs:      %s', maf_n_mades)
         logging.info('  MAF, batch norm:        %s', maf_batch_norm)
         logging.info('  MAF, BN alpha:          %s', maf_batch_norm_alpha)
+        logging.info('  MAF MoG, components:    %s', maf_mog_n_components)
         logging.info('  Activation function:    %s', activation)
         logging.info('  alpha:                  %s', alpha)
         logging.info('  Batch size:             %s', batch_size)
@@ -112,6 +119,9 @@ class MLForge:
             assert theta1 is not None
         if method in ['rascal2', 'alices2']:
             assert t_xz1 is not None
+
+        if method in ['nde', 'scandal']:
+            assert nde_type in ['maf', 'maf_mog']
 
         # Infer dimensions of problem
         n_samples = x.shape[0]
@@ -161,15 +171,27 @@ class MLForge:
             )
         elif method in ['nde', 'scandal']:
             self.method_type = 'nde'
-            self.model = ConditionalMaskedAutoregressiveFlow(
-                n_conditionals=n_parameters,
-                n_inputs=n_observables,
-                n_hiddens=n_hidden,
-                n_mades=maf_n_mades,
-                activation=activation,
-                batch_norm=maf_batch_norm,
-                alpha=maf_batch_norm_alpha
-            )
+            if nde_type == 'maf':
+                self.model = ConditionalMaskedAutoregressiveFlow(
+                    n_conditionals=n_parameters,
+                    n_inputs=n_observables,
+                    n_hiddens=n_hidden,
+                    n_mades=maf_n_mades,
+                    activation=activation,
+                    batch_norm=maf_batch_norm,
+                    alpha=maf_batch_norm_alpha
+                )
+            elif nde_type == 'maf_mog':
+                self.model = ConditionalMixtureMaskedAutoregressiveFlow(
+                    n_conditionals=n_parameters,
+                    n_inputs=n_observables,
+                    n_components=maf_mog_n_components,
+                    n_hiddens=n_hidden,
+                    n_mades=maf_n_mades,
+                    activation=activation,
+                    batch_norm=maf_batch_norm,
+                    alpha=maf_batch_norm_alpha
+                )
         else:
             raise NotImplementedError('Unknown method {}'.format(method))
 
