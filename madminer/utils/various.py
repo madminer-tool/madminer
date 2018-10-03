@@ -6,6 +6,7 @@ import os
 from subprocess import Popen, PIPE
 import io
 import numpy as np
+from collections import OrderedDict
 
 from madminer import __version__
 
@@ -140,3 +141,19 @@ def load_and_check(filename, warning_threshold=1.e9):
                         filename, smallest, largest)
 
     return data
+
+def math_commands():
+    """ Provides list with math commands - we need this when using eval """
+    
+    from math import acos, asin, atan, atan2, ceil, cos, cosh, exp, floor, log, pi, pow, sin, sinh, sqrt, tan, tanh
+
+    functions = ['acos', 'asin', 'atan', 'atan2', 'ceil', 'cos',
+             'cosh', 'exp', 'floor', 'log', 'pi', 'pow', 'sin', 'sinh', 'sqrt',
+             'tan', 'tanh']
+
+    mathdefinitions = {}
+    for function in functions:
+        mathdefinitions[function] = locals().get(function, None)
+
+    return mathdefinitions
+
