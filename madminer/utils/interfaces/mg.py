@@ -2,6 +2,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import os
 import shutil
+import logging
 
 from madminer.utils.various import call_command
 
@@ -31,12 +32,14 @@ def generate_mg_process(mg_directory,
 
 def run_mg_pythia(mg_directory,
                   mg_process_directory,
-                  temp_directory,
+                  proc_card_filename=None,
                   run_card_file=None,
                   param_card_file=None,
                   reweight_card_file=None,
                   pythia8_card_file=None,
                   is_background=False,
+                  only_prepare_script=False,
+                  script_file=None,
                   initial_command=None,
                   log_file=None):
     # Remove unneeded cards
@@ -80,9 +83,20 @@ def run_mg_pythia(mg_directory,
     if pythia8_card_file is not None:
         shutil.copyfile(pythia8_card_file, mg_process_directory + '/Cards/pythia8_card.dat')
 
-    # MG commands
-    temp_proc_card_file = temp_directory + '/run.mg5'
+    # Find filenames for process card and script
+    if proc_card_filename is None:
+        for i in range(1000):
+            proc_card_filename = mg_process_directory + '/Cards/start_event_generation_{}.mg5'.format(i)
+            if not os.path.isfile(proc_card_filename):
+                break
 
+    if only_prepare_script and script_file is None:
+        for i in range(1000):
+            script_file = mg_process_directory + '/madminer_run_{}.sh'.format(i)
+            if not os.path.isfile(script_file):
+                break
+
+    # MG commands
     shower_option = 'OFF' if pythia8_card_file is None else 'Pythia8'
     reweight_option = 'OFF' if is_background else 'ON'
 
@@ -96,16 +110,31 @@ def run_mg_pythia(mg_directory,
         done
         '''.format(mg_process_directory, shower_option, reweight_option)
 
-    with open(temp_proc_card_file, 'w') as file:
+    with open(proc_card_filename, 'w') as file:
         file.write(mg_commands)
 
-    # Call MG5
+    # Call MG5 or export into script
     if initial_command is None:
         initial_command = ''
+    elif only_prepare_script:
+        initial_command = initial_command + '\n\n'
     else:
         initial_command = initial_command + '; '
-    _ = call_command(initial_command + mg_directory + '/bin/mg5_aMC ' + temp_proc_card_file,
-                     log_file=log_file)
+
+    if only_prepare_script:
+        script = '#!/bin/bash\n\n{}{}/bin/mg5_aMC {} > {}\n'.format(
+            initial_command,
+            mg_directory,
+            proc_card_filename,
+            log_file
+        )
+
+        with open(script_file, 'w') as file:
+            file.write(script)
+
+    else:
+        _ = call_command(initial_command + mg_directory + '/bin/mg5_aMC ' + proc_card_filename,
+                         log_file=log_file)
 
 
 def copy_ufo_model(ufo_directory, mg_directory):

@@ -27,6 +27,8 @@ def general_init(debug=False):
 
 
 def call_command(cmd, log_file=None):
+    logging.debug('Calling %s > %s', cmd, log_file)
+
     if log_file is not None:
         with io.open(log_file, 'wb') as log:
             proc = Popen(cmd, stdout=log, stderr=log, shell=True)
