@@ -74,3 +74,94 @@ implementation is a pyTorch port of the original code by George Papamakarios et 
 
 The [setup.py](setup.py) was adapted from
 [https://github.com/kennethreitz/setup.py](https://github.com/kennethreitz/setup.py).
+
+## References
+
+General method papers:
+```
+@article{Brehmer:2018hga,
+      author         = "Brehmer, Johann and Louppe, Gilles and Pavez, Juan and
+                        Cranmer, Kyle",
+      title          = "{Mining gold from implicit models to improve
+                        likelihood-free inference}",
+      year           = "2018",
+      eprint         = "1805.12244",
+      archivePrefix  = "arXiv",
+      primaryClass   = "stat.ML",
+      SLACcitation   = "%%CITATION = ARXIV:1805.12244;%%"
+}
+```
+
+Physics publications:
+```
+@article{Brehmer:2018kdj,
+      author         = "Brehmer, Johann and Cranmer, Kyle and Louppe, Gilles and
+                        Pavez, Juan",
+      title          = "{Constraining Effective Field Theories with Machine
+                        Learning}",
+      journal        = "Phys. Rev. Lett.",
+      volume         = "121",
+      year           = "2018",
+      number         = "11",
+      pages          = "111801",
+      doi            = "10.1103/PhysRevLett.121.111801",
+      eprint         = "1805.00013",
+      archivePrefix  = "arXiv",
+      primaryClass   = "hep-ph",
+}
+
+@article{Brehmer:2018eca,
+      author         = "Brehmer, Johann and Cranmer, Kyle and Louppe, Gilles and
+                        Pavez, Juan",
+      title          = "{A Guide to Constraining Effective Field Theories with
+                        Machine Learning}",
+      journal        = "Phys. Rev.",
+      volume         = "D98",
+      year           = "2018",
+      number         = "5",
+      pages          = "052004",
+      doi            = "10.1103/PhysRevD.98.052004",
+      eprint         = "1805.00020",
+      archivePrefix  = "arXiv",
+      primaryClass   = "hep-ph",
+}
+```
+
+Individual inference methods are introduced in the following papers:
+- CARL:
+```
+@article{Cranmer:2015bka,
+      author         = "Cranmer, Kyle and Pavez, Juan and Louppe, Gilles",
+      title          = "{Approximating Likelihood Ratios with Calibrated
+                        Discriminative  Classifiers}",
+      year           = "2015",
+      eprint         = "1506.02169",
+      archivePrefix  = "arXiv",
+      primaryClass   = "stat.AP",
+}
+```
+- Masked Autoregressive Flows:
+```
+@incollection{2017arXiv170507057P,
+      title = {Masked Autoregressive Flow for Density Estimation},
+      author = {Papamakarios, George and Murray, Iain and Pavlakou, Theo},
+      booktitle = {Advances in Neural Information Processing Systems 30},
+      editor = {I. Guyon and U. V. Luxburg and S. Bengio and H. Wallach and R. Fergus and S. Vishwanathan and R. Garnett},
+      pages = {2338--2347},
+      year = {2017},
+}
+```
+- ALICE: 
+```
+@article{Stoye:2018ovl,
+      author         = "Stoye, Markus and Brehmer, Johann and Louppe, Gilles and
+                        Pavez, Juan and Cranmer, Kyle",
+      title          = "{Likelihood-free inference with an improved cross-entropy
+                        estimator}",
+      year           = "2018",
+      eprint         = "1808.00973",
+      archivePrefix  = "arXiv",
+      primaryClass   = "stat.ML",
+      SLACcitation   = "%%CITATION = ARXIV:1808.00973;%%"
+}
+```
