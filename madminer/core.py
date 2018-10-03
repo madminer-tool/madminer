@@ -372,12 +372,13 @@ class MadMiner:
     @staticmethod
     def run_mg_pythia(mg_directory,
                       mg_process_directory,
-                      temp_directory,
+                      proc_card_filename=None,
                       run_card_file=None,
                       param_card_file=None,
                       reweight_card_file=None,
                       pythia8_card_file=None,
                       is_background=False,
+                      only_prepare_script=False,
                       initial_command=None,
                       log_file=None):
 
@@ -386,7 +387,7 @@ class MadMiner:
 
         :param mg_directory: Path to the MadGraph 5 base directory.
         :param mg_process_directory: Path to the MG process directory.
-        :param temp_directory: Path to a temporary directory.
+        :param proc_card_filename: Filename for the process card that will be generated.
         :param run_card_file: Path to the MadGraph run card. If None, the card present in the process folder is used.
         :param param_card_file: Path to the MadGraph run card. If None, the card present in the process folder is used.
         :param reweight_card_file: Path to the MadGraph reweight card. If None, the card present in the process folder
@@ -396,6 +397,8 @@ class MadMiner:
         :param is_background: bool that should be True for background processes, i.e. process in which the differential
                               cross section does NOT depend on the parameters (and would be the same for all
                               benchmarks). In this case, no reweighting is run.
+        :param only_prepare_script: bool. If True, MadGraph is not executed, but instead a run.sh script is created in the
+                                    process directory.
         :param initial_command: Initial shell commands that have to be executed before MG is run (e.g. loading a virtual
                                 environment).
         :param log_file: Path to a log file in which the MadGraph output is saved.
@@ -403,17 +406,20 @@ class MadMiner:
 
         logging.info('Starting MadGraph and Pythia in %s', mg_process_directory)
 
-        create_missing_folders([temp_directory, mg_process_directory, os.path.dirname(log_file)])
+        create_missing_folders([mg_process_directory, os.path.dirname(log_file)])
+        if proc_card_filename is not None:
+            create_missing_folders([proc_card_filename])
 
         run_mg_pythia(
             mg_directory,
             mg_process_directory,
-            temp_directory,
+            proc_card_filename,
             run_card_file,
             param_card_file,
             reweight_card_file,
             pythia8_card_file,
             is_background=is_background,
+            only_prepare_script=only_prepare_script,
             initial_command=initial_command,
             log_file=log_file
         )
@@ -429,6 +435,7 @@ class MadMiner:
             ufo_model_directory=None,
             temp_directory=None,
             sample_benchmark=None,
+            only_prepare_script=False,
             is_background=False,
             initial_command=None,
             log_directory=None):
@@ -450,6 +457,8 @@ class MadMiner:
         :param is_background: bool that should be True for background processes, i.e. process in which the differential
                               cross section does NOT depend on the parameters (and would be the same for all
                               benchmarks). In this case, no reweighting is run.
+        :param only_prepare_script: bool. If True, MadGraph is not executed, but instead a run.sh script is created in the
+                                    process directory.
         :param initial_command: Initial shell commands that have to be executed before MG is run (e.g. loading a virtual
                                 environment).
         :param log_directory: Directory for log files with the MadGraph output.
@@ -482,16 +491,15 @@ class MadMiner:
 
         self.run_mg_pythia(mg_directory,
                            mg_process_directory,
-                           temp_directory,
+                           None,
                            run_card_file,
                            None,
                            None,
                            pythia8_card_file,
                            is_background=is_background,
+                           only_prepare_script=only_prepare_script,
                            initial_command=initial_command,
                            log_file=log_file_run)
-
-
 
     def run_multiple(self,
                      mg_directory,
@@ -505,6 +513,7 @@ class MadMiner:
                      temp_directory=None,
                      sample_benchmarks=None,
                      is_background=False,
+                     only_prepare_script=False,
                      initial_command=None,
                      log_directory=None):
 
@@ -525,6 +534,8 @@ class MadMiner:
         :param is_background: bool that should be True for background processes, i.e. process in which the differential
                               cross section does NOT depend on the parameters (and would be the same for all
                               benchmarks). In this case, no reweighting is run.
+        :param only_prepare_script: bool. If True, MadGraph is not executed, but instead a run.sh script is created in the
+                                    process directory.
         :param initial_command: Initial shell commands that have to be executed before MG is run (e.g. loading a virtual
                                 environment).
         :param log_directory: Directory for log files with the MadGraph output.
@@ -542,37 +553,46 @@ class MadMiner:
         # Generate process folder
         log_file_generate = log_directory + '/generate.log'
 
-        self.generate_mg_process(mg_directory,
-                                 temp_directory,
-                                 proc_card_file,
-                                 mg_process_directory,
-                                 ufo_model_directory=ufo_model_directory,
-                                 initial_command=initial_command,
-                                 log_file=log_file_generate)
+        self.generate_mg_process(
+            mg_directory,
+            temp_directory,
+            proc_card_file,
+            mg_process_directory,
+            ufo_model_directory=ufo_model_directory,
+            initial_command=initial_command,
+            log_file=log_file_generate
+        )
 
         # Loop over settings
-        for i_run, run_card_file in enumerate(run_card_files):
-            for i_benchmark, sample_benchmark in enumerate(sample_benchmarks):
+        i = 0
+        for run_card_file in run_card_files:
+            for sample_benchmark in sample_benchmarks:
+                log_file_run = log_directory + '/run_{}.log'.format(i)
 
-                log_file_run = log_directory + '/run_{}_{}.log'.format(i_run, i_benchmark)
-
-                logging.info('Starting run card %s, benchmark %s', i_run, i_benchmark)
+                logging.info('Starting run %s', i)
                 logging.info('  Run card:                %s', run_card_file)
                 logging.info('  Sampling from benchmark: %s', sample_benchmark)
                 logging.info('  Log file:                %s', log_file_run)
 
-                self.export_cards(param_card_template_file,
-                                  reweight_card_template_file,
-                                  mg_process_directory,
-                                  sample_benchmark)
+                self.export_cards(
+                    param_card_template_file,
+                    reweight_card_template_file,
+                    mg_process_directory,
+                    sample_benchmark
+                )
 
-                self.run_mg_pythia(mg_directory,
-                                   mg_process_directory,
-                                   temp_directory,
-                                   run_card_file,
-                                   None,
-                                   None,
-                                   pythia8_card_file,
-                                   is_background=is_background,
-                                   initial_command=initial_command,
-                                   log_file=log_file_run)
+                self.run_mg_pythia(
+                    mg_directory,
+                    mg_process_directory,
+                    None,
+                    run_card_file,
+                    None,
+                    None,
+                    pythia8_card_file,
+                    is_background=is_background,
+                    only_prepare_script=only_prepare_script,
+                    initial_command=initial_command,
+                    log_file=log_file_run
+                )
+
+                i += 1
