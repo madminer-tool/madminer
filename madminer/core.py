@@ -404,7 +404,10 @@ class MadMiner:
         :param log_file: Path to a log file in which the MadGraph output is saved.
         """
 
-        logging.info('Starting MadGraph and Pythia in %s', mg_process_directory)
+        if only_prepare_script:
+            logging.info('Preparing script to run MadGraph and Pythia in %s', mg_process_directory)
+        else:
+            logging.info('Starting MadGraph and Pythia in %s', mg_process_directory)
 
         create_missing_folders([mg_process_directory, os.path.dirname(log_file)])
         if proc_card_filename is not None:
@@ -572,7 +575,7 @@ class MadMiner:
 
                 log_file_run = log_directory + '/run_{}.log'.format(i)
 
-                logging.info('Starting run %s', i)
+                logging.info('Run %s', i)
                 logging.info('  Run card:                %s', run_card_file)
                 logging.info('  Sampling from benchmark: %s', sample_benchmark)
                 logging.info('  Log file:                %s', log_file_run)
@@ -606,8 +609,10 @@ class MadMiner:
         if only_prepare_script:
             master_script_filename = mg_process_directory + '/madminer_run_all.sh'
 
-            commands = '\n'.joint(results)
+            commands = '\n'.join(results)
             script = '#!/bin/bash\n\n{}'.format(commands)
 
             with open(master_script_filename, 'w') as file:
                 file.write(script)
+
+            logging.info('To run MadGraph, please execute %s', master_script_filename)
