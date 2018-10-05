@@ -410,7 +410,7 @@ class MadMiner:
         if proc_card_filename is not None:
             create_missing_folders([proc_card_filename])
 
-        run_mg_pythia(
+        return run_mg_pythia(
             mg_directory,
             mg_process_directory,
             proc_card_filename,
@@ -565,8 +565,11 @@ class MadMiner:
 
         # Loop over settings
         i = 0
+        results = []
+
         for run_card_file in run_card_files:
             for sample_benchmark in sample_benchmarks:
+
                 log_file_run = log_directory + '/run_{}.log'.format(i)
 
                 logging.info('Starting run %s', i)
@@ -581,7 +584,7 @@ class MadMiner:
                     sample_benchmark
                 )
 
-                self.run_mg_pythia(
+                result = self.run_mg_pythia(
                     mg_directory,
                     mg_process_directory,
                     None,
@@ -595,4 +598,16 @@ class MadMiner:
                     log_file=log_file_run
                 )
 
+                results.append(result)
+
                 i += 1
+
+        # Master shell script
+        if only_prepare_script:
+            master_script_filename = mg_process_directory + '/madminer_run_all.sh'
+
+            commands = '\n'.joint(results)
+            script = '#!/bin/bash\n\n{}'.format(commands)
+
+            with open(master_script_filename, 'w') as file:
+                file.write(script)
