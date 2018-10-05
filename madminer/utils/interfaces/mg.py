@@ -4,7 +4,7 @@ import os
 import shutil
 import logging
 
-from madminer.utils.various import call_command
+from madminer.utils.various import call_command, make_file_executable
 
 
 def generate_mg_process(mg_directory,
@@ -131,6 +131,8 @@ def run_mg_pythia(mg_directory,
 
         with open(script_file, 'w') as file:
             file.write(script)
+
+        make_file_executable(script_file)
 
         return script_file
 

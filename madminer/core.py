@@ -10,7 +10,7 @@ from madminer.morphing import AdvancedMorpher
 from madminer.utils.interfaces.hdf5 import save_madminer_settings, load_madminer_settings
 from madminer.utils.interfaces.mg_cards import export_param_card, export_reweight_card
 from madminer.utils.interfaces.mg import generate_mg_process, run_mg_pythia, copy_ufo_model
-from madminer.utils.various import create_missing_folders, general_init, format_benchmark
+from madminer.utils.various import create_missing_folders, general_init, format_benchmark, make_file_executable
 
 
 class MadMiner:
@@ -572,7 +572,6 @@ class MadMiner:
 
         for run_card_file in run_card_files:
             for sample_benchmark in sample_benchmarks:
-
                 log_file_run = log_directory + '/run_{}.log'.format(i)
 
                 logging.info('Run %s', i)
@@ -614,5 +613,7 @@ class MadMiner:
 
             with open(master_script_filename, 'w') as file:
                 file.write(script)
+
+            make_file_executable(master_script_filename)
 
             logging.info('To run MadGraph, please execute %s', master_script_filename)
