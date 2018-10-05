@@ -5,7 +5,8 @@ import six
 def export_param_card(benchmark,
                       parameters,
                       param_card_template_file,
-                      mg_process_directory):
+                      mg_process_directory,
+                      param_card_filename=None):
     # Open parameter card template
     with open(param_card_template_file) as file:
         param_card = file.read()
@@ -51,8 +52,12 @@ def export_param_card(benchmark,
 
         param_card = param_card[:block_begin] + '\n'.join(block) + param_card[block_end:]
 
+    # Output filename
+    if param_card_filename is None:
+        param_card_filename = mg_process_directory + '/Cards/param_card.dat'
+
     # Save param_card.dat
-    with open(mg_process_directory + '/Cards/param_card.dat', 'w') as file:
+    with open(param_card_filename, 'w') as file:
         file.write(param_card)
 
 
@@ -60,7 +65,8 @@ def export_reweight_card(sample_benchmark,
                          benchmarks,
                          parameters,
                          reweight_card_template_file,
-                         mg_process_directory):
+                         mg_process_directory,
+                         reweight_card_filename=None):
     # Open reweight_card template
     with open(reweight_card_template_file) as file:
         reweight_card = file.read()
@@ -97,6 +103,10 @@ def export_reweight_card(sample_benchmark,
 
     reweight_card = reweight_card[:insert_pos] + '\n'.join(lines) + reweight_card[insert_pos:]
 
+    # Output filename
+    if reweight_card_filename is None:
+        reweight_card_filename = mg_process_directory + '/Cards/reweight_card.dat'
+
     # Save param_card.dat
-    with open(mg_process_directory + '/Cards/reweight_card.dat', 'w') as file:
+    with open(reweight_card_filename, 'w') as file:
         file.write(reweight_card)
