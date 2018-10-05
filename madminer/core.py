@@ -10,7 +10,7 @@ from madminer.morphing import AdvancedMorpher
 from madminer.utils.interfaces.hdf5 import save_madminer_settings, load_madminer_settings
 from madminer.utils.interfaces.mg_cards import export_param_card, export_reweight_card
 from madminer.utils.interfaces.mg import generate_mg_process, run_mg_pythia, copy_ufo_model
-from madminer.utils.various import create_missing_folders, general_init, format_benchmark
+from madminer.utils.various import create_missing_folders, general_init, format_benchmark, make_file_executable
 
 
 class MadMiner:
@@ -404,13 +404,16 @@ class MadMiner:
         :param log_file: Path to a log file in which the MadGraph output is saved.
         """
 
-        logging.info('Starting MadGraph and Pythia in %s', mg_process_directory)
+        if only_prepare_script:
+            logging.info('Preparing script to run MadGraph and Pythia in %s', mg_process_directory)
+        else:
+            logging.info('Starting MadGraph and Pythia in %s', mg_process_directory)
 
         create_missing_folders([mg_process_directory, os.path.dirname(log_file)])
         if proc_card_filename is not None:
             create_missing_folders([proc_card_filename])
 
-        run_mg_pythia(
+        return run_mg_pythia(
             mg_directory,
             mg_process_directory,
             proc_card_filename,
@@ -565,11 +568,13 @@ class MadMiner:
 
         # Loop over settings
         i = 0
+        results = []
+
         for run_card_file in run_card_files:
             for sample_benchmark in sample_benchmarks:
                 log_file_run = log_directory + '/run_{}.log'.format(i)
 
-                logging.info('Starting run %s', i)
+                logging.info('Run %s', i)
                 logging.info('  Run card:                %s', run_card_file)
                 logging.info('  Sampling from benchmark: %s', sample_benchmark)
                 logging.info('  Log file:                %s', log_file_run)
@@ -581,7 +586,7 @@ class MadMiner:
                     sample_benchmark
                 )
 
-                self.run_mg_pythia(
+                result = self.run_mg_pythia(
                     mg_directory,
                     mg_process_directory,
                     None,
@@ -595,4 +600,20 @@ class MadMiner:
                     log_file=log_file_run
                 )
 
+                results.append(result)
+
                 i += 1
+
+        # Master shell script
+        if only_prepare_script:
+            master_script_filename = mg_process_directory + '/madminer_run_all.sh'
+
+            commands = '\n'.join(results)
+            script = '#!/bin/bash\n\n{}'.format(commands)
+
+            with open(master_script_filename, 'w') as file:
+                file.write(script)
+
+            make_file_executable(master_script_filename)
+
+            logging.info('To run MadGraph, please execute %s', master_script_filename)
