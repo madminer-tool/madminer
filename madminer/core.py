@@ -36,7 +36,7 @@ class MadMiner:
                       morphing_max_power=2,
                       parameter_range=(0., 1.)):
 
-        """ Adds an individual parameter
+        """ Adds an individual parameter.
 
         :param lha_block: str, the name of the LHA block as used in the param_card. Case-sensitive.
         :param lha_id: int, the LHA id as used in the param_card.
@@ -85,7 +85,7 @@ class MadMiner:
     def set_parameters(self,
                        parameters=None):
 
-        """ Defines whole parameter space.
+        """ Manually defines whole parameter space.
 
         :type parameters: dict or list that specifies all parameters. If dict, the keys are the parameter names and the
                           values describe the parameter properties. If list, the entries are tuples that describe the
@@ -131,7 +131,7 @@ class MadMiner:
                       parameter_values,
                       benchmark_name=None):
         """
-        Adds an individual parameter benchmark.
+        Manually adds an individual parameter benchmark.
 
         :param parameter_values: dict, with keys equal to parameter names and values equal to parameter values
         :param benchmark_name: str, defines name of benchmark
@@ -164,7 +164,7 @@ class MadMiner:
     def set_benchmarks(self,
                        benchmarks=None):
         """
-        Sets all parameter benchmarks.
+        Manually sets all parameter benchmarks.
 
         :param benchmarks: dict or list that specifies all parameters. If dict, the keys are the benchmark names and
                            the values are dicts {parameter_name:value}. If list, the entries are dicts
@@ -194,18 +194,18 @@ class MadMiner:
                                      n_trials=100,
                                      n_test_thetas=100):
         """
-        Sets all parameter benchmarks based on a morphing algorithm. The morphing basis is optimized with respect to the
+        Sets optimal parameter benchmarks for a morphing algorithm. The morphing basis is optimized with respect to the
         expected mean squared morphing weights over the parameter region of interest.
 
         :param max_overall_power: int or tuple of ints. The maximal sum of powers of all parameters, for each operator
                                   configuration (in the case of a tuple of ints).
-        :param n_bases: The number of morphing bases generated. If n_bases > 1, multiple bases are combined, and the
+        :param n_bases: int. The number of morphing bases generated. If n_bases > 1, multiple bases are combined, and the
                         weights for each basis are reduced by a factor 1 / n_bases. Currently not supported.
-        :param keep_existing_benchmarks: Whether the previously defined benchmarks are included in the basis. In that
-                                         case, the number of free parameters in the optimization routine is reduced.
-        :param n_trials: Number of candidate bases used in the optimization.
-        :param n_test_thetas: Number of validation benchmark points used to calculate the expected mean squared morphing
-                              weight.
+        :param keep_existing_benchmarks: bool. Whether the previously defined benchmarks are included in the basis. In
+                                         that case, the number of free parameters in the optimization routine is reduced.
+        :param n_trials: int. Number of candidate bases used in the optimization.
+        :param n_test_thetas: int. Number of validation benchmark points used to calculate the expected mean squared
+                              morphing weight.
         """
 
         logging.info('Optimizing basis for morphing')
@@ -270,7 +270,7 @@ class MadMiner:
             logging.info('Did not find morphing setup.')
 
     def save(self, filename):
-        """ Saves MadMiner setup from HDF5 file """
+        """ Saves MadMiner setup into a HDF5 file """
 
         create_missing_folders([os.path.dirname(filename)])
 
@@ -290,26 +290,28 @@ class MadMiner:
                                    benchmarks=self.benchmarks)
 
     @staticmethod
-    def generate_mg_process(mg_directory,
-                            temp_directory,
-                            proc_card_file,
-                            mg_process_directory,
-                            ufo_model_directory=None,
-                            initial_command=None,
-                            log_file=None):
+    def generate_mg_process(
+            mg_directory,
+            temp_directory,
+            proc_card_file,
+            mg_process_directory,
+            ufo_model_directory=None,
+            log_file=None,
+            initial_command=None
+    ):
 
         """
         Lets MadGraph create the process folder.
 
-        :param mg_directory: MadGraph 5 directory.
-        :param temp_directory: A temporary directory.
-        :param proc_card_file: Path to the process card that tells MadGraph how to generate the process.
-        :param mg_process_directory: Path to the MG process directory.
-        :param ufo_model_directory: Path to a non-standard UFO model, which will be copied to the MG directory before
-                                    executing the process card.
-        :param initial_command: Initial shell commands that have to be executed before MG is run (e.g. loading a virtual
-                                environment).
-        :param log_file: Path to a log file in which the MadGraph output is saved.
+        :param mg_directory: str. Path to the MadGraph 5 directory.
+        :param temp_directory: str. Path to a directory for temporary files.
+        :param proc_card_file: str. Path to the process card that tells MadGraph how to generate the process.
+        :param mg_process_directory: str. Path to the MG process directory.
+        :param ufo_model_directory: str or None. Path to a UFO model that is not yet installed. It will be copied to the
+                                    MG directory before the process card is executed.
+        :param initial_command: str or None. Initial shell commands that have to be executed before MG is run (e.g.
+                                loading a virtual environment).
+        :param log_file: str or None. Path to a log file in which the MadGraph output is saved.
         """
 
         logging.info('Generating MadGraph process folder from %s at %s', proc_card_file, mg_process_directory)
@@ -328,25 +330,31 @@ class MadMiner:
             log_file=log_file
         )
 
-    def export_cards(self,
-                     param_card_template_file,
-                     reweight_card_template_file,
-                     mg_process_directory,
-                     sample_benchmark=None,
-                     param_card_filename=None,
-                     reweight_card_filename=None):
+    def export_cards(
+            self,
+            param_card_template_file,
+            reweight_card_template_file,
+            mg_process_directory,
+            sample_benchmark=None,
+            param_card_filename=None,
+            reweight_card_filename=None
+    ):
 
         """
         Writes out param_card and reweight_card for MadGraph. Currently, this is the final output of this package.
         Future versions are scheduled to support the automatic running of MadGraph, and the automated conversion of
         event files.
 
-        :param param_card_template_file: Path to a param_card.dat of the used model.
-        :param reweight_card_template_file: Path to an empty reweight_card.dat (no commands, the default 'launch' should
-                                            be commented out or removed).
-        :param mg_process_directory: Path to the directory of the MG process.
-        :param sample_benchmark: Name of the benchmark used for sampling. If None, the very first defined benchmark is
-                                 used.
+        :param param_card_template_file: str. Path to a param_card.dat of the used model.
+        :param reweight_card_template_file: str. Path to an empty reweight_card.dat (no commands, the default 'launch'
+                                            should be commented out or removed).
+        :param mg_process_directory: str. Path to the directory of the MG process.
+        :param sample_benchmark: str or None. Name of the benchmark used for sampling. If None, the very first defined
+                                 benchmark is used.
+        :param param_card_filename: str or None. Output filename for the generated param card. If None, a default
+                                    filename in the MG process folder is used.
+        :param reweight_card_filename: str or None. Output filename for the generated reweight card. If None, a default
+                                       filename in the MG process folder is used.
         """
 
         if param_card_filename is None or reweight_card_filename is None:
@@ -397,31 +405,33 @@ class MadMiner:
                       log_file=None):
 
         """
-        Runs the event generation with MadGraph and Pythia.
+        Runs or prepares running the event generation with MadGraph and Pythia.
 
-        :param mg_directory: Path to the MadGraph 5 base directory.
-        :param mg_process_directory: Path to the MG process directory.
-        :param proc_card_filename: Filename for the process card that will be generated.
-        :param run_card_file: Path to the MadGraph run card. If None, the card present in the process folder is used.
-        :param param_card_file: Path to the MadGraph run card. If None, the card present in the process folder is used.
-        :param reweight_card_file: Path to the MadGraph reweight card. If None, the card present in the process folder
+        :param mg_directory: str. Path to the MadGraph 5 base directory.
+        :param mg_process_directory: str. Path to the MG process directory.
+        :param proc_card_filename: str or None. Filename for the MG command card that will be generated. If None, a default filename
+                                   in the MG process directory will be chosen.
+        :param run_card_file: str or None. Path to the MadGraph run card. If None, the card present in the process folder is used.
+        :param param_card_file: str or None. Path to the MadGraph run card. If None, the card present in the process folder is used.
+        :param reweight_card_file: str or None. Path to the MadGraph reweight card. If None, the card present in the process folder
                                    is used.
-        :param pythia8_card_file: Path to the MadGraph Pythia8 card. If None, the card present in the process folder
-                                  is used.
-        :param is_background: bool that should be True for background processes, i.e. process in which the differential
+        :param pythia8_card_file: str or None. Path to the MadGraph Pythia8 card. If None, Pythia is not run.
+        :param is_background: bool. Should be True for background processes, i.e. process in which the differential
                               cross section does NOT depend on the parameters (and would be the same for all
                               benchmarks). In this case, no reweighting is run.
         :param only_prepare_script: bool. If True, MadGraph is not executed, but instead a run.sh script is created in the
                                     process directory.
-        :param initial_command: Initial shell commands that have to be executed before MG is run (e.g. loading a virtual
+        :param script_filename: str or None. If only_prepare_script is True and script_filename is not None, this sets where
+                                the shell script to run MG and Pythia is generated.
+        :param initial_command: str or None. Initial shell commands that have to be executed before MG is run (e.g. loading a virtual
                                 environment).
-        :param log_file: Path to a log file in which the MadGraph output is saved.
+        :param log_file: str or None. Path to a log file in which the MadGraph output is saved.
         """
 
         # Preparations
         create_missing_folders([mg_process_directory, os.path.dirname(log_file)])
         if proc_card_filename is not None:
-            create_missing_folders([proc_card_filename])
+            create_missing_folders([os.path.dirname(proc_card_filename)])
 
         # Prepare run...
         if only_prepare_script:
@@ -458,44 +468,50 @@ class MadMiner:
                 log_file=log_file
             )
 
-    def run(self,
+    def run(
+            self,
             mg_directory,
             proc_card_file,
             param_card_template_file,
             reweight_card_template_file,
             run_card_file=None,
-            pythia8_card_file=None,
             mg_process_directory=None,
-            ufo_model_directory=None,
-            temp_directory=None,
+            pythia8_card_file=None,
             sample_benchmark=None,
-            only_prepare_script=False,
             is_background=False,
-            initial_command=None,
-            log_directory=None):
+            only_prepare_script=False,
+            ufo_model_directory=None,
+            log_directory=None,
+            temp_directory=None,
+            initial_command=None
+    ):
 
         """
-        Runs the event generation with MadGraph and Pythia.
+        Runs one event generation job with MadGraph and Pythia.
 
-        :param param_card_template_file:
-        :param reweight_card_template_file:
-        :param sample_benchmark:
-        :param mg_directory: Path to the MadGraph 5 base directory.
-        :param proc_card_file: Path to the process card that tells MadGraph how to generate the process.
-        :param temp_directory: Path to a temporary directory.
-        :param run_card_file: Path to the MadGraph run card. If None, the card present in the process folder is used.
+        :param mg_directory: str. Path to the MadGraph 5 base directory.
+        :param proc_card_file: str. Path to the process card that tells MadGraph how to generate the process.
+        :param param_card_template_file: str. Path to a param card that will be used as template to create the
+                                         appropriate param cards for these runs.
+        :param reweight_card_template_file: str. Path to an empty reweight card that will be used as template to create
+                                            the appropriate reweight cards for these runs.
+        :param run_card_file: str or None. Paths to the MadGraph run card. If None, the default run_card is used.
+        :param mg_process_directory: str or None. Path to the MG process directory. If None, MadMiner uses ./MG_process.
         :param pythia8_card_file: Path to the MadGraph Pythia8 card. If None, the card present in the process folder
                                   is used.
-        :param mg_process_directory: Path to the MG process directory. If None, use
-                                     <MadGraph directory>/MadMiner_process.
+        :param sample_benchmark: str or None. The name of the benchmarks that should be used to sample
+                                 events. If None, the benchmark added first is used.
         :param is_background: bool that should be True for background processes, i.e. process in which the differential
                               cross section does NOT depend on the parameters (and would be the same for all
                               benchmarks). In this case, no reweighting is run.
-        :param only_prepare_script: bool. If True, MadGraph is not executed, but instead a run.sh script is created in the
-                                    process directory.
+        :param only_prepare_script: bool. If True, MadGraph is not executed, but instead a run.sh script is created in
+                                    the process directory.
+        :param ufo_model_directory: str or None. Path to an UFO model directory that should be used, but is not yet
+                                    installed in mg_directory/models.
+        :param log_directory: str or None. Directory for log files with the MadGraph output. If None, ./logs is used.
+        :param temp_directory: str or None. Path to a temporary directory. If None, a system default is used
         :param initial_command: Initial shell commands that have to be executed before MG is run (e.g. loading a virtual
                                 environment).
-        :param log_directory: Directory for log files with the MadGraph output.
         """
 
         if mg_process_directory is None:
@@ -535,46 +551,54 @@ class MadMiner:
                            initial_command=initial_command,
                            log_file=log_file_run)
 
-    def run_multiple(self,
-                     mg_directory,
-                     proc_card_file,
-                     param_card_template_file,
-                     reweight_card_template_file,
-                     run_card_files=None,
-                     pythia8_card_file=None,
-                     mg_process_directory=None,
-                     ufo_model_directory=None,
-                     temp_directory=None,
-                     sample_benchmarks=None,
-                     is_background=False,
-                     only_prepare_script=False,
-                     initial_command=None,
-                     log_directory=None):
+    def run_multiple(
+            self,
+            mg_directory,
+            proc_card_file,
+            param_card_template_file,
+            reweight_card_template_file,
+            run_card_files,
+            mg_process_directory=None,
+            pythia8_card_file=None,
+            sample_benchmarks=None,
+            is_background=False,
+            only_prepare_script=False,
+            ufo_model_directory=None,
+            log_directory=None,
+            temp_directory=None,
+            initial_command=None
+    ):
 
         """
-        Runs multiple event generation jobs with different run cards and / or importance sampling with MadGraph and Pythia.
+        Runs multiple event generation jobs with different run cards and / or different importance sampling with
+        MadGraph and Pythia.
 
-        :param param_card_template_file:
-        :param reweight_card_template_file:
-        :param sample_benchmarks:
-        :param mg_directory: Path to the MadGraph 5 base directory.
-        :param proc_card_file: Path to the process card that tells MadGraph how to generate the process.
-        :param temp_directory: Path to a temporary directory.
-        :param run_card_files: List of paths to the MadGraph run card. If None, the card present in the process folder is used.
+        :param mg_directory: str. Path to the MadGraph 5 base directory.
+        :param proc_card_file: str. Path to the process card that tells MadGraph how to generate the process.
+        :param param_card_template_file: str. Path to a param card that will be used as template to create the
+                                         appropriate param cards for these runs.
+        :param reweight_card_template_file: str. Path to an empty reweight card that will be used as template to create
+                                            the appropriate reweight cards for these runs.
+        :param run_card_files: list of str. Paths to the MadGraph run card.
+        :param mg_process_directory: str or None. Path to the MG process directory. If None, MadMiner uses ./MG_process.
         :param pythia8_card_file: Path to the MadGraph Pythia8 card. If None, the card present in the process folder
                                   is used.
-        :param mg_process_directory: Path to the MG process directory. If None, use
-                                     <MadGraph directory>/MadMiner_process.
+        :param sample_benchmarks: list of str, or None. Lists the names of benchmarks that should be used to sample
+                                  events. By default, all currently defined benchmarks are used.
         :param is_background: bool that should be True for background processes, i.e. process in which the differential
                               cross section does NOT depend on the parameters (and would be the same for all
                               benchmarks). In this case, no reweighting is run.
-        :param only_prepare_script: bool. If True, MadGraph is not executed, but instead a run.sh script is created in the
-                                    process directory.
+        :param only_prepare_script: bool. If True, MadGraph is not executed, but instead a run.sh script is created in
+                                    the process directory.
+        :param ufo_model_directory: str or None. Path to an UFO model directory that should be used, but is not yet
+                                    installed in mg_directory/models.
+        :param log_directory: str or None. Directory for log files with the MadGraph output. If None, ./logs is used.
+        :param temp_directory: str or None. Path to a temporary directory. If None, a system default is used
         :param initial_command: Initial shell commands that have to be executed before MG is run (e.g. loading a virtual
                                 environment).
-        :param log_directory: Directory for log files with the MadGraph output.
         """
 
+        # Defaults
         if mg_process_directory is None:
             mg_process_directory = './MG_process'
 
@@ -583,6 +607,9 @@ class MadMiner:
 
         if log_directory is None:
             log_directory = './logs'
+
+        if sample_benchmarks is None:
+            sample_benchmarks = [benchmark for benchmark in mm.benchmarks]
 
         # Generate process folder
         log_file_generate = log_directory + '/generate.log'
@@ -613,6 +640,7 @@ class MadMiner:
                 script_file = mg_process_directory + '/madminer/scripts/run_{}.sh'.format(i)
 
                 log_file_run = log_directory + '/run_{}.log'.format(i)
+                mg_commands_filename = mg_process_directory + '/madminer/cards/mg_commands_{}.dat'.format(i)
                 param_card_file = mg_process_directory + '/madminer/cards/param_card_{}.dat'.format(i)
                 reweight_card_file = mg_process_directory + '/madminer/cards/reweight_card_{}.dat'.format(i)
                 new_pythia8_card_file = None if pythia8_card_file is None else mg_process_directory + '/madminer/cards/pythia8_card_{}.dat'.format(
@@ -650,7 +678,7 @@ class MadMiner:
                 result = self.run_mg_pythia(
                     mg_directory,
                     mg_process_directory,
-                    None,
+                    mg_commands_filename,
                     new_run_card_file,
                     param_card_file,
                     reweight_card_file,

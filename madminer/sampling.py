@@ -142,7 +142,7 @@ class SampleAugmenter:
                       constant_morphing_theta(), multiple_morphing_thetas(), or random_morphing_thetas().
         :param n_samples: Total number of samples to be drawn.
         :param folder: Folder for the resulting samples.
-        :param filename: Label for the filenames. The actual filenames will add a prefix such as 'x_', and the extension
+        :param filename: Label for the filenames. The actual filenames will add a prefix such as 'x', and the extension
                          '.npy'.
         :param test_split: Fraction of events reserved for the test sample (will not be used for any training samples).
         """
@@ -192,7 +192,7 @@ class SampleAugmenter:
                       constant_benchmark_theta() and constant_morphing_theta().
         :param n_samples: Total number of samples to be drawn.
         :param folder: Folder for the resulting samples.
-        :param filename: Label for the filenames. The actual filenames will add a prefix such as 'x_', and the extension
+        :param filename: Label for the filenames. The actual filenames will add a prefix such as 'x', and the extension
                          '.npy'.
         :param test_split: Fraction of events reserved for the test sample (will not be used for any training samples).
         """
@@ -257,7 +257,7 @@ class SampleAugmenter:
                        constant_morphing_theta(), multiple_morphing_thetas(), or random_morphing_thetas().
         :param n_samples: Total number of samples to be drawn.
         :param folder: Folder for the resulting samples.
-        :param filename: Label for the filenames. The actual filenames will add a prefix such as 'x_', and the extension
+        :param filename: Label for the filenames. The actual filenames will add a prefix such as 'x', and the extension
                          '.npy'.
         :param test_split: Fraction of events reserved for the test sample (will not be used for any training samples).
         """
@@ -363,7 +363,7 @@ class SampleAugmenter:
                        constant_morphing_theta(), multiple_morphing_thetas(), or random_morphing_thetas().
         :param n_samples: Total number of samples to be drawn.
         :param folder: Folder for the resulting samples.
-        :param filename: Label for the filenames. The actual filenames will add a prefix such as 'x_', and the extension
+        :param filename: Label for the filenames. The actual filenames will add a prefix such as 'x', and the extension
                          '.npy'.
         :param additional_thetas: list of tuples (type, value) that defines additional theta points at which ratio and
                                   score are evaluated, and which are then used to create additional training data
@@ -566,7 +566,7 @@ class SampleAugmenter:
                       constant_morphing_theta(), multiple_morphing_thetas(), or random_morphing_thetas().
         :param n_samples: Total number of samples to be drawn.
         :param folder: Folder for the resulting samples.
-        :param filename: Label for the filenames. The actual filenames will add a prefix such as 'x_', and the extension
+        :param filename: Label for the filenames. The actual filenames will add a prefix such as 'x', and the extension
                          '.npy'.
         :param test_split: Fraction of events reserved for this evaluation sample (will not be used for any training
                            samples).
