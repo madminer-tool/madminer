@@ -11,6 +11,7 @@ from madminer.utils.interfaces.hdf5 import save_madminer_settings, load_madminer
 from madminer.utils.interfaces.mg_cards import export_param_card, export_reweight_card
 from madminer.utils.interfaces.mg import generate_mg_process, prepare_run_mg_pythia, run_mg_pythia, copy_ufo_model
 from madminer.utils.various import create_missing_folders, general_init, format_benchmark, make_file_executable
+from madminer.utils.various import copy_file
 
 
 class MadMiner:
@@ -348,7 +349,11 @@ class MadMiner:
                                  used.
         """
 
-        logging.info('Creating param and reweight cards in %s', mg_process_directory)
+        if param_card_filename is None or reweight_card_filename is None:
+            logging.info('Creating param and reweight cards in %s', mg_process_directory)
+        else:
+            logging.info('Creating param and reweight cards in %s, %s', param_card_filename,
+                         reweight_card_filename)
 
         # Check status
         assert self.default_benchmark is not None
@@ -387,6 +392,7 @@ class MadMiner:
                       pythia8_card_file=None,
                       is_background=False,
                       only_prepare_script=False,
+                      script_filename=None,
                       initial_command=None,
                       log_file=None):
 
@@ -429,6 +435,7 @@ class MadMiner:
                 param_card_file,
                 reweight_card_file,
                 pythia8_card_file,
+                script_file=script_filename,
                 is_background=is_background,
                 initial_command=initial_command,
                 log_file=log_file
@@ -590,24 +597,40 @@ class MadMiner:
             log_file=log_file_generate
         )
 
+        # Make card folder
+        create_missing_folders([mg_process_directory + '/madminer',
+                                mg_process_directory + '/madminer/cards',
+                                mg_process_directory + '/madminer/scripts'])
+
         # Loop over settings
         i = 0
         results = []
 
         for run_card_file in run_card_files:
             for sample_benchmark in sample_benchmarks:
+
                 # Files
+                script_file = mg_process_directory + '/madminer/scripts/run_{}.sh'.format(i)
+
                 log_file_run = log_directory + '/run_{}.log'.format(i)
-                param_card_file = mg_process_directory + '/Cards/param_card_{}.dat'.format(i)
-                reweight_card_file = mg_process_directory + '/Cards/reweight_card_{}.dat'.format(i)
+                param_card_file = mg_process_directory + '/madminer/cards/param_card_{}.dat'.format(i)
+                reweight_card_file = mg_process_directory + '/madminer/cards/reweight_card_{}.dat'.format(i)
+                new_pythia8_card_file = None if pythia8_card_file is None else mg_process_directory + '/madminer/cards/pythia8_card_{}.dat'.format(
+                    i)
+                new_run_card_file = None if run_card_file is None else mg_process_directory + '/madminer/cards/run_card_{}.dat'.format(
+                    i)
 
-                logging.debug('Run %s', i)
-                logging.debug('  Sampling from benchmark: %s', sample_benchmark)
-                logging.debug('  Run card:                %s', run_card_file)
-                logging.debug('  Param card:              %s', param_card_file)
-                logging.debug('  Reweight card:           %s', reweight_card_file)
-                logging.debug('  Log file:                %s', log_file_run)
+                logging.info('Run %s', i)
+                logging.info('  Sampling from benchmark: %s', sample_benchmark)
+                logging.info('  Original run card:       %s', run_card_file)
+                logging.info('  Original Pythia8 card:   %s', run_card_file)
+                logging.info('  Copied run card:         %s', new_run_card_file)
+                logging.info('  Copied Pythia8 card:     %s', new_pythia8_card_file)
+                logging.info('  Param card:              %s', param_card_file)
+                logging.info('  Reweight card:           %s', reweight_card_file)
+                logging.info('  Log file:                %s', log_file_run)
 
+                # Creat param and reweight cards
                 self.export_cards(
                     param_card_template_file,
                     reweight_card_template_file,
@@ -617,16 +640,24 @@ class MadMiner:
                     reweight_card_filename=reweight_card_file
                 )
 
+                # Copy run and Pythia cards
+                if run_card_file is not None:
+                    copy_file(run_card_file, new_run_card_file)
+                if pythia8_card_file is not None:
+                    copy_file(pythia8_card_file, new_pythia8_card_file)
+
+                # Run MG and Pythia
                 result = self.run_mg_pythia(
                     mg_directory,
                     mg_process_directory,
                     None,
-                    run_card_file,
+                    new_run_card_file,
                     param_card_file,
                     reweight_card_file,
-                    pythia8_card_file,
+                    new_pythia8_card_file,
                     is_background=is_background,
                     only_prepare_script=only_prepare_script,
+                    script_filename=script_file,
                     initial_command=initial_command,
                     log_file=log_file_run
                 )
@@ -637,7 +668,7 @@ class MadMiner:
 
         # Master shell script
         if only_prepare_script:
-            master_script_filename = mg_process_directory + '/madminer_run_all.sh'
+            master_script_filename = mg_process_directory + '/madminer/run.sh'
 
             commands = '\n'.join(results)
             script = '#!/bin/bash\n\n{}'.format(commands)
