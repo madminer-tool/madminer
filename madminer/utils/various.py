@@ -7,6 +7,7 @@ import stat
 from subprocess import Popen, PIPE
 import io
 import numpy as np
+import shutil
 
 from madminer import __version__
 
@@ -164,3 +165,10 @@ def math_commands():
 def make_file_executable(filename):
     st = os.stat(filename)
     os.chmod(filename, st.st_mode | stat.S_IEXEC)
+
+
+def copy_file(source, destination):
+    if source is None:
+        return
+
+    shutil.copyfile(source, destination)
