@@ -112,6 +112,11 @@ venv.bak/
 # PyCharm
 .idea
 
+# MadGraph
+ME5_debug
+nsqso_born.inc
+py.py
+
 # Data
 examples/morphing_basis/animations
 
