@@ -421,7 +421,7 @@ class MadMiner:
         # Preparations
         create_missing_folders([mg_process_directory, os.path.dirname(log_file)])
         if proc_card_filename is not None:
-            create_missing_folders([proc_card_filename])
+            create_missing_folders([os.path.dirname(proc_card_filename)])
 
         # Prepare run...
         if only_prepare_script:
@@ -613,6 +613,7 @@ class MadMiner:
                 script_file = mg_process_directory + '/madminer/scripts/run_{}.sh'.format(i)
 
                 log_file_run = log_directory + '/run_{}.log'.format(i)
+                mg_commands_filename = mg_process_directory + '/madminer/cards/mg_commands_{}.dat'.format(i)
                 param_card_file = mg_process_directory + '/madminer/cards/param_card_{}.dat'.format(i)
                 reweight_card_file = mg_process_directory + '/madminer/cards/reweight_card_{}.dat'.format(i)
                 new_pythia8_card_file = None if pythia8_card_file is None else mg_process_directory + '/madminer/cards/pythia8_card_{}.dat'.format(
@@ -650,7 +651,7 @@ class MadMiner:
                 result = self.run_mg_pythia(
                     mg_directory,
                     mg_process_directory,
-                    None,
+                    mg_commands_filename,
                     new_run_card_file,
                     param_card_file,
                     reweight_card_file,
