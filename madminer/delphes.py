@@ -100,7 +100,6 @@ class DelphesProcessor:
             n_leptons_max=2,
             n_photons_max=2,
             n_jets_max=2,
-            n_bjets_max=2,
             include_met=True
     ):
         # ETMiss
@@ -117,7 +116,7 @@ class DelphesProcessor:
             )
 
         # Observed particles
-        for n, symbol in zip([n_leptons_max, n_photons_max, n_jets_max, n_bjets_max], ['l', 'a', 'j', 'b']):
+        for n, symbol in zip([n_leptons_max, n_photons_max, n_jets_max], ['l', 'a', 'j']):
             self.add_observable(
                 'n_{}s'.format(symbol),
                 'len({})'.format(symbol),
