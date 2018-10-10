@@ -10,7 +10,8 @@ def run_delphes(delphes_directory,
                 hepmc_sample_filename,
                 delphes_sample_filename=None,
                 initial_command=None,
-                log_file=None):
+                log_file=None,
+                overwrite_existing_delphes_root_file=True):
 
     # Untar event file
     filename, extension = os.path.splitext(hepmc_sample_filename)
@@ -21,8 +22,6 @@ def run_delphes(delphes_directory,
 
     # Where to put Delphes sample
     if delphes_sample_filename is None:
-        delphes_sample_filename = None
-
         filename_prefix = hepmc_sample_filename.replace('.hepmc.gz', '')
         filename_prefix = filename_prefix.replace('.hepmc', '')
 
@@ -34,6 +33,10 @@ def run_delphes(delphes_directory,
 
             if not os.path.exists(filename_candidate):
                 delphes_sample_filename = filename_candidate
+                break
+            elif overwrite_existing_delphes_root_file:
+                delphes_sample_filename = filename_candidate
+                os.remove(delphes_sample_filename)
                 break
 
         assert delphes_sample_filename is not None, "Could not find filename for Delphes sample"

@@ -50,7 +50,9 @@ class DelphesProcessor:
         logging.info('Adding HepMC sample at %s', filename)
 
         self.hepmc_sample_filenames.append(filename)
-        self.hepmc_sample_weight_labels.append(extract_weight_order(filename, sampled_from_benchmark))
+        self.hepmc_sample_weight_labels.append(
+            extract_weight_order(filename, sampled_from_benchmark)
+        )
 
     def run_delphes(self, delphes_directory, delphes_card, initial_command=None, log_directory=None):
 
@@ -73,7 +75,7 @@ class DelphesProcessor:
     def add_delphes_sample(self, filename):
 
         raise NotImplementedError('Direct use of Delphes samples is currently disabled since the Delphes file alone '
-                                  'does not contain any information about the weight order')
+                                  'does not contain any information linking the weights to the benchmarks ')
 
         # logging.info('Adding Delphes sample at %s', filename)
         # self.delphes_sample_filenames.append(filename)
@@ -129,12 +131,13 @@ class DelphesProcessor:
                 for benchmark_name in self.benchmark_names:
                     this_weights[benchmark_name] = original_weights
 
-            # Merge
+            # First results
             if self.observations is None and self.weights is None:
                 self.observations = this_observations
                 self.weights = this_weights
                 continue
 
+            # Following results: check consistency with previous results
             if len(self.weights) != len(this_weights):
                 raise ValueError("Number of weights in different Delphes files incompatible: {} vs {}".format(
                     len(self.weights), len(this_weights)
@@ -144,6 +147,7 @@ class DelphesProcessor:
                     len(self.observations), len(this_observations)
                 ))
 
+            # Merge results with previous
             for key in self.weights:
                 assert key in this_weights, "Weight label {} not found in Delphes sample!".format(
                     key
