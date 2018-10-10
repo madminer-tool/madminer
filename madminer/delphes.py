@@ -57,13 +57,13 @@ class DelphesProcessor:
 
     def run_delphes(self, delphes_directory, delphes_card, initial_command=None, log_directory=None):
 
-        logging.info('Running Delphes at %s', delphes_directory)
 
         if log_directory is None:
             log_directory = './logs'
         log_file = log_directory + '/delphes.log'
 
         for hepmc_sample_filename in self.hepmc_sample_filenames:
+            logging.info('Running Delphes (%s) on event sample at %s', delphes_directory, hepmc_sample_filename)
             delphes_sample_filename = run_delphes(
                 delphes_directory,
                 delphes_card,
@@ -84,9 +84,9 @@ class DelphesProcessor:
     def add_observable(self, name, definition, required=False, default=None):
 
         if required:
-            logging.info('Adding required observable %s = %s', name, definition)
+            logging.debug('Adding required observable %s = %s', name, definition)
         else:
-            logging.info('Adding (not required) observable %s = %s with default %s', name, definition, default)
+            logging.debug('Adding optional observable %s = %s with default %s', name, definition, default)
 
         self.observables[name] = definition
         self.observables_required[name] = required

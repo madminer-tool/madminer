@@ -188,38 +188,46 @@ def _get_4vectors_muons(tree):
 
 
 def _get_4vectors_leptons(tree):
-    pt = np.concatenate((
-        tree.array('Muon.PT'),
-        tree.array('Electron.PT')
-    ))
-    eta = np.concatenate((
-        tree.array('Muon.Eta'),
-        tree.array('Electron.Eta')
-    ))
-    phi = np.concatenate((
-        tree.array('Muon.Phi'),
-        tree.array('Electron.Phi')
-    ))
-
-    # Sort by descending pT
-    order = np.argsort(-1. * pt, axis=None)
-    pt = pt[order]
-    eta = eta[order]
-    phi = phi[order]
+    pt_mu = tree.array('Muon.PT')
+    eta_mu = tree.array('Muon.Eta')
+    phi_mu = tree.array('Muon.Phi')
+    pt_e = tree.array('Electron.PT')
+    eta_e = tree.array('Electron.Eta')
+    phi_e = tree.array('Electron.Phi')
 
     array_out = []
 
-    for ievent, sub_list in enumerate(pt):
+    for ievent in range(len(pt_mu)):
         array_this_event = []
 
-        for iobject, value in enumerate(sub_list):
+        # Combined muons and electrons
+        event_pts = np.concatenate((
+            pt_mu[ievent],
+            pt_e[ievent]
+        ))
+        event_etas = np.concatenate((
+            eta_mu[ievent],
+            eta_e[ievent]
+        ))
+        event_phis = np.concatenate((
+            phi_mu[ievent],
+            phi_e[ievent]
+        ))
+        event_masses = np.concatenate((
+            0.105 * np.ones_like(pt_mu[ievent]),
+            0.000511 * np.ones_like(pt_e[ievent])
+        ))
+
+        # Sort by descending pT
+        order = np.argsort(-1. * event_pts, axis=None)
+        event_pts = event_pts[order]
+        event_etas = event_etas[order]
+        event_phis = event_phis[order]
+
+        # Create LorentzVector
+        for object_pt, object_eta, object_phi, object_mass in zip(event_pts, event_etas, event_phis, event_masses):
             vec = skhep.math.vectors.LorentzVector()
-
-            vec.setptetaphim(pt[ievent][iobject],
-                             eta[ievent][iobject],
-                             phi[ievent][iobject],
-                             0.105)
-
+            vec.setptetaphim(object_pt, object_eta, object_phi, object_mass)
             array_this_event.append(vec)
 
         array_out.append(array_this_event)
