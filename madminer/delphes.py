@@ -13,7 +13,26 @@ from madminer.utils.various import general_init
 
 
 class DelphesProcessor:
-    """ """
+    """
+    Detector simulation with Delphes and simple calculation of observables.
+
+    After setting up the parameter space and benchmarks and running MadGraph and Pythia, all of which is organized
+    in the madminer.core.MadMiner class, the next steps are the simulation of detector effects and the calculation of
+    observables.  Different tools can be used for these tasks, please feel free to implement the detector simulation and
+    analysis routine of your choice.
+
+    This class provides an example implementation based on Delphes. Its workflow consists of four steps:
+    - Initializing the class with the filename of a MadMiner HDF5 file (the output of `madminer.core.MadMiner.save()`)
+    - Adding one or multiple HepMC samples produced by Pythia in `DelphesProcessor.add_hepmc_sample()`
+    - Running Delphes on these samples through `DelphesProcessor.run_delphes()`
+    - Defining observables through `DelphesProcessor.add_observables()`. A simple set of default observables is provided
+    with `DelphesProcessor.add_default_observables()`
+    - Optionally, cuts can be set with `DelphesProcessor.add_cut()`
+    - Calculating the observables from the Delphes ROOT files with `DelphesProcessor.analyse_delphes_samples()`
+    - Saving the results with `DelphesProcessor.save()`
+
+    Please see the tutorial for a detailed walk-through.
+    """
 
     def __init__(self, filename=None, debug=False):
         """ Constructor """
@@ -56,7 +75,6 @@ class DelphesProcessor:
         )
 
     def run_delphes(self, delphes_directory, delphes_card, initial_command=None, log_directory=None):
-
 
         if log_directory is None:
             log_directory = './logs'

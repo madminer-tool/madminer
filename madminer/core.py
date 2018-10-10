@@ -15,6 +15,20 @@ from madminer.utils.various import copy_file
 
 
 class MadMiner:
+    """
+    The central class to manage parameter spaces, benchmarks, and the generation of events through MadGraph and
+    Pythia.
+
+    An instance of this class is the starting point of most MadMiner applications. It is typically used in four steps:
+    - Defining the parameter space through `MadMiner.add_parameter`
+    - Defining the benchmarks, i.e. the points at which the squared matrix elements will be evaluated in MadGraph, with
+    `MadMiner.add_benchmark()` or if operator morphing is used, with `MadMiner.set_benchmarks_from_morphing()`
+    - Saving this setup with `MadMiner.save()` (it can be loaded in a new instance with `MadMiner.load()`)
+    - Running MadGraph and Pythia with the appropriate settings with `MadMiner.run()` or `MadMiner.run_multiple()` (the
+    latter allows the user to combine runs from multiple run cards and sampling points)
+
+    Please see the tutorial for a hands-on introduction to its methods.
+    """
 
     def __init__(self, debug=False):
 
