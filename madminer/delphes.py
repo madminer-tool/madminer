@@ -29,6 +29,7 @@ class DelphesProcessor:
         # Initialize observables
         self.observables = OrderedDict()
         self.observables_required = OrderedDict()
+        self.observables_defaults = OrderedDict()
 
         # Initialize cuts
         self.cuts = []
@@ -80,21 +81,74 @@ class DelphesProcessor:
         # logging.info('Adding Delphes sample at %s', filename)
         # self.delphes_sample_filenames.append(filename)
 
-    def add_observable(self, name, definition, required=False):
+    def add_observable(self, name, definition, required=False, default=None):
 
         if required:
             logging.info('Adding required observable %s = %s', name, definition)
         else:
-            logging.info('Adding (not required) observable %s = %s', name, definition)
+            logging.info('Adding (not required) observable %s = %s with default %s', name, definition, default)
 
         self.observables[name] = definition
         self.observables_required[name] = required
+        self.observables_defaults[name] = default
 
     def read_observables_from_file(self, filename):
         raise NotImplementedError
 
-    def set_default_observables(self):
-        raise NotImplementedError
+    def add_default_observables(
+            self,
+            n_leptons_max=2,
+            n_photons_max=2,
+            n_jets_max=2,
+            n_bjets_max=2,
+            include_met=True
+    ):
+        # ETMiss
+        if include_met:
+            self.add_observable(
+                'et_miss',
+                'met.pt',
+                required=True
+            )
+            self.add_observable(
+                'phi_miss',
+                'met.phi()',
+                required=True
+            )
+
+        # Observed particles
+        for n, symbol in zip([n_leptons_max, n_photons_max, n_jets_max, n_bjets_max], ['l', 'a', 'j', 'b']):
+            self.add_observable(
+                'n_{}s'.format(symbol),
+                'len({})'.format(symbol),
+                required=True
+            )
+
+            for i in range(n):
+                self.add_observable(
+                    'e_{}{}'.format(symbol, i + 1),
+                    '{}[{}].pt'.format(symbol, i),
+                    required=False,
+                    default=0.
+                )
+                self.add_observable(
+                    'pt_{}{}'.format(symbol, i + 1),
+                    '{}[{}].e'.format(symbol, i),
+                    required=False,
+                    default=0.
+                )
+                self.add_observable(
+                    'eta_{}{}'.format(symbol, i + 1),
+                    '{}[{}].eta'.format(symbol, i),
+                    required=False,
+                    default=0.
+                )
+                self.add_observable(
+                    'phi_{}{}'.format(symbol, i + 1),
+                    '{}[{}].phi()'.format(symbol, i),
+                    required=False,
+                    default=0.
+                )
 
     def add_cut(self, definition, pass_if_not_parsed=False):
         logging.info('Adding cut %s', definition)
@@ -114,6 +168,7 @@ class DelphesProcessor:
                 delphes_file,
                 self.observables,
                 self.observables_required,
+                self.observables_defaults,
                 self.cuts,
                 self.cuts_default_pass,
                 weight_labels
