@@ -11,6 +11,7 @@ import logging
 def extract_observables_from_delphes_file(delphes_sample_file,
                                           observables,
                                           observables_required,
+                                          observables_defaults,
                                           cuts,
                                           cuts_default_pass,
                                           weight_labels):
@@ -34,6 +35,7 @@ def extract_observables_from_delphes_file(delphes_sample_file,
     photons_all_events = _get_4vectors_photons(tree)
     electrons_all_events = _get_4vectors_electrons(tree)
     muons_all_events = _get_4vectors_muons(tree)
+    leptons_all_events = _get_4vectors_leptons(tree)
     jets_all_events = _get_4vectors_jets(tree)
     met_all_events = _get_4vectors_met(tree)
 
@@ -48,12 +50,16 @@ def extract_observables_from_delphes_file(delphes_sample_file,
                          'j': jets_all_events[event],
                          'a': photons_all_events[event],
                          'mu': muons_all_events[event],
+                         'l': leptons_all_events[event],
                          'met': met_all_events[event][0]}
 
             try:
                 values_this_observable.append(eval(obs_definition, variables))
             except Exception:
-                values_this_observable.append(np.nan)
+                default = observables_defaults[obs_name]
+                if default is None:
+                    default = np.nan
+                values_this_observable.append(default)
 
         values_this_observable = np.array(values_this_observable, dtype=np.float)
         observable_values[obs_name] = values_this_observable
@@ -69,6 +75,7 @@ def extract_observables_from_delphes_file(delphes_sample_file,
                          'j': jets_all_events[event],
                          'a': photons_all_events[event],
                          'mu': muons_all_events[event],
+                         'l': leptons_all_events[event],
                          'met': met_all_events[event][0]}
 
             for obs_name in observable_values:
@@ -173,6 +180,54 @@ def _get_4vectors_muons(tree):
                              phi[ievent][iobject],
                              0.105)
 
+            array_this_event.append(vec)
+
+        array_out.append(array_this_event)
+
+    return array_out
+
+
+def _get_4vectors_leptons(tree):
+    pt_mu = tree.array('Muon.PT')
+    eta_mu = tree.array('Muon.Eta')
+    phi_mu = tree.array('Muon.Phi')
+    pt_e = tree.array('Electron.PT')
+    eta_e = tree.array('Electron.Eta')
+    phi_e = tree.array('Electron.Phi')
+
+    array_out = []
+
+    for ievent in range(len(pt_mu)):
+        array_this_event = []
+
+        # Combined muons and electrons
+        event_pts = np.concatenate((
+            pt_mu[ievent],
+            pt_e[ievent]
+        ))
+        event_etas = np.concatenate((
+            eta_mu[ievent],
+            eta_e[ievent]
+        ))
+        event_phis = np.concatenate((
+            phi_mu[ievent],
+            phi_e[ievent]
+        ))
+        event_masses = np.concatenate((
+            0.105 * np.ones_like(pt_mu[ievent]),
+            0.000511 * np.ones_like(pt_e[ievent])
+        ))
+
+        # Sort by descending pT
+        order = np.argsort(-1. * event_pts, axis=None)
+        event_pts = event_pts[order]
+        event_etas = event_etas[order]
+        event_phis = event_phis[order]
+
+        # Create LorentzVector
+        for object_pt, object_eta, object_phi, object_mass in zip(event_pts, event_etas, event_phis, event_masses):
+            vec = skhep.math.vectors.LorentzVector()
+            vec.setptetaphim(object_pt, object_eta, object_phi, object_mass)
             array_this_event.append(vec)
 
         array_out.append(array_this_event)

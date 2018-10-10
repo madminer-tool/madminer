@@ -13,7 +13,26 @@ from madminer.utils.various import general_init
 
 
 class DelphesProcessor:
-    """ """
+    """
+    Detector simulation with Delphes and simple calculation of observables.
+
+    After setting up the parameter space and benchmarks and running MadGraph and Pythia, all of which is organized
+    in the madminer.core.MadMiner class, the next steps are the simulation of detector effects and the calculation of
+    observables.  Different tools can be used for these tasks, please feel free to implement the detector simulation and
+    analysis routine of your choice.
+
+    This class provides an example implementation based on Delphes. Its workflow consists of four steps:
+    - Initializing the class with the filename of a MadMiner HDF5 file (the output of `madminer.core.MadMiner.save()`)
+    - Adding one or multiple HepMC samples produced by Pythia in `DelphesProcessor.add_hepmc_sample()`
+    - Running Delphes on these samples through `DelphesProcessor.run_delphes()`
+    - Defining observables through `DelphesProcessor.add_observables()`. A simple set of default observables is provided
+    with `DelphesProcessor.add_default_observables()`
+    - Optionally, cuts can be set with `DelphesProcessor.add_cut()`
+    - Calculating the observables from the Delphes ROOT files with `DelphesProcessor.analyse_delphes_samples()`
+    - Saving the results with `DelphesProcessor.save()`
+
+    Please see the tutorial for a detailed walk-through.
+    """
 
     def __init__(self, filename=None, debug=False):
         """ Constructor """
@@ -29,6 +48,7 @@ class DelphesProcessor:
         # Initialize observables
         self.observables = OrderedDict()
         self.observables_required = OrderedDict()
+        self.observables_defaults = OrderedDict()
 
         # Initialize cuts
         self.cuts = []
@@ -50,17 +70,18 @@ class DelphesProcessor:
         logging.info('Adding HepMC sample at %s', filename)
 
         self.hepmc_sample_filenames.append(filename)
-        self.hepmc_sample_weight_labels.append(extract_weight_order(filename, sampled_from_benchmark))
+        self.hepmc_sample_weight_labels.append(
+            extract_weight_order(filename, sampled_from_benchmark)
+        )
 
     def run_delphes(self, delphes_directory, delphes_card, initial_command=None, log_directory=None):
-
-        logging.info('Running Delphes at %s', delphes_directory)
 
         if log_directory is None:
             log_directory = './logs'
         log_file = log_directory + '/delphes.log'
 
         for hepmc_sample_filename in self.hepmc_sample_filenames:
+            logging.info('Running Delphes (%s) on event sample at %s', delphes_directory, hepmc_sample_filename)
             delphes_sample_filename = run_delphes(
                 delphes_directory,
                 delphes_card,
@@ -73,26 +94,78 @@ class DelphesProcessor:
     def add_delphes_sample(self, filename):
 
         raise NotImplementedError('Direct use of Delphes samples is currently disabled since the Delphes file alone '
-                                  'does not contain any information about the weight order')
+                                  'does not contain any information linking the weights to the benchmarks ')
 
         # logging.info('Adding Delphes sample at %s', filename)
         # self.delphes_sample_filenames.append(filename)
 
-    def add_observable(self, name, definition, required=False):
+    def add_observable(self, name, definition, required=False, default=None):
 
         if required:
-            logging.info('Adding required observable %s = %s', name, definition)
+            logging.debug('Adding required observable %s = %s', name, definition)
         else:
-            logging.info('Adding (not required) observable %s = %s', name, definition)
+            logging.debug('Adding optional observable %s = %s with default %s', name, definition, default)
 
         self.observables[name] = definition
         self.observables_required[name] = required
+        self.observables_defaults[name] = default
 
     def read_observables_from_file(self, filename):
         raise NotImplementedError
 
-    def set_default_observables(self):
-        raise NotImplementedError
+    def add_default_observables(
+            self,
+            n_leptons_max=2,
+            n_photons_max=2,
+            n_jets_max=2,
+            include_met=True
+    ):
+        # ETMiss
+        if include_met:
+            self.add_observable(
+                'et_miss',
+                'met.pt',
+                required=True
+            )
+            self.add_observable(
+                'phi_miss',
+                'met.phi()',
+                required=True
+            )
+
+        # Observed particles
+        for n, symbol in zip([n_leptons_max, n_photons_max, n_jets_max], ['l', 'a', 'j']):
+            self.add_observable(
+                'n_{}s'.format(symbol),
+                'len({})'.format(symbol),
+                required=True
+            )
+
+            for i in range(n):
+                self.add_observable(
+                    'e_{}{}'.format(symbol, i + 1),
+                    '{}[{}].pt'.format(symbol, i),
+                    required=False,
+                    default=0.
+                )
+                self.add_observable(
+                    'pt_{}{}'.format(symbol, i + 1),
+                    '{}[{}].e'.format(symbol, i),
+                    required=False,
+                    default=0.
+                )
+                self.add_observable(
+                    'eta_{}{}'.format(symbol, i + 1),
+                    '{}[{}].eta'.format(symbol, i),
+                    required=False,
+                    default=0.
+                )
+                self.add_observable(
+                    'phi_{}{}'.format(symbol, i + 1),
+                    '{}[{}].phi()'.format(symbol, i),
+                    required=False,
+                    default=0.
+                )
 
     def add_cut(self, definition, pass_if_not_parsed=False):
         logging.info('Adding cut %s', definition)
@@ -112,6 +185,7 @@ class DelphesProcessor:
                 delphes_file,
                 self.observables,
                 self.observables_required,
+                self.observables_defaults,
                 self.cuts,
                 self.cuts_default_pass,
                 weight_labels
@@ -129,12 +203,13 @@ class DelphesProcessor:
                 for benchmark_name in self.benchmark_names:
                     this_weights[benchmark_name] = original_weights
 
-            # Merge
+            # First results
             if self.observations is None and self.weights is None:
                 self.observations = this_observations
                 self.weights = this_weights
                 continue
 
+            # Following results: check consistency with previous results
             if len(self.weights) != len(this_weights):
                 raise ValueError("Number of weights in different Delphes files incompatible: {} vs {}".format(
                     len(self.weights), len(this_weights)
@@ -144,6 +219,7 @@ class DelphesProcessor:
                     len(self.observations), len(this_observations)
                 ))
 
+            # Merge results with previous
             for key in self.weights:
                 assert key in this_weights, "Weight label {} not found in Delphes sample!".format(
                     key
