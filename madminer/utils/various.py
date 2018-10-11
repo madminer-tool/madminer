@@ -58,7 +58,13 @@ def call_command(cmd, log_file=None):
 
 
 def create_missing_folders(folders):
+    if folders is None:
+        return
+    
     for folder in folders:
+        if folder is None:
+            continue
+
         if not os.path.exists(folder):
             os.makedirs(folder)
 
