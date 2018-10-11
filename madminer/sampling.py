@@ -173,8 +173,9 @@ class SampleAugmenter:
         )
 
         # Save data
-        np.save(folder + '/theta_' + filename + '.npy', theta)
-        np.save(folder + '/x_' + filename + '.npy', x)
+        if filename is not None and folder is not None:
+            np.save(folder + '/theta_' + filename + '.npy', theta)
+            np.save(folder + '/x_' + filename + '.npy', x)
 
         return x, theta
 
@@ -231,9 +232,10 @@ class SampleAugmenter:
         )
 
         # Save data
-        np.save(folder + '/theta_' + filename + '.npy', theta)
-        np.save(folder + '/x_' + filename + '.npy', x)
-        np.save(folder + '/t_xz_' + filename + '.npy', t_xz)
+        if filename is not None and folder is not None:
+            np.save(folder + '/theta_' + filename + '.npy', theta)
+            np.save(folder + '/x_' + filename + '.npy', x)
+            np.save(folder + '/t_xz_' + filename + '.npy', t_xz)
 
         return x, theta, t_xz
 
@@ -333,12 +335,13 @@ class SampleAugmenter:
         y = y.reshape((-1, 1))
 
         # Save data
-        np.save(folder + '/theta0_' + filename + '.npy', theta0)
-        np.save(folder + '/theta1_' + filename + '.npy', theta1)
-        np.save(folder + '/x_' + filename + '.npy', x)
-        np.save(folder + '/y_' + filename + '.npy', y)
-        np.save(folder + '/r_xz_' + filename + '.npy', r_xz)
-        np.save(folder + '/t_xz_' + filename + '.npy', t_xz)
+        if filename is not None and folder is not None:
+            np.save(folder + '/theta0_' + filename + '.npy', theta0)
+            np.save(folder + '/theta1_' + filename + '.npy', theta1)
+            np.save(folder + '/x_' + filename + '.npy', x)
+            np.save(folder + '/y_' + filename + '.npy', y)
+            np.save(folder + '/r_xz_' + filename + '.npy', r_xz)
+            np.save(folder + '/t_xz_' + filename + '.npy', t_xz)
 
         return x, theta0, theta1, y, r_xz, t_xz
 
@@ -542,13 +545,14 @@ class SampleAugmenter:
         y = y.reshape((-1, 1))
 
         # Save data
-        np.save(folder + '/theta0_' + filename + '.npy', theta0)
-        np.save(folder + '/theta1_' + filename + '.npy', theta1)
-        np.save(folder + '/x_' + filename + '.npy', x)
-        np.save(folder + '/y_' + filename + '.npy', y)
-        np.save(folder + '/r_xz_' + filename + '.npy', r_xz)
-        np.save(folder + '/t_xz0_' + filename + '.npy', t_xz0)
-        np.save(folder + '/t_xz1_' + filename + '.npy', t_xz1)
+        if filename is not None and folder is not None:
+            np.save(folder + '/theta0_' + filename + '.npy', theta0)
+            np.save(folder + '/theta1_' + filename + '.npy', theta1)
+            np.save(folder + '/x_' + filename + '.npy', x)
+            np.save(folder + '/y_' + filename + '.npy', y)
+            np.save(folder + '/r_xz_' + filename + '.npy', r_xz)
+            np.save(folder + '/t_xz0_' + filename + '.npy', t_xz0)
+            np.save(folder + '/t_xz1_' + filename + '.npy', t_xz1)
 
         return x, theta0, theta1, y, r_xz, t_xz0, t_xz1
 
@@ -598,8 +602,9 @@ class SampleAugmenter:
         )
 
         # Save data
-        np.save(folder + '/theta_' + filename + '.npy', theta)
-        np.save(folder + '/x_' + filename + '.npy', x)
+        if filename is not None and folder is not None:
+            np.save(folder + '/theta_' + filename + '.npy', theta)
+            np.save(folder + '/x_' + filename + '.npy', x)
 
         return x, theta
 
