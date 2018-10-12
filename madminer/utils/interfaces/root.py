@@ -14,7 +14,15 @@ def extract_observables_from_delphes_file(delphes_sample_file,
                                           observables_defaults,
                                           cuts,
                                           cuts_default_pass,
-                                          weight_labels):
+                                          weight_labels,
+                                          acceptance_pt_min_e=10.,
+                                          acceptance_pt_min_mu=10.,
+                                          acceptance_pt_min_a=10.,
+                                          acceptance_pt_min_j=20.,
+                                          acceptance_eta_max_e=10.,
+                                          acceptance_eta_max_mu=10.,
+                                          acceptance_eta_max_a=10.,
+                                          acceptance_eta_max_j=20.):
     # Delphes ROOT file
     root_file = uproot.open(delphes_sample_file)
 
@@ -32,11 +40,12 @@ def extract_observables_from_delphes_file(delphes_sample_file,
     weights = np.array(ar_weights).reshape((n_events, n_weights)).T
 
     # Get all particle properties
-    photons_all_events = _get_particles_photons(tree)
-    electrons_all_events = _get_particles_charged(tree, 'Electron', 0.000511)
-    muons_all_events = _get_particles_charged(tree, 'Muon', 0.105)
-    leptons_all_events = _get_particles_leptons(tree)
-    jets_all_events = _get_particles_jets(tree)
+    photons_all_events = _get_particles_photons(tree, acceptance_pt_min_a, acceptance_eta_max_a)
+    electrons_all_events = _get_particles_charged(tree, 'Electron', 0.000511, acceptance_pt_min_e, acceptance_eta_max_e)
+    muons_all_events = _get_particles_charged(tree, 'Muon', 0.105, acceptance_pt_min_mu, acceptance_eta_max_mu)
+    leptons_all_events = _get_particles_leptons(tree, acceptance_pt_min_e, acceptance_eta_max_e, acceptance_pt_min_mu,
+                                                acceptance_eta_max_mu)
+    jets_all_events = _get_particles_jets(tree, acceptance_pt_min_j, acceptance_eta_max_j)
     met_all_events = _get_particles_met(tree)
 
     # Observations
@@ -139,11 +148,11 @@ def extract_observables_from_delphes_file(delphes_sample_file,
     return observable_values, weights_dict
 
 
-def _get_particles_charged(tree, name, mass):
-    pts = tree.array(name + 'Electron.PT')
-    etas = tree.array(name + 'Electron.Eta')
-    phis = tree.array(name + 'Electron.Phi')
-    pdgids = tree.array(name + 'Electron.PID')
+def _get_particles_charged(tree, name, mass, pt_min, eta_max):
+    pts = tree.array(name + '.PT')
+    etas = tree.array(name + '.Eta')
+    phis = tree.array(name + '.Phi')
+    pdgids = tree.array(name + '.PID')
 
     all_particles = []
 
@@ -151,6 +160,12 @@ def _get_particles_charged(tree, name, mass):
         event_particles = []
 
         for pt, eta, phi, pdgid in zip(pts[ievent], etas[ievent], phis[ievent], pdgids[ievent]):
+
+            if pt_min is not None and pt < pt_min:
+                continue
+            if eta_max is not None and abs(eta) > eta_max:
+                continue
+
             particle = MadMinerParticle()
             particle.setptetaphim(pt, eta, phi, mass)
             particle.set_pdgid(pdgid)
@@ -161,7 +176,7 @@ def _get_particles_charged(tree, name, mass):
     return all_particles
 
 
-def _get_particles_leptons(tree):
+def _get_particles_leptons(tree, pt_min_e, eta_max_e, pt_min_mu, eta_max_mu):
     pt_mu = tree.array('Muon.PT')
     eta_mu = tree.array('Muon.Eta')
     phi_mu = tree.array('Muon.Phi')
@@ -206,6 +221,22 @@ def _get_particles_leptons(tree):
 
         # Create particles
         for pt, eta, phi, mass, pdgid in zip(event_pts, event_etas, event_phis, event_masses, event_pdgids):
+            if abs(int(pdgid)) == 11:
+                if pt_min_e is not None and pt < pt_min_e:
+                    continue
+                if eta_max_e is not None and abs(eta) > eta_max_e:
+                    continue
+
+            elif abs(int(pdgid)) == 13:
+                if pt_min_mu is not None and pt < pt_min_mu:
+                    continue
+                if eta_max_mu is not None and abs(eta) > eta_max_mu:
+                    continue
+
+            else:
+                logging.warning('Delphes ROOT file has lepton with PDG ID %s, ignoring it', pdgid)
+                continue
+
             particle = MadMinerParticle()
             particle.setptetaphim(pt, eta, phi, mass)
             particle.set_pdgid(pdgid)
@@ -216,7 +247,7 @@ def _get_particles_leptons(tree):
     return all_particles
 
 
-def _get_particles_photons(tree):
+def _get_particles_photons(tree, pt_min, eta_max):
     pts = tree.array('Photon.PT')
     etas = tree.array('Photon.Eta')
     phis = tree.array('Photon.Phi')
@@ -228,6 +259,12 @@ def _get_particles_photons(tree):
         event_particles = []
 
         for pt, eta, phi, e in zip(pts[ievent], etas[ievent], phis[ievent], es[ievent]):
+
+            if pt_min is not None and pt < pt_min:
+                continue
+            if eta_max is not None and abs(eta) > eta_max:
+                continue
+
             particle = MadMinerParticle()
             particle.setptetaphie(pt, eta, phi, e)
             particle.set_pdgid(22)
@@ -238,7 +275,7 @@ def _get_particles_photons(tree):
     return all_particles
 
 
-def _get_particles_jets(tree):
+def _get_particles_jets(tree, pt_min, eta_max):
     pts = tree.array('Jet.PT')
     etas = tree.array('Jet.Eta')
     phis = tree.array('Jet.Phi')
@@ -250,6 +287,12 @@ def _get_particles_jets(tree):
         event_particles = []
 
         for pt, eta, phi, e in zip(pts[ievent], etas[ievent], phis[ievent], es[ievent]):
+
+            if pt_min is not None and pt < pt_min:
+                continue
+            if eta_max is not None and abs(eta) > eta_max:
+                continue
+
             particle = MadMinerParticle()
             particle.setptetaphie(pt, eta, phi, e)
             particle.set_pdgid(9)

@@ -54,6 +54,16 @@ class DelphesProcessor:
         self.cuts = []
         self.cuts_default_pass = []
 
+        # Initialize acceptance cuts
+        self.acceptance_pt_min_e = 10.
+        self.acceptance_pt_min_mu = 10.
+        self.acceptance_pt_min_a = 10.
+        self.acceptance_pt_min_j = 20.
+        self.acceptance_eta_max_e = 2.5
+        self.acceptance_eta_max_mu = 2.5
+        self.acceptance_eta_max_a = 2.5
+        self.acceptance_eta_max_j = 5.
+
         # Initialize samples
         self.observations = None
         self.weights = None
@@ -98,6 +108,18 @@ class DelphesProcessor:
 
         # logging.info('Adding Delphes sample at %s', filename)
         # self.delphes_sample_filenames.append(filename)
+
+    def set_acceptance(self, pt_min_e=10., pt_min_mu=10., pt_min_a=0., pt_min_j=20.,
+                       eta_max_e=2.5, eta_max_mu=2.5, eta_max_a=2.5, eta_max_j=5.):
+
+        self.acceptance_pt_min_e = pt_min_e
+        self.acceptance_pt_min_mu = pt_min_mu
+        self.acceptance_pt_min_a = pt_min_a
+        self.acceptance_pt_min_j = pt_min_j
+        self.acceptance_eta_max_e = eta_max_e
+        self.acceptance_eta_max_mu = eta_max_mu
+        self.acceptance_eta_max_a = eta_max_a
+        self.acceptance_eta_max_j = eta_max_j
 
     def add_observable(self, name, definition, required=False, default=None):
 
@@ -188,7 +210,8 @@ class DelphesProcessor:
                 self.observables_defaults,
                 self.cuts,
                 self.cuts_default_pass,
-                weight_labels
+                weight_labels,
+
             )
 
             # Number of benchmarks
