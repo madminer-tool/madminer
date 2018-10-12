@@ -4,7 +4,7 @@ import six
 import numpy as np
 from collections import OrderedDict
 import uproot
-import skhep.math
+from madminer.utils.particle import MadMinerParticle
 import logging
 
 
@@ -21,7 +21,7 @@ def extract_observables_from_delphes_file(delphes_sample_file,
     # Delphes tree
     tree = root_file['Delphes']
 
-    # Weight
+    # Weights
     ar_weights = tree.array("Weight.Weight")
 
     n_weights = len(ar_weights[0])
@@ -32,19 +32,20 @@ def extract_observables_from_delphes_file(delphes_sample_file,
     weights = np.array(ar_weights).reshape((n_events, n_weights)).T
 
     # Get all particle properties
-    photons_all_events = _get_4vectors_photons(tree)
-    electrons_all_events = _get_4vectors_electrons(tree)
-    muons_all_events = _get_4vectors_muons(tree)
-    leptons_all_events = _get_4vectors_leptons(tree)
-    jets_all_events = _get_4vectors_jets(tree)
-    met_all_events = _get_4vectors_met(tree)
+    photons_all_events = _get_particles_photons(tree)
+    electrons_all_events = _get_particles_charged(tree, 'Electron', 0.000511)
+    muons_all_events = _get_particles_charged(tree, 'Muon', 0.105)
+    leptons_all_events = _get_particles_leptons(tree)
+    jets_all_events = _get_particles_jets(tree)
+    met_all_events = _get_particles_met(tree)
 
-    # Obtain values for each observable in each event
+    # Observations
     observable_values = OrderedDict()
 
     for obs_name, obs_definition in six.iteritems(observables):
         values_this_observable = []
 
+        # Loop over events
         for event in range(n_events):
             variables = {'e': electrons_all_events[event],
                          'j': jets_all_events[event],
@@ -64,12 +65,13 @@ def extract_observables_from_delphes_file(delphes_sample_file,
         values_this_observable = np.array(values_this_observable, dtype=np.float)
         observable_values[obs_name] = values_this_observable
 
-    # Obtain values for each cut in each event
+    # Cuts
     cut_values = []
 
     for cut, default_pass in zip(cuts, cuts_default_pass):
         values_this_cut = []
 
+        # Loop over events
         for event in range(n_events):
             variables = {'e': electrons_all_events[event],
                          'j': jets_all_events[event],
@@ -137,68 +139,42 @@ def extract_observables_from_delphes_file(delphes_sample_file,
     return observable_values, weights_dict
 
 
-def _get_4vectors_electrons(tree):
-    pt = tree.array('Electron.PT')
-    eta = tree.array('Electron.Eta')
-    phi = tree.array('Electron.Phi')
+def _get_particles_charged(tree, name, mass):
+    pts = tree.array(name + 'Electron.PT')
+    etas = tree.array(name + 'Electron.Eta')
+    phis = tree.array(name + 'Electron.Phi')
+    pdgids = tree.array(name + 'Electron.PID')
 
-    array_out = []
+    all_particles = []
 
-    for ievent, sub_list in enumerate(pt):
-        array_this_event = []
+    for ievent in range(len(pts)):
+        event_particles = []
 
-        for iobject, value in enumerate(sub_list):
-            vec = skhep.math.vectors.LorentzVector()
+        for pt, eta, phi, pdgid in zip(pts[ievent], etas[ievent], phis[ievent], pdgids[ievent]):
+            particle = MadMinerParticle()
+            particle.setptetaphim(pt, eta, phi, mass)
+            particle.set_pdgid(pdgid)
+            event_particles.append(particle)
 
-            vec.setptetaphim(pt[ievent][iobject],
-                             eta[ievent][iobject],
-                             phi[ievent][iobject],
-                             0.000511)
+        all_particles.append(event_particles)
 
-            array_this_event.append(vec)
-
-        array_out.append(array_this_event)
-
-    return array_out
+    return all_particles
 
 
-def _get_4vectors_muons(tree):
-    pt = tree.array('Muon.PT')
-    eta = tree.array('Muon.Eta')
-    phi = tree.array('Muon.Phi')
-
-    array_out = []
-
-    for ievent, sub_list in enumerate(pt):
-        array_this_event = []
-
-        for iobject, value in enumerate(sub_list):
-            vec = skhep.math.vectors.LorentzVector()
-
-            vec.setptetaphim(pt[ievent][iobject],
-                             eta[ievent][iobject],
-                             phi[ievent][iobject],
-                             0.105)
-
-            array_this_event.append(vec)
-
-        array_out.append(array_this_event)
-
-    return array_out
-
-
-def _get_4vectors_leptons(tree):
+def _get_particles_leptons(tree):
     pt_mu = tree.array('Muon.PT')
     eta_mu = tree.array('Muon.Eta')
     phi_mu = tree.array('Muon.Phi')
+    pdgid_mu = tree.array('Muon.PID')
     pt_e = tree.array('Electron.PT')
     eta_e = tree.array('Electron.Eta')
     phi_e = tree.array('Electron.Phi')
+    pdgid_e = tree.array('Electron.PID')
 
-    array_out = []
+    all_particles = []
 
     for ievent in range(len(pt_mu)):
-        array_this_event = []
+        event_particles = []
 
         # Combined muons and electrons
         event_pts = np.concatenate((
@@ -217,6 +193,10 @@ def _get_4vectors_leptons(tree):
             0.105 * np.ones_like(pt_mu[ievent]),
             0.000511 * np.ones_like(pt_e[ievent])
         ))
+        event_pdgids = np.concatenate((
+            pdgid_mu[ievent],
+            pdgid_e[ievent]
+        ))
 
         # Sort by descending pT
         order = np.argsort(-1. * event_pts, axis=None)
@@ -224,88 +204,77 @@ def _get_4vectors_leptons(tree):
         event_etas = event_etas[order]
         event_phis = event_phis[order]
 
-        # Create LorentzVector
-        for object_pt, object_eta, object_phi, object_mass in zip(event_pts, event_etas, event_phis, event_masses):
-            vec = skhep.math.vectors.LorentzVector()
-            vec.setptetaphim(object_pt, object_eta, object_phi, object_mass)
-            array_this_event.append(vec)
+        # Create particles
+        for pt, eta, phi, mass, pdgid in zip(event_pts, event_etas, event_phis, event_masses, event_pdgids):
+            particle = MadMinerParticle()
+            particle.setptetaphim(pt, eta, phi, mass)
+            particle.set_pdgid(pdgid)
+            event_particles.append(particle)
 
-        array_out.append(array_this_event)
+        all_particles.append(event_particles)
 
-    return array_out
-
-
-def _get_4vectors_photons(tree):
-    pt = tree.array('Photon.PT')
-    eta = tree.array('Photon.Eta')
-    phi = tree.array('Photon.Phi')
-    e = tree.array('Photon.E')
-
-    array_out = []
-
-    for ievent, sub_list in enumerate(pt):
-        array_this_event = []
-
-        for iobject, value in enumerate(sub_list):
-            vec = skhep.math.vectors.LorentzVector()
-
-            vec.setptetaphie(pt[ievent][iobject],
-                             eta[ievent][iobject],
-                             phi[ievent][iobject],
-                             e[ievent][iobject])
-
-            array_this_event.append(vec)
-
-        array_out.append(array_this_event)
-
-    return array_out
+    return all_particles
 
 
-def _get_4vectors_jets(tree):
-    pt = tree.array('Jet.PT')
-    eta = tree.array('Jet.Eta')
-    phi = tree.array('Jet.Phi')
-    m = tree.array('Jet.Mass')
+def _get_particles_photons(tree):
+    pts = tree.array('Photon.PT')
+    etas = tree.array('Photon.Eta')
+    phis = tree.array('Photon.Phi')
+    es = tree.array('Photon.E')
 
-    array_out = []
+    all_particles = []
 
-    for ievent, sub_list in enumerate(pt):
-        array_this_event = []
+    for ievent in range(len(pts)):
+        event_particles = []
 
-        for iobject, value in enumerate(sub_list):
-            vec = skhep.math.vectors.LorentzVector()
+        for pt, eta, phi, e in zip(pts[ievent], etas[ievent], phis[ievent], es[ievent]):
+            particle = MadMinerParticle()
+            particle.setptetaphie(pt, eta, phi, e)
+            particle.set_pdgid(22)
+            event_particles.append(particle)
 
-            vec.setptetaphim(pt[ievent][iobject],
-                             eta[ievent][iobject],
-                             phi[ievent][iobject],
-                             m[ievent][iobject])
+        all_particles.append(event_particles)
 
-            array_this_event.append(vec)
-
-        array_out.append(array_this_event)
-
-    return array_out
+    return all_particles
 
 
-def _get_4vectors_met(tree):
-    met = tree.array('MissingET.MET')
-    phi = tree.array('MissingET.Phi')
+def _get_particles_jets(tree):
+    pts = tree.array('Jet.PT')
+    etas = tree.array('Jet.Eta')
+    phis = tree.array('Jet.Phi')
+    es = tree.array('Jet.E')
 
-    array_out = []
+    all_particles = []
 
-    for ievent, sub_list in enumerate(met):
-        array_this_event = []
+    for ievent in range(len(pts)):
+        event_particles = []
 
-        for iobject, value in enumerate(sub_list):
-            vec = skhep.math.vectors.LorentzVector()
+        for pt, eta, phi, e in zip(pts[ievent], etas[ievent], phis[ievent], es[ievent]):
+            particle = MadMinerParticle()
+            particle.setptetaphie(pt, eta, phi, e)
+            particle.set_pdgid(9)
+            event_particles.append(particle)
 
-            vec.setptetaphim(met[ievent][iobject],
-                             0.,
-                             phi[ievent][iobject],
-                             0.)
+        all_particles.append(event_particles)
 
-            array_this_event.append(vec)
+    return all_particles
 
-        array_out.append(array_this_event)
 
-    return array_out
+def _get_particles_met(tree):
+    mets = tree.array('MissingET.MET')
+    phis = tree.array('MissingET.Phi')
+
+    all_particles = []
+
+    for ievent in range(len(mets)):
+        event_particles = []
+
+        for met, phi in zip(mets[ievent], phis[ievent]):
+            particle = MadMinerParticle()
+            particle.setptetaphim(met, 0., phi, 0.)
+            particle.set_pdgid(0)
+            event_particles.append(particle)
+
+        all_particles.append(event_particles)
+
+    return all_particles
