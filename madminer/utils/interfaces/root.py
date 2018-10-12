@@ -41,8 +41,9 @@ def extract_observables_from_delphes_file(delphes_sample_file,
 
     # Get all particle properties
     photons_all_events = _get_particles_photons(tree, acceptance_pt_min_a, acceptance_eta_max_a)
-    electrons_all_events = _get_particles_charged(tree, 'Electron', 0.000511, acceptance_pt_min_e, acceptance_eta_max_e)
-    muons_all_events = _get_particles_charged(tree, 'Muon', 0.105, acceptance_pt_min_mu, acceptance_eta_max_mu)
+    electrons_all_events = _get_particles_charged(tree, 'Electron', 0.000511, -11, acceptance_pt_min_e,
+                                                  acceptance_eta_max_e)
+    muons_all_events = _get_particles_charged(tree, 'Muon', 0.105, -13, acceptance_pt_min_mu, acceptance_eta_max_mu)
     leptons_all_events = _get_particles_leptons(tree, acceptance_pt_min_e, acceptance_eta_max_e, acceptance_pt_min_mu,
                                                 acceptance_eta_max_mu)
     jets_all_events = _get_particles_jets(tree, acceptance_pt_min_j, acceptance_eta_max_j)
@@ -148,23 +149,25 @@ def extract_observables_from_delphes_file(delphes_sample_file,
     return observable_values, weights_dict
 
 
-def _get_particles_charged(tree, name, mass, pt_min, eta_max):
+def _get_particles_charged(tree, name, mass, pdgid_positive_charge, pt_min, eta_max):
     pts = tree.array(name + '.PT')
     etas = tree.array(name + '.Eta')
     phis = tree.array(name + '.Phi')
-    pdgids = tree.array(name + '.PID')
+    charges = tree.array(name + '.Charge')
 
     all_particles = []
 
     for ievent in range(len(pts)):
         event_particles = []
 
-        for pt, eta, phi, pdgid in zip(pts[ievent], etas[ievent], phis[ievent], pdgids[ievent]):
+        for pt, eta, phi, charge in zip(pts[ievent], etas[ievent], phis[ievent], charges[ievent]):
 
             if pt_min is not None and pt < pt_min:
                 continue
             if eta_max is not None and abs(eta) > eta_max:
                 continue
+
+            pdgid = pdgid_positive_charge if charge >= 0. else - pdgid_positive_charge
 
             particle = MadMinerParticle()
             particle.setptetaphim(pt, eta, phi, mass)
@@ -180,11 +183,11 @@ def _get_particles_leptons(tree, pt_min_e, eta_max_e, pt_min_mu, eta_max_mu):
     pt_mu = tree.array('Muon.PT')
     eta_mu = tree.array('Muon.Eta')
     phi_mu = tree.array('Muon.Phi')
-    pdgid_mu = tree.array('Muon.PID')
+    charge_mu = tree.array('Muon.Charge')
     pt_e = tree.array('Electron.PT')
     eta_e = tree.array('Electron.Eta')
     phi_e = tree.array('Electron.Phi')
-    pdgid_e = tree.array('Electron.PID')
+    charge_e = tree.array('Electron.Charge')
 
     all_particles = []
 
@@ -208,9 +211,13 @@ def _get_particles_leptons(tree, pt_min_e, eta_max_e, pt_min_mu, eta_max_mu):
             0.105 * np.ones_like(pt_mu[ievent]),
             0.000511 * np.ones_like(pt_e[ievent])
         ))
-        event_pdgids = np.concatenate((
-            pdgid_mu[ievent],
-            pdgid_e[ievent]
+        event_charges = np.concatenate((
+            charge_mu[ievent],
+            charge_e[ievent]
+        ))
+        event_pdgid_positive_charges = np.concatenate((
+            -13 * np.ones_like(pt_mu[ievent], dtype=np.int),
+            -11 * np.ones_like(pt_e[ievent], dtype=np.int)
         ))
 
         # Sort by descending pT
@@ -220,7 +227,11 @@ def _get_particles_leptons(tree, pt_min_e, eta_max_e, pt_min_mu, eta_max_mu):
         event_phis = event_phis[order]
 
         # Create particles
-        for pt, eta, phi, mass, pdgid in zip(event_pts, event_etas, event_phis, event_masses, event_pdgids):
+        for pt, eta, phi, mass, charge, pdgid_positive_charge in zip(event_pts, event_etas, event_phis, event_masses,
+                                                                     event_charges, event_pdgid_positive_charges):
+
+            pdgid = pdgid_positive_charge if charge >= 0. else - pdgid_positive_charge
+
             if abs(int(pdgid)) == 11:
                 if pt_min_e is not None and pt < pt_min_e:
                     continue
