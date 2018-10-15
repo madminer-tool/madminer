@@ -144,6 +144,8 @@ class MLForge:
         # Features
         if features is not None:
             x = x[:, features]
+            logging.info('Only using %s / %s observables', x.shape[1], n_observables)
+            n_observables = x.shape[1]
 
         # Save setup
         self.method = method
@@ -321,7 +323,8 @@ class MLForge:
                  theta0_filename=None,
                  theta1_filename=None,
                  test_all_combinations=True,
-                 evaluate_score=False):
+                 evaluate_score=False,
+                 features=None):
 
         """ Predicts log likelihood ratio for all combinations of theta and x """
 
@@ -334,6 +337,10 @@ class MLForge:
         theta0s = load_and_check(theta0_filename)
         theta1s = load_and_check(theta1_filename)
         xs = load_and_check(x_filename)
+
+        # Restrict featuers
+        if features is not None:
+            xs = xs[:, features]
 
         # Balance thetas
         if theta1s is None and theta0s is not None:
@@ -421,7 +428,8 @@ class MLForge:
 
     def calculate_fisher_information(self,
                                      x_filename,
-                                     n_events=1):
+                                     n_events=1,
+                                     features=None):
 
         """ Calculates the expected kinematic Fisher information matrix. Note that x_filename has to be generated
          according to the same theta that was used to define the score that SALLY / SALLINO was trained on! """
@@ -433,6 +441,10 @@ class MLForge:
         logging.info('Loading evaluation data')
         xs = load_and_check(x_filename)
         n_samples = xs.shape[0]
+
+        # Restrict featuers
+        if features is not None:
+            xs = xs[:, features]
 
         # Estimate scores
         if self.method in ['sally', 'sallino']:
