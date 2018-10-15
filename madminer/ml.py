@@ -144,7 +144,7 @@ class MLForge:
         # Features
         if features is not None:
             x = x[:, features]
-            logging.info('Only using %s / %s observables', x.shape[1], n_observables)
+            logging.info('Only using %s of %s observables', x.shape[1], n_observables)
             n_observables = x.shape[1]
 
         # Save setup
