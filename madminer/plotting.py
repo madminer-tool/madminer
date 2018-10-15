@@ -4,6 +4,8 @@ import os
 import numpy as np
 from matplotlib import pyplot as plt
 import matplotlib
+import logging
+
 from madminer.utils.various import create_missing_folders
 
 
@@ -192,7 +194,9 @@ def plot_fisher_information_contours_2d(
         thetas[np.newaxis, :, np.newaxis, :],  # (1, n_grid, 1, m)
         fisher_distances_squared  # (n_matrices, n_grid, m, 1)
     )
-    fisher_distances_squared = np.squeeze(fisher_distances_squared)  # (n_matrices, n_grid)
+    fisher_distances_squared = fisher_distances_squared.reshape((n_matrices, resolution, resolution))
+
+    logging.debug('Fisher distances: \n %s', fisher_distances_squared)
 
     # Plot results
     fig = plt.figure(figsize=(5., 5.))
@@ -201,7 +205,7 @@ def plot_fisher_information_contours_2d(
         contour_levels = np.array([contour_distance ** 2.])
 
         cs = plt.contour(
-            xx, yy,
+            xi, yi,
             fisher_distances_squared[i],
             contour_levels,
             colors=colors[i],
