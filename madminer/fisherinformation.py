@@ -301,7 +301,7 @@ class FisherInformation:
         return fisher_info
 
     def calculate_fisher_information_full_detector(self, theta, model_file, unweighted_x_sample_file,
-                                                   luminosity=300000., cuts=None):
+                                                   luminosity=300000., features=None, cuts=None):
         """
         Calculates the estimated full Fisher information at detector level for a given parameter point theta and
         given luminosity, requiring that the events pass a set of cuts
@@ -314,7 +314,8 @@ class FisherInformation:
                                          - obeys the cuts
                                          (see `madminer.sampling.SampleAugmenter.extract_samples_train_local()`)
         :param luminosity: float. Luminosity in pb^-1.
-        :param cuts: None or list strings. Each entry is a parseable Python expression that returns a bool
+        :param features: None or list of ints. List of feature indices to feed into the neural network.
+        :param cuts: None or list of strs. Each entry is a parseable Python expression that returns a bool
                      (True if the event should pass a cut, False otherwise).
         :return: ndarray. Total estimated Fisher information matrix.
         """
@@ -339,7 +340,8 @@ class FisherInformation:
         model.load(model_file)
         fisher_info_kin = model.calculate_fisher_information(
             unweighted_x_sample_file,
-            n_events=luminosity * total_xsec
+            n_events=luminosity * total_xsec,
+            features=features
         )
 
         return fisher_info_rate + fisher_info_kin
