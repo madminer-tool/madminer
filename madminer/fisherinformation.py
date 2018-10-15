@@ -370,7 +370,7 @@ class FisherInformation:
         # Get Fisher information
         fisher_info = self._calculate_fisher_information(
             theta=theta,
-            weights_benchmarks=weights_benchmarks,
+            weights_benchmarks=weights_benchmarks[np.newaxis, :],
             luminosity=luminosity,
             sum_events=True
         )
