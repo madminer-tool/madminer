@@ -44,6 +44,7 @@ class MLForge:
               r_xz_filename=None,
               t_xz0_filename=None,
               t_xz1_filename=None,
+              features=None,
               nde_type='maf',
               n_hidden=(100, 100, 100),
               activation='tanh',
@@ -76,20 +77,27 @@ class MLForge:
             logging.info('                 t_xz (theta0) at  %s', t_xz0_filename)
         if t_xz1_filename is not None:
             logging.info('                 t_xz (theta1) at  %s', t_xz1_filename)
+        if features is None:
+            logging.info('  Features:               all')
+        else:
+            logging.info('  Features:               %s', features)
         logging.info('  Method:                 %s', method)
         if method in ['nde', 'scandal']:
             logging.info('  Neural density est.:    %s', nde_type)
-        logging.info('  Hidden layers:          %s', n_hidden)
-        logging.info('  Early stopping:         %s', early_stopping)
-        logging.info('  MAF, number MADEs:      %s', maf_n_mades)
-        logging.info('  MAF, batch norm:        %s', maf_batch_norm)
-        logging.info('  MAF, BN alpha:          %s', maf_batch_norm_alpha)
-        logging.info('  MAF MoG, components:    %s', maf_mog_n_components)
+        if method not in ['nde', 'scandal']:
+            logging.info('  Hidden layers:          %s', n_hidden)
+        if method in ['nde', 'scandal']:
+            logging.info('  MAF, number MADEs:      %s', maf_n_mades)
+            logging.info('  MAF, batch norm:        %s', maf_batch_norm)
+            logging.info('  MAF, BN alpha:          %s', maf_batch_norm_alpha)
+            logging.info('  MAF MoG, components:    %s', maf_mog_n_components)
         logging.info('  Activation function:    %s', activation)
-        logging.info('  alpha:                  %s', alpha)
+        if method in ['cascal', 'cascal2', 'rascal', 'rascal2', 'scandal']:
+            logging.info('  alpha:                  %s', alpha)
         logging.info('  Batch size:             %s', batch_size)
         logging.info('  Epochs:                 %s', n_epochs)
         logging.info('  Learning rate:          %s initially, decaying to %s', initial_lr, final_lr)
+        logging.info('  Validation split:       %s', validation_split)
         logging.info('  Early stopping:         %s', early_stopping)
 
         # Load training data
@@ -132,6 +140,12 @@ class MLForge:
             n_parameters = t_xz0.shape[1]
 
         logging.info('Found %s samples with %s parameters and %s observables', n_samples, n_parameters, n_observables)
+
+        # Features
+        if features is not None:
+            x = x[:, features]
+            logging.info('Only using %s of %s observables', x.shape[1], n_observables)
+            n_observables = x.shape[1]
 
         # Save setup
         self.method = method
@@ -309,7 +323,8 @@ class MLForge:
                  theta0_filename=None,
                  theta1_filename=None,
                  test_all_combinations=True,
-                 evaluate_score=False):
+                 evaluate_score=False,
+                 features=None):
 
         """ Predicts log likelihood ratio for all combinations of theta and x """
 
@@ -322,6 +337,10 @@ class MLForge:
         theta0s = load_and_check(theta0_filename)
         theta1s = load_and_check(theta1_filename)
         xs = load_and_check(x_filename)
+
+        # Restrict featuers
+        if features is not None:
+            xs = xs[:, features]
 
         # Balance thetas
         if theta1s is None and theta0s is not None:
@@ -409,7 +428,8 @@ class MLForge:
 
     def calculate_fisher_information(self,
                                      x_filename,
-                                     n_events=1):
+                                     n_events=1,
+                                     features=None):
 
         """ Calculates the expected kinematic Fisher information matrix. Note that x_filename has to be generated
          according to the same theta that was used to define the score that SALLY / SALLINO was trained on! """
@@ -421,6 +441,10 @@ class MLForge:
         logging.info('Loading evaluation data')
         xs = load_and_check(x_filename)
         n_samples = xs.shape[0]
+
+        # Restrict featuers
+        if features is not None:
+            xs = xs[:, features]
 
         # Estimate scores
         if self.method in ['sally', 'sallino']:
