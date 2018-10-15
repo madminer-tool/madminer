@@ -44,6 +44,7 @@ class MLForge:
               r_xz_filename=None,
               t_xz0_filename=None,
               t_xz1_filename=None,
+              features=None,
               nde_type='maf',
               n_hidden=(100, 100, 100),
               activation='tanh',
@@ -76,20 +77,27 @@ class MLForge:
             logging.info('                 t_xz (theta0) at  %s', t_xz0_filename)
         if t_xz1_filename is not None:
             logging.info('                 t_xz (theta1) at  %s', t_xz1_filename)
+        if features is None:
+            logging.info('  Features:               all')
+        else:
+            logging.info('  Features:               %s', features)
         logging.info('  Method:                 %s', method)
         if method in ['nde', 'scandal']:
             logging.info('  Neural density est.:    %s', nde_type)
-        logging.info('  Hidden layers:          %s', n_hidden)
-        logging.info('  Early stopping:         %s', early_stopping)
-        logging.info('  MAF, number MADEs:      %s', maf_n_mades)
-        logging.info('  MAF, batch norm:        %s', maf_batch_norm)
-        logging.info('  MAF, BN alpha:          %s', maf_batch_norm_alpha)
-        logging.info('  MAF MoG, components:    %s', maf_mog_n_components)
+        if method not in ['nde', 'scandal']:
+            logging.info('  Hidden layers:          %s', n_hidden)
+        if method in ['nde', 'scandal']:
+            logging.info('  MAF, number MADEs:      %s', maf_n_mades)
+            logging.info('  MAF, batch norm:        %s', maf_batch_norm)
+            logging.info('  MAF, BN alpha:          %s', maf_batch_norm_alpha)
+            logging.info('  MAF MoG, components:    %s', maf_mog_n_components)
         logging.info('  Activation function:    %s', activation)
-        logging.info('  alpha:                  %s', alpha)
+        if method in ['cascal', 'cascal2', 'rascal', 'rascal2', 'scandal']:
+            logging.info('  alpha:                  %s', alpha)
         logging.info('  Batch size:             %s', batch_size)
         logging.info('  Epochs:                 %s', n_epochs)
         logging.info('  Learning rate:          %s initially, decaying to %s', initial_lr, final_lr)
+        logging.info('  Validation split:       %s', validation_split)
         logging.info('  Early stopping:         %s', early_stopping)
 
         # Load training data
@@ -132,6 +140,10 @@ class MLForge:
             n_parameters = t_xz0.shape[1]
 
         logging.info('Found %s samples with %s parameters and %s observables', n_samples, n_parameters, n_observables)
+
+        # Features
+        if features is not None:
+            x = x[:, features]
 
         # Save setup
         self.method = method
