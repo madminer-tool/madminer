@@ -9,7 +9,7 @@ from madminer.utils.interfaces.hdf5 import load_madminer_settings, madminer_even
 from madminer.utils.interfaces.hdf5 import save_preformatted_events_to_madminer_file
 from madminer.utils.analysis import get_theta_value, get_theta_benchmark_matrix, get_dtheta_benchmark_matrix
 from madminer.utils.analysis import extract_augmented_data, parse_theta
-from madminer.morphing import AdvancedMorpher
+from madminer.morphing import Morpher
 from madminer.utils.various import general_init, format_benchmark, create_missing_folders, shuffle, balance_thetas
 
 
@@ -186,7 +186,7 @@ class SampleAugmenter:
         # Morphing
         self.morpher = None
         if self.morphing_matrix is not None and self.morphing_components is not None and not disable_morphing:
-            self.morpher = AdvancedMorpher(self.parameters)
+            self.morpher = Morpher(self.parameters)
             self.morpher.set_components(self.morphing_components)
             self.morpher.set_basis(self.benchmarks, morphing_matrix=self.morphing_matrix)
 
