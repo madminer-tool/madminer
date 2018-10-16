@@ -46,7 +46,7 @@
 <span class="kn">from</span> <span class="nn">madminer.ml</span> <span class="k">import</span> <span class="n">MLForge</span>
 
 
-<div class="viewcode-block" id="FisherInformation"><a class="viewcode-back" href="../../madminer.html#madminer.fisherinformation.FisherInformation">[docs]</a><span class="k">class</span> <span class="nc">FisherInformation</span><span class="p">:</span>
+<div class="viewcode-block" id="FisherInformation"><a class="viewcode-back" href="../../madminer.fisherinformation.html#madminer.fisherinformation.FisherInformation">[docs]</a><span class="k">class</span> <span class="nc">FisherInformation</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot; &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">debug</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
@@ -88,13 +88,13 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s1">&#39;Did not find morphing setup.&#39;</span><span class="p">)</span>
 
-<div class="viewcode-block" id="FisherInformation.extract_raw_data"><a class="viewcode-back" href="../../madminer.html#madminer.fisherinformation.FisherInformation.extract_raw_data">[docs]</a>    <span class="k">def</span> <span class="nf">extract_raw_data</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="FisherInformation.extract_raw_data"><a class="viewcode-back" href="../../madminer.fisherinformation.html#madminer.fisherinformation.FisherInformation.extract_raw_data">[docs]</a>    <span class="k">def</span> <span class="nf">extract_raw_data</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Returns raw observables and benchmark weights in MadMiner file&quot;&quot;&quot;</span>
 
         <span class="n">x</span><span class="p">,</span> <span class="n">weights_benchmarks</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">madminer_event_loader</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">madminer_filename</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="kc">None</span><span class="p">))</span>
         <span class="k">return</span> <span class="n">x</span><span class="p">,</span> <span class="n">weights_benchmarks</span></div>
 
-<div class="viewcode-block" id="FisherInformation.extract_observables_and_weights"><a class="viewcode-back" href="../../madminer.html#madminer.fisherinformation.FisherInformation.extract_observables_and_weights">[docs]</a>    <span class="k">def</span> <span class="nf">extract_observables_and_weights</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">thetas</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="FisherInformation.extract_observables_and_weights"><a class="viewcode-back" href="../../madminer.fisherinformation.html#madminer.fisherinformation.FisherInformation.extract_observables_and_weights">[docs]</a>    <span class="k">def</span> <span class="nf">extract_observables_and_weights</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">thetas</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Extracts observables and weights for a list of parameter points.</span>
 
 <span class="sd">        Parameters</span>
@@ -348,7 +348,7 @@
 
         <span class="k">return</span> <span class="n">xsec</span>
 
-<div class="viewcode-block" id="FisherInformation.calculate_fisher_information_full_truth"><a class="viewcode-back" href="../../madminer.html#madminer.fisherinformation.FisherInformation.calculate_fisher_information_full_truth">[docs]</a>    <span class="k">def</span> <span class="nf">calculate_fisher_information_full_truth</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">luminosity</span><span class="o">=</span><span class="mf">300000.</span><span class="p">,</span> <span class="n">cuts</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">efficiency_functions</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="FisherInformation.calculate_fisher_information_full_truth"><a class="viewcode-back" href="../../madminer.fisherinformation.html#madminer.fisherinformation.FisherInformation.calculate_fisher_information_full_truth">[docs]</a>    <span class="k">def</span> <span class="nf">calculate_fisher_information_full_truth</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">luminosity</span><span class="o">=</span><span class="mf">300000.</span><span class="p">,</span> <span class="n">cuts</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">efficiency_functions</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Calculates the full Fisher information at parton / truth level for a given parameter point theta and</span>
 <span class="sd">        given luminosity.</span>
 
@@ -397,7 +397,7 @@
 
         <span class="k">return</span> <span class="n">fisher_info</span></div>
 
-<div class="viewcode-block" id="FisherInformation.calculate_fisher_information_full_detector"><a class="viewcode-back" href="../../madminer.html#madminer.fisherinformation.FisherInformation.calculate_fisher_information_full_detector">[docs]</a>    <span class="k">def</span> <span class="nf">calculate_fisher_information_full_detector</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">model_file</span><span class="p">,</span> <span class="n">unweighted_x_sample_file</span><span class="p">,</span>
+<div class="viewcode-block" id="FisherInformation.calculate_fisher_information_full_detector"><a class="viewcode-back" href="../../madminer.fisherinformation.html#madminer.fisherinformation.FisherInformation.calculate_fisher_information_full_detector">[docs]</a>    <span class="k">def</span> <span class="nf">calculate_fisher_information_full_detector</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">model_file</span><span class="p">,</span> <span class="n">unweighted_x_sample_file</span><span class="p">,</span>
                                                    <span class="n">luminosity</span><span class="o">=</span><span class="mf">300000.</span><span class="p">,</span> <span class="n">features</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">cuts</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Calculates the estimated full Fisher information at detector level for a given parameter point theta and</span>
 <span class="sd">        given luminosity, requiring that the events pass a set of cuts</span>
@@ -455,7 +455,7 @@
 
         <span class="k">return</span> <span class="n">fisher_info_rate</span> <span class="o">+</span> <span class="n">fisher_info_kin</span></div>
 
-<div class="viewcode-block" id="FisherInformation.calculate_fisher_information_rate"><a class="viewcode-back" href="../../madminer.html#madminer.fisherinformation.FisherInformation.calculate_fisher_information_rate">[docs]</a>    <span class="k">def</span> <span class="nf">calculate_fisher_information_rate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">luminosity</span><span class="p">,</span> <span class="n">cuts</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">efficiency_functions</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="FisherInformation.calculate_fisher_information_rate"><a class="viewcode-back" href="../../madminer.fisherinformation.html#madminer.fisherinformation.FisherInformation.calculate_fisher_information_rate">[docs]</a>    <span class="k">def</span> <span class="nf">calculate_fisher_information_rate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">luminosity</span><span class="p">,</span> <span class="n">cuts</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">efficiency_functions</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Calculates the rate-only Fisher information for a given parameter point theta and</span>
 <span class="sd">        luminosity.</span>
 
@@ -496,7 +496,7 @@
 
         <span class="k">return</span> <span class="n">fisher_info</span></div>
 
-<div class="viewcode-block" id="FisherInformation.calculate_fisher_information_hist1d"><a class="viewcode-back" href="../../madminer.html#madminer.fisherinformation.FisherInformation.calculate_fisher_information_hist1d">[docs]</a>    <span class="k">def</span> <span class="nf">calculate_fisher_information_hist1d</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">luminosity</span><span class="p">,</span> <span class="n">observable</span><span class="p">,</span> <span class="n">nbins</span><span class="p">,</span> <span class="n">histrange</span><span class="p">,</span> <span class="n">cuts</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+<div class="viewcode-block" id="FisherInformation.calculate_fisher_information_hist1d"><a class="viewcode-back" href="../../madminer.fisherinformation.html#madminer.fisherinformation.FisherInformation.calculate_fisher_information_hist1d">[docs]</a>    <span class="k">def</span> <span class="nf">calculate_fisher_information_hist1d</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">luminosity</span><span class="p">,</span> <span class="n">observable</span><span class="p">,</span> <span class="n">nbins</span><span class="p">,</span> <span class="n">histrange</span><span class="p">,</span> <span class="n">cuts</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                                             <span class="n">efficiency_functions</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Calculates the Fisher information in a 1D histogram for a given benchmark theta and luminosity.</span>
 
@@ -568,7 +568,7 @@
 
         <span class="k">return</span> <span class="n">fisher_info</span></div>
 
-<div class="viewcode-block" id="FisherInformation.calculate_fisher_information_hist2d"><a class="viewcode-back" href="../../madminer.html#madminer.fisherinformation.FisherInformation.calculate_fisher_information_hist2d">[docs]</a>    <span class="k">def</span> <span class="nf">calculate_fisher_information_hist2d</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">luminosity</span><span class="p">,</span> <span class="n">observable1</span><span class="p">,</span> <span class="n">nbins1</span><span class="p">,</span> <span class="n">histrange1</span><span class="p">,</span> <span class="n">observable2</span><span class="p">,</span>
+<div class="viewcode-block" id="FisherInformation.calculate_fisher_information_hist2d"><a class="viewcode-back" href="../../madminer.fisherinformation.html#madminer.fisherinformation.FisherInformation.calculate_fisher_information_hist2d">[docs]</a>    <span class="k">def</span> <span class="nf">calculate_fisher_information_hist2d</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">luminosity</span><span class="p">,</span> <span class="n">observable1</span><span class="p">,</span> <span class="n">nbins1</span><span class="p">,</span> <span class="n">histrange1</span><span class="p">,</span> <span class="n">observable2</span><span class="p">,</span>
                                             <span class="n">nbins2</span><span class="p">,</span> <span class="n">histrange2</span><span class="p">,</span> <span class="n">cuts</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">efficiency_functions</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Calculates the Fisher information in a 2D histogram for a given benchmark theta and luminosity.</span>
 
@@ -657,7 +657,7 @@
 
         <span class="k">return</span> <span class="n">fisher_info</span></div>
 
-<div class="viewcode-block" id="FisherInformation.project_information"><a class="viewcode-back" href="../../madminer.html#madminer.fisherinformation.FisherInformation.project_information">[docs]</a>    <span class="nd">@staticmethod</span>
+<div class="viewcode-block" id="FisherInformation.project_information"><a class="viewcode-back" href="../../madminer.fisherinformation.html#madminer.fisherinformation.FisherInformation.project_information">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">project_information</span><span class="p">(</span><span class="n">fisher_information</span><span class="p">,</span> <span class="n">remaining_components</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Projects a Fisher information matrix, i.e. &quot;deletes&quot; some rows and columns.</span>
 
@@ -684,7 +684,7 @@
 
         <span class="k">return</span> <span class="n">fisher_information_new</span></div>
 
-<div class="viewcode-block" id="FisherInformation.profile_information"><a class="viewcode-back" href="../../madminer.html#madminer.fisherinformation.FisherInformation.profile_information">[docs]</a>    <span class="nd">@staticmethod</span>
+<div class="viewcode-block" id="FisherInformation.profile_information"><a class="viewcode-back" href="../../madminer.fisherinformation.html#madminer.fisherinformation.FisherInformation.profile_information">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">profile_information</span><span class="p">(</span><span class="n">fisher_information</span><span class="p">,</span> <span class="n">remaining_components</span><span class="p">):</span>
 
         <span class="sd">&quot;&quot;&quot;Calculates the profiled Fisher information matrix as defined in Appendix A.4 of 1612.05261.</span>
@@ -730,7 +730,7 @@
 
         <span class="k">return</span> <span class="n">profiled_fisher_information</span></div>
 
-<div class="viewcode-block" id="FisherInformation.histogram_of_fisher_information"><a class="viewcode-back" href="../../madminer.html#madminer.fisherinformation.FisherInformation.histogram_of_fisher_information">[docs]</a>    <span class="k">def</span> <span class="nf">histogram_of_fisher_information</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">luminosity</span><span class="p">,</span> <span class="n">observable</span><span class="p">,</span> <span class="n">nbins</span><span class="p">,</span> <span class="n">histrange</span><span class="p">,</span> <span class="n">cuts</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+<div class="viewcode-block" id="FisherInformation.histogram_of_fisher_information"><a class="viewcode-back" href="../../madminer.fisherinformation.html#madminer.fisherinformation.FisherInformation.histogram_of_fisher_information">[docs]</a>    <span class="k">def</span> <span class="nf">histogram_of_fisher_information</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">luminosity</span><span class="p">,</span> <span class="n">observable</span><span class="p">,</span> <span class="n">nbins</span><span class="p">,</span> <span class="n">histrange</span><span class="p">,</span> <span class="n">cuts</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                                         <span class="n">efficiency_functions</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Calculates the full and rate-only Fisher informations in the bins of a 1D histogram for a given benchmark theta</span>
 <span class="sd">        and luminosity.</span>

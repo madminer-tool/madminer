@@ -1,0 +1,316 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>madminer.morphing module &#8212; MadMiner  documentation</title>
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="module-madminer.morphing">
+<span id="madminer-morphing-module"></span><h1>madminer.morphing module<a class="headerlink" href="#module-madminer.morphing" title="Permalink to this headline">¶</a></h1>
+<dl class="class">
+<dt id="madminer.morphing.AdvancedMorpher">
+<em class="property">class </em><code class="descclassname">madminer.morphing.</code><code class="descname">AdvancedMorpher</code><span class="sig-paren">(</span><em>parameters_from_madminer=None</em>, <em>parameter_max_power=None</em>, <em>parameter_range=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/morphing.html#AdvancedMorpher"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.morphing.AdvancedMorpher" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="method">
+<dt id="madminer.morphing.AdvancedMorpher.calculate_morphing_matrix">
+<code class="descname">calculate_morphing_matrix</code><span class="sig-paren">(</span><em>basis=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/morphing.html#AdvancedMorpher.calculate_morphing_matrix"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.morphing.AdvancedMorpher.calculate_morphing_matrix" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates the morphing matrix that links the components to the basis parameter vectors</p>
+<dl class="docutils">
+<dt>basis :</dt>
+<dd>(Default value = None)</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="madminer.morphing.AdvancedMorpher.calculate_morphing_weight_gradient">
+<code class="descname">calculate_morphing_weight_gradient</code><span class="sig-paren">(</span><em>theta</em>, <em>basis=None</em>, <em>morphing_matrix=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/morphing.html#AdvancedMorpher.calculate_morphing_weight_gradient"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.morphing.AdvancedMorpher.calculate_morphing_weight_gradient" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates the gradient of the morphing weights grad_i w_b(theta). Output shape is (gradient
+direction, basis benchmarks).</p>
+<p>theta :</p>
+<dl class="docutils">
+<dt>basis :</dt>
+<dd>(Default value = None)</dd>
+<dt>morphing_matrix :</dt>
+<dd>(Default value = None)</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="madminer.morphing.AdvancedMorpher.calculate_morphing_weights">
+<code class="descname">calculate_morphing_weights</code><span class="sig-paren">(</span><em>theta</em>, <em>basis=None</em>, <em>morphing_matrix=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/morphing.html#AdvancedMorpher.calculate_morphing_weights"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.morphing.AdvancedMorpher.calculate_morphing_weights" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates the morphing weights w_b(theta) for a given basis {theta_b}</p>
+<p>theta :</p>
+<dl class="docutils">
+<dt>basis :</dt>
+<dd>(Default value = None)</dd>
+<dt>morphing_matrix :</dt>
+<dd>(Default value = None)</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="madminer.morphing.AdvancedMorpher.evaluate_morphing">
+<code class="descname">evaluate_morphing</code><span class="sig-paren">(</span><em>basis=None</em>, <em>morphing_matrix=None</em>, <em>n_test_thetas=100</em>, <em>return_weights_and_thetas=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/morphing.html#AdvancedMorpher.evaluate_morphing"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.morphing.AdvancedMorpher.evaluate_morphing" title="Permalink to this definition">¶</a></dt>
+<dd><p>Evaluates an objective function for a given basis</p>
+<dl class="docutils">
+<dt>basis :</dt>
+<dd>(Default value = None)</dd>
+<dt>morphing_matrix :</dt>
+<dd>(Default value = None)</dd>
+<dt>n_test_thetas :</dt>
+<dd>(Default value = 100)</dd>
+<dt>return_weights_and_thetas :</dt>
+<dd>(Default value = False)</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="madminer.morphing.AdvancedMorpher.find_components">
+<code class="descname">find_components</code><span class="sig-paren">(</span><em>max_overall_power=4</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/morphing.html#AdvancedMorpher.find_components"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.morphing.AdvancedMorpher.find_components" title="Permalink to this definition">¶</a></dt>
+<dd><p>Find and return a list of components with their power dependence on the parameters</p>
+<dl class="docutils">
+<dt>max_overall_power :</dt>
+<dd>(Default value = 4)</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="madminer.morphing.AdvancedMorpher.optimize_basis">
+<code class="descname">optimize_basis</code><span class="sig-paren">(</span><em>n_bases=1</em>, <em>fixed_benchmarks_from_madminer=None</em>, <em>fixed_benchmarks_numpy=None</em>, <em>n_trials=100</em>, <em>n_test_thetas=100</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/morphing.html#AdvancedMorpher.optimize_basis"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.morphing.AdvancedMorpher.optimize_basis" title="Permalink to this definition">¶</a></dt>
+<dd><p>Finds a set of basis parameter vectors, based on a rudimentary optimization algorithm.</p>
+<dl class="docutils">
+<dt>fixed_benchmarks_numpy :</dt>
+<dd>param fixed_benchmarks_from_madminer: (Default value = None)</dd>
+<dt>n_bases :</dt>
+<dd>param n_trials: (Default value = 1)</dd>
+<dt>n_test_thetas :</dt>
+<dd>return: (Default value = 100)</dd>
+<dt>fixed_benchmarks_from_madminer :</dt>
+<dd>(Default value = None)</dd>
+<dt>n_trials :</dt>
+<dd>(Default value = 100)</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="madminer.morphing.AdvancedMorpher.set_basis">
+<code class="descname">set_basis</code><span class="sig-paren">(</span><em>basis_from_madminer=None</em>, <em>basis_numpy=None</em>, <em>morphing_matrix=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/morphing.html#AdvancedMorpher.set_basis"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.morphing.AdvancedMorpher.set_basis" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="docutils">
+<dt>basis_from_madminer :</dt>
+<dd>(Default value = None)</dd>
+<dt>basis_numpy :</dt>
+<dd>(Default value = None)</dd>
+<dt>morphing_matrix :</dt>
+<dd>(Default value = None)</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="madminer.morphing.AdvancedMorpher.set_components">
+<code class="descname">set_components</code><span class="sig-paren">(</span><em>components</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/morphing.html#AdvancedMorpher.set_components"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.morphing.AdvancedMorpher.set_components" title="Permalink to this definition">¶</a></dt>
+<dd><p>components :</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="madminer.morphing.SimpleMorpher">
+<em class="property">class </em><code class="descclassname">madminer.morphing.</code><code class="descname">SimpleMorpher</code><span class="sig-paren">(</span><em>parameters_from_madminer=None</em>, <em>parameter_max_power=None</em>, <em>parameter_range=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/morphing.html#SimpleMorpher"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.morphing.SimpleMorpher" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="method">
+<dt id="madminer.morphing.SimpleMorpher.calculate_morphing_matrix">
+<code class="descname">calculate_morphing_matrix</code><span class="sig-paren">(</span><em>basis=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/morphing.html#SimpleMorpher.calculate_morphing_matrix"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.morphing.SimpleMorpher.calculate_morphing_matrix" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates the morphing matrix that links the components to the basis parameter vectors</p>
+<dl class="docutils">
+<dt>basis :</dt>
+<dd>(Default value = None)</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="madminer.morphing.SimpleMorpher.calculate_morphing_weight_gradient">
+<code class="descname">calculate_morphing_weight_gradient</code><span class="sig-paren">(</span><em>theta</em>, <em>basis=None</em>, <em>morphing_matrix=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/morphing.html#SimpleMorpher.calculate_morphing_weight_gradient"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.morphing.SimpleMorpher.calculate_morphing_weight_gradient" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates the gradient of the morphing weights grad_i w_b(theta). Output shape is (gradient
+direction, basis benchmarks).</p>
+<p>theta :</p>
+<dl class="docutils">
+<dt>basis :</dt>
+<dd>(Default value = None)</dd>
+<dt>morphing_matrix :</dt>
+<dd>(Default value = None)</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="madminer.morphing.SimpleMorpher.calculate_morphing_weights">
+<code class="descname">calculate_morphing_weights</code><span class="sig-paren">(</span><em>theta</em>, <em>basis=None</em>, <em>morphing_matrix=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/morphing.html#SimpleMorpher.calculate_morphing_weights"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.morphing.SimpleMorpher.calculate_morphing_weights" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates the morphing weights w_b(theta) for a given basis {theta_b}</p>
+<p>theta :</p>
+<dl class="docutils">
+<dt>basis :</dt>
+<dd>(Default value = None)</dd>
+<dt>morphing_matrix :</dt>
+<dd>(Default value = None)</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="madminer.morphing.SimpleMorpher.evaluate_morphing">
+<code class="descname">evaluate_morphing</code><span class="sig-paren">(</span><em>basis=None</em>, <em>morphing_matrix=None</em>, <em>n_test_thetas=100</em>, <em>return_weights_and_thetas=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/morphing.html#SimpleMorpher.evaluate_morphing"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.morphing.SimpleMorpher.evaluate_morphing" title="Permalink to this definition">¶</a></dt>
+<dd><p>Evaluates an objective function for a given basis</p>
+<dl class="docutils">
+<dt>basis :</dt>
+<dd>(Default value = None)</dd>
+<dt>morphing_matrix :</dt>
+<dd>(Default value = None)</dd>
+<dt>n_test_thetas :</dt>
+<dd>(Default value = 100)</dd>
+<dt>return_weights_and_thetas :</dt>
+<dd>(Default value = False)</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="madminer.morphing.SimpleMorpher.find_components">
+<code class="descname">find_components</code><span class="sig-paren">(</span><em>max_overall_power=4</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/morphing.html#SimpleMorpher.find_components"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.morphing.SimpleMorpher.find_components" title="Permalink to this definition">¶</a></dt>
+<dd><p>Find and return a list of components with their power dependence on the parameters</p>
+<dl class="docutils">
+<dt>max_overall_power :</dt>
+<dd>(Default value = 4)</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="madminer.morphing.SimpleMorpher.optimize_basis">
+<code class="descname">optimize_basis</code><span class="sig-paren">(</span><em>n_bases=1</em>, <em>fixed_benchmarks_from_madminer=None</em>, <em>fixed_benchmarks_numpy=None</em>, <em>n_trials=100</em>, <em>n_test_thetas=100</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/morphing.html#SimpleMorpher.optimize_basis"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.morphing.SimpleMorpher.optimize_basis" title="Permalink to this definition">¶</a></dt>
+<dd><p>Finds a set of basis parameter vectors, based on a rudimentary optimization algorithm.</p>
+<dl class="docutils">
+<dt>fixed_benchmarks_numpy :</dt>
+<dd>param fixed_benchmarks_from_madminer: (Default value = None)</dd>
+<dt>n_bases :</dt>
+<dd>param n_trials: (Default value = 1)</dd>
+<dt>n_test_thetas :</dt>
+<dd>return: (Default value = 100)</dd>
+<dt>fixed_benchmarks_from_madminer :</dt>
+<dd>(Default value = None)</dd>
+<dt>n_trials :</dt>
+<dd>(Default value = 100)</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="madminer.morphing.SimpleMorpher.set_basis">
+<code class="descname">set_basis</code><span class="sig-paren">(</span><em>basis_from_madminer=None</em>, <em>basis_numpy=None</em>, <em>morphing_matrix=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/morphing.html#SimpleMorpher.set_basis"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.morphing.SimpleMorpher.set_basis" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="docutils">
+<dt>basis_from_madminer :</dt>
+<dd>(Default value = None)</dd>
+<dt>basis_numpy :</dt>
+<dd>(Default value = None)</dd>
+<dt>morphing_matrix :</dt>
+<dd>(Default value = None)</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="madminer.morphing.SimpleMorpher.set_components">
+<code class="descname">set_components</code><span class="sig-paren">(</span><em>components</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/morphing.html#SimpleMorpher.set_components"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.morphing.SimpleMorpher.set_components" title="Permalink to this definition">¶</a></dt>
+<dd><p>components :</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">MadMiner</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2018, Johann Brehmer, Kyle Cranmer, and Felix Kling.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.8.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="_sources/madminer.morphing.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

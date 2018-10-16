@@ -1,0 +1,229 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>madminer.delphes module &#8212; MadMiner  documentation</title>
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="module-madminer.delphes">
+<span id="madminer-delphes-module"></span><h1>madminer.delphes module<a class="headerlink" href="#module-madminer.delphes" title="Permalink to this headline">¶</a></h1>
+<dl class="class">
+<dt id="madminer.delphes.DelphesProcessor">
+<em class="property">class </em><code class="descclassname">madminer.delphes.</code><code class="descname">DelphesProcessor</code><span class="sig-paren">(</span><em>filename=None</em>, <em>debug=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/delphes.html#DelphesProcessor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.delphes.DelphesProcessor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Detector simulation with Delphes and simple calculation of observables.</p>
+<p>After setting up the parameter space and benchmarks and running MadGraph and Pythia, all of which is organized
+in the madminer.core.MadMiner class, the next steps are the simulation of detector effects and the calculation of
+observables.  Different tools can be used for these tasks, please feel free to implement the detector simulation and
+analysis routine of your choice.</p>
+<p>This class provides an example implementation based on Delphes. Its workflow consists of four steps:
+- Initializing the class with the filename of a MadMiner HDF5 file (the output of <cite>madminer.core.MadMiner.save()</cite>)
+- Adding one or multiple HepMC samples produced by Pythia in <cite>DelphesProcessor.add_hepmc_sample()</cite>
+- Running Delphes on these samples through <cite>DelphesProcessor.run_delphes()</cite>
+- Defining observables through <cite>DelphesProcessor.add_observables()</cite>. A simple set of default observables is provided
+with <cite>DelphesProcessor.add_default_observables()</cite>
+- Optionally, cuts can be set with <cite>DelphesProcessor.add_cut()</cite>
+- Calculating the observables from the Delphes ROOT files with <cite>DelphesProcessor.analyse_delphes_samples()</cite>
+- Saving the results with <cite>DelphesProcessor.save()</cite></p>
+<p>Please see the tutorial for a detailed walk-through.</p>
+<dl class="method">
+<dt id="madminer.delphes.DelphesProcessor.add_cut">
+<code class="descname">add_cut</code><span class="sig-paren">(</span><em>definition</em>, <em>pass_if_not_parsed=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/delphes.html#DelphesProcessor.add_cut"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.delphes.DelphesProcessor.add_cut" title="Permalink to this definition">¶</a></dt>
+<dd><p>definition :</p>
+<dl class="docutils">
+<dt>pass_if_not_parsed :</dt>
+<dd>(Default value = False)</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="madminer.delphes.DelphesProcessor.add_default_observables">
+<code class="descname">add_default_observables</code><span class="sig-paren">(</span><em>n_leptons_max=2</em>, <em>n_photons_max=2</em>, <em>n_jets_max=2</em>, <em>include_met=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/delphes.html#DelphesProcessor.add_default_observables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.delphes.DelphesProcessor.add_default_observables" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="docutils">
+<dt>n_leptons_max :</dt>
+<dd>(Default value = 2)</dd>
+<dt>n_photons_max :</dt>
+<dd>(Default value = 2)</dd>
+<dt>n_jets_max :</dt>
+<dd>(Default value = 2)</dd>
+<dt>include_met :</dt>
+<dd>(Default value = True)</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="madminer.delphes.DelphesProcessor.add_delphes_sample">
+<code class="descname">add_delphes_sample</code><span class="sig-paren">(</span><em>filename</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/delphes.html#DelphesProcessor.add_delphes_sample"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.delphes.DelphesProcessor.add_delphes_sample" title="Permalink to this definition">¶</a></dt>
+<dd><p>filename :</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="madminer.delphes.DelphesProcessor.add_hepmc_sample">
+<code class="descname">add_hepmc_sample</code><span class="sig-paren">(</span><em>filename</em>, <em>sampled_from_benchmark</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/delphes.html#DelphesProcessor.add_hepmc_sample"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.delphes.DelphesProcessor.add_hepmc_sample" title="Permalink to this definition">¶</a></dt>
+<dd><p>filename :</p>
+<p>sampled_from_benchmark :</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="madminer.delphes.DelphesProcessor.add_observable">
+<code class="descname">add_observable</code><span class="sig-paren">(</span><em>name</em>, <em>definition</em>, <em>required=False</em>, <em>default=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/delphes.html#DelphesProcessor.add_observable"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.delphes.DelphesProcessor.add_observable" title="Permalink to this definition">¶</a></dt>
+<dd><p>name :</p>
+<p>definition :</p>
+<dl class="docutils">
+<dt>required :</dt>
+<dd>(Default value = False)</dd>
+<dt>default :</dt>
+<dd>(Default value = None)</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="madminer.delphes.DelphesProcessor.analyse_delphes_samples">
+<code class="descname">analyse_delphes_samples</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/delphes.html#DelphesProcessor.analyse_delphes_samples"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.delphes.DelphesProcessor.analyse_delphes_samples" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="madminer.delphes.DelphesProcessor.read_observables_from_file">
+<code class="descname">read_observables_from_file</code><span class="sig-paren">(</span><em>filename</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/delphes.html#DelphesProcessor.read_observables_from_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.delphes.DelphesProcessor.read_observables_from_file" title="Permalink to this definition">¶</a></dt>
+<dd><p>filename :</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="madminer.delphes.DelphesProcessor.run_delphes">
+<code class="descname">run_delphes</code><span class="sig-paren">(</span><em>delphes_directory</em>, <em>delphes_card</em>, <em>initial_command=None</em>, <em>log_directory=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/delphes.html#DelphesProcessor.run_delphes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.delphes.DelphesProcessor.run_delphes" title="Permalink to this definition">¶</a></dt>
+<dd><p>delphes_directory :</p>
+<p>delphes_card :</p>
+<dl class="docutils">
+<dt>initial_command :</dt>
+<dd>(Default value = None)</dd>
+<dt>log_directory :</dt>
+<dd>(Default value = None)</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="madminer.delphes.DelphesProcessor.save">
+<code class="descname">save</code><span class="sig-paren">(</span><em>filename_out</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/delphes.html#DelphesProcessor.save"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.delphes.DelphesProcessor.save" title="Permalink to this definition">¶</a></dt>
+<dd><p>filename_out :</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="madminer.delphes.DelphesProcessor.set_acceptance">
+<code class="descname">set_acceptance</code><span class="sig-paren">(</span><em>pt_min_e=10.0</em>, <em>pt_min_mu=10.0</em>, <em>pt_min_a=0.0</em>, <em>pt_min_j=20.0</em>, <em>eta_max_e=2.5</em>, <em>eta_max_mu=2.5</em>, <em>eta_max_a=2.5</em>, <em>eta_max_j=5.0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/delphes.html#DelphesProcessor.set_acceptance"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.delphes.DelphesProcessor.set_acceptance" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="docutils">
+<dt>pt_min_e :</dt>
+<dd>(Default value = 10.)</dd>
+<dt>pt_min_mu :</dt>
+<dd>(Default value = 10.)</dd>
+<dt>pt_min_a :</dt>
+<dd>(Default value = 0.)</dd>
+<dt>pt_min_j :</dt>
+<dd>(Default value = 20.)</dd>
+<dt>eta_max_e :</dt>
+<dd>(Default value = 2.5)</dd>
+<dt>eta_max_mu :</dt>
+<dd>(Default value = 2.5)</dd>
+<dt>eta_max_a :</dt>
+<dd>(Default value = 2.5)</dd>
+<dt>eta_max_j :</dt>
+<dd>(Default value = 5.)</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">MadMiner</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2018, Johann Brehmer, Kyle Cranmer, and Felix Kling.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.8.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="_sources/madminer.delphes.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

@@ -4,70 +4,16 @@ madminer package
 Submodules
 ----------
 
-madminer.core module
---------------------
+.. toctree::
 
-.. automodule:: madminer.core
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-madminer.delphes module
------------------------
-
-.. automodule:: madminer.delphes
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-madminer.fisherinformation module
----------------------------------
-
-.. automodule:: madminer.fisherinformation
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-madminer.lhe module
--------------------
-
-.. automodule:: madminer.lhe
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-madminer.ml module
-------------------
-
-.. automodule:: madminer.ml
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-madminer.morphing module
-------------------------
-
-.. automodule:: madminer.morphing
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-madminer.plotting module
-------------------------
-
-.. automodule:: madminer.plotting
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-madminer.sampling module
-------------------------
-
-.. automodule:: madminer.sampling
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
+   madminer.core
+   madminer.delphes
+   madminer.fisherinformation
+   madminer.lhe
+   madminer.ml
+   madminer.morphing
+   madminer.plotting
+   madminer.sampling
 
 Module contents
 ---------------

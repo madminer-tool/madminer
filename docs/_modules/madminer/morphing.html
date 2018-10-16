@@ -42,7 +42,7 @@
 <span class="kn">import</span> <span class="nn">itertools</span>
 
 
-<div class="viewcode-block" id="SimpleMorpher"><a class="viewcode-back" href="../../madminer.html#madminer.morphing.SimpleMorpher">[docs]</a><span class="k">class</span> <span class="nc">SimpleMorpher</span><span class="p">:</span>
+<div class="viewcode-block" id="SimpleMorpher"><a class="viewcode-back" href="../../madminer.morphing.html#madminer.morphing.SimpleMorpher">[docs]</a><span class="k">class</span> <span class="nc">SimpleMorpher</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot; &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
@@ -85,7 +85,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">basis</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">morphing_matrix</span> <span class="o">=</span> <span class="kc">None</span>
 
-<div class="viewcode-block" id="SimpleMorpher.set_components"><a class="viewcode-back" href="../../madminer.html#madminer.morphing.SimpleMorpher.set_components">[docs]</a>    <span class="k">def</span> <span class="nf">set_components</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+<div class="viewcode-block" id="SimpleMorpher.set_components"><a class="viewcode-back" href="../../madminer.morphing.html#madminer.morphing.SimpleMorpher.set_components">[docs]</a>    <span class="k">def</span> <span class="nf">set_components</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                        <span class="n">components</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 
@@ -102,7 +102,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">components</span> <span class="o">=</span> <span class="n">components</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">n_components</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">components</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="SimpleMorpher.find_components"><a class="viewcode-back" href="../../madminer.html#madminer.morphing.SimpleMorpher.find_components">[docs]</a>    <span class="k">def</span> <span class="nf">find_components</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+<div class="viewcode-block" id="SimpleMorpher.find_components"><a class="viewcode-back" href="../../madminer.morphing.html#madminer.morphing.SimpleMorpher.find_components">[docs]</a>    <span class="k">def</span> <span class="nf">find_components</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                         <span class="n">max_overall_power</span><span class="o">=</span><span class="mi">4</span><span class="p">):</span>
 
         <span class="sd">&quot;&quot;&quot;Find and return a list of components with their power dependence on the parameters</span>
@@ -134,7 +134,7 @@
 
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">components</span></div>
 
-<div class="viewcode-block" id="SimpleMorpher.set_basis"><a class="viewcode-back" href="../../madminer.html#madminer.morphing.SimpleMorpher.set_basis">[docs]</a>    <span class="k">def</span> <span class="nf">set_basis</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+<div class="viewcode-block" id="SimpleMorpher.set_basis"><a class="viewcode-back" href="../../madminer.morphing.html#madminer.morphing.SimpleMorpher.set_basis">[docs]</a>    <span class="k">def</span> <span class="nf">set_basis</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                   <span class="n">basis_from_madminer</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                   <span class="n">basis_numpy</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                   <span class="n">morphing_matrix</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
@@ -171,7 +171,7 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">morphing_matrix</span> <span class="o">=</span> <span class="n">morphing_matrix</span></div>
 
-<div class="viewcode-block" id="SimpleMorpher.optimize_basis"><a class="viewcode-back" href="../../madminer.html#madminer.morphing.SimpleMorpher.optimize_basis">[docs]</a>    <span class="k">def</span> <span class="nf">optimize_basis</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+<div class="viewcode-block" id="SimpleMorpher.optimize_basis"><a class="viewcode-back" href="../../madminer.morphing.html#madminer.morphing.SimpleMorpher.optimize_basis">[docs]</a>    <span class="k">def</span> <span class="nf">optimize_basis</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                        <span class="n">n_bases</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
                        <span class="n">fixed_benchmarks_from_madminer</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                        <span class="n">fixed_benchmarks_numpy</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -314,7 +314,7 @@
 
         <span class="k">return</span> <span class="n">thetas</span>
 
-<div class="viewcode-block" id="SimpleMorpher.calculate_morphing_matrix"><a class="viewcode-back" href="../../madminer.html#madminer.morphing.SimpleMorpher.calculate_morphing_matrix">[docs]</a>    <span class="k">def</span> <span class="nf">calculate_morphing_matrix</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">basis</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="SimpleMorpher.calculate_morphing_matrix"><a class="viewcode-back" href="../../madminer.morphing.html#madminer.morphing.SimpleMorpher.calculate_morphing_matrix">[docs]</a>    <span class="k">def</span> <span class="nf">calculate_morphing_matrix</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">basis</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 
         <span class="sd">&quot;&quot;&quot;Calculates the morphing matrix that links the components to the basis parameter vectors</span>
 
@@ -375,7 +375,7 @@
 
         <span class="k">return</span> <span class="n">morphing_matrix</span></div>
 
-<div class="viewcode-block" id="SimpleMorpher.calculate_morphing_weights"><a class="viewcode-back" href="../../madminer.html#madminer.morphing.SimpleMorpher.calculate_morphing_weights">[docs]</a>    <span class="k">def</span> <span class="nf">calculate_morphing_weights</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">basis</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">morphing_matrix</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="SimpleMorpher.calculate_morphing_weights"><a class="viewcode-back" href="../../madminer.morphing.html#madminer.morphing.SimpleMorpher.calculate_morphing_weights">[docs]</a>    <span class="k">def</span> <span class="nf">calculate_morphing_weights</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">basis</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">morphing_matrix</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 
         <span class="sd">&quot;&quot;&quot;Calculates the morphing weights w_b(theta) for a given basis {theta_b}</span>
 
@@ -423,7 +423,7 @@
 
         <span class="k">return</span> <span class="n">weights</span></div>
 
-<div class="viewcode-block" id="SimpleMorpher.calculate_morphing_weight_gradient"><a class="viewcode-back" href="../../madminer.html#madminer.morphing.SimpleMorpher.calculate_morphing_weight_gradient">[docs]</a>    <span class="k">def</span> <span class="nf">calculate_morphing_weight_gradient</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">basis</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">morphing_matrix</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="SimpleMorpher.calculate_morphing_weight_gradient"><a class="viewcode-back" href="../../madminer.morphing.html#madminer.morphing.SimpleMorpher.calculate_morphing_weight_gradient">[docs]</a>    <span class="k">def</span> <span class="nf">calculate_morphing_weight_gradient</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">basis</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">morphing_matrix</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 
         <span class="sd">&quot;&quot;&quot;Calculates the gradient of the morphing weights grad_i w_b(theta). Output shape is (gradient</span>
 <span class="sd">        direction, basis benchmarks).</span>
@@ -479,7 +479,7 @@
 
         <span class="k">return</span> <span class="n">weight_gradients</span></div>
 
-<div class="viewcode-block" id="SimpleMorpher.evaluate_morphing"><a class="viewcode-back" href="../../madminer.html#madminer.morphing.SimpleMorpher.evaluate_morphing">[docs]</a>    <span class="k">def</span> <span class="nf">evaluate_morphing</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">basis</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">morphing_matrix</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">n_test_thetas</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">return_weights_and_thetas</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<div class="viewcode-block" id="SimpleMorpher.evaluate_morphing"><a class="viewcode-back" href="../../madminer.morphing.html#madminer.morphing.SimpleMorpher.evaluate_morphing">[docs]</a>    <span class="k">def</span> <span class="nf">evaluate_morphing</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">basis</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">morphing_matrix</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">n_test_thetas</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">return_weights_and_thetas</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
 
         <span class="sd">&quot;&quot;&quot;Evaluates an objective function for a given basis</span>
 
@@ -534,7 +534,7 @@
         <span class="k">return</span> <span class="o">-</span><span class="n">squared_weights</span></div></div>
 
 
-<div class="viewcode-block" id="AdvancedMorpher"><a class="viewcode-back" href="../../madminer.html#madminer.morphing.AdvancedMorpher">[docs]</a><span class="k">class</span> <span class="nc">AdvancedMorpher</span><span class="p">:</span>
+<div class="viewcode-block" id="AdvancedMorpher"><a class="viewcode-back" href="../../madminer.morphing.html#madminer.morphing.AdvancedMorpher">[docs]</a><span class="k">class</span> <span class="nc">AdvancedMorpher</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot; &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
@@ -577,7 +577,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">basis</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">morphing_matrix</span> <span class="o">=</span> <span class="kc">None</span>
 
-<div class="viewcode-block" id="AdvancedMorpher.set_components"><a class="viewcode-back" href="../../madminer.html#madminer.morphing.AdvancedMorpher.set_components">[docs]</a>    <span class="k">def</span> <span class="nf">set_components</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+<div class="viewcode-block" id="AdvancedMorpher.set_components"><a class="viewcode-back" href="../../madminer.morphing.html#madminer.morphing.AdvancedMorpher.set_components">[docs]</a>    <span class="k">def</span> <span class="nf">set_components</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                        <span class="n">components</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 
@@ -594,7 +594,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">components</span> <span class="o">=</span> <span class="n">components</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">n_components</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">components</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="AdvancedMorpher.find_components"><a class="viewcode-back" href="../../madminer.html#madminer.morphing.AdvancedMorpher.find_components">[docs]</a>    <span class="k">def</span> <span class="nf">find_components</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+<div class="viewcode-block" id="AdvancedMorpher.find_components"><a class="viewcode-back" href="../../madminer.morphing.html#madminer.morphing.AdvancedMorpher.find_components">[docs]</a>    <span class="k">def</span> <span class="nf">find_components</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                         <span class="n">max_overall_power</span><span class="o">=</span><span class="mi">4</span><span class="p">):</span>
 
         <span class="sd">&quot;&quot;&quot;Find and return a list of components with their power dependence on the parameters</span>
@@ -647,7 +647,7 @@
 
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">components</span></div>
 
-<div class="viewcode-block" id="AdvancedMorpher.set_basis"><a class="viewcode-back" href="../../madminer.html#madminer.morphing.AdvancedMorpher.set_basis">[docs]</a>    <span class="k">def</span> <span class="nf">set_basis</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+<div class="viewcode-block" id="AdvancedMorpher.set_basis"><a class="viewcode-back" href="../../madminer.morphing.html#madminer.morphing.AdvancedMorpher.set_basis">[docs]</a>    <span class="k">def</span> <span class="nf">set_basis</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                   <span class="n">basis_from_madminer</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                   <span class="n">basis_numpy</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                   <span class="n">morphing_matrix</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
@@ -684,7 +684,7 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">morphing_matrix</span> <span class="o">=</span> <span class="n">morphing_matrix</span></div>
 
-<div class="viewcode-block" id="AdvancedMorpher.optimize_basis"><a class="viewcode-back" href="../../madminer.html#madminer.morphing.AdvancedMorpher.optimize_basis">[docs]</a>    <span class="k">def</span> <span class="nf">optimize_basis</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+<div class="viewcode-block" id="AdvancedMorpher.optimize_basis"><a class="viewcode-back" href="../../madminer.morphing.html#madminer.morphing.AdvancedMorpher.optimize_basis">[docs]</a>    <span class="k">def</span> <span class="nf">optimize_basis</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                        <span class="n">n_bases</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
                        <span class="n">fixed_benchmarks_from_madminer</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                        <span class="n">fixed_benchmarks_numpy</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -827,7 +827,7 @@
 
         <span class="k">return</span> <span class="n">thetas</span>
 
-<div class="viewcode-block" id="AdvancedMorpher.calculate_morphing_matrix"><a class="viewcode-back" href="../../madminer.html#madminer.morphing.AdvancedMorpher.calculate_morphing_matrix">[docs]</a>    <span class="k">def</span> <span class="nf">calculate_morphing_matrix</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">basis</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="AdvancedMorpher.calculate_morphing_matrix"><a class="viewcode-back" href="../../madminer.morphing.html#madminer.morphing.AdvancedMorpher.calculate_morphing_matrix">[docs]</a>    <span class="k">def</span> <span class="nf">calculate_morphing_matrix</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">basis</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 
         <span class="sd">&quot;&quot;&quot;Calculates the morphing matrix that links the components to the basis parameter vectors</span>
 
@@ -889,7 +889,7 @@
 
         <span class="k">return</span> <span class="n">morphing_matrix</span></div>
 
-<div class="viewcode-block" id="AdvancedMorpher.calculate_morphing_weights"><a class="viewcode-back" href="../../madminer.html#madminer.morphing.AdvancedMorpher.calculate_morphing_weights">[docs]</a>    <span class="k">def</span> <span class="nf">calculate_morphing_weights</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">basis</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">morphing_matrix</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="AdvancedMorpher.calculate_morphing_weights"><a class="viewcode-back" href="../../madminer.morphing.html#madminer.morphing.AdvancedMorpher.calculate_morphing_weights">[docs]</a>    <span class="k">def</span> <span class="nf">calculate_morphing_weights</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">basis</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">morphing_matrix</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 
         <span class="sd">&quot;&quot;&quot;Calculates the morphing weights w_b(theta) for a given basis {theta_b}</span>
 
@@ -938,7 +938,7 @@
 
         <span class="k">return</span> <span class="n">weights</span></div>
 
-<div class="viewcode-block" id="AdvancedMorpher.calculate_morphing_weight_gradient"><a class="viewcode-back" href="../../madminer.html#madminer.morphing.AdvancedMorpher.calculate_morphing_weight_gradient">[docs]</a>    <span class="k">def</span> <span class="nf">calculate_morphing_weight_gradient</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">basis</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">morphing_matrix</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="AdvancedMorpher.calculate_morphing_weight_gradient"><a class="viewcode-back" href="../../madminer.morphing.html#madminer.morphing.AdvancedMorpher.calculate_morphing_weight_gradient">[docs]</a>    <span class="k">def</span> <span class="nf">calculate_morphing_weight_gradient</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">basis</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">morphing_matrix</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 
         <span class="sd">&quot;&quot;&quot;Calculates the gradient of the morphing weights grad_i w_b(theta). Output shape is (gradient</span>
 <span class="sd">        direction, basis benchmarks).</span>
@@ -995,7 +995,7 @@
 
         <span class="k">return</span> <span class="n">weight_gradients</span></div>
 
-<div class="viewcode-block" id="AdvancedMorpher.evaluate_morphing"><a class="viewcode-back" href="../../madminer.html#madminer.morphing.AdvancedMorpher.evaluate_morphing">[docs]</a>    <span class="k">def</span> <span class="nf">evaluate_morphing</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">basis</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">morphing_matrix</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">n_test_thetas</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+<div class="viewcode-block" id="AdvancedMorpher.evaluate_morphing"><a class="viewcode-back" href="../../madminer.morphing.html#madminer.morphing.AdvancedMorpher.evaluate_morphing">[docs]</a>    <span class="k">def</span> <span class="nf">evaluate_morphing</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">basis</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">morphing_matrix</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">n_test_thetas</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
                           <span class="n">return_weights_and_thetas</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
 
         <span class="sd">&quot;&quot;&quot;Evaluates an objective function for a given basis</span>

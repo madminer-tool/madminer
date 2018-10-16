@@ -49,7 +49,7 @@
 <span class="kn">from</span> <span class="nn">madminer.utils.various</span> <span class="k">import</span> <span class="n">copy_file</span>
 
 
-<div class="viewcode-block" id="MadMiner"><a class="viewcode-back" href="../../madminer.html#madminer.core.MadMiner">[docs]</a><span class="k">class</span> <span class="nc">MadMiner</span><span class="p">:</span>
+<div class="viewcode-block" id="MadMiner"><a class="viewcode-back" href="../../madminer.core.html#madminer.core.MadMiner">[docs]</a><span class="k">class</span> <span class="nc">MadMiner</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    The central class to manage parameter spaces, benchmarks, and the generation of events through MadGraph and</span>
 <span class="sd">    Pythia.</span>
@@ -84,7 +84,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">morpher</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">export_morphing</span> <span class="o">=</span> <span class="kc">False</span>
 
-<div class="viewcode-block" id="MadMiner.add_parameter"><a class="viewcode-back" href="../../madminer.html#madminer.core.MadMiner.add_parameter">[docs]</a>    <span class="k">def</span> <span class="nf">add_parameter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+<div class="viewcode-block" id="MadMiner.add_parameter"><a class="viewcode-back" href="../../madminer.core.html#madminer.core.MadMiner.add_parameter">[docs]</a>    <span class="k">def</span> <span class="nf">add_parameter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                       <span class="n">lha_block</span><span class="p">,</span>
                       <span class="n">lha_id</span><span class="p">,</span>
                       <span class="n">parameter_name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -158,7 +158,7 @@
         <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Added parameter </span><span class="si">%s</span><span class="s1"> (LHA: </span><span class="si">%s</span><span class="s1"> </span><span class="si">%s</span><span class="s1">, maximal power in squared ME: </span><span class="si">%s</span><span class="s1">, range: </span><span class="si">%s</span><span class="s1">)&#39;</span><span class="p">,</span> <span class="n">parameter_name</span><span class="p">,</span>
                      <span class="n">lha_block</span><span class="p">,</span> <span class="n">lha_id</span><span class="p">,</span> <span class="n">morphing_max_power</span><span class="p">,</span> <span class="n">parameter_range</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="MadMiner.set_parameters"><a class="viewcode-back" href="../../madminer.html#madminer.core.MadMiner.set_parameters">[docs]</a>    <span class="k">def</span> <span class="nf">set_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+<div class="viewcode-block" id="MadMiner.set_parameters"><a class="viewcode-back" href="../../madminer.core.html#madminer.core.MadMiner.set_parameters">[docs]</a>    <span class="k">def</span> <span class="nf">set_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                        <span class="n">parameters</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 
         <span class="sd">&quot;&quot;&quot;</span>
@@ -210,7 +210,7 @@
         <span class="c1"># After manually adding parameters, the morphing information is not accurate anymore</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">morpher</span> <span class="o">=</span> <span class="kc">None</span></div>
 
-<div class="viewcode-block" id="MadMiner.add_benchmark"><a class="viewcode-back" href="../../madminer.html#madminer.core.MadMiner.add_benchmark">[docs]</a>    <span class="k">def</span> <span class="nf">add_benchmark</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+<div class="viewcode-block" id="MadMiner.add_benchmark"><a class="viewcode-back" href="../../madminer.core.html#madminer.core.MadMiner.add_benchmark">[docs]</a>    <span class="k">def</span> <span class="nf">add_benchmark</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                       <span class="n">parameter_values</span><span class="p">,</span>
                       <span class="n">benchmark_name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
@@ -263,7 +263,7 @@
 
         <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Added benchmark </span><span class="si">%s</span><span class="s1">: </span><span class="si">%s</span><span class="s1">)&#39;</span><span class="p">,</span> <span class="n">benchmark_name</span><span class="p">,</span> <span class="n">format_benchmark</span><span class="p">(</span><span class="n">parameter_values</span><span class="p">))</span></div>
 
-<div class="viewcode-block" id="MadMiner.set_benchmarks"><a class="viewcode-back" href="../../madminer.html#madminer.core.MadMiner.set_benchmarks">[docs]</a>    <span class="k">def</span> <span class="nf">set_benchmarks</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+<div class="viewcode-block" id="MadMiner.set_benchmarks"><a class="viewcode-back" href="../../madminer.core.html#madminer.core.MadMiner.set_benchmarks">[docs]</a>    <span class="k">def</span> <span class="nf">set_benchmarks</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                        <span class="n">benchmarks</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Manually sets all benchmarks, i.e. parameter points that will be evaluated by MadGraph, overwriting previously</span>
@@ -298,7 +298,7 @@
         <span class="c1"># After manually adding benchmarks, the morphing information is not accurate anymore</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">morpher</span> <span class="o">=</span> <span class="kc">None</span></div>
 
-<div class="viewcode-block" id="MadMiner.set_benchmarks_from_morphing"><a class="viewcode-back" href="../../madminer.html#madminer.core.MadMiner.set_benchmarks_from_morphing">[docs]</a>    <span class="k">def</span> <span class="nf">set_benchmarks_from_morphing</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+<div class="viewcode-block" id="MadMiner.set_benchmarks_from_morphing"><a class="viewcode-back" href="../../madminer.core.html#madminer.core.MadMiner.set_benchmarks_from_morphing">[docs]</a>    <span class="k">def</span> <span class="nf">set_benchmarks_from_morphing</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                                      <span class="n">max_overall_power</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>
                                      <span class="n">n_bases</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
                                      <span class="n">keep_existing_benchmarks</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
@@ -373,7 +373,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">morpher</span> <span class="o">=</span> <span class="n">morpher</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">export_morphing</span> <span class="o">=</span> <span class="kc">True</span></div>
 
-<div class="viewcode-block" id="MadMiner.load"><a class="viewcode-back" href="../../madminer.html#madminer.core.MadMiner.load">[docs]</a>    <span class="k">def</span> <span class="nf">load</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">disable_morphing</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<div class="viewcode-block" id="MadMiner.load"><a class="viewcode-back" href="../../madminer.core.html#madminer.core.MadMiner.load">[docs]</a>    <span class="k">def</span> <span class="nf">load</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">disable_morphing</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Loads MadMiner setup from a file. All parameters, benchmarks, and morphing settings are overwritten. See `save`</span>
 <span class="sd">        for more details.</span>
@@ -424,7 +424,7 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Did not find morphing setup.&#39;</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="MadMiner.save"><a class="viewcode-back" href="../../madminer.html#madminer.core.MadMiner.save">[docs]</a>    <span class="k">def</span> <span class="nf">save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">):</span>
+<div class="viewcode-block" id="MadMiner.save"><a class="viewcode-back" href="../../madminer.core.html#madminer.core.MadMiner.save">[docs]</a>    <span class="k">def</span> <span class="nf">save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Saves MadMiner setup into a file.</span>
 
@@ -722,7 +722,7 @@
 
             <span class="k">return</span> <span class="kc">None</span>
 
-<div class="viewcode-block" id="MadMiner.run"><a class="viewcode-back" href="../../madminer.html#madminer.core.MadMiner.run">[docs]</a>    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span>
+<div class="viewcode-block" id="MadMiner.run"><a class="viewcode-back" href="../../madminer.core.html#madminer.core.MadMiner.run">[docs]</a>    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span>
             <span class="bp">self</span><span class="p">,</span>
             <span class="n">mg_directory</span><span class="p">,</span>
             <span class="n">proc_card_file</span><span class="p">,</span>
@@ -841,7 +841,7 @@
             <span class="n">initial_command</span><span class="o">=</span><span class="n">initial_command</span>
         <span class="p">)</span></div>
 
-<div class="viewcode-block" id="MadMiner.run_multiple"><a class="viewcode-back" href="../../madminer.html#madminer.core.MadMiner.run_multiple">[docs]</a>    <span class="k">def</span> <span class="nf">run_multiple</span><span class="p">(</span>
+<div class="viewcode-block" id="MadMiner.run_multiple"><a class="viewcode-back" href="../../madminer.core.html#madminer.core.MadMiner.run_multiple">[docs]</a>    <span class="k">def</span> <span class="nf">run_multiple</span><span class="p">(</span>
             <span class="bp">self</span><span class="p">,</span>
             <span class="n">mg_directory</span><span class="p">,</span>
             <span class="n">proc_card_file</span><span class="p">,</span>

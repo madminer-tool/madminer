@@ -47,7 +47,7 @@
 <span class="kn">from</span> <span class="nn">madminer.utils.various</span> <span class="k">import</span> <span class="n">general_init</span>
 
 
-<div class="viewcode-block" id="DelphesProcessor"><a class="viewcode-back" href="../../madminer.html#madminer.delphes.DelphesProcessor">[docs]</a><span class="k">class</span> <span class="nc">DelphesProcessor</span><span class="p">:</span>
+<div class="viewcode-block" id="DelphesProcessor"><a class="viewcode-back" href="../../madminer.delphes.html#madminer.delphes.DelphesProcessor">[docs]</a><span class="k">class</span> <span class="nc">DelphesProcessor</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Detector simulation with Delphes and simple calculation of observables.</span>
 <span class="sd">    </span>
 <span class="sd">    After setting up the parameter space and benchmarks and running MadGraph and Pythia, all of which is organized</span>
@@ -116,7 +116,7 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">benchmark_names</span> <span class="o">=</span> <span class="n">load_benchmarks_from_madminer_file</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">filename</span><span class="p">)</span>
 
-<div class="viewcode-block" id="DelphesProcessor.add_hepmc_sample"><a class="viewcode-back" href="../../madminer.html#madminer.delphes.DelphesProcessor.add_hepmc_sample">[docs]</a>    <span class="k">def</span> <span class="nf">add_hepmc_sample</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">sampled_from_benchmark</span><span class="p">):</span>
+<div class="viewcode-block" id="DelphesProcessor.add_hepmc_sample"><a class="viewcode-back" href="../../madminer.delphes.html#madminer.delphes.DelphesProcessor.add_hepmc_sample">[docs]</a>    <span class="k">def</span> <span class="nf">add_hepmc_sample</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">sampled_from_benchmark</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 
 <span class="sd">        Parameters</span>
@@ -138,7 +138,7 @@
             <span class="n">extract_weight_order</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">sampled_from_benchmark</span><span class="p">)</span>
         <span class="p">)</span></div>
 
-<div class="viewcode-block" id="DelphesProcessor.run_delphes"><a class="viewcode-back" href="../../madminer.html#madminer.delphes.DelphesProcessor.run_delphes">[docs]</a>    <span class="k">def</span> <span class="nf">run_delphes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">delphes_directory</span><span class="p">,</span> <span class="n">delphes_card</span><span class="p">,</span> <span class="n">initial_command</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">log_directory</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="DelphesProcessor.run_delphes"><a class="viewcode-back" href="../../madminer.delphes.html#madminer.delphes.DelphesProcessor.run_delphes">[docs]</a>    <span class="k">def</span> <span class="nf">run_delphes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">delphes_directory</span><span class="p">,</span> <span class="n">delphes_card</span><span class="p">,</span> <span class="n">initial_command</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">log_directory</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 
 <span class="sd">        Parameters</span>
@@ -172,7 +172,7 @@
             <span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">delphes_sample_filenames</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">delphes_sample_filename</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="DelphesProcessor.add_delphes_sample"><a class="viewcode-back" href="../../madminer.html#madminer.delphes.DelphesProcessor.add_delphes_sample">[docs]</a>    <span class="k">def</span> <span class="nf">add_delphes_sample</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">):</span>
+<div class="viewcode-block" id="DelphesProcessor.add_delphes_sample"><a class="viewcode-back" href="../../madminer.delphes.html#madminer.delphes.DelphesProcessor.add_delphes_sample">[docs]</a>    <span class="k">def</span> <span class="nf">add_delphes_sample</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 
 <span class="sd">        Parameters</span>
@@ -191,7 +191,7 @@
         <span class="c1"># logging.info(&#39;Adding Delphes sample at %s&#39;, filename)</span>
         <span class="c1"># self.delphes_sample_filenames.append(filename)</span>
 
-<div class="viewcode-block" id="DelphesProcessor.set_acceptance"><a class="viewcode-back" href="../../madminer.html#madminer.delphes.DelphesProcessor.set_acceptance">[docs]</a>    <span class="k">def</span> <span class="nf">set_acceptance</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pt_min_e</span><span class="o">=</span><span class="mf">10.</span><span class="p">,</span> <span class="n">pt_min_mu</span><span class="o">=</span><span class="mf">10.</span><span class="p">,</span> <span class="n">pt_min_a</span><span class="o">=</span><span class="mf">0.</span><span class="p">,</span> <span class="n">pt_min_j</span><span class="o">=</span><span class="mf">20.</span><span class="p">,</span>
+<div class="viewcode-block" id="DelphesProcessor.set_acceptance"><a class="viewcode-back" href="../../madminer.delphes.html#madminer.delphes.DelphesProcessor.set_acceptance">[docs]</a>    <span class="k">def</span> <span class="nf">set_acceptance</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pt_min_e</span><span class="o">=</span><span class="mf">10.</span><span class="p">,</span> <span class="n">pt_min_mu</span><span class="o">=</span><span class="mf">10.</span><span class="p">,</span> <span class="n">pt_min_a</span><span class="o">=</span><span class="mf">0.</span><span class="p">,</span> <span class="n">pt_min_j</span><span class="o">=</span><span class="mf">20.</span><span class="p">,</span>
                        <span class="n">eta_max_e</span><span class="o">=</span><span class="mf">2.5</span><span class="p">,</span> <span class="n">eta_max_mu</span><span class="o">=</span><span class="mf">2.5</span><span class="p">,</span> <span class="n">eta_max_a</span><span class="o">=</span><span class="mf">2.5</span><span class="p">,</span> <span class="n">eta_max_j</span><span class="o">=</span><span class="mf">5.</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 
@@ -228,7 +228,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">acceptance_eta_max_a</span> <span class="o">=</span> <span class="n">eta_max_a</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">acceptance_eta_max_j</span> <span class="o">=</span> <span class="n">eta_max_j</span></div>
 
-<div class="viewcode-block" id="DelphesProcessor.add_observable"><a class="viewcode-back" href="../../madminer.html#madminer.delphes.DelphesProcessor.add_observable">[docs]</a>    <span class="k">def</span> <span class="nf">add_observable</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">definition</span><span class="p">,</span> <span class="n">required</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="DelphesProcessor.add_observable"><a class="viewcode-back" href="../../madminer.delphes.html#madminer.delphes.DelphesProcessor.add_observable">[docs]</a>    <span class="k">def</span> <span class="nf">add_observable</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">definition</span><span class="p">,</span> <span class="n">required</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 
 <span class="sd">        Parameters</span>
@@ -256,7 +256,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">observables_required</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">required</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">observables_defaults</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">default</span></div>
 
-<div class="viewcode-block" id="DelphesProcessor.read_observables_from_file"><a class="viewcode-back" href="../../madminer.html#madminer.delphes.DelphesProcessor.read_observables_from_file">[docs]</a>    <span class="k">def</span> <span class="nf">read_observables_from_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">):</span>
+<div class="viewcode-block" id="DelphesProcessor.read_observables_from_file"><a class="viewcode-back" href="../../madminer.delphes.html#madminer.delphes.DelphesProcessor.read_observables_from_file">[docs]</a>    <span class="k">def</span> <span class="nf">read_observables_from_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 
 <span class="sd">        Parameters</span>
@@ -270,7 +270,7 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
 
-<div class="viewcode-block" id="DelphesProcessor.add_default_observables"><a class="viewcode-back" href="../../madminer.html#madminer.delphes.DelphesProcessor.add_default_observables">[docs]</a>    <span class="k">def</span> <span class="nf">add_default_observables</span><span class="p">(</span>
+<div class="viewcode-block" id="DelphesProcessor.add_default_observables"><a class="viewcode-back" href="../../madminer.delphes.html#madminer.delphes.DelphesProcessor.add_default_observables">[docs]</a>    <span class="k">def</span> <span class="nf">add_default_observables</span><span class="p">(</span>
             <span class="bp">self</span><span class="p">,</span>
             <span class="n">n_leptons_max</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
             <span class="n">n_photons_max</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
@@ -341,7 +341,7 @@
                     <span class="n">default</span><span class="o">=</span><span class="mf">0.</span>
                 <span class="p">)</span></div>
 
-<div class="viewcode-block" id="DelphesProcessor.add_cut"><a class="viewcode-back" href="../../madminer.html#madminer.delphes.DelphesProcessor.add_cut">[docs]</a>    <span class="k">def</span> <span class="nf">add_cut</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">definition</span><span class="p">,</span> <span class="n">pass_if_not_parsed</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<div class="viewcode-block" id="DelphesProcessor.add_cut"><a class="viewcode-back" href="../../madminer.delphes.html#madminer.delphes.DelphesProcessor.add_cut">[docs]</a>    <span class="k">def</span> <span class="nf">add_cut</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">definition</span><span class="p">,</span> <span class="n">pass_if_not_parsed</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 
 <span class="sd">        Parameters</span>
@@ -359,7 +359,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">cuts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">definition</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">cuts_default_pass</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">pass_if_not_parsed</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="DelphesProcessor.analyse_delphes_samples"><a class="viewcode-back" href="../../madminer.html#madminer.delphes.DelphesProcessor.analyse_delphes_samples">[docs]</a>    <span class="k">def</span> <span class="nf">analyse_delphes_samples</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="DelphesProcessor.analyse_delphes_samples"><a class="viewcode-back" href="../../madminer.delphes.html#madminer.delphes.DelphesProcessor.analyse_delphes_samples">[docs]</a>    <span class="k">def</span> <span class="nf">analyse_delphes_samples</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; &quot;&quot;&quot;</span>
 
         <span class="n">n_benchmarks</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">benchmark_names</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">benchmark_names</span><span class="p">)</span>
@@ -421,7 +421,7 @@
                 <span class="p">)</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">observations</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">observations</span><span class="p">[</span><span class="n">key</span><span class="p">],</span> <span class="n">this_observations</span><span class="p">[</span><span class="n">key</span><span class="p">]])</span></div>
 
-<div class="viewcode-block" id="DelphesProcessor.save"><a class="viewcode-back" href="../../madminer.html#madminer.delphes.DelphesProcessor.save">[docs]</a>    <span class="k">def</span> <span class="nf">save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename_out</span><span class="p">):</span>
+<div class="viewcode-block" id="DelphesProcessor.save"><a class="viewcode-back" href="../../madminer.delphes.html#madminer.delphes.DelphesProcessor.save">[docs]</a>    <span class="k">def</span> <span class="nf">save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename_out</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 
 <span class="sd">        Parameters</span>

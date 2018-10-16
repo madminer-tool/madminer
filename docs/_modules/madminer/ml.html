@@ -53,7 +53,7 @@
 <span class="kn">from</span> <span class="nn">madminer.utils.various</span> <span class="k">import</span> <span class="n">create_missing_folders</span><span class="p">,</span> <span class="n">load_and_check</span><span class="p">,</span> <span class="n">general_init</span>
 
 
-<div class="viewcode-block" id="MLForge"><a class="viewcode-back" href="../../madminer.html#madminer.ml.MLForge">[docs]</a><span class="k">class</span> <span class="nc">MLForge</span><span class="p">:</span>
+<div class="viewcode-block" id="MLForge"><a class="viewcode-back" href="../../madminer.ml.html#madminer.ml.MLForge">[docs]</a><span class="k">class</span> <span class="nc">MLForge</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot; &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">debug</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
@@ -71,7 +71,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">maf_batch_norm</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">maf_batch_norm_alpha</span> <span class="o">=</span> <span class="kc">None</span>
 
-<div class="viewcode-block" id="MLForge.train"><a class="viewcode-back" href="../../madminer.html#madminer.ml.MLForge.train">[docs]</a>    <span class="k">def</span> <span class="nf">train</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+<div class="viewcode-block" id="MLForge.train"><a class="viewcode-back" href="../../madminer.ml.html#madminer.ml.MLForge.train">[docs]</a>    <span class="k">def</span> <span class="nf">train</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
               <span class="n">method</span><span class="p">,</span>
               <span class="n">x_filename</span><span class="p">,</span>
               <span class="n">y_filename</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -412,7 +412,7 @@
                 <span class="n">early_stopping</span><span class="o">=</span><span class="n">early_stopping</span>
             <span class="p">)</span></div>
 
-<div class="viewcode-block" id="MLForge.evaluate"><a class="viewcode-back" href="../../madminer.html#madminer.ml.MLForge.evaluate">[docs]</a>    <span class="k">def</span> <span class="nf">evaluate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+<div class="viewcode-block" id="MLForge.evaluate"><a class="viewcode-back" href="../../madminer.ml.html#madminer.ml.MLForge.evaluate">[docs]</a>    <span class="k">def</span> <span class="nf">evaluate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                  <span class="n">x_filename</span><span class="p">,</span>
                  <span class="n">theta0_filename</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                  <span class="n">theta1_filename</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -540,7 +540,7 @@
 
         <span class="k">return</span> <span class="n">all_log_r_hat</span><span class="p">,</span> <span class="n">all_t_hat0</span><span class="p">,</span> <span class="n">all_t_hat1</span></div>
 
-<div class="viewcode-block" id="MLForge.calculate_fisher_information"><a class="viewcode-back" href="../../madminer.html#madminer.ml.MLForge.calculate_fisher_information">[docs]</a>    <span class="k">def</span> <span class="nf">calculate_fisher_information</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+<div class="viewcode-block" id="MLForge.calculate_fisher_information"><a class="viewcode-back" href="../../madminer.ml.html#madminer.ml.MLForge.calculate_fisher_information">[docs]</a>    <span class="k">def</span> <span class="nf">calculate_fisher_information</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                                      <span class="n">x_filename</span><span class="p">,</span>
                                      <span class="n">n_events</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
                                      <span class="n">features</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
@@ -598,7 +598,7 @@
 
         <span class="k">return</span> <span class="n">fisher_information</span></div>
 
-<div class="viewcode-block" id="MLForge.save"><a class="viewcode-back" href="../../madminer.html#madminer.ml.MLForge.save">[docs]</a>    <span class="k">def</span> <span class="nf">save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+<div class="viewcode-block" id="MLForge.save"><a class="viewcode-back" href="../../madminer.ml.html#madminer.ml.MLForge.save">[docs]</a>    <span class="k">def</span> <span class="nf">save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
              <span class="n">filename</span><span class="p">):</span>
 
         <span class="sd">&quot;&quot;&quot;Saves model state dict</span>
@@ -636,7 +636,7 @@
         <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Saving state dictionary to </span><span class="si">%s</span><span class="s1">_state_dict.pt&#39;</span><span class="p">,</span> <span class="n">filename</span><span class="p">)</span>
         <span class="n">torch</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">state_dict</span><span class="p">(),</span> <span class="n">filename</span> <span class="o">+</span> <span class="s1">&#39;_state_dict.pt&#39;</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="MLForge.load"><a class="viewcode-back" href="../../madminer.html#madminer.ml.MLForge.load">[docs]</a>    <span class="k">def</span> <span class="nf">load</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+<div class="viewcode-block" id="MLForge.load"><a class="viewcode-back" href="../../madminer.ml.html#madminer.ml.MLForge.load">[docs]</a>    <span class="k">def</span> <span class="nf">load</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
              <span class="n">filename</span><span class="p">):</span>
 
         <span class="sd">&quot;&quot;&quot;Loads model state dict from file</span>
