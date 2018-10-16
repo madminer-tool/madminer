@@ -33,9 +33,33 @@ class LHEProcessor:
         self.benchmark_names = None
 
     def read_benchmark_names(self, filename):
+        """
+
+        Parameters
+        ----------
+        filename :
+            
+
+        Returns
+        -------
+
+        """
         self.benchmark_names = load_benchmarks_from_madminer_file(filename)
 
     def add_lhe_sample(self, filename, sampling_benchmark):
+        """
+
+        Parameters
+        ----------
+        filename :
+            
+        sampling_benchmark :
+            
+
+        Returns
+        -------
+
+        """
 
         logging.info('Adding LHE sample at %s', filename)
 
@@ -43,6 +67,21 @@ class LHEProcessor:
         self.sampling_benchmarks.append(sampling_benchmark)
 
     def add_observable(self, name, definition, required=False):
+        """
+
+        Parameters
+        ----------
+        name :
+            
+        definition :
+            
+        required :
+             (Default value = False)
+
+        Returns
+        -------
+
+        """
 
         if required:
             logging.info('Adding required observable %s = %s', name, definition)
@@ -53,12 +92,25 @@ class LHEProcessor:
         self.observables_required[name] = required
 
     def read_observables_from_file(self, filename):
+        """
+
+        Parameters
+        ----------
+        filename :
+            
+
+        Returns
+        -------
+
+        """
         raise NotImplementedError
 
     def set_default_observables(self):
+        """ """
         raise NotImplementedError
 
     def analyse_lhe_samples(self):
+        """ """
 
         for lhe_file, sampling_benchmark in zip(self.lhe_sample_filenames, self.sampling_benchmarks):
 
@@ -96,6 +148,19 @@ class LHEProcessor:
                 self.observations[key] = np.hstack([self.observations[key], this_observations[key]])
 
     def save(self, filename_out, filename_in=None):
+        """
+
+        Parameters
+        ----------
+        filename_out :
+            
+        filename_in :
+             (Default value = None)
+
+        Returns
+        -------
+
+        """
 
         assert (self.observables is not None and self.observations is not None
                 and self.weights is not None), 'Nothing to save!'

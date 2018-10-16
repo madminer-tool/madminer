@@ -8,6 +8,7 @@ import itertools
 
 
 class SimpleMorpher:
+    """ """
 
     def __init__(self,
                  parameters_from_madminer=None,
@@ -51,6 +52,17 @@ class SimpleMorpher:
 
     def set_components(self,
                        components):
+        """
+
+        Parameters
+        ----------
+        components :
+            
+
+        Returns
+        -------
+
+        """
 
         self.components = components
         self.n_components = len(self.components)
@@ -58,7 +70,17 @@ class SimpleMorpher:
     def find_components(self,
                         max_overall_power=4):
 
-        """ Find and return a list of components with their power dependence on the parameters """
+        """Find and return a list of components with their power dependence on the parameters
+
+        Parameters
+        ----------
+        max_overall_power :
+             (Default value = 4)
+
+        Returns
+        -------
+
+        """
 
         components = []
 
@@ -81,6 +103,21 @@ class SimpleMorpher:
                   basis_from_madminer=None,
                   basis_numpy=None,
                   morphing_matrix=None):
+        """
+
+        Parameters
+        ----------
+        basis_from_madminer :
+             (Default value = None)
+        basis_numpy :
+             (Default value = None)
+        morphing_matrix :
+             (Default value = None)
+
+        Returns
+        -------
+
+        """
 
         if basis_from_madminer is not None:
             self.basis = []
@@ -106,15 +143,24 @@ class SimpleMorpher:
                        n_trials=100,
                        n_test_thetas=100):
 
-        """
-        Finds a set of basis parameter vectors, based on a rudimentary optimization algorithm.
+        """Finds a set of basis parameter vectors, based on a rudimentary optimization algorithm.
 
-        :param fixed_benchmarks_numpy:
-        :param fixed_benchmarks_from_madminer:
-        :param n_bases:
-        :param n_trials:
-        :param n_test_thetas:
-        :return:
+        Parameters
+        ----------
+        fixed_benchmarks_numpy :
+            param fixed_benchmarks_from_madminer: (Default value = None)
+        n_bases :
+            param n_trials: (Default value = 1)
+        n_test_thetas :
+            return: (Default value = 100)
+        fixed_benchmarks_from_madminer :
+             (Default value = None)
+        n_trials :
+             (Default value = 100)
+
+        Returns
+        -------
+
         """
 
         # Check all data is there
@@ -187,7 +233,19 @@ class SimpleMorpher:
 
     def _propose_basis(self, fixed_benchmarks, n_missing_benchmarks):
 
-        """ Propose a random basis """
+        """Propose a random basis
+
+        Parameters
+        ----------
+        fixed_benchmarks :
+            
+        n_missing_benchmarks :
+            
+
+        Returns
+        -------
+
+        """
 
         if len(fixed_benchmarks) > 0:
             basis = np.vstack([
@@ -201,7 +259,17 @@ class SimpleMorpher:
 
     def _draw_random_thetas(self, n_thetas):
 
-        """ Randomly draws parameter vectors within the specified parameter ranges """
+        """Randomly draws parameter vectors within the specified parameter ranges
+
+        Parameters
+        ----------
+        n_thetas :
+            
+
+        Returns
+        -------
+
+        """
 
         # First draw random numbers in range [0, 1)^n_parameters
         u = np.random.rand(n_thetas, self.n_parameters)
@@ -213,7 +281,17 @@ class SimpleMorpher:
 
     def calculate_morphing_matrix(self, basis=None):
 
-        """ Calculates the morphing matrix that links the components to the basis parameter vectors """
+        """Calculates the morphing matrix that links the components to the basis parameter vectors
+
+        Parameters
+        ----------
+        basis :
+             (Default value = None)
+
+        Returns
+        -------
+
+        """
 
         # Check all data is there
         if self.components is None or self.n_components is None or self.n_components <= 0:
@@ -264,7 +342,21 @@ class SimpleMorpher:
 
     def calculate_morphing_weights(self, theta, basis=None, morphing_matrix=None):
 
-        """ Calculates the morphing weights w_b(theta) for a given basis {theta_b} """
+        """Calculates the morphing weights w_b(theta) for a given basis {theta_b}
+
+        Parameters
+        ----------
+        theta :
+            
+        basis :
+             (Default value = None)
+        morphing_matrix :
+             (Default value = None)
+
+        Returns
+        -------
+
+        """
 
         # Check all data is there
         if self.components is None or self.n_components is None or self.n_components <= 0:
@@ -298,8 +390,22 @@ class SimpleMorpher:
 
     def calculate_morphing_weight_gradient(self, theta, basis=None, morphing_matrix=None):
 
-        """ Calculates the gradient of the morphing weights grad_i w_b(theta). Output shape is (gradient
-        direction, basis benchmarks). """
+        """Calculates the gradient of the morphing weights grad_i w_b(theta). Output shape is (gradient
+        direction, basis benchmarks).
+
+        Parameters
+        ----------
+        theta :
+            
+        basis :
+             (Default value = None)
+        morphing_matrix :
+             (Default value = None)
+
+        Returns
+        -------
+
+        """
 
         # Check all data is there
         if self.components is None or self.n_components is None or self.n_components <= 0:
@@ -340,7 +446,23 @@ class SimpleMorpher:
 
     def evaluate_morphing(self, basis=None, morphing_matrix=None, n_test_thetas=100, return_weights_and_thetas=False):
 
-        """ Evaluates an objective function for a given basis """
+        """Evaluates an objective function for a given basis
+
+        Parameters
+        ----------
+        basis :
+             (Default value = None)
+        morphing_matrix :
+             (Default value = None)
+        n_test_thetas :
+             (Default value = 100)
+        return_weights_and_thetas :
+             (Default value = False)
+
+        Returns
+        -------
+
+        """
 
         # Check all data is there
         if self.components is None or self.n_components is None or self.n_components <= 0:
@@ -378,6 +500,7 @@ class SimpleMorpher:
 
 
 class AdvancedMorpher:
+    """ """
 
     def __init__(self,
                  parameters_from_madminer=None,
@@ -421,6 +544,17 @@ class AdvancedMorpher:
 
     def set_components(self,
                        components):
+        """
+
+        Parameters
+        ----------
+        components :
+            
+
+        Returns
+        -------
+
+        """
 
         self.components = components
         self.n_components = len(self.components)
@@ -428,7 +562,17 @@ class AdvancedMorpher:
     def find_components(self,
                         max_overall_power=4):
 
-        """ Find and return a list of components with their power dependence on the parameters """
+        """Find and return a list of components with their power dependence on the parameters
+
+        Parameters
+        ----------
+        max_overall_power :
+             (Default value = 4)
+
+        Returns
+        -------
+
+        """
 
         if isinstance(max_overall_power, int):
             max_overall_power = [max_overall_power]
@@ -472,6 +616,21 @@ class AdvancedMorpher:
                   basis_from_madminer=None,
                   basis_numpy=None,
                   morphing_matrix=None):
+        """
+
+        Parameters
+        ----------
+        basis_from_madminer :
+             (Default value = None)
+        basis_numpy :
+             (Default value = None)
+        morphing_matrix :
+             (Default value = None)
+
+        Returns
+        -------
+
+        """
 
         if basis_from_madminer is not None:
             self.basis = []
@@ -497,15 +656,24 @@ class AdvancedMorpher:
                        n_trials=100,
                        n_test_thetas=100):
 
-        """
-        Finds a set of basis parameter vectors, based on a rudimentary optimization algorithm.
+        """Finds a set of basis parameter vectors, based on a rudimentary optimization algorithm.
 
-        :param fixed_benchmarks_numpy:
-        :param fixed_benchmarks_from_madminer:
-        :param n_bases:
-        :param n_trials:
-        :param n_test_thetas:
-        :return:
+        Parameters
+        ----------
+        fixed_benchmarks_numpy :
+            param fixed_benchmarks_from_madminer: (Default value = None)
+        n_bases :
+            param n_trials: (Default value = 1)
+        n_test_thetas :
+            return: (Default value = 100)
+        fixed_benchmarks_from_madminer :
+             (Default value = None)
+        n_trials :
+             (Default value = 100)
+
+        Returns
+        -------
+
         """
 
         # Check all data is there
@@ -578,7 +746,19 @@ class AdvancedMorpher:
 
     def _propose_basis(self, fixed_benchmarks, n_missing_benchmarks):
 
-        """ Propose a random basis """
+        """Propose a random basis
+
+        Parameters
+        ----------
+        fixed_benchmarks :
+            
+        n_missing_benchmarks :
+            
+
+        Returns
+        -------
+
+        """
 
         if len(fixed_benchmarks) > 0:
             basis = np.vstack([
@@ -592,7 +772,17 @@ class AdvancedMorpher:
 
     def _draw_random_thetas(self, n_thetas):
 
-        """ Randomly draws parameter vectors within the specified parameter ranges """
+        """Randomly draws parameter vectors within the specified parameter ranges
+
+        Parameters
+        ----------
+        n_thetas :
+            
+
+        Returns
+        -------
+
+        """
 
         # First draw random numbers in range [0, 1)^n_parameters
         u = np.random.rand(n_thetas, self.n_parameters)
@@ -604,7 +794,17 @@ class AdvancedMorpher:
 
     def calculate_morphing_matrix(self, basis=None):
 
-        """ Calculates the morphing matrix that links the components to the basis parameter vectors """
+        """Calculates the morphing matrix that links the components to the basis parameter vectors
+
+        Parameters
+        ----------
+        basis :
+             (Default value = None)
+
+        Returns
+        -------
+
+        """
 
         # Check all data is there
         if self.components is None or self.n_components is None or self.n_components <= 0:
@@ -656,7 +856,21 @@ class AdvancedMorpher:
 
     def calculate_morphing_weights(self, theta, basis=None, morphing_matrix=None):
 
-        """ Calculates the morphing weights w_b(theta) for a given basis {theta_b} """
+        """Calculates the morphing weights w_b(theta) for a given basis {theta_b}
+
+        Parameters
+        ----------
+        theta :
+            
+        basis :
+             (Default value = None)
+        morphing_matrix :
+             (Default value = None)
+
+        Returns
+        -------
+
+        """
 
         # Check all data is there
         if self.components is None or self.n_components is None or self.n_components <= 0:
@@ -691,8 +905,22 @@ class AdvancedMorpher:
 
     def calculate_morphing_weight_gradient(self, theta, basis=None, morphing_matrix=None):
 
-        """ Calculates the gradient of the morphing weights grad_i w_b(theta). Output shape is (gradient
-        direction, basis benchmarks). """
+        """Calculates the gradient of the morphing weights grad_i w_b(theta). Output shape is (gradient
+        direction, basis benchmarks).
+
+        Parameters
+        ----------
+        theta :
+            
+        basis :
+             (Default value = None)
+        morphing_matrix :
+             (Default value = None)
+
+        Returns
+        -------
+
+        """
 
         # Check all data is there
         if self.components is None or self.n_components is None or self.n_components <= 0:
@@ -735,7 +963,23 @@ class AdvancedMorpher:
     def evaluate_morphing(self, basis=None, morphing_matrix=None, n_test_thetas=100,
                           return_weights_and_thetas=False):
 
-        """ Evaluates an objective function for a given basis """
+        """Evaluates an objective function for a given basis
+
+        Parameters
+        ----------
+        basis :
+             (Default value = None)
+        morphing_matrix :
+             (Default value = None)
+        n_test_thetas :
+             (Default value = 100)
+        return_weights_and_thetas :
+             (Default value = False)
+
+        Returns
+        -------
+
+        """
 
         # Check all data is there
         if self.components is None or self.n_components is None or self.n_components <= 0:

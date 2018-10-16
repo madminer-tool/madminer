@@ -11,6 +11,7 @@ from madminer.utils.ml.models.made_mog import ConditionalMixtureMADE
 
 
 class ConditionalMixtureMaskedAutoregressiveFlow(BaseConditionalFlow):
+    """ """
     def __init__(self, n_conditionals, n_inputs, n_hiddens, n_mades, n_components=10, activation='relu',
                  batch_norm=True, input_order='sequential', mode='sequential', alpha=0.1):
 
@@ -53,6 +54,21 @@ class ConditionalMixtureMaskedAutoregressiveFlow(BaseConditionalFlow):
                 self.bns.append(bn)
 
     def forward(self, theta, x, fix_batch_norm=None):
+        """
+
+        Parameters
+        ----------
+        theta :
+            
+        x :
+            
+        fix_batch_norm :
+             (Default value = None)
+
+        Returns
+        -------
+
+        """
         if x.shape[1] != self.n_inputs:
             logging.error('x has wrong shape: %s', x.shape)
             logging.debug('theta shape: %s', theta.shape)
@@ -82,7 +98,21 @@ class ConditionalMixtureMaskedAutoregressiveFlow(BaseConditionalFlow):
         return u, logdet_dudx
 
     def log_likelihood(self, theta, x, **kwargs):
-        """ Calculates u(x) and log p(x) with a MADE MoG base density """
+        """Calculates u(x) and log p(x) with a MADE MoG base density
+
+        Parameters
+        ----------
+        theta :
+            
+        x :
+            
+        **kwargs :
+            
+
+        Returns
+        -------
+
+        """
 
         # MADEs and BNs
         u, logdet_dudx = self.forward(theta, x, **kwargs)
@@ -96,6 +126,21 @@ class ConditionalMixtureMaskedAutoregressiveFlow(BaseConditionalFlow):
         return u, log_likelihood
 
     def generate_samples(self, theta, u=None, **kwargs):
+        """
+
+        Parameters
+        ----------
+        theta :
+            
+        u :
+             (Default value = None)
+        **kwargs :
+            
+
+        Returns
+        -------
+
+        """
         x = self.made_mog.generate_samples(theta, u, **kwargs)
 
         if self.batch_norm:
@@ -113,6 +158,19 @@ class ConditionalMixtureMaskedAutoregressiveFlow(BaseConditionalFlow):
         return x
 
     def to(self, *args, **kwargs):
+        """
+
+        Parameters
+        ----------
+        *args :
+            
+        **kwargs :
+            
+
+        Returns
+        -------
+
+        """
         self.to_args = args
         self.to_kwargs = kwargs
 

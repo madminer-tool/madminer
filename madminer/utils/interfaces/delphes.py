@@ -12,6 +12,29 @@ def run_delphes(delphes_directory,
                 initial_command=None,
                 log_file=None,
                 overwrite_existing_delphes_root_file=True):
+    """
+
+    Parameters
+    ----------
+    delphes_directory :
+        
+    delphes_card_filename :
+        
+    hepmc_sample_filename :
+        
+    delphes_sample_filename :
+         (Default value = None)
+    initial_command :
+         (Default value = None)
+    log_file :
+         (Default value = None)
+    overwrite_existing_delphes_root_file :
+         (Default value = True)
+
+    Returns
+    -------
+
+    """
 
     # Untar event file
     filename, extension = os.path.splitext(hepmc_sample_filename)

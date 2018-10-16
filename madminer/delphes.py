@@ -13,14 +13,13 @@ from madminer.utils.various import general_init
 
 
 class DelphesProcessor:
-    """
-    Detector simulation with Delphes and simple calculation of observables.
-
+    """Detector simulation with Delphes and simple calculation of observables.
+    
     After setting up the parameter space and benchmarks and running MadGraph and Pythia, all of which is organized
     in the madminer.core.MadMiner class, the next steps are the simulation of detector effects and the calculation of
     observables.  Different tools can be used for these tasks, please feel free to implement the detector simulation and
     analysis routine of your choice.
-
+    
     This class provides an example implementation based on Delphes. Its workflow consists of four steps:
     - Initializing the class with the filename of a MadMiner HDF5 file (the output of `madminer.core.MadMiner.save()`)
     - Adding one or multiple HepMC samples produced by Pythia in `DelphesProcessor.add_hepmc_sample()`
@@ -30,8 +29,15 @@ class DelphesProcessor:
     - Optionally, cuts can be set with `DelphesProcessor.add_cut()`
     - Calculating the observables from the Delphes ROOT files with `DelphesProcessor.analyse_delphes_samples()`
     - Saving the results with `DelphesProcessor.save()`
-
+    
     Please see the tutorial for a detailed walk-through.
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     def __init__(self, filename=None, debug=False):
@@ -76,6 +82,19 @@ class DelphesProcessor:
             self.benchmark_names = load_benchmarks_from_madminer_file(self.filename)
 
     def add_hepmc_sample(self, filename, sampled_from_benchmark):
+        """
+
+        Parameters
+        ----------
+        filename :
+            
+        sampled_from_benchmark :
+            
+
+        Returns
+        -------
+
+        """
 
         logging.info('Adding HepMC sample at %s', filename)
 
@@ -85,6 +104,23 @@ class DelphesProcessor:
         )
 
     def run_delphes(self, delphes_directory, delphes_card, initial_command=None, log_directory=None):
+        """
+
+        Parameters
+        ----------
+        delphes_directory :
+            
+        delphes_card :
+            
+        initial_command :
+             (Default value = None)
+        log_directory :
+             (Default value = None)
+
+        Returns
+        -------
+
+        """
 
         if log_directory is None:
             log_directory = './logs'
@@ -102,6 +138,17 @@ class DelphesProcessor:
             self.delphes_sample_filenames.append(delphes_sample_filename)
 
     def add_delphes_sample(self, filename):
+        """
+
+        Parameters
+        ----------
+        filename :
+            
+
+        Returns
+        -------
+
+        """
 
         raise NotImplementedError('Direct use of Delphes samples is currently disabled since the Delphes file alone '
                                   'does not contain any information linking the weights to the benchmarks ')
@@ -111,6 +158,31 @@ class DelphesProcessor:
 
     def set_acceptance(self, pt_min_e=10., pt_min_mu=10., pt_min_a=0., pt_min_j=20.,
                        eta_max_e=2.5, eta_max_mu=2.5, eta_max_a=2.5, eta_max_j=5.):
+        """
+
+        Parameters
+        ----------
+        pt_min_e :
+             (Default value = 10.)
+        pt_min_mu :
+             (Default value = 10.)
+        pt_min_a :
+             (Default value = 0.)
+        pt_min_j :
+             (Default value = 20.)
+        eta_max_e :
+             (Default value = 2.5)
+        eta_max_mu :
+             (Default value = 2.5)
+        eta_max_a :
+             (Default value = 2.5)
+        eta_max_j :
+             (Default value = 5.)
+
+        Returns
+        -------
+
+        """
 
         self.acceptance_pt_min_e = pt_min_e
         self.acceptance_pt_min_mu = pt_min_mu
@@ -122,6 +194,23 @@ class DelphesProcessor:
         self.acceptance_eta_max_j = eta_max_j
 
     def add_observable(self, name, definition, required=False, default=None):
+        """
+
+        Parameters
+        ----------
+        name :
+            
+        definition :
+            
+        required :
+             (Default value = False)
+        default :
+             (Default value = None)
+
+        Returns
+        -------
+
+        """
 
         if required:
             logging.debug('Adding required observable %s = %s', name, definition)
@@ -133,6 +222,17 @@ class DelphesProcessor:
         self.observables_defaults[name] = default
 
     def read_observables_from_file(self, filename):
+        """
+
+        Parameters
+        ----------
+        filename :
+            
+
+        Returns
+        -------
+
+        """
         raise NotImplementedError
 
     def add_default_observables(
@@ -142,6 +242,23 @@ class DelphesProcessor:
             n_jets_max=2,
             include_met=True
     ):
+        """
+
+        Parameters
+        ----------
+        n_leptons_max :
+             (Default value = 2)
+        n_photons_max :
+             (Default value = 2)
+        n_jets_max :
+             (Default value = 2)
+        include_met :
+             (Default value = True)
+
+        Returns
+        -------
+
+        """
         # ETMiss
         if include_met:
             self.add_observable(
@@ -190,11 +307,25 @@ class DelphesProcessor:
                 )
 
     def add_cut(self, definition, pass_if_not_parsed=False):
+        """
+
+        Parameters
+        ----------
+        definition :
+            
+        pass_if_not_parsed :
+             (Default value = False)
+
+        Returns
+        -------
+
+        """
         logging.info('Adding cut %s', definition)
         self.cuts.append(definition)
         self.cuts_default_pass.append(pass_if_not_parsed)
 
     def analyse_delphes_samples(self):
+        """ """
 
         n_benchmarks = None if self.benchmark_names is None else len(self.benchmark_names)
 
@@ -256,6 +387,17 @@ class DelphesProcessor:
                 self.observations[key] = np.hstack([self.observations[key], this_observations[key]])
 
     def save(self, filename_out):
+        """
+
+        Parameters
+        ----------
+        filename_out :
+            
+
+        Returns
+        -------
+
+        """
 
         assert (self.observables is not None and self.observations is not None
                 and self.weights is not None), 'Nothing to save!'

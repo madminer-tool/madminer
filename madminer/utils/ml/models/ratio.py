@@ -8,8 +8,16 @@ from madminer.utils.ml.utils import get_activation_function
 
 
 class ParameterizedRatioEstimator(nn.Module):
-    """ Module that implements agnostic parameterized likelihood estimators such as RASCAL or ALICES. Only the
-    numerator of the ratio is parameterized. """
+    """Module that implements agnostic parameterized likelihood estimators such as RASCAL or ALICES. Only the
+    numerator of the ratio is parameterized.
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
+    """
 
     def __init__(self, n_observables, n_parameters, n_hidden, activation='tanh'):
 
@@ -37,13 +45,22 @@ class ParameterizedRatioEstimator(nn.Module):
 
     def forward(self, theta, x, track_score=True):
 
-        """
-        Calculates estimated log likelihood ratio and the derived score.
+        """Calculates estimated log likelihood ratio and the derived score.
 
-        :param theta:
-        :param x:
-        :param track_score:
-        :return: s_hat, log_r_hat, t_hat
+        Parameters
+        ----------
+        theta :
+            param x:
+        track_score :
+            return: s_hat, log_r_hat, t_hat (Default value = True)
+        x :
+            
+
+        Returns
+        -------
+        type
+            s_hat, log_r_hat, t_hat
+
         """
 
         # Track gradient wrt theta
@@ -73,6 +90,19 @@ class ParameterizedRatioEstimator(nn.Module):
         return s_hat, log_r_hat, t_hat
 
     def to(self, *args, **kwargs):
+        """
+
+        Parameters
+        ----------
+        *args :
+            
+        **kwargs :
+            
+
+        Returns
+        -------
+
+        """
         self = super(ParameterizedRatioEstimator, self).to(*args, **kwargs)
 
         for i, layer in enumerate(self.layers):
@@ -82,9 +112,9 @@ class ParameterizedRatioEstimator(nn.Module):
 
 
 class DoublyParameterizedRatioEstimator(nn.Module):
-    """ Module that implements agnostic parameterized likelihood estimators such as RASCAL or ALICES. Both
+    """Module that implements agnostic parameterized likelihood estimators such as RASCAL or ALICES. Both
     numerator and denominator of the ratio are parameterized.
-
+    
     Ideas:
     - ensure antisymmetric property log_r_hat(theta0, theta1, x) = - log_r_hat(theta1, theta0, x):
         - regulator
@@ -92,6 +122,13 @@ class DoublyParameterizedRatioEstimator(nn.Module):
           l = f(A * theta0 + B * theta1 + C  * x)
           Clearly B = -A ensures antisymmetry, but then we are _only_ sensitive to theta0 - theta1
     - train with many theta for each generated event (only possible w/ morphing)
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     def __init__(self, n_observables, n_parameters, n_hidden, activation='tanh'):
@@ -120,13 +157,26 @@ class DoublyParameterizedRatioEstimator(nn.Module):
 
     def forward(self, theta0, theta1, x, track_score=True):
 
-        """
-        Calculates estimated log likelihood ratio and the derived score.
+        """Calculates estimated log likelihood ratio and the derived score.
 
-        :param theta:
-        :param x:
-        :param track_score:
-        :return: s_hat, log_r_hat, t_hat0, t_hat1
+        Parameters
+        ----------
+        theta :
+            param x:
+        track_score :
+            return: s_hat, log_r_hat, t_hat0, t_hat1 (Default value = True)
+        theta0 :
+            
+        theta1 :
+            
+        x :
+            
+
+        Returns
+        -------
+        type
+            s_hat, log_r_hat, t_hat0, t_hat1
+
         """
 
         # Track gradient wrt thetas
@@ -175,6 +225,19 @@ class DoublyParameterizedRatioEstimator(nn.Module):
         return s_hat, log_r_hat, t_hat0, t_hat1
 
     def to(self, *args, **kwargs):
+        """
+
+        Parameters
+        ----------
+        *args :
+            
+        **kwargs :
+            
+
+        Returns
+        -------
+
+        """
         self = super(DoublyParameterizedRatioEstimator, self).to(*args, **kwargs)
 
         for i, layer in enumerate(self.layers):

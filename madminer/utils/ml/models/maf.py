@@ -12,6 +12,7 @@ from madminer.utils.ml.models.batch_norm import BatchNorm
 
 
 class MaskedAutoregressiveFlow(BaseFlow):
+    """ """
     def __init__(self, n_inputs, n_hiddens, n_mades, activation='relu', batch_norm=True,
                  input_order='sequential', mode='sequential', alpha=0.1):
 
@@ -47,6 +48,19 @@ class MaskedAutoregressiveFlow(BaseFlow):
                 self.bns.append(bn)
 
     def forward(self, x, fix_batch_norm=False):
+        """
+
+        Parameters
+        ----------
+        x :
+            
+        fix_batch_norm :
+             (Default value = False)
+
+        Returns
+        -------
+
+        """
         # Change batch norm means only while training
         if not self.training:
             fix_batch_norm = True
@@ -69,6 +83,21 @@ class MaskedAutoregressiveFlow(BaseFlow):
         return u, logdet_dudx
 
     def generate_samples(self, n_samples=1, u=None, **kwargs):
+        """
+
+        Parameters
+        ----------
+        n_samples :
+             (Default value = 1)
+        u :
+             (Default value = None)
+        **kwargs :
+            
+
+        Returns
+        -------
+
+        """
         x = tensor(rng.randn(n_samples, self.n_inputs)) if u is None else u
 
         if self.to_args is not None or self.to_kwargs is not None:
@@ -89,6 +118,19 @@ class MaskedAutoregressiveFlow(BaseFlow):
         return x
 
     def to(self, *args, **kwargs):
+        """
+
+        Parameters
+        ----------
+        *args :
+            
+        **kwargs :
+            
+
+        Returns
+        -------
+
+        """
         self.to_args = args
         self.to_kwargs = kwargs
 
@@ -105,6 +147,7 @@ class MaskedAutoregressiveFlow(BaseFlow):
 
 
 class ConditionalMaskedAutoregressiveFlow(BaseConditionalFlow):
+    """ """
     def __init__(self, n_conditionals, n_inputs, n_hiddens, n_mades, activation='relu', batch_norm=True,
                  input_order='sequential', mode='sequential', alpha=0.1):
 
@@ -142,6 +185,21 @@ class ConditionalMaskedAutoregressiveFlow(BaseConditionalFlow):
                 self.bns.append(bn)
 
     def forward(self, theta, x, fix_batch_norm=None):
+        """
+
+        Parameters
+        ----------
+        theta :
+            
+        x :
+            
+        fix_batch_norm :
+             (Default value = None)
+
+        Returns
+        -------
+
+        """
         if x.shape[1] != self.n_inputs:
             logging.error('x has wrong shape: %s', x.shape)
             logging.debug('theta shape: %s', theta.shape)
@@ -171,6 +229,21 @@ class ConditionalMaskedAutoregressiveFlow(BaseConditionalFlow):
         return u, logdet_dudx
 
     def generate_samples(self, theta, u=None, **kwargs):
+        """
+
+        Parameters
+        ----------
+        theta :
+            
+        u :
+             (Default value = None)
+        **kwargs :
+            
+
+        Returns
+        -------
+
+        """
         n_samples = theta.shape[0]
 
         x = tensor(rng.randn(n_samples, self.n_inputs)) if u is None else u
@@ -190,6 +263,19 @@ class ConditionalMaskedAutoregressiveFlow(BaseConditionalFlow):
         return x
 
     def to(self, *args, **kwargs):
+        """
+
+        Parameters
+        ----------
+        *args :
+            
+        **kwargs :
+            
+
+        Returns
+        -------
+
+        """
         self.to_args = args
         self.to_kwargs = kwargs
 
