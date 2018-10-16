@@ -42,9 +42,7 @@
  | <a href="#D"><strong>D</strong></a>
  | <a href="#E"><strong>E</strong></a>
  | <a href="#F"><strong>F</strong></a>
- | <a href="#G"><strong>G</strong></a>
  | <a href="#H"><strong>H</strong></a>
- | <a href="#I"><strong>I</strong></a>
  | <a href="#K"><strong>K</strong></a>
  | <a href="#L"><strong>L</strong></a>
  | <a href="#M"><strong>M</strong></a>
@@ -61,6 +59,8 @@
       <li><a href="madminer.html#madminer.core.MadMiner.add_benchmark">add_benchmark() (madminer.core.MadMiner method)</a>
 </li>
       <li><a href="madminer.html#madminer.delphes.DelphesProcessor.add_cut">add_cut() (madminer.delphes.DelphesProcessor method)</a>
+</li>
+      <li><a href="madminer.html#madminer.delphes.DelphesProcessor.add_default_observables">add_default_observables() (madminer.delphes.DelphesProcessor method)</a>
 </li>
       <li><a href="madminer.html#madminer.delphes.DelphesProcessor.add_delphes_sample">add_delphes_sample() (madminer.delphes.DelphesProcessor method)</a>
 </li>
@@ -150,8 +150,6 @@
         <li><a href="madminer.html#madminer.morphing.SimpleMorpher.evaluate_morphing">(madminer.morphing.SimpleMorpher method)</a>
 </li>
       </ul></li>
-      <li><a href="madminer.html#madminer.core.MadMiner.export_cards">export_cards() (madminer.core.MadMiner method)</a>
-</li>
       <li><a href="madminer.html#madminer.sampling.SampleAugmenter.extract_cross_sections">extract_cross_sections() (madminer.sampling.SampleAugmenter method)</a>
 </li>
       <li><a href="madminer.html#madminer.fisherinformation.FisherInformation.extract_observables_and_weights">extract_observables_and_weights() (madminer.fisherinformation.FisherInformation method)</a>
@@ -195,26 +193,10 @@
   </ul></td>
 </tr></table>
 
-<h2 id="G">G</h2>
-<table style="width: 100%" class="indextable genindextable"><tr>
-  <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="madminer.html#madminer.core.MadMiner.generate_mg_process">generate_mg_process() (madminer.core.MadMiner static method)</a>
-</li>
-  </ul></td>
-</tr></table>
-
 <h2 id="H">H</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="madminer.html#madminer.fisherinformation.FisherInformation.histogram_of_fisher_information">histogram_of_fisher_information() (madminer.fisherinformation.FisherInformation method)</a>
-</li>
-  </ul></td>
-</tr></table>
-
-<h2 id="I">I</h2>
-<table style="width: 100%" class="indextable genindextable"><tr>
-  <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="madminer.html#madminer.fisherinformation.FisherInformation.ignore_information">ignore_information() (madminer.fisherinformation.FisherInformation method)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -294,9 +276,9 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="madminer.html#madminer.plotting.plot_2d_morphing_basis">plot_2d_morphing_basis() (in module madminer.plotting)</a>
 </li>
-      <li><a href="madminer.html#madminer.plotting.plot_fisherinfo_barplot">plot_fisherinfo_barplot() (in module madminer.plotting)</a>
+      <li><a href="madminer.html#madminer.plotting.plot_fisher_information_contours_2d">plot_fisher_information_contours_2d() (in module madminer.plotting)</a>
 </li>
-      <li><a href="madminer.html#madminer.plotting.plot_fisherinfo_contours_2d">plot_fisherinfo_contours_2d() (in module madminer.plotting)</a>
+      <li><a href="madminer.html#madminer.plotting.plot_fisherinfo_barplot">plot_fisherinfo_barplot() (in module madminer.plotting)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
@@ -304,7 +286,9 @@
 </li>
       <li><a href="madminer.html#madminer.plotting.plot_nd_morphing_basis_slices">plot_nd_morphing_basis_slices() (in module madminer.plotting)</a>
 </li>
-      <li><a href="madminer.html#madminer.fisherinformation.FisherInformation.profile_information">profile_information() (madminer.fisherinformation.FisherInformation method)</a>
+      <li><a href="madminer.html#madminer.fisherinformation.FisherInformation.profile_information">profile_information() (madminer.fisherinformation.FisherInformation static method)</a>
+</li>
+      <li><a href="madminer.html#madminer.fisherinformation.FisherInformation.project_information">project_information() (madminer.fisherinformation.FisherInformation static method)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -328,8 +312,6 @@
 </li>
       <li><a href="madminer.html#madminer.delphes.DelphesProcessor.run_delphes">run_delphes() (madminer.delphes.DelphesProcessor method)</a>
 </li>
-      <li><a href="madminer.html#madminer.core.MadMiner.run_mg_pythia">run_mg_pythia() (madminer.core.MadMiner static method)</a>
-</li>
       <li><a href="madminer.html#madminer.core.MadMiner.run_multiple">run_multiple() (madminer.core.MadMiner method)</a>
 </li>
   </ul></td>
@@ -350,17 +332,17 @@
         <li><a href="madminer.html#madminer.ml.MLForge.save">(madminer.ml.MLForge method)</a>
 </li>
       </ul></li>
+      <li><a href="madminer.html#madminer.delphes.DelphesProcessor.set_acceptance">set_acceptance() (madminer.delphes.DelphesProcessor method)</a>
+</li>
       <li><a href="madminer.html#madminer.morphing.AdvancedMorpher.set_basis">set_basis() (madminer.morphing.AdvancedMorpher method)</a>
 
       <ul>
         <li><a href="madminer.html#madminer.morphing.SimpleMorpher.set_basis">(madminer.morphing.SimpleMorpher method)</a>
 </li>
       </ul></li>
-      <li><a href="madminer.html#madminer.core.MadMiner.set_benchmarks">set_benchmarks() (madminer.core.MadMiner method)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="madminer.html#madminer.core.MadMiner.set_benchmarks_from_finite_differences">set_benchmarks_from_finite_differences() (madminer.core.MadMiner method)</a>
+      <li><a href="madminer.html#madminer.core.MadMiner.set_benchmarks">set_benchmarks() (madminer.core.MadMiner method)</a>
 </li>
       <li><a href="madminer.html#madminer.core.MadMiner.set_benchmarks_from_morphing">set_benchmarks_from_morphing() (madminer.core.MadMiner method)</a>
 </li>
@@ -370,12 +352,8 @@
         <li><a href="madminer.html#madminer.morphing.SimpleMorpher.set_components">(madminer.morphing.SimpleMorpher method)</a>
 </li>
       </ul></li>
-      <li><a href="madminer.html#madminer.delphes.DelphesProcessor.set_default_observables">set_default_observables() (madminer.delphes.DelphesProcessor method)</a>
-
-      <ul>
-        <li><a href="madminer.html#madminer.lhe.LHEProcessor.set_default_observables">(madminer.lhe.LHEProcessor method)</a>
+      <li><a href="madminer.html#madminer.lhe.LHEProcessor.set_default_observables">set_default_observables() (madminer.lhe.LHEProcessor method)</a>
 </li>
-      </ul></li>
       <li><a href="madminer.html#madminer.core.MadMiner.set_parameters">set_parameters() (madminer.core.MadMiner method)</a>
 </li>
       <li><a href="madminer.html#madminer.morphing.SimpleMorpher">SimpleMorpher (class in madminer.morphing)</a>
@@ -442,7 +420,7 @@
       <div class="clearer"></div>
     </div>
     <div class="footer">
-      &copy;2018, Johann Brehmer, Kyle Cranmer, Felix Kling.
+      &copy;2018, Johann Brehmer, Kyle Cranmer, and Felix Kling.
       
       |
       Powered by <a href="http://sphinx-doc.org/">Sphinx 1.8.1</a>

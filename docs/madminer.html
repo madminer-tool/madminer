@@ -41,293 +41,297 @@
 <span id="madminer-core-module"></span><h2>madminer.core module<a class="headerlink" href="#module-madminer.core" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
 <dt id="madminer.core.MadMiner">
-<em class="property">class </em><code class="descclassname">madminer.core.</code><code class="descname">MadMiner</code><span class="sig-paren">(</span><em>debug=False</em><span class="sig-paren">)</span><a class="headerlink" href="#madminer.core.MadMiner" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">madminer.core.</code><code class="descname">MadMiner</code><span class="sig-paren">(</span><em>debug=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/core.html#MadMiner"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.core.MadMiner" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>The central class to manage parameter spaces, benchmarks, and the generation of events through MadGraph and
+Pythia.</p>
+<p>An instance of this class is the starting point of most MadMiner applications. It is typically used in four steps:</p>
+<ul class="simple">
+<li>Defining the parameter space through <cite>MadMiner.add_parameter</cite></li>
+<li>Defining the benchmarks, i.e. the points at which the squared matrix elements will be evaluated in MadGraph, with</li>
+</ul>
+<p><cite>MadMiner.add_benchmark()</cite> or, if operator morphing is used, with <cite>MadMiner.set_benchmarks_from_morphing()</cite></p>
+<ul class="simple">
+<li>Saving this setup with <cite>MadMiner.save()</cite> (it can be loaded in a new instance with <cite>MadMiner.load()</cite>)</li>
+<li>Running MadGraph and Pythia with the appropriate settings with <cite>MadMiner.run()</cite> or <cite>MadMiner.run_multiple()</cite> (the</li>
+</ul>
+<p>latter allows the user to combine runs from multiple run cards and sampling points)</p>
+<p>Please see the tutorial for a hands-on introduction to its methods.</p>
+<dl class="docutils">
+<dt>debug <span class="classifier-delimiter">:</span> <span class="classifier">bool</span></dt>
+<dd>If True, additional detailed debugging output is printed.</dd>
+</dl>
 <dl class="method">
 <dt id="madminer.core.MadMiner.add_benchmark">
-<code class="descname">add_benchmark</code><span class="sig-paren">(</span><em>parameter_values</em>, <em>benchmark_name=None</em><span class="sig-paren">)</span><a class="headerlink" href="#madminer.core.MadMiner.add_benchmark" title="Permalink to this definition">¶</a></dt>
-<dd><p>Manually adds an individual parameter benchmark.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>parameter_values</strong> – dict, with keys equal to parameter names and values equal to parameter values</li>
-<li><strong>benchmark_name</strong> – str, defines name of benchmark</li>
-</ul>
-</td>
-</tr>
-</tbody>
-</table>
+<code class="descname">add_benchmark</code><span class="sig-paren">(</span><em>parameter_values</em>, <em>benchmark_name=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/core.html#MadMiner.add_benchmark"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.core.MadMiner.add_benchmark" title="Permalink to this definition">¶</a></dt>
+<dd><p>Manually adds an individual benchmark, i.e. a parameter point that will be evaluated by MadGraph.</p>
+<dl class="docutils">
+<dt>parameter_values <span class="classifier-delimiter">:</span> <span class="classifier">dict</span></dt>
+<dd>The keys of this dict should be the parameter names and the values the corresponding parameter values.</dd>
+<dt>benchmark_name <span class="classifier-delimiter">:</span> <span class="classifier">str or None</span></dt>
+<dd>Name of benchmark. If None, a default name is used. (Default value = None)</dd>
+</dl>
+<blockquote>
+<div>None</div></blockquote>
+<dl class="docutils">
+<dt>RuntimeError</dt>
+<dd>If a benchmark with the same name already exists, if parameter_values is not a dict, or if a key of
+parameter_values does not correspond to a defined parameter.</dd>
+</dl>
 </dd></dl>
 
 <dl class="method">
 <dt id="madminer.core.MadMiner.add_parameter">
-<code class="descname">add_parameter</code><span class="sig-paren">(</span><em>lha_block</em>, <em>lha_id</em>, <em>parameter_name=None</em>, <em>param_card_transform=None</em>, <em>morphing_max_power=2</em>, <em>parameter_range=(0.0</em>, <em>1.0)</em><span class="sig-paren">)</span><a class="headerlink" href="#madminer.core.MadMiner.add_parameter" title="Permalink to this definition">¶</a></dt>
+<code class="descname">add_parameter</code><span class="sig-paren">(</span><em>lha_block</em>, <em>lha_id</em>, <em>parameter_name=None</em>, <em>param_card_transform=None</em>, <em>morphing_max_power=2</em>, <em>parameter_range=(0.0</em>, <em>1.0)</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/core.html#MadMiner.add_parameter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.core.MadMiner.add_parameter" title="Permalink to this definition">¶</a></dt>
 <dd><p>Adds an individual parameter.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>lha_block</strong> – str, the name of the LHA block as used in the param_card. Case-sensitive.</li>
-<li><strong>lha_id</strong> – int, the LHA id as used in the param_card.</li>
-<li><strong>parameter_name</strong> – an internal name for the parameter. If None, a the default ‘benchmark_i’ is used.</li>
-<li><strong>morphing_max_power</strong> – int or tuple of ints. The maximal power with which this parameter contributes to the
+<dl class="docutils">
+<dt>lha_block <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
+<dd>The name of the LHA block as used in the param_card. Case-sensitive.</dd>
+<dt>lha_id <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
+<dd>The LHA id as used in the param_card.</dd>
+<dt>parameter_name <span class="classifier-delimiter">:</span> <span class="classifier">str or None</span></dt>
+<dd>An internal name for the parameter. If None, a the default ‘benchmark_i’ is used.</dd>
+<dt>morphing_max_power <span class="classifier-delimiter">:</span> <span class="classifier">int or tuple of int</span></dt>
+<dd>The maximal power with which this parameter contributes to the
 squared matrix element of the process of interest. If a tuple is given, gives this
-maximal power for each of several operator configuraations. Typically at tree level,
+maximal power for each of several operator configurations. Typically at tree level,
 this maximal number is 2 for parameters that affect one vertex (e.g. only production
 or only decay of a particle), and 4 for parameters that affect two vertices (e.g.
-production and decay).</li>
-<li><strong>param_card_transform</strong> – None or str that represents a one-parameter function mapping the parameter
+production and decay). (Default value = 2)</dd>
+<dt>param_card_transform <span class="classifier-delimiter">:</span> <span class="classifier">None or str</span></dt>
+<dd>Represents a one-parameter function mapping the parameter
 (<cite>“theta”</cite>) to the value that should be written in the parameter cards. This
 str is parsed by Python’s <cite>eval()</cite> function, and <cite>“theta”</cite> is parsed as the
-parameter value.</li>
-<li><strong>parameter_range</strong> – tuple, the range of parameter values of primary interest. Only affects the
-basis optimization.</li>
-</ul>
-</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-<dl class="method">
-<dt id="madminer.core.MadMiner.export_cards">
-<code class="descname">export_cards</code><span class="sig-paren">(</span><em>param_card_template_file</em>, <em>reweight_card_template_file</em>, <em>mg_process_directory</em>, <em>sample_benchmark=None</em>, <em>param_card_filename=None</em>, <em>reweight_card_filename=None</em><span class="sig-paren">)</span><a class="headerlink" href="#madminer.core.MadMiner.export_cards" title="Permalink to this definition">¶</a></dt>
-<dd><p>Writes out param_card and reweight_card for MadGraph. Currently, this is the final output of this package.
-Future versions are scheduled to support the automatic running of MadGraph, and the automated conversion of
-event files.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>param_card_template_file</strong> – str. Path to a param_card.dat of the used model.</li>
-<li><strong>reweight_card_template_file</strong> – str. Path to an empty reweight_card.dat (no commands, the default ‘launch’
-should be commented out or removed).</li>
-<li><strong>mg_process_directory</strong> – str. Path to the directory of the MG process.</li>
-<li><strong>sample_benchmark</strong> – str or None. Name of the benchmark used for sampling. If None, the very first defined
-benchmark is used.</li>
-<li><strong>param_card_filename</strong> – str or None. Output filename for the generated param card. If None, a default
-filename in the MG process folder is used.</li>
-<li><strong>reweight_card_filename</strong> – str or None. Output filename for the generated reweight card. If None, a default
-filename in the MG process folder is used.</li>
-</ul>
-</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-<dl class="staticmethod">
-<dt id="madminer.core.MadMiner.generate_mg_process">
-<em class="property">static </em><code class="descname">generate_mg_process</code><span class="sig-paren">(</span><em>mg_directory</em>, <em>temp_directory</em>, <em>proc_card_file</em>, <em>mg_process_directory</em>, <em>ufo_model_directory=None</em>, <em>log_file=None</em>, <em>initial_command=None</em><span class="sig-paren">)</span><a class="headerlink" href="#madminer.core.MadMiner.generate_mg_process" title="Permalink to this definition">¶</a></dt>
-<dd><p>Lets MadGraph create the process folder.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>mg_directory</strong> – str. Path to the MadGraph 5 directory.</li>
-<li><strong>temp_directory</strong> – str. Path to a directory for temporary files.</li>
-<li><strong>proc_card_file</strong> – str. Path to the process card that tells MadGraph how to generate the process.</li>
-<li><strong>mg_process_directory</strong> – str. Path to the MG process directory.</li>
-<li><strong>ufo_model_directory</strong> – str or None. Path to a UFO model that is not yet installed. It will be copied to the
-MG directory before the process card is executed.</li>
-<li><strong>initial_command</strong> – str or None. Initial shell commands that have to be executed before MG is run (e.g.
-loading a virtual environment).</li>
-<li><strong>log_file</strong> – str or None. Path to a log file in which the MadGraph output is saved.</li>
-</ul>
-</td>
-</tr>
-</tbody>
-</table>
+parameter value. (Default value = None)</dd>
+<dt>parameter_range <span class="classifier-delimiter">:</span> <span class="classifier">tuple of float</span></dt>
+<dd>The range of parameter values of primary interest. Only affects the
+basis optimization. (Default value = (0., 1.))</dd>
+</dl>
+<blockquote>
+<div>None</div></blockquote>
 </dd></dl>
 
 <dl class="method">
 <dt id="madminer.core.MadMiner.load">
-<code class="descname">load</code><span class="sig-paren">(</span><em>filename</em>, <em>disable_morphing=False</em><span class="sig-paren">)</span><a class="headerlink" href="#madminer.core.MadMiner.load" title="Permalink to this definition">¶</a></dt>
-<dd><p>Loads MadMiner setup from HDF5 file</p>
+<code class="descname">load</code><span class="sig-paren">(</span><em>filename</em>, <em>disable_morphing=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/core.html#MadMiner.load"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.core.MadMiner.load" title="Permalink to this definition">¶</a></dt>
+<dd><p>Loads MadMiner setup from a file. All parameters, benchmarks, and morphing settings are overwritten. See <cite>save</cite>
+for more details.</p>
+<dl class="docutils">
+<dt>filename <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
+<dd>Path to the MadMiner file.</dd>
+<dt>disable_morphing <span class="classifier-delimiter">:</span> <span class="classifier">bool</span></dt>
+<dd>If True, the morphing setup is not loaded from the file. (Default value = False)</dd>
+</dl>
+<blockquote>
+<div>None</div></blockquote>
 </dd></dl>
 
 <dl class="method">
 <dt id="madminer.core.MadMiner.run">
-<code class="descname">run</code><span class="sig-paren">(</span><em>mg_directory</em>, <em>proc_card_file</em>, <em>param_card_template_file</em>, <em>reweight_card_template_file</em>, <em>run_card_file=None</em>, <em>mg_process_directory=None</em>, <em>pythia8_card_file=None</em>, <em>sample_benchmark=None</em>, <em>is_background=False</em>, <em>only_prepare_script=False</em>, <em>ufo_model_directory=None</em>, <em>log_directory=None</em>, <em>temp_directory=None</em>, <em>initial_command=None</em><span class="sig-paren">)</span><a class="headerlink" href="#madminer.core.MadMiner.run" title="Permalink to this definition">¶</a></dt>
-<dd><p>Runs one event generation job with MadGraph and Pythia.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>mg_directory</strong> – str. Path to the MadGraph 5 base directory.</li>
-<li><strong>proc_card_file</strong> – str. Path to the process card that tells MadGraph how to generate the process.</li>
-<li><strong>param_card_template_file</strong> – str. Path to a param card that will be used as template to create the
-appropriate param cards for these runs.</li>
-<li><strong>reweight_card_template_file</strong> – str. Path to an empty reweight card that will be used as template to create
-the appropriate reweight cards for these runs.</li>
-<li><strong>run_card_file</strong> – str or None. Paths to the MadGraph run card. If None, the default run_card is used.</li>
-<li><strong>mg_process_directory</strong> – str or None. Path to the MG process directory. If None, MadMiner uses ./MG_process.</li>
-<li><strong>pythia8_card_file</strong> – Path to the MadGraph Pythia8 card. If None, the card present in the process folder
-is used.</li>
-<li><strong>sample_benchmark</strong> – str or None. The name of the benchmarks that should be used to sample
-events. If None, the benchmark added first is used.</li>
-<li><strong>is_background</strong> – bool that should be True for background processes, i.e. process in which the differential
-cross section does NOT depend on the parameters (and would be the same for all
-benchmarks). In this case, no reweighting is run.</li>
-<li><strong>only_prepare_script</strong> – bool. If True, MadGraph is not executed, but instead a run.sh script is created in
-the process directory.</li>
-<li><strong>ufo_model_directory</strong> – str or None. Path to an UFO model directory that should be used, but is not yet
-installed in mg_directory/models.</li>
-<li><strong>log_directory</strong> – str or None. Directory for log files with the MadGraph output. If None, ./logs is used.</li>
-<li><strong>temp_directory</strong> – str or None. Path to a temporary directory. If None, a system default is used</li>
-<li><strong>initial_command</strong> – Initial shell commands that have to be executed before MG is run (e.g. loading a virtual
-environment).</li>
-</ul>
-</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-<dl class="staticmethod">
-<dt id="madminer.core.MadMiner.run_mg_pythia">
-<em class="property">static </em><code class="descname">run_mg_pythia</code><span class="sig-paren">(</span><em>mg_directory</em>, <em>mg_process_directory</em>, <em>proc_card_filename=None</em>, <em>run_card_file=None</em>, <em>param_card_file=None</em>, <em>reweight_card_file=None</em>, <em>pythia8_card_file=None</em>, <em>is_background=False</em>, <em>only_prepare_script=False</em>, <em>script_filename=None</em>, <em>initial_command=None</em>, <em>log_file=None</em><span class="sig-paren">)</span><a class="headerlink" href="#madminer.core.MadMiner.run_mg_pythia" title="Permalink to this definition">¶</a></dt>
-<dd><p>Runs or prepares running the event generation with MadGraph and Pythia.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>mg_directory</strong> – str. Path to the MadGraph 5 base directory.</li>
-<li><strong>mg_process_directory</strong> – str. Path to the MG process directory.</li>
-<li><strong>proc_card_filename</strong> – str or None. Filename for the MG command card that will be generated. If None, a default filename
-in the MG process directory will be chosen.</li>
-<li><strong>run_card_file</strong> – str or None. Path to the MadGraph run card. If None, the card present in the process folder is used.</li>
-<li><strong>param_card_file</strong> – str or None. Path to the MadGraph run card. If None, the card present in the process folder is used.</li>
-<li><strong>reweight_card_file</strong> – str or None. Path to the MadGraph reweight card. If None, the card present in the process folder
-is used.</li>
-<li><strong>pythia8_card_file</strong> – str or None. Path to the MadGraph Pythia8 card. If None, Pythia is not run.</li>
-<li><strong>is_background</strong> – bool. Should be True for background processes, i.e. process in which the differential
-cross section does NOT depend on the parameters (and would be the same for all
-benchmarks). In this case, no reweighting is run.</li>
-<li><strong>only_prepare_script</strong> – bool. If True, MadGraph is not executed, but instead a run.sh script is created in the
-process directory.</li>
-<li><strong>script_filename</strong> – str or None. If only_prepare_script is True and script_filename is not None, this sets where
-the shell script to run MG and Pythia is generated.</li>
-<li><strong>initial_command</strong> – str or None. Initial shell commands that have to be executed before MG is run (e.g. loading a virtual
-environment).</li>
-<li><strong>log_file</strong> – str or None. Path to a log file in which the MadGraph output is saved.</li>
-</ul>
-</td>
-</tr>
-</tbody>
-</table>
+<code class="descname">run</code><span class="sig-paren">(</span><em>mg_directory</em>, <em>proc_card_file</em>, <em>param_card_template_file</em>, <em>reweight_card_template_file</em>, <em>run_card_file=None</em>, <em>mg_process_directory=None</em>, <em>pythia8_card_file=None</em>, <em>sample_benchmark=None</em>, <em>is_background=False</em>, <em>only_prepare_script=False</em>, <em>ufo_model_directory=None</em>, <em>log_directory=None</em>, <em>temp_directory=None</em>, <em>initial_command=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/core.html#MadMiner.run"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.core.MadMiner.run" title="Permalink to this definition">¶</a></dt>
+<dd><p>High-level function that creates the the MadGraph process, all required cards, and prepares or runs the event
+generation for one combination of cards.</p>
+<p>If <cite>only_prepare_scripts=True</cite>, the event generation is not run
+directly, but a bash script is created in <cite>&lt;process_folder&gt;/madminer/run.sh</cite> that will start the event
+generation with the correct settings.</p>
+<p>High-level function that creates the the MadGraph process, all required cards, and prepares or runs the event
+generation for multiple combinations of run_cards or importance samplings (<cite>sample_benchmarks</cite>).</p>
+<p>If <cite>only_prepare_scripts=True</cite>, the event generation is not run
+directly, but a bash script is created in <cite>&lt;process_folder&gt;/madminer/run.sh</cite> that will start the event
+generation with the correct settings.</p>
+<dl class="docutils">
+<dt>mg_directory <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
+<dd>Path to the MadGraph 5 base directory.</dd>
+<dt>proc_card_file <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
+<dd>Path to the process card that tells MadGraph how to generate the process.</dd>
+<dt>param_card_template_file <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
+<dd>Path to a param card that will be used as template to create the
+appropriate param cards for these runs.</dd>
+<dt>reweight_card_template_file <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
+<dd>Path to an empty reweight card that will be used as template to create
+the appropriate reweight cards for these runs.</dd>
+<dt>run_card_file <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
+<dd>Paths to the MadGraph run card. If None, the default run_card is used.</dd>
+<dt>mg_process_directory <span class="classifier-delimiter">:</span> <span class="classifier">str or None</span></dt>
+<dd>Path to the MG process directory. If None, MadMiner uses ./MG_process. (Default value = None)</dd>
+<dt>pythia8_card_file <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
+<dd>Path to the MadGraph Pythia8 card. If None, the card present in the process folder
+is used. (Default value = None)</dd>
+<dt>sample_benchmark <span class="classifier-delimiter">:</span> <span class="classifier">list of str or None</span></dt>
+<dd>Lists the names of benchmarks that should be used to sample events. A different sampling does not change
+the expected differential cross sections, but will change which regions of phase space have many events
+(small variance) or few events (high variance). If None, the benchmark added first is used. (Default value =
+None)</dd>
+<dt>is_background <span class="classifier-delimiter">:</span> <span class="classifier">bool</span></dt>
+<dd>Should be True for background processes, i.e. process in which the differential cross section does not
+depend on the parameters (i.e. is the same for all benchmarks). In this case, no reweighting is run, which
+can substantially speed up the event generation. (Default value = False)</dd>
+<dt>only_prepare_script <span class="classifier-delimiter">:</span> <span class="classifier">bool</span></dt>
+<dd>If True, the event generation is not started, but instead a run.sh script is created in the process
+directory. (Default value = False)</dd>
+<dt>only_prepare_script <span class="classifier-delimiter">:</span> <span class="classifier">bool</span></dt>
+<dd>If True, MadGraph is not executed, but instead a run.sh script is created in
+the process directory. (Default value = False)</dd>
+<dt>ufo_model_directory <span class="classifier-delimiter">:</span> <span class="classifier">str or None</span></dt>
+<dd>Path to an UFO model directory that should be used, but is not yet installed in mg_directory/models. The
+model will be copied to the MadGraph model directory before the process directory is generated. (Default
+value = None)</dd>
+<dt>log_directory <span class="classifier-delimiter">:</span> <span class="classifier">str or None</span></dt>
+<dd>Directory for log files with the MadGraph output. If None, ./logs is used. (Default value = None)</dd>
+<dt>temp_directory <span class="classifier-delimiter">:</span> <span class="classifier">str or None</span></dt>
+<dd>Path to a temporary directory. If None, a system default is used. (Default value = None)</dd>
+<dt>initial_command <span class="classifier-delimiter">:</span> <span class="classifier">str or None</span></dt>
+<dd>Initial shell commands that have to be executed before MG is run (e.g. to load a virtual environment).
+(Default value = None)</dd>
+</dl>
+<blockquote>
+<div>None</div></blockquote>
 </dd></dl>
 
 <dl class="method">
 <dt id="madminer.core.MadMiner.run_multiple">
-<code class="descname">run_multiple</code><span class="sig-paren">(</span><em>mg_directory</em>, <em>proc_card_file</em>, <em>param_card_template_file</em>, <em>reweight_card_template_file</em>, <em>run_card_files</em>, <em>mg_process_directory=None</em>, <em>pythia8_card_file=None</em>, <em>sample_benchmarks=None</em>, <em>is_background=False</em>, <em>only_prepare_script=False</em>, <em>ufo_model_directory=None</em>, <em>log_directory=None</em>, <em>temp_directory=None</em>, <em>initial_command=None</em><span class="sig-paren">)</span><a class="headerlink" href="#madminer.core.MadMiner.run_multiple" title="Permalink to this definition">¶</a></dt>
-<dd><p>Runs multiple event generation jobs with different run cards and / or different importance sampling with
-MadGraph and Pythia.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>mg_directory</strong> – str. Path to the MadGraph 5 base directory.</li>
-<li><strong>proc_card_file</strong> – str. Path to the process card that tells MadGraph how to generate the process.</li>
-<li><strong>param_card_template_file</strong> – str. Path to a param card that will be used as template to create the
-appropriate param cards for these runs.</li>
-<li><strong>reweight_card_template_file</strong> – str. Path to an empty reweight card that will be used as template to create
-the appropriate reweight cards for these runs.</li>
-<li><strong>run_card_files</strong> – list of str. Paths to the MadGraph run card.</li>
-<li><strong>mg_process_directory</strong> – str or None. Path to the MG process directory. If None, MadMiner uses ./MG_process.</li>
-<li><strong>pythia8_card_file</strong> – Path to the MadGraph Pythia8 card. If None, the card present in the process folder
-is used.</li>
-<li><strong>sample_benchmarks</strong> – list of str, or None. Lists the names of benchmarks that should be used to sample
-events. By default, all currently defined benchmarks are used.</li>
-<li><strong>is_background</strong> – bool that should be True for background processes, i.e. process in which the differential
-cross section does NOT depend on the parameters (and would be the same for all
-benchmarks). In this case, no reweighting is run.</li>
-<li><strong>only_prepare_script</strong> – bool. If True, MadGraph is not executed, but instead a run.sh script is created in
-the process directory.</li>
-<li><strong>ufo_model_directory</strong> – str or None. Path to an UFO model directory that should be used, but is not yet
-installed in mg_directory/models.</li>
-<li><strong>log_directory</strong> – str or None. Directory for log files with the MadGraph output. If None, ./logs is used.</li>
-<li><strong>temp_directory</strong> – str or None. Path to a temporary directory. If None, a system default is used</li>
-<li><strong>initial_command</strong> – Initial shell commands that have to be executed before MG is run (e.g. loading a virtual
-environment).</li>
-</ul>
-</td>
-</tr>
-</tbody>
-</table>
+<code class="descname">run_multiple</code><span class="sig-paren">(</span><em>mg_directory</em>, <em>proc_card_file</em>, <em>param_card_template_file</em>, <em>reweight_card_template_file</em>, <em>run_card_files</em>, <em>mg_process_directory=None</em>, <em>pythia8_card_file=None</em>, <em>sample_benchmarks=None</em>, <em>is_background=False</em>, <em>only_prepare_script=False</em>, <em>ufo_model_directory=None</em>, <em>log_directory=None</em>, <em>temp_directory=None</em>, <em>initial_command=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/core.html#MadMiner.run_multiple"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.core.MadMiner.run_multiple" title="Permalink to this definition">¶</a></dt>
+<dd><p>High-level function that creates the the MadGraph process, all required cards, and prepares or runs the event
+generation for multiple combinations of run_cards or importance samplings (<cite>sample_benchmarks</cite>).</p>
+<p>If <cite>only_prepare_scripts=True</cite>, the event generation is not run
+directly, but a bash script is created in <cite>&lt;process_folder&gt;/madminer/run.sh</cite> that will start the event
+generation with the correct settings.</p>
+<dl class="docutils">
+<dt>mg_directory <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
+<dd>Path to the MadGraph 5 base directory.</dd>
+<dt>proc_card_file <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
+<dd>Path to the process card that tells MadGraph how to generate the process.</dd>
+<dt>param_card_template_file <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
+<dd>Path to a param card that will be used as template to create the appropriate param cards for these runs.</dd>
+<dt>reweight_card_template_file <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
+<dd>Path to an empty reweight card that will be used as template to create the appropriate reweight cards for
+these runs.</dd>
+<dt>run_card_files <span class="classifier-delimiter">:</span> <span class="classifier">list of str</span></dt>
+<dd>Paths to the MadGraph run card.</dd>
+<dt>mg_process_directory <span class="classifier-delimiter">:</span> <span class="classifier">str or None</span></dt>
+<dd>Path to the MG process directory. If None, MadMiner uses ./MG_process. (Default value = None)</dd>
+<dt>pythia8_card_file <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
+<dd>Path to the MadGraph Pythia8 card. If None, the card present in the process folder
+is used. (Default value = None)</dd>
+<dt>sample_benchmarks <span class="classifier-delimiter">:</span> <span class="classifier">list of str or None</span></dt>
+<dd>Lists the names of benchmarks that should be used to sample events. A different sampling does not change
+the expected differential cross sections, but will change which regions of phase space have many events
+(small variance) or few events (high variance). If None, a run is started for each of the benchmarks, which
+should map out all regions of phase space well. (Default value = None)</dd>
+<dt>is_background <span class="classifier-delimiter">:</span> <span class="classifier">bool</span></dt>
+<dd>Should be True for background processes, i.e. process in which the differential cross section does not
+depend on the parameters (i.e. is the same for all benchmarks). In this case, no reweighting is run, which
+can substantially speed up the event generation. (Default value = False)</dd>
+<dt>only_prepare_script <span class="classifier-delimiter">:</span> <span class="classifier">bool</span></dt>
+<dd>If True, the event generation is not started, but instead a run.sh script is created in the process
+directory. (Default value = False)</dd>
+<dt>only_prepare_script <span class="classifier-delimiter">:</span> <span class="classifier">bool</span></dt>
+<dd>If True, MadGraph is not executed, but instead a run.sh script is created in
+the process directory. (Default value = False)</dd>
+<dt>ufo_model_directory <span class="classifier-delimiter">:</span> <span class="classifier">str or None</span></dt>
+<dd>Path to an UFO model directory that should be used, but is not yet installed in mg_directory/models. The
+model will be copied to the MadGraph model directory before the process directory is generated. (Default
+value = None)</dd>
+<dt>log_directory <span class="classifier-delimiter">:</span> <span class="classifier">str or None</span></dt>
+<dd>Directory for log files with the MadGraph output. If None, ./logs is used. (Default value = None)</dd>
+<dt>temp_directory <span class="classifier-delimiter">:</span> <span class="classifier">str or None</span></dt>
+<dd>Path to a temporary directory. If None, a system default is used. (Default value = None)</dd>
+<dt>initial_command <span class="classifier-delimiter">:</span> <span class="classifier">str or None</span></dt>
+<dd>Initial shell commands that have to be executed before MG is run (e.g. to load a virtual environment).
+(Default value = None)</dd>
+</dl>
+<blockquote>
+<div>None</div></blockquote>
 </dd></dl>
 
 <dl class="method">
 <dt id="madminer.core.MadMiner.save">
-<code class="descname">save</code><span class="sig-paren">(</span><em>filename</em><span class="sig-paren">)</span><a class="headerlink" href="#madminer.core.MadMiner.save" title="Permalink to this definition">¶</a></dt>
-<dd><p>Saves MadMiner setup into a HDF5 file</p>
+<code class="descname">save</code><span class="sig-paren">(</span><em>filename</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/core.html#MadMiner.save"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.core.MadMiner.save" title="Permalink to this definition">¶</a></dt>
+<dd><p>Saves MadMiner setup into a file.</p>
+<p>The file format follows the HDF5 standard. The saved information includes:</p>
+<ul class="simple">
+<li>the parameter definitions</li>
+<li>the benchmark points</li>
+<li>the morphing setup (if defined).</li>
+</ul>
+<p>This file is an important input to later stages in the analysis chain, including the processing of generated
+events, extraction of training samples, and calculation of Fisher information matrices. In these downstream
+tasks, additional information will be written to the MadMiner file, including the observations and event
+weights.</p>
+<dl class="docutils">
+<dt>filename <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
+<dd>Path to the MadMiner file.</dd>
+</dl>
+<blockquote>
+<div>None</div></blockquote>
 </dd></dl>
 
 <dl class="method">
 <dt id="madminer.core.MadMiner.set_benchmarks">
-<code class="descname">set_benchmarks</code><span class="sig-paren">(</span><em>benchmarks=None</em><span class="sig-paren">)</span><a class="headerlink" href="#madminer.core.MadMiner.set_benchmarks" title="Permalink to this definition">¶</a></dt>
-<dd><p>Manually sets all parameter benchmarks.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>benchmarks</strong> – dict or list that specifies all parameters. If dict, the keys are the benchmark names and
-the values are dicts {parameter_name:value}. If list, the entries are dicts
-{parameter_name:value} (and the benchmark names are chosen automatically).</td>
-</tr>
-</tbody>
-</table>
+<code class="descname">set_benchmarks</code><span class="sig-paren">(</span><em>benchmarks=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/core.html#MadMiner.set_benchmarks"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.core.MadMiner.set_benchmarks" title="Permalink to this definition">¶</a></dt>
+<dd><p>Manually sets all benchmarks, i.e. parameter points that will be evaluated by MadGraph, overwriting previously
+defined benchmarks.</p>
+<dl class="docutils">
+<dt>benchmarks <span class="classifier-delimiter">:</span> <span class="classifier">dict or list or None</span></dt>
+<dd>Specifies all benchmarks. If None, all benchmarks are reset. If dict, the keys are the benchmark names and
+the values are dicts of the form {parameter_name:value}. If list, the entries are dicts
+{parameter_name:value} (and the benchmark names are chosen automatically). (Default value = None)</dd>
+</dl>
+<blockquote>
+<div>None</div></blockquote>
 </dd></dl>
 
 <dl class="method">
-<dt id="madminer.core.MadMiner.set_benchmarks_from_finite_differences">
-<code class="descname">set_benchmarks_from_finite_differences</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#madminer.core.MadMiner.set_benchmarks_from_finite_differences" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
 <dt id="madminer.core.MadMiner.set_benchmarks_from_morphing">
-<code class="descname">set_benchmarks_from_morphing</code><span class="sig-paren">(</span><em>max_overall_power=4</em>, <em>n_bases=1</em>, <em>keep_existing_benchmarks=False</em>, <em>n_trials=100</em>, <em>n_test_thetas=100</em><span class="sig-paren">)</span><a class="headerlink" href="#madminer.core.MadMiner.set_benchmarks_from_morphing" title="Permalink to this definition">¶</a></dt>
-<dd><p>Sets optimal parameter benchmarks for a morphing algorithm. The morphing basis is optimized with respect to the
-expected mean squared morphing weights over the parameter region of interest.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>max_overall_power</strong> – int or tuple of ints. The maximal sum of powers of all parameters, for each operator
-configuration (in the case of a tuple of ints).</li>
-<li><strong>n_bases</strong> – int. The number of morphing bases generated. If n_bases &gt; 1, multiple bases are combined, and the
-weights for each basis are reduced by a factor 1 / n_bases. Currently not supported.</li>
-<li><strong>keep_existing_benchmarks</strong> – bool. Whether the previously defined benchmarks are included in the basis. In
-that case, the number of free parameters in the optimization routine is reduced.</li>
-<li><strong>n_trials</strong> – int. Number of candidate bases used in the optimization.</li>
-<li><strong>n_test_thetas</strong> – int. Number of validation benchmark points used to calculate the expected mean squared
-morphing weight.</li>
-</ul>
-</td>
-</tr>
-</tbody>
-</table>
+<code class="descname">set_benchmarks_from_morphing</code><span class="sig-paren">(</span><em>max_overall_power=4</em>, <em>n_bases=1</em>, <em>keep_existing_benchmarks=True</em>, <em>n_trials=100</em>, <em>n_test_thetas=100</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/core.html#MadMiner.set_benchmarks_from_morphing"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.core.MadMiner.set_benchmarks_from_morphing" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sets benchmarks, i.e. parameter points that will be evaluated by MadGraph, for a morphing algorithm, and
+calculates all information required for morphing. Morphing is a technique that allows MadMax to infer the full
+probability distribution <cite>p(x_i | theta)</cite> for each simulated event <cite>x_i</cite> and any <cite>theta</cite>, not just the
+benchmarks.</p>
+<p>The morphing basis is optimized with respect to the expected mean squared morphing weights over the parameter
+region of interest. If keep_existing_benchmarks=True, benchmarks defined previously will be incorporated in the
+morphing basis and only the remaining basis points will be optimized.</p>
+<p>Note that any subsequent call to <cite>set_benchmarks</cite> or <cite>add_benchmark</cite> will overwrite the morphing setup. The
+correct order is therefore to manually define benchmarks first, using <cite>set_benchmarks</cite> or <cite>add_benchmark</cite>, and
+then to create the morphing setup and complete the basis by calling
+<cite>set_benchmarks_from_morphing(keep_existing_benchmarks=True)</cite>.</p>
+<dl class="docutils">
+<dt>max_overall_power <span class="classifier-delimiter">:</span> <span class="classifier">int or tuple of int</span></dt>
+<dd>The maximal sum of powers of all parameters contributing to the squared matrix element. If a tuple is given,
+gives the maximal sum of powers for each of several operator configurations (see <cite>add_parameter</cite>).
+Typically, if parameters can affect the couplings at n vertices, this number is 2n. (Default value = 4)</dd>
+<dt>n_bases <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
+<dd>The number of morphing bases generated. If n_bases &gt; 1, multiple bases are combined, and the
+weights for each basis are reduced by a factor 1 / n_bases. Currently only the default choice of 1 is
+fully implemented. Do not use any other value for now. (Default value = 1)</dd>
+<dt>keep_existing_benchmarks <span class="classifier-delimiter">:</span> <span class="classifier">bool</span></dt>
+<dd>If True, the previously defined benchmarks are included in the basis. In that case, the number of free
+parameters in the optimization routine is reduced. If False, all benchmarks are optimized and all previously
+defined benchmarks forgotten. (Default value = True)</dd>
+<dt>n_trials <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
+<dd>Number of random basis configurations tested in the optimization procedure. A larger number will increase
+the run time of the optimization, but lead to better results. (Default value = 100)</dd>
+<dt>n_test_thetas <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
+<dd>Number of random parameter points used to evaluate the expected mean squared morphing weights. A larger
+number will increase the run time of the optimization, but lead to better results. (Default value = 100)</dd>
+</dl>
+<blockquote>
+<div>None</div></blockquote>
 </dd></dl>
 
 <dl class="method">
 <dt id="madminer.core.MadMiner.set_parameters">
-<code class="descname">set_parameters</code><span class="sig-paren">(</span><em>parameters=None</em><span class="sig-paren">)</span><a class="headerlink" href="#madminer.core.MadMiner.set_parameters" title="Permalink to this definition">¶</a></dt>
-<dd><p>Manually defines whole parameter space.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-</tbody>
-</table>
+<code class="descname">set_parameters</code><span class="sig-paren">(</span><em>parameters=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/core.html#MadMiner.set_parameters"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.core.MadMiner.set_parameters" title="Permalink to this definition">¶</a></dt>
+<dd><p>Manually sets all parameters, overwriting previously added parameters.</p>
+<dl class="docutils">
+<dt>parameters <span class="classifier-delimiter">:</span> <span class="classifier">dict or list or None</span></dt>
+<dd>If parameters is None, resets parameters. If parameters is an dict, the keys should be str and give the
+parameter names, and the values are tuples of the form (LHA_block, LHA_ID, morphing_max_power, param_min,
+param_max) or of the form (LHA_block, LHA_ID). If parameters is a list, the items should be tuples of the
+form (LHA_block, LHA_ID). (Default value = None)</dd>
+</dl>
+<blockquote>
+<div>None</div></blockquote>
 </dd></dl>
 
 </dd></dl>
@@ -337,52 +341,126 @@ morphing weight.</li>
 <span id="madminer-delphes-module"></span><h2>madminer.delphes module<a class="headerlink" href="#module-madminer.delphes" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
 <dt id="madminer.delphes.DelphesProcessor">
-<em class="property">class </em><code class="descclassname">madminer.delphes.</code><code class="descname">DelphesProcessor</code><span class="sig-paren">(</span><em>filename=None</em>, <em>debug=False</em><span class="sig-paren">)</span><a class="headerlink" href="#madminer.delphes.DelphesProcessor" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">madminer.delphes.</code><code class="descname">DelphesProcessor</code><span class="sig-paren">(</span><em>filename=None</em>, <em>debug=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/delphes.html#DelphesProcessor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.delphes.DelphesProcessor" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Detector simulation with Delphes and simple calculation of observables.</p>
+<p>After setting up the parameter space and benchmarks and running MadGraph and Pythia, all of which is organized
+in the madminer.core.MadMiner class, the next steps are the simulation of detector effects and the calculation of
+observables.  Different tools can be used for these tasks, please feel free to implement the detector simulation and
+analysis routine of your choice.</p>
+<p>This class provides an example implementation based on Delphes. Its workflow consists of four steps:
+- Initializing the class with the filename of a MadMiner HDF5 file (the output of <cite>madminer.core.MadMiner.save()</cite>)
+- Adding one or multiple HepMC samples produced by Pythia in <cite>DelphesProcessor.add_hepmc_sample()</cite>
+- Running Delphes on these samples through <cite>DelphesProcessor.run_delphes()</cite>
+- Defining observables through <cite>DelphesProcessor.add_observables()</cite>. A simple set of default observables is provided
+with <cite>DelphesProcessor.add_default_observables()</cite>
+- Optionally, cuts can be set with <cite>DelphesProcessor.add_cut()</cite>
+- Calculating the observables from the Delphes ROOT files with <cite>DelphesProcessor.analyse_delphes_samples()</cite>
+- Saving the results with <cite>DelphesProcessor.save()</cite></p>
+<p>Please see the tutorial for a detailed walk-through.</p>
 <dl class="method">
 <dt id="madminer.delphes.DelphesProcessor.add_cut">
-<code class="descname">add_cut</code><span class="sig-paren">(</span><em>definition</em>, <em>pass_if_not_parsed=False</em><span class="sig-paren">)</span><a class="headerlink" href="#madminer.delphes.DelphesProcessor.add_cut" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<code class="descname">add_cut</code><span class="sig-paren">(</span><em>definition</em>, <em>pass_if_not_parsed=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/delphes.html#DelphesProcessor.add_cut"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.delphes.DelphesProcessor.add_cut" title="Permalink to this definition">¶</a></dt>
+<dd><p>definition :</p>
+<dl class="docutils">
+<dt>pass_if_not_parsed :</dt>
+<dd>(Default value = False)</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="madminer.delphes.DelphesProcessor.add_default_observables">
+<code class="descname">add_default_observables</code><span class="sig-paren">(</span><em>n_leptons_max=2</em>, <em>n_photons_max=2</em>, <em>n_jets_max=2</em>, <em>include_met=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/delphes.html#DelphesProcessor.add_default_observables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.delphes.DelphesProcessor.add_default_observables" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="docutils">
+<dt>n_leptons_max :</dt>
+<dd>(Default value = 2)</dd>
+<dt>n_photons_max :</dt>
+<dd>(Default value = 2)</dd>
+<dt>n_jets_max :</dt>
+<dd>(Default value = 2)</dd>
+<dt>include_met :</dt>
+<dd>(Default value = True)</dd>
+</dl>
+</dd></dl>
 
 <dl class="method">
 <dt id="madminer.delphes.DelphesProcessor.add_delphes_sample">
-<code class="descname">add_delphes_sample</code><span class="sig-paren">(</span><em>filename</em><span class="sig-paren">)</span><a class="headerlink" href="#madminer.delphes.DelphesProcessor.add_delphes_sample" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<code class="descname">add_delphes_sample</code><span class="sig-paren">(</span><em>filename</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/delphes.html#DelphesProcessor.add_delphes_sample"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.delphes.DelphesProcessor.add_delphes_sample" title="Permalink to this definition">¶</a></dt>
+<dd><p>filename :</p>
+</dd></dl>
 
 <dl class="method">
 <dt id="madminer.delphes.DelphesProcessor.add_hepmc_sample">
-<code class="descname">add_hepmc_sample</code><span class="sig-paren">(</span><em>filename</em>, <em>sampled_from_benchmark</em><span class="sig-paren">)</span><a class="headerlink" href="#madminer.delphes.DelphesProcessor.add_hepmc_sample" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<code class="descname">add_hepmc_sample</code><span class="sig-paren">(</span><em>filename</em>, <em>sampled_from_benchmark</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/delphes.html#DelphesProcessor.add_hepmc_sample"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.delphes.DelphesProcessor.add_hepmc_sample" title="Permalink to this definition">¶</a></dt>
+<dd><p>filename :</p>
+<p>sampled_from_benchmark :</p>
+</dd></dl>
 
 <dl class="method">
 <dt id="madminer.delphes.DelphesProcessor.add_observable">
-<code class="descname">add_observable</code><span class="sig-paren">(</span><em>name</em>, <em>definition</em>, <em>required=False</em><span class="sig-paren">)</span><a class="headerlink" href="#madminer.delphes.DelphesProcessor.add_observable" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<code class="descname">add_observable</code><span class="sig-paren">(</span><em>name</em>, <em>definition</em>, <em>required=False</em>, <em>default=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/delphes.html#DelphesProcessor.add_observable"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.delphes.DelphesProcessor.add_observable" title="Permalink to this definition">¶</a></dt>
+<dd><p>name :</p>
+<p>definition :</p>
+<dl class="docutils">
+<dt>required :</dt>
+<dd>(Default value = False)</dd>
+<dt>default :</dt>
+<dd>(Default value = None)</dd>
+</dl>
+</dd></dl>
 
 <dl class="method">
 <dt id="madminer.delphes.DelphesProcessor.analyse_delphes_samples">
-<code class="descname">analyse_delphes_samples</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#madminer.delphes.DelphesProcessor.analyse_delphes_samples" title="Permalink to this definition">¶</a></dt>
+<code class="descname">analyse_delphes_samples</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/delphes.html#DelphesProcessor.analyse_delphes_samples"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.delphes.DelphesProcessor.analyse_delphes_samples" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
 <dt id="madminer.delphes.DelphesProcessor.read_observables_from_file">
-<code class="descname">read_observables_from_file</code><span class="sig-paren">(</span><em>filename</em><span class="sig-paren">)</span><a class="headerlink" href="#madminer.delphes.DelphesProcessor.read_observables_from_file" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<code class="descname">read_observables_from_file</code><span class="sig-paren">(</span><em>filename</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/delphes.html#DelphesProcessor.read_observables_from_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.delphes.DelphesProcessor.read_observables_from_file" title="Permalink to this definition">¶</a></dt>
+<dd><p>filename :</p>
+</dd></dl>
 
 <dl class="method">
 <dt id="madminer.delphes.DelphesProcessor.run_delphes">
-<code class="descname">run_delphes</code><span class="sig-paren">(</span><em>delphes_directory</em>, <em>delphes_card</em>, <em>initial_command=None</em>, <em>log_directory=None</em><span class="sig-paren">)</span><a class="headerlink" href="#madminer.delphes.DelphesProcessor.run_delphes" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<code class="descname">run_delphes</code><span class="sig-paren">(</span><em>delphes_directory</em>, <em>delphes_card</em>, <em>initial_command=None</em>, <em>log_directory=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/delphes.html#DelphesProcessor.run_delphes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.delphes.DelphesProcessor.run_delphes" title="Permalink to this definition">¶</a></dt>
+<dd><p>delphes_directory :</p>
+<p>delphes_card :</p>
+<dl class="docutils">
+<dt>initial_command :</dt>
+<dd>(Default value = None)</dd>
+<dt>log_directory :</dt>
+<dd>(Default value = None)</dd>
+</dl>
+</dd></dl>
 
 <dl class="method">
 <dt id="madminer.delphes.DelphesProcessor.save">
-<code class="descname">save</code><span class="sig-paren">(</span><em>filename_out</em><span class="sig-paren">)</span><a class="headerlink" href="#madminer.delphes.DelphesProcessor.save" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<code class="descname">save</code><span class="sig-paren">(</span><em>filename_out</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/delphes.html#DelphesProcessor.save"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.delphes.DelphesProcessor.save" title="Permalink to this definition">¶</a></dt>
+<dd><p>filename_out :</p>
+</dd></dl>
 
 <dl class="method">
-<dt id="madminer.delphes.DelphesProcessor.set_default_observables">
-<code class="descname">set_default_observables</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#madminer.delphes.DelphesProcessor.set_default_observables" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dt id="madminer.delphes.DelphesProcessor.set_acceptance">
+<code class="descname">set_acceptance</code><span class="sig-paren">(</span><em>pt_min_e=10.0</em>, <em>pt_min_mu=10.0</em>, <em>pt_min_a=0.0</em>, <em>pt_min_j=20.0</em>, <em>eta_max_e=2.5</em>, <em>eta_max_mu=2.5</em>, <em>eta_max_a=2.5</em>, <em>eta_max_j=5.0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/delphes.html#DelphesProcessor.set_acceptance"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.delphes.DelphesProcessor.set_acceptance" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="docutils">
+<dt>pt_min_e :</dt>
+<dd>(Default value = 10.)</dd>
+<dt>pt_min_mu :</dt>
+<dd>(Default value = 10.)</dd>
+<dt>pt_min_a :</dt>
+<dd>(Default value = 0.)</dd>
+<dt>pt_min_j :</dt>
+<dd>(Default value = 20.)</dd>
+<dt>eta_max_e :</dt>
+<dd>(Default value = 2.5)</dd>
+<dt>eta_max_mu :</dt>
+<dd>(Default value = 2.5)</dd>
+<dt>eta_max_a :</dt>
+<dd>(Default value = 2.5)</dd>
+<dt>eta_max_j :</dt>
+<dd>(Default value = 5.)</dd>
+</dl>
+</dd></dl>
 
 </dd></dl>
 
@@ -391,211 +469,231 @@ morphing weight.</li>
 <span id="madminer-fisherinformation-module"></span><h2>madminer.fisherinformation module<a class="headerlink" href="#module-madminer.fisherinformation" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
 <dt id="madminer.fisherinformation.FisherInformation">
-<em class="property">class </em><code class="descclassname">madminer.fisherinformation.</code><code class="descname">FisherInformation</code><span class="sig-paren">(</span><em>filename</em>, <em>debug=False</em><span class="sig-paren">)</span><a class="headerlink" href="#madminer.fisherinformation.FisherInformation" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">madminer.fisherinformation.</code><code class="descname">FisherInformation</code><span class="sig-paren">(</span><em>filename</em>, <em>debug=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/fisherinformation.html#FisherInformation"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.fisherinformation.FisherInformation" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <dl class="method">
 <dt id="madminer.fisherinformation.FisherInformation.calculate_fisher_information_full_detector">
-<code class="descname">calculate_fisher_information_full_detector</code><span class="sig-paren">(</span><em>theta</em>, <em>luminosity</em>, <em>cuts</em>, <em>model_file</em>, <em>unweighted_x_sample_file</em><span class="sig-paren">)</span><a class="headerlink" href="#madminer.fisherinformation.FisherInformation.calculate_fisher_information_full_detector" title="Permalink to this definition">¶</a></dt>
-<dd><p>Calculates the full Fisher information at detector level for a given parameter point theta and
+<code class="descname">calculate_fisher_information_full_detector</code><span class="sig-paren">(</span><em>theta</em>, <em>model_file</em>, <em>unweighted_x_sample_file</em>, <em>luminosity=300000.0</em>, <em>features=None</em>, <em>cuts=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/fisherinformation.html#FisherInformation.calculate_fisher_information_full_detector"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.fisherinformation.FisherInformation.calculate_fisher_information_full_detector" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates the estimated full Fisher information at detector level for a given parameter point theta and
 given luminosity, requiring that the events pass a set of cuts</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>theta</strong> – list (components of theta) of float</li>
-<li><strong>luminosity</strong> – luminosity in pb^-1, float</li>
-<li><strong>cuts</strong> – list (cuts) of definition of cuts (string)</li>
-<li><strong>model_file</strong> – str, filename of a trained local score regression model that was trained on samples from
-theta (see <cite>madminer.ml.MLForge</cite>)</li>
-<li><strong>unweighted_x_sample_file</strong> – str, filename of an unweighted x sample that
+<dl class="docutils">
+<dt>theta :</dt>
+<dd>ndarray. The parameter point.</dd>
+<dt>model_file :</dt>
+<dd>str, filename of a trained local score regression model that was trained on samples from
+theta (see <cite>madminer.ml.MLForge</cite>)</dd>
+<dt>unweighted_x_sample_file :</dt>
+<dd>str, filename of an unweighted x sample that
 - is sampled according to theta
 - obeys the cuts
-(see <cite>madminer.sampling.SampleAugmenter.extract_samples_train_local()</cite>)</li>
-</ul>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">fisher_info (nxn tensor)</p>
-</td>
-</tr>
-</tbody>
-</table>
+(see <cite>madminer.sampling.SampleAugmenter.extract_samples_train_local()</cite>)</dd>
+<dt>luminosity :</dt>
+<dd>float. Luminosity in pb^-1. (Default value = 300000.)</dd>
+<dt>features :</dt>
+<dd>None or list of ints. List of feature indices to feed into the neural network. (Default value = None)</dd>
+<dt>cuts :</dt>
+<dd>None or list of strs. Each entry is a parseable Python expression that returns a bool
+(True if the event should pass a cut, False otherwise). (Default value = None)</dd>
+</dl>
+<dl class="docutils">
+<dt>type</dt>
+<dd>ndarray. Total estimated Fisher information matrix.</dd>
+</dl>
 </dd></dl>
 
 <dl class="method">
 <dt id="madminer.fisherinformation.FisherInformation.calculate_fisher_information_full_truth">
-<code class="descname">calculate_fisher_information_full_truth</code><span class="sig-paren">(</span><em>theta</em>, <em>luminosity</em>, <em>cuts=[]</em>, <em>efficiencies=[]</em><span class="sig-paren">)</span><a class="headerlink" href="#madminer.fisherinformation.FisherInformation.calculate_fisher_information_full_truth" title="Permalink to this definition">¶</a></dt>
-<dd><p>Calculates the full Fisher information at the parton level for a given parameter point theta and
-given luminosity, requiring that the events pass a set of cuts</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>theta</strong> – list (components of theta) of float</li>
-<li><strong>luminosity</strong> – luminosity in pb^-1, float</li>
-<li><strong>cuts</strong> – list (cuts) of definition of cuts (string)</li>
-</ul>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">fisher_info (nxn tensor)</p>
-</td>
-</tr>
-</tbody>
-</table>
+<code class="descname">calculate_fisher_information_full_truth</code><span class="sig-paren">(</span><em>theta</em>, <em>luminosity=300000.0</em>, <em>cuts=None</em>, <em>efficiency_functions=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/fisherinformation.html#FisherInformation.calculate_fisher_information_full_truth"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.fisherinformation.FisherInformation.calculate_fisher_information_full_truth" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates the full Fisher information at parton / truth level for a given parameter point theta and
+given luminosity.</p>
+<dl class="docutils">
+<dt>theta :</dt>
+<dd>ndarray. The parameter point.</dd>
+<dt>luminosity :</dt>
+<dd>float. Luminosity in pb^-1. (Default value = 300000.)</dd>
+<dt>cuts :</dt>
+<dd>None or list strings. Each entry is a parseable Python expression that returns a bool
+(True if the event should pass a cut, False otherwise). (Default value = None)</dd>
+<dt>efficiency_functions :</dt>
+<dd>None or list strings. Each entry is a parseable Python expression that returns a
+float for the efficiency of one component. (Default value = None)</dd>
+</dl>
+<dl class="docutils">
+<dt>type</dt>
+<dd>ndarray. Total Fisher information matrix.</dd>
+</dl>
 </dd></dl>
 
 <dl class="method">
 <dt id="madminer.fisherinformation.FisherInformation.calculate_fisher_information_hist1d">
-<code class="descname">calculate_fisher_information_hist1d</code><span class="sig-paren">(</span><em>theta</em>, <em>luminosity</em>, <em>observable</em>, <em>nbins</em>, <em>histrange</em>, <em>cuts=[]</em>, <em>efficiencies=[]</em><span class="sig-paren">)</span><a class="headerlink" href="#madminer.fisherinformation.FisherInformation.calculate_fisher_information_hist1d" title="Permalink to this definition">¶</a></dt>
-<dd><p>Calculates the Fisher information in a 1D histogram for a given benchmark theta and
-luminosity, requiring that the events pass a set of cuts</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>theta</strong> – list (components of theta) of float</li>
-<li><strong>luminosity</strong> – luminosity in pb^-1, float</li>
-<li><strong>cuts</strong> – list (cuts) of definition of cuts (string)</li>
-<li><strong>observable</strong> – string (observable)</li>
-<li><strong>nbins</strong> – int (number of bins)</li>
-<li><strong>histrange</strong> – (int,int) (range of histogram)</li>
-</ul>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">fisher_info (nxn tensor)</p>
-</td>
-</tr>
-</tbody>
-</table>
+<code class="descname">calculate_fisher_information_hist1d</code><span class="sig-paren">(</span><em>theta</em>, <em>luminosity</em>, <em>observable</em>, <em>nbins</em>, <em>histrange</em>, <em>cuts=None</em>, <em>efficiency_functions=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/fisherinformation.html#FisherInformation.calculate_fisher_information_hist1d"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.fisherinformation.FisherInformation.calculate_fisher_information_hist1d" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates the Fisher information in a 1D histogram for a given benchmark theta and luminosity.</p>
+<dl class="docutils">
+<dt>theta :</dt>
+<dd>ndarray. The parameter point.</dd>
+<dt>luminosity :</dt>
+<dd>float. Luminosity in pb^-1.</dd>
+<dt>observable :</dt>
+<dd>str. Observable  to be histogrammed.</dd>
+<dt>nbins :</dt>
+<dd>int. Number of bins in the histogram, excluding overflow bins.</dd>
+<dt>histrange :</dt>
+<dd>tuple of two floats. Minimuym and maximum value of the histogram. Overflow bins are always
+added.</dd>
+<dt>cuts :</dt>
+<dd>None or list strings. Each entry is a parseable Python expression that returns a bool
+(True if the event should pass a cut, False otherwise). (Default value = None)</dd>
+<dt>efficiency_functions :</dt>
+<dd>None or list strings. Each entry is a parseable Python expression that returns a
+float for the efficiency of one component. (Default value = None)</dd>
+</dl>
+<dl class="docutils">
+<dt>type</dt>
+<dd>ndarray. Fisher information in histogram.</dd>
+</dl>
 </dd></dl>
 
 <dl class="method">
 <dt id="madminer.fisherinformation.FisherInformation.calculate_fisher_information_hist2d">
-<code class="descname">calculate_fisher_information_hist2d</code><span class="sig-paren">(</span><em>theta</em>, <em>luminosity</em>, <em>observable1</em>, <em>nbins1</em>, <em>histrange1</em>, <em>observable2</em>, <em>nbins2</em>, <em>histrange2</em>, <em>cuts=[]</em>, <em>efficiencies=[]</em><span class="sig-paren">)</span><a class="headerlink" href="#madminer.fisherinformation.FisherInformation.calculate_fisher_information_hist2d" title="Permalink to this definition">¶</a></dt>
-<dd><p>Calculates the Fisher information in a 2D histogram for a given benchmark theta and
-luminosity, requiring that the events pass a set of cuts</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>theta</strong> – list (components of theta) of float</li>
-<li><strong>luminosity</strong> – luminosity in pb^-1, float</li>
-<li><strong>cuts</strong> – list (cuts) of definition of cuts (string)</li>
-<li><strong>observable1</strong> – string (observable)</li>
-<li><strong>nbins1</strong> – int (number of bins)</li>
-<li><strong>histrange1</strong> – (int,int) (range of histogram)</li>
-<li><strong>observable2</strong> – string (observable)</li>
-<li><strong>nbins2</strong> – int (number of bins)</li>
-<li><strong>histrange2</strong> – (int,int) (range of histogram)</li>
-</ul>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">fisher_info (nxn tensor)</p>
-</td>
-</tr>
-</tbody>
-</table>
+<code class="descname">calculate_fisher_information_hist2d</code><span class="sig-paren">(</span><em>theta</em>, <em>luminosity</em>, <em>observable1</em>, <em>nbins1</em>, <em>histrange1</em>, <em>observable2</em>, <em>nbins2</em>, <em>histrange2</em>, <em>cuts=None</em>, <em>efficiency_functions=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/fisherinformation.html#FisherInformation.calculate_fisher_information_hist2d"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.fisherinformation.FisherInformation.calculate_fisher_information_hist2d" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates the Fisher information in a 2D histogram for a given benchmark theta and luminosity.</p>
+<dl class="docutils">
+<dt>theta :</dt>
+<dd>ndarray. The parameter point.</dd>
+<dt>luminosity :</dt>
+<dd>float. Luminosity in pb^-1.</dd>
+<dt>observable1 :</dt>
+<dd>str. First observable  to be histogrammed.</dd>
+<dt>nbins1 :</dt>
+<dd>int. Number of bins for the first observable in the histogram, excluding overflow bins.</dd>
+<dt>histrange1 :</dt>
+<dd>tuple of two floats. Minimum and maximum value of the first dimension of the histogram.
+Overflow bins are always added.</dd>
+<dt>observable2 :</dt>
+<dd>str. Second observable  to be histogrammed.</dd>
+<dt>nbins2 :</dt>
+<dd>int. Number of bins for the second observable in the histogram, excluding overflow bins.</dd>
+<dt>histrange2 :</dt>
+<dd>tuple of two floats. Minimum and maximum value of the second dimension of the histogram.
+Overflow bins are always added.</dd>
+<dt>cuts :</dt>
+<dd>None or list strings. Each entry is a parseable Python expression that returns a bool
+(True if the event should pass a cut, False otherwise). (Default value = None)</dd>
+<dt>efficiency_functions :</dt>
+<dd>None or list strings. Each entry is a parseable Python expression that returns a
+float for the efficiency of one component. (Default value = None)</dd>
+</dl>
+<dl class="docutils">
+<dt>type</dt>
+<dd>ndarray. Fisher information in histogram.</dd>
+</dl>
 </dd></dl>
 
 <dl class="method">
 <dt id="madminer.fisherinformation.FisherInformation.calculate_fisher_information_rate">
-<code class="descname">calculate_fisher_information_rate</code><span class="sig-paren">(</span><em>theta</em>, <em>luminosity</em>, <em>cuts=[]</em>, <em>efficiencies=[]</em><span class="sig-paren">)</span><a class="headerlink" href="#madminer.fisherinformation.FisherInformation.calculate_fisher_information_rate" title="Permalink to this definition">¶</a></dt>
-<dd><p>Calculates the RATE-ONLY Fisher Information for a given parameter point theta and
-luminosity, requiring that the events pass a set of cuts</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>theta</strong> – list (components of theta) of float</li>
-<li><strong>luminosity</strong> – luminosity in pb^-1, float</li>
-<li><strong>cuts</strong> – list (cuts) of definition of cuts (string)</li>
-</ul>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">fisher_info (nxn tensor)</p>
-</td>
-</tr>
-</tbody>
-</table>
+<code class="descname">calculate_fisher_information_rate</code><span class="sig-paren">(</span><em>theta</em>, <em>luminosity</em>, <em>cuts=None</em>, <em>efficiency_functions=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/fisherinformation.html#FisherInformation.calculate_fisher_information_rate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.fisherinformation.FisherInformation.calculate_fisher_information_rate" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates the rate-only Fisher information for a given parameter point theta and
+luminosity.</p>
+<dl class="docutils">
+<dt>theta :</dt>
+<dd>ndarray. The parameter point.</dd>
+<dt>luminosity :</dt>
+<dd>float. Luminosity in pb^-1.</dd>
+<dt>cuts :</dt>
+<dd>None or list strings. Each entry is a parseable Python expression that returns a bool
+(True if the event should pass a cut, False otherwise). (Default value = None)</dd>
+<dt>efficiency_functions :</dt>
+<dd>None or list strings. Each entry is a parseable Python expression that returns a
+float for the efficiency of one component. (Default value = None)</dd>
+</dl>
+<dl class="docutils">
+<dt>type</dt>
+<dd>ndarray. Rate-only Fisher information matrix.</dd>
+</dl>
 </dd></dl>
 
 <dl class="method">
 <dt id="madminer.fisherinformation.FisherInformation.extract_observables_and_weights">
-<code class="descname">extract_observables_and_weights</code><span class="sig-paren">(</span><em>thetas=None</em><span class="sig-paren">)</span><a class="headerlink" href="#madminer.fisherinformation.FisherInformation.extract_observables_and_weights" title="Permalink to this definition">¶</a></dt>
-<dd><table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>thetas</strong> – list (theta) of list (components of theta) of float</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">list (events) of list (observables) of float, list (event) of list (theta) of float</td>
-</tr>
-</tbody>
-</table>
+<code class="descname">extract_observables_and_weights</code><span class="sig-paren">(</span><em>thetas=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/fisherinformation.html#FisherInformation.extract_observables_and_weights"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.fisherinformation.FisherInformation.extract_observables_and_weights" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extracts observables and weights for a list of parameter points.</p>
+<dl class="docutils">
+<dt>thetas :</dt>
+<dd>list (theta) of list (components of theta) of float (Default value = None)</dd>
+</dl>
+<dl class="docutils">
+<dt>type</dt>
+<dd>list (events) of list (observables) of float, list (event) of list (theta) of float</dd>
+</dl>
 </dd></dl>
 
 <dl class="method">
 <dt id="madminer.fisherinformation.FisherInformation.extract_raw_data">
-<code class="descname">extract_raw_data</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#madminer.fisherinformation.FisherInformation.extract_raw_data" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<code class="descname">extract_raw_data</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/fisherinformation.html#FisherInformation.extract_raw_data"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.fisherinformation.FisherInformation.extract_raw_data" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns raw observables and benchmark weights in MadMiner file</p>
+</dd></dl>
 
 <dl class="method">
 <dt id="madminer.fisherinformation.FisherInformation.histogram_of_fisher_information">
-<code class="descname">histogram_of_fisher_information</code><span class="sig-paren">(</span><em>theta</em>, <em>luminosity</em>, <em>observable</em>, <em>nbins</em>, <em>histrange</em>, <em>cuts=[]</em>, <em>efficiencies=[]</em><span class="sig-paren">)</span><a class="headerlink" href="#madminer.fisherinformation.FisherInformation.histogram_of_fisher_information" title="Permalink to this definition">¶</a></dt>
-<dd><p>Calculates the Fisher information in a 1D histogram for a given benchmark theta and
-luminosity, requiring that the events pass a set of cuts</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>theta</strong> – list (components of theta) of float</li>
-<li><strong>luminosity</strong> – luminosity in pb^-1, float</li>
-<li><strong>cuts</strong> – list (cuts) of definition of cuts (string)</li>
-<li><strong>observable</strong> – string (observable)</li>
-<li><strong>nbins</strong> – int (number of bins)</li>
-<li><strong>histrange</strong> – (int,int) (range of histogram)</li>
-</ul>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">fisher_info (nxn tensor)</p>
-</td>
-</tr>
-</tbody>
-</table>
+<code class="descname">histogram_of_fisher_information</code><span class="sig-paren">(</span><em>theta</em>, <em>luminosity</em>, <em>observable</em>, <em>nbins</em>, <em>histrange</em>, <em>cuts=None</em>, <em>efficiency_functions=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/fisherinformation.html#FisherInformation.histogram_of_fisher_information"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.fisherinformation.FisherInformation.histogram_of_fisher_information" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates the full and rate-only Fisher informations in the bins of a 1D histogram for a given benchmark theta
+and luminosity.</p>
+<dl class="docutils">
+<dt>theta :</dt>
+<dd>ndarray. The parameter point.</dd>
+<dt>luminosity :</dt>
+<dd>float. Luminosity in pb^-1.</dd>
+<dt>observable :</dt>
+<dd>str. Observable  to be histogrammed.</dd>
+<dt>nbins :</dt>
+<dd>int. Number of bins in the histogram, excluding overflow bins.</dd>
+<dt>histrange :</dt>
+<dd>tuple of two floats. Minimuym and maximum value of the histogram. Overflow bins are always
+added.</dd>
+<dt>cuts :</dt>
+<dd>None or list strings. Each entry is a parseable Python expression that returns a bool
+(True if the event should pass a cut, False otherwise). (Default value = None)</dd>
+<dt>efficiency_functions :</dt>
+<dd>None or list strings. Each entry is a parseable Python expression that returns a
+float for the efficiency of one component. (Default value = None)</dd>
+</dl>
+<dl class="docutils">
+<dt>type</dt>
+<dd>bin_boundaries, xsec_per_bins, fisher_infos_rate, fisher_infos_full.</dd>
+</dl>
 </dd></dl>
 
-<dl class="method">
-<dt id="madminer.fisherinformation.FisherInformation.ignore_information">
-<code class="descname">ignore_information</code><span class="sig-paren">(</span><em>fisher_information_old</em>, <em>remaining_components</em><span class="sig-paren">)</span><a class="headerlink" href="#madminer.fisherinformation.FisherInformation.ignore_information" title="Permalink to this definition">¶</a></dt>
-<dd><table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>fisher_information_old</strong> – fisher info (size N x N)</li>
-<li><strong>remaining_components</strong> – is list (length M) of indices (integer) of which rows / columns to keep</li>
-</ul>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">fisher info (size M x M)</p>
-</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-<dl class="method">
+<dl class="staticmethod">
 <dt id="madminer.fisherinformation.FisherInformation.profile_information">
-<code class="descname">profile_information</code><span class="sig-paren">(</span><em>fisher_information</em>, <em>remaining_components</em><span class="sig-paren">)</span><a class="headerlink" href="#madminer.fisherinformation.FisherInformation.profile_information" title="Permalink to this definition">¶</a></dt>
-<dd><p>Calculates the profiled Fisher information matrix as defined in Appendix A.4 of 1612.05261.
-:param fisher_information: is a (N x N) numpy array with the original Fisher information.
-:param remaining_components:is list (length M) of indices (integer) of which rows / columns to keep, others are profiled over.
-:return: the profiled Fisher information as a (M x M) numpy array.</p>
+<em class="property">static </em><code class="descname">profile_information</code><span class="sig-paren">(</span><em>fisher_information</em>, <em>remaining_components</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/fisherinformation.html#FisherInformation.profile_information"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.fisherinformation.FisherInformation.profile_information" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates the profiled Fisher information matrix as defined in Appendix A.4 of 1612.05261.</p>
+<dl class="docutils">
+<dt>fisher_information :</dt>
+<dd>ndarray. Original n x n Fisher information.</dd>
+<dt>remaining_components :</dt>
+<dd>list of ints. m entries, each have a value 0 &lt;= remaining_compoinents[i] &lt; n.
+Denotes which parameters are kept and their new order.</dd>
+</dl>
+<dl class="docutils">
+<dt>type</dt>
+<dd>ndarray. Profiled m x m Fisher information.</dd>
+</dl>
+</dd></dl>
+
+<dl class="staticmethod">
+<dt id="madminer.fisherinformation.FisherInformation.project_information">
+<em class="property">static </em><code class="descname">project_information</code><span class="sig-paren">(</span><em>fisher_information</em>, <em>remaining_components</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/fisherinformation.html#FisherInformation.project_information"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.fisherinformation.FisherInformation.project_information" title="Permalink to this definition">¶</a></dt>
+<dd><p>Projects a Fisher information matrix, i.e. “deletes” some rows and columns.</p>
+<dl class="docutils">
+<dt>fisher_information :</dt>
+<dd>ndarray. Original n x n Fisher information.</dd>
+<dt>remaining_components :</dt>
+<dd>list of ints. m entries, each have a value 0 &lt;= remaining_compoinents[i] &lt; n.
+Denotes which parameters are kept and their new order.</dd>
+</dl>
+<dl class="docutils">
+<dt>type</dt>
+<dd>ndarray. Projected m x m Fisher information.</dd>
+</dl>
 </dd></dl>
 
 </dd></dl>
@@ -605,41 +703,56 @@ luminosity, requiring that the events pass a set of cuts</p>
 <span id="madminer-lhe-module"></span><h2>madminer.lhe module<a class="headerlink" href="#module-madminer.lhe" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
 <dt id="madminer.lhe.LHEProcessor">
-<em class="property">class </em><code class="descclassname">madminer.lhe.</code><code class="descname">LHEProcessor</code><span class="sig-paren">(</span><em>debug=False</em><span class="sig-paren">)</span><a class="headerlink" href="#madminer.lhe.LHEProcessor" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">madminer.lhe.</code><code class="descname">LHEProcessor</code><span class="sig-paren">(</span><em>debug=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/lhe.html#LHEProcessor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.lhe.LHEProcessor" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <dl class="method">
 <dt id="madminer.lhe.LHEProcessor.add_lhe_sample">
-<code class="descname">add_lhe_sample</code><span class="sig-paren">(</span><em>filename</em>, <em>sampling_benchmark</em><span class="sig-paren">)</span><a class="headerlink" href="#madminer.lhe.LHEProcessor.add_lhe_sample" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<code class="descname">add_lhe_sample</code><span class="sig-paren">(</span><em>filename</em>, <em>sampling_benchmark</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/lhe.html#LHEProcessor.add_lhe_sample"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.lhe.LHEProcessor.add_lhe_sample" title="Permalink to this definition">¶</a></dt>
+<dd><p>filename :</p>
+<p>sampling_benchmark :</p>
+</dd></dl>
 
 <dl class="method">
 <dt id="madminer.lhe.LHEProcessor.add_observable">
-<code class="descname">add_observable</code><span class="sig-paren">(</span><em>name</em>, <em>definition</em>, <em>required=False</em><span class="sig-paren">)</span><a class="headerlink" href="#madminer.lhe.LHEProcessor.add_observable" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<code class="descname">add_observable</code><span class="sig-paren">(</span><em>name</em>, <em>definition</em>, <em>required=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/lhe.html#LHEProcessor.add_observable"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.lhe.LHEProcessor.add_observable" title="Permalink to this definition">¶</a></dt>
+<dd><p>name :</p>
+<p>definition :</p>
+<dl class="docutils">
+<dt>required :</dt>
+<dd>(Default value = False)</dd>
+</dl>
+</dd></dl>
 
 <dl class="method">
 <dt id="madminer.lhe.LHEProcessor.analyse_lhe_samples">
-<code class="descname">analyse_lhe_samples</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#madminer.lhe.LHEProcessor.analyse_lhe_samples" title="Permalink to this definition">¶</a></dt>
+<code class="descname">analyse_lhe_samples</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/lhe.html#LHEProcessor.analyse_lhe_samples"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.lhe.LHEProcessor.analyse_lhe_samples" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
 <dt id="madminer.lhe.LHEProcessor.read_benchmark_names">
-<code class="descname">read_benchmark_names</code><span class="sig-paren">(</span><em>filename</em><span class="sig-paren">)</span><a class="headerlink" href="#madminer.lhe.LHEProcessor.read_benchmark_names" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<code class="descname">read_benchmark_names</code><span class="sig-paren">(</span><em>filename</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/lhe.html#LHEProcessor.read_benchmark_names"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.lhe.LHEProcessor.read_benchmark_names" title="Permalink to this definition">¶</a></dt>
+<dd><p>filename :</p>
+</dd></dl>
 
 <dl class="method">
 <dt id="madminer.lhe.LHEProcessor.read_observables_from_file">
-<code class="descname">read_observables_from_file</code><span class="sig-paren">(</span><em>filename</em><span class="sig-paren">)</span><a class="headerlink" href="#madminer.lhe.LHEProcessor.read_observables_from_file" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<code class="descname">read_observables_from_file</code><span class="sig-paren">(</span><em>filename</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/lhe.html#LHEProcessor.read_observables_from_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.lhe.LHEProcessor.read_observables_from_file" title="Permalink to this definition">¶</a></dt>
+<dd><p>filename :</p>
+</dd></dl>
 
 <dl class="method">
 <dt id="madminer.lhe.LHEProcessor.save">
-<code class="descname">save</code><span class="sig-paren">(</span><em>filename_out</em>, <em>filename_in=None</em><span class="sig-paren">)</span><a class="headerlink" href="#madminer.lhe.LHEProcessor.save" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<code class="descname">save</code><span class="sig-paren">(</span><em>filename_out</em>, <em>filename_in=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/lhe.html#LHEProcessor.save"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.lhe.LHEProcessor.save" title="Permalink to this definition">¶</a></dt>
+<dd><p>filename_out :</p>
+<dl class="docutils">
+<dt>filename_in :</dt>
+<dd>(Default value = None)</dd>
+</dl>
+</dd></dl>
 
 <dl class="method">
 <dt id="madminer.lhe.LHEProcessor.set_default_observables">
-<code class="descname">set_default_observables</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#madminer.lhe.LHEProcessor.set_default_observables" title="Permalink to this definition">¶</a></dt>
+<code class="descname">set_default_observables</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/lhe.html#LHEProcessor.set_default_observables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.lhe.LHEProcessor.set_default_observables" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>
@@ -649,37 +762,113 @@ luminosity, requiring that the events pass a set of cuts</p>
 <span id="madminer-ml-module"></span><h2>madminer.ml module<a class="headerlink" href="#module-madminer.ml" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
 <dt id="madminer.ml.MLForge">
-<em class="property">class </em><code class="descclassname">madminer.ml.</code><code class="descname">MLForge</code><span class="sig-paren">(</span><em>debug=False</em><span class="sig-paren">)</span><a class="headerlink" href="#madminer.ml.MLForge" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">madminer.ml.</code><code class="descname">MLForge</code><span class="sig-paren">(</span><em>debug=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/ml.html#MLForge"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.ml.MLForge" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <dl class="method">
 <dt id="madminer.ml.MLForge.calculate_fisher_information">
-<code class="descname">calculate_fisher_information</code><span class="sig-paren">(</span><em>x_filename</em>, <em>n_events=1</em><span class="sig-paren">)</span><a class="headerlink" href="#madminer.ml.MLForge.calculate_fisher_information" title="Permalink to this definition">¶</a></dt>
-<dd><p>Calculates the expected kinematic Fisher information matrix. Note that x_filename has to be generated
-according to the same theta that was used to define the score that SALLY / SALLINO was trained on!</p>
+<code class="descname">calculate_fisher_information</code><span class="sig-paren">(</span><em>x_filename</em>, <em>n_events=1</em>, <em>features=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/ml.html#MLForge.calculate_fisher_information"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.ml.MLForge.calculate_fisher_information" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="docutils">
+<dt>Calculates the expected kinematic Fisher information matrix. Note that x_filename has to be generated</dt>
+<dd>according to the same theta that was used to define the score that SALLY / SALLINO was trained on!</dd>
+</dl>
+<p>x_filename :</p>
+<dl class="docutils">
+<dt>n_events :</dt>
+<dd>(Default value = 1)</dd>
+<dt>features :</dt>
+<dd>(Default value = None)</dd>
+</dl>
 </dd></dl>
 
 <dl class="method">
 <dt id="madminer.ml.MLForge.evaluate">
-<code class="descname">evaluate</code><span class="sig-paren">(</span><em>x_filename</em>, <em>theta0_filename=None</em>, <em>theta1_filename=None</em>, <em>test_all_combinations=True</em>, <em>evaluate_score=False</em><span class="sig-paren">)</span><a class="headerlink" href="#madminer.ml.MLForge.evaluate" title="Permalink to this definition">¶</a></dt>
+<code class="descname">evaluate</code><span class="sig-paren">(</span><em>x_filename</em>, <em>theta0_filename=None</em>, <em>theta1_filename=None</em>, <em>test_all_combinations=True</em>, <em>evaluate_score=False</em>, <em>features=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/ml.html#MLForge.evaluate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.ml.MLForge.evaluate" title="Permalink to this definition">¶</a></dt>
 <dd><p>Predicts log likelihood ratio for all combinations of theta and x</p>
+<p>x_filename :</p>
+<dl class="docutils">
+<dt>theta0_filename :</dt>
+<dd>(Default value = None)</dd>
+<dt>theta1_filename :</dt>
+<dd>(Default value = None)</dd>
+<dt>test_all_combinations :</dt>
+<dd>(Default value = True)</dd>
+<dt>evaluate_score :</dt>
+<dd>(Default value = False)</dd>
+<dt>features :</dt>
+<dd>(Default value = None)</dd>
+</dl>
 </dd></dl>
 
 <dl class="method">
 <dt id="madminer.ml.MLForge.load">
-<code class="descname">load</code><span class="sig-paren">(</span><em>filename</em><span class="sig-paren">)</span><a class="headerlink" href="#madminer.ml.MLForge.load" title="Permalink to this definition">¶</a></dt>
+<code class="descname">load</code><span class="sig-paren">(</span><em>filename</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/ml.html#MLForge.load"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.ml.MLForge.load" title="Permalink to this definition">¶</a></dt>
 <dd><p>Loads model state dict from file</p>
+<p>filename :</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="madminer.ml.MLForge.save">
-<code class="descname">save</code><span class="sig-paren">(</span><em>filename</em><span class="sig-paren">)</span><a class="headerlink" href="#madminer.ml.MLForge.save" title="Permalink to this definition">¶</a></dt>
+<code class="descname">save</code><span class="sig-paren">(</span><em>filename</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/ml.html#MLForge.save"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.ml.MLForge.save" title="Permalink to this definition">¶</a></dt>
 <dd><p>Saves model state dict</p>
+<p>filename :</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="madminer.ml.MLForge.train">
-<code class="descname">train</code><span class="sig-paren">(</span><em>method</em>, <em>x_filename</em>, <em>y_filename=None</em>, <em>theta0_filename=None</em>, <em>theta1_filename=None</em>, <em>r_xz_filename=None</em>, <em>t_xz0_filename=None</em>, <em>t_xz1_filename=None</em>, <em>nde_type='maf'</em>, <em>n_hidden=(100</em>, <em>100</em>, <em>100)</em>, <em>activation='tanh'</em>, <em>maf_n_mades=3</em>, <em>maf_batch_norm=True</em>, <em>maf_batch_norm_alpha=0.1</em>, <em>maf_mog_n_components=10</em>, <em>alpha=1.0</em>, <em>n_epochs=20</em>, <em>batch_size=64</em>, <em>initial_lr=0.001</em>, <em>final_lr=0.0001</em>, <em>validation_split=0.2</em>, <em>early_stopping=True</em><span class="sig-paren">)</span><a class="headerlink" href="#madminer.ml.MLForge.train" title="Permalink to this definition">¶</a></dt>
+<code class="descname">train</code><span class="sig-paren">(</span><em>method</em>, <em>x_filename</em>, <em>y_filename=None</em>, <em>theta0_filename=None</em>, <em>theta1_filename=None</em>, <em>r_xz_filename=None</em>, <em>t_xz0_filename=None</em>, <em>t_xz1_filename=None</em>, <em>features=None</em>, <em>nde_type='maf'</em>, <em>n_hidden=(100</em>, <em>100</em>, <em>100)</em>, <em>activation='tanh'</em>, <em>maf_n_mades=3</em>, <em>maf_batch_norm=True</em>, <em>maf_batch_norm_alpha=0.1</em>, <em>maf_mog_n_components=10</em>, <em>alpha=1.0</em>, <em>n_epochs=20</em>, <em>batch_size=64</em>, <em>initial_lr=0.001</em>, <em>final_lr=0.0001</em>, <em>validation_split=0.2</em>, <em>early_stopping=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/ml.html#MLForge.train"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.ml.MLForge.train" title="Permalink to this definition">¶</a></dt>
 <dd><p>Trains likelihood ratio estimator</p>
+<p>method :</p>
+<p>x_filename :</p>
+<dl class="docutils">
+<dt>y_filename :</dt>
+<dd>(Default value = None)</dd>
+<dt>theta0_filename :</dt>
+<dd>(Default value = None)</dd>
+<dt>theta1_filename :</dt>
+<dd>(Default value = None)</dd>
+<dt>r_xz_filename :</dt>
+<dd>(Default value = None)</dd>
+<dt>t_xz0_filename :</dt>
+<dd>(Default value = None)</dd>
+<dt>t_xz1_filename :</dt>
+<dd>(Default value = None)</dd>
+<dt>features :</dt>
+<dd>(Default value = None)</dd>
+<dt>nde_type :</dt>
+<dd>(Default value = ‘maf’)</dd>
+<dt>n_hidden :</dt>
+<dd>(Default value = (100)</dd>
+</dl>
+<p>100 :</p>
+<ol class="arabic simple" start="100">
+<li>:</li>
+</ol>
+<dl class="docutils">
+<dt>activation :</dt>
+<dd>(Default value = ‘tanh’)</dd>
+<dt>maf_n_mades :</dt>
+<dd>(Default value = 3)</dd>
+<dt>maf_batch_norm :</dt>
+<dd>(Default value = True)</dd>
+<dt>maf_batch_norm_alpha :</dt>
+<dd>(Default value = 0.1)</dd>
+<dt>maf_mog_n_components :</dt>
+<dd>(Default value = 10)</dd>
+<dt>alpha :</dt>
+<dd>(Default value = 1.)</dd>
+<dt>n_epochs :</dt>
+<dd>(Default value = 20)</dd>
+<dt>batch_size :</dt>
+<dd>(Default value = 64)</dd>
+<dt>initial_lr :</dt>
+<dd>(Default value = 0.001)</dd>
+<dt>final_lr :</dt>
+<dd>(Default value = 0.0001)</dd>
+<dt>validation_split :</dt>
+<dd>(Default value = 0.2)</dd>
+<dt>early_stopping :</dt>
+<dd>(Default value = True)</dd>
+</dl>
 </dd></dl>
 
 </dd></dl>
@@ -689,143 +878,213 @@ according to the same theta that was used to define the score that SALLY / SALLI
 <span id="madminer-morphing-module"></span><h2>madminer.morphing module<a class="headerlink" href="#module-madminer.morphing" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
 <dt id="madminer.morphing.AdvancedMorpher">
-<em class="property">class </em><code class="descclassname">madminer.morphing.</code><code class="descname">AdvancedMorpher</code><span class="sig-paren">(</span><em>parameters_from_madminer=None</em>, <em>parameter_max_power=None</em>, <em>parameter_range=None</em><span class="sig-paren">)</span><a class="headerlink" href="#madminer.morphing.AdvancedMorpher" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">madminer.morphing.</code><code class="descname">AdvancedMorpher</code><span class="sig-paren">(</span><em>parameters_from_madminer=None</em>, <em>parameter_max_power=None</em>, <em>parameter_range=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/morphing.html#AdvancedMorpher"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.morphing.AdvancedMorpher" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <dl class="method">
 <dt id="madminer.morphing.AdvancedMorpher.calculate_morphing_matrix">
-<code class="descname">calculate_morphing_matrix</code><span class="sig-paren">(</span><em>basis=None</em><span class="sig-paren">)</span><a class="headerlink" href="#madminer.morphing.AdvancedMorpher.calculate_morphing_matrix" title="Permalink to this definition">¶</a></dt>
+<code class="descname">calculate_morphing_matrix</code><span class="sig-paren">(</span><em>basis=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/morphing.html#AdvancedMorpher.calculate_morphing_matrix"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.morphing.AdvancedMorpher.calculate_morphing_matrix" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculates the morphing matrix that links the components to the basis parameter vectors</p>
+<dl class="docutils">
+<dt>basis :</dt>
+<dd>(Default value = None)</dd>
+</dl>
 </dd></dl>
 
 <dl class="method">
 <dt id="madminer.morphing.AdvancedMorpher.calculate_morphing_weight_gradient">
-<code class="descname">calculate_morphing_weight_gradient</code><span class="sig-paren">(</span><em>theta</em>, <em>basis=None</em>, <em>morphing_matrix=None</em><span class="sig-paren">)</span><a class="headerlink" href="#madminer.morphing.AdvancedMorpher.calculate_morphing_weight_gradient" title="Permalink to this definition">¶</a></dt>
+<code class="descname">calculate_morphing_weight_gradient</code><span class="sig-paren">(</span><em>theta</em>, <em>basis=None</em>, <em>morphing_matrix=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/morphing.html#AdvancedMorpher.calculate_morphing_weight_gradient"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.morphing.AdvancedMorpher.calculate_morphing_weight_gradient" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculates the gradient of the morphing weights grad_i w_b(theta). Output shape is (gradient
 direction, basis benchmarks).</p>
+<p>theta :</p>
+<dl class="docutils">
+<dt>basis :</dt>
+<dd>(Default value = None)</dd>
+<dt>morphing_matrix :</dt>
+<dd>(Default value = None)</dd>
+</dl>
 </dd></dl>
 
 <dl class="method">
 <dt id="madminer.morphing.AdvancedMorpher.calculate_morphing_weights">
-<code class="descname">calculate_morphing_weights</code><span class="sig-paren">(</span><em>theta</em>, <em>basis=None</em>, <em>morphing_matrix=None</em><span class="sig-paren">)</span><a class="headerlink" href="#madminer.morphing.AdvancedMorpher.calculate_morphing_weights" title="Permalink to this definition">¶</a></dt>
+<code class="descname">calculate_morphing_weights</code><span class="sig-paren">(</span><em>theta</em>, <em>basis=None</em>, <em>morphing_matrix=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/morphing.html#AdvancedMorpher.calculate_morphing_weights"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.morphing.AdvancedMorpher.calculate_morphing_weights" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculates the morphing weights w_b(theta) for a given basis {theta_b}</p>
+<p>theta :</p>
+<dl class="docutils">
+<dt>basis :</dt>
+<dd>(Default value = None)</dd>
+<dt>morphing_matrix :</dt>
+<dd>(Default value = None)</dd>
+</dl>
 </dd></dl>
 
 <dl class="method">
 <dt id="madminer.morphing.AdvancedMorpher.evaluate_morphing">
-<code class="descname">evaluate_morphing</code><span class="sig-paren">(</span><em>basis=None</em>, <em>morphing_matrix=None</em>, <em>n_test_thetas=100</em>, <em>return_weights_and_thetas=False</em><span class="sig-paren">)</span><a class="headerlink" href="#madminer.morphing.AdvancedMorpher.evaluate_morphing" title="Permalink to this definition">¶</a></dt>
+<code class="descname">evaluate_morphing</code><span class="sig-paren">(</span><em>basis=None</em>, <em>morphing_matrix=None</em>, <em>n_test_thetas=100</em>, <em>return_weights_and_thetas=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/morphing.html#AdvancedMorpher.evaluate_morphing"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.morphing.AdvancedMorpher.evaluate_morphing" title="Permalink to this definition">¶</a></dt>
 <dd><p>Evaluates an objective function for a given basis</p>
+<dl class="docutils">
+<dt>basis :</dt>
+<dd>(Default value = None)</dd>
+<dt>morphing_matrix :</dt>
+<dd>(Default value = None)</dd>
+<dt>n_test_thetas :</dt>
+<dd>(Default value = 100)</dd>
+<dt>return_weights_and_thetas :</dt>
+<dd>(Default value = False)</dd>
+</dl>
 </dd></dl>
 
 <dl class="method">
 <dt id="madminer.morphing.AdvancedMorpher.find_components">
-<code class="descname">find_components</code><span class="sig-paren">(</span><em>max_overall_power=4</em><span class="sig-paren">)</span><a class="headerlink" href="#madminer.morphing.AdvancedMorpher.find_components" title="Permalink to this definition">¶</a></dt>
+<code class="descname">find_components</code><span class="sig-paren">(</span><em>max_overall_power=4</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/morphing.html#AdvancedMorpher.find_components"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.morphing.AdvancedMorpher.find_components" title="Permalink to this definition">¶</a></dt>
 <dd><p>Find and return a list of components with their power dependence on the parameters</p>
+<dl class="docutils">
+<dt>max_overall_power :</dt>
+<dd>(Default value = 4)</dd>
+</dl>
 </dd></dl>
 
 <dl class="method">
 <dt id="madminer.morphing.AdvancedMorpher.optimize_basis">
-<code class="descname">optimize_basis</code><span class="sig-paren">(</span><em>n_bases=1</em>, <em>fixed_benchmarks_from_madminer=None</em>, <em>fixed_benchmarks_numpy=None</em>, <em>n_trials=100</em>, <em>n_test_thetas=100</em><span class="sig-paren">)</span><a class="headerlink" href="#madminer.morphing.AdvancedMorpher.optimize_basis" title="Permalink to this definition">¶</a></dt>
+<code class="descname">optimize_basis</code><span class="sig-paren">(</span><em>n_bases=1</em>, <em>fixed_benchmarks_from_madminer=None</em>, <em>fixed_benchmarks_numpy=None</em>, <em>n_trials=100</em>, <em>n_test_thetas=100</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/morphing.html#AdvancedMorpher.optimize_basis"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.morphing.AdvancedMorpher.optimize_basis" title="Permalink to this definition">¶</a></dt>
 <dd><p>Finds a set of basis parameter vectors, based on a rudimentary optimization algorithm.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>fixed_benchmarks_numpy</strong> – </li>
-<li><strong>fixed_benchmarks_from_madminer</strong> – </li>
-<li><strong>n_bases</strong> – </li>
-<li><strong>n_trials</strong> – </li>
-<li><strong>n_test_thetas</strong> – </li>
-</ul>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"></p>
-</td>
-</tr>
-</tbody>
-</table>
+<dl class="docutils">
+<dt>fixed_benchmarks_numpy :</dt>
+<dd>param fixed_benchmarks_from_madminer: (Default value = None)</dd>
+<dt>n_bases :</dt>
+<dd>param n_trials: (Default value = 1)</dd>
+<dt>n_test_thetas :</dt>
+<dd>return: (Default value = 100)</dd>
+<dt>fixed_benchmarks_from_madminer :</dt>
+<dd>(Default value = None)</dd>
+<dt>n_trials :</dt>
+<dd>(Default value = 100)</dd>
+</dl>
 </dd></dl>
 
 <dl class="method">
 <dt id="madminer.morphing.AdvancedMorpher.set_basis">
-<code class="descname">set_basis</code><span class="sig-paren">(</span><em>basis_from_madminer=None</em>, <em>basis_numpy=None</em>, <em>morphing_matrix=None</em><span class="sig-paren">)</span><a class="headerlink" href="#madminer.morphing.AdvancedMorpher.set_basis" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<code class="descname">set_basis</code><span class="sig-paren">(</span><em>basis_from_madminer=None</em>, <em>basis_numpy=None</em>, <em>morphing_matrix=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/morphing.html#AdvancedMorpher.set_basis"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.morphing.AdvancedMorpher.set_basis" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="docutils">
+<dt>basis_from_madminer :</dt>
+<dd>(Default value = None)</dd>
+<dt>basis_numpy :</dt>
+<dd>(Default value = None)</dd>
+<dt>morphing_matrix :</dt>
+<dd>(Default value = None)</dd>
+</dl>
+</dd></dl>
 
 <dl class="method">
 <dt id="madminer.morphing.AdvancedMorpher.set_components">
-<code class="descname">set_components</code><span class="sig-paren">(</span><em>components</em><span class="sig-paren">)</span><a class="headerlink" href="#madminer.morphing.AdvancedMorpher.set_components" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<code class="descname">set_components</code><span class="sig-paren">(</span><em>components</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/morphing.html#AdvancedMorpher.set_components"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.morphing.AdvancedMorpher.set_components" title="Permalink to this definition">¶</a></dt>
+<dd><p>components :</p>
+</dd></dl>
 
 </dd></dl>
 
 <dl class="class">
 <dt id="madminer.morphing.SimpleMorpher">
-<em class="property">class </em><code class="descclassname">madminer.morphing.</code><code class="descname">SimpleMorpher</code><span class="sig-paren">(</span><em>parameters_from_madminer=None</em>, <em>parameter_max_power=None</em>, <em>parameter_range=None</em><span class="sig-paren">)</span><a class="headerlink" href="#madminer.morphing.SimpleMorpher" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">madminer.morphing.</code><code class="descname">SimpleMorpher</code><span class="sig-paren">(</span><em>parameters_from_madminer=None</em>, <em>parameter_max_power=None</em>, <em>parameter_range=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/morphing.html#SimpleMorpher"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.morphing.SimpleMorpher" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <dl class="method">
 <dt id="madminer.morphing.SimpleMorpher.calculate_morphing_matrix">
-<code class="descname">calculate_morphing_matrix</code><span class="sig-paren">(</span><em>basis=None</em><span class="sig-paren">)</span><a class="headerlink" href="#madminer.morphing.SimpleMorpher.calculate_morphing_matrix" title="Permalink to this definition">¶</a></dt>
+<code class="descname">calculate_morphing_matrix</code><span class="sig-paren">(</span><em>basis=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/morphing.html#SimpleMorpher.calculate_morphing_matrix"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.morphing.SimpleMorpher.calculate_morphing_matrix" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculates the morphing matrix that links the components to the basis parameter vectors</p>
+<dl class="docutils">
+<dt>basis :</dt>
+<dd>(Default value = None)</dd>
+</dl>
 </dd></dl>
 
 <dl class="method">
 <dt id="madminer.morphing.SimpleMorpher.calculate_morphing_weight_gradient">
-<code class="descname">calculate_morphing_weight_gradient</code><span class="sig-paren">(</span><em>theta</em>, <em>basis=None</em>, <em>morphing_matrix=None</em><span class="sig-paren">)</span><a class="headerlink" href="#madminer.morphing.SimpleMorpher.calculate_morphing_weight_gradient" title="Permalink to this definition">¶</a></dt>
+<code class="descname">calculate_morphing_weight_gradient</code><span class="sig-paren">(</span><em>theta</em>, <em>basis=None</em>, <em>morphing_matrix=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/morphing.html#SimpleMorpher.calculate_morphing_weight_gradient"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.morphing.SimpleMorpher.calculate_morphing_weight_gradient" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculates the gradient of the morphing weights grad_i w_b(theta). Output shape is (gradient
 direction, basis benchmarks).</p>
+<p>theta :</p>
+<dl class="docutils">
+<dt>basis :</dt>
+<dd>(Default value = None)</dd>
+<dt>morphing_matrix :</dt>
+<dd>(Default value = None)</dd>
+</dl>
 </dd></dl>
 
 <dl class="method">
 <dt id="madminer.morphing.SimpleMorpher.calculate_morphing_weights">
-<code class="descname">calculate_morphing_weights</code><span class="sig-paren">(</span><em>theta</em>, <em>basis=None</em>, <em>morphing_matrix=None</em><span class="sig-paren">)</span><a class="headerlink" href="#madminer.morphing.SimpleMorpher.calculate_morphing_weights" title="Permalink to this definition">¶</a></dt>
+<code class="descname">calculate_morphing_weights</code><span class="sig-paren">(</span><em>theta</em>, <em>basis=None</em>, <em>morphing_matrix=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/morphing.html#SimpleMorpher.calculate_morphing_weights"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.morphing.SimpleMorpher.calculate_morphing_weights" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculates the morphing weights w_b(theta) for a given basis {theta_b}</p>
+<p>theta :</p>
+<dl class="docutils">
+<dt>basis :</dt>
+<dd>(Default value = None)</dd>
+<dt>morphing_matrix :</dt>
+<dd>(Default value = None)</dd>
+</dl>
 </dd></dl>
 
 <dl class="method">
 <dt id="madminer.morphing.SimpleMorpher.evaluate_morphing">
-<code class="descname">evaluate_morphing</code><span class="sig-paren">(</span><em>basis=None</em>, <em>morphing_matrix=None</em>, <em>n_test_thetas=100</em>, <em>return_weights_and_thetas=False</em><span class="sig-paren">)</span><a class="headerlink" href="#madminer.morphing.SimpleMorpher.evaluate_morphing" title="Permalink to this definition">¶</a></dt>
+<code class="descname">evaluate_morphing</code><span class="sig-paren">(</span><em>basis=None</em>, <em>morphing_matrix=None</em>, <em>n_test_thetas=100</em>, <em>return_weights_and_thetas=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/morphing.html#SimpleMorpher.evaluate_morphing"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.morphing.SimpleMorpher.evaluate_morphing" title="Permalink to this definition">¶</a></dt>
 <dd><p>Evaluates an objective function for a given basis</p>
+<dl class="docutils">
+<dt>basis :</dt>
+<dd>(Default value = None)</dd>
+<dt>morphing_matrix :</dt>
+<dd>(Default value = None)</dd>
+<dt>n_test_thetas :</dt>
+<dd>(Default value = 100)</dd>
+<dt>return_weights_and_thetas :</dt>
+<dd>(Default value = False)</dd>
+</dl>
 </dd></dl>
 
 <dl class="method">
 <dt id="madminer.morphing.SimpleMorpher.find_components">
-<code class="descname">find_components</code><span class="sig-paren">(</span><em>max_overall_power=4</em><span class="sig-paren">)</span><a class="headerlink" href="#madminer.morphing.SimpleMorpher.find_components" title="Permalink to this definition">¶</a></dt>
+<code class="descname">find_components</code><span class="sig-paren">(</span><em>max_overall_power=4</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/morphing.html#SimpleMorpher.find_components"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.morphing.SimpleMorpher.find_components" title="Permalink to this definition">¶</a></dt>
 <dd><p>Find and return a list of components with their power dependence on the parameters</p>
+<dl class="docutils">
+<dt>max_overall_power :</dt>
+<dd>(Default value = 4)</dd>
+</dl>
 </dd></dl>
 
 <dl class="method">
 <dt id="madminer.morphing.SimpleMorpher.optimize_basis">
-<code class="descname">optimize_basis</code><span class="sig-paren">(</span><em>n_bases=1</em>, <em>fixed_benchmarks_from_madminer=None</em>, <em>fixed_benchmarks_numpy=None</em>, <em>n_trials=100</em>, <em>n_test_thetas=100</em><span class="sig-paren">)</span><a class="headerlink" href="#madminer.morphing.SimpleMorpher.optimize_basis" title="Permalink to this definition">¶</a></dt>
+<code class="descname">optimize_basis</code><span class="sig-paren">(</span><em>n_bases=1</em>, <em>fixed_benchmarks_from_madminer=None</em>, <em>fixed_benchmarks_numpy=None</em>, <em>n_trials=100</em>, <em>n_test_thetas=100</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/morphing.html#SimpleMorpher.optimize_basis"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.morphing.SimpleMorpher.optimize_basis" title="Permalink to this definition">¶</a></dt>
 <dd><p>Finds a set of basis parameter vectors, based on a rudimentary optimization algorithm.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>fixed_benchmarks_numpy</strong> – </li>
-<li><strong>fixed_benchmarks_from_madminer</strong> – </li>
-<li><strong>n_bases</strong> – </li>
-<li><strong>n_trials</strong> – </li>
-<li><strong>n_test_thetas</strong> – </li>
-</ul>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"></p>
-</td>
-</tr>
-</tbody>
-</table>
+<dl class="docutils">
+<dt>fixed_benchmarks_numpy :</dt>
+<dd>param fixed_benchmarks_from_madminer: (Default value = None)</dd>
+<dt>n_bases :</dt>
+<dd>param n_trials: (Default value = 1)</dd>
+<dt>n_test_thetas :</dt>
+<dd>return: (Default value = 100)</dd>
+<dt>fixed_benchmarks_from_madminer :</dt>
+<dd>(Default value = None)</dd>
+<dt>n_trials :</dt>
+<dd>(Default value = 100)</dd>
+</dl>
 </dd></dl>
 
 <dl class="method">
 <dt id="madminer.morphing.SimpleMorpher.set_basis">
-<code class="descname">set_basis</code><span class="sig-paren">(</span><em>basis_from_madminer=None</em>, <em>basis_numpy=None</em>, <em>morphing_matrix=None</em><span class="sig-paren">)</span><a class="headerlink" href="#madminer.morphing.SimpleMorpher.set_basis" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<code class="descname">set_basis</code><span class="sig-paren">(</span><em>basis_from_madminer=None</em>, <em>basis_numpy=None</em>, <em>morphing_matrix=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/morphing.html#SimpleMorpher.set_basis"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.morphing.SimpleMorpher.set_basis" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="docutils">
+<dt>basis_from_madminer :</dt>
+<dd>(Default value = None)</dd>
+<dt>basis_numpy :</dt>
+<dd>(Default value = None)</dd>
+<dt>morphing_matrix :</dt>
+<dd>(Default value = None)</dd>
+</dl>
+</dd></dl>
 
 <dl class="method">
 <dt id="madminer.morphing.SimpleMorpher.set_components">
-<code class="descname">set_components</code><span class="sig-paren">(</span><em>components</em><span class="sig-paren">)</span><a class="headerlink" href="#madminer.morphing.SimpleMorpher.set_components" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<code class="descname">set_components</code><span class="sig-paren">(</span><em>components</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/morphing.html#SimpleMorpher.set_components"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.morphing.SimpleMorpher.set_components" title="Permalink to this definition">¶</a></dt>
+<dd><p>components :</p>
+</dd></dl>
 
 </dd></dl>
 
@@ -834,17 +1093,120 @@ direction, basis benchmarks).</p>
 <span id="madminer-plotting-module"></span><h2>madminer.plotting module<a class="headerlink" href="#module-madminer.plotting" title="Permalink to this headline">¶</a></h2>
 <dl class="function">
 <dt id="madminer.plotting.kinematic_distribution_of_information">
-<code class="descclassname">madminer.plotting.</code><code class="descname">kinematic_distribution_of_information</code><span class="sig-paren">(</span><em>xbins</em>, <em>xlabel</em>, <em>xmin</em>, <em>xmax</em>, <em>xsecs</em>, <em>matrices</em>, <em>matrices_aux</em>, <em>filename</em>, <em>ylabel_addition=''</em>, <em>log_xsec=False</em>, <em>norm_xsec=True</em>, <em>show_aux=False</em>, <em>show_labels=False</em>, <em>label_pos_information=(0.0</em>, <em>0.0)</em>, <em>label_pos_sm=(0.0</em>, <em>0.0)</em>, <em>label_pos_bsm=(0.0</em>, <em>0.0)</em>, <em>label_pos_bkg=(0.0</em>, <em>0.0)</em>, <em>label_bsm=''</em><span class="sig-paren">)</span><a class="headerlink" href="#madminer.plotting.kinematic_distribution_of_information" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<code class="descclassname">madminer.plotting.</code><code class="descname">kinematic_distribution_of_information</code><span class="sig-paren">(</span><em>xbins</em>, <em>xlabel</em>, <em>xmin</em>, <em>xmax</em>, <em>xsecs</em>, <em>matrices</em>, <em>matrices_aux</em>, <em>filename</em>, <em>ylabel_addition=''</em>, <em>log_xsec=False</em>, <em>norm_xsec=True</em>, <em>show_aux=False</em>, <em>show_labels=False</em>, <em>label_pos_information=(0.0</em>, <em>0.0)</em>, <em>label_pos_sm=(0.0</em>, <em>0.0)</em>, <em>label_pos_bsm=(0.0</em>, <em>0.0)</em>, <em>label_pos_bkg=(0.0</em>, <em>0.0)</em>, <em>label_bsm=''</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/plotting.html#kinematic_distribution_of_information"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.plotting.kinematic_distribution_of_information" title="Permalink to this definition">¶</a></dt>
+<dd><p>xbins :</p>
+<p>xlabel :</p>
+<p>xmin :</p>
+<p>xmax :</p>
+<p>xsecs :</p>
+<p>matrices :</p>
+<p>matrices_aux :</p>
+<p>filename :</p>
+<dl class="docutils">
+<dt>ylabel_addition :</dt>
+<dd>(Default value = ‘’)</dd>
+<dt>log_xsec :</dt>
+<dd>(Default value = False)</dd>
+<dt>norm_xsec :</dt>
+<dd>(Default value = True)</dd>
+<dt>show_aux :</dt>
+<dd>(Default value = False)</dd>
+<dt>show_labels :</dt>
+<dd>(Default value = False)</dd>
+<dt>label_pos_information :</dt>
+<dd>(Default value = (0.)</dd>
+</dl>
+<p>0.) :</p>
+<dl class="docutils">
+<dt>label_pos_sm :</dt>
+<dd>(Default value = (0.)</dd>
+<dt>label_pos_bsm :</dt>
+<dd>(Default value = (0.)</dd>
+<dt>label_pos_bkg :</dt>
+<dd>(Default value = (0.)</dd>
+<dt>label_bsm :</dt>
+<dd>(Default value = r’‘)</dd>
+</dl>
+</dd></dl>
 
 <dl class="function">
 <dt id="madminer.plotting.plot_2d_morphing_basis">
-<code class="descclassname">madminer.plotting.</code><code class="descname">plot_2d_morphing_basis</code><span class="sig-paren">(</span><em>morpher</em>, <em>xlabel='$\\theta_0$'</em>, <em>ylabel='$\\theta_1$'</em>, <em>xrange=(-1.0</em>, <em>1.0)</em>, <em>yrange=(-1.0</em>, <em>1.0)</em>, <em>crange=(1.0</em>, <em>100.0)</em>, <em>resolution=100</em><span class="sig-paren">)</span><a class="headerlink" href="#madminer.plotting.plot_2d_morphing_basis" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<code class="descclassname">madminer.plotting.</code><code class="descname">plot_2d_morphing_basis</code><span class="sig-paren">(</span><em>morpher</em>, <em>xlabel='$\\theta_0$'</em>, <em>ylabel='$\\theta_1$'</em>, <em>xrange=(-1.0</em>, <em>1.0)</em>, <em>yrange=(-1.0</em>, <em>1.0)</em>, <em>crange=(1.0</em>, <em>100.0)</em>, <em>resolution=100</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/plotting.html#plot_2d_morphing_basis"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.plotting.plot_2d_morphing_basis" title="Permalink to this definition">¶</a></dt>
+<dd><p>morpher :</p>
+<dl class="docutils">
+<dt>xlabel :</dt>
+<dd>(Default value = r’$   heta_0$’)</dd>
+<dt>ylabel :</dt>
+<dd>(Default value = r’$   heta_1$’)</dd>
+<dt>xrange :</dt>
+<dd>(Default value = (-1.)</dd>
+</dl>
+<p>1.) :</p>
+<dl class="docutils">
+<dt>yrange :</dt>
+<dd>(Default value = (-1.)</dd>
+<dt>crange :</dt>
+<dd>(Default value = (1.)</dd>
+</dl>
+<p>100.) :</p>
+<dl class="docutils">
+<dt>resolution :</dt>
+<dd>(Default value = 100)</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="madminer.plotting.plot_fisher_information_contours_2d">
+<code class="descclassname">madminer.plotting.</code><code class="descname">plot_fisher_information_contours_2d</code><span class="sig-paren">(</span><em>fisher_information_matrices</em>, <em>contour_distance=1.0</em>, <em>xlabel='$\\theta_0$'</em>, <em>ylabel='$\\theta_1$'</em>, <em>xrange=(-1.0</em>, <em>1.0)</em>, <em>yrange=(-1.0</em>, <em>1.0)</em>, <em>matrix_labels=None</em>, <em>resolution=100</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/plotting.html#plot_fisher_information_contours_2d"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.plotting.plot_fisher_information_contours_2d" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name" colspan="2">Fisher_information_matrices:</th></tr>
+<tr class="field-odd field"><td>&#160;</td><td class="field-body">list of ndarrays, 2x2 Fisher information matrices</td>
+</tr>
+<tr class="field-even field"><th class="field-name" colspan="2">Contour_distance:</th></tr>
+<tr class="field-even field"><td>&#160;</td><td class="field-body">float, Fisher distance drawn</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Matrix_labels:</th><td class="field-body">None or list of str, legend labels for the contours</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Xlabel:</th><td class="field-body">str, label of x axis</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Ylabel:</th><td class="field-body">str, label of y axis</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Xrange:</th><td class="field-body">tuple of 2 floats, x axis range</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Xrange:</th><td class="field-body">tuple of 2 floats, y axis range</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Resolution:</th><td class="field-body">int, number of points per axis for the calculation of the Fisher distances</td>
+</tr>
+</tbody>
+</table>
+<p>fisher_information_matrices :</p>
+<dl class="docutils">
+<dt>contour_distance :</dt>
+<dd>(Default value = 1.)</dd>
+<dt>xlabel :</dt>
+<dd>(Default value = r’$   heta_0$’)</dd>
+<dt>ylabel :</dt>
+<dd>(Default value = r’$   heta_1$’)</dd>
+<dt>xrange :</dt>
+<dd>(Default value = (-1.)</dd>
+</dl>
+<p>1.) :</p>
+<dl class="docutils">
+<dt>yrange :</dt>
+<dd>(Default value = (-1.)</dd>
+<dt>matrix_labels :</dt>
+<dd>(Default value = None)</dd>
+<dt>resolution :</dt>
+<dd>(Default value = 100)</dd>
+</dl>
+</dd></dl>
 
 <dl class="function">
 <dt id="madminer.plotting.plot_fisherinfo_barplot">
-<code class="descclassname">madminer.plotting.</code><code class="descname">plot_fisherinfo_barplot</code><span class="sig-paren">(</span><em>matrices</em>, <em>matrices_for_determinants</em>, <em>labels</em>, <em>categories</em>, <em>operatorlabels</em>, <em>filename</em>, <em>additional_label=''</em>, <em>top_label=''</em>, <em>normalise_determinants=False</em>, <em>use_bar_colors=False</em>, <em>eigenvalue_operator_legend=True</em><span class="sig-paren">)</span><a class="headerlink" href="#madminer.plotting.plot_fisherinfo_barplot" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">madminer.plotting.</code><code class="descname">plot_fisherinfo_barplot</code><span class="sig-paren">(</span><em>matrices</em>, <em>matrices_for_determinants</em>, <em>labels</em>, <em>categories</em>, <em>operatorlabels</em>, <em>filename</em>, <em>additional_label=''</em>, <em>top_label=''</em>, <em>normalise_determinants=False</em>, <em>use_bar_colors=False</em>, <em>eigenvalue_operator_legend=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/plotting.html#plot_fisherinfo_barplot"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.plotting.plot_fisherinfo_barplot" title="Permalink to this definition">¶</a></dt>
 <dd><table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -877,304 +1239,300 @@ direction, basis benchmarks).</p>
 </tr>
 </tbody>
 </table>
-</dd></dl>
-
-<dl class="function">
-<dt id="madminer.plotting.plot_fisherinfo_contours_2d">
-<code class="descclassname">madminer.plotting.</code><code class="descname">plot_fisherinfo_contours_2d</code><span class="sig-paren">(</span><em>matrices_2d</em>, <em>matrix_labels</em>, <em>filename</em>, <em>contour_distance=1.0</em>, <em>axes_max=1.0</em>, <em>xlabel=''</em>, <em>ylabel=''</em>, <em>n_points=100</em><span class="sig-paren">)</span><a class="headerlink" href="#madminer.plotting.plot_fisherinfo_contours_2d" title="Permalink to this definition">¶</a></dt>
-<dd><table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Matrices_2d:</th><td class="field-body">list of 2 x 2 fisher information matrices</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Matrix_labels:</th><td class="field-body">list of labels corresponding to the fisher information matrices (list of strings)</td>
-</tr>
-<tr class="field-odd field"><th class="field-name">Filename:</th><td class="field-body">output filename (string)</td>
-</tr>
-<tr class="field-even field"><th class="field-name" colspan="2">Contour_distance:</th></tr>
-<tr class="field-even field"><td>&#160;</td><td class="field-body">distances drawn  (integer)</td>
-</tr>
-<tr class="field-odd field"><th class="field-name">Axes_max:</th><td class="field-body">maximum value on both axis  (integer)</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Xlabel:</th><td class="field-body">label of x-axis (string)</td>
-</tr>
-<tr class="field-odd field"><th class="field-name">Ylabel:</th><td class="field-body">label of y-axis (string)</td>
-</tr>
-<tr class="field-even field"><th class="field-name">N_points=100):</th><td class="field-body"></td>
-</tr>
-</tbody>
-</table>
+<p>matrices :</p>
+<p>matrices_for_determinants :</p>
+<p>labels :</p>
+<p>categories :</p>
+<p>operatorlabels :</p>
+<p>filename :</p>
+<dl class="docutils">
+<dt>additional_label :</dt>
+<dd>(Default value = ‘’)</dd>
+<dt>top_label :</dt>
+<dd>(Default value = ‘’)</dd>
+<dt>normalise_determinants :</dt>
+<dd>(Default value = False)</dd>
+<dt>use_bar_colors :</dt>
+<dd>(Default value = False)</dd>
+<dt>eigenvalue_operator_legend :</dt>
+<dd>(Default value = True)</dd>
+</dl>
 </dd></dl>
 
 <dl class="function">
 <dt id="madminer.plotting.plot_nd_morphing_basis_scatter">
-<code class="descclassname">madminer.plotting.</code><code class="descname">plot_nd_morphing_basis_scatter</code><span class="sig-paren">(</span><em>morpher</em>, <em>crange=(1.0</em>, <em>100.0)</em>, <em>n_test_thetas=1000</em><span class="sig-paren">)</span><a class="headerlink" href="#madminer.plotting.plot_nd_morphing_basis_scatter" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<code class="descclassname">madminer.plotting.</code><code class="descname">plot_nd_morphing_basis_scatter</code><span class="sig-paren">(</span><em>morpher</em>, <em>crange=(1.0</em>, <em>100.0)</em>, <em>n_test_thetas=1000</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/plotting.html#plot_nd_morphing_basis_scatter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.plotting.plot_nd_morphing_basis_scatter" title="Permalink to this definition">¶</a></dt>
+<dd><p>morpher :</p>
+<dl class="docutils">
+<dt>crange :</dt>
+<dd>(Default value = (1.)</dd>
+</dl>
+<p>100.) :</p>
+<dl class="docutils">
+<dt>n_test_thetas :</dt>
+<dd>(Default value = 1000)</dd>
+</dl>
+</dd></dl>
 
 <dl class="function">
 <dt id="madminer.plotting.plot_nd_morphing_basis_slices">
-<code class="descclassname">madminer.plotting.</code><code class="descname">plot_nd_morphing_basis_slices</code><span class="sig-paren">(</span><em>morpher</em>, <em>crange=(1.0</em>, <em>100.0)</em>, <em>resolution=50</em><span class="sig-paren">)</span><a class="headerlink" href="#madminer.plotting.plot_nd_morphing_basis_slices" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<code class="descclassname">madminer.plotting.</code><code class="descname">plot_nd_morphing_basis_slices</code><span class="sig-paren">(</span><em>morpher</em>, <em>crange=(1.0</em>, <em>100.0)</em>, <em>resolution=50</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/plotting.html#plot_nd_morphing_basis_slices"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.plotting.plot_nd_morphing_basis_slices" title="Permalink to this definition">¶</a></dt>
+<dd><p>morpher :</p>
+<dl class="docutils">
+<dt>crange :</dt>
+<dd>(Default value = (1.)</dd>
+</dl>
+<p>100.) :</p>
+<dl class="docutils">
+<dt>resolution :</dt>
+<dd>(Default value = 50)</dd>
+</dl>
+</dd></dl>
 
 </div>
 <div class="section" id="module-madminer.sampling">
 <span id="madminer-sampling-module"></span><h2>madminer.sampling module<a class="headerlink" href="#module-madminer.sampling" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
 <dt id="madminer.sampling.SampleAugmenter">
-<em class="property">class </em><code class="descclassname">madminer.sampling.</code><code class="descname">SampleAugmenter</code><span class="sig-paren">(</span><em>filename</em>, <em>disable_morphing=False</em>, <em>debug=False</em><span class="sig-paren">)</span><a class="headerlink" href="#madminer.sampling.SampleAugmenter" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">madminer.sampling.</code><code class="descname">SampleAugmenter</code><span class="sig-paren">(</span><em>filename</em>, <em>disable_morphing=False</em>, <em>debug=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/sampling.html#SampleAugmenter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.sampling.SampleAugmenter" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <dl class="method">
 <dt id="madminer.sampling.SampleAugmenter.extract_cross_sections">
-<code class="descname">extract_cross_sections</code><span class="sig-paren">(</span><em>theta</em><span class="sig-paren">)</span><a class="headerlink" href="#madminer.sampling.SampleAugmenter.extract_cross_sections" title="Permalink to this definition">¶</a></dt>
+<code class="descname">extract_cross_sections</code><span class="sig-paren">(</span><em>theta</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/sampling.html#SampleAugmenter.extract_cross_sections"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.sampling.SampleAugmenter.extract_cross_sections" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculates the total cross sections for all specified thetas.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>theta</strong> – tuple (type, value) that defines the parameter point or prior over parameter points used for the
+<dl class="docutils">
+<dt>theta :</dt>
+<dd>tuple (type, value) that defines the parameter point or prior over parameter points used for the
 sampling. Use the helper functions constant_benchmark_theta(), multiple_benchmark_thetas(),
-constant_morphing_theta(), multiple_morphing_thetas(), or random_morphing_thetas().</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">thetas, xsecs, xsec_uncertainties. xsecs and xsec_uncertainties are in pb.</td>
-</tr>
-</tbody>
-</table>
+constant_morphing_theta(), multiple_morphing_thetas(), or random_morphing_thetas().</dd>
+</dl>
+<dl class="docutils">
+<dt>type</dt>
+<dd>thetas, xsecs, xsec_uncertainties. xsecs and xsec_uncertainties are in pb.</dd>
+</dl>
 </dd></dl>
 
 <dl class="method">
 <dt id="madminer.sampling.SampleAugmenter.extract_raw_data">
-<code class="descname">extract_raw_data</code><span class="sig-paren">(</span><em>theta=None</em><span class="sig-paren">)</span><a class="headerlink" href="#madminer.sampling.SampleAugmenter.extract_raw_data" title="Permalink to this definition">¶</a></dt>
-<dd><table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>theta</strong> – if not None, uses morphing to calculate the weights for this value of theta. If None, returns
-the weights in fb for all benchmark points, as in the file.</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">x, weights</td>
-</tr>
-</tbody>
-</table>
+<code class="descname">extract_raw_data</code><span class="sig-paren">(</span><em>theta=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/sampling.html#SampleAugmenter.extract_raw_data"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.sampling.SampleAugmenter.extract_raw_data" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="docutils">
+<dt>theta :</dt>
+<dd>if not None, uses morphing to calculate the weights for this value of theta. If None, returns
+the weights in fb for all benchmark points, as in the file. (Default value = None)</dd>
+</dl>
+<dl class="docutils">
+<dt>type</dt>
+<dd>x, weights</dd>
+</dl>
 </dd></dl>
 
 <dl class="method">
 <dt id="madminer.sampling.SampleAugmenter.extract_sample">
-<code class="descname">extract_sample</code><span class="sig-paren">(</span><em>theta_sets_types</em>, <em>theta_sets_values</em>, <em>n_samples_per_theta</em>, <em>sampling_theta_index=0</em>, <em>augmented_data_definitions=None</em>, <em>start_event=0</em>, <em>end_event=None</em><span class="sig-paren">)</span><a class="headerlink" href="#madminer.sampling.SampleAugmenter.extract_sample" title="Permalink to this definition">¶</a></dt>
+<code class="descname">extract_sample</code><span class="sig-paren">(</span><em>theta_sets_types</em>, <em>theta_sets_values</em>, <em>n_samples_per_theta</em>, <em>sampling_theta_index=0</em>, <em>augmented_data_definitions=None</em>, <em>start_event=0</em>, <em>end_event=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/sampling.html#SampleAugmenter.extract_sample"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.sampling.SampleAugmenter.extract_sample" title="Permalink to this definition">¶</a></dt>
 <dd><p>Low-level function for the extraction of information from the event samples.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>theta_sets_types</strong> – list of lists of str, each entry can be ‘benchmark’ or ‘morphing’</li>
-<li><strong>theta_sets_values</strong> – list of lists, each entry is int and labels the benchmark index (if the corresponding
+<dl class="docutils">
+<dt>theta_sets_types :</dt>
+<dd>list of lists of str, each entry can be ‘benchmark’ or ‘morphing’</dd>
+<dt>theta_sets_values :</dt>
+<dd>list of lists, each entry is int and labels the benchmark index (if the corresponding
 theta_sampling_types entry is ‘benchmark’) or a numpy array with the theta values
-(of the corresponding theta_sampling_types entry is ‘morphing’)</li>
-<li><strong>n_samples_per_theta</strong> – Number of samples to be drawn per entry in theta_sampling_types.</li>
-<li><strong>augmented_data_definitions</strong> – list of tuples. Each tuple can either be (‘ratio’, num_theta, den_theta) or
+(of the corresponding theta_sampling_types entry is ‘morphing’)</dd>
+<dt>n_samples_per_theta :</dt>
+<dd>Number of samples to be drawn per entry in theta_sampling_types.</dd>
+<dt>augmented_data_definitions :</dt>
+<dd>list of tuples. Each tuple can either be (‘ratio’, num_theta, den_theta) or
 (‘score’, theta), where num_theta, den_theta, and theta are indexes marking
 which of the theta sets defined through thetas_types and thetas_values is
-used.</li>
-<li><strong>sampling_theta_index</strong> – int, marking the index of the theta set defined through thetas_types and
-thetas_values that should be used for sampling</li>
-<li><strong>start_event</strong> – Index of first event to consider.</li>
-<li><strong>end_event</strong> – Index of last event to consider.</li>
-</ul>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">tuple (x, augmented_data_list, theta_sampling, theta_auxiliary). x, theta_sampling, theta_auxiliary,
+used. (Default value = None)</dd>
+<dt>sampling_theta_index :</dt>
+<dd>int, marking the index of the theta set defined through thetas_types and
+thetas_values that should be used for sampling (Default value = 0)</dd>
+<dt>start_event :</dt>
+<dd>Index of first event to consider. (Default value = 0)</dd>
+<dt>end_event :</dt>
+<dd>Index of last event to consider. (Default value = None)</dd>
+</dl>
+<dl class="docutils">
+<dt>type</dt>
+<dd>tuple (x, augmented_data_list, theta_sampling, theta_auxiliary). x, theta_sampling, theta_auxiliary,
 and all elements of the list augmented_data_list are ndarrays with the number of samples as first
-dimension.</p>
-</td>
-</tr>
-</tbody>
-</table>
+dimension.</dd>
+</dl>
 </dd></dl>
 
 <dl class="method">
 <dt id="madminer.sampling.SampleAugmenter.extract_samples_test">
-<code class="descname">extract_samples_test</code><span class="sig-paren">(</span><em>theta</em>, <em>n_samples</em>, <em>folder</em>, <em>filename</em>, <em>test_split=0.3</em><span class="sig-paren">)</span><a class="headerlink" href="#madminer.sampling.SampleAugmenter.extract_samples_test" title="Permalink to this definition">¶</a></dt>
+<code class="descname">extract_samples_test</code><span class="sig-paren">(</span><em>theta</em>, <em>n_samples</em>, <em>folder</em>, <em>filename</em>, <em>test_split=0.3</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/sampling.html#SampleAugmenter.extract_samples_test"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.sampling.SampleAugmenter.extract_samples_test" title="Permalink to this definition">¶</a></dt>
 <dd><p>Extracts evaluation samples x ~ p(x|theta).</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>theta</strong> – tuple (type, value) that defines the parameter point or prior over parameter points used for the
+<dl class="docutils">
+<dt>theta :</dt>
+<dd>tuple (type, value) that defines the parameter point or prior over parameter points used for the
 sampling. Use the helper functions constant_benchmark_theta(), multiple_benchmark_thetas(),
-constant_morphing_theta(), multiple_morphing_thetas(), or random_morphing_thetas().</li>
-<li><strong>n_samples</strong> – Total number of samples to be drawn.</li>
-<li><strong>folder</strong> – Folder for the resulting samples.</li>
-<li><strong>filename</strong> – Label for the filenames. The actual filenames will add a prefix such as ‘x’, and the extension
-‘.npy’.</li>
-<li><strong>test_split</strong> – Fraction of events reserved for this evaluation sample (will not be used for any training
-samples).</li>
-</ul>
-</td>
-</tr>
-</tbody>
-</table>
+constant_morphing_theta(), multiple_morphing_thetas(), or random_morphing_thetas().</dd>
+<dt>n_samples :</dt>
+<dd>Total number of samples to be drawn.</dd>
+<dt>folder :</dt>
+<dd>Folder for the resulting samples.</dd>
+<dt>filename :</dt>
+<dd>Label for the filenames. The actual filenames will add a prefix such as ‘x’, and the extension
+‘.npy’.</dd>
+<dt>test_split :</dt>
+<dd>Fraction of events reserved for this evaluation sample (will not be used for any training
+samples). (Default value = 0.3)</dd>
+</dl>
 </dd></dl>
 
 <dl class="method">
 <dt id="madminer.sampling.SampleAugmenter.extract_samples_train_local">
-<code class="descname">extract_samples_train_local</code><span class="sig-paren">(</span><em>theta</em>, <em>n_samples</em>, <em>folder</em>, <em>filename</em>, <em>test_split=0.3</em><span class="sig-paren">)</span><a class="headerlink" href="#madminer.sampling.SampleAugmenter.extract_samples_train_local" title="Permalink to this definition">¶</a></dt>
+<code class="descname">extract_samples_train_local</code><span class="sig-paren">(</span><em>theta</em>, <em>n_samples</em>, <em>folder</em>, <em>filename</em>, <em>test_split=0.3</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/sampling.html#SampleAugmenter.extract_samples_train_local"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.sampling.SampleAugmenter.extract_samples_train_local" title="Permalink to this definition">¶</a></dt>
 <dd><p>Extracts training samples x ~ p(x|theta) as well as the joint score t(x, z|theta) for SALLY and SALLINO.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>theta</strong> – tuple (type, value) that defines the parameter point or prior over parameter points for the
+<dl class="docutils">
+<dt>theta :</dt>
+<dd>tuple (type, value) that defines the parameter point or prior over parameter points for the
 sampling. This is also where the score is evaluated. Use the helper functions, in particular
-constant_benchmark_theta() and constant_morphing_theta().</li>
-<li><strong>n_samples</strong> – Total number of samples to be drawn.</li>
-<li><strong>folder</strong> – Folder for the resulting samples.</li>
-<li><strong>filename</strong> – Label for the filenames. The actual filenames will add a prefix such as ‘x’, and the extension
-‘.npy’.</li>
-<li><strong>test_split</strong> – Fraction of events reserved for the test sample (will not be used for any training samples).</li>
-</ul>
-</td>
-</tr>
-</tbody>
-</table>
+constant_benchmark_theta() and constant_morphing_theta().</dd>
+<dt>n_samples :</dt>
+<dd>Total number of samples to be drawn.</dd>
+<dt>folder :</dt>
+<dd>Folder for the resulting samples.</dd>
+<dt>filename :</dt>
+<dd>Label for the filenames. The actual filenames will add a prefix such as ‘x’, and the extension
+‘.npy’.</dd>
+<dt>test_split :</dt>
+<dd>Fraction of events reserved for the test sample (will not be used for any training samples). (Default value = 0.3)</dd>
+</dl>
 </dd></dl>
 
 <dl class="method">
 <dt id="madminer.sampling.SampleAugmenter.extract_samples_train_more_ratios">
-<code class="descname">extract_samples_train_more_ratios</code><span class="sig-paren">(</span><em>theta0</em>, <em>theta1</em>, <em>n_samples</em>, <em>folder</em>, <em>filename</em>, <em>additional_thetas=None</em>, <em>test_split=0.3</em><span class="sig-paren">)</span><a class="headerlink" href="#madminer.sampling.SampleAugmenter.extract_samples_train_more_ratios" title="Permalink to this definition">¶</a></dt>
+<code class="descname">extract_samples_train_more_ratios</code><span class="sig-paren">(</span><em>theta0</em>, <em>theta1</em>, <em>n_samples</em>, <em>folder</em>, <em>filename</em>, <em>additional_thetas=None</em>, <em>test_split=0.3</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/sampling.html#SampleAugmenter.extract_samples_train_more_ratios"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.sampling.SampleAugmenter.extract_samples_train_more_ratios" title="Permalink to this definition">¶</a></dt>
 <dd><p>Extracts training samples x ~ p(x|theta0) and x ~ p(x|theta1) together with the class label y, the joint
 likelihood ratio r(x,z|theta0, theta1), and the joint scores t(x,z|theta0) as well as t(x,z|theta1) for methods
 such as CARL, ROLR, CASCAL, and RASCAL.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>theta0</strong> – tuple (type, value) that defines the numerator parameter point or prior over parameter points.
+<dl class="docutils">
+<dt>theta0 :</dt>
+<dd>tuple (type, value) that defines the numerator parameter point or prior over parameter points.
 Use the helper functions constant_benchmark_theta(), multiple_benchmark_thetas(),
-constant_morphing_theta(), multiple_morphing_thetas(), or random_morphing_thetas().</li>
-<li><strong>theta1</strong> – tuple (type, value) that defines the numerator parameter point or prior over parameter points.
+constant_morphing_theta(), multiple_morphing_thetas(), or random_morphing_thetas().</dd>
+<dt>theta1 :</dt>
+<dd>tuple (type, value) that defines the numerator parameter point or prior over parameter points.
 Use the helper functions constant_benchmark_theta(), multiple_benchmark_thetas(),
-constant_morphing_theta(), multiple_morphing_thetas(), or random_morphing_thetas().</li>
-<li><strong>n_samples</strong> – Total number of samples to be drawn.</li>
-<li><strong>folder</strong> – Folder for the resulting samples.</li>
-<li><strong>filename</strong> – Label for the filenames. The actual filenames will add a prefix such as ‘x’, and the extension
-‘.npy’.</li>
-<li><strong>additional_thetas</strong> – list of tuples (type, value) that defines additional theta points at which ratio and
+constant_morphing_theta(), multiple_morphing_thetas(), or random_morphing_thetas().</dd>
+<dt>n_samples :</dt>
+<dd>Total number of samples to be drawn.</dd>
+<dt>folder :</dt>
+<dd>Folder for the resulting samples.</dd>
+<dt>filename :</dt>
+<dd>Label for the filenames. The actual filenames will add a prefix such as ‘x’, and the extension
+‘.npy’.</dd>
+<dt>additional_thetas :</dt>
+<dd>list of tuples (type, value) that defines additional theta points at which ratio and
 score are evaluated, and which are then used to create additional training data
 points. Use the helper functions constant_benchmark_theta(),
 multiple_benchmark_thetas(), constant_morphing_theta(), multiple_morphing_thetas(), or
-random_morphing_thetas().</li>
-<li><strong>test_split</strong> – Fraction of events reserved for the test sample (will not be used for any training samples).</li>
-</ul>
-</td>
-</tr>
-</tbody>
-</table>
+random_morphing_thetas(). (Default value = None)</dd>
+<dt>test_split :</dt>
+<dd>Fraction of events reserved for the test sample (will not be used for any training samples). (Default value = 0.3)</dd>
+</dl>
 </dd></dl>
 
 <dl class="method">
 <dt id="madminer.sampling.SampleAugmenter.extract_samples_train_plain">
-<code class="descname">extract_samples_train_plain</code><span class="sig-paren">(</span><em>theta</em>, <em>n_samples</em>, <em>folder</em>, <em>filename</em>, <em>test_split=0.3</em><span class="sig-paren">)</span><a class="headerlink" href="#madminer.sampling.SampleAugmenter.extract_samples_train_plain" title="Permalink to this definition">¶</a></dt>
+<code class="descname">extract_samples_train_plain</code><span class="sig-paren">(</span><em>theta</em>, <em>n_samples</em>, <em>folder</em>, <em>filename</em>, <em>test_split=0.3</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/sampling.html#SampleAugmenter.extract_samples_train_plain"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.sampling.SampleAugmenter.extract_samples_train_plain" title="Permalink to this definition">¶</a></dt>
 <dd><p>Extracts training samples x ~ p(x|theta) for methods such as histograms or ABC.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>theta</strong> – tuple (type, value) that defines the parameter point or prior over parameter points for the
+<dl class="docutils">
+<dt>theta :</dt>
+<dd>tuple (type, value) that defines the parameter point or prior over parameter points for the
 sampling. Use the helper functions constant_benchmark_theta(), multiple_benchmark_thetas(),
-constant_morphing_theta(), multiple_morphing_thetas(), or random_morphing_thetas().</li>
-<li><strong>n_samples</strong> – Total number of samples to be drawn.</li>
-<li><strong>folder</strong> – Folder for the resulting samples.</li>
-<li><strong>filename</strong> – Label for the filenames. The actual filenames will add a prefix such as ‘x’, and the extension
-‘.npy’.</li>
-<li><strong>test_split</strong> – Fraction of events reserved for the test sample (will not be used for any training samples).</li>
-</ul>
-</td>
-</tr>
-</tbody>
-</table>
+constant_morphing_theta(), multiple_morphing_thetas(), or random_morphing_thetas().</dd>
+<dt>n_samples :</dt>
+<dd>Total number of samples to be drawn.</dd>
+<dt>folder :</dt>
+<dd>Folder for the resulting samples.</dd>
+<dt>filename :</dt>
+<dd>Label for the filenames. The actual filenames will add a prefix such as ‘x’, and the extension
+‘.npy’.</dd>
+<dt>test_split :</dt>
+<dd>Fraction of events reserved for the test sample (will not be used for any training samples). (Default value = 0.3)</dd>
+</dl>
 </dd></dl>
 
 <dl class="method">
 <dt id="madminer.sampling.SampleAugmenter.extract_samples_train_ratio">
-<code class="descname">extract_samples_train_ratio</code><span class="sig-paren">(</span><em>theta0</em>, <em>theta1</em>, <em>n_samples</em>, <em>folder</em>, <em>filename</em>, <em>test_split=0.3</em><span class="sig-paren">)</span><a class="headerlink" href="#madminer.sampling.SampleAugmenter.extract_samples_train_ratio" title="Permalink to this definition">¶</a></dt>
+<code class="descname">extract_samples_train_ratio</code><span class="sig-paren">(</span><em>theta0</em>, <em>theta1</em>, <em>n_samples</em>, <em>folder</em>, <em>filename</em>, <em>test_split=0.3</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/sampling.html#SampleAugmenter.extract_samples_train_ratio"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.sampling.SampleAugmenter.extract_samples_train_ratio" title="Permalink to this definition">¶</a></dt>
 <dd><p>Extracts training samples x ~ p(x|theta0) and x ~ p(x|theta1) together with the class label y, the joint
 likelihood ratio r(x,z|theta0, theta1), and the joint score t(x,z|theta0) for methods such as CARL, ROLR,
 CASCAL, and RASCAL.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>theta0</strong> – tuple (type, value) that defines the numerator parameter point or prior over parameter points.
+<dl class="docutils">
+<dt>theta0 :</dt>
+<dd>tuple (type, value) that defines the numerator parameter point or prior over parameter points.
 Use the helper functions constant_benchmark_theta(), multiple_benchmark_thetas(),
-constant_morphing_theta(), multiple_morphing_thetas(), or random_morphing_thetas().</li>
-<li><strong>theta1</strong> – tuple (type, value) that defines the numerator parameter point or prior over parameter points.
+constant_morphing_theta(), multiple_morphing_thetas(), or random_morphing_thetas().</dd>
+<dt>theta1 :</dt>
+<dd>tuple (type, value) that defines the numerator parameter point or prior over parameter points.
 Use the helper functions constant_benchmark_theta(), multiple_benchmark_thetas(),
-constant_morphing_theta(), multiple_morphing_thetas(), or random_morphing_thetas().</li>
-<li><strong>n_samples</strong> – Total number of samples to be drawn.</li>
-<li><strong>folder</strong> – Folder for the resulting samples.</li>
-<li><strong>filename</strong> – Label for the filenames. The actual filenames will add a prefix such as ‘x’, and the extension
-‘.npy’.</li>
-<li><strong>test_split</strong> – Fraction of events reserved for the test sample (will not be used for any training samples).</li>
-</ul>
-</td>
-</tr>
-</tbody>
-</table>
+constant_morphing_theta(), multiple_morphing_thetas(), or random_morphing_thetas().</dd>
+<dt>n_samples :</dt>
+<dd>Total number of samples to be drawn.</dd>
+<dt>folder :</dt>
+<dd>Folder for the resulting samples.</dd>
+<dt>filename :</dt>
+<dd>Label for the filenames. The actual filenames will add a prefix such as ‘x’, and the extension
+‘.npy’.</dd>
+<dt>test_split :</dt>
+<dd>Fraction of events reserved for the test sample (will not be used for any training samples). (Default value = 0.3)</dd>
+</dl>
 </dd></dl>
 
 </dd></dl>
 
 <dl class="function">
 <dt id="madminer.sampling.combine_and_shuffle">
-<code class="descclassname">madminer.sampling.</code><code class="descname">combine_and_shuffle</code><span class="sig-paren">(</span><em>input_filenames</em>, <em>output_filename</em>, <em>overwrite_existing_file=True</em>, <em>debug=False</em><span class="sig-paren">)</span><a class="headerlink" href="#madminer.sampling.combine_and_shuffle" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">madminer.sampling.</code><code class="descname">combine_and_shuffle</code><span class="sig-paren">(</span><em>input_filenames</em>, <em>output_filename</em>, <em>overwrite_existing_file=True</em>, <em>debug=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/sampling.html#combine_and_shuffle"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.sampling.combine_and_shuffle" title="Permalink to this definition">¶</a></dt>
 <dd><p>Combines multiple HDF5 files into one, and shuffles the order of the events. It is recommended to run this tool
 before the Refinery.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>input_filenames</strong> – list of filenames of the input HDF5 files</li>
-<li><strong>output_filename</strong> – filename for the output HDF5 file</li>
-<li><strong>overwrite_existing_file</strong> – </li>
-<li><strong>debug</strong> – </li>
-</ul>
-</td>
-</tr>
-</tbody>
-</table>
+<dl class="docutils">
+<dt>input_filenames :</dt>
+<dd>list of filenames of the input HDF5 files</dd>
+<dt>output_filename :</dt>
+<dd>filename for the output HDF5 file</dd>
+<dt>overwrite_existing_file :</dt>
+<dd>param debug: (Default value = True)</dd>
+<dt>debug :</dt>
+<dd>(Default value = False)</dd>
+</dl>
 </dd></dl>
 
 <dl class="function">
 <dt id="madminer.sampling.constant_benchmark_theta">
-<code class="descclassname">madminer.sampling.</code><code class="descname">constant_benchmark_theta</code><span class="sig-paren">(</span><em>benchmark_name</em><span class="sig-paren">)</span><a class="headerlink" href="#madminer.sampling.constant_benchmark_theta" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<code class="descclassname">madminer.sampling.</code><code class="descname">constant_benchmark_theta</code><span class="sig-paren">(</span><em>benchmark_name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/sampling.html#constant_benchmark_theta"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.sampling.constant_benchmark_theta" title="Permalink to this definition">¶</a></dt>
+<dd><p>benchmark_name :</p>
+</dd></dl>
 
 <dl class="function">
 <dt id="madminer.sampling.constant_morphing_theta">
-<code class="descclassname">madminer.sampling.</code><code class="descname">constant_morphing_theta</code><span class="sig-paren">(</span><em>theta</em><span class="sig-paren">)</span><a class="headerlink" href="#madminer.sampling.constant_morphing_theta" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<code class="descclassname">madminer.sampling.</code><code class="descname">constant_morphing_theta</code><span class="sig-paren">(</span><em>theta</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/sampling.html#constant_morphing_theta"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.sampling.constant_morphing_theta" title="Permalink to this definition">¶</a></dt>
+<dd><p>theta :</p>
+</dd></dl>
 
 <dl class="function">
 <dt id="madminer.sampling.multiple_benchmark_thetas">
-<code class="descclassname">madminer.sampling.</code><code class="descname">multiple_benchmark_thetas</code><span class="sig-paren">(</span><em>benchmark_names</em><span class="sig-paren">)</span><a class="headerlink" href="#madminer.sampling.multiple_benchmark_thetas" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<code class="descclassname">madminer.sampling.</code><code class="descname">multiple_benchmark_thetas</code><span class="sig-paren">(</span><em>benchmark_names</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/sampling.html#multiple_benchmark_thetas"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.sampling.multiple_benchmark_thetas" title="Permalink to this definition">¶</a></dt>
+<dd><p>benchmark_names :</p>
+</dd></dl>
 
 <dl class="function">
 <dt id="madminer.sampling.multiple_morphing_thetas">
-<code class="descclassname">madminer.sampling.</code><code class="descname">multiple_morphing_thetas</code><span class="sig-paren">(</span><em>thetas</em><span class="sig-paren">)</span><a class="headerlink" href="#madminer.sampling.multiple_morphing_thetas" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<code class="descclassname">madminer.sampling.</code><code class="descname">multiple_morphing_thetas</code><span class="sig-paren">(</span><em>thetas</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/sampling.html#multiple_morphing_thetas"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.sampling.multiple_morphing_thetas" title="Permalink to this definition">¶</a></dt>
+<dd><p>thetas :</p>
+</dd></dl>
 
 <dl class="function">
 <dt id="madminer.sampling.random_morphing_thetas">
-<code class="descclassname">madminer.sampling.</code><code class="descname">random_morphing_thetas</code><span class="sig-paren">(</span><em>n_thetas</em>, <em>priors</em><span class="sig-paren">)</span><a class="headerlink" href="#madminer.sampling.random_morphing_thetas" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<code class="descclassname">madminer.sampling.</code><code class="descname">random_morphing_thetas</code><span class="sig-paren">(</span><em>n_thetas</em>, <em>priors</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/sampling.html#random_morphing_thetas"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.sampling.random_morphing_thetas" title="Permalink to this definition">¶</a></dt>
+<dd><p>n_thetas :</p>
+<p>priors :</p>
+</dd></dl>
 
 </div>
 <div class="section" id="module-madminer">
@@ -1232,7 +1590,7 @@ before the Refinery.</p>
       <div class="clearer"></div>
     </div>
     <div class="footer">
-      &copy;2018, Johann Brehmer, Kyle Cranmer, Felix Kling.
+      &copy;2018, Johann Brehmer, Kyle Cranmer, and Felix Kling.
       
       |
       Powered by <a href="http://sphinx-doc.org/">Sphinx 1.8.1</a>

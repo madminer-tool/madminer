@@ -1,0 +1,766 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>madminer.ml &#8212; MadMiner  documentation</title>
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for madminer.ml</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">absolute_import</span><span class="p">,</span> <span class="n">division</span><span class="p">,</span> <span class="n">print_function</span>
+
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">import</span> <span class="nn">torch</span>
+
+<span class="kn">from</span> <span class="nn">madminer.utils.ml</span> <span class="k">import</span> <span class="n">ratio_losses</span><span class="p">,</span> <span class="n">flow_losses</span>
+<span class="kn">from</span> <span class="nn">madminer.utils.ml.models.maf</span> <span class="k">import</span> <span class="n">ConditionalMaskedAutoregressiveFlow</span>
+<span class="kn">from</span> <span class="nn">madminer.utils.ml.models.maf_mog</span> <span class="k">import</span> <span class="n">ConditionalMixtureMaskedAutoregressiveFlow</span>
+<span class="kn">from</span> <span class="nn">madminer.utils.ml.models.ratio</span> <span class="k">import</span> <span class="n">ParameterizedRatioEstimator</span><span class="p">,</span> <span class="n">DoublyParameterizedRatioEstimator</span>
+<span class="kn">from</span> <span class="nn">madminer.utils.ml.models.score</span> <span class="k">import</span> <span class="n">LocalScoreEstimator</span>
+<span class="kn">from</span> <span class="nn">madminer.utils.ml.flow_trainer</span> <span class="k">import</span> <span class="n">train_flow_model</span><span class="p">,</span> <span class="n">evaluate_flow_model</span>
+<span class="kn">from</span> <span class="nn">madminer.utils.ml.ratio_trainer</span> <span class="k">import</span> <span class="n">train_ratio_model</span><span class="p">,</span> <span class="n">evaluate_ratio_model</span>
+<span class="kn">from</span> <span class="nn">madminer.utils.ml.score_trainer</span> <span class="k">import</span> <span class="n">train_local_score_model</span><span class="p">,</span> <span class="n">evaluate_local_score_model</span>
+<span class="kn">from</span> <span class="nn">madminer.utils.various</span> <span class="k">import</span> <span class="n">create_missing_folders</span><span class="p">,</span> <span class="n">load_and_check</span><span class="p">,</span> <span class="n">general_init</span>
+
+
+<div class="viewcode-block" id="MLForge"><a class="viewcode-back" href="../../madminer.html#madminer.ml.MLForge">[docs]</a><span class="k">class</span> <span class="nc">MLForge</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot; &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">debug</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="n">general_init</span><span class="p">(</span><span class="n">debug</span><span class="o">=</span><span class="n">debug</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">method_type</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">method</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nde_type</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_observables</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_parameters</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_hidden</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">activation</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">maf_n_mades</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">maf_batch_norm</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">maf_batch_norm_alpha</span> <span class="o">=</span> <span class="kc">None</span>
+
+<div class="viewcode-block" id="MLForge.train"><a class="viewcode-back" href="../../madminer.html#madminer.ml.MLForge.train">[docs]</a>    <span class="k">def</span> <span class="nf">train</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+              <span class="n">method</span><span class="p">,</span>
+              <span class="n">x_filename</span><span class="p">,</span>
+              <span class="n">y_filename</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+              <span class="n">theta0_filename</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+              <span class="n">theta1_filename</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+              <span class="n">r_xz_filename</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+              <span class="n">t_xz0_filename</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+              <span class="n">t_xz1_filename</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+              <span class="n">features</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+              <span class="n">nde_type</span><span class="o">=</span><span class="s1">&#39;maf&#39;</span><span class="p">,</span>
+              <span class="n">n_hidden</span><span class="o">=</span><span class="p">(</span><span class="mi">100</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span> <span class="mi">100</span><span class="p">),</span>
+              <span class="n">activation</span><span class="o">=</span><span class="s1">&#39;tanh&#39;</span><span class="p">,</span>
+              <span class="n">maf_n_mades</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+              <span class="n">maf_batch_norm</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+              <span class="n">maf_batch_norm_alpha</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
+              <span class="n">maf_mog_n_components</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+              <span class="n">alpha</span><span class="o">=</span><span class="mf">1.</span><span class="p">,</span>
+              <span class="n">n_epochs</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>
+              <span class="n">batch_size</span><span class="o">=</span><span class="mi">64</span><span class="p">,</span>
+              <span class="n">initial_lr</span><span class="o">=</span><span class="mf">0.001</span><span class="p">,</span>
+              <span class="n">final_lr</span><span class="o">=</span><span class="mf">0.0001</span><span class="p">,</span>
+              <span class="n">validation_split</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span>
+              <span class="n">early_stopping</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+
+        <span class="sd">&quot;&quot;&quot;Trains likelihood ratio estimator</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        method :</span>
+<span class="sd">            </span>
+<span class="sd">        x_filename :</span>
+<span class="sd">            </span>
+<span class="sd">        y_filename :</span>
+<span class="sd">             (Default value = None)</span>
+<span class="sd">        theta0_filename :</span>
+<span class="sd">             (Default value = None)</span>
+<span class="sd">        theta1_filename :</span>
+<span class="sd">             (Default value = None)</span>
+<span class="sd">        r_xz_filename :</span>
+<span class="sd">             (Default value = None)</span>
+<span class="sd">        t_xz0_filename :</span>
+<span class="sd">             (Default value = None)</span>
+<span class="sd">        t_xz1_filename :</span>
+<span class="sd">             (Default value = None)</span>
+<span class="sd">        features :</span>
+<span class="sd">             (Default value = None)</span>
+<span class="sd">        nde_type :</span>
+<span class="sd">             (Default value = &#39;maf&#39;)</span>
+<span class="sd">        n_hidden :</span>
+<span class="sd">             (Default value = (100)</span>
+<span class="sd">        100 :</span>
+<span class="sd">            </span>
+<span class="sd">        100) :</span>
+<span class="sd">            </span>
+<span class="sd">        activation :</span>
+<span class="sd">             (Default value = &#39;tanh&#39;)</span>
+<span class="sd">        maf_n_mades :</span>
+<span class="sd">             (Default value = 3)</span>
+<span class="sd">        maf_batch_norm :</span>
+<span class="sd">             (Default value = True)</span>
+<span class="sd">        maf_batch_norm_alpha :</span>
+<span class="sd">             (Default value = 0.1)</span>
+<span class="sd">        maf_mog_n_components :</span>
+<span class="sd">             (Default value = 10)</span>
+<span class="sd">        alpha :</span>
+<span class="sd">             (Default value = 1.)</span>
+<span class="sd">        n_epochs :</span>
+<span class="sd">             (Default value = 20)</span>
+<span class="sd">        batch_size :</span>
+<span class="sd">             (Default value = 64)</span>
+<span class="sd">        initial_lr :</span>
+<span class="sd">             (Default value = 0.001)</span>
+<span class="sd">        final_lr :</span>
+<span class="sd">             (Default value = 0.0001)</span>
+<span class="sd">        validation_split :</span>
+<span class="sd">             (Default value = 0.2)</span>
+<span class="sd">        early_stopping :</span>
+<span class="sd">             (Default value = True)</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Starting training&#39;</span><span class="p">)</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;  Method:                 </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">method</span><span class="p">)</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;  Training data: x at </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">x_filename</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">theta0_filename</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;                 theta0 at </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">theta0_filename</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">theta1_filename</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;                 theta1 at </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">theta1_filename</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">y_filename</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;                 y at </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">y_filename</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">r_xz_filename</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;                 r_xz at </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">r_xz_filename</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">t_xz0_filename</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;                 t_xz (theta0) at  </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">t_xz0_filename</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">t_xz1_filename</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;                 t_xz (theta1) at  </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">t_xz1_filename</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">features</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;  Features:               all&#39;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;  Features:               </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">features</span><span class="p">)</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;  Method:                 </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">method</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">method</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;nde&#39;</span><span class="p">,</span> <span class="s1">&#39;scandal&#39;</span><span class="p">]:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;  Neural density est.:    </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">nde_type</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">method</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;nde&#39;</span><span class="p">,</span> <span class="s1">&#39;scandal&#39;</span><span class="p">]:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;  Hidden layers:          </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">n_hidden</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">method</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;nde&#39;</span><span class="p">,</span> <span class="s1">&#39;scandal&#39;</span><span class="p">]:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;  MAF, number MADEs:      </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">maf_n_mades</span><span class="p">)</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;  MAF, batch norm:        </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">maf_batch_norm</span><span class="p">)</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;  MAF, BN alpha:          </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">maf_batch_norm_alpha</span><span class="p">)</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;  MAF MoG, components:    </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">maf_mog_n_components</span><span class="p">)</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;  Activation function:    </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">activation</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">method</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;cascal&#39;</span><span class="p">,</span> <span class="s1">&#39;cascal2&#39;</span><span class="p">,</span> <span class="s1">&#39;rascal&#39;</span><span class="p">,</span> <span class="s1">&#39;rascal2&#39;</span><span class="p">,</span> <span class="s1">&#39;scandal&#39;</span><span class="p">]:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;  alpha:                  </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">alpha</span><span class="p">)</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;  Batch size:             </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">)</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;  Epochs:                 </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">n_epochs</span><span class="p">)</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;  Learning rate:          </span><span class="si">%s</span><span class="s1"> initially, decaying to </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">initial_lr</span><span class="p">,</span> <span class="n">final_lr</span><span class="p">)</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;  Validation split:       </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">validation_split</span><span class="p">)</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;  Early stopping:         </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">early_stopping</span><span class="p">)</span>
+
+        <span class="c1"># Load training data</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Loading training data&#39;</span><span class="p">)</span>
+
+        <span class="n">theta0</span> <span class="o">=</span> <span class="n">load_and_check</span><span class="p">(</span><span class="n">theta0_filename</span><span class="p">)</span>
+        <span class="n">theta1</span> <span class="o">=</span> <span class="n">load_and_check</span><span class="p">(</span><span class="n">theta1_filename</span><span class="p">)</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">load_and_check</span><span class="p">(</span><span class="n">x_filename</span><span class="p">)</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="n">load_and_check</span><span class="p">(</span><span class="n">y_filename</span><span class="p">)</span>
+        <span class="n">r_xz</span> <span class="o">=</span> <span class="n">load_and_check</span><span class="p">(</span><span class="n">r_xz_filename</span><span class="p">)</span>
+        <span class="n">t_xz0</span> <span class="o">=</span> <span class="n">load_and_check</span><span class="p">(</span><span class="n">t_xz0_filename</span><span class="p">)</span>
+        <span class="n">t_xz1</span> <span class="o">=</span> <span class="n">load_and_check</span><span class="p">(</span><span class="n">t_xz1_filename</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">y</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">y</span> <span class="o">=</span> <span class="n">y</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+
+        <span class="c1"># Check necessary information is theere</span>
+        <span class="k">assert</span> <span class="n">x</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">method</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;nde&#39;</span><span class="p">,</span> <span class="s1">&#39;scandal&#39;</span><span class="p">,</span> <span class="s1">&#39;rolr&#39;</span><span class="p">,</span> <span class="s1">&#39;alice&#39;</span><span class="p">,</span> <span class="s1">&#39;rascal&#39;</span><span class="p">,</span> <span class="s1">&#39;alices&#39;</span><span class="p">,</span> <span class="s1">&#39;rolr2&#39;</span><span class="p">,</span> <span class="s1">&#39;alice2&#39;</span><span class="p">,</span> <span class="s1">&#39;rascal2&#39;</span><span class="p">,</span> <span class="s1">&#39;alices2&#39;</span><span class="p">]:</span>
+            <span class="k">assert</span> <span class="n">theta0</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">method</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;rolr&#39;</span><span class="p">,</span> <span class="s1">&#39;alice&#39;</span><span class="p">,</span> <span class="s1">&#39;rascal&#39;</span><span class="p">,</span> <span class="s1">&#39;alices&#39;</span><span class="p">,</span> <span class="s1">&#39;rolr2&#39;</span><span class="p">,</span> <span class="s1">&#39;alice2&#39;</span><span class="p">,</span> <span class="s1">&#39;rascal2&#39;</span><span class="p">,</span> <span class="s1">&#39;alices2&#39;</span><span class="p">]:</span>
+            <span class="k">assert</span> <span class="n">r_xz</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="k">assert</span> <span class="n">y</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">method</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;scandal&#39;</span><span class="p">,</span> <span class="s1">&#39;rascal&#39;</span><span class="p">,</span> <span class="s1">&#39;alices&#39;</span><span class="p">,</span> <span class="s1">&#39;rascal2&#39;</span><span class="p">,</span> <span class="s1">&#39;alices2&#39;</span><span class="p">,</span> <span class="s1">&#39;sally&#39;</span><span class="p">,</span> <span class="s1">&#39;sallino&#39;</span><span class="p">]:</span>
+            <span class="k">assert</span> <span class="n">t_xz0</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">method</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;carl2&#39;</span><span class="p">,</span> <span class="s1">&#39;rolr2&#39;</span><span class="p">,</span> <span class="s1">&#39;alice2&#39;</span><span class="p">,</span> <span class="s1">&#39;rascal2&#39;</span><span class="p">,</span> <span class="s1">&#39;alices2&#39;</span><span class="p">]:</span>
+            <span class="k">assert</span> <span class="n">theta1</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">method</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;rascal2&#39;</span><span class="p">,</span> <span class="s1">&#39;alices2&#39;</span><span class="p">]:</span>
+            <span class="k">assert</span> <span class="n">t_xz1</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+
+        <span class="k">if</span> <span class="n">method</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;nde&#39;</span><span class="p">,</span> <span class="s1">&#39;scandal&#39;</span><span class="p">]:</span>
+            <span class="k">assert</span> <span class="n">nde_type</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;maf&#39;</span><span class="p">,</span> <span class="s1">&#39;maf_mog&#39;</span><span class="p">]</span>
+
+        <span class="c1"># Infer dimensions of problem</span>
+        <span class="n">n_samples</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">n_observables</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">theta0</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">n_parameters</span> <span class="o">=</span> <span class="n">theta0</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">n_parameters</span> <span class="o">=</span> <span class="n">t_xz0</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Found </span><span class="si">%s</span><span class="s1"> samples with </span><span class="si">%s</span><span class="s1"> parameters and </span><span class="si">%s</span><span class="s1"> observables&#39;</span><span class="p">,</span> <span class="n">n_samples</span><span class="p">,</span> <span class="n">n_parameters</span><span class="p">,</span> <span class="n">n_observables</span><span class="p">)</span>
+
+        <span class="c1"># Features</span>
+        <span class="k">if</span> <span class="n">features</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="p">[:,</span> <span class="n">features</span><span class="p">]</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Only using </span><span class="si">%s</span><span class="s1"> of </span><span class="si">%s</span><span class="s1"> observables&#39;</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">n_observables</span><span class="p">)</span>
+            <span class="n">n_observables</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+        <span class="c1"># Save setup</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">method</span> <span class="o">=</span> <span class="n">method</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_observables</span> <span class="o">=</span> <span class="n">n_observables</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_parameters</span> <span class="o">=</span> <span class="n">n_parameters</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_hidden</span> <span class="o">=</span> <span class="n">n_hidden</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">activation</span> <span class="o">=</span> <span class="n">activation</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">maf_n_mades</span> <span class="o">=</span> <span class="n">maf_n_mades</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">maf_batch_norm</span> <span class="o">=</span> <span class="n">maf_batch_norm</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">maf_batch_norm_alpha</span> <span class="o">=</span> <span class="n">maf_batch_norm_alpha</span>
+
+        <span class="c1"># Create model</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Creating model for method </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">method</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">method</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;carl&#39;</span><span class="p">,</span> <span class="s1">&#39;rolr&#39;</span><span class="p">,</span> <span class="s1">&#39;rascal&#39;</span><span class="p">,</span> <span class="s1">&#39;alice&#39;</span><span class="p">,</span> <span class="s1">&#39;alices&#39;</span><span class="p">]:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">method_type</span> <span class="o">=</span> <span class="s1">&#39;parameterized&#39;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">ParameterizedRatioEstimator</span><span class="p">(</span>
+                <span class="n">n_observables</span><span class="o">=</span><span class="n">n_observables</span><span class="p">,</span>
+                <span class="n">n_parameters</span><span class="o">=</span><span class="n">n_parameters</span><span class="p">,</span>
+                <span class="n">n_hidden</span><span class="o">=</span><span class="n">n_hidden</span><span class="p">,</span>
+                <span class="n">activation</span><span class="o">=</span><span class="n">activation</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="n">method</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;carl2&#39;</span><span class="p">,</span> <span class="s1">&#39;rolr2&#39;</span><span class="p">,</span> <span class="s1">&#39;rascal2&#39;</span><span class="p">,</span> <span class="s1">&#39;alice2&#39;</span><span class="p">,</span> <span class="s1">&#39;alices2&#39;</span><span class="p">]:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">method_type</span> <span class="o">=</span> <span class="s1">&#39;doubly_parameterized&#39;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">DoublyParameterizedRatioEstimator</span><span class="p">(</span>
+                <span class="n">n_observables</span><span class="o">=</span><span class="n">n_observables</span><span class="p">,</span>
+                <span class="n">n_parameters</span><span class="o">=</span><span class="n">n_parameters</span><span class="p">,</span>
+                <span class="n">n_hidden</span><span class="o">=</span><span class="n">n_hidden</span><span class="p">,</span>
+                <span class="n">activation</span><span class="o">=</span><span class="n">activation</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="n">method</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;sally&#39;</span><span class="p">,</span> <span class="s1">&#39;sallino&#39;</span><span class="p">]:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">method_type</span> <span class="o">=</span> <span class="s1">&#39;local_score&#39;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">LocalScoreEstimator</span><span class="p">(</span>
+                <span class="n">n_observables</span><span class="o">=</span><span class="n">n_observables</span><span class="p">,</span>
+                <span class="n">n_parameters</span><span class="o">=</span><span class="n">n_parameters</span><span class="p">,</span>
+                <span class="n">n_hidden</span><span class="o">=</span><span class="n">n_hidden</span><span class="p">,</span>
+                <span class="n">activation</span><span class="o">=</span><span class="n">activation</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="n">method</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;nde&#39;</span><span class="p">,</span> <span class="s1">&#39;scandal&#39;</span><span class="p">]:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">method_type</span> <span class="o">=</span> <span class="s1">&#39;nde&#39;</span>
+            <span class="k">if</span> <span class="n">nde_type</span> <span class="o">==</span> <span class="s1">&#39;maf&#39;</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">ConditionalMaskedAutoregressiveFlow</span><span class="p">(</span>
+                    <span class="n">n_conditionals</span><span class="o">=</span><span class="n">n_parameters</span><span class="p">,</span>
+                    <span class="n">n_inputs</span><span class="o">=</span><span class="n">n_observables</span><span class="p">,</span>
+                    <span class="n">n_hiddens</span><span class="o">=</span><span class="n">n_hidden</span><span class="p">,</span>
+                    <span class="n">n_mades</span><span class="o">=</span><span class="n">maf_n_mades</span><span class="p">,</span>
+                    <span class="n">activation</span><span class="o">=</span><span class="n">activation</span><span class="p">,</span>
+                    <span class="n">batch_norm</span><span class="o">=</span><span class="n">maf_batch_norm</span><span class="p">,</span>
+                    <span class="n">alpha</span><span class="o">=</span><span class="n">maf_batch_norm_alpha</span>
+                <span class="p">)</span>
+            <span class="k">elif</span> <span class="n">nde_type</span> <span class="o">==</span> <span class="s1">&#39;maf_mog&#39;</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">ConditionalMixtureMaskedAutoregressiveFlow</span><span class="p">(</span>
+                    <span class="n">n_conditionals</span><span class="o">=</span><span class="n">n_parameters</span><span class="p">,</span>
+                    <span class="n">n_inputs</span><span class="o">=</span><span class="n">n_observables</span><span class="p">,</span>
+                    <span class="n">n_components</span><span class="o">=</span><span class="n">maf_mog_n_components</span><span class="p">,</span>
+                    <span class="n">n_hiddens</span><span class="o">=</span><span class="n">n_hidden</span><span class="p">,</span>
+                    <span class="n">n_mades</span><span class="o">=</span><span class="n">maf_n_mades</span><span class="p">,</span>
+                    <span class="n">activation</span><span class="o">=</span><span class="n">activation</span><span class="p">,</span>
+                    <span class="n">batch_norm</span><span class="o">=</span><span class="n">maf_batch_norm</span><span class="p">,</span>
+                    <span class="n">alpha</span><span class="o">=</span><span class="n">maf_batch_norm_alpha</span>
+                <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Unknown method </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">method</span><span class="p">))</span>
+
+        <span class="c1"># Loss fn</span>
+        <span class="k">if</span> <span class="n">method</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;carl&#39;</span><span class="p">,</span> <span class="s1">&#39;carl2&#39;</span><span class="p">]:</span>
+            <span class="n">loss_functions</span> <span class="o">=</span> <span class="p">[</span><span class="n">ratio_losses</span><span class="o">.</span><span class="n">standard_cross_entropy</span><span class="p">]</span>
+            <span class="n">loss_weights</span> <span class="o">=</span> <span class="p">[</span><span class="mf">1.</span><span class="p">]</span>
+            <span class="n">loss_labels</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;xe&#39;</span><span class="p">]</span>
+
+        <span class="k">elif</span> <span class="n">method</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;rolr&#39;</span><span class="p">,</span> <span class="s1">&#39;rolr2&#39;</span><span class="p">]:</span>
+            <span class="n">loss_functions</span> <span class="o">=</span> <span class="p">[</span><span class="n">ratio_losses</span><span class="o">.</span><span class="n">ratio_mse</span><span class="p">]</span>
+            <span class="n">loss_weights</span> <span class="o">=</span> <span class="p">[</span><span class="mf">1.</span><span class="p">]</span>
+            <span class="n">loss_labels</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;mse_r&#39;</span><span class="p">]</span>
+
+        <span class="k">elif</span> <span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;rascal&#39;</span><span class="p">:</span>
+            <span class="n">loss_functions</span> <span class="o">=</span> <span class="p">[</span><span class="n">ratio_losses</span><span class="o">.</span><span class="n">ratio_mse</span><span class="p">,</span> <span class="n">ratio_losses</span><span class="o">.</span><span class="n">score_mse_num</span><span class="p">]</span>
+            <span class="n">loss_weights</span> <span class="o">=</span> <span class="p">[</span><span class="mf">1.</span><span class="p">,</span> <span class="n">alpha</span><span class="p">]</span>
+            <span class="n">loss_labels</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;mse_r&#39;</span><span class="p">,</span> <span class="s1">&#39;mse_score&#39;</span><span class="p">]</span>
+
+        <span class="k">elif</span> <span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;rascal2&#39;</span><span class="p">:</span>
+            <span class="n">loss_functions</span> <span class="o">=</span> <span class="p">[</span><span class="n">ratio_losses</span><span class="o">.</span><span class="n">ratio_mse</span><span class="p">,</span> <span class="n">ratio_losses</span><span class="o">.</span><span class="n">score_mse</span><span class="p">]</span>
+            <span class="n">loss_weights</span> <span class="o">=</span> <span class="p">[</span><span class="mf">1.</span><span class="p">,</span> <span class="n">alpha</span><span class="p">]</span>
+            <span class="n">loss_labels</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;mse_r&#39;</span><span class="p">,</span> <span class="s1">&#39;mse_score&#39;</span><span class="p">]</span>
+
+        <span class="k">elif</span> <span class="n">method</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;alice&#39;</span><span class="p">,</span> <span class="s1">&#39;alice2&#39;</span><span class="p">]:</span>
+            <span class="n">loss_functions</span> <span class="o">=</span> <span class="p">[</span><span class="n">ratio_losses</span><span class="o">.</span><span class="n">augmented_cross_entropy</span><span class="p">]</span>
+            <span class="n">loss_weights</span> <span class="o">=</span> <span class="p">[</span><span class="mf">1.</span><span class="p">]</span>
+            <span class="n">loss_labels</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;improved_xe&#39;</span><span class="p">]</span>
+
+        <span class="k">elif</span> <span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;alices&#39;</span><span class="p">:</span>
+            <span class="n">loss_functions</span> <span class="o">=</span> <span class="p">[</span><span class="n">ratio_losses</span><span class="o">.</span><span class="n">augmented_cross_entropy</span><span class="p">,</span> <span class="n">ratio_losses</span><span class="o">.</span><span class="n">score_mse_num</span><span class="p">]</span>
+            <span class="n">loss_weights</span> <span class="o">=</span> <span class="p">[</span><span class="mf">1.</span><span class="p">,</span> <span class="n">alpha</span><span class="p">]</span>
+            <span class="n">loss_labels</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;improved_xe&#39;</span><span class="p">,</span> <span class="s1">&#39;mse_score&#39;</span><span class="p">]</span>
+
+        <span class="k">elif</span> <span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;alices2&#39;</span><span class="p">:</span>
+            <span class="n">loss_functions</span> <span class="o">=</span> <span class="p">[</span><span class="n">ratio_losses</span><span class="o">.</span><span class="n">augmented_cross_entropy</span><span class="p">,</span> <span class="n">ratio_losses</span><span class="o">.</span><span class="n">score_mse</span><span class="p">]</span>
+            <span class="n">loss_weights</span> <span class="o">=</span> <span class="p">[</span><span class="mf">1.</span><span class="p">,</span> <span class="n">alpha</span><span class="p">]</span>
+            <span class="n">loss_labels</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;improved_xe&#39;</span><span class="p">,</span> <span class="s1">&#39;mse_score&#39;</span><span class="p">]</span>
+
+        <span class="k">elif</span> <span class="n">method</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;sally&#39;</span><span class="p">,</span> <span class="s1">&#39;sallino&#39;</span><span class="p">]:</span>
+            <span class="n">loss_functions</span> <span class="o">=</span> <span class="p">[</span><span class="n">ratio_losses</span><span class="o">.</span><span class="n">local_score_mse</span><span class="p">]</span>
+            <span class="n">loss_weights</span> <span class="o">=</span> <span class="p">[</span><span class="mf">1.</span><span class="p">]</span>
+            <span class="n">loss_labels</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;mse_score&#39;</span><span class="p">]</span>
+
+        <span class="k">elif</span> <span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;nde&#39;</span><span class="p">:</span>
+            <span class="n">loss_functions</span> <span class="o">=</span> <span class="p">[</span><span class="n">flow_losses</span><span class="o">.</span><span class="n">negative_log_likelihood</span><span class="p">]</span>
+            <span class="n">loss_weights</span> <span class="o">=</span> <span class="p">[</span><span class="mf">1.</span><span class="p">]</span>
+            <span class="n">loss_labels</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;nll&#39;</span><span class="p">]</span>
+
+        <span class="k">elif</span> <span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;scandal&#39;</span><span class="p">:</span>
+            <span class="n">loss_functions</span> <span class="o">=</span> <span class="p">[</span><span class="n">flow_losses</span><span class="o">.</span><span class="n">negative_log_likelihood</span><span class="p">,</span> <span class="n">flow_losses</span><span class="o">.</span><span class="n">score_mse</span><span class="p">]</span>
+            <span class="n">loss_weights</span> <span class="o">=</span> <span class="p">[</span><span class="mf">1.</span><span class="p">,</span> <span class="n">alpha</span><span class="p">]</span>
+            <span class="n">loss_labels</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;nll&#39;</span><span class="p">,</span> <span class="s1">&#39;mse_score&#39;</span><span class="p">]</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Unknown method </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">method</span><span class="p">))</span>
+
+        <span class="c1"># Train model</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Training model&#39;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">method</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;sally&#39;</span><span class="p">,</span> <span class="s1">&#39;sallino&#39;</span><span class="p">]:</span>
+            <span class="n">train_local_score_model</span><span class="p">(</span>
+                <span class="n">model</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">,</span>
+                <span class="n">loss_functions</span><span class="o">=</span><span class="n">loss_functions</span><span class="p">,</span>
+                <span class="n">loss_weights</span><span class="o">=</span><span class="n">loss_weights</span><span class="p">,</span>
+                <span class="n">loss_labels</span><span class="o">=</span><span class="n">loss_labels</span><span class="p">,</span>
+                <span class="n">xs</span><span class="o">=</span><span class="n">x</span><span class="p">,</span>
+                <span class="n">t_xzs</span><span class="o">=</span><span class="n">t_xz0</span><span class="p">,</span>
+                <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">,</span>
+                <span class="n">n_epochs</span><span class="o">=</span><span class="n">n_epochs</span><span class="p">,</span>
+                <span class="n">initial_learning_rate</span><span class="o">=</span><span class="n">initial_lr</span><span class="p">,</span>
+                <span class="n">final_learning_rate</span><span class="o">=</span><span class="n">final_lr</span><span class="p">,</span>
+                <span class="n">validation_split</span><span class="o">=</span><span class="n">validation_split</span><span class="p">,</span>
+                <span class="n">early_stopping</span><span class="o">=</span><span class="n">early_stopping</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="n">method</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;nde&#39;</span><span class="p">,</span> <span class="s1">&#39;scandal&#39;</span><span class="p">]:</span>
+            <span class="n">train_flow_model</span><span class="p">(</span>
+                <span class="n">model</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">,</span>
+                <span class="n">loss_functions</span><span class="o">=</span><span class="n">loss_functions</span><span class="p">,</span>
+                <span class="n">loss_weights</span><span class="o">=</span><span class="n">loss_weights</span><span class="p">,</span>
+                <span class="n">loss_labels</span><span class="o">=</span><span class="n">loss_labels</span><span class="p">,</span>
+                <span class="n">xs</span><span class="o">=</span><span class="n">x</span><span class="p">,</span>
+                <span class="n">t_xz0s</span><span class="o">=</span><span class="n">t_xz0</span><span class="p">,</span>
+                <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">,</span>
+                <span class="n">n_epochs</span><span class="o">=</span><span class="n">n_epochs</span><span class="p">,</span>
+                <span class="n">initial_learning_rate</span><span class="o">=</span><span class="n">initial_lr</span><span class="p">,</span>
+                <span class="n">final_learning_rate</span><span class="o">=</span><span class="n">final_lr</span><span class="p">,</span>
+                <span class="n">validation_split</span><span class="o">=</span><span class="n">validation_split</span><span class="p">,</span>
+                <span class="n">early_stopping</span><span class="o">=</span><span class="n">early_stopping</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">train_ratio_model</span><span class="p">(</span>
+                <span class="n">model</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">,</span>
+                <span class="n">method_type</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">method_type</span><span class="p">,</span>
+                <span class="n">loss_functions</span><span class="o">=</span><span class="n">loss_functions</span><span class="p">,</span>
+                <span class="n">loss_weights</span><span class="o">=</span><span class="n">loss_weights</span><span class="p">,</span>
+                <span class="n">loss_labels</span><span class="o">=</span><span class="n">loss_labels</span><span class="p">,</span>
+                <span class="n">theta0s</span><span class="o">=</span><span class="n">theta0</span><span class="p">,</span>
+                <span class="n">theta1s</span><span class="o">=</span><span class="n">theta1</span><span class="p">,</span>
+                <span class="n">xs</span><span class="o">=</span><span class="n">x</span><span class="p">,</span>
+                <span class="n">ys</span><span class="o">=</span><span class="n">y</span><span class="p">,</span>
+                <span class="n">r_xzs</span><span class="o">=</span><span class="n">r_xz</span><span class="p">,</span>
+                <span class="n">t_xz0s</span><span class="o">=</span><span class="n">t_xz0</span><span class="p">,</span>
+                <span class="n">t_xz1s</span><span class="o">=</span><span class="n">t_xz1</span><span class="p">,</span>
+                <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">,</span>
+                <span class="n">n_epochs</span><span class="o">=</span><span class="n">n_epochs</span><span class="p">,</span>
+                <span class="n">initial_learning_rate</span><span class="o">=</span><span class="n">initial_lr</span><span class="p">,</span>
+                <span class="n">final_learning_rate</span><span class="o">=</span><span class="n">final_lr</span><span class="p">,</span>
+                <span class="n">validation_split</span><span class="o">=</span><span class="n">validation_split</span><span class="p">,</span>
+                <span class="n">early_stopping</span><span class="o">=</span><span class="n">early_stopping</span>
+            <span class="p">)</span></div>
+
+<div class="viewcode-block" id="MLForge.evaluate"><a class="viewcode-back" href="../../madminer.html#madminer.ml.MLForge.evaluate">[docs]</a>    <span class="k">def</span> <span class="nf">evaluate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">x_filename</span><span class="p">,</span>
+                 <span class="n">theta0_filename</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">theta1_filename</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">test_all_combinations</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                 <span class="n">evaluate_score</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                 <span class="n">features</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+
+        <span class="sd">&quot;&quot;&quot;Predicts log likelihood ratio for all combinations of theta and x</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        x_filename :</span>
+<span class="sd">            </span>
+<span class="sd">        theta0_filename :</span>
+<span class="sd">             (Default value = None)</span>
+<span class="sd">        theta1_filename :</span>
+<span class="sd">             (Default value = None)</span>
+<span class="sd">        test_all_combinations :</span>
+<span class="sd">             (Default value = True)</span>
+<span class="sd">        evaluate_score :</span>
+<span class="sd">             (Default value = False)</span>
+<span class="sd">        features :</span>
+<span class="sd">             (Default value = None)</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;No model -- train or load model before evaluating it!&#39;</span><span class="p">)</span>
+
+        <span class="c1"># Load training data</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Loading evaluation data&#39;</span><span class="p">)</span>
+
+        <span class="n">theta0s</span> <span class="o">=</span> <span class="n">load_and_check</span><span class="p">(</span><span class="n">theta0_filename</span><span class="p">)</span>
+        <span class="n">theta1s</span> <span class="o">=</span> <span class="n">load_and_check</span><span class="p">(</span><span class="n">theta1_filename</span><span class="p">)</span>
+        <span class="n">xs</span> <span class="o">=</span> <span class="n">load_and_check</span><span class="p">(</span><span class="n">x_filename</span><span class="p">)</span>
+
+        <span class="c1"># Restrict featuers</span>
+        <span class="k">if</span> <span class="n">features</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">xs</span> <span class="o">=</span> <span class="n">xs</span><span class="p">[:,</span> <span class="n">features</span><span class="p">]</span>
+
+        <span class="c1"># Balance thetas</span>
+        <span class="k">if</span> <span class="n">theta1s</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">theta0s</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">theta1s</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">theta0s</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="n">theta1s</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">theta0s</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">theta1s</span><span class="p">)</span> <span class="o">&gt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">theta0s</span><span class="p">):</span>
+                <span class="n">theta0s</span> <span class="o">=</span> <span class="p">[</span><span class="n">theta0s</span><span class="p">[</span><span class="n">i</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="n">theta0s</span><span class="p">)]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">theta1s</span><span class="p">))]</span>
+            <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">theta1s</span><span class="p">)</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">theta0s</span><span class="p">):</span>
+                <span class="n">theta1s</span> <span class="o">=</span> <span class="p">[</span><span class="n">theta1s</span><span class="p">[</span><span class="n">i</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="n">theta1s</span><span class="p">)]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">theta0s</span><span class="p">))]</span>
+
+        <span class="c1"># Loop over thetas</span>
+        <span class="n">all_log_r_hat</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">all_t_hat0</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">all_t_hat1</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">method</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;sally&#39;</span><span class="p">,</span> <span class="s1">&#39;sallino&#39;</span><span class="p">]:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Starting score evaluation&#39;</span><span class="p">)</span>
+
+            <span class="n">all_t_hat</span> <span class="o">=</span> <span class="n">evaluate_local_score_model</span><span class="p">(</span>
+                <span class="n">model</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">,</span>
+                <span class="n">xs</span><span class="o">=</span><span class="n">xs</span>
+            <span class="p">)</span>
+
+            <span class="k">return</span> <span class="n">all_t_hat</span>
+
+        <span class="k">if</span> <span class="n">test_all_combinations</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Starting ratio evaluation for all combinations&#39;</span><span class="p">)</span>
+
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="n">theta0</span><span class="p">,</span> <span class="n">theta1</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">theta0s</span><span class="p">,</span> <span class="n">theta1s</span><span class="p">)):</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Starting ratio evaluation for thetas </span><span class="si">%s</span><span class="s1"> / </span><span class="si">%s</span><span class="s1">: </span><span class="si">%s</span><span class="s1"> vs </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span>
+                              <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">theta0s</span><span class="p">),</span> <span class="n">theta0</span><span class="p">,</span> <span class="n">theta1</span><span class="p">)</span>
+
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">method</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;nde&#39;</span><span class="p">,</span> <span class="s1">&#39;scandal&#39;</span><span class="p">]:</span>
+                    <span class="n">_</span><span class="p">,</span> <span class="n">log_r_hat</span><span class="p">,</span> <span class="n">t_hat0</span> <span class="o">=</span> <span class="n">evaluate_flow_model</span><span class="p">(</span>
+                        <span class="n">model</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">,</span>
+                        <span class="n">theta0s</span><span class="o">=</span><span class="p">[</span><span class="n">theta0</span><span class="p">],</span>
+                        <span class="n">xs</span><span class="o">=</span><span class="n">xs</span><span class="p">,</span>
+                        <span class="n">evaluate_score</span><span class="o">=</span><span class="n">evaluate_score</span>
+                    <span class="p">)</span>
+                    <span class="n">t_hat1</span> <span class="o">=</span> <span class="kc">None</span>
+
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">_</span><span class="p">,</span> <span class="n">log_r_hat</span><span class="p">,</span> <span class="n">t_hat0</span><span class="p">,</span> <span class="n">t_hat1</span> <span class="o">=</span> <span class="n">evaluate_ratio_model</span><span class="p">(</span>
+                        <span class="n">model</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">,</span>
+                        <span class="n">method_type</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">method_type</span><span class="p">,</span>
+                        <span class="n">theta0s</span><span class="o">=</span><span class="p">[</span><span class="n">theta0</span><span class="p">],</span>
+                        <span class="n">theta1s</span><span class="o">=</span><span class="p">[</span><span class="n">theta1</span><span class="p">]</span> <span class="k">if</span> <span class="n">theta1</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+                        <span class="n">xs</span><span class="o">=</span><span class="n">xs</span><span class="p">,</span>
+                        <span class="n">evaluate_score</span><span class="o">=</span><span class="n">evaluate_score</span>
+                    <span class="p">)</span>
+
+                <span class="n">all_log_r_hat</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">log_r_hat</span><span class="p">)</span>
+                <span class="n">all_t_hat0</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">t_hat0</span><span class="p">)</span>
+                <span class="n">all_t_hat1</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">t_hat1</span><span class="p">)</span>
+
+            <span class="n">all_log_r_hat</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">all_log_r_hat</span><span class="p">)</span>
+            <span class="n">all_t_hat0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">all_t_hat0</span><span class="p">)</span>
+            <span class="n">all_t_hat1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">all_t_hat1</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Starting ratio evaluation&#39;</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">method</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;nde&#39;</span><span class="p">,</span> <span class="s1">&#39;scandal&#39;</span><span class="p">]:</span>
+                <span class="n">_</span><span class="p">,</span> <span class="n">all_log_r_hat</span><span class="p">,</span> <span class="n">t_hat0</span> <span class="o">=</span> <span class="n">evaluate_flow_model</span><span class="p">(</span>
+                    <span class="n">model</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">,</span>
+                    <span class="n">theta0s</span><span class="o">=</span><span class="n">theta0s</span><span class="p">,</span>
+                    <span class="n">xs</span><span class="o">=</span><span class="n">xs</span><span class="p">,</span>
+                    <span class="n">evaluate_score</span><span class="o">=</span><span class="n">evaluate_score</span>
+                <span class="p">)</span>
+                <span class="n">all_t_hat1</span> <span class="o">=</span> <span class="kc">None</span>
+
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">_</span><span class="p">,</span> <span class="n">all_log_r_hat</span><span class="p">,</span> <span class="n">all_t_hat0</span><span class="p">,</span> <span class="n">all_t_hat1</span> <span class="o">=</span> <span class="n">evaluate_ratio_model</span><span class="p">(</span>
+                    <span class="n">model</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">,</span>
+                    <span class="n">method_type</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">method_type</span><span class="p">,</span>
+                    <span class="n">theta0s</span><span class="o">=</span><span class="n">theta0s</span><span class="p">,</span>
+                    <span class="n">theta1s</span><span class="o">=</span><span class="kc">None</span> <span class="k">if</span> <span class="kc">None</span> <span class="ow">in</span> <span class="n">theta1s</span> <span class="k">else</span> <span class="n">theta1s</span><span class="p">,</span>
+                    <span class="n">xs</span><span class="o">=</span><span class="n">xs</span><span class="p">,</span>
+                    <span class="n">evaluate_score</span><span class="o">=</span><span class="n">evaluate_score</span>
+                <span class="p">)</span>
+
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Evaluation done&#39;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">all_log_r_hat</span><span class="p">,</span> <span class="n">all_t_hat0</span><span class="p">,</span> <span class="n">all_t_hat1</span></div>
+
+<div class="viewcode-block" id="MLForge.calculate_fisher_information"><a class="viewcode-back" href="../../madminer.html#madminer.ml.MLForge.calculate_fisher_information">[docs]</a>    <span class="k">def</span> <span class="nf">calculate_fisher_information</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                                     <span class="n">x_filename</span><span class="p">,</span>
+                                     <span class="n">n_events</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                                     <span class="n">features</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+
+        <span class="sd">&quot;&quot;&quot;Calculates the expected kinematic Fisher information matrix. Note that x_filename has to be generated</span>
+<span class="sd">         according to the same theta that was used to define the score that SALLY / SALLINO was trained on!</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        x_filename :</span>
+<span class="sd">            </span>
+<span class="sd">        n_events :</span>
+<span class="sd">             (Default value = 1)</span>
+<span class="sd">        features :</span>
+<span class="sd">             (Default value = None)</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;No model -- train or load model before evaluating it!&#39;</span><span class="p">)</span>
+
+        <span class="c1"># Load training data</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Loading evaluation data&#39;</span><span class="p">)</span>
+        <span class="n">xs</span> <span class="o">=</span> <span class="n">load_and_check</span><span class="p">(</span><span class="n">x_filename</span><span class="p">)</span>
+        <span class="n">n_samples</span> <span class="o">=</span> <span class="n">xs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="c1"># Restrict featuers</span>
+        <span class="k">if</span> <span class="n">features</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">xs</span> <span class="o">=</span> <span class="n">xs</span><span class="p">[:,</span> <span class="n">features</span><span class="p">]</span>
+
+        <span class="c1"># Estimate scores</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">method</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;sally&#39;</span><span class="p">,</span> <span class="s1">&#39;sallino&#39;</span><span class="p">]:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Starting score evaluation&#39;</span><span class="p">)</span>
+
+            <span class="n">t_hats</span> <span class="o">=</span> <span class="n">evaluate_local_score_model</span><span class="p">(</span>
+                <span class="n">model</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">,</span>
+                <span class="n">xs</span><span class="o">=</span><span class="n">xs</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Fisher information calculation only implemented for SALLY estimators&#39;</span><span class="p">)</span>
+
+        <span class="c1"># Calculate Fisher information</span>
+        <span class="n">n_parameters</span> <span class="o">=</span> <span class="n">t_hats</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">fisher_information</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n_parameters</span><span class="p">,</span> <span class="n">n_parameters</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">t_hat</span> <span class="ow">in</span> <span class="n">t_hats</span><span class="p">:</span>
+            <span class="n">fisher_information</span> <span class="o">+=</span> <span class="n">np</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="n">t_hat</span><span class="p">,</span> <span class="n">t_hat</span><span class="p">)</span>
+        <span class="n">fisher_information</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">n_events</span><span class="p">)</span> <span class="o">/</span> <span class="nb">float</span><span class="p">(</span><span class="n">n_samples</span><span class="p">)</span> <span class="o">*</span> <span class="n">fisher_information</span>
+
+        <span class="c1"># Calculate expected score</span>
+        <span class="n">expected_score</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">t_hats</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Expected score (should be close to zero): </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">expected_score</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">fisher_information</span></div>
+
+<div class="viewcode-block" id="MLForge.save"><a class="viewcode-back" href="../../madminer.html#madminer.ml.MLForge.save">[docs]</a>    <span class="k">def</span> <span class="nf">save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+             <span class="n">filename</span><span class="p">):</span>
+
+        <span class="sd">&quot;&quot;&quot;Saves model state dict</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        filename :</span>
+<span class="sd">            </span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;No model -- train or load model before saving!&#39;</span><span class="p">)</span>
+
+        <span class="c1"># Check paths</span>
+        <span class="n">create_missing_folders</span><span class="p">([</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">filename</span><span class="p">)])</span>
+
+        <span class="c1"># Save settings</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Saving settings to </span><span class="si">%s</span><span class="s1">_settings.json&#39;</span><span class="p">,</span> <span class="n">filename</span><span class="p">)</span>
+
+        <span class="n">settings</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;method&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">method</span><span class="p">,</span>
+                    <span class="s1">&#39;method_type&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">method_type</span><span class="p">,</span>
+                    <span class="s1">&#39;n_observables&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_observables</span><span class="p">,</span>
+                    <span class="s1">&#39;n_parameters&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_parameters</span><span class="p">,</span>
+                    <span class="s1">&#39;n_hidden&#39;</span><span class="p">:</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_hidden</span><span class="p">),</span>
+                    <span class="s1">&#39;activation&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">activation</span><span class="p">}</span>
+
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span> <span class="o">+</span> <span class="s1">&#39;_settings.json&#39;</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">settings</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span>
+
+        <span class="c1"># Save state dict</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Saving state dictionary to </span><span class="si">%s</span><span class="s1">_state_dict.pt&#39;</span><span class="p">,</span> <span class="n">filename</span><span class="p">)</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">state_dict</span><span class="p">(),</span> <span class="n">filename</span> <span class="o">+</span> <span class="s1">&#39;_state_dict.pt&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="MLForge.load"><a class="viewcode-back" href="../../madminer.html#madminer.ml.MLForge.load">[docs]</a>    <span class="k">def</span> <span class="nf">load</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+             <span class="n">filename</span><span class="p">):</span>
+
+        <span class="sd">&quot;&quot;&quot;Loads model state dict from file</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        filename :</span>
+<span class="sd">            </span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Load settings</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Loading settings from </span><span class="si">%s</span><span class="s1">_settings.json&#39;</span><span class="p">,</span> <span class="n">filename</span><span class="p">)</span>
+
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span> <span class="o">+</span> <span class="s1">&#39;_settings.json&#39;</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">settings</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">method</span> <span class="o">=</span> <span class="n">settings</span><span class="p">[</span><span class="s1">&#39;method&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">method_type</span> <span class="o">=</span> <span class="n">settings</span><span class="p">[</span><span class="s1">&#39;method_type&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_observables</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">settings</span><span class="p">[</span><span class="s1">&#39;n_observables&#39;</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_parameters</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">settings</span><span class="p">[</span><span class="s1">&#39;n_parameters&#39;</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_hidden</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">([</span><span class="nb">int</span><span class="p">(</span><span class="n">item</span><span class="p">)</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">settings</span><span class="p">[</span><span class="s1">&#39;n_hidden&#39;</span><span class="p">]])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">activation</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">settings</span><span class="p">[</span><span class="s1">&#39;activation&#39;</span><span class="p">])</span>
+
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;  Found method </span><span class="si">%s</span><span class="s1">, </span><span class="si">%s</span><span class="s1"> observables, </span><span class="si">%s</span><span class="s1"> parameters, </span><span class="si">%s</span><span class="s1"> hidden layers, </span><span class="si">%s</span><span class="s1"> activation function&#39;</span><span class="p">,</span>
+                     <span class="bp">self</span><span class="o">.</span><span class="n">method</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_observables</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_parameters</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_hidden</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">activation</span><span class="p">)</span>
+
+        <span class="c1"># Create model</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">method</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;carl&#39;</span><span class="p">,</span> <span class="s1">&#39;rolr&#39;</span><span class="p">,</span> <span class="s1">&#39;rascal&#39;</span><span class="p">,</span> <span class="s1">&#39;alice&#39;</span><span class="p">,</span> <span class="s1">&#39;alices&#39;</span><span class="p">]:</span>
+            <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">method_type</span> <span class="o">==</span> <span class="s1">&#39;parameterized&#39;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">ParameterizedRatioEstimator</span><span class="p">(</span>
+                <span class="n">n_observables</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">n_observables</span><span class="p">,</span>
+                <span class="n">n_parameters</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">n_parameters</span><span class="p">,</span>
+                <span class="n">n_hidden</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">n_hidden</span><span class="p">,</span>
+                <span class="n">activation</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">activation</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">method</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;carl2&#39;</span><span class="p">,</span> <span class="s1">&#39;rolr2&#39;</span><span class="p">,</span> <span class="s1">&#39;rascal2&#39;</span><span class="p">,</span> <span class="s1">&#39;alice2&#39;</span><span class="p">,</span> <span class="s1">&#39;alices2&#39;</span><span class="p">]:</span>
+            <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">method_type</span> <span class="o">==</span> <span class="s1">&#39;doubly_parameterized&#39;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">DoublyParameterizedRatioEstimator</span><span class="p">(</span>
+                <span class="n">n_observables</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">n_observables</span><span class="p">,</span>
+                <span class="n">n_parameters</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">n_parameters</span><span class="p">,</span>
+                <span class="n">n_hidden</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">n_hidden</span><span class="p">,</span>
+                <span class="n">activation</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">activation</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">method</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;sally&#39;</span><span class="p">,</span> <span class="s1">&#39;sallino&#39;</span><span class="p">]:</span>
+            <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">method_type</span> <span class="o">==</span> <span class="s1">&#39;local_score&#39;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">LocalScoreEstimator</span><span class="p">(</span>
+                <span class="n">n_observables</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">n_observables</span><span class="p">,</span>
+                <span class="n">n_parameters</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">n_parameters</span><span class="p">,</span>
+                <span class="n">n_hidden</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">n_hidden</span><span class="p">,</span>
+                <span class="n">activation</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">activation</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Unknown method </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">method</span><span class="p">))</span>
+
+        <span class="c1"># Load state dict</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Loading state dictionary from </span><span class="si">%s</span><span class="s1">_state_dict.pt&#39;</span><span class="p">,</span> <span class="n">filename</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">load_state_dict</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">filename</span> <span class="o">+</span> <span class="s1">&#39;_state_dict.pt&#39;</span><span class="p">))</span></div></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">MadMiner</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2018, Johann Brehmer, Kyle Cranmer, and Felix Kling.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.8.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>
