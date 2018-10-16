@@ -122,8 +122,8 @@ def balance_thetas(theta_sets_types, theta_sets_values):
         n_sets_before = len(types)
 
         if n_sets_before != n_sets:
-            theta_sets_types[i] = [types[i % n_sets_before] for i in range(n_sets)]
-            theta_sets_values[i] = [values[i % n_sets_before] for i in range(n_sets)]
+            theta_sets_types[i] = [types[j % n_sets_before] for j in range(n_sets)]
+            theta_sets_values[i] = [values[j % n_sets_before] for j in range(n_sets)]
 
     return theta_sets_types, theta_sets_values
 

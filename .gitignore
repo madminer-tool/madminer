@@ -140,7 +140,10 @@ examples/tutorial_parton/ME5_debug
 examples/tutorial_parton/MG_Process
 examples/tutorial_parton/py.py
 examples/tutorial_parton/models
+examples/tutorial_parton/figures
 examples/tutorial_parton/smearing_data
+
+examples/tutorial_F
 
 examples/debug/temp
 examples/debug/nsqso_born.inc
@@ -156,3 +159,6 @@ examples/tests/datasave
 
 # MG / Pythia / Delphes patch
 patches/
+examples/tutorial_parton/figures/bla.pdf
+examples/tutorial_parton/figures/kinematics.pdf
+examples/tutorial_parton/figures/output.pdf

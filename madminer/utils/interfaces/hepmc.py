@@ -2,6 +2,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import logging
 import os
+from io import open
 
 from madminer.utils.various import call_command
 
