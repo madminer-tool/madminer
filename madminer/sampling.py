@@ -17,22 +17,30 @@ def combine_and_shuffle(input_filenames,
                         output_filename,
                         overwrite_existing_file=True,
                         debug=False):
-    """Combines multiple HDF5 files into one, and shuffles the order of the events. It is recommended to run this tool
-    before the Refinery.
+    """
+    Combines multiple MadMiner files into one, and shuffles the order of the events.
+
+    Note that this function assumes that all samples are generated with the same setup, including identical benchmarks
+    (and thus morphing setup). If it is used with samples with different settings, there will be wrong results!
+    There are no explicit cross checks in place yet!
 
     Parameters
     ----------
-    input_filenames :
-        list of filenames of the input HDF5 files
-    output_filename :
-        filename for the output HDF5 file
-    overwrite_existing_file :
-        param debug: (Default value = True)
-    debug :
-         (Default value = False)
+    input_filenames : list of str
+        List of paths to the input MadMiner files.
+
+    output_filename : str
+        Path to the combined MadMiner file.
+
+    overwrite_existing_file : bool, optional
+        If True and if the output file exists, it is overwritten. Default value: True.
+
+    debug : bool, optional
+        If True, additional detailed debugging output is printed. Default value: False.
 
     Returns
     -------
+        None
 
     """
 
@@ -78,14 +86,18 @@ def combine_and_shuffle(input_filenames,
 
 def constant_benchmark_theta(benchmark_name):
     """
+    Utility function to be used as input to various SampleAugmenter functions, specifying a single parameter benchmark.
 
     Parameters
     ----------
-    benchmark_name :
+    benchmark_name : str
+        Name of the benchmark (as in `madminer.core.MadMiner.add_benchmark`)
         
 
     Returns
     -------
+    output : tuple
+        Input to various SampleAugmenter functions
 
     """
     return 'benchmark', benchmark_name
@@ -93,14 +105,18 @@ def constant_benchmark_theta(benchmark_name):
 
 def multiple_benchmark_thetas(benchmark_names):
     """
+    Utility function to be used as input to various SampleAugmenter functions, specifying multiple parameter benchmarks.
 
     Parameters
     ----------
-    benchmark_names :
-        
+    benchmark_names : list of str
+        List of names of the benchmarks (as in `madminer.core.MadMiner.add_benchmark`)
+
 
     Returns
     -------
+    output : tuple
+        Input to various SampleAugmenter functions
 
     """
     return 'benchmarks', benchmark_names
@@ -108,14 +124,18 @@ def multiple_benchmark_thetas(benchmark_names):
 
 def constant_morphing_theta(theta):
     """
+    Utility function to be used as input to various SampleAugmenter functions, specifying a single parameter point theta
+    in a morphing setup.
 
     Parameters
     ----------
-    theta :
-        
+    theta : ndarray or list
+        Parameter point with shape `(n_parameters,)`
 
     Returns
     -------
+    output : tuple
+        Input to various SampleAugmenter functions
 
     """
     return 'theta', np.asarray(theta)
@@ -123,14 +143,18 @@ def constant_morphing_theta(theta):
 
 def multiple_morphing_thetas(thetas):
     """
+    Utility function to be used as input to various SampleAugmenter functions, specifying multiple parameter points
+    theta in a morphing setup.
 
     Parameters
     ----------
-    thetas :
-        
+    thetas : ndarray or list of lists or list of ndarrays
+        Parameter points with shape `(n_thetas, n_parameters)`
 
     Returns
     -------
+    output : tuple
+        Input to various SampleAugmenter functions
 
     """
     return 'thetas', [np.asarray(theta) for theta in thetas]
@@ -138,23 +162,54 @@ def multiple_morphing_thetas(thetas):
 
 def random_morphing_thetas(n_thetas, priors):
     """
+    Utility function to be used as input to various SampleAugmenter functions, specifying random parameter points
+    sampled from a prior in a morphing setup.
 
     Parameters
     ----------
-    n_thetas :
-        
-    priors :
-        
+    n_thetas : int
+        Number of parameter points to be sampled
+
+    priors : list of tuples
+        Priors for each parameter is characterized by a tuple of the form `(prior_shape, prior_param_0, prior_param_1)`.
+        Currently, the supported prior_shapes are `flat`, in which case the two other parameters are the lower and upper
+        bound of the flat prior, and `gaussian`, in which case they are the mean and standard deviation of a Gaussian.
 
     Returns
     -------
+    output : tuple
+        Input to various SampleAugmenter functions
 
     """
     return 'random', (n_thetas, priors)
 
 
 class SampleAugmenter:
-    """ """
+    """
+    Sampling and data augmentation.
+
+    After the generated events have been analyzed and the observables and weights have been saved into a MadMiner file,
+    for instance with `madminer.delphes.DelphesProcessor` or `madminer.lhe.LHEProcessor`, the next step is typically
+    the generation of training and evaluation data for the machine learning algorithms. This generally involves two
+    (related) tasks: unweighting, i.e. the creation of samples that do not carry individual weights but follow some
+    distribution, and the extraction of the joint likelihood ratio and / or joint score (the "augmented data").
+
+    After inializing `SampleAugmenter` with the filename of a MadMiner file, this is done with a single function call.
+    Depending on the downstream inference algorithm, there are different possibilities:
+
+    * `SampleAugmenter.extract_samples_train_plain()` creates plain training samples without augmented data.
+
+    * `SampleAugmenter.extract_samples_train_local()` creates training samples for local methods based on the score,
+    such as SALLY and SALLINO.
+
+    * `SampleAugmenter.extract_samples_train_ratio()` creates training samples for non-local, ratio-based methods
+    like RASCAL, ALICE, and SCANDAL.
+
+    * Similarly, `SampleAugmenter.extract_samples_train_more_ratios()` ...
+
+
+
+    """
 
     def __init__(self, filename, disable_morphing=False, debug=False):
 
@@ -241,7 +296,7 @@ class SampleAugmenter:
                 raise ValueError("Irregular train / test split: sample {} / {}", last_train_index, self.n_samples)
 
         # Start
-        x, _, (theta,) = self.extract_sample(
+        x, _, (theta,) = self._extract_sample(
             theta_sets_types=[theta_types],
             theta_sets_values=[theta_values],
             n_samples_per_theta=n_samples_per_theta,
@@ -309,7 +364,7 @@ class SampleAugmenter:
                 raise ValueError("Irregular train / test split: sample {} / {}", last_train_index, self.n_samples)
 
         # Start
-        x, (t_xz,), (theta,) = self.extract_sample(
+        x, (t_xz,), (theta,) = self._extract_sample(
             theta_sets_types=[theta_types],
             theta_sets_values=[theta_values],
             n_samples_per_theta=n_samples_per_theta,
@@ -390,7 +445,7 @@ class SampleAugmenter:
         n_samples_per_theta = min(n_samples_per_theta0, n_samples_per_theta1)
 
         # Start for theta0
-        x0, (r_xz0, t_xz0), (theta0_0, theta1_0) = self.extract_sample(
+        x0, (r_xz0, t_xz0), (theta0_0, theta1_0) = self._extract_sample(
             theta_sets_types=[theta0_types, theta1_types],
             theta_sets_values=[theta0_values, theta1_values],
             sampling_theta_index=0,
@@ -407,7 +462,7 @@ class SampleAugmenter:
         n_samples_per_theta = min(n_samples_per_theta0, n_samples_per_theta1)
 
         # Start for theta1
-        x1, (r_xz1, t_xz1), (theta0_1, theta1_1) = self.extract_sample(
+        x1, (r_xz1, t_xz1), (theta0_1, theta1_1) = self._extract_sample(
             theta_sets_types=[theta0_types, theta1_types],
             theta_sets_values=[theta0_values, theta1_values],
             sampling_theta_index=1,
@@ -543,7 +598,7 @@ class SampleAugmenter:
             n_samples_per_theta = min(this_n_samples, n_samples_per_theta)
 
         # Start for theta0
-        x_0, augmented_data_0, thetas_0 = self.extract_sample(
+        x_0, augmented_data_0, thetas_0 = self._extract_sample(
             theta_sets_types=theta_types,
             theta_sets_values=theta_values,
             n_samples_per_theta=n_samples_per_theta,
@@ -600,7 +655,7 @@ class SampleAugmenter:
             n_samples_per_theta = min(this_n_samples, n_samples_per_theta)
 
         # Start for theta1
-        x_1, augmented_data_1, thetas_1 = self.extract_sample(
+        x_1, augmented_data_1, thetas_1 = self._extract_sample(
             theta_sets_types=theta_types,
             theta_sets_values=theta_values,
             n_samples_per_theta=n_samples_per_theta,
@@ -713,7 +768,7 @@ class SampleAugmenter:
                 raise ValueError("Irregular in train / test split: sample {} / {}", first_test_index, self.n_samples)
 
         # Extract information
-        x, _, (theta,) = self.extract_sample(
+        x, _, (theta,) = self._extract_sample(
             theta_sets_types=[theta_types],
             theta_sets_values=[theta_values],
             n_samples_per_theta=n_samples_per_theta,
@@ -799,14 +854,14 @@ class SampleAugmenter:
 
         return all_thetas, all_xsecs, all_xsec_uncertainties
 
-    def extract_sample(self,
-                       theta_sets_types,
-                       theta_sets_values,
-                       n_samples_per_theta,
-                       sampling_theta_index=0,
-                       augmented_data_definitions=None,
-                       start_event=0,
-                       end_event=None):
+    def _extract_sample(self,
+                        theta_sets_types,
+                        theta_sets_values,
+                        n_samples_per_theta,
+                        sampling_theta_index=0,
+                        augmented_data_definitions=None,
+                        start_event=0,
+                        end_event=None):
         """Low-level function for the extraction of information from the event samples.
 
         Parameters
