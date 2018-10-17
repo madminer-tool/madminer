@@ -15,28 +15,44 @@ from madminer.utils.various import general_init
 class DelphesProcessor:
     """
     Detector simulation with Delphes and simple calculation of observables.
-
+    
     After setting up the parameter space and benchmarks and running MadGraph and Pythia, all of which is organized
     in the madminer.core.MadMiner class, the next steps are the simulation of detector effects and the calculation of
     observables.  Different tools can be used for these tasks, please feel free to implement the detector simulation and
     analysis routine of your choice.
+    
+    This class provides an example implementation based on Delphes. Its workflow consists of the following steps:
 
-    This class provides an example implementation based on Delphes. Its workflow consists of four steps:
-    - Initializing the class with the filename of a MadMiner HDF5 file (the output of `madminer.core.MadMiner.save()`)
-    - Adding one or multiple HepMC samples produced by Pythia in `DelphesProcessor.add_hepmc_sample()`
-    - Running Delphes on these samples through `DelphesProcessor.run_delphes()`
-    - Defining observables through `DelphesProcessor.add_observables()`. A simple set of default observables is provided
+    * Initializing the class with the filename of a MadMiner HDF5 file (the output of `madminer.core.MadMiner.save()`)
+
+    * Adding one or multiple HepMC samples produced by Pythia in `DelphesProcessor.add_hepmc_sample()`
+
+    * Running Delphes on these samples through `DelphesProcessor.run_delphes()`
+
+    * Optionally, acceptance cuts for all visible particles can be defined with `DelphesProcessor.set_acceptance()`.
+
+    * Defining observables through `DelphesProcessor.add_observables()`. A simple set of default observables is provided
     with `DelphesProcessor.add_default_observables()`
-    - Optionally, cuts can be set with `DelphesProcessor.add_cut()`
-    - Calculating the observables from the Delphes ROOT files with `DelphesProcessor.analyse_delphes_samples()`
-    - Saving the results with `DelphesProcessor.save()`
 
+    * Optionally, cuts can be set with `DelphesProcessor.add_cut()`
+
+    * Calculating the observables from the Delphes ROOT files with `DelphesProcessor.analyse_delphes_samples()`
+
+    * Saving the results with `DelphesProcessor.save()`
+    
     Please see the tutorial for a detailed walk-through.
+
+    Parameters
+    ----------
+    filename : str or None, optional
+        Path to MadMiner file (the output of `madminer.core.MadMiner.save()`). Default value: None.
+
+    debug : bool, optional
+        If True, additional detailed debugging output is printed. Default value: False.
+
     """
 
     def __init__(self, filename=None, debug=False):
-        """ Constructor """
-
         general_init(debug=debug)
 
         # Initialize samples
@@ -76,6 +92,23 @@ class DelphesProcessor:
             self.benchmark_names = load_benchmarks_from_madminer_file(self.filename)
 
     def add_hepmc_sample(self, filename, sampled_from_benchmark):
+        """
+        Adds simulated events in the HepMC format.
+
+        Parameters
+        ----------
+        filename : str
+            Path to the HepMC event file (with extension '.hepmc' or '.hepmc.gz').
+            
+        sampled_from_benchmark : str
+            Name of the benchmark that was used for sampling in this event file (the keyword `sample_benchmark`
+            of `madminer.core.MadMiner.run()`).
+
+        Returns
+        -------
+            None
+
+        """
 
         logging.info('Adding HepMC sample at %s', filename)
 
@@ -85,6 +118,29 @@ class DelphesProcessor:
         )
 
     def run_delphes(self, delphes_directory, delphes_card, initial_command=None, log_directory=None):
+        """
+        Runs the fast detector simulation on all HepMC samples added so far.
+
+        Parameters
+        ----------
+        delphes_directory : str
+            Path to the Delphes directory.
+            
+        delphes_card : str
+            Path to a Delphes card.
+            
+        initial_command : str or None, optional
+            Initial bash commands that have to be executed before Delphes is run (e.g. to load the correct virtual
+            environment). Default value: None.
+
+        log_directory : str or None, optional
+            Directory for log files in which the Delphes output is saved. Default value: None.
+
+        Returns
+        -------
+            None
+
+        """
 
         if log_directory is None:
             log_directory = './logs'
@@ -101,27 +157,107 @@ class DelphesProcessor:
             )
             self.delphes_sample_filenames.append(delphes_sample_filename)
 
-    def add_delphes_sample(self, filename):
-
-        raise NotImplementedError('Direct use of Delphes samples is currently disabled since the Delphes file alone '
-                                  'does not contain any information linking the weights to the benchmarks ')
-
-        # logging.info('Adding Delphes sample at %s', filename)
-        # self.delphes_sample_filenames.append(filename)
+    # def add_delphes_sample(self, filename):
+    #     """
+    #
+    #     Parameters
+    #     ----------
+    #     filename :
+    #
+    #
+    #     Returns
+    #     -------
+    #
+    #     """
+    #
+    #     raise NotImplementedError('Direct use of Delphes samples is currently disabled since the Delphes file alone '
+    #                               'does not contain any information linking the weights to the benchmarks ')
+    #
+    #     logging.info('Adding Delphes sample at %s', filename)
+    #     self.delphes_sample_filenames.append(filename)
 
     def set_acceptance(self, pt_min_e=10., pt_min_mu=10., pt_min_a=0., pt_min_j=20.,
                        eta_max_e=2.5, eta_max_mu=2.5, eta_max_a=2.5, eta_max_j=5.):
+        """
+        Sets acceptance cuts for all visible particles. These are taken into account before observables and cuts
+        are calculated.
+
+        Parameters
+        ----------
+        pt_min_e : float
+             Minimum electron transverse momentum in GeV. Default value: 10.
+
+        pt_min_mu : float
+             Minimum muon transverse momentum in GeV. Default value: 10.
+
+        pt_min_a : float
+             Minimum photon transverse momentum in GeV. Default value: 10.
+
+        pt_min_j : float
+             Minimum jet transverse momentum in GeV. Default value: 20.
+
+        eta_max_e : float
+             Maximum absolute electron pseudorapidity. Default value: 2.5.
+
+        eta_max_mu : float
+             Maximum absolute muon pseudorapidity. Default value: 2.5.
+
+        eta_max_a : float
+             Maximum absolute photon pseudorapidity. Default value: 2.5.
+
+        eta_max_j : float
+             Maximum absolute jet pseudorapidity. Default value: 5.
+
+        Returns
+        -------
+            None
+
+        """
 
         self.acceptance_pt_min_e = pt_min_e
         self.acceptance_pt_min_mu = pt_min_mu
         self.acceptance_pt_min_a = pt_min_a
         self.acceptance_pt_min_j = pt_min_j
+
         self.acceptance_eta_max_e = eta_max_e
         self.acceptance_eta_max_mu = eta_max_mu
         self.acceptance_eta_max_a = eta_max_a
         self.acceptance_eta_max_j = eta_max_j
 
     def add_observable(self, name, definition, required=False, default=None):
+        """
+        Adds an observable as a string that can be parsed by Python's `eval()` function.
+
+        Parameters
+        ----------
+        name : str
+            Name of the observable. Since this name will be used in `eval()` calls for cuts, this should not contain
+            spaces or special characters.
+            
+        definition : str
+            An expression that can be parsed by Python's `eval()` function. As objects, the visible particles can be
+            used: `e`, `mu`, `j`, `a`, and `l` provide lists of electrons, muons, jets, photons, and leptons (electrons
+            and muons combined), in each case sorted by descending transverse momentum. `met` provides a missing ET
+            object. All these objects are instances of `MadMinerParticle`, which inherits from scikit-hep's
+            [LorentzVector](http://scikit-hep.org/api/math.html#vector-classes). See the link for a documentation of
+            their properties. In addition, `MadMinerParticle` have  properties `charge` and `pdg_id`, which return
+            the charge in units of elementary charged (i.e. an electron has `charge = -1.`), and the PDG particle ID.
+            For instance, `"abs(j[0].phi() - j[1].phi())"` defines the azimuthal angle between the two hardest jets.
+            
+        required : bool, optional
+            Whether the observable is required. If True, an event will only be retained if this observable is
+            successfully parsed. For instance, any observable involving `"j[1]"` will only be parsed if there are at
+            least two jets passing the acceptance cuts. Default value: False.
+
+        default : float or None, optional
+            If `required=False`, this is the placeholder value for observables that cannot be parsed. None is replaced
+            with `np.nan`. Default value: None.
+
+        Returns
+        -------
+            None
+
+        """
 
         if required:
             logging.debug('Adding required observable %s = %s', name, definition)
@@ -132,9 +268,6 @@ class DelphesProcessor:
         self.observables_required[name] = required
         self.observables_defaults[name] = default
 
-    def read_observables_from_file(self, filename):
-        raise NotImplementedError
-
     def add_default_observables(
             self,
             n_leptons_max=2,
@@ -142,6 +275,29 @@ class DelphesProcessor:
             n_jets_max=2,
             include_met=True
     ):
+        """
+        Adds a set of simple standard observables: the four-momenta (parameterized as E, pT, eta, phi) of the hardest
+        visible particles, and the missing transverse energy.
+
+        Parameters
+        ----------
+        n_leptons_max : int, optional
+            Number of hardest leptons for which the four-momenta are saved. Default value: 2.
+
+        n_photons_max : int, optional
+            Number of hardest photons for which the four-momenta are saved. Default value: 2.
+
+        n_jets_max : int, optional
+            Number of hardest jets for which the four-momenta are saved. Default value: 2.
+
+        include_met : bool, optional
+            Whether the missing energy observables are stored. Default value: True.
+
+        Returns
+        -------
+            None
+
+        """
         # ETMiss
         if include_met:
             self.add_observable(
@@ -190,11 +346,45 @@ class DelphesProcessor:
                 )
 
     def add_cut(self, definition, pass_if_not_parsed=False):
+
+        """
+        Adds a cut as a string that can be parsed by Python's `eval()` function and returns a bool.
+
+        Parameters
+        ----------
+        definition : str
+            An expression that can be parsed by Python's `eval()` function and returns a bool: True for the event
+            to pass this cut, False for it to be rejected. In the definition, all visible particles can be
+            used: `e`, `mu`, `j`, `a`, and `l` provide lists of electrons, muons, jets, photons, and leptons (electrons
+            and muons combined), in each case sorted by descending transverse momentum. `met` provides a missing ET
+            object. All these objects are instances of `MadMinerParticle`, which inherits from scikit-hep's
+            [LorentzVector](http://scikit-hep.org/api/math.html#vector-classes). See the link for a documentation of
+            their properties. In addition, `MadMinerParticle` have  properties `charge` and `pdg_id`, which return
+            the charge in units of elementary charged (i.e. an electron has `charge = -1.`), and the PDG particle ID.
+            For instance, `"len(e) >= 2"` requires at least two electrons passing the acceptance cuts.
+
+        pass_if_not_parsed : bool, optional
+            Whether the cut is passed if the observable cannot be parsed. Default value: False.
+
+        Returns
+        -------
+            None
+
+        """
         logging.info('Adding cut %s', definition)
         self.cuts.append(definition)
         self.cuts_default_pass.append(pass_if_not_parsed)
 
     def analyse_delphes_samples(self):
+        """
+        Main function that parses the Delphes samples (ROOT files), checks acceptance and cuts, and extracts
+        the observables and weights.
+
+        Returns
+        -------
+            None
+
+        """
 
         n_benchmarks = None if self.benchmark_names is None else len(self.benchmark_names)
 
@@ -256,6 +446,21 @@ class DelphesProcessor:
                 self.observations[key] = np.hstack([self.observations[key], this_observations[key]])
 
     def save(self, filename_out):
+        """
+        Saves the observable definitions, observable values, and event weights in a MadMiner file. The parameter,
+        benchmark, and morphing setup is copied from the file provided during initialization.
+
+        Parameters
+        ----------
+        filename_out : str
+            Path to where the results should be saved. If the class was initialized with `filename=None`, this file is
+            assumed to exist and contain the correct parameter, benchmark, and morphing setup.
+
+        Returns
+        -------
+            None
+
+        """
 
         assert (self.observables is not None and self.observations is not None
                 and self.weights is not None), 'Nothing to save!'

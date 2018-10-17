@@ -8,14 +8,25 @@ import torch.nn as nn
 
 
 def create_degrees(n_inputs, n_hiddens, input_order, mode):
-    """
-    Generates a degree for each hidden and input unit. A unit with degree d can only receive input from units with
+    """Generates a degree for each hidden and input unit. A unit with degree d can only receive input from units with
     degree less than d.
-    :param n_inputs: the number of inputs
-    :param n_hiddens: a list with the number of hidden units
-    :param input_order: the order of the inputs; can be 'random', 'sequential', or an array of an explicit order
-    :param mode: the strategy for assigning degrees to hidden nodes: can be 'random' or 'sequential'
-    :return: list of degrees
+
+    Parameters
+    ----------
+    n_inputs :
+        the number of inputs
+    n_hiddens :
+        a list with the number of hidden units
+    input_order :
+        the order of the inputs; can be 'random', 'sequential', or an array of an explicit order
+    mode :
+        the strategy for assigning degrees to hidden nodes: can be 'random' or 'sequential'
+
+    Returns
+    -------
+    type
+        list of degrees
+
     """
 
     degrees = []
@@ -58,10 +69,18 @@ def create_degrees(n_inputs, n_hiddens, input_order, mode):
 
 
 def create_masks(degrees):
-    """
-    Creates the binary masks that make the connectivity autoregressive.
-    :param degrees: a list of degrees for every layer
-    :return: list of all masks, as theano shared variables
+    """Creates the binary masks that make the connectivity autoregressive.
+
+    Parameters
+    ----------
+    degrees :
+        a list of degrees for every layer
+
+    Returns
+    -------
+    type
+        list of all masks, as theano shared variables
+
     """
 
     ms = []
@@ -78,12 +97,22 @@ def create_masks(degrees):
 
 
 def create_weights(n_inputs, n_hiddens, n_comps=None):
-    """
-    Creates all learnable weight matrices and bias vectors.
-    :param n_inputs: the number of inputs
-    :param n_hiddens: a list with the number of hidden units
-    :param n_comps: number of gaussian components
-    :return: weights and biases, as theano shared variables
+    """Creates all learnable weight matrices and bias vectors.
+
+    Parameters
+    ----------
+    n_inputs :
+        the number of inputs
+    n_hiddens :
+        a list with the number of hidden units
+    n_comps :
+        number of gaussian components (Default value = None)
+
+    Returns
+    -------
+    type
+        weights and biases, as theano shared variables
+
     """
 
     ws = nn.ParameterList()
@@ -117,13 +146,24 @@ def create_weights(n_inputs, n_hiddens, n_comps=None):
 
 
 def create_weights_conditional(n_conditionals, n_inputs, n_hiddens, n_comps):
-    """
-    Creates all learnable weight matrices and bias vectors for a conditional made.
-    :param n_conditionals: the number of (conditional) inputs theta
-    :param n_inputs: the number of unconditional inputs x
-    :param n_hiddens: a list with the number of hidden units
-    :param n_comps: number of gaussian components
-    :return: weights and biases, as theano shared variables
+    """Creates all learnable weight matrices and bias vectors for a conditional made.
+
+    Parameters
+    ----------
+    n_conditionals :
+        the number of (conditional) inputs theta
+    n_inputs :
+        the number of unconditional inputs x
+    n_hiddens :
+        a list with the number of hidden units
+    n_comps :
+        number of gaussian components
+
+    Returns
+    -------
+    type
+        weights and biases, as theano shared variables
+
     """
 
     wx = nn.Parameter(tensor((rng.randn(n_conditionals, n_hiddens[0]) / np.sqrt(n_conditionals + 1))))

@@ -14,6 +14,7 @@ from madminer.utils.ml.models.ratio import ParameterizedRatioEstimator, DoublyPa
 
 
 class GoldDataset(torch.utils.data.Dataset):
+    """ """
 
     def __init__(self, theta0=None, theta1=None, x=None, y=None, r_xz=None, t_xz0=None, t_xz1=None):
         self.n = theta0.shape[0]
@@ -66,6 +67,65 @@ def train_ratio_model(model,
                       validation_split=0.2, early_stopping=True, early_stopping_patience=20,
                       learning_curve_folder=None, learning_curve_filename=None,
                       verbose='some'):
+    """
+
+    Parameters
+    ----------
+    model :
+        
+    loss_functions :
+        
+    method_type :
+         (Default value = 'parameterized')
+    theta0s :
+         (Default value = None)
+    theta1s :
+         (Default value = None)
+    xs :
+         (Default value = None)
+    ys :
+         (Default value = None)
+    r_xzs :
+         (Default value = None)
+    t_xz0s :
+         (Default value = None)
+    t_xz1s :
+         (Default value = None)
+    loss_weights :
+         (Default value = None)
+    loss_labels :
+         (Default value = None)
+    batch_size :
+         (Default value = 64)
+    initial_learning_rate :
+         (Default value = 0.001)
+    final_learning_rate :
+         (Default value = 0.0001)
+    n_epochs :
+         (Default value = 50)
+    clip_gradient :
+         (Default value = 1.)
+    run_on_gpu :
+         (Default value = True)
+    double_precision :
+         (Default value = False)
+    validation_split :
+         (Default value = 0.2)
+    early_stopping :
+         (Default value = True)
+    early_stopping_patience :
+         (Default value = 20)
+    learning_curve_folder :
+         (Default value = None)
+    learning_curve_filename :
+         (Default value = None)
+    verbose :
+         (Default value = 'some')
+
+    Returns
+    -------
+
+    """
     # CPU or GPU?
     run_on_gpu = run_on_gpu and torch.cuda.is_available()
     device = torch.device("cuda" if run_on_gpu else "cpu")
@@ -351,14 +411,28 @@ def evaluate_ratio_model(model,
                          double_precision=False):
     """
 
-    :param model:
-    :param method_type:
-    :param theta0s:
-    :param theta1s:
-    :param xs:
-    :param run_on_gpu:
-    :param double_precision:
-    :return:
+    Parameters
+    ----------
+    model :
+        param method_type:
+    theta0s :
+        param theta1s: (Default value = None)
+    xs :
+        param run_on_gpu: (Default value = None)
+    double_precision :
+        return: (Default value = False)
+    method_type :
+         (Default value = None)
+    theta1s :
+         (Default value = None)
+    evaluate_score :
+         (Default value = False)
+    run_on_gpu :
+         (Default value = True)
+
+    Returns
+    -------
+
     """
 
     # CPU or GPU?

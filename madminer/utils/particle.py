@@ -4,6 +4,7 @@ from skhep.math.vectors import LorentzVector
 
 
 class MadMinerParticle(LorentzVector):
+    """ """
     def __init__(self):
         super(MadMinerParticle, self).__init__()
 
@@ -11,6 +12,17 @@ class MadMinerParticle(LorentzVector):
         self.pdgid = None
 
     def set_pdgid(self, pdgid):
+        """
+
+        Parameters
+        ----------
+        pdgid :
+            
+
+        Returns
+        -------
+
+        """
 
         self.pdgid = int(pdgid)
         self.charge = 0.

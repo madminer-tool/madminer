@@ -23,6 +23,45 @@ def extract_observables_from_delphes_file(delphes_sample_file,
                                           acceptance_eta_max_mu=10.,
                                           acceptance_eta_max_a=10.,
                                           acceptance_eta_max_j=20.):
+    """
+
+    Parameters
+    ----------
+    delphes_sample_file :
+        
+    observables :
+        
+    observables_required :
+        
+    observables_defaults :
+        
+    cuts :
+        
+    cuts_default_pass :
+        
+    weight_labels :
+        
+    acceptance_pt_min_e :
+         (Default value = 10.)
+    acceptance_pt_min_mu :
+         (Default value = 10.)
+    acceptance_pt_min_a :
+         (Default value = 10.)
+    acceptance_pt_min_j :
+         (Default value = 20.)
+    acceptance_eta_max_e :
+         (Default value = 10.)
+    acceptance_eta_max_mu :
+         (Default value = 10.)
+    acceptance_eta_max_a :
+         (Default value = 10.)
+    acceptance_eta_max_j :
+         (Default value = 20.)
+
+    Returns
+    -------
+
+    """
     # Delphes ROOT file
     root_file = uproot.open(delphes_sample_file)
 
@@ -150,6 +189,27 @@ def extract_observables_from_delphes_file(delphes_sample_file,
 
 
 def _get_particles_charged(tree, name, mass, pdgid_positive_charge, pt_min, eta_max):
+    """
+
+    Parameters
+    ----------
+    tree :
+        
+    name :
+        
+    mass :
+        
+    pdgid_positive_charge :
+        
+    pt_min :
+        
+    eta_max :
+        
+
+    Returns
+    -------
+
+    """
     pts = tree.array(name + '.PT')
     etas = tree.array(name + '.Eta')
     phis = tree.array(name + '.Phi')
@@ -180,6 +240,25 @@ def _get_particles_charged(tree, name, mass, pdgid_positive_charge, pt_min, eta_
 
 
 def _get_particles_leptons(tree, pt_min_e, eta_max_e, pt_min_mu, eta_max_mu):
+    """
+
+    Parameters
+    ----------
+    tree :
+        
+    pt_min_e :
+        
+    eta_max_e :
+        
+    pt_min_mu :
+        
+    eta_max_mu :
+        
+
+    Returns
+    -------
+
+    """
     pt_mu = tree.array('Muon.PT')
     eta_mu = tree.array('Muon.Eta')
     phi_mu = tree.array('Muon.Phi')
@@ -259,6 +338,21 @@ def _get_particles_leptons(tree, pt_min_e, eta_max_e, pt_min_mu, eta_max_mu):
 
 
 def _get_particles_photons(tree, pt_min, eta_max):
+    """
+
+    Parameters
+    ----------
+    tree :
+        
+    pt_min :
+        
+    eta_max :
+        
+
+    Returns
+    -------
+
+    """
     pts = tree.array('Photon.PT')
     etas = tree.array('Photon.Eta')
     phis = tree.array('Photon.Phi')
@@ -287,6 +381,21 @@ def _get_particles_photons(tree, pt_min, eta_max):
 
 
 def _get_particles_jets(tree, pt_min, eta_max):
+    """
+
+    Parameters
+    ----------
+    tree :
+        
+    pt_min :
+        
+    eta_max :
+        
+
+    Returns
+    -------
+
+    """
     pts = tree.array('Jet.PT')
     etas = tree.array('Jet.Eta')
     phis = tree.array('Jet.Phi')
@@ -315,6 +424,17 @@ def _get_particles_jets(tree, pt_min, eta_max):
 
 
 def _get_particles_met(tree):
+    """
+
+    Parameters
+    ----------
+    tree :
+        
+
+    Returns
+    -------
+
+    """
     mets = tree.array('MissingET.MET')
     phis = tree.array('MissingET.Phi')
 

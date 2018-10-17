@@ -6,6 +6,21 @@ import logging
 
 
 def get_theta_value(theta_type, theta_value, benchmarks):
+    """
+
+    Parameters
+    ----------
+    theta_type :
+        
+    theta_value :
+        
+    benchmarks :
+        
+
+    Returns
+    -------
+
+    """
     if theta_type == 'benchmark':
         benchmark = benchmarks[theta_value]
         benchmark_theta = np.array([benchmark[key] for key in benchmark])
@@ -19,7 +34,23 @@ def get_theta_value(theta_type, theta_value, benchmarks):
 
 
 def get_theta_benchmark_matrix(theta_type, theta_value, benchmarks, morpher=None):
-    """ Calculates vector A such that dsigma(theta) = A * dsigma_benchmarks  """
+    """Calculates vector A such that dsigma(theta) = A * dsigma_benchmarks
+
+    Parameters
+    ----------
+    theta_type :
+        
+    theta_value :
+        
+    benchmarks :
+        
+    morpher :
+         (Default value = None)
+
+    Returns
+    -------
+
+    """
 
     if theta_type == 'benchmark':
         n_benchmarks = len(benchmarks)
@@ -43,7 +74,23 @@ def get_theta_benchmark_matrix(theta_type, theta_value, benchmarks, morpher=None
 
 
 def get_dtheta_benchmark_matrix(theta_type, theta_value, benchmarks, morpher=None):
-    """ Calculates matrix A_ij such that d dsigma(theta) / d theta_i = A_ij * dsigma (benchmark j)  """
+    """Calculates matrix A_ij such that d dsigma(theta) / d theta_i = A_ij * dsigma (benchmark j)
+
+    Parameters
+    ----------
+    theta_type :
+        
+    theta_value :
+        
+    benchmarks :
+        
+    morpher :
+         (Default value = None)
+
+    Returns
+    -------
+
+    """
 
     if theta_type == 'benchmark':
         if morpher is None:
@@ -77,6 +124,25 @@ def extract_augmented_data(augmented_data_definitions,
                            xsecs_benchmarks,
                            theta_matrices,
                            theta_gradient_matrices):
+    """
+
+    Parameters
+    ----------
+    augmented_data_definitions :
+        
+    weights_benchmarks :
+        
+    xsecs_benchmarks :
+        
+    theta_matrices :
+        
+    theta_gradient_matrices :
+        
+
+    Returns
+    -------
+
+    """
     augmented_data = []
 
     for definition in augmented_data_definitions:
@@ -117,6 +183,19 @@ def extract_augmented_data(augmented_data_definitions,
 
 
 def parse_theta(theta, n_samples):
+    """
+
+    Parameters
+    ----------
+    theta :
+        
+    n_samples :
+        
+
+    Returns
+    -------
+
+    """
     theta_type_in = theta[0]
     theta_value_in = theta[1]
 

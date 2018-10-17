@@ -15,6 +15,7 @@ from madminer.utils.ml.utils import get_activation_function
 
 
 class GaussianMADE(BaseFlow):
+    """ """
 
     def __init__(self, n_inputs, n_hiddens, activation='relu', input_order='sequential', mode='sequential'):
         super(GaussianMADE, self).__init__(n_inputs)
@@ -42,6 +43,19 @@ class GaussianMADE(BaseFlow):
         self.to_kwargs = None
 
     def forward(self, x, **kwargs):
+        """
+
+        Parameters
+        ----------
+        x :
+            
+        **kwargs :
+            
+
+        Returns
+        -------
+
+        """
         # Conditioner
         h = x
 
@@ -72,6 +86,21 @@ class GaussianMADE(BaseFlow):
         return u, logdet_dudx
 
     def generate_samples(self, n_samples=1, u=None, **kwargs):
+        """
+
+        Parameters
+        ----------
+        n_samples :
+             (Default value = 1)
+        u :
+             (Default value = None)
+        **kwargs :
+            
+
+        Returns
+        -------
+
+        """
         x = torch.zeros([n_samples, self.n_inputs])
         if u is None:
             u = tensor(rng.randn(n_samples, self.n_inputs))
@@ -96,6 +125,19 @@ class GaussianMADE(BaseFlow):
         return x
 
     def to(self, *args, **kwargs):
+        """
+
+        Parameters
+        ----------
+        *args :
+            
+        **kwargs :
+            
+
+        Returns
+        -------
+
+        """
         self.to_args = args
         self.to_kwargs = kwargs
 
@@ -116,6 +158,7 @@ class GaussianMADE(BaseFlow):
 
 
 class ConditionalGaussianMADE(BaseConditionalFlow):
+    """ """
     def __init__(self, n_conditionals, n_inputs, n_hiddens, activation='relu', input_order='sequential',
                  mode='sequential'):
         super(ConditionalGaussianMADE, self).__init__(n_conditionals, n_inputs)
@@ -146,6 +189,21 @@ class ConditionalGaussianMADE(BaseConditionalFlow):
         self.to_kwargs = None
 
     def forward(self, theta, x, **kwargs):
+        """
+
+        Parameters
+        ----------
+        theta :
+            
+        x :
+            
+        **kwargs :
+            
+
+        Returns
+        -------
+
+        """
         # Conditioner
         try:
             h = self.activation_function(
@@ -178,6 +236,21 @@ class ConditionalGaussianMADE(BaseConditionalFlow):
         return u, logdet_dudx
 
     def generate_samples(self, theta, u=None, **kwargs):
+        """
+
+        Parameters
+        ----------
+        theta :
+            
+        u :
+             (Default value = None)
+        **kwargs :
+            
+
+        Returns
+        -------
+
+        """
         n_samples = theta.shape[0]
 
         x = torch.zeros([n_samples, self.n_inputs])
@@ -204,6 +277,19 @@ class ConditionalGaussianMADE(BaseConditionalFlow):
         return x
 
     def to(self, *args, **kwargs):
+        """
+
+        Parameters
+        ----------
+        *args :
+            
+        **kwargs :
+            
+
+        Returns
+        -------
+
+        """
         self.to_args = args
         self.to_kwargs = kwargs
 

@@ -13,6 +13,17 @@ from madminer import __version__
 
 
 def general_init(debug=False):
+    """
+
+    Parameters
+    ----------
+    debug :
+         (Default value = False)
+
+    Returns
+    -------
+
+    """
     logging.basicConfig(format='%(asctime)s  %(message)s', datefmt='%H:%M')
     logging.getLogger().setLevel(logging.DEBUG if debug else logging.INFO)
 
@@ -28,6 +39,19 @@ def general_init(debug=False):
 
 
 def call_command(cmd, log_file=None):
+    """
+
+    Parameters
+    ----------
+    cmd :
+        
+    log_file :
+         (Default value = None)
+
+    Returns
+    -------
+
+    """
     logging.debug('Calling %s > %s', cmd, log_file)
 
     if log_file is not None:
@@ -58,6 +82,17 @@ def call_command(cmd, log_file=None):
 
 
 def create_missing_folders(folders):
+    """
+
+    Parameters
+    ----------
+    folders :
+        
+
+    Returns
+    -------
+
+    """
     if folders is None:
         return
 
@@ -73,6 +108,19 @@ def create_missing_folders(folders):
 
 
 def format_benchmark(parameters, precision=2):
+    """
+
+    Parameters
+    ----------
+    parameters :
+        
+    precision :
+         (Default value = 2)
+
+    Returns
+    -------
+
+    """
     output = ''
 
     for i, (key, value) in enumerate(six.iteritems(parameters)):
@@ -90,7 +138,17 @@ def format_benchmark(parameters, precision=2):
 
 
 def shuffle(*arrays):
-    """ Shuffles multiple arrays simultaneously"""
+    """Shuffles multiple arrays simultaneously
+
+    Parameters
+    ----------
+    *arrays :
+        
+
+    Returns
+    -------
+
+    """
 
     permutation = None
     n_samples = None
@@ -113,7 +171,19 @@ def shuffle(*arrays):
 
 
 def balance_thetas(theta_sets_types, theta_sets_values):
-    """ Repeats theta values such that all thetas lists have the same length """
+    """Repeats theta values such that all thetas lists have the same length
+
+    Parameters
+    ----------
+    theta_sets_types :
+        
+    theta_sets_values :
+        
+
+    Returns
+    -------
+
+    """
 
     n_sets = max([len(thetas) for thetas in theta_sets_types])
 
@@ -129,6 +199,19 @@ def balance_thetas(theta_sets_types, theta_sets_values):
 
 
 def load_and_check(filename, warning_threshold=1.e9):
+    """
+
+    Parameters
+    ----------
+    filename :
+        
+    warning_threshold :
+         (Default value = 1.e9)
+
+    Returns
+    -------
+
+    """
     if filename is None:
         return None
 
@@ -153,7 +236,7 @@ def load_and_check(filename, warning_threshold=1.e9):
 
 
 def math_commands():
-    """ Provides list with math commands - we need this when using eval """
+    """Provides list with math commands - we need this when using eval"""
 
     from math import acos, asin, atan, atan2, ceil, cos, cosh, exp, floor, log, pi, pow, sin, sinh, sqrt, tan, tanh
 
@@ -169,11 +252,35 @@ def math_commands():
 
 
 def make_file_executable(filename):
+    """
+
+    Parameters
+    ----------
+    filename :
+        
+
+    Returns
+    -------
+
+    """
     st = os.stat(filename)
     os.chmod(filename, st.st_mode | stat.S_IEXEC)
 
 
 def copy_file(source, destination):
+    """
+
+    Parameters
+    ----------
+    source :
+        
+    destination :
+        
+
+    Returns
+    -------
+
+    """
     if source is None:
         return
 

@@ -19,6 +19,7 @@ from madminer.utils.various import create_missing_folders, load_and_check, gener
 
 
 class MLForge:
+    """ """
 
     def __init__(self, debug=False):
         general_init(debug=debug)
@@ -60,7 +61,65 @@ class MLForge:
               validation_split=0.2,
               early_stopping=True):
 
-        """ Trains likelihood ratio estimator """
+        """Trains likelihood ratio estimator
+
+        Parameters
+        ----------
+        method :
+            
+        x_filename :
+            
+        y_filename :
+             (Default value = None)
+        theta0_filename :
+             (Default value = None)
+        theta1_filename :
+             (Default value = None)
+        r_xz_filename :
+             (Default value = None)
+        t_xz0_filename :
+             (Default value = None)
+        t_xz1_filename :
+             (Default value = None)
+        features :
+             (Default value = None)
+        nde_type :
+             (Default value = 'maf')
+        n_hidden :
+             (Default value = (100)
+        100 :
+            
+        100) :
+            
+        activation :
+             (Default value = 'tanh')
+        maf_n_mades :
+             (Default value = 3)
+        maf_batch_norm :
+             (Default value = True)
+        maf_batch_norm_alpha :
+             (Default value = 0.1)
+        maf_mog_n_components :
+             (Default value = 10)
+        alpha :
+             (Default value = 1.)
+        n_epochs :
+             (Default value = 20)
+        batch_size :
+             (Default value = 64)
+        initial_lr :
+             (Default value = 0.001)
+        final_lr :
+             (Default value = 0.0001)
+        validation_split :
+             (Default value = 0.2)
+        early_stopping :
+             (Default value = True)
+
+        Returns
+        -------
+
+        """
 
         logging.info('Starting training')
         logging.info('  Method:                 %s', method)
@@ -326,7 +385,27 @@ class MLForge:
                  evaluate_score=False,
                  features=None):
 
-        """ Predicts log likelihood ratio for all combinations of theta and x """
+        """Predicts log likelihood ratio for all combinations of theta and x
+
+        Parameters
+        ----------
+        x_filename :
+            
+        theta0_filename :
+             (Default value = None)
+        theta1_filename :
+             (Default value = None)
+        test_all_combinations :
+             (Default value = True)
+        evaluate_score :
+             (Default value = False)
+        features :
+             (Default value = None)
+
+        Returns
+        -------
+
+        """
 
         if self.model is None:
             raise ValueError('No model -- train or load model before evaluating it!')
@@ -431,8 +510,22 @@ class MLForge:
                                      n_events=1,
                                      features=None):
 
-        """ Calculates the expected kinematic Fisher information matrix. Note that x_filename has to be generated
-         according to the same theta that was used to define the score that SALLY / SALLINO was trained on! """
+        """Calculates the expected kinematic Fisher information matrix. Note that x_filename has to be generated
+         according to the same theta that was used to define the score that SALLY / SALLINO was trained on!
+
+        Parameters
+        ----------
+        x_filename :
+            
+        n_events :
+             (Default value = 1)
+        features :
+             (Default value = None)
+
+        Returns
+        -------
+
+        """
 
         if self.model is None:
             raise ValueError('No model -- train or load model before evaluating it!')
@@ -473,7 +566,17 @@ class MLForge:
     def save(self,
              filename):
 
-        """ Saves model state dict """
+        """Saves model state dict
+
+        Parameters
+        ----------
+        filename :
+            
+
+        Returns
+        -------
+
+        """
 
         if self.model is None:
             raise ValueError('No model -- train or load model before saving!')
@@ -501,7 +604,17 @@ class MLForge:
     def load(self,
              filename):
 
-        """ Loads model state dict from file """
+        """Loads model state dict from file
+
+        Parameters
+        ----------
+        filename :
+            
+
+        Returns
+        -------
+
+        """
 
         # Load settings
         logging.info('Loading settings from %s_settings.json', filename)

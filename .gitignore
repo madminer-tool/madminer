@@ -159,6 +159,3 @@ examples/tests/datasave
 
 # MG / Pythia / Delphes patch
 patches/
-examples/tutorial_parton/figures/bla.pdf
-examples/tutorial_parton/figures/kinematics.pdf
-examples/tutorial_parton/figures/output.pdf

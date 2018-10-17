@@ -13,15 +13,26 @@ def save_madminer_settings(filename,
                            morphing_components=None,
                            morphing_matrix=None,
                            overwrite_existing_files=True):
-    """
-    Saves all MadMiner settings into an HDF5 file.
+    """Saves all MadMiner settings into an HDF5 file.
 
-    :param filename:
-    :param parameters:
-    :param benchmarks:
-    :param morphing_components:
-    :param morphing_matrix:
-    :param overwrite_existing_files:
+    Parameters
+    ----------
+    filename :
+        param parameters:
+    benchmarks :
+        param morphing_components:
+    morphing_matrix :
+        param overwrite_existing_files: (Default value = None)
+    parameters :
+        
+    morphing_components :
+         (Default value = None)
+    overwrite_existing_files :
+         (Default value = True)
+
+    Returns
+    -------
+
     """
 
     io_tag = 'w' if overwrite_existing_files else 'x'
@@ -84,7 +95,17 @@ def save_madminer_settings(filename,
 
 
 def load_madminer_settings(filename):
-    """ Loads MadMiner settings, observables, and weights from a HDF5 file. """
+    """Loads MadMiner settings, observables, and weights from a HDF5 file.
+
+    Parameters
+    ----------
+    filename :
+        
+
+    Returns
+    -------
+
+    """
 
     with h5py.File(filename, 'r') as f:
 
@@ -182,6 +203,23 @@ def load_madminer_settings(filename):
 
 
 def madminer_event_loader(filename, start=0, end=None, batch_size=100000):
+    """
+
+    Parameters
+    ----------
+    filename :
+        
+    start :
+         (Default value = 0)
+    end :
+         (Default value = None)
+    batch_size :
+         (Default value = 100000)
+
+    Returns
+    -------
+
+    """
     with h5py.File(filename, 'r') as f:
 
         # Handles to data
@@ -213,6 +251,17 @@ def madminer_event_loader(filename, start=0, end=None, batch_size=100000):
 
 
 def load_benchmarks_from_madminer_file(filename):
+    """
+
+    Parameters
+    ----------
+    filename :
+        
+
+    Returns
+    -------
+
+    """
     with h5py.File(filename, 'r') as f:
 
         # Benchmarks
@@ -233,6 +282,25 @@ def save_preformatted_events_to_madminer_file(filename,
                                               weights,
                                               copy_setup_from,
                                               overwrite_existing_samples=True):
+    """
+
+    Parameters
+    ----------
+    filename :
+        
+    observations :
+        
+    weights :
+        
+    copy_setup_from :
+        
+    overwrite_existing_samples :
+         (Default value = True)
+
+    Returns
+    -------
+
+    """
     if copy_setup_from is not None:
         try:
             shutil.copyfile(copy_setup_from, filename)
@@ -264,6 +332,27 @@ def save_events_to_madminer_file(filename,
                                  weights,
                                  copy_from=None,
                                  overwrite_existing_samples=True):
+    """
+
+    Parameters
+    ----------
+    filename :
+        
+    observables :
+        
+    observations :
+        
+    weights :
+        
+    copy_from :
+         (Default value = None)
+    overwrite_existing_samples :
+         (Default value = True)
+
+    Returns
+    -------
+
+    """
     if copy_from is not None:
         try:
             shutil.copyfile(copy_from, filename)
@@ -326,6 +415,27 @@ def save_madminer_file_from_lhe(filename,
                                 weights,
                                 copy_from=None,
                                 overwrite_existing_samples=True):
+    """
+
+    Parameters
+    ----------
+    filename :
+        
+    observables :
+        
+    observations :
+        
+    weights :
+        
+    copy_from :
+         (Default value = None)
+    overwrite_existing_samples :
+         (Default value = True)
+
+    Returns
+    -------
+
+    """
     if copy_from is not None:
         try:
             shutil.copyfile(copy_from, filename)

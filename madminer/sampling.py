@@ -9,7 +9,7 @@ from madminer.utils.interfaces.hdf5 import load_madminer_settings, madminer_even
 from madminer.utils.interfaces.hdf5 import save_preformatted_events_to_madminer_file
 from madminer.utils.analysis import get_theta_value, get_theta_benchmark_matrix, get_dtheta_benchmark_matrix
 from madminer.utils.analysis import extract_augmented_data, parse_theta
-from madminer.morphing import AdvancedMorpher
+from madminer.morphing import Morpher
 from madminer.utils.various import general_init, format_benchmark, create_missing_folders, shuffle, balance_thetas
 
 
@@ -18,13 +18,30 @@ def combine_and_shuffle(input_filenames,
                         overwrite_existing_file=True,
                         debug=False):
     """
-    Combines multiple HDF5 files into one, and shuffles the order of the events. It is recommended to run this tool
-    before the Refinery.
+    Combines multiple MadMiner files into one, and shuffles the order of the events.
 
-    :param input_filenames: list of filenames of the input HDF5 files
-    :param output_filename: filename for the output HDF5 file
-    :param overwrite_existing_file:
-    :param debug:
+    Note that this function assumes that all samples are generated with the same setup, including identical benchmarks
+    (and thus morphing setup). If it is used with samples with different settings, there will be wrong results!
+    There are no explicit cross checks in place yet!
+
+    Parameters
+    ----------
+    input_filenames : list of str
+        List of paths to the input MadMiner files.
+
+    output_filename : str
+        Path to the combined MadMiner file.
+
+    overwrite_existing_file : bool, optional
+        If True and if the output file exists, it is overwritten. Default value: True.
+
+    debug : bool, optional
+        If True, additional detailed debugging output is printed. Default value: False.
+
+    Returns
+    -------
+        None
+
     """
 
     general_init(debug=debug)
@@ -68,26 +85,147 @@ def combine_and_shuffle(input_filenames,
 
 
 def constant_benchmark_theta(benchmark_name):
+    """
+    Utility function to be used as input to various SampleAugmenter functions, specifying a single parameter benchmark.
+
+    Parameters
+    ----------
+    benchmark_name : str
+        Name of the benchmark (as in `madminer.core.MadMiner.add_benchmark`)
+        
+
+    Returns
+    -------
+    output : tuple
+        Input to various SampleAugmenter functions
+
+    """
     return 'benchmark', benchmark_name
 
 
 def multiple_benchmark_thetas(benchmark_names):
+    """
+    Utility function to be used as input to various SampleAugmenter functions, specifying multiple parameter benchmarks.
+
+    Parameters
+    ----------
+    benchmark_names : list of str
+        List of names of the benchmarks (as in `madminer.core.MadMiner.add_benchmark`)
+
+
+    Returns
+    -------
+    output : tuple
+        Input to various SampleAugmenter functions
+
+    """
     return 'benchmarks', benchmark_names
 
 
 def constant_morphing_theta(theta):
+    """
+    Utility function to be used as input to various SampleAugmenter functions, specifying a single parameter point theta
+    in a morphing setup.
+
+    Parameters
+    ----------
+    theta : ndarray or list
+        Parameter point with shape `(n_parameters,)`
+
+    Returns
+    -------
+    output : tuple
+        Input to various SampleAugmenter functions
+
+    """
     return 'theta', np.asarray(theta)
 
 
 def multiple_morphing_thetas(thetas):
+    """
+    Utility function to be used as input to various SampleAugmenter functions, specifying multiple parameter points
+    theta in a morphing setup.
+
+    Parameters
+    ----------
+    thetas : ndarray or list of lists or list of ndarrays
+        Parameter points with shape `(n_thetas, n_parameters)`
+
+    Returns
+    -------
+    output : tuple
+        Input to various SampleAugmenter functions
+
+    """
     return 'thetas', [np.asarray(theta) for theta in thetas]
 
 
 def random_morphing_thetas(n_thetas, priors):
+    """
+    Utility function to be used as input to various SampleAugmenter functions, specifying random parameter points
+    sampled from a prior in a morphing setup.
+
+    Parameters
+    ----------
+    n_thetas : int
+        Number of parameter points to be sampled
+
+    priors : list of tuples
+        Priors for each parameter is characterized by a tuple of the form `(prior_shape, prior_param_0, prior_param_1)`.
+        Currently, the supported prior_shapes are `flat`, in which case the two other parameters are the lower and upper
+        bound of the flat prior, and `gaussian`, in which case they are the mean and standard deviation of a Gaussian.
+
+    Returns
+    -------
+    output : tuple
+        Input to various SampleAugmenter functions
+
+    """
     return 'random', (n_thetas, priors)
 
 
 class SampleAugmenter:
+    """
+    Sampling and data augmentation.
+
+    After the generated events have been analyzed and the observables and weights have been saved into a MadMiner file,
+    for instance with `madminer.delphes.DelphesProcessor` or `madminer.lhe.LHEProcessor`, the next step is typically
+    the generation of training and evaluation data for the machine learning algorithms. This generally involves two
+    (related) tasks: unweighting, i.e. the creation of samples that do not carry individual weights but follow some
+    distribution, and the extraction of the joint likelihood ratio and / or joint score (the "augmented data").
+
+    After inializing `SampleAugmenter` with the filename of a MadMiner file, this is done with a single function call.
+    Depending on the downstream inference algorithm, there are different possibilities:
+
+    * `SampleAugmenter.extract_samples_train_plain()` creates plain training samples without augmented data.
+
+    * `SampleAugmenter.extract_samples_train_local()` creates training samples for local methods based on the score,
+    such as SALLY and SALLINO.
+
+    * `SampleAugmenter.extract_samples_train_ratio()` creates training samples for non-local, ratio-based methods
+    like RASCAL, ALICE, and SCANDAL.
+
+    * `SampleAugmenter.extract_samples_train_more_ratios()` does the same, but can extract joint ratios and scores
+    at more parameter points. This additional information  can be used efficiently in the setup with a "doubly
+    parameterized" likelihood ratio estimator that models the dependence on both the numerator and denominator
+    hypothesis.
+
+    * `SampleAugmenter.extract_samples_test()` creates evaluation samples for all methods.
+
+    Please see the tutorial for a walkthrough.
+
+    Parameters
+    ----------
+    filename : str
+        Path to MadMiner file (for instance the output of `madminer.delphes.DelphesProcessor.save()`).
+
+    disable_morphing : bool, optional
+        If True, the morphing setup is not loaded from the file. Default value: False.
+
+    debug : bool, optional
+        If True, additional detailed debugging output is printed. Default value: False.
+
+    """
 
     def __init__(self, filename, disable_morphing=False, debug=False):
 
@@ -119,7 +257,7 @@ class SampleAugmenter:
         # Morphing
         self.morpher = None
         if self.morphing_matrix is not None and self.morphing_components is not None and not disable_morphing:
-            self.morpher = AdvancedMorpher(self.parameters)
+            self.morpher = Morpher(self.parameters)
             self.morpher.set_components(self.morphing_components)
             self.morpher.set_basis(self.benchmarks, morphing_matrix=self.morphing_matrix)
 
@@ -133,18 +271,42 @@ class SampleAugmenter:
                                     n_samples,
                                     folder,
                                     filename,
-                                    test_split=0.3):
+                                    test_split=0.5):
         """
-        Extracts training samples x ~ p(x|theta) for methods such as histograms or ABC.
+        Extracts plain training samples `x ~ p(x|theta)` without any augmented data. This can be use for standard
+        inference methods such as ABC, histograms of observables, or neural density estimation techniques.
 
-        :param theta: tuple (type, value) that defines the parameter point or prior over parameter points for the
-                      sampling. Use the helper functions constant_benchmark_theta(), multiple_benchmark_thetas(),
-                      constant_morphing_theta(), multiple_morphing_thetas(), or random_morphing_thetas().
-        :param n_samples: Total number of samples to be drawn.
-        :param folder: Folder for the resulting samples.
-        :param filename: Label for the filenames. The actual filenames will add a prefix such as 'x', and the extension
-                         '.npy'.
-        :param test_split: Fraction of events reserved for the test sample (will not be used for any training samples).
+        Parameters
+        ----------
+        theta : tuple
+            Tuple (type, value) that defines the parameter point or prior over parameter points for the
+            sampling. Pass the output of the functions `constant_benchmark_theta()`, `multiple_benchmark_thetas()`,
+            `constant_morphing_theta()`, `multiple_morphing_thetas()`, or `random_morphing_thetas()`.
+
+        n_samples : int
+            Total number of events to be drawn.
+
+        folder : str
+            Path to the folder where the resulting samples should be saved (ndarrays in .npy format).
+
+        filename : str
+            Filenames for the resulting samples. A prefix such as 'x' or 'theta0' as well as the extension
+            '.npy' will be added automatically.
+
+        test_split : float, optional
+            Fraction of events reserved for the evaluation sample (that will not be used for any training samples).
+            Default value: 0.5.
+
+        Returns
+        -------
+        x : ndarray
+            Observables with shape `(n_samples, n_observables)`. The same information is saved as a file in the given
+            folder.
+
+        theta : ndarray
+            Parameter points used for sampling with shape `(n_samples, n_parameters)`. The same information is saved as
+            a file in the given folder.
+
         """
 
         logging.info('Extracting plain training sample. Sampling according to %s', theta)
@@ -164,7 +326,7 @@ class SampleAugmenter:
                 raise ValueError("Irregular train / test split: sample {} / {}", last_train_index, self.n_samples)
 
         # Start
-        x, _, (theta,) = self.extract_sample(
+        x, _, (theta,) = self._extract_sample(
             theta_sets_types=[theta_types],
             theta_sets_values=[theta_values],
             n_samples_per_theta=n_samples_per_theta,
@@ -184,18 +346,45 @@ class SampleAugmenter:
                                     n_samples,
                                     folder,
                                     filename,
-                                    test_split=0.3):
+                                    test_split=0.5):
         """
-        Extracts training samples x ~ p(x|theta) as well as the joint score t(x, z|theta) for SALLY and SALLINO.
+        Extracts training samples x ~ p(x|theta) as well as the joint score t(x, z|theta). This can be used for
+        inference methods such as SALLY and SALLINO.
 
-        :param theta: tuple (type, value) that defines the parameter point or prior over parameter points for the
-                      sampling. This is also where the score is evaluated. Use the helper functions, in particular
-                      constant_benchmark_theta() and constant_morphing_theta().
-        :param n_samples: Total number of samples to be drawn.
-        :param folder: Folder for the resulting samples.
-        :param filename: Label for the filenames. The actual filenames will add a prefix such as 'x', and the extension
-                         '.npy'.
-        :param test_split: Fraction of events reserved for the test sample (will not be used for any training samples).
+        Parameters
+        ----------
+        theta : tuple
+            Tuple (type, value) that defines the parameter point for the sampling. This is also where the score is
+            evaluated. Pass the output of the functions `constant_benchmark_theta()` or `constant_morphing_theta()`.
+
+        n_samples : int
+            Total number of events to be drawn.
+
+        folder : str
+            Path to the folder where the resulting samples should be saved (ndarrays in .npy format).
+
+        filename : str
+            Filenames for the resulting samples. A prefix such as 'x' or 'theta0' as well as the extension
+            '.npy' will be added automatically.
+
+        test_split : float, optional
+            Fraction of events reserved for the evaluation sample (that will not be used for any training samples).
+            Default value: 0.5.
+
+        Returns
+        -------
+        x : ndarray
+            Observables with shape `(n_samples, n_observables)`. The same information is saved as a file in the given
+            folder.
+
+        theta : ndarray
+            Parameter points used for sampling (and  evaluation of the joint score) with shape
+            `(n_samples, n_parameters)`. The same information is saved as a file in the given folder.
+
+        t_xz : ndarray
+            Joint score evaluated at theta with shape `(n_samples, n_parameters)`. The same information is saved as a
+            file in the given folder.
+
         """
 
         logging.info('Extracting training sample for local score regression. Sampling and score evaluation according to'
@@ -222,7 +411,7 @@ class SampleAugmenter:
                 raise ValueError("Irregular train / test split: sample {} / {}", last_train_index, self.n_samples)
 
         # Start
-        x, (t_xz,), (theta,) = self.extract_sample(
+        x, (t_xz,), (theta,) = self._extract_sample(
             theta_sets_types=[theta_types],
             theta_sets_values=[theta_values],
             n_samples_per_theta=n_samples_per_theta,
@@ -245,23 +434,64 @@ class SampleAugmenter:
                                     n_samples,
                                     folder,
                                     filename,
-                                    test_split=0.3):
+                                    test_split=0.5):
         """
-        Extracts training samples x ~ p(x|theta0) and x ~ p(x|theta1) together with the class label y, the joint
-        likelihood ratio r(x,z|theta0, theta1), and the joint score t(x,z|theta0) for methods such as CARL, ROLR,
-        CASCAL, and RASCAL.
+        Extracts training samples `x ~ p(x|theta0)` and `x ~ p(x|theta1)` together with the class label `y`, the joint
+        likelihood ratio `r(x,z|theta0, theta1)`, and the joint score `t(x,z|theta0)`. This information can be used in
+        inference methods such as CARL, ROLR, CASCAL, and RASCAL.
 
-        :param theta0: tuple (type, value) that defines the numerator parameter point or prior over parameter points.
-                       Use the helper functions constant_benchmark_theta(), multiple_benchmark_thetas(),
-                       constant_morphing_theta(), multiple_morphing_thetas(), or random_morphing_thetas().
-        :param theta1: tuple (type, value) that defines the numerator parameter point or prior over parameter points.
-                       Use the helper functions constant_benchmark_theta(), multiple_benchmark_thetas(),
-                       constant_morphing_theta(), multiple_morphing_thetas(), or random_morphing_thetas().
-        :param n_samples: Total number of samples to be drawn.
-        :param folder: Folder for the resulting samples.
-        :param filename: Label for the filenames. The actual filenames will add a prefix such as 'x', and the extension
-                         '.npy'.
-        :param test_split: Fraction of events reserved for the test sample (will not be used for any training samples).
+        Parameters
+        ----------
+        theta0 :
+            Tuple (type, value) that defines the numerator parameter point or prior over parameter points for the
+            sampling. Pass the output of the functions `constant_benchmark_theta()`, `multiple_benchmark_thetas()`,
+            `constant_morphing_theta()`, `multiple_morphing_thetas()`, or `random_morphing_thetas()`.
+
+        theta1 :
+            Tuple (type, value) that defines the denominator parameter point or prior over parameter points for the
+            sampling. Pass the output of the functions `constant_benchmark_theta()`, `multiple_benchmark_thetas()`,
+            `constant_morphing_theta()`, `multiple_morphing_thetas()`, or `random_morphing_thetas()`.
+
+        n_samples : int
+            Total number of events to be drawn.
+
+        folder : str
+            Path to the folder where the resulting samples should be saved (ndarrays in .npy format).
+
+        filename : str
+            Filenames for the resulting samples. A prefix such as 'x' or 'theta0' as well as the extension
+            '.npy' will be added automatically.
+
+        test_split : float, optional
+            Fraction of events reserved for the evaluation sample (that will not be used for any training samples).
+            Default value: 0.5.
+
+        Returns
+        -------
+        x : ndarray
+            Observables with shape `(n_samples, n_observables)`. The same information is saved as a file in the given
+            folder.
+
+        theta0 : ndarray
+            Numerator parameter points with shape `(n_samples, n_parameters)`. The same information is saved as
+            a file in the given folder.
+
+        theta1 : ndarray
+            Denominator parameter points with shape `(n_samples, n_parameters)`. The same information is saved as
+            a file in the given folder.
+
+        y : ndarray
+            Class label with shape `(n_samples, n_parameters)`. `y=0` (`1`) for events sample from the numerator
+            (denominator) hypothesis. The same information is saved as a file in the given folder.
+
+        r_xz : ndarray
+            Joint likelihood ratio with shape `(n_samples,)`. The same information is saved as a file in the given
+            folder.
+
+        t_xz : ndarray
+            Joint score evaluated at theta0 with shape `(n_samples, n_parameters)`. The same information is saved as a
+            file in the given folder.
+
         """
 
         logging.info('Extracting training sample for ratio-based methods. Numerator hypothesis: %s, denominator '
@@ -292,7 +522,7 @@ class SampleAugmenter:
         n_samples_per_theta = min(n_samples_per_theta0, n_samples_per_theta1)
 
         # Start for theta0
-        x0, (r_xz0, t_xz0), (theta0_0, theta1_0) = self.extract_sample(
+        x0, (r_xz0, t_xz0), (theta0_0, theta1_0) = self._extract_sample(
             theta_sets_types=[theta0_types, theta1_types],
             theta_sets_values=[theta0_values, theta1_values],
             sampling_theta_index=0,
@@ -309,7 +539,7 @@ class SampleAugmenter:
         n_samples_per_theta = min(n_samples_per_theta0, n_samples_per_theta1)
 
         # Start for theta1
-        x1, (r_xz1, t_xz1), (theta0_1, theta1_1) = self.extract_sample(
+        x1, (r_xz1, t_xz1), (theta0_1, theta1_1) = self._extract_sample(
             theta_sets_types=[theta0_types, theta1_types],
             theta_sets_values=[theta0_values, theta1_values],
             sampling_theta_index=1,
@@ -354,26 +584,75 @@ class SampleAugmenter:
                                           additional_thetas=None,
                                           test_split=0.3):
         """
-        Extracts training samples x ~ p(x|theta0) and x ~ p(x|theta1) together with the class label y, the joint
-        likelihood ratio r(x,z|theta0, theta1), and the joint scores t(x,z|theta0) as well as t(x,z|theta1) for methods
-        such as CARL, ROLR, CASCAL, and RASCAL.
+        Extracts training samples `x ~ p(x|theta0)` and `x ~ p(x|theta1)` together with the class label `y`, the joint
+        likelihood ratio `r(x,z|theta0, theta1)`, and the joint score `t(x,z|theta0)`. This information can be used in
+        inference methods such as CARL, ROLR, CASCAL, and RASCAL.
 
-        :param theta0: tuple (type, value) that defines the numerator parameter point or prior over parameter points.
-                       Use the helper functions constant_benchmark_theta(), multiple_benchmark_thetas(),
-                       constant_morphing_theta(), multiple_morphing_thetas(), or random_morphing_thetas().
-        :param theta1: tuple (type, value) that defines the numerator parameter point or prior over parameter points.
-                       Use the helper functions constant_benchmark_theta(), multiple_benchmark_thetas(),
-                       constant_morphing_theta(), multiple_morphing_thetas(), or random_morphing_thetas().
-        :param n_samples: Total number of samples to be drawn.
-        :param folder: Folder for the resulting samples.
-        :param filename: Label for the filenames. The actual filenames will add a prefix such as 'x', and the extension
-                         '.npy'.
-        :param additional_thetas: list of tuples (type, value) that defines additional theta points at which ratio and
-                                  score are evaluated, and which are then used to create additional training data
-                                  points. Use the helper functions constant_benchmark_theta(),
-                                  multiple_benchmark_thetas(), constant_morphing_theta(), multiple_morphing_thetas(), or
-                                  random_morphing_thetas().
-        :param test_split: Fraction of events reserved for the test sample (will not be used for any training samples).
+        With the keyword `additional_thetas`, this function allows to extract joint ratios and scores
+        at more parameter points than just `theta0` and `theta1`. This additional information can be used efficiently
+        in the setup with a "doubly parameterized" likelihood ratio estimator that models the dependence on both the
+        numerator and denominator hypothesis.
+
+        Parameters
+        ----------
+        theta0 :
+            Tuple (type, value) that defines the numerator parameter point or prior over parameter points for the
+            sampling. Pass the output of the functions `constant_benchmark_theta()`, `multiple_benchmark_thetas()`,
+            `constant_morphing_theta()`, `multiple_morphing_thetas()`, or `random_morphing_thetas()`.
+
+        theta1 :
+            Tuple (type, value) that defines the denominator parameter point or prior over parameter points for the
+            sampling. Pass the output of the functions `constant_benchmark_theta()`, `multiple_benchmark_thetas()`,
+            `constant_morphing_theta()`, `multiple_morphing_thetas()`, or `random_morphing_thetas()`.
+
+        n_samples : int
+            Total number of events to be drawn.
+
+        folder : str
+            Path to the folder where the resulting samples should be saved (ndarrays in .npy format).
+
+        filename : str
+            Filenames for the resulting samples. A prefix such as 'x' or 'theta0' as well as the extension
+            '.npy' will be added automatically.
+
+        additional_thetas : list of tuple or None
+            list of tuples `(type, value)` that defines additional theta points at which ratio and score are evaluated,
+            and which are then used to create additional training data points. These can be efficiently used only in
+            the "doubly parameterized" setup where a likelihood ratio estimator models the dependence of the likelihood
+            ratio on both the numerator and denominator hypothesis. Pass the output of  the helper functions
+            `constant_benchmark_theta()`, `multiple_benchmark_thetas()`, `constant_morphing_theta()`,
+            `multiple_morphing_thetas()`, or `random_morphing_thetas()`. Default value: None.
+
+        test_split : float, optional
+            Fraction of events reserved for the evaluation sample (that will not be used for any training samples).
+            Default value: 0.5.
+
+        Returns
+        -------
+        x : ndarray
+            Observables with shape `(n_samples, n_observables)`. The same information is saved as a file in the given
+            folder.
+
+        theta0 : ndarray
+            Numerator parameter points with shape `(n_samples, n_parameters)`. The same information is saved as
+            a file in the given folder.
+
+        theta1 : ndarray
+            Denominator parameter points with shape `(n_samples, n_parameters)`. The same information is saved as
+            a file in the given folder.
+
+        y : ndarray
+            Class label with shape `(n_samples, n_parameters)`. `y=0` (`1`) for events sample from the numerator
+            (denominator) hypothesis. The same information is saved as a file in the given folder.
+
+        r_xz : ndarray
+            Joint likelihood ratio with shape `(n_samples,)`. The same information is saved as a file in the given
+            folder.
+
+        t_xz : ndarray
+            Joint score evaluated at theta0 with shape `(n_samples, n_parameters)`. The same information is saved as a
+            file in the given folder.
+
         """
 
         logging.info('Extracting training sample for ratio-based methods. Numerator hypothesis: %s, denominator '
@@ -433,7 +712,7 @@ class SampleAugmenter:
             n_samples_per_theta = min(this_n_samples, n_samples_per_theta)
 
         # Start for theta0
-        x_0, augmented_data_0, thetas_0 = self.extract_sample(
+        x_0, augmented_data_0, thetas_0 = self._extract_sample(
             theta_sets_types=theta_types,
             theta_sets_values=theta_values,
             n_samples_per_theta=n_samples_per_theta,
@@ -490,7 +769,7 @@ class SampleAugmenter:
             n_samples_per_theta = min(this_n_samples, n_samples_per_theta)
 
         # Start for theta1
-        x_1, augmented_data_1, thetas_1 = self.extract_sample(
+        x_1, augmented_data_1, thetas_1 = self._extract_sample(
             theta_sets_types=theta_types,
             theta_sets_values=theta_values,
             n_samples_per_theta=n_samples_per_theta,
@@ -563,17 +842,39 @@ class SampleAugmenter:
                              filename,
                              test_split=0.3):
         """
-        Extracts evaluation samples x ~ p(x|theta).
+        Extracts evaluation samples `x ~ p(x|theta)` without any augmented data.
 
-        :param theta: tuple (type, value) that defines the parameter point or prior over parameter points used for the
-                      sampling. Use the helper functions constant_benchmark_theta(), multiple_benchmark_thetas(),
-                      constant_morphing_theta(), multiple_morphing_thetas(), or random_morphing_thetas().
-        :param n_samples: Total number of samples to be drawn.
-        :param folder: Folder for the resulting samples.
-        :param filename: Label for the filenames. The actual filenames will add a prefix such as 'x', and the extension
-                         '.npy'.
-        :param test_split: Fraction of events reserved for this evaluation sample (will not be used for any training
-                           samples).
+        Parameters
+        ----------
+        theta : tuple
+            Tuple (type, value) that defines the parameter point or prior over parameter points for the
+            sampling. Pass the output of the functions `constant_benchmark_theta()`, `multiple_benchmark_thetas()`,
+            `constant_morphing_theta()`, `multiple_morphing_thetas()`, or `random_morphing_thetas()`.
+
+        n_samples : int
+            Total number of events to be drawn.
+
+        folder : str
+            Path to the folder where the resulting samples should be saved (ndarrays in .npy format).
+
+        filename : str
+            Filenames for the resulting samples. A prefix such as 'x' or 'theta0' as well as the extension
+            '.npy' will be added automatically.
+
+        test_split : float, optional
+            Fraction of events reserved for the evaluation sample (that will not be used for any training samples).
+            Default value: 0.5.
+
+        Returns
+        -------
+        x : ndarray
+            Observables with shape `(n_samples, n_observables)`. The same information is saved as a file in the given
+            folder.
+
+        theta : ndarray
+            Parameter points used for sampling with shape `(n_samples, n_parameters)`. The same information is saved as
+            a file in the given folder.
+
         """
 
         logging.info('Extracting evaluation sample. Sampling according to %s', theta)
@@ -593,7 +894,7 @@ class SampleAugmenter:
                 raise ValueError("Irregular in train / test split: sample {} / {}", first_test_index, self.n_samples)
 
         # Extract information
-        x, _, (theta,) = self.extract_sample(
+        x, _, (theta,) = self._extract_sample(
             theta_sets_types=[theta_types],
             theta_sets_values=[theta_values],
             n_samples_per_theta=n_samples_per_theta,
@@ -608,16 +909,30 @@ class SampleAugmenter:
 
         return x, theta
 
-    def extract_cross_sections(self,
-                               theta):
+    def extract_cross_sections(self, theta):
 
         """
         Calculates the total cross sections for all specified thetas.
 
-        :param theta: tuple (type, value) that defines the parameter point or prior over parameter points used for the
-                      sampling. Use the helper functions constant_benchmark_theta(), multiple_benchmark_thetas(),
-                      constant_morphing_theta(), multiple_morphing_thetas(), or random_morphing_thetas().
-        :return: thetas, xsecs, xsec_uncertainties. xsecs and xsec_uncertainties are in pb.
+        Parameters
+        ----------
+        theta : tuple
+            Tuple (type, value) that defines the parameter point or prior over parameter points at which the cross
+            section is calculated. Pass the output of the functions `constant_benchmark_theta()`,
+            `multiple_benchmark_thetas()`, `constant_morphing_theta()`, `multiple_morphing_thetas()`, or
+            `random_morphing_thetas()`.
+
+        Returns
+        -------
+        thetas : ndarray
+            Parameter points with shape `(n_thetas, n_parameters)`.
+
+        xsecs : ndarray
+            Total cross sections in pb with shape `(n_thetas, )`.
+
+        xsec_uncertainties : ndarray
+            Statistical uncertainties on the total cross sections in pb with shape `(n_thetas, )`.
+
         """
 
         logging.info('Starting cross-section calculation')
@@ -672,33 +987,57 @@ class SampleAugmenter:
 
         return all_thetas, all_xsecs, all_xsec_uncertainties
 
-    def extract_sample(self,
-                       theta_sets_types,
-                       theta_sets_values,
-                       n_samples_per_theta,
-                       sampling_theta_index=0,
-                       augmented_data_definitions=None,
-                       start_event=0,
-                       end_event=None):
+    def _extract_sample(self,
+                        theta_sets_types,
+                        theta_sets_values,
+                        n_samples_per_theta,
+                        sampling_theta_index=0,
+                        augmented_data_definitions=None,
+                        start_event=0,
+                        end_event=None):
         """
-        Low-level function for the extraction of information from the event samples.
+        Low-level function for the extraction of information from the event samples. Do not use this function directly.
 
-        :param theta_sets_types: list of lists of str, each entry can be 'benchmark' or 'morphing'
-        :param theta_sets_values: list of lists, each entry is int and labels the benchmark index (if the corresponding
-                                      theta_sampling_types entry is 'benchmark') or a numpy array with the theta values
-                                      (of the corresponding theta_sampling_types entry is 'morphing')
-        :param n_samples_per_theta: Number of samples to be drawn per entry in theta_sampling_types.
-        :param augmented_data_definitions: list of tuples. Each tuple can either be ('ratio', num_theta, den_theta) or
-                                           ('score', theta), where num_theta, den_theta, and theta are indexes marking
-                                           which of the theta sets defined through thetas_types and thetas_values is
-                                           used.
-        :param sampling_theta_index: int, marking the index of the theta set defined through thetas_types and
-                                     thetas_values that should be used for sampling
-        :param start_event: Index of first event to consider.
-        :param end_event: Index of last event to consider.
-        :return: tuple (x, augmented_data_list, theta_sampling, theta_auxiliary). x, theta_sampling, theta_auxiliary,
-                 and all elements of the list augmented_data_list are ndarrays with the number of samples as first
-                 dimension.
+        Parameters
+        ----------
+        theta_sets_types :  list of list of str
+            Each entry can be 'benchmark' or 'morphing'.
+
+        theta_sets_values : list of list
+            Each entry is int and labels the benchmark index (if the corresponding
+            theta_sampling_types entry is 'benchmark') or a numpy array with the theta values
+            (of the corresponding theta_sampling_types entry is 'morphing')
+
+        n_samples_per_theta : int
+            Number of samples to be drawn per entry in theta_sampling_types.
+
+        augmented_data_definitions : list of tuple or None
+            Each tuple can either be ('ratio', num_theta, den_theta) or
+            ('score', theta), where num_theta, den_theta, and theta are indexes marking
+            which of the theta sets defined through thetas_types and thetas_values is
+            used. Default value: None.
+
+        sampling_theta_index : int
+            Marking the index of the theta set defined through thetas_types and
+            thetas_values that should be used for sampling. Default value: 0.
+
+        start_event : int
+            Index of first event to consider. Default value: 0.
+
+        end_event : int or None
+            Index of last event to consider. If None, use the last event. Default value: None.
+
+        Returns
+        -------
+        x :  ndarray
+            Observables.
+
+        augmented_data : list of ndarray
+            Augmented data.
+
+        theta : list of ndarray
+            Parameter values.
+
         """
 
         logging.debug('Starting sample extraction')
@@ -901,10 +1240,24 @@ class SampleAugmenter:
     def extract_raw_data(self, theta=None):
 
         """
+        Returns all events together with the benchmark weights (if theta is None)
+        or weights for a given theta.
 
-        :param theta: if not None, uses morphing to calculate the weights for this value of theta. If None, returns
-                      the weights in fb for all benchmark points, as in the file.
-        :return: x, weights
+        Parameters
+        ----------
+        theta : None or ndarray
+            If None, the function returns the benchmark weights. Otherwise it uses morphing to calculate the weights for
+            this value of theta. Default value: None.
+
+        Returns
+        -------
+        x : ndarray
+            Observables with shape `(n_unweighted_samples, n_observables)`.
+
+        weights : ndarray
+            If theta is None, benchmark weights with shape  `(n_unweighted_samples, n_benchmarks)` in pb. Otherwise,
+            weights for the given parameter theta with shape `(n_unweighted_samples,)` in pb.
+
         """
 
         x, weights_benchmarks = next(madminer_event_loader(self.madminer_filename, batch_size=None))

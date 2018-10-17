@@ -7,6 +7,25 @@ def export_param_card(benchmark,
                       param_card_template_file,
                       mg_process_directory,
                       param_card_filename=None):
+    """
+
+    Parameters
+    ----------
+    benchmark :
+        
+    parameters :
+        
+    param_card_template_file :
+        
+    mg_process_directory :
+        
+    param_card_filename :
+         (Default value = None)
+
+    Returns
+    -------
+
+    """
     # Open parameter card template
     with open(param_card_template_file) as file:
         param_card = file.read()
@@ -67,6 +86,27 @@ def export_reweight_card(sample_benchmark,
                          reweight_card_template_file,
                          mg_process_directory,
                          reweight_card_filename=None):
+    """
+
+    Parameters
+    ----------
+    sample_benchmark :
+        
+    benchmarks :
+        
+    parameters :
+        
+    reweight_card_template_file :
+        
+    mg_process_directory :
+        
+    reweight_card_filename :
+         (Default value = None)
+
+    Returns
+    -------
+
+    """
     # Open reweight_card template
     with open(reweight_card_template_file) as file:
         reweight_card = file.read()
