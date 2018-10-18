@@ -55,6 +55,7 @@ class MLForge:
         self.maf_n_mades = None
         self.maf_batch_norm = None
         self.maf_batch_norm_alpha = None
+        self.features = None
 
     def train(self,
               method,
@@ -293,6 +294,7 @@ class MLForge:
         self.maf_n_mades = maf_n_mades
         self.maf_batch_norm = maf_batch_norm
         self.maf_batch_norm_alpha = maf_batch_norm_alpha
+        self.features = features
 
         # Create model
         logging.info('Creating model for method %s', method)
@@ -460,8 +462,7 @@ class MLForge:
                  theta0_filename=None,
                  theta1_filename=None,
                  test_all_combinations=True,
-                 evaluate_score=False,
-                 features=None):
+                 evaluate_score=False):
 
         """
         Evaluates a trained estimator of the likelihood ratio (or, if method is 'sally' or 'sallino', the score).
@@ -532,8 +533,8 @@ class MLForge:
         xs = load_and_check(x_filename)
 
         # Restrict featuers
-        if features is not None:
-            xs = xs[:, features]
+        if self.features is not None:
+            xs = xs[:, self.features]
 
         # Balance thetas
         if theta1s is None and theta0s is not None:
@@ -638,10 +639,6 @@ class MLForge:
         n_events : int, optional
             Number of events for which the kinematic Fisher information should be calculated. Default value: 1.
 
-        features : list of int or None, optional
-            Indices of observables (features) that are used as input to the neural networks. If None, all observables
-            are used. Has to match the keyword 'features' used during training. Default value: None.
-
         Returns
         -------
         fisher_information : ndarray
@@ -658,8 +655,8 @@ class MLForge:
         n_samples = xs.shape[0]
 
         # Restrict featuers
-        if features is not None:
-            xs = xs[:, features]
+        if self.features is not None:
+            xs = xs[:, self.features]
 
         # Estimate scores
         if self.method in ['sally', 'sallino']:
@@ -717,7 +714,8 @@ class MLForge:
                     'n_observables': self.n_observables,
                     'n_parameters': self.n_parameters,
                     'n_hidden': list(self.n_hidden),
-                    'activation': self.activation}
+                    'activation': self.activation,
+                    'features': self.features}
 
         with open(filename + '_settings.json', 'w') as f:
             json.dump(settings, f)
@@ -755,9 +753,16 @@ class MLForge:
         self.n_parameters = int(settings['n_parameters'])
         self.n_hidden = tuple([int(item) for item in settings['n_hidden']])
         self.activation = str(settings['activation'])
+        self.features = settings['features']
+        if self.features == 'None':
+            self.features = None
+        else:
+            self.features = list([int(item) for item in self.features])
 
-        logging.info('  Found method %s, %s observables, %s parameters, %s hidden layers, %s activation function',
-                     self.method, self.n_observables, self.n_parameters, self.n_hidden, self.activation)
+
+        logging.info('  Found method %s, %s observables, %s parameters, %s hidden layers, %s activation function, '
+                     'features %s',
+                     self.method, self.n_observables, self.n_parameters, self.n_hidden, self.activation, self.features)
 
         # Create model
         if self.method in ['carl', 'rolr', 'rascal', 'alice', 'alices']:
