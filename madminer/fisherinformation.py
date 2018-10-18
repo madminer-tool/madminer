@@ -6,7 +6,7 @@ import six
 
 from madminer.utils.interfaces.hdf5 import load_madminer_settings, madminer_event_loader
 from madminer.utils.analysis import get_theta_benchmark_matrix, get_dtheta_benchmark_matrix
-from madminer.morphing import SimpleMorpher as Morpher
+from madminer.morphing import Morpher
 from madminer.utils.various import general_init, format_benchmark, math_commands
 from madminer.ml import MLForge
 
@@ -381,8 +381,6 @@ class FisherInformation:
             (see `madminer.sampling.SampleAugmenter.extract_samples_train_local()`)
         luminosity :
             float. Luminosity in pb^-1. (Default value = 300000.)
-        features :
-            None or list of ints. List of feature indices to feed into the neural network. (Default value = None)
         cuts :
             None or list of strs. Each entry is a parseable Python expression that returns a bool
             (True if the event should pass a cut, False otherwise). (Default value = None)
@@ -414,8 +412,7 @@ class FisherInformation:
         model.load(model_file)
         fisher_info_kin = model.calculate_fisher_information(
             unweighted_x_sample_file,
-            n_events=luminosity * total_xsec,
-            features=features
+            n_events=luminosity * total_xsec
         )
 
         return fisher_info_rate + fisher_info_kin

@@ -19,7 +19,27 @@ from madminer.utils.various import create_missing_folders, load_and_check, gener
 
 
 class MLForge:
-    """ """
+    """
+    Estimators for the likelihood ratio and score based on machine learning.
+
+    Each instance of this class represents one neural estimator. The most important functions are:
+
+    * `MLForge.train()` to train an estimator.
+
+    * `MLForge.evaluate()` to evaluate the estimator.
+
+    * `MLForge.save()` to save the trained model to files.
+
+    * `MLForge.load()` to load the trained model from files.
+
+    Please see the tutorial for a detailed walk-through.
+
+    Parameters
+    ----------
+    debug : bool, optional
+        If True, additional detailed debugging output is printed. Default value: False.
+
+    """
 
     def __init__(self, debug=False):
         general_init(debug=debug)
@@ -35,6 +55,7 @@ class MLForge:
         self.maf_n_mades = None
         self.maf_batch_norm = None
         self.maf_batch_norm_alpha = None
+        self.features = None
 
     def train(self,
               method,
@@ -61,63 +82,119 @@ class MLForge:
               validation_split=0.2,
               early_stopping=True):
 
-        """Trains likelihood ratio estimator
+        """
+        Trains a neural network to estimate either the likelihood ratio or, if method is 'sally' or 'sallino', the
+        score.
 
         Parameters
         ----------
-        method :
+        method : {'alice', 'alice2', 'alices', 'alices2', 'carl', 'carl2', 'nde', 'rascal', 'rascal2', 'rolr', 'rolr2',
+        'sally', 'sallino', 'scandal'}
+            The inference method used:
+
+             * For 'alice', 'alices', 'carl', 'nde', 'rascal', 'rolr', and 'scandal', the neural network models
+             the likelihood ratio as a function of the observables `x` and the numerator hypothesis `theta0`, while
+             the denominator hypothesis is kept at a fixed reference value. The score at `theta0` can also be evaluated.
+
+             * For 'alice2', 'alices2', 'carl2', 'rascal2', and 'rolr2', the neural network models
+             the likelihood ratio as a function of the observables `x`, the numerator hypothesis `theta0`, and the
+             denominator hypothesis `theta1`. The score at `theta0` and `theta1` can also be evaluated.
+
+             * For 'sally' and 'sallino', the neural networks models the score evaluated at some reference hypothesis.
+             The likelihood ratio cannot be estimated directly from the neural network, but can be estimated in a second
+             step through density estimation in the estimated score space.
             
-        x_filename :
+        x_filename : str
+            Path to an unweighted sample of observations, as saved by the `madminer.sampling.SampleAugmenter` functions.
+            Required for all inference methods.
             
-        y_filename :
-             (Default value = None)
-        theta0_filename :
-             (Default value = None)
-        theta1_filename :
-             (Default value = None)
-        r_xz_filename :
-             (Default value = None)
-        t_xz0_filename :
-             (Default value = None)
-        t_xz1_filename :
-             (Default value = None)
-        features :
-             (Default value = None)
-        nde_type :
-             (Default value = 'maf')
-        n_hidden :
-             (Default value = (100)
-        100 :
+        y_filename : str or None, optional
+            Path to an unweighted sample of class labels, as saved by the `madminer.sampling.SampleAugmenter` functions.
+            Required for the 'alice', 'alice2', 'alices', 'alices2', 'carl', 'carl2', 'rascal', 'rascal2', 'rolr',
+            and 'rolr2' methods. Default value: None.
+
+        theta0_filename : str or None, optional
+            Path to an unweighted sample of numerator parameters, as saved by the `madminer.sampling.SampleAugmenter`
+            functions. Required for the 'alice', 'alice2', 'alices', 'alices2', 'carl', 'carl2', 'nde', 'rascal',
+            'rascal2', 'rolr', 'rolr2', and 'scandal' methods. Default value: None.
+
+        theta1_filename : str or None, optional
+            Path to an unweighted sample of denominator parameters, as saved by the `madminer.sampling.SampleAugmenter`
+            functions. Required for the 'alice2', 'alices2', 'carl2', 'rascal2', and 'rolr2' methods. Default value:
+            None.
+
+        r_xz_filename : str or None, optional
+            Path to an unweighted sample of joint likelihood ratios, as saved by the `madminer.sampling.SampleAugmenter`
+            functions. Required for the 'alice', 'alice2', 'alices', 'alices2', 'rascal', 'rascal2', 'rolr', and 'rolr2'
+            methods. Default value: None.
+
+        t_xz0_filename : str or None, optional
+            Path to an unweighted sample of joint scores at theta0, as saved by the `madminer.sampling.SampleAugmenter`
+            functions. Required for the 'alices', 'alices2', 'rascal', 'rascal2', 'sallino', 'sally', and 'scandal'
+            methods. Default value: None.
+
+        t_xz1_filename : str or None, optional
+            Path to an unweighted sample of joint scores at theta1, as saved by the `madminer.sampling.SampleAugmenter`
+            functions. Required for the 'rascal2' and 'alices2' methods. Default value: None.
+
+        features : list of int or None, optional
+            Indices of observables (features) that are used as input to the neural networks. If None, all observables
+            are used. Default value: None.
+
+        nde_type : {'maf', 'mafmog'}, optional
+            If the method is 'nde' or 'scandal', nde_type determines the architecture used in the neural density
+            estimator. Currently supported are 'maf' for a Masked Autoregressive Flow with a Gaussian base density, or
+            'mafmog' for a Masked Autoregressive Flow with a mixture of Gaussian base densities. Default value: 'maf'.
+
+        n_hidden : int, optional
+            Number of hidden layers in the neural networks. If method is 'nde' or 'scandal', this refers to the number
+            of hidden layers in each individual MADE layer. Default value: 100.
             
-        100) :
-            
-        activation :
-             (Default value = 'tanh')
-        maf_n_mades :
-             (Default value = 3)
-        maf_batch_norm :
-             (Default value = True)
-        maf_batch_norm_alpha :
-             (Default value = 0.1)
-        maf_mog_n_components :
-             (Default value = 10)
-        alpha :
-             (Default value = 1.)
-        n_epochs :
-             (Default value = 20)
-        batch_size :
-             (Default value = 64)
-        initial_lr :
-             (Default value = 0.001)
-        final_lr :
-             (Default value = 0.0001)
-        validation_split :
-             (Default value = 0.2)
-        early_stopping :
-             (Default value = True)
+        activation : {'tanh', 'sigmoid', 'relu'}, optional
+            Activation function. Default value: 'tanh'
+
+        maf_n_mades : int, optional
+            If method is 'nde' or 'scandal', this sets the number of MADE layers. Default value: 3.
+
+        maf_batch_norm : bool, optional
+            If method is 'nde' or 'scandal', switches batch normalization layers after each MADE layer on or off.
+            Default: True.
+
+        maf_batch_norm_alpha : float, optional
+            If method is 'nde' or 'scandal' and maf_batch_norm is True, this sets the alpha parameter in the calculation
+            of the running average of the mean and variance. Default value: 0.1.
+
+        maf_mog_n_components : int, optional
+            If method is 'nde' or 'scandal' and nde_type is 'mafmog', this sets the number of Gaussian base components.
+            Default value: 10.
+
+        alpha : float, optional
+            Hyperparameter weighting the score error in the loss function of the 'alices', 'alices2', 'rascal',
+            'rascal2', and 'scandal' methods.
+
+        n_epochs : int, optional
+            Number of epochs. Default value: 20.
+
+        batch_size : int, optional
+            Batch size. Default value: 64.
+
+        initial_lr : float, optional
+            Learning rate during the first epoch, after which it exponentially decays to final_lr. Default value:
+            0.001.
+
+        final_lr : float, optional
+            Learning rate during the last epoch. Default value: 0.0001.
+
+        validation_split : float or None, optional
+            Fraction of samples used  for validation and early stopping (if early_stopping is True). If None, the entire
+            sample is used for training and early stopping is deactivated. Default value: 0.2.
+
+        early_stopping : bool, optional
+            Activates early stopping based on the validation loss (only if validation_split is not None).
 
         Returns
         -------
+            None
 
         """
 
@@ -175,10 +252,12 @@ class MLForge:
 
         # Check necessary information is theere
         assert x is not None
-        if method in ['nde', 'scandal', 'rolr', 'alice', 'rascal', 'alices', 'rolr2', 'alice2', 'rascal2', 'alices2']:
+        if method in ['carl', 'carl2', 'nde', 'scandal', 'rolr', 'alice', 'rascal', 'alices', 'rolr2', 'alice2',
+                      'rascal2', 'alices2']:
             assert theta0 is not None
         if method in ['rolr', 'alice', 'rascal', 'alices', 'rolr2', 'alice2', 'rascal2', 'alices2']:
             assert r_xz is not None
+        if method in ['carl', 'carl2', 'rolr', 'alice', 'rascal', 'alices', 'rolr2', 'alice2', 'rascal2', 'alices2']:
             assert y is not None
         if method in ['scandal', 'rascal', 'alices', 'rascal2', 'alices2', 'sally', 'sallino']:
             assert t_xz0 is not None
@@ -215,6 +294,7 @@ class MLForge:
         self.maf_n_mades = maf_n_mades
         self.maf_batch_norm = maf_batch_norm
         self.maf_batch_norm_alpha = maf_batch_norm_alpha
+        self.features = features
 
         # Create model
         logging.info('Creating model for method %s', method)
@@ -382,28 +462,63 @@ class MLForge:
                  theta0_filename=None,
                  theta1_filename=None,
                  test_all_combinations=True,
-                 evaluate_score=False,
-                 features=None):
+                 evaluate_score=False):
 
-        """Predicts log likelihood ratio for all combinations of theta and x
+        """
+        Evaluates a trained estimator of the likelihood ratio (or, if method is 'sally' or 'sallino', the score).
 
         Parameters
         ----------
-        x_filename :
+        x_filename : str
+            Path to an unweighted sample of observations, as saved by the `madminer.sampling.SampleAugmenter` functions.
             
-        theta0_filename :
-             (Default value = None)
-        theta1_filename :
-             (Default value = None)
-        test_all_combinations :
-             (Default value = True)
-        evaluate_score :
-             (Default value = False)
-        features :
-             (Default value = None)
+        theta0_filename : str or None, optional
+            Path to an unweighted sample of numerator parameters, as saved by the `madminer.sampling.SampleAugmenter`
+            functions. Required if the estimator was trained with the 'alice', 'alice2', 'alices', 'alices2', 'carl',
+            'carl2', 'nde', 'rascal', 'rascal2', 'rolr', 'rolr2', or 'scandal' method. Default value: None.
+
+        theta1_filename : str or None, optional
+            Path to an unweighted sample of denominator parameters, as saved by the `madminer.sampling.SampleAugmenter`
+            functions. Required if the estimator was trained with the 'alice2', 'alices2', 'carl2', 'rascal2', or
+            'rolr2' method. Default value: None.
+
+        test_all_combinations : bool, optional
+            If method is not 'sally' and not 'sallino': If False, the number of samples in the observable and theta
+            files has to match, and the likelihood ratio is evaluated only for the combinations
+            `r(x_i | theta0_i, theta1_i)`. If True, `r(x_i | theta0_j, theta1_j)` for all pairwise combinations `i, j`
+            are evaluated. Default value: True.
+
+        evaluate_score : bool, optional
+            If method is not 'sally' and not 'sallino', this sets whether in addition to the likelihood ratio the score
+            is evaluated. Default value: False.
+
+        features : list of int or None, optional
+            Indices of observables (features) that are used as input to the neural networks. If None, all observables
+            are used. Has to match the keyword 'features' used during training. Default value: None.
 
         Returns
         -------
+        sally_estimated_score : ndarray
+            Only returned if the network was trained with `method='sally'` or `method='sallino'`. In this case, an
+            array of the estimator for `t(x_i | theta_ref)` is returned for all events `i`.
+
+        log_likelihood_ratio : ndarray
+            Only returned if the network was trained with neither `method='sally'` nor `method='sallino'`. The estimated
+            likelihood ratio. If test_all_combinations is True, the result has shape `(n_thetas, n_x)`. Otherwise, it
+            has shape `(n_samples,)`.
+
+        score_theta0 : ndarray or None
+            Only returned if the network was trained with neither `method='sally'` nor `method='sallino'`. None if
+            evaluate_score is False. Otherwise the derived estimated score at `theta0`. If test_all_combinations is
+            True, the result has shape `(n_thetas, n_x, n_parameters)`. Otherwise, it has shape
+            `(n_samples, n_parameters)`.
+
+        score_theta1 : ndarray or None
+            Only returned if the network was trained with neither `method='sally'` nor `method='sallino'`. None if
+            evaluate_score is False, or the network was trained with any method other than 'alice2', 'alices2', 'carl2',
+            'rascal2', or 'rolr2'. Otherwise the derived estimated score at `theta1`. If test_all_combinations is
+            True, the result has shape `(n_thetas, n_x, n_parameters)`. Otherwise, it has shape
+            `(n_samples, n_parameters)`.
 
         """
 
@@ -418,8 +533,8 @@ class MLForge:
         xs = load_and_check(x_filename)
 
         # Restrict featuers
-        if features is not None:
-            xs = xs[:, features]
+        if self.features is not None:
+            xs = xs[:, self.features]
 
         # Balance thetas
         if theta1s is None and theta0s is not None:
@@ -510,20 +625,24 @@ class MLForge:
                                      n_events=1,
                                      features=None):
 
-        """Calculates the expected kinematic Fisher information matrix. Note that x_filename has to be generated
-         according to the same theta that was used to define the score that SALLY / SALLINO was trained on!
+        """
+        Calculates the expected Fisher information matrix based on the kinematic information in a given number of
+        events. Currently only supported for estimators trained with `method='sally'` or `method='sallino'`.
 
         Parameters
         ----------
-        x_filename :
+        x_filename : str
+            Path to an unweighted sample of observations, as saved by the `madminer.sampling.SampleAugmenter` functions.
+            Note that this sample has to be sample from the reference parameter where the score is estimated with the
+            SALLY / SALLINO estimator!
             
-        n_events :
-             (Default value = 1)
-        features :
-             (Default value = None)
+        n_events : int, optional
+            Number of events for which the kinematic Fisher information should be calculated. Default value: 1.
 
         Returns
         -------
+        fisher_information : ndarray
+            Expected kinematic Fisher information matrix with shape `(n_parameters, n_parameters)`.
 
         """
 
@@ -536,8 +655,8 @@ class MLForge:
         n_samples = xs.shape[0]
 
         # Restrict featuers
-        if features is not None:
-            xs = xs[:, features]
+        if self.features is not None:
+            xs = xs[:, self.features]
 
         # Estimate scores
         if self.method in ['sally', 'sallino']:
@@ -566,15 +685,18 @@ class MLForge:
     def save(self,
              filename):
 
-        """Saves model state dict
+        """
+        Saves the trained model to two files: a JSON file with the settings, as well as a pickled pyTorch state dict
+        file.
 
         Parameters
         ----------
-        filename :
-            
+        filename : str
+            Path to the files. '_settings.json' and '_state_dict.pl' will be added.
 
         Returns
         -------
+            None
 
         """
 
@@ -592,7 +714,8 @@ class MLForge:
                     'n_observables': self.n_observables,
                     'n_parameters': self.n_parameters,
                     'n_hidden': list(self.n_hidden),
-                    'activation': self.activation}
+                    'activation': self.activation,
+                    'features': self.features}
 
         with open(filename + '_settings.json', 'w') as f:
             json.dump(settings, f)
@@ -604,15 +727,17 @@ class MLForge:
     def load(self,
              filename):
 
-        """Loads model state dict from file
+        """
+        Loads a trained model from files.
 
         Parameters
         ----------
-        filename :
-            
+        filename : str
+            Path to the files. '_settings.json' and '_state_dict.pl' will be added.
 
         Returns
         -------
+            None
 
         """
 
@@ -628,9 +753,15 @@ class MLForge:
         self.n_parameters = int(settings['n_parameters'])
         self.n_hidden = tuple([int(item) for item in settings['n_hidden']])
         self.activation = str(settings['activation'])
+        self.features = settings['features']
+        if self.features == 'None':
+            self.features = None
+        if self.features is not None:
+            self.features = list([int(item) for item in self.features])
 
-        logging.info('  Found method %s, %s observables, %s parameters, %s hidden layers, %s activation function',
-                     self.method, self.n_observables, self.n_parameters, self.n_hidden, self.activation)
+        logging.info('  Found method %s, %s observables, %s parameters, %s hidden layers, %s activation function, '
+                     'features %s',
+                     self.method, self.n_observables, self.n_parameters, self.n_hidden, self.activation, self.features)
 
         # Create model
         if self.method in ['carl', 'rolr', 'rascal', 'alice', 'alices']:
