@@ -756,9 +756,8 @@ class MLForge:
         self.features = settings['features']
         if self.features == 'None':
             self.features = None
-        else:
+        if self.features is not None:
             self.features = list([int(item) for item in self.features])
-
 
         logging.info('  Found method %s, %s observables, %s parameters, %s hidden layers, %s activation function, '
                      'features %s',
