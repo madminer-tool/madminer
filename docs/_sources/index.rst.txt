@@ -12,9 +12,9 @@ Welcome to MadMiner's documentation!
 
    madminer.core
    madminer.delphes
-   madminer.ml 
-   madminer.morphing 
-   madminer.plotting
+   madminer.fisherinformation
+   madminer.ml
+   madminer.morphing
    madminer.sampling
 
 
