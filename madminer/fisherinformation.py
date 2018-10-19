@@ -298,22 +298,22 @@ class FisherInformation:
             return np.sum(fisher_info, axis=0)
         return fisher_info
 
-    # TODO: Docstrings done to here
-
     def _pass_cuts(self, observations, cuts=None):
-        """Checks if an event, specified by a list of observables, passes a set of cuts.
+        """
+        Checks if an event, specified by a list of observations, passes a set of cuts.
 
         Parameters
         ----------
-        observations :
+        observations : list of float
             list of float. Values of the observables for a single event.
-        cuts :
-            None or list strings. Each entry is a parseable Python expression that returns a bool
-            (True if the event should pass a cut, False otherwise). (Default value = None)
+
+        cuts : list of str or None, optional
+            Each entry is a parseable Python expression that returns a bool (True if the event should pass a cut,
+            False otherwise). Default value: None.
 
         Returns
         -------
-        type
+        passes : bool
             True if the event passes all cuts, False otherwise.
 
         """
@@ -338,20 +338,23 @@ class FisherInformation:
         return True
 
     def _eval_efficiency(self, observations, efficiency_functions=None):
-        """Calculated the efficiency for an event.
+        """
+        Calculates the efficiency for an event.
 
         Parameters
         ----------
-        observations :
-            list of float. Values of the observables.
-        efficiency_functions :
-            None or list strings. Each entry is a parseable Python expression that returns a
-            float for the efficiency of one component. (Default value = None)
+        observations : list of float
+            Values of the observables.
+
+        efficiency_functions : list of str or None
+            Each entry is a parseable Python expression that returns a float for the efficiency of one component.
+            Default value: None.
 
         Returns
         -------
-        type
-            float. Product of all efficiencies.
+        efficiency : float
+            Efficiency (0. <= efficiency <= 1.), product of the results of the calls to all entries in
+            efficiency_functions.
 
         """
 
@@ -375,19 +378,21 @@ class FisherInformation:
         return efficiency
 
     def _eval_observable(self, observations, observable_definition):
-        """Calculated an observable expression for an event.
+        """
+        Calculates an observable expression for an event.
 
         Parameters
         ----------
-        observations :
-            list of float. Values of the observables.
-        observable_definition :
-            str. A parseable Python expression that returns the value of the observable.
+        observations : ndarray
+            Values of the observables for an event, should have shape `(n_observables,)`.
+
+        observable_definition : str
+            A parseable Python expression that returns the value of the observable to be calculated.
 
         Returns
         -------
-        type
-            float. Value of the observable.
+        observable_value : float
+            Value of the observable defined in observable_definition.
 
         """
 
@@ -403,27 +408,31 @@ class FisherInformation:
         return float(eval(observable_definition, variables))
 
     def _calculate_xsec(self, theta=None, cuts=None, efficiency_functions=None, return_benchmark_xsecs=False):
-        """Calculates the total cross section for a parameter point.
+        """
+        Calculates the total cross section for a parameter point.
 
         Parameters
         ----------
-        theta :
-            ndarray. The parameter point. (Default value = None)
-        cuts :
-            None or list strings. Each entry is a parseable Python expression that returns a bool
-            (True if the event should pass a cut, False otherwise). (Default value = None)
-        efficiency_functions :
-            None or list strings. Each entry is a parseable Python expression that returns a
-            float for the efficiency of one component. (Default value = None)
-        return_benchmark_xsecs :
-            bool. If True, this function returns the benchmark xsecs. Otherwise, it returns
-            the xsec at theta. (Default value = False)
+        theta : ndarray or None
+            The parameter point. If None, return_benchmark_xsecs should be True. Default value: None.
+
+        cuts : list of str or None
+            Cuts. Each entry is a parseable Python expression that returns a bool (True if the event should pass a cut,
+            False otherwise). Default value: None.
+
+        efficiency_functions : list of str or None
+            Efficiencies. Each entry is a parseable Python expression that returns a float for the efficiency of one
+            component. Default value: None.
+
+        return_benchmark_xsecs : bool
+            If True, this function returns the benchmark xsecs. Otherwise, it returns the xsec at theta. Default value:
+            False.
 
         Returns
         -------
-        type
-            ndarray or float. If return_benchmark_xsecs is True, an ndarray of benchmark xsecs in pb is returned.
-            Otherwise, the cross section at theta in pb is returned.
+        xsec : ndarray or float
+            If return_benchmark_xsecs is True, an ndarray of benchmark xsecs in pb is returned. Otherwise, the cross
+            section at theta in pb is returned.
 
         """
 
@@ -472,26 +481,31 @@ class FisherInformation:
         return xsec
 
     def calculate_fisher_information_full_truth(self, theta, luminosity=300000., cuts=None, efficiency_functions=None):
-        """Calculates the full Fisher information at parton / truth level for a given parameter point theta and
-        given luminosity.
+        """
+        Calculates the full Fisher information at parton / truth level. This is the information in an idealized
+        measurement where all parton-level particles with their charges, flavours, and four-momenta can be accessed with
+        perfect accuracy, i.e. the latent variables `z_parton` can be measured directly.
 
         Parameters
         ----------
-        theta :
-            ndarray. The parameter point.
-        luminosity :
-            float. Luminosity in pb^-1. (Default value = 300000.)
-        cuts :
-            None or list strings. Each entry is a parseable Python expression that returns a bool
-            (True if the event should pass a cut, False otherwise). (Default value = None)
-        efficiency_functions :
-            None or list strings. Each entry is a parseable Python expression that returns a
-            float for the efficiency of one component. (Default value = None)
+        theta : ndarray
+            Parameter point `theta` at which the Fisher information matrix `I_ij(theta)` is evaluated.
+
+        luminosity : float, optional
+            Luminosity in pb^-1. Default value: 300000.
+
+        cuts : None or list of str, optional
+            Cuts. Each entry is a parseable Python expression that returns a bool (True if the event should pass a cut,
+            False otherwise). Default value: None.
+
+        efficiency_functions : list of str or None
+            Efficiencies. Each entry is a parseable Python expression that returns a float for the efficiency of one
+            component. Default value: None.
 
         Returns
         -------
-        type
-            ndarray. Total Fisher information matrix.
+        fisher_information : ndarray
+            Expected full truth-level Fisher information matrix with shape `(n_parameters, n_parameters)`.
 
         """
 
@@ -521,32 +535,36 @@ class FisherInformation:
         return fisher_info
 
     def calculate_fisher_information_full_detector(self, theta, model_file, unweighted_x_sample_file,
-                                                   luminosity=300000., features=None, cuts=None):
-        """Calculates the estimated full Fisher information at detector level for a given parameter point theta and
-        given luminosity, requiring that the events pass a set of cuts
+                                                   luminosity=300000., cuts=None):
+        """
+        Calculates the full Fisher information in realistic detector-level observations, estimated with neural networks.
+        In addition to the MadMiner file, this requires a trained SALLY or SALLINO estimator as well as an unweighted
+        evaluation sample.
 
         Parameters
         ----------
-        theta :
-            ndarray. The parameter point.
-        model_file :
-            str, filename of a trained local score regression model that was trained on samples from
-            theta (see `madminer.ml.MLForge`)
-        unweighted_x_sample_file :
-            str, filename of an unweighted x sample that
-            - is sampled according to theta
-            - obeys the cuts
+        theta : ndarray
+            Parameter point `theta` at which the Fisher information matrix `I_ij(theta)` is evaluated.
+
+        model_file : str
+            str, filename of a trained local score regression model that was trained on samples from `theta` (see
+            `madminer.ml.MLForge`).
+
+        unweighted_x_sample_file : str
+            str, filename of an unweighted x sample that is sampled according to theta and obeys the cuts
             (see `madminer.sampling.SampleAugmenter.extract_samples_train_local()`)
-        luminosity :
-            float. Luminosity in pb^-1. (Default value = 300000.)
-        cuts :
-            None or list of strs. Each entry is a parseable Python expression that returns a bool
-            (True if the event should pass a cut, False otherwise). (Default value = None)
+
+        luminosity : float, optional
+            Luminosity in pb^-1. Default value: 300000.
+
+        cuts : None or list of str, optional
+            Cuts. Each entry is a parseable Python expression that returns a bool (True if the event should pass a cut,
+            False otherwise). Default value: None.
 
         Returns
         -------
-        type
-            ndarray. Total estimated Fisher information matrix.
+        fisher_information : ndarray
+            Estimated expected full detector-level Fisher information matrix with shape `(n_parameters, n_parameters)`.
 
         """
 
@@ -576,26 +594,30 @@ class FisherInformation:
         return fisher_info_rate + fisher_info_kin
 
     def calculate_fisher_information_rate(self, theta, luminosity, cuts=None, efficiency_functions=None):
-        """Calculates the rate-only Fisher information for a given parameter point theta and
-        luminosity.
+        """
+        Calculates the Fisher information in a measurement of the total cross section (without any kinematic
+        information).
 
         Parameters
         ----------
-        theta :
-            ndarray. The parameter point.
-        luminosity :
-            float. Luminosity in pb^-1.
-        cuts :
-            None or list strings. Each entry is a parseable Python expression that returns a bool
-            (True if the event should pass a cut, False otherwise). (Default value = None)
-        efficiency_functions :
-            None or list strings. Each entry is a parseable Python expression that returns a
-            float for the efficiency of one component. (Default value = None)
+        theta : ndarray
+            Parameter point `theta` at which the Fisher information matrix `I_ij(theta)` is evaluated.
+
+        luminosity : float, optional
+            Luminosity in pb^-1. Default value: 300000.
+
+        cuts : None or list of str, optional
+            Cuts. Each entry is a parseable Python expression that returns a bool (True if the event should pass a cut,
+            False otherwise). Default value: None.
+
+        efficiency_functions : list of str or None
+            Efficiencies. Each entry is a parseable Python expression that returns a float for the efficiency of one
+            component. Default value: None.
 
         Returns
         -------
-        type
-            ndarray. Rate-only Fisher information matrix.
+        fisher_information : ndarray
+            Expected Fisher information in the total cross section with shape `(n_parameters, n_parameters)`.
 
         """
 
@@ -618,32 +640,40 @@ class FisherInformation:
 
     def calculate_fisher_information_hist1d(self, theta, luminosity, observable, nbins, histrange, cuts=None,
                                             efficiency_functions=None):
-        """Calculates the Fisher information in a 1D histogram for a given benchmark theta and luminosity.
+        """
+        Calculates the Fisher information in the one-dimensional histogram of an (parton-level or detector-level,
+        depending on how the observations in the MadMiner file were calculated) observable.
 
         Parameters
         ----------
-        theta :
-            ndarray. The parameter point.
-        luminosity :
-            float. Luminosity in pb^-1.
-        observable :
-            str. Observable  to be histogrammed.
-        nbins :
-            int. Number of bins in the histogram, excluding overflow bins.
-        histrange :
-            tuple of two floats. Minimuym and maximum value of the histogram. Overflow bins are always
-            added.
-        cuts :
-            None or list strings. Each entry is a parseable Python expression that returns a bool
-            (True if the event should pass a cut, False otherwise). (Default value = None)
-        efficiency_functions :
-            None or list strings. Each entry is a parseable Python expression that returns a
-            float for the efficiency of one component. (Default value = None)
+        theta : ndarray
+            Parameter point `theta` at which the Fisher information matrix `I_ij(theta)` is evaluated.
+
+        luminosity : float, optional
+            Luminosity in pb^-1. Default value: 300000.
+
+        observable : str
+            Expression for the observable to be histogrammed. The str will be parsed by Python's `eval()` function
+            and can use the names of the observables in the MadMiner files.
+
+        nbins : int
+            Number of bins in the histogram, excluding overflow bins.
+
+        histrange : tuple of float
+            Minimum and maximum value of the histogram in the form `(min, max)`. Overflow bins are always added.
+
+        cuts : None or list of str, optional
+            Cuts. Each entry is a parseable Python expression that returns a bool (True if the event should pass a cut,
+            False otherwise). Default value: None.
+
+        efficiency_functions : list of str or None
+            Efficiencies. Each entry is a parseable Python expression that returns a float for the efficiency of one
+            component. Default value: None.
 
         Returns
         -------
-        type
-            ndarray. Fisher information in histogram.
+        fisher_information : ndarray
+            Expected Fisher information in the histogram with shape `(n_parameters, n_parameters)`.
 
         """
 
@@ -690,39 +720,53 @@ class FisherInformation:
 
     def calculate_fisher_information_hist2d(self, theta, luminosity, observable1, nbins1, histrange1, observable2,
                                             nbins2, histrange2, cuts=None, efficiency_functions=None):
-        """Calculates the Fisher information in a 2D histogram for a given benchmark theta and luminosity.
+
+        """
+        Calculates the Fisher information in a two-dimensional histogram of two (parton-level or detector-level,
+        depending on how the observations in the MadMiner file were calculated) observables.
 
         Parameters
         ----------
-        theta :
-            ndarray. The parameter point.
-        luminosity :
-            float. Luminosity in pb^-1.
-        observable1 :
-            str. First observable  to be histogrammed.
-        nbins1 :
-            int. Number of bins for the first observable in the histogram, excluding overflow bins.
-        histrange1 :
-            tuple of two floats. Minimum and maximum value of the first dimension of the histogram.
-            Overflow bins are always added.
-        observable2 :
-            str. Second observable  to be histogrammed.
-        nbins2 :
-            int. Number of bins for the second observable in the histogram, excluding overflow bins.
-        histrange2 :
-            tuple of two floats. Minimum and maximum value of the second dimension of the histogram.
-            Overflow bins are always added.
-        cuts :
-            None or list strings. Each entry is a parseable Python expression that returns a bool
-            (True if the event should pass a cut, False otherwise). (Default value = None)
-        efficiency_functions :
-            None or list strings. Each entry is a parseable Python expression that returns a
-            float for the efficiency of one component. (Default value = None)
+        theta : ndarray
+            Parameter point `theta` at which the Fisher information matrix `I_ij(theta)` is evaluated.
+
+        luminosity : float, optional
+            Luminosity in pb^-1. Default value: 300000.
+
+        observable1 : str
+            Expression for the first observable to be histogrammed. The str will be parsed by Python's `eval()` function
+            and can use the names of the observables in the MadMiner files.
+
+        nbins1 : int
+            Number of bins along the first axis in the histogram, excluding overflow bins.
+
+        histrange1 : tuple of float
+            Minimum and maximum value of the first axis of the histogram in the form `(min, max)`. Overflow bins are
+            always added.
+
+        observable2 : str
+            Expression for the first observable to be histogrammed. The str will be parsed by Python's `eval()` function
+            and can use the names of the observables in the MadMiner files.
+
+        nbins2 : int
+            Number of bins along the first axis in the histogram, excluding overflow bins.
+
+        histrange2 : tuple of float
+            Minimum and maximum value of the first axis of the histogram in the form `(min, max)`. Overflow bins are
+            always added.
+
+        cuts : None or list of str, optional
+            Cuts. Each entry is a parseable Python expression that returns a bool (True if the event should pass a cut,
+            False otherwise). Default value: None.
+
+        efficiency_functions : list of str or None
+            Efficiencies. Each entry is a parseable Python expression that returns a float for the efficiency of one
+            component. Default value: None.
 
         Returns
         -------
-        type
-            ndarray. Fisher information in histogram.
+        fisher_information : ndarray
+            Expected Fisher information in the histogram with shape `(n_parameters, n_parameters)`.
 
         """
 
@@ -779,33 +823,49 @@ class FisherInformation:
 
     def histogram_of_fisher_information(self, theta, luminosity, observable, nbins, histrange, cuts=None,
                                         efficiency_functions=None):
-        """Calculates the full and rate-only Fisher informations in the bins of a 1D histogram for a given benchmark theta
-        and luminosity.
+        """
+        Calculates the full and rate-only Fisher information in slices of one observable.
 
         Parameters
         ----------
-        theta :
-            ndarray. The parameter point.
-        luminosity :
-            float. Luminosity in pb^-1.
-        observable :
-            str. Observable  to be histogrammed.
-        nbins :
-            int. Number of bins in the histogram, excluding overflow bins.
-        histrange :
-            tuple of two floats. Minimuym and maximum value of the histogram. Overflow bins are always
-            added.
-        cuts :
-            None or list strings. Each entry is a parseable Python expression that returns a bool
-            (True if the event should pass a cut, False otherwise). (Default value = None)
-        efficiency_functions :
-            None or list strings. Each entry is a parseable Python expression that returns a
-            float for the efficiency of one component. (Default value = None)
+        theta : ndarray
+            Parameter point `theta` at which the Fisher information matrix `I_ij(theta)` is evaluated.
+
+        luminosity : float, optional
+            Luminosity in pb^-1. Default value: 300000.
+
+        observable : str
+            Expression for the observable to be sliced. The str will be parsed by Python's `eval()` function
+            and can use the names of the observables in the MadMiner files.
+
+        nbins : int
+            Number of bins in the slicing, excluding overflow bins.
+
+        histrange : tuple of float
+            Minimum and maximum value of the slicing in the form `(min, max)`. Overflow bins are always added.
+
+        cuts : None or list of str, optional
+            Cuts. Each entry is a parseable Python expression that returns a bool (True if the event should pass a cut,
+            False otherwise). Default value: None.
+
+        efficiency_functions : list of str or None
+            Efficiencies. Each entry is a parseable Python expression that returns a float for the efficiency of one
+            component. Default value: None.
 
         Returns
         -------
-        type
-            bin_boundaries, xsec_per_bins, fisher_infos_rate, fisher_infos_full.
+        bin_boundaries : ndarray
+            Observable slice boundaries.
+
+        sigma_bins : ndarray
+            Cross section in pb in each of the slices.
+
+        rate_fisher_infos : ndarray
+            Expected rate-only Fisher information for each slice. Has shape `(n_slices, n_parameters, n_parameters)`.
+
+        full_fisher_infos_truth : ndarray
+            Expected full truth-level Fisher information for each slice. Has shape
+            `(n_slices, n_parameters, n_parameters)`.
 
         """
 
