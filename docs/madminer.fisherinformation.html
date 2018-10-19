@@ -38,6 +38,51 @@
 <dt id="madminer.fisherinformation.FisherInformation">
 <em class="property">class </em><code class="descclassname">madminer.fisherinformation.</code><code class="descname">FisherInformation</code><span class="sig-paren">(</span><em>filename</em>, <em>debug=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/fisherinformation.html#FisherInformation"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.fisherinformation.FisherInformation" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Functions to calculate expected Fisher information matrices.</p>
+<p>After inializing a <cite>FisherInformation</cite> instance with the filename of a MadMiner file, different information matrices
+can be calculated:</p>
+<ul class="simple">
+<li><cite>FisherInformation.calculate_fisher_information_full_truth()</cite> calculates the full truth-level Fisher information.</li>
+</ul>
+<p>This is the information in an idealized measurement where all parton-level particles with their charges, flavours,
+and four-momenta can be accessed with perfect accuracy.</p>
+<ul class="simple">
+<li><cite>FisherInformation.calculate_fisher_information_full_detector()</cite> calculates the full Fisher information in</li>
+</ul>
+<p>realistic detector-level observations, estimated with neural networks. In addition to the MadMiner file, this
+requires a trained SALLY or SALLINO estimator as well as an unweighted evaluation sample.</p>
+<ul class="simple">
+<li><cite>FisherInformation.calculate_fisher_information_rate()</cite> calculates the Fisher information in the total cross</li>
+</ul>
+<p>section.</p>
+<ul class="simple">
+<li><cite>FisherInformation.calculate_fisher_information_hist1d()</cite> calculates the Fisher information in the histogram of</li>
+</ul>
+<p>one (parton-level or detector-level) observable.</p>
+<ul class="simple">
+<li><cite>FisherInformation.calculate_fisher_information_hist2d()</cite> calculates the Fisher information in a two-dimensional</li>
+</ul>
+<p>histogram of two (parton-level or detector-level) observables.</p>
+<ul class="simple">
+<li><cite>FisherInformation.histogram_of_fisher_information()</cite> calculates the full truth-level Fisher information in</li>
+</ul>
+<p>different slices of one observable (the “distribution of the Fisher information”).</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>filename</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
+<dd><p class="first last">Path to MadMiner file (for instance the output of <cite>madminer.delphes.DelphesProcessor.save()</cite>).</p>
+</dd>
+<dt><strong>debug</strong> <span class="classifier-delimiter">:</span> <span class="classifier">bool, optional</span></dt>
+<dd><p class="first last">If True, additional detailed debugging output is printed. Default value: False.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
 <p class="rubric">Methods</p>
 <table border="1" class="longtable docutils">
 <colgroup>
@@ -46,73 +91,66 @@
 </colgroup>
 <tbody valign="top">
 <tr class="row-odd"><td><a class="reference internal" href="#madminer.fisherinformation.FisherInformation.calculate_fisher_information_full_detector" title="madminer.fisherinformation.FisherInformation.calculate_fisher_information_full_detector"><code class="xref py py-obj docutils literal notranslate"><span class="pre">calculate_fisher_information_full_detector</span></code></a>(…)</td>
-<td>Calculates the estimated full Fisher information at detector level for a given parameter point theta and given luminosity, requiring that the events pass a set of cuts</td>
+<td>Calculates the full Fisher information in realistic detector-level observations, estimated with neural networks.</td>
 </tr>
 <tr class="row-even"><td><a class="reference internal" href="#madminer.fisherinformation.FisherInformation.calculate_fisher_information_full_truth" title="madminer.fisherinformation.FisherInformation.calculate_fisher_information_full_truth"><code class="xref py py-obj docutils literal notranslate"><span class="pre">calculate_fisher_information_full_truth</span></code></a>(theta)</td>
-<td>Calculates the full Fisher information at parton / truth level for a given parameter point theta and given luminosity.</td>
+<td>Calculates the full Fisher information at parton / truth level.</td>
 </tr>
 <tr class="row-odd"><td><a class="reference internal" href="#madminer.fisherinformation.FisherInformation.calculate_fisher_information_hist1d" title="madminer.fisherinformation.FisherInformation.calculate_fisher_information_hist1d"><code class="xref py py-obj docutils literal notranslate"><span class="pre">calculate_fisher_information_hist1d</span></code></a>(theta,&nbsp;…)</td>
-<td>Calculates the Fisher information in a 1D histogram for a given benchmark theta and luminosity.</td>
+<td>Calculates the Fisher information in the one-dimensional histogram of an (parton-level or detector-level, depending on how the observations in the MadMiner file were calculated) observable.</td>
 </tr>
 <tr class="row-even"><td><a class="reference internal" href="#madminer.fisherinformation.FisherInformation.calculate_fisher_information_hist2d" title="madminer.fisherinformation.FisherInformation.calculate_fisher_information_hist2d"><code class="xref py py-obj docutils literal notranslate"><span class="pre">calculate_fisher_information_hist2d</span></code></a>(theta,&nbsp;…)</td>
-<td>Calculates the Fisher information in a 2D histogram for a given benchmark theta and luminosity.</td>
+<td>Calculates the Fisher information in a two-dimensional histogram of two (parton-level or detector-level, depending on how the observations in the MadMiner file were calculated) observables.</td>
 </tr>
 <tr class="row-odd"><td><a class="reference internal" href="#madminer.fisherinformation.FisherInformation.calculate_fisher_information_rate" title="madminer.fisherinformation.FisherInformation.calculate_fisher_information_rate"><code class="xref py py-obj docutils literal notranslate"><span class="pre">calculate_fisher_information_rate</span></code></a>(theta,&nbsp;…)</td>
-<td>Calculates the rate-only Fisher information for a given parameter point theta and luminosity.</td>
+<td>Calculates the Fisher information in a measurement of the total cross section (without any kinematic information).</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#madminer.fisherinformation.FisherInformation.extract_observables_and_weights" title="madminer.fisherinformation.FisherInformation.extract_observables_and_weights"><code class="xref py py-obj docutils literal notranslate"><span class="pre">extract_observables_and_weights</span></code></a>([thetas])</td>
-<td>Extracts observables and weights for a list of parameter points.</td>
+<tr class="row-even"><td><a class="reference internal" href="#madminer.fisherinformation.FisherInformation.extract_observables_and_weights" title="madminer.fisherinformation.FisherInformation.extract_observables_and_weights"><code class="xref py py-obj docutils literal notranslate"><span class="pre">extract_observables_and_weights</span></code></a>(thetas)</td>
+<td>Extracts observables and weights for given parameter points.</td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="#madminer.fisherinformation.FisherInformation.extract_raw_data" title="madminer.fisherinformation.FisherInformation.extract_raw_data"><code class="xref py py-obj docutils literal notranslate"><span class="pre">extract_raw_data</span></code></a>()</td>
-<td>Returns raw observables and benchmark weights in MadMiner file</td>
+<tr class="row-odd"><td><a class="reference internal" href="#madminer.fisherinformation.FisherInformation.extract_raw_data" title="madminer.fisherinformation.FisherInformation.extract_raw_data"><code class="xref py py-obj docutils literal notranslate"><span class="pre">extract_raw_data</span></code></a>([theta])</td>
+<td>Returns all events together with the benchmark weights (if theta is None) or weights for a given theta.</td>
 </tr>
 <tr class="row-even"><td><a class="reference internal" href="#madminer.fisherinformation.FisherInformation.histogram_of_fisher_information" title="madminer.fisherinformation.FisherInformation.histogram_of_fisher_information"><code class="xref py py-obj docutils literal notranslate"><span class="pre">histogram_of_fisher_information</span></code></a>(theta,&nbsp;…)</td>
-<td>Calculates the full and rate-only Fisher informations in the bins of a 1D histogram for a given benchmark theta and luminosity.</td>
-</tr>
-<tr class="row-odd"><td><a class="reference internal" href="#madminer.fisherinformation.FisherInformation.profile_information" title="madminer.fisherinformation.FisherInformation.profile_information"><code class="xref py py-obj docutils literal notranslate"><span class="pre">profile_information</span></code></a>(fisher_information,&nbsp;…)</td>
-<td>Calculates the profiled Fisher information matrix as defined in Appendix A.4 of 1612.05261.</td>
-</tr>
-<tr class="row-even"><td><a class="reference internal" href="#madminer.fisherinformation.FisherInformation.project_information" title="madminer.fisherinformation.FisherInformation.project_information"><code class="xref py py-obj docutils literal notranslate"><span class="pre">project_information</span></code></a>(fisher_information,&nbsp;…)</td>
-<td>Projects a Fisher information matrix, i.e.</td>
+<td>Calculates the full and rate-only Fisher information in slices of one observable.</td>
 </tr>
 </tbody>
 </table>
 <dl class="method">
 <dt id="madminer.fisherinformation.FisherInformation.calculate_fisher_information_full_detector">
-<code class="descname">calculate_fisher_information_full_detector</code><span class="sig-paren">(</span><em>theta</em>, <em>model_file</em>, <em>unweighted_x_sample_file</em>, <em>luminosity=300000.0</em>, <em>features=None</em>, <em>cuts=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/fisherinformation.html#FisherInformation.calculate_fisher_information_full_detector"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.fisherinformation.FisherInformation.calculate_fisher_information_full_detector" title="Permalink to this definition">¶</a></dt>
-<dd><p>Calculates the estimated full Fisher information at detector level for a given parameter point theta and
-given luminosity, requiring that the events pass a set of cuts</p>
+<code class="descname">calculate_fisher_information_full_detector</code><span class="sig-paren">(</span><em>theta</em>, <em>model_file</em>, <em>unweighted_x_sample_file</em>, <em>luminosity=300000.0</em>, <em>cuts=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/fisherinformation.html#FisherInformation.calculate_fisher_information_full_detector"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.fisherinformation.FisherInformation.calculate_fisher_information_full_detector" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates the full Fisher information in realistic detector-level observations, estimated with neural networks.
+In addition to the MadMiner file, this requires a trained SALLY or SALLINO estimator as well as an unweighted
+evaluation sample.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
-<dt><strong>theta :</strong></dt>
-<dd><p class="first last">ndarray. The parameter point.</p>
+<dt><strong>theta</strong> <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
+<dd><p class="first last">Parameter point <cite>theta</cite> at which the Fisher information matrix <cite>I_ij(theta)</cite> is evaluated.</p>
 </dd>
-<dt><strong>model_file :</strong></dt>
-<dd><p class="first last">str, filename of a trained local score regression model that was trained on samples from
-theta (see <cite>madminer.ml.MLForge</cite>)</p>
+<dt><strong>model_file</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
+<dd><p class="first last">str, filename of a trained local score regression model that was trained on samples from <cite>theta</cite> (see
+<cite>madminer.ml.MLForge</cite>).</p>
 </dd>
-<dt><strong>unweighted_x_sample_file :</strong></dt>
-<dd><p class="first last">str, filename of an unweighted x sample that
-- is sampled according to theta
-- obeys the cuts
+<dt><strong>unweighted_x_sample_file</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
+<dd><p class="first last">str, filename of an unweighted x sample that is sampled according to theta and obeys the cuts
 (see <cite>madminer.sampling.SampleAugmenter.extract_samples_train_local()</cite>)</p>
 </dd>
-<dt><strong>luminosity :</strong></dt>
-<dd><p class="first last">float. Luminosity in pb^-1. (Default value = 300000.)</p>
+<dt><strong>luminosity</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float, optional</span></dt>
+<dd><p class="first last">Luminosity in pb^-1. Default value: 300000.</p>
 </dd>
-<dt><strong>cuts :</strong></dt>
-<dd><p class="first last">None or list of strs. Each entry is a parseable Python expression that returns a bool
-(True if the event should pass a cut, False otherwise). (Default value = None)</p>
+<dt><strong>cuts</strong> <span class="classifier-delimiter">:</span> <span class="classifier">None or list of str, optional</span></dt>
+<dd><p class="first last">Cuts. Each entry is a parseable Python expression that returns a bool (True if the event should pass a cut,
+False otherwise). Default value: None.</p>
 </dd>
 </dl>
 </td>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
-<dt><strong>type</strong></dt>
-<dd><p class="first last">ndarray. Total estimated Fisher information matrix.</p>
+<dt><strong>fisher_information</strong> <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
+<dd><p class="first last">Estimated expected full detector-level Fisher information matrix with shape <cite>(n_parameters, n_parameters)</cite>.</p>
 </dd>
 </dl>
 </td>
@@ -124,33 +162,34 @@ theta (see <cite>madminer.ml.MLForge</cite>)</p>
 <dl class="method">
 <dt id="madminer.fisherinformation.FisherInformation.calculate_fisher_information_full_truth">
 <code class="descname">calculate_fisher_information_full_truth</code><span class="sig-paren">(</span><em>theta</em>, <em>luminosity=300000.0</em>, <em>cuts=None</em>, <em>efficiency_functions=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/fisherinformation.html#FisherInformation.calculate_fisher_information_full_truth"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.fisherinformation.FisherInformation.calculate_fisher_information_full_truth" title="Permalink to this definition">¶</a></dt>
-<dd><p>Calculates the full Fisher information at parton / truth level for a given parameter point theta and
-given luminosity.</p>
+<dd><p>Calculates the full Fisher information at parton / truth level. This is the information in an idealized
+measurement where all parton-level particles with their charges, flavours, and four-momenta can be accessed with
+perfect accuracy, i.e. the latent variables <cite>z_parton</cite> can be measured directly.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
-<dt><strong>theta :</strong></dt>
-<dd><p class="first last">ndarray. The parameter point.</p>
+<dt><strong>theta</strong> <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
+<dd><p class="first last">Parameter point <cite>theta</cite> at which the Fisher information matrix <cite>I_ij(theta)</cite> is evaluated.</p>
 </dd>
-<dt><strong>luminosity :</strong></dt>
-<dd><p class="first last">float. Luminosity in pb^-1. (Default value = 300000.)</p>
+<dt><strong>luminosity</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float, optional</span></dt>
+<dd><p class="first last">Luminosity in pb^-1. Default value: 300000.</p>
 </dd>
-<dt><strong>cuts :</strong></dt>
-<dd><p class="first last">None or list strings. Each entry is a parseable Python expression that returns a bool
-(True if the event should pass a cut, False otherwise). (Default value = None)</p>
+<dt><strong>cuts</strong> <span class="classifier-delimiter">:</span> <span class="classifier">None or list of str, optional</span></dt>
+<dd><p class="first last">Cuts. Each entry is a parseable Python expression that returns a bool (True if the event should pass a cut,
+False otherwise). Default value: None.</p>
 </dd>
-<dt><strong>efficiency_functions :</strong></dt>
-<dd><p class="first last">None or list strings. Each entry is a parseable Python expression that returns a
-float for the efficiency of one component. (Default value = None)</p>
+<dt><strong>efficiency_functions</strong> <span class="classifier-delimiter">:</span> <span class="classifier">list of str or None</span></dt>
+<dd><p class="first last">Efficiencies. Each entry is a parseable Python expression that returns a float for the efficiency of one
+component. Default value: None.</p>
 </dd>
 </dl>
 </td>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
-<dt><strong>type</strong></dt>
-<dd><p class="first last">ndarray. Total Fisher information matrix.</p>
+<dt><strong>fisher_information</strong> <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
+<dd><p class="first last">Expected full truth-level Fisher information matrix with shape <cite>(n_parameters, n_parameters)</cite>.</p>
 </dd>
 </dl>
 </td>
@@ -162,42 +201,43 @@ float for the efficiency of one component. (Default value = None)</p>
 <dl class="method">
 <dt id="madminer.fisherinformation.FisherInformation.calculate_fisher_information_hist1d">
 <code class="descname">calculate_fisher_information_hist1d</code><span class="sig-paren">(</span><em>theta</em>, <em>luminosity</em>, <em>observable</em>, <em>nbins</em>, <em>histrange</em>, <em>cuts=None</em>, <em>efficiency_functions=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/fisherinformation.html#FisherInformation.calculate_fisher_information_hist1d"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.fisherinformation.FisherInformation.calculate_fisher_information_hist1d" title="Permalink to this definition">¶</a></dt>
-<dd><p>Calculates the Fisher information in a 1D histogram for a given benchmark theta and luminosity.</p>
+<dd><p>Calculates the Fisher information in the one-dimensional histogram of an (parton-level or detector-level,
+depending on how the observations in the MadMiner file were calculated) observable.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
-<dt><strong>theta :</strong></dt>
-<dd><p class="first last">ndarray. The parameter point.</p>
+<dt><strong>theta</strong> <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
+<dd><p class="first last">Parameter point <cite>theta</cite> at which the Fisher information matrix <cite>I_ij(theta)</cite> is evaluated.</p>
 </dd>
-<dt><strong>luminosity :</strong></dt>
-<dd><p class="first last">float. Luminosity in pb^-1.</p>
+<dt><strong>luminosity</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float, optional</span></dt>
+<dd><p class="first last">Luminosity in pb^-1. Default value: 300000.</p>
 </dd>
-<dt><strong>observable :</strong></dt>
-<dd><p class="first last">str. Observable  to be histogrammed.</p>
+<dt><strong>observable</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
+<dd><p class="first last">Expression for the observable to be histogrammed. The str will be parsed by Python’s <cite>eval()</cite> function
+and can use the names of the observables in the MadMiner files.</p>
 </dd>
-<dt><strong>nbins :</strong></dt>
-<dd><p class="first last">int. Number of bins in the histogram, excluding overflow bins.</p>
+<dt><strong>nbins</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
+<dd><p class="first last">Number of bins in the histogram, excluding overflow bins.</p>
 </dd>
-<dt><strong>histrange :</strong></dt>
-<dd><p class="first last">tuple of two floats. Minimuym and maximum value of the histogram. Overflow bins are always
-added.</p>
+<dt><strong>histrange</strong> <span class="classifier-delimiter">:</span> <span class="classifier">tuple of float</span></dt>
+<dd><p class="first last">Minimum and maximum value of the histogram in the form <cite>(min, max)</cite>. Overflow bins are always added.</p>
 </dd>
-<dt><strong>cuts :</strong></dt>
-<dd><p class="first last">None or list strings. Each entry is a parseable Python expression that returns a bool
-(True if the event should pass a cut, False otherwise). (Default value = None)</p>
+<dt><strong>cuts</strong> <span class="classifier-delimiter">:</span> <span class="classifier">None or list of str, optional</span></dt>
+<dd><p class="first last">Cuts. Each entry is a parseable Python expression that returns a bool (True if the event should pass a cut,
+False otherwise). Default value: None.</p>
 </dd>
-<dt><strong>efficiency_functions :</strong></dt>
-<dd><p class="first last">None or list strings. Each entry is a parseable Python expression that returns a
-float for the efficiency of one component. (Default value = None)</p>
+<dt><strong>efficiency_functions</strong> <span class="classifier-delimiter">:</span> <span class="classifier">list of str or None</span></dt>
+<dd><p class="first last">Efficiencies. Each entry is a parseable Python expression that returns a float for the efficiency of one
+component. Default value: None.</p>
 </dd>
 </dl>
 </td>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
-<dt><strong>type</strong></dt>
-<dd><p class="first last">ndarray. Fisher information in histogram.</p>
+<dt><strong>fisher_information</strong> <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
+<dd><p class="first last">Expected Fisher information in the histogram with shape <cite>(n_parameters, n_parameters)</cite>.</p>
 </dd>
 </dl>
 </td>
@@ -209,52 +249,55 @@ float for the efficiency of one component. (Default value = None)</p>
 <dl class="method">
 <dt id="madminer.fisherinformation.FisherInformation.calculate_fisher_information_hist2d">
 <code class="descname">calculate_fisher_information_hist2d</code><span class="sig-paren">(</span><em>theta</em>, <em>luminosity</em>, <em>observable1</em>, <em>nbins1</em>, <em>histrange1</em>, <em>observable2</em>, <em>nbins2</em>, <em>histrange2</em>, <em>cuts=None</em>, <em>efficiency_functions=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/fisherinformation.html#FisherInformation.calculate_fisher_information_hist2d"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.fisherinformation.FisherInformation.calculate_fisher_information_hist2d" title="Permalink to this definition">¶</a></dt>
-<dd><p>Calculates the Fisher information in a 2D histogram for a given benchmark theta and luminosity.</p>
+<dd><p>Calculates the Fisher information in a two-dimensional histogram of two (parton-level or detector-level,
+depending on how the observations in the MadMiner file were calculated) observables.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
-<dt><strong>theta :</strong></dt>
-<dd><p class="first last">ndarray. The parameter point.</p>
+<dt><strong>theta</strong> <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
+<dd><p class="first last">Parameter point <cite>theta</cite> at which the Fisher information matrix <cite>I_ij(theta)</cite> is evaluated.</p>
 </dd>
-<dt><strong>luminosity :</strong></dt>
-<dd><p class="first last">float. Luminosity in pb^-1.</p>
+<dt><strong>luminosity</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float, optional</span></dt>
+<dd><p class="first last">Luminosity in pb^-1. Default value: 300000.</p>
 </dd>
-<dt><strong>observable1 :</strong></dt>
-<dd><p class="first last">str. First observable  to be histogrammed.</p>
+<dt><strong>observable1</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
+<dd><p class="first last">Expression for the first observable to be histogrammed. The str will be parsed by Python’s <cite>eval()</cite> function
+and can use the names of the observables in the MadMiner files.</p>
 </dd>
-<dt><strong>nbins1 :</strong></dt>
-<dd><p class="first last">int. Number of bins for the first observable in the histogram, excluding overflow bins.</p>
+<dt><strong>nbins1</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
+<dd><p class="first last">Number of bins along the first axis in the histogram, excluding overflow bins.</p>
 </dd>
-<dt><strong>histrange1 :</strong></dt>
-<dd><p class="first last">tuple of two floats. Minimum and maximum value of the first dimension of the histogram.
-Overflow bins are always added.</p>
+<dt><strong>histrange1</strong> <span class="classifier-delimiter">:</span> <span class="classifier">tuple of float</span></dt>
+<dd><p class="first last">Minimum and maximum value of the first axis of the histogram in the form <cite>(min, max)</cite>. Overflow bins are
+always added.</p>
 </dd>
-<dt><strong>observable2 :</strong></dt>
-<dd><p class="first last">str. Second observable  to be histogrammed.</p>
+<dt><strong>observable2</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
+<dd><p class="first last">Expression for the first observable to be histogrammed. The str will be parsed by Python’s <cite>eval()</cite> function
+and can use the names of the observables in the MadMiner files.</p>
 </dd>
-<dt><strong>nbins2 :</strong></dt>
-<dd><p class="first last">int. Number of bins for the second observable in the histogram, excluding overflow bins.</p>
+<dt><strong>nbins2</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
+<dd><p class="first last">Number of bins along the first axis in the histogram, excluding overflow bins.</p>
 </dd>
-<dt><strong>histrange2 :</strong></dt>
-<dd><p class="first last">tuple of two floats. Minimum and maximum value of the second dimension of the histogram.
-Overflow bins are always added.</p>
+<dt><strong>histrange2</strong> <span class="classifier-delimiter">:</span> <span class="classifier">tuple of float</span></dt>
+<dd><p class="first last">Minimum and maximum value of the first axis of the histogram in the form <cite>(min, max)</cite>. Overflow bins are
+always added.</p>
 </dd>
-<dt><strong>cuts :</strong></dt>
-<dd><p class="first last">None or list strings. Each entry is a parseable Python expression that returns a bool
-(True if the event should pass a cut, False otherwise). (Default value = None)</p>
+<dt><strong>cuts</strong> <span class="classifier-delimiter">:</span> <span class="classifier">None or list of str, optional</span></dt>
+<dd><p class="first last">Cuts. Each entry is a parseable Python expression that returns a bool (True if the event should pass a cut,
+False otherwise). Default value: None.</p>
 </dd>
-<dt><strong>efficiency_functions :</strong></dt>
-<dd><p class="first last">None or list strings. Each entry is a parseable Python expression that returns a
-float for the efficiency of one component. (Default value = None)</p>
+<dt><strong>efficiency_functions</strong> <span class="classifier-delimiter">:</span> <span class="classifier">list of str or None</span></dt>
+<dd><p class="first last">Efficiencies. Each entry is a parseable Python expression that returns a float for the efficiency of one
+component. Default value: None.</p>
 </dd>
 </dl>
 </td>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
-<dt><strong>type</strong></dt>
-<dd><p class="first last">ndarray. Fisher information in histogram.</p>
+<dt><strong>fisher_information</strong> <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
+<dd><p class="first last">Expected Fisher information in the histogram with shape <cite>(n_parameters, n_parameters)</cite>.</p>
 </dd>
 </dl>
 </td>
@@ -266,33 +309,33 @@ float for the efficiency of one component. (Default value = None)</p>
 <dl class="method">
 <dt id="madminer.fisherinformation.FisherInformation.calculate_fisher_information_rate">
 <code class="descname">calculate_fisher_information_rate</code><span class="sig-paren">(</span><em>theta</em>, <em>luminosity</em>, <em>cuts=None</em>, <em>efficiency_functions=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/fisherinformation.html#FisherInformation.calculate_fisher_information_rate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.fisherinformation.FisherInformation.calculate_fisher_information_rate" title="Permalink to this definition">¶</a></dt>
-<dd><p>Calculates the rate-only Fisher information for a given parameter point theta and
-luminosity.</p>
+<dd><p>Calculates the Fisher information in a measurement of the total cross section (without any kinematic
+information).</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
-<dt><strong>theta :</strong></dt>
-<dd><p class="first last">ndarray. The parameter point.</p>
+<dt><strong>theta</strong> <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
+<dd><p class="first last">Parameter point <cite>theta</cite> at which the Fisher information matrix <cite>I_ij(theta)</cite> is evaluated.</p>
 </dd>
-<dt><strong>luminosity :</strong></dt>
-<dd><p class="first last">float. Luminosity in pb^-1.</p>
+<dt><strong>luminosity</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float, optional</span></dt>
+<dd><p class="first last">Luminosity in pb^-1. Default value: 300000.</p>
 </dd>
-<dt><strong>cuts :</strong></dt>
-<dd><p class="first last">None or list strings. Each entry is a parseable Python expression that returns a bool
-(True if the event should pass a cut, False otherwise). (Default value = None)</p>
+<dt><strong>cuts</strong> <span class="classifier-delimiter">:</span> <span class="classifier">None or list of str, optional</span></dt>
+<dd><p class="first last">Cuts. Each entry is a parseable Python expression that returns a bool (True if the event should pass a cut,
+False otherwise). Default value: None.</p>
 </dd>
-<dt><strong>efficiency_functions :</strong></dt>
-<dd><p class="first last">None or list strings. Each entry is a parseable Python expression that returns a
-float for the efficiency of one component. (Default value = None)</p>
+<dt><strong>efficiency_functions</strong> <span class="classifier-delimiter">:</span> <span class="classifier">list of str or None</span></dt>
+<dd><p class="first last">Efficiencies. Each entry is a parseable Python expression that returns a float for the efficiency of one
+component. Default value: None.</p>
 </dd>
 </dl>
 </td>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
-<dt><strong>type</strong></dt>
-<dd><p class="first last">ndarray. Rate-only Fisher information matrix.</p>
+<dt><strong>fisher_information</strong> <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
+<dd><p class="first last">Expected Fisher information in the total cross section with shape <cite>(n_parameters, n_parameters)</cite>.</p>
 </dd>
 </dl>
 </td>
@@ -303,22 +346,25 @@ float for the efficiency of one component. (Default value = None)</p>
 
 <dl class="method">
 <dt id="madminer.fisherinformation.FisherInformation.extract_observables_and_weights">
-<code class="descname">extract_observables_and_weights</code><span class="sig-paren">(</span><em>thetas=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/fisherinformation.html#FisherInformation.extract_observables_and_weights"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.fisherinformation.FisherInformation.extract_observables_and_weights" title="Permalink to this definition">¶</a></dt>
-<dd><p>Extracts observables and weights for a list of parameter points.</p>
+<code class="descname">extract_observables_and_weights</code><span class="sig-paren">(</span><em>thetas</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/fisherinformation.html#FisherInformation.extract_observables_and_weights"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.fisherinformation.FisherInformation.extract_observables_and_weights" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extracts observables and weights for given parameter points.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
-<dt><strong>thetas :</strong></dt>
-<dd><p class="first last">list (theta) of list (components of theta) of float (Default value = None)</p>
+<dt><strong>thetas</strong> <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
+<dd><p class="first last">Parameter points, with shape <cite>(n_thetas, n_parameters)</cite>.</p>
 </dd>
 </dl>
 </td>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
-<dt><strong>type</strong></dt>
-<dd><p class="first last">list (events) of list (observables) of float, list (event) of list (theta) of float</p>
+<dt><strong>x</strong> <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
+<dd><p class="first last">Observations <cite>x</cite> with shape <cite>(n_events, n_observables)</cite>.</p>
+</dd>
+<dt><strong>weights</strong> <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
+<dd><p class="first last">Weights <cite>dsigma(x|theta)</cite> in pb with shape <cite>(n_thetas, n_events)</cite>.</p>
 </dd>
 </dl>
 </td>
@@ -329,50 +375,27 @@ float for the efficiency of one component. (Default value = None)</p>
 
 <dl class="method">
 <dt id="madminer.fisherinformation.FisherInformation.extract_raw_data">
-<code class="descname">extract_raw_data</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/fisherinformation.html#FisherInformation.extract_raw_data"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.fisherinformation.FisherInformation.extract_raw_data" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns raw observables and benchmark weights in MadMiner file</p>
-</dd></dl>
-
-<dl class="method">
-<dt id="madminer.fisherinformation.FisherInformation.histogram_of_fisher_information">
-<code class="descname">histogram_of_fisher_information</code><span class="sig-paren">(</span><em>theta</em>, <em>luminosity</em>, <em>observable</em>, <em>nbins</em>, <em>histrange</em>, <em>cuts=None</em>, <em>efficiency_functions=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/fisherinformation.html#FisherInformation.histogram_of_fisher_information"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.fisherinformation.FisherInformation.histogram_of_fisher_information" title="Permalink to this definition">¶</a></dt>
-<dd><p>Calculates the full and rate-only Fisher informations in the bins of a 1D histogram for a given benchmark theta
-and luminosity.</p>
+<code class="descname">extract_raw_data</code><span class="sig-paren">(</span><em>theta=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/fisherinformation.html#FisherInformation.extract_raw_data"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.fisherinformation.FisherInformation.extract_raw_data" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns all events together with the benchmark weights (if theta is None) or weights for a given theta.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
-<dt><strong>theta :</strong></dt>
-<dd><p class="first last">ndarray. The parameter point.</p>
-</dd>
-<dt><strong>luminosity :</strong></dt>
-<dd><p class="first last">float. Luminosity in pb^-1.</p>
-</dd>
-<dt><strong>observable :</strong></dt>
-<dd><p class="first last">str. Observable  to be histogrammed.</p>
-</dd>
-<dt><strong>nbins :</strong></dt>
-<dd><p class="first last">int. Number of bins in the histogram, excluding overflow bins.</p>
-</dd>
-<dt><strong>histrange :</strong></dt>
-<dd><p class="first last">tuple of two floats. Minimuym and maximum value of the histogram. Overflow bins are always
-added.</p>
-</dd>
-<dt><strong>cuts :</strong></dt>
-<dd><p class="first last">None or list strings. Each entry is a parseable Python expression that returns a bool
-(True if the event should pass a cut, False otherwise). (Default value = None)</p>
-</dd>
-<dt><strong>efficiency_functions :</strong></dt>
-<dd><p class="first last">None or list strings. Each entry is a parseable Python expression that returns a
-float for the efficiency of one component. (Default value = None)</p>
+<dt><strong>theta</strong> <span class="classifier-delimiter">:</span> <span class="classifier">None or ndarray, optional</span></dt>
+<dd><p class="first last">If None, the function returns the benchmark weights. Otherwise it uses morphing to calculate the weights for
+this value of theta. Default value: None.</p>
 </dd>
 </dl>
 </td>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
-<dt><strong>type</strong></dt>
-<dd><p class="first last">bin_boundaries, xsec_per_bins, fisher_infos_rate, fisher_infos_full.</p>
+<dt><strong>x</strong> <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
+<dd><p class="first last">Observables with shape <cite>(n_unweighted_samples, n_observables)</cite>.</p>
+</dd>
+<dt><strong>weights</strong> <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
+<dd><p class="first last">If theta is None, benchmark weights with shape  <cite>(n_unweighted_samples, n_benchmarks)</cite> in pb. Otherwise,
+weights for the given parameter theta with shape <cite>(n_unweighted_samples,)</cite> in pb.</p>
 </dd>
 </dl>
 </td>
@@ -381,28 +404,88 @@ float for the efficiency of one component. (Default value = None)</p>
 </table>
 </dd></dl>
 
-<dl class="staticmethod">
-<dt id="madminer.fisherinformation.FisherInformation.profile_information">
-<em class="property">static </em><code class="descname">profile_information</code><span class="sig-paren">(</span><em>fisher_information</em>, <em>remaining_components</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/fisherinformation.html#FisherInformation.profile_information"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.fisherinformation.FisherInformation.profile_information" title="Permalink to this definition">¶</a></dt>
+<dl class="method">
+<dt id="madminer.fisherinformation.FisherInformation.histogram_of_fisher_information">
+<code class="descname">histogram_of_fisher_information</code><span class="sig-paren">(</span><em>theta</em>, <em>luminosity</em>, <em>observable</em>, <em>nbins</em>, <em>histrange</em>, <em>cuts=None</em>, <em>efficiency_functions=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/fisherinformation.html#FisherInformation.histogram_of_fisher_information"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.fisherinformation.FisherInformation.histogram_of_fisher_information" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates the full and rate-only Fisher information in slices of one observable.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>theta</strong> <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
+<dd><p class="first last">Parameter point <cite>theta</cite> at which the Fisher information matrix <cite>I_ij(theta)</cite> is evaluated.</p>
+</dd>
+<dt><strong>luminosity</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float, optional</span></dt>
+<dd><p class="first last">Luminosity in pb^-1. Default value: 300000.</p>
+</dd>
+<dt><strong>observable</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
+<dd><p class="first last">Expression for the observable to be sliced. The str will be parsed by Python’s <cite>eval()</cite> function
+and can use the names of the observables in the MadMiner files.</p>
+</dd>
+<dt><strong>nbins</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
+<dd><p class="first last">Number of bins in the slicing, excluding overflow bins.</p>
+</dd>
+<dt><strong>histrange</strong> <span class="classifier-delimiter">:</span> <span class="classifier">tuple of float</span></dt>
+<dd><p class="first last">Minimum and maximum value of the slicing in the form <cite>(min, max)</cite>. Overflow bins are always added.</p>
+</dd>
+<dt><strong>cuts</strong> <span class="classifier-delimiter">:</span> <span class="classifier">None or list of str, optional</span></dt>
+<dd><p class="first last">Cuts. Each entry is a parseable Python expression that returns a bool (True if the event should pass a cut,
+False otherwise). Default value: None.</p>
+</dd>
+<dt><strong>efficiency_functions</strong> <span class="classifier-delimiter">:</span> <span class="classifier">list of str or None</span></dt>
+<dd><p class="first last">Efficiencies. Each entry is a parseable Python expression that returns a float for the efficiency of one
+component. Default value: None.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>bin_boundaries</strong> <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
+<dd><p class="first last">Observable slice boundaries.</p>
+</dd>
+<dt><strong>sigma_bins</strong> <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
+<dd><p class="first last">Cross section in pb in each of the slices.</p>
+</dd>
+<dt><strong>rate_fisher_infos</strong> <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
+<dd><p class="first last">Expected rate-only Fisher information for each slice. Has shape <cite>(n_slices, n_parameters, n_parameters)</cite>.</p>
+</dd>
+<dt><strong>full_fisher_infos_truth</strong> <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
+<dd><p class="first last">Expected full truth-level Fisher information for each slice. Has shape
+<cite>(n_slices, n_parameters, n_parameters)</cite>.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="madminer.fisherinformation.profile_information">
+<code class="descclassname">madminer.fisherinformation.</code><code class="descname">profile_information</code><span class="sig-paren">(</span><em>fisher_information</em>, <em>remaining_components</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/fisherinformation.html#profile_information"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.fisherinformation.profile_information" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculates the profiled Fisher information matrix as defined in Appendix A.4 of 1612.05261.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
-<dt><strong>fisher_information :</strong></dt>
-<dd><p class="first last">ndarray. Original n x n Fisher information.</p>
+<dt><strong>fisher_information</strong> <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
+<dd><p class="first last">Original n x n Fisher information.</p>
 </dd>
-<dt><strong>remaining_components :</strong></dt>
-<dd><p class="first last">list of ints. m entries, each have a value 0 &lt;= remaining_compoinents[i] &lt; n.
-Denotes which parameters are kept and their new order.</p>
+<dt><strong>remaining_components</strong> <span class="classifier-delimiter">:</span> <span class="classifier">list of int</span></dt>
+<dd><p class="first last">List with m entries, each an int with 0 &lt;= remaining_compoinents[i] &lt; n. Denotes which parameters are kept, and
+their new order. All other parameters or projected out.</p>
 </dd>
 </dl>
 </td>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
-<dt><strong>type</strong></dt>
-<dd><p class="first last">ndarray. Profiled m x m Fisher information.</p>
+<dt><strong>profiled_fisher_information</strong> <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
+<dd><p class="first last">Profiled m x m Fisher information, where the <cite>i</cite>-th row or column corresponds to the
+<cite>remaining_components[i]</cite>-th row or column of fisher_information.</p>
 </dd>
 </dl>
 </td>
@@ -411,36 +494,36 @@ Denotes which parameters are kept and their new order.</p>
 </table>
 </dd></dl>
 
-<dl class="staticmethod">
-<dt id="madminer.fisherinformation.FisherInformation.project_information">
-<em class="property">static </em><code class="descname">project_information</code><span class="sig-paren">(</span><em>fisher_information</em>, <em>remaining_components</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/fisherinformation.html#FisherInformation.project_information"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.fisherinformation.FisherInformation.project_information" title="Permalink to this definition">¶</a></dt>
-<dd><p>Projects a Fisher information matrix, i.e. “deletes” some rows and columns.</p>
+<dl class="function">
+<dt id="madminer.fisherinformation.project_information">
+<code class="descclassname">madminer.fisherinformation.</code><code class="descname">project_information</code><span class="sig-paren">(</span><em>fisher_information</em>, <em>remaining_components</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/fisherinformation.html#project_information"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.fisherinformation.project_information" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates projections of a Fisher information matrix, that is, “deletes” the rows and columns corresponding to
+some parameters not of interest.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
-<dt><strong>fisher_information :</strong></dt>
-<dd><p class="first last">ndarray. Original n x n Fisher information.</p>
+<dt><strong>fisher_information</strong> <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
+<dd><p class="first last">Original n x n Fisher information.</p>
 </dd>
-<dt><strong>remaining_components :</strong></dt>
-<dd><p class="first last">list of ints. m entries, each have a value 0 &lt;= remaining_compoinents[i] &lt; n.
-Denotes which parameters are kept and their new order.</p>
+<dt><strong>remaining_components</strong> <span class="classifier-delimiter">:</span> <span class="classifier">list of int</span></dt>
+<dd><p class="first last">List with m entries, each an int with 0 &lt;= remaining_compoinents[i] &lt; n. Denotes which parameters are kept, and
+their new order. All other parameters or projected out.</p>
 </dd>
 </dl>
 </td>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
-<dt><strong>type</strong></dt>
-<dd><p class="first last">ndarray. Projected m x m Fisher information.</p>
+<dt><strong>projected_fisher_information</strong> <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
+<dd><p class="first last">Projected m x m Fisher information, where the <cite>i</cite>-th row or column corresponds to the
+<cite>remaining_components[i]</cite>-th row or column of fisher_information.</p>
 </dd>
 </dl>
 </td>
 </tr>
 </tbody>
 </table>
-</dd></dl>
-
 </dd></dl>
 
 </div>
