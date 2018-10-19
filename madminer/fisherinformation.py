@@ -11,8 +11,121 @@ from madminer.utils.various import general_init, format_benchmark, math_commands
 from madminer.ml import MLForge
 
 
+def project_information(fisher_information, remaining_components):
+    """
+    Calculates projections of a Fisher information matrix, that is, "deletes" the rows and columns corresponding to
+    some parameters not of interest.
+
+    Parameters
+    ----------
+    fisher_information : ndarray
+        Original n x n Fisher information.
+
+    remaining_components : list of int
+        List with m entries, each an int with 0 <= remaining_compoinents[i] < n. Denotes which parameters are kept, and
+        their new order. All other parameters or projected out.
+
+    Returns
+    -------
+    projected_fisher_information : ndarray
+        Projected m x m Fisher information, where the `i`-th row or column corresponds to the
+        `remaining_components[i]`-th row or column of fisher_information.
+
+    """
+    n_new = len(remaining_components)
+    fisher_information_new = np.zeros([n_new, n_new])
+
+    for xnew, xold in enumerate(remaining_components):
+        for ynew, yold in enumerate(remaining_components):
+            fisher_information_new[xnew, ynew] = fisher_information[xold, yold]
+
+    return fisher_information_new
+
+
+def profile_information(fisher_information, remaining_components):
+    """
+    Calculates the profiled Fisher information matrix as defined in Appendix A.4 of 1612.05261.
+
+    Parameters
+    ----------
+    fisher_information : ndarray
+        Original n x n Fisher information.
+
+    remaining_components : list of int
+        List with m entries, each an int with 0 <= remaining_compoinents[i] < n. Denotes which parameters are kept, and
+        their new order. All other parameters or projected out.
+
+    Returns
+    -------
+    profiled_fisher_information : ndarray
+        Profiled m x m Fisher information, where the `i`-th row or column corresponds to the
+        `remaining_components[i]`-th row or column of fisher_information.
+
+    """
+
+    # Group components
+    n_components = len(fisher_information)
+    remaining_components_checked = []
+    profiled_components = []
+
+    for i in range(n_components):
+        if i in remaining_components:
+            remaining_components_checked.append(i)
+        else:
+            profiled_components.append(i)
+    new_index_order = remaining_components + profiled_components
+
+    assert len(remaining_components) == len(remaining_components_checked), "Inconsistent input"
+
+    # Sort Fisher information such that the remaining components are  at the beginning and the profiled at the end
+    profiled_fisher_information = np.copy(fisher_information[new_index_order, new_index_order])
+
+    # Profile over one component at a time
+    for c in reversed(range(len(remaining_components), n_components)):
+        profiled_fisher_information = (profiled_fisher_information[:c, :c]
+                                       - np.outer(profiled_fisher_information[c, :c],
+                                                  profiled_fisher_information[c, :c])
+                                       / profiled_fisher_information[c, c])
+
+    return profiled_fisher_information
+
+
 class FisherInformation:
-    """ """
+    """
+    Functions to calculate expected Fisher information matrices.
+
+    After inializing a `FisherInformation` instance with the filename of a MadMiner file, different information matrices
+    can be calculated:
+
+    * `FisherInformation.calculate_fisher_information_full_truth()` calculates the full truth-level Fisher information.
+    This is the information in an idealized measurement where all parton-level particles with their charges, flavours,
+    and four-momenta can be accessed with perfect accuracy.
+
+    * `FisherInformation.calculate_fisher_information_full_detector()` calculates the full Fisher information in
+    realistic detector-level observations, estimated with neural networks. In addition to the MadMiner file, this
+    requires a trained SALLY or SALLINO estimator as well as an unweighted evaluation sample.
+
+    * `FisherInformation.calculate_fisher_information_rate()` calculates the Fisher information in the total cross
+    section.
+
+    * `FisherInformation.calculate_fisher_information_hist1d()` calculates the Fisher information in the histogram of
+    one (parton-level or detector-level) observable.
+
+    * `FisherInformation.calculate_fisher_information_hist2d()` calculates the Fisher information in a two-dimensional
+    histogram of two (parton-level or detector-level) observables.
+
+    * `FisherInformation.histogram_of_fisher_information()` calculates the full truth-level Fisher information in
+    different slices of one observable (the "distribution of the Fisher information").
+
+    Parameters
+    ----------
+    filename : str
+        Path to MadMiner file (for instance the output of `madminer.delphes.DelphesProcessor.save()`).
+
+    debug : bool, optional
+        If True, additional detailed debugging output is printed. Default value: False.
+
+    """
 
     def __init__(self, filename, debug=False):
 
@@ -53,24 +166,60 @@ class FisherInformation:
         else:
             raise RuntimeError('Did not find morphing setup.')
 
-    def extract_raw_data(self):
-        """Returns raw observables and benchmark weights in MadMiner file"""
+    def extract_raw_data(self, theta=None):
 
-        x, weights_benchmarks = next(madminer_event_loader(self.madminer_filename, batch_size=None))
-        return x, weights_benchmarks
-
-    def extract_observables_and_weights(self, thetas=None):
-        """Extracts observables and weights for a list of parameter points.
+        """
+        Returns all events together with the benchmark weights (if theta is None) or weights for a given theta.
 
         Parameters
         ----------
-        thetas :
-            list (theta) of list (components of theta) of float (Default value = None)
+        theta : None or ndarray, optional
+            If None, the function returns the benchmark weights. Otherwise it uses morphing to calculate the weights for
+            this value of theta. Default value: None.
 
         Returns
         -------
-        type
-            list (events) of list (observables) of float, list (event) of list (theta) of float
+        x : ndarray
+            Observables with shape `(n_unweighted_samples, n_observables)`.
+
+        weights : ndarray
+            If theta is None, benchmark weights with shape  `(n_unweighted_samples, n_benchmarks)` in pb. Otherwise,
+            weights for the given parameter theta with shape `(n_unweighted_samples,)` in pb.
+
+        """
+
+        x, weights_benchmarks = next(madminer_event_loader(self.madminer_filename, batch_size=None))
+
+        if theta is not None:
+            theta_matrix = get_theta_benchmark_matrix(
+                'morphing',
+                theta,
+                self.benchmarks,
+                self.morpher
+            )
+
+            weights_theta = theta_matrix.dot(weights_benchmarks.T)
+
+            return x, weights_theta
+
+        return x, weights_benchmarks
+
+    def extract_observables_and_weights(self, thetas):
+        """
+        Extracts observables and weights for given parameter points.
+
+        Parameters
+        ----------
+        thetas : ndarray
+            Parameter points, with shape `(n_thetas, n_parameters)`.
+
+        Returns
+        -------
+        x : ndarray
+            Observations `x` with shape `(n_events, n_observables)`.
+
+        weights : ndarray
+            Weights `dsigma(x|theta)` in pb with shape `(n_thetas, n_events)`.
 
         """
 
@@ -86,29 +235,36 @@ class FisherInformation:
             )
             weights_thetas.append(theta_matrix.dot(weights_benchmarks.T))
 
+        weights_thetas = np.array(weights_thetas)
+
         return x, weights_thetas
 
     def _calculate_fisher_information(self, theta, weights_benchmarks, luminosity=300000., sum_events=False):
-        """Calculates a list of Fisher info matrices for a given theta and luminosity
+        """
+        Low-level function that calculates a list of full Fisher information matrices for a given parameter point and
+        benchmark weights. Do not use this function directly, instead use the other `FisherInformation` functions.
 
         Parameters
         ----------
-        theta :
-            ndarray. Parameter point.
-        weights_benchmarks :
-            ndarrays. Benchmark weights for all events.  Shape (n_events, n_benchmark).
-        luminosity :
-            float. Luminosity in pb^-1. (Default value = 300000.)
-        sum_events :
-            bool. If True, returns the summed FIsher information. Otherwise, a list of Fisher
-            information matrices for each event. (Default value = False)
+        theta : ndarray
+            Parameter point.
+
+        weights_benchmarks : ndarray
+            Benchmark weights.  Shape (n_events, n_benchmark).
+
+        luminosity : float, optional
+            Luminosity in pb^-1. Default value: 300000.
+
+        sum_events : bool, optional
+            If True, returns the summed FIsher information. Otherwise, a list of Fisher
+            information matrices for each event. Default value: False.
 
         Returns
         -------
-        type
-            ndarray. If sum_events is True, the return value is an nxn matrix, the total Fisher information
-            summed over all events. Otherwise, a n_events x n x n tensor is returned that includes the
-            Fisher information matrices for each event separately.
+        fisher_information : ndarray
+            If sum_events is True, the return value is an nxn matrix, the total Fisher information
+            summed over all events. Otherwise, a n_events x n_parameters x n_parameters tensor is returned that
+            includes the Fisher information matrices for each event separately.
 
         """
 
@@ -141,6 +297,8 @@ class FisherInformation:
         if sum_events:
             return np.sum(fisher_info, axis=0)
         return fisher_info
+
+    # TODO: Docstrings done to here
 
     def _pass_cuts(self, observations, cuts=None):
         """Checks if an event, specified by a list of observables, passes a set of cuts.
@@ -618,79 +776,6 @@ class FisherInformation:
         fisher_info = self._calculate_fisher_information(theta, weights_benchmarks, luminosity, sum_events=True)
 
         return fisher_info
-
-    @staticmethod
-    def project_information(fisher_information, remaining_components):
-        """Projects a Fisher information matrix, i.e. "deletes" some rows and columns.
-
-        Parameters
-        ----------
-        fisher_information :
-            ndarray. Original n x n Fisher information.
-        remaining_components :
-            list of ints. m entries, each have a value 0 <= remaining_compoinents[i] < n.
-            Denotes which parameters are kept and their new order.
-
-        Returns
-        -------
-        type
-            ndarray. Projected m x m Fisher information.
-
-        """
-        n_new = len(remaining_components)
-        fisher_information_new = np.zeros([n_new, n_new])
-
-        for xnew, xold in enumerate(remaining_components):
-            for ynew, yold in enumerate(remaining_components):
-                fisher_information_new[xnew, ynew] = fisher_information[xold, yold]
-
-        return fisher_information_new
-
-    @staticmethod
-    def profile_information(fisher_information, remaining_components):
-
-        """Calculates the profiled Fisher information matrix as defined in Appendix A.4 of 1612.05261.
-
-        Parameters
-        ----------
-        fisher_information :
-            ndarray. Original n x n Fisher information.
-        remaining_components :
-            list of ints. m entries, each have a value 0 <= remaining_compoinents[i] < n.
-            Denotes which parameters are kept and their new order.
-
-        Returns
-        -------
-        type
-            ndarray. Profiled m x m Fisher information.
-
-        """
-
-        # Group components
-        n_components = len(fisher_information)
-        remaining_components_checked = []
-        profiled_components = []
-
-        for i in range(n_components):
-            if i in remaining_components:
-                remaining_components_checked.append(i)
-            else:
-                profiled_components.append(i)
-        new_index_order = remaining_components + profiled_components
-
-        assert len(remaining_components) == len(remaining_components_checked), "Inconsistent input"
-
-        # Sort Fisher information such that the remaining components are  at the beginning and the profiled at the end
-        profiled_fisher_information = np.copy(fisher_information[new_index_order, new_index_order])
-
-        # Profile over one component at a time
-        for c in reversed(range(len(remaining_components), n_components)):
-            profiled_fisher_information = (profiled_fisher_information[:c, :c]
-                                           - np.outer(profiled_fisher_information[c, :c],
-                                                      profiled_fisher_information[c, :c])
-                                           / profiled_fisher_information[c, c])
-
-        return profiled_fisher_information
 
     def histogram_of_fisher_information(self, theta, luminosity, observable, nbins, histrange, cuts=None,
                                         efficiency_functions=None):

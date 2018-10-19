@@ -1240,8 +1240,7 @@ class SampleAugmenter:
     def extract_raw_data(self, theta=None):
 
         """
-        Returns all events together with the benchmark weights (if theta is None)
-        or weights for a given theta.
+        Returns all events together with the benchmark weights (if theta is None) or weights for a given theta.
 
         Parameters
         ----------
