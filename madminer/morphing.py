@@ -316,32 +316,6 @@ class Morpher:
         # Normal output
         return best_basis
 
-    def _propose_basis(self, fixed_benchmarks, n_missing_benchmarks):
-
-        """ Proposes a random basis. """
-
-        if len(fixed_benchmarks) > 0:
-            basis = np.vstack([
-                fixed_benchmarks,
-                self._draw_random_thetas(n_missing_benchmarks)
-            ])
-        else:
-            basis = self._draw_random_thetas(n_missing_benchmarks)
-
-        return basis
-
-    def _draw_random_thetas(self, n_thetas):
-
-        """ Randomly draws parameter vectors within the specified parameter ranges. """
-
-        # First draw random numbers in range [0, 1)^n_parameters
-        u = np.random.rand(n_thetas, self.n_parameters)
-
-        # Transform to right range
-        thetas = self.parameter_range[:, 0] + u * (self.parameter_range[:, 1] - self.parameter_range[:, 0])
-
-        return thetas
-
     def calculate_morphing_matrix(self, basis=None):
 
         """
@@ -609,3 +583,29 @@ class Morpher:
         squared_weights /= float(n_test_thetas)
 
         return -squared_weights
+
+    def _propose_basis(self, fixed_benchmarks, n_missing_benchmarks):
+
+        """ Proposes a random basis. """
+
+        if len(fixed_benchmarks) > 0:
+            basis = np.vstack([
+                fixed_benchmarks,
+                self._draw_random_thetas(n_missing_benchmarks)
+            ])
+        else:
+            basis = self._draw_random_thetas(n_missing_benchmarks)
+
+        return basis
+
+    def _draw_random_thetas(self, n_thetas):
+
+        """ Randomly draws parameter vectors within the specified parameter ranges. """
+
+        # First draw random numbers in range [0, 1)^n_parameters
+        u = np.random.rand(n_thetas, self.n_parameters)
+
+        # Transform to right range
+        thetas = self.parameter_range[:, 0] + u * (self.parameter_range[:, 1] - self.parameter_range[:, 0])
+
+        return thetas

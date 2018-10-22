@@ -167,320 +167,6 @@ class FisherInformation:
         else:
             raise RuntimeError('Did not find morphing setup.')
 
-    def extract_raw_data(self, theta=None):
-
-        """
-        Returns all events together with the benchmark weights (if theta is None) or weights for a given theta.
-
-        Parameters
-        ----------
-        theta : None or ndarray, optional
-            If None, the function returns the benchmark weights. Otherwise it uses morphing to calculate the weights for
-            this value of theta. Default value: None.
-
-        Returns
-        -------
-        x : ndarray
-            Observables with shape `(n_unweighted_samples, n_observables)`.
-
-        weights : ndarray
-            If theta is None, benchmark weights with shape  `(n_unweighted_samples, n_benchmarks)` in pb. Otherwise,
-            weights for the given parameter theta with shape `(n_unweighted_samples,)` in pb.
-
-        """
-
-        x, weights_benchmarks = next(madminer_event_loader(self.madminer_filename, batch_size=None))
-
-        if theta is not None:
-            theta_matrix = get_theta_benchmark_matrix(
-                'morphing',
-                theta,
-                self.benchmarks,
-                self.morpher
-            )
-
-            weights_theta = theta_matrix.dot(weights_benchmarks.T)
-
-            return x, weights_theta
-
-        return x, weights_benchmarks
-
-    def extract_observables_and_weights(self, thetas):
-        """
-        Extracts observables and weights for given parameter points.
-
-        Parameters
-        ----------
-        thetas : ndarray
-            Parameter points, with shape `(n_thetas, n_parameters)`.
-
-        Returns
-        -------
-        x : ndarray
-            Observations `x` with shape `(n_events, n_observables)`.
-
-        weights : ndarray
-            Weights `dsigma(x|theta)` in pb with shape `(n_thetas, n_events)`.
-
-        """
-
-        x, weights_benchmarks = next(madminer_event_loader(self.madminer_filename, batch_size=None))
-
-        weights_thetas = []
-        for theta in thetas:
-            theta_matrix = get_theta_benchmark_matrix(
-                'morphing',
-                theta,
-                self.benchmarks,
-                self.morpher
-            )
-            weights_thetas.append(theta_matrix.dot(weights_benchmarks.T))
-
-        weights_thetas = np.array(weights_thetas)
-
-        return x, weights_thetas
-
-    def _calculate_fisher_information(self, theta, weights_benchmarks, luminosity=300000., sum_events=False):
-        """
-        Low-level function that calculates a list of full Fisher information matrices for a given parameter point and
-        benchmark weights. Do not use this function directly, instead use the other `FisherInformation` functions.
-
-        Parameters
-        ----------
-        theta : ndarray
-            Parameter point.
-
-        weights_benchmarks : ndarray
-            Benchmark weights.  Shape (n_events, n_benchmark).
-
-        luminosity : float
-            Luminosity in pb^-1.
-
-        sum_events : bool, optional
-            If True, returns the summed FIsher information. Otherwise, a list of Fisher
-            information matrices for each event. Default value: False.
-
-        Returns
-        -------
-        fisher_information : ndarray
-            If sum_events is True, the return value is an nxn matrix, the total Fisher information
-            summed over all events. Otherwise, a n_events x n_parameters x n_parameters tensor is returned that
-            includes the Fisher information matrices for each event separately.
-
-        """
-
-        # Get morphing matrices
-        theta_matrix = get_theta_benchmark_matrix(
-            'morphing',
-            theta,
-            self.benchmarks,
-            self.morpher
-        )
-        dtheta_matrix = get_dtheta_benchmark_matrix(
-            'morphing',
-            theta,
-            self.benchmarks,
-            self.morpher
-        )
-
-        # Get differential xsec per event, and the derivative wrt to theta
-        sigma = theta_matrix.dot(weights_benchmarks.T)  # Shape (n_events,)
-        dsigma = dtheta_matrix.dot(weights_benchmarks.T)  # Shape (n_parameters, n_events)
-
-        # Calculate Fisher info for this event
-        fisher_info = []
-        for i_event in range(len(sigma)):
-            fisher_info.append(luminosity / sigma[i_event] * np.tensordot(dsigma.T[i_event], dsigma.T[i_event], axes=0))
-        fisher_info = np.array(fisher_info)
-
-        fisher_info = np.nan_to_num(fisher_info)
-
-        if sum_events:
-            return np.sum(fisher_info, axis=0)
-        return fisher_info
-
-    def _pass_cuts(self, observations, cuts=None):
-        """
-        Checks if an event, specified by a list of observations, passes a set of cuts.
-
-        Parameters
-        ----------
-        observations : list of float
-            list of float. Values of the observables for a single event.
-
-        cuts : list of str or None, optional
-            Each entry is a parseable Python expression that returns a bool (True if the event should pass a cut,
-            False otherwise). Default value: None.
-
-        Returns
-        -------
-        passes : bool
-            True if the event passes all cuts, False otherwise.
-
-        """
-
-        # Check inputs
-        if cuts is None:
-            cuts = []
-
-        assert len(observations) == len(self.observables), 'Mismatch between observables and observations'
-
-        # Variables that can be used in cuts
-        variables = math_commands()
-
-        for observable_name, observable_value in zip(self.observables, observations):
-            variables[observable_name] = observable_value
-
-        # Check cuts
-        for cut in cuts:
-            if not bool(eval(cut, variables)):
-                return False
-
-        return True
-
-    def _eval_efficiency(self, observations, efficiency_functions=None):
-        """
-        Calculates the efficiency for an event.
-
-        Parameters
-        ----------
-        observations : list of float
-            Values of the observables.
-
-        efficiency_functions : list of str or None
-            Each entry is a parseable Python expression that returns a float for the efficiency of one component.
-            Default value: None.
-
-        Returns
-        -------
-        efficiency : float
-            Efficiency (0. <= efficiency <= 1.), product of the results of the calls to all entries in
-            efficiency_functions.
-
-        """
-
-        # Check inputs
-        if efficiency_functions is None:
-            efficiency_functions = []
-
-        assert len(observations) == len(self.observables), 'Mismatch between observables and observations'
-
-        # Variables that can be used in efficiency functions
-        variables = math_commands()
-
-        for observable_name, observable_value in zip(self.observables, observations):
-            variables[observable_name] = observable_value
-
-        # Check cuts
-        efficiency = 1.
-        for efficency_function in efficiency_functions:
-            efficiency *= float(eval(efficency_function, variables))
-
-        return efficiency
-
-    def _eval_observable(self, observations, observable_definition):
-        """
-        Calculates an observable expression for an event.
-
-        Parameters
-        ----------
-        observations : ndarray
-            Values of the observables for an event, should have shape `(n_observables,)`.
-
-        observable_definition : str
-            A parseable Python expression that returns the value of the observable to be calculated.
-
-        Returns
-        -------
-        observable_value : float
-            Value of the observable defined in observable_definition.
-
-        """
-
-        assert len(observations) == len(self.observables), 'Mismatch between observables and observations'
-
-        # Variables that can be used in efficiency functions
-        variables = math_commands()
-
-        for observable_name, observable_value in zip(self.observables, observations):
-            variables[observable_name] = observable_value
-
-        # Check cuts
-        return float(eval(observable_definition, variables))
-
-    def _calculate_xsec(self, theta=None, cuts=None, efficiency_functions=None, return_benchmark_xsecs=False):
-        """
-        Calculates the total cross section for a parameter point.
-
-        Parameters
-        ----------
-        theta : ndarray or None
-            The parameter point. If None, return_benchmark_xsecs should be True. Default value: None.
-
-        cuts : list of str or None
-            Cuts. Each entry is a parseable Python expression that returns a bool (True if the event should pass a cut,
-            False otherwise). Default value: None.
-
-        efficiency_functions : list of str or None
-            Efficiencies. Each entry is a parseable Python expression that returns a float for the efficiency of one
-            component. Default value: None.
-
-        return_benchmark_xsecs : bool
-            If True, this function returns the benchmark xsecs. Otherwise, it returns the xsec at theta. Default value:
-            False.
-
-        Returns
-        -------
-        xsec : ndarray or float
-            If return_benchmark_xsecs is True, an ndarray of benchmark xsecs in pb is returned. Otherwise, the cross
-            section at theta in pb is returned.
-
-        """
-
-        # Input
-        if cuts is None:
-            cuts = []
-        if efficiency_functions is None:
-            efficiency_functions = []
-
-        assert (theta is not None) or return_benchmark_xsecs, 'Please supply theta or set return_benchmark_xsecs=True'
-
-        # Total xsecs for benchmarks
-        xsecs_benchmarks = None
-
-        for observations, weights in madminer_event_loader(self.madminer_filename):
-            # Cuts
-            cut_filter = [self._pass_cuts(obs_event, cuts) for obs_event in observations]
-            observations = observations[cut_filter]
-            weights = weights[cut_filter]
-
-            # Efficiencies
-            efficiencies = np.array(
-                [self._eval_efficiency(obs_event, efficiency_functions) for obs_event in observations])
-            weights *= efficiencies[:, np.newaxis]
-
-            # xsecs
-            if xsecs_benchmarks is None:
-                xsecs_benchmarks = np.sum(weights, axis=0)
-            else:
-                xsecs_benchmarks += np.sum(weights, axis=0)
-
-        assert xsecs_benchmarks is not None, "No events passed cuts"
-
-        if return_benchmark_xsecs:
-            return xsecs_benchmarks
-
-        # Translate to xsec for theta
-        theta_matrix = get_theta_benchmark_matrix(
-            'morphing',
-            theta,
-            self.benchmarks,
-            self.morpher
-        )
-        xsec = theta_matrix.dot(xsecs_benchmarks)
-
-        return xsec
-
     def calculate_fisher_information_full_truth(self, theta, luminosity=300000., cuts=None, efficiency_functions=None):
         """
         Calculates the full Fisher information at parton / truth level. This is the information in an idealized
@@ -926,3 +612,317 @@ class FisherInformation:
                                                                    sum_events=False)
 
         return bin_boundaries, sigma_bins, fisher_info_rate_bins, fisher_info_full_bins
+
+    def extract_raw_data(self, theta=None):
+
+        """
+        Returns all events together with the benchmark weights (if theta is None) or weights for a given theta.
+
+        Parameters
+        ----------
+        theta : None or ndarray, optional
+            If None, the function returns the benchmark weights. Otherwise it uses morphing to calculate the weights for
+            this value of theta. Default value: None.
+
+        Returns
+        -------
+        x : ndarray
+            Observables with shape `(n_unweighted_samples, n_observables)`.
+
+        weights : ndarray
+            If theta is None, benchmark weights with shape  `(n_unweighted_samples, n_benchmarks)` in pb. Otherwise,
+            weights for the given parameter theta with shape `(n_unweighted_samples,)` in pb.
+
+        """
+
+        x, weights_benchmarks = next(madminer_event_loader(self.madminer_filename, batch_size=None))
+
+        if theta is not None:
+            theta_matrix = get_theta_benchmark_matrix(
+                'morphing',
+                theta,
+                self.benchmarks,
+                self.morpher
+            )
+
+            weights_theta = theta_matrix.dot(weights_benchmarks.T)
+
+            return x, weights_theta
+
+        return x, weights_benchmarks
+
+    def extract_observables_and_weights(self, thetas):
+        """
+        Extracts observables and weights for given parameter points.
+
+        Parameters
+        ----------
+        thetas : ndarray
+            Parameter points, with shape `(n_thetas, n_parameters)`.
+
+        Returns
+        -------
+        x : ndarray
+            Observations `x` with shape `(n_events, n_observables)`.
+
+        weights : ndarray
+            Weights `dsigma(x|theta)` in pb with shape `(n_thetas, n_events)`.
+
+        """
+
+        x, weights_benchmarks = next(madminer_event_loader(self.madminer_filename, batch_size=None))
+
+        weights_thetas = []
+        for theta in thetas:
+            theta_matrix = get_theta_benchmark_matrix(
+                'morphing',
+                theta,
+                self.benchmarks,
+                self.morpher
+            )
+            weights_thetas.append(theta_matrix.dot(weights_benchmarks.T))
+
+        weights_thetas = np.array(weights_thetas)
+
+        return x, weights_thetas
+
+    def _calculate_fisher_information(self, theta, weights_benchmarks, luminosity=300000., sum_events=False):
+        """
+        Low-level function that calculates a list of full Fisher information matrices for a given parameter point and
+        benchmark weights. Do not use this function directly, instead use the other `FisherInformation` functions.
+
+        Parameters
+        ----------
+        theta : ndarray
+            Parameter point.
+
+        weights_benchmarks : ndarray
+            Benchmark weights.  Shape (n_events, n_benchmark).
+
+        luminosity : float
+            Luminosity in pb^-1.
+
+        sum_events : bool, optional
+            If True, returns the summed FIsher information. Otherwise, a list of Fisher
+            information matrices for each event. Default value: False.
+
+        Returns
+        -------
+        fisher_information : ndarray
+            If sum_events is True, the return value is an nxn matrix, the total Fisher information
+            summed over all events. Otherwise, a n_events x n_parameters x n_parameters tensor is returned that
+            includes the Fisher information matrices for each event separately.
+
+        """
+
+        # Get morphing matrices
+        theta_matrix = get_theta_benchmark_matrix(
+            'morphing',
+            theta,
+            self.benchmarks,
+            self.morpher
+        )
+        dtheta_matrix = get_dtheta_benchmark_matrix(
+            'morphing',
+            theta,
+            self.benchmarks,
+            self.morpher
+        )
+
+        # Get differential xsec per event, and the derivative wrt to theta
+        sigma = theta_matrix.dot(weights_benchmarks.T)  # Shape (n_events,)
+        dsigma = dtheta_matrix.dot(weights_benchmarks.T)  # Shape (n_parameters, n_events)
+
+        # Calculate Fisher info for this event
+        fisher_info = []
+        for i_event in range(len(sigma)):
+            fisher_info.append(luminosity / sigma[i_event] * np.tensordot(dsigma.T[i_event], dsigma.T[i_event], axes=0))
+        fisher_info = np.array(fisher_info)
+
+        fisher_info = np.nan_to_num(fisher_info)
+
+        if sum_events:
+            return np.sum(fisher_info, axis=0)
+        return fisher_info
+
+    def _pass_cuts(self, observations, cuts=None):
+        """
+        Checks if an event, specified by a list of observations, passes a set of cuts.
+
+        Parameters
+        ----------
+        observations : list of float
+            list of float. Values of the observables for a single event.
+
+        cuts : list of str or None, optional
+            Each entry is a parseable Python expression that returns a bool (True if the event should pass a cut,
+            False otherwise). Default value: None.
+
+        Returns
+        -------
+        passes : bool
+            True if the event passes all cuts, False otherwise.
+
+        """
+
+        # Check inputs
+        if cuts is None:
+            cuts = []
+
+        assert len(observations) == len(self.observables), 'Mismatch between observables and observations'
+
+        # Variables that can be used in cuts
+        variables = math_commands()
+
+        for observable_name, observable_value in zip(self.observables, observations):
+            variables[observable_name] = observable_value
+
+        # Check cuts
+        for cut in cuts:
+            if not bool(eval(cut, variables)):
+                return False
+
+        return True
+
+    def _eval_efficiency(self, observations, efficiency_functions=None):
+        """
+        Calculates the efficiency for an event.
+
+        Parameters
+        ----------
+        observations : list of float
+            Values of the observables.
+
+        efficiency_functions : list of str or None
+            Each entry is a parseable Python expression that returns a float for the efficiency of one component.
+            Default value: None.
+
+        Returns
+        -------
+        efficiency : float
+            Efficiency (0. <= efficiency <= 1.), product of the results of the calls to all entries in
+            efficiency_functions.
+
+        """
+
+        # Check inputs
+        if efficiency_functions is None:
+            efficiency_functions = []
+
+        assert len(observations) == len(self.observables), 'Mismatch between observables and observations'
+
+        # Variables that can be used in efficiency functions
+        variables = math_commands()
+
+        for observable_name, observable_value in zip(self.observables, observations):
+            variables[observable_name] = observable_value
+
+        # Check cuts
+        efficiency = 1.
+        for efficency_function in efficiency_functions:
+            efficiency *= float(eval(efficency_function, variables))
+
+        return efficiency
+
+    def _eval_observable(self, observations, observable_definition):
+        """
+        Calculates an observable expression for an event.
+
+        Parameters
+        ----------
+        observations : ndarray
+            Values of the observables for an event, should have shape `(n_observables,)`.
+
+        observable_definition : str
+            A parseable Python expression that returns the value of the observable to be calculated.
+
+        Returns
+        -------
+        observable_value : float
+            Value of the observable defined in observable_definition.
+
+        """
+
+        assert len(observations) == len(self.observables), 'Mismatch between observables and observations'
+
+        # Variables that can be used in efficiency functions
+        variables = math_commands()
+
+        for observable_name, observable_value in zip(self.observables, observations):
+            variables[observable_name] = observable_value
+
+        # Check cuts
+        return float(eval(observable_definition, variables))
+
+    def _calculate_xsec(self, theta=None, cuts=None, efficiency_functions=None, return_benchmark_xsecs=False):
+        """
+        Calculates the total cross section for a parameter point.
+
+        Parameters
+        ----------
+        theta : ndarray or None
+            The parameter point. If None, return_benchmark_xsecs should be True. Default value: None.
+
+        cuts : list of str or None
+            Cuts. Each entry is a parseable Python expression that returns a bool (True if the event should pass a cut,
+            False otherwise). Default value: None.
+
+        efficiency_functions : list of str or None
+            Efficiencies. Each entry is a parseable Python expression that returns a float for the efficiency of one
+            component. Default value: None.
+
+        return_benchmark_xsecs : bool
+            If True, this function returns the benchmark xsecs. Otherwise, it returns the xsec at theta. Default value:
+            False.
+
+        Returns
+        -------
+        xsec : ndarray or float
+            If return_benchmark_xsecs is True, an ndarray of benchmark xsecs in pb is returned. Otherwise, the cross
+            section at theta in pb is returned.
+
+        """
+
+        # Input
+        if cuts is None:
+            cuts = []
+        if efficiency_functions is None:
+            efficiency_functions = []
+
+        assert (theta is not None) or return_benchmark_xsecs, 'Please supply theta or set return_benchmark_xsecs=True'
+
+        # Total xsecs for benchmarks
+        xsecs_benchmarks = None
+
+        for observations, weights in madminer_event_loader(self.madminer_filename):
+            # Cuts
+            cut_filter = [self._pass_cuts(obs_event, cuts) for obs_event in observations]
+            observations = observations[cut_filter]
+            weights = weights[cut_filter]
+
+            # Efficiencies
+            efficiencies = np.array(
+                [self._eval_efficiency(obs_event, efficiency_functions) for obs_event in observations])
+            weights *= efficiencies[:, np.newaxis]
+
+            # xsecs
+            if xsecs_benchmarks is None:
+                xsecs_benchmarks = np.sum(weights, axis=0)
+            else:
+                xsecs_benchmarks += np.sum(weights, axis=0)
+
+        assert xsecs_benchmarks is not None, "No events passed cuts"
+
+        if return_benchmark_xsecs:
+            return xsecs_benchmarks
+
+        # Translate to xsec for theta
+        theta_matrix = get_theta_benchmark_matrix(
+            'morphing',
+            theta,
+            self.benchmarks,
+            self.morpher
+        )
+        xsec = theta_matrix.dot(xsecs_benchmarks)
+
+        return xsec

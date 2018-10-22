@@ -987,6 +987,44 @@ class SampleAugmenter:
 
         return all_thetas, all_xsecs, all_xsec_uncertainties
 
+    def extract_raw_data(self, theta=None):
+
+        """
+        Returns all events together with the benchmark weights (if theta is None) or weights for a given theta.
+
+        Parameters
+        ----------
+        theta : None or ndarray
+            If None, the function returns the benchmark weights. Otherwise it uses morphing to calculate the weights for
+            this value of theta. Default value: None.
+
+        Returns
+        -------
+        x : ndarray
+            Observables with shape `(n_unweighted_samples, n_observables)`.
+
+        weights : ndarray
+            If theta is None, benchmark weights with shape  `(n_unweighted_samples, n_benchmarks)` in pb. Otherwise,
+            weights for the given parameter theta with shape `(n_unweighted_samples,)` in pb.
+
+        """
+
+        x, weights_benchmarks = next(madminer_event_loader(self.madminer_filename, batch_size=None))
+
+        if theta is not None:
+            theta_matrix = get_theta_benchmark_matrix(
+                'morphing',
+                theta,
+                self.benchmarks,
+                self.morpher
+            )
+
+            weights_theta = theta_matrix.dot(weights_benchmarks.T)
+
+            return x, weights_theta
+
+        return x, weights_benchmarks
+
     def _extract_sample(self,
                         theta_sets_types,
                         theta_sets_values,
@@ -1236,41 +1274,3 @@ class SampleAugmenter:
             all_augmented_data[i] = np.vstack(all_augmented_data[i])
 
         return all_x, all_augmented_data, all_thetas
-
-    def extract_raw_data(self, theta=None):
-
-        """
-        Returns all events together with the benchmark weights (if theta is None) or weights for a given theta.
-
-        Parameters
-        ----------
-        theta : None or ndarray
-            If None, the function returns the benchmark weights. Otherwise it uses morphing to calculate the weights for
-            this value of theta. Default value: None.
-
-        Returns
-        -------
-        x : ndarray
-            Observables with shape `(n_unweighted_samples, n_observables)`.
-
-        weights : ndarray
-            If theta is None, benchmark weights with shape  `(n_unweighted_samples, n_benchmarks)` in pb. Otherwise,
-            weights for the given parameter theta with shape `(n_unweighted_samples,)` in pb.
-
-        """
-
-        x, weights_benchmarks = next(madminer_event_loader(self.madminer_filename, batch_size=None))
-
-        if theta is not None:
-            theta_matrix = get_theta_benchmark_matrix(
-                'morphing',
-                theta,
-                self.benchmarks,
-                self.morpher
-            )
-
-            weights_theta = theta_matrix.dot(weights_benchmarks.T)
-
-            return x, weights_theta
-
-        return x, weights_benchmarks
