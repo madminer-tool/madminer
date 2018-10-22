@@ -293,7 +293,7 @@ class SampleAugmenter:
             Filenames for the resulting samples. A prefix such as 'x' or 'theta0' as well as the extension
             '.npy' will be added automatically.
 
-        test_split : float, optional
+        test_split : float or None, optional
             Fraction of events reserved for the evaluation sample (that will not be used for any training samples).
             Default value: 0.5.
 
@@ -367,7 +367,7 @@ class SampleAugmenter:
             Filenames for the resulting samples. A prefix such as 'x' or 'theta0' as well as the extension
             '.npy' will be added automatically.
 
-        test_split : float, optional
+        test_split : float or None, optional
             Fraction of events reserved for the evaluation sample (that will not be used for any training samples).
             Default value: 0.5.
 
@@ -462,7 +462,7 @@ class SampleAugmenter:
             Filenames for the resulting samples. A prefix such as 'x' or 'theta0' as well as the extension
             '.npy' will be added automatically.
 
-        test_split : float, optional
+        test_split : float or None, optional
             Fraction of events reserved for the evaluation sample (that will not be used for any training samples).
             Default value: 0.5.
 
@@ -623,7 +623,7 @@ class SampleAugmenter:
             `constant_benchmark_theta()`, `multiple_benchmark_thetas()`, `constant_morphing_theta()`,
             `multiple_morphing_thetas()`, or `random_morphing_thetas()`. Default value: None.
 
-        test_split : float, optional
+        test_split : float or None, optional
             Fraction of events reserved for the evaluation sample (that will not be used for any training samples).
             Default value: 0.5.
 
@@ -861,7 +861,7 @@ class SampleAugmenter:
             Filenames for the resulting samples. A prefix such as 'x' or 'theta0' as well as the extension
             '.npy' will be added automatically.
 
-        test_split : float, optional
+        test_split : float or None, optional
             Fraction of events reserved for the evaluation sample (that will not be used for any training samples).
             Default value: 0.5.
 
@@ -1145,7 +1145,7 @@ class SampleAugmenter:
             rms_xsec_sampling_theta = ((sampling_theta_matrix * sampling_theta_matrix).dot(
                 squared_weight_sum_benchmarks)) ** 0.5
 
-            if rms_xsec_sampling_theta > 0.2 * xsec_sampling_theta:
+            if rms_xsec_sampling_theta > 0.1 * xsec_sampling_theta:
                 logging.warning('Warning: large statistical uncertainty on the total cross section for theta = %s: '
                                 '(%s +/- %s) pb',
                                 thetas[sampling_theta_index][0],
