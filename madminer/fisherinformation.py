@@ -253,8 +253,8 @@ class FisherInformation:
         weights_benchmarks : ndarray
             Benchmark weights.  Shape (n_events, n_benchmark).
 
-        luminosity : float, optional
-            Luminosity in pb^-1. Default value: 300000.
+        luminosity : float
+            Luminosity in pb^-1.
 
         sum_events : bool, optional
             If True, returns the summed FIsher information. Otherwise, a list of Fisher
@@ -492,8 +492,8 @@ class FisherInformation:
         theta : ndarray
             Parameter point `theta` at which the Fisher information matrix `I_ij(theta)` is evaluated.
 
-        luminosity : float, optional
-            Luminosity in pb^-1. Default value: 300000.
+        luminosity : float
+            Luminosity in pb^-1.
 
         cuts : None or list of str, optional
             Cuts. Each entry is a parseable Python expression that returns a bool (True if the event should pass a cut,
@@ -555,8 +555,8 @@ class FisherInformation:
             str, filename of an unweighted x sample that is sampled according to theta and obeys the cuts
             (see `madminer.sampling.SampleAugmenter.extract_samples_train_local()`)
 
-        luminosity : float, optional
-            Luminosity in pb^-1. Default value: 300000.
+        luminosity : float
+            Luminosity in pb^-1.
 
         cuts : None or list of str, optional
             Cuts. Each entry is a parseable Python expression that returns a bool (True if the event should pass a cut,
@@ -604,8 +604,8 @@ class FisherInformation:
         theta : ndarray
             Parameter point `theta` at which the Fisher information matrix `I_ij(theta)` is evaluated.
 
-        luminosity : float, optional
-            Luminosity in pb^-1. Default value: 300000.
+        luminosity : float
+            Luminosity in pb^-1.
 
         cuts : None or list of str, optional
             Cuts. Each entry is a parseable Python expression that returns a bool (True if the event should pass a cut,
@@ -650,8 +650,8 @@ class FisherInformation:
         theta : ndarray
             Parameter point `theta` at which the Fisher information matrix `I_ij(theta)` is evaluated.
 
-        luminosity : float, optional
-            Luminosity in pb^-1. Default value: 300000.
+        luminosity : float
+            Luminosity in pb^-1.
 
         observable : str
             Expression for the observable to be histogrammed. The str will be parsed by Python's `eval()` function
@@ -731,8 +731,8 @@ class FisherInformation:
         theta : ndarray
             Parameter point `theta` at which the Fisher information matrix `I_ij(theta)` is evaluated.
 
-        luminosity : float, optional
-            Luminosity in pb^-1. Default value: 300000.
+        luminosity : float
+            Luminosity in pb^-1.
 
         observable1 : str
             Expression for the first observable to be histogrammed. The str will be parsed by Python's `eval()` function
@@ -807,8 +807,8 @@ class FisherInformation:
             bins1 = np.searchsorted(bin1_boundaries, histo1_observables)
             bins2 = np.searchsorted(bin2_boundaries, histo2_observables)
 
-            assert np.all(0 <= bins1 < n_bins1_total), 'Wrong bin {}'.format(bins1)
-            assert np.all(0 <= bins2 < n_bins2_total), 'Wrong bin {}'.format(bins2)
+            assert ((0 <= bins1) & (bins1 < n_bins1_total)).all(), 'Wrong bin {}'.format(bins1)
+            assert ((0 <= bins1) & (bins1 < n_bins1_total)).all(), 'Wrong bin {}'.format(bins1)
 
             # Add up
             for i in range(n_bins1_total):
@@ -832,8 +832,8 @@ class FisherInformation:
         theta : ndarray
             Parameter point `theta` at which the Fisher information matrix `I_ij(theta)` is evaluated.
 
-        luminosity : float, optional
-            Luminosity in pb^-1. Default value: 300000.
+        luminosity : float
+            Luminosity in pb^-1.
 
         observable : str
             Expression for the observable to be sliced. The str will be parsed by Python's `eval()` function
@@ -896,7 +896,7 @@ class FisherInformation:
             weights *= efficiencies[:, np.newaxis]
 
             # Fisher info per event
-            fisher_info_events = self._calculate_fisher_information(theta, weights_benchmarks_bins, luminosity,
+            fisher_info_events = self._calculate_fisher_information(theta, weights, luminosity,
                                                                     sum_events=False)
 
             # Evaluate histogrammed observable
@@ -904,13 +904,13 @@ class FisherInformation:
 
             # Find bins
             bins = np.searchsorted(bin_boundaries, histo_observables)
-            assert np.all(0 <= bins < n_bins_total), 'Wrong bin {}'.format(bins)
+            assert ((0 <= bins) & (bins < n_bins_total)).all(), 'Wrong bin {}'.format(bins)
 
             # Add up
             for i in range(n_bins_total):
                 if len(weights[bins == i]) > 0:
                     weights_benchmarks_bins[i] += np.sum(weights[bins == i], axis=0)
-                    fisher_info_full_bins[i] += np.sum(fisher_info_events, axis=0)
+                    fisher_info_full_bins[i] += np.sum(fisher_info_events[bins == i], axis=0)
 
         # Calculate xsecs in bins
         theta_matrix = get_theta_benchmark_matrix(
