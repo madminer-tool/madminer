@@ -78,10 +78,11 @@ def profile_information(fisher_information, remaining_components):
     assert len(remaining_components) == len(remaining_components_checked), "Inconsistent input"
 
     # Sort Fisher information such that the remaining components are  at the beginning and the profiled at the end
-    profiled_fisher_information = np.copy(fisher_information[new_index_order, new_index_order])
+    profiled_fisher_information = np.copy(fisher_information[new_index_order, :])
+    profiled_fisher_information = profiled_fisher_information[:, new_index_order]
 
     # Profile over one component at a time
-    for c in reversed(range(len(remaining_components), n_components)):
+    for c in range(n_components - 1, len(remaining_components) - 1, -1):
         profiled_fisher_information = (profiled_fisher_information[:c, :c]
                                        - np.outer(profiled_fisher_information[c, :c],
                                                   profiled_fisher_information[c, :c])
