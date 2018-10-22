@@ -76,8 +76,8 @@ class MLForge:
               maf_mog_n_components=10,
               alpha=1.,
               n_epochs=20,
-              batch_size=64,
-              initial_lr=0.001,
+              batch_size=128,
+              initial_lr=0.002,
               final_lr=0.0001,
               validation_split=0.2,
               early_stopping=True):
@@ -176,11 +176,11 @@ class MLForge:
             Number of epochs. Default value: 20.
 
         batch_size : int, optional
-            Batch size. Default value: 64.
+            Batch size. Default value: 128.
 
         initial_lr : float, optional
             Learning rate during the first epoch, after which it exponentially decays to final_lr. Default value:
-            0.001.
+            0.002.
 
         final_lr : float, optional
             Learning rate during the last epoch. Default value: 0.0001.
@@ -536,20 +536,7 @@ class MLForge:
         if self.features is not None:
             xs = xs[:, self.features]
 
-        # Balance thetas
-        if theta1s is None and theta0s is not None:
-            theta1s = [None for _ in theta0s]
-        elif theta1s is not None and theta0s is not None:
-            if len(theta1s) > len(theta0s):
-                theta0s = [theta0s[i % len(theta0s)] for i in range(len(theta1s))]
-            elif len(theta1s) < len(theta0s):
-                theta1s = [theta1s[i % len(theta1s)] for i in range(len(theta0s))]
-
-        # Loop over thetas
-        all_log_r_hat = []
-        all_t_hat0 = []
-        all_t_hat1 = []
-
+        # SALLY evaluation
         if self.method in ['sally', 'sallino']:
             logging.info('Starting score evaluation')
 
@@ -559,6 +546,20 @@ class MLForge:
             )
 
             return all_t_hat
+
+        # Balance thetas
+        if theta1s is None and theta0s is not None:
+            theta1s = [None for _ in theta0s]
+        elif theta1s is not None and theta0s is not None:
+            if len(theta1s) > len(theta0s):
+                theta0s = [theta0s[i % len(theta0s)] for i in range(len(theta1s))]
+            elif len(theta1s) < len(theta0s):
+                theta1s = [theta1s[i % len(theta1s)] for i in range(len(theta0s))]
+
+        # Evaluation for all other methods
+        all_log_r_hat = []
+        all_t_hat0 = []
+        all_t_hat1 = []
 
         if test_all_combinations:
             logging.info('Starting ratio evaluation for all combinations')

@@ -16,33 +16,6 @@ def plot_2d_morphing_basis(morpher,
                            yrange=(-1., 1.),
                            crange=(1., 100.),
                            resolution=100):
-    """
-
-    Parameters
-    ----------
-    morpher :
-        
-    xlabel :
-         (Default value = r'$\theta_0$')
-    ylabel :
-         (Default value = r'$\theta_1$')
-    xrange :
-         (Default value = (-1.)
-    1.) :
-        
-    yrange :
-         (Default value = (-1.)
-    crange :
-         (Default value = (1.)
-    100.) :
-        
-    resolution :
-         (Default value = 100)
-
-    Returns
-    -------
-
-    """
     basis = morpher.basis
 
     assert basis is not None, "No basis defined"
@@ -85,23 +58,6 @@ def plot_nd_morphing_basis_scatter(
         crange=(1., 100.),
         n_test_thetas=1000
 ):
-    """
-
-    Parameters
-    ----------
-    morpher :
-        
-    crange :
-         (Default value = (1.)
-    100.) :
-        
-    n_test_thetas :
-         (Default value = 1000)
-
-    Returns
-    -------
-
-    """
     basis = morpher.basis
 
     assert basis is not None, "No basis defined"
@@ -140,23 +96,6 @@ def plot_nd_morphing_basis_slices(
         crange=(1., 100.),
         resolution=50
 ):
-    """
-
-    Parameters
-    ----------
-    morpher :
-        
-    crange :
-         (Default value = (1.)
-    100.) :
-        
-    resolution :
-         (Default value = 50)
-
-    Returns
-    -------
-
-    """
     basis = morpher.basis
 
     assert basis is not None, "No basis defined"
@@ -214,43 +153,10 @@ def plot_fisher_information_contours_2d(
         xrange=(-1., 1.),
         yrange=(-1., 1.),
         matrix_labels=None,
-        resolution=100
+        resolution=100,
+        colors=None,
+        linestyles=None
 ):
-    """:fisher_information_matrices: list of ndarrays, 2x2 Fisher information matrices
-    :contour_distance: float, Fisher distance drawn
-    :matrix_labels:  None or list of str, legend labels for the contours
-    :xlabel: str, label of x axis
-    :ylabel: str, label of y axis
-    :xrange: tuple of 2 floats, x axis range
-    :xrange: tuple of 2 floats, y axis range
-    :resolution: int, number of points per axis for the calculation of the Fisher distances
-
-    Parameters
-    ----------
-    fisher_information_matrices :
-        
-    contour_distance :
-         (Default value = 1.)
-    xlabel :
-         (Default value = r'$\theta_0$')
-    ylabel :
-         (Default value = r'$\theta_1$')
-    xrange :
-         (Default value = (-1.)
-    1.) :
-        
-    yrange :
-         (Default value = (-1.)
-    matrix_labels :
-         (Default value = None)
-    resolution :
-         (Default value = 100)
-
-    Returns
-    -------
-
-    """
-
     # Input
     fisher_information_matrices = np.asarray(fisher_information_matrices)
     n_matrices = fisher_information_matrices.shape[0]
@@ -259,8 +165,10 @@ def plot_fisher_information_contours_2d(
             fisher_information_matrices.shape))
 
     # Line formatting
-    colors = ['C' + str(i) for i in range(10)] * (n_matrices // 10 + 1)
-    linestyles = ['solid', 'dashed', 'dotted', 'dashdot'] * (n_matrices // 4 + 1)
+    if colors is None:
+        colors = ['C' + str(i) for i in range(10)] * (n_matrices // 10 + 1)
+    if linestyles is None:
+        linestyles = ['solid', 'dashed', 'dotted', 'dashdot'] * (n_matrices // 4 + 1)
     linewidth = 1.5
 
     # Grid
@@ -323,7 +231,8 @@ def plot_fisherinfo_barplot(matrices,
                             use_bar_colors=False,
                             eigenvalue_operator_legend=True
                             ):
-    """:matrices: list (length N) of fisher infos (n x n tensors) for eigenvalue decomposition
+    """
+    :matrices: list (length N) of fisher infos (n x n tensors) for eigenvalue decomposition
     :matrices_for_determinants: list (length N) of fisher infos (n x n tensors) for determinant evaluation
     :labels: list (length N) of analysis label (string)
     :categories: group into categories (integer) - there will be extra space between categories
@@ -334,35 +243,6 @@ def plot_fisherinfo_barplot(matrices,
     :normalise_determinants: are determinants normalized to unity (bool)
     :use_bar_colors: are bars in lower panel colored (bool)
     :eigenvalue_operator_legend: plot legend for operators (bool)
-
-    Parameters
-    ----------
-    matrices :
-        
-    matrices_for_determinants :
-        
-    labels :
-        
-    categories :
-        
-    operatorlabels :
-        
-    filename :
-        
-    additional_label :
-         (Default value = '')
-    top_label :
-         (Default value = '')
-    normalise_determinants :
-         (Default value = False)
-    use_bar_colors :
-         (Default value = False)
-    eigenvalue_operator_legend :
-         (Default value = True)
-
-    Returns
-    -------
-
     """
 
     #################################################################################
@@ -519,60 +399,16 @@ def plot_fisherinfo_barplot(matrices,
     epsilon = 1.e-9
 
     def precision_to_information(precision):
-        """
-
-        Parameters
-        ----------
-        precision :
-            
-
-        Returns
-        -------
-
-        """
         return (np.maximum(precision, epsilon) / 0.246) ** 4.
 
     def information_to_precision(fisher_inf):
-        """
-
-        Parameters
-        ----------
-        fisher_inf :
-            
-
-        Returns
-        -------
-
-        """
         return 0.246 * np.maximum(fisher_inf, epsilon) ** 0.25
 
     def tick_function_information(fisher_inf):
-        """
-
-        Parameters
-        ----------
-        fisher_inf :
-            
-
-        Returns
-        -------
-
-        """
         precision = 0.246 * np.maximum(fisher_inf, epsilon) ** 0.25
         return [str(z) for z in precision]
 
     def tick_function_precision(precision):
-        """
-
-        Parameters
-        ----------
-        precision :
-            
-
-        Returns
-        -------
-
-        """
         return [str(z) for z in precision]
 
     ax2_limits = ax1.get_ylim()
@@ -648,45 +484,12 @@ def plot_fisherinfo_barplot(matrices,
                  verticalalignment='center')
 
     def precision_to_norm_information(precision):
-        """
-
-        Parameters
-        ----------
-        precision :
-            
-
-        Returns
-        -------
-
-        """
         return (np.maximum(precision, epsilon) / 0.246) ** 4. / max_information
 
     def norm_information_to_precision(fisher_inf):
-        """
-
-        Parameters
-        ----------
-        fisher_inf :
-            
-
-        Returns
-        -------
-
-        """
         return 0.246 * np.maximum(fisher_inf * max_information, epsilon) ** 0.25
 
     def tick_function_precision(precision):
-        """
-
-        Parameters
-        ----------
-        precision :
-            
-
-        Returns
-        -------
-
-        """
         return [str(z) for z in precision]
 
     # Second axis with typical precision
@@ -742,53 +545,6 @@ def kinematic_distribution_of_information(xbins,
                                           label_pos_bsm=(0., 0.),
                                           label_pos_bkg=(0., 0.),
                                           label_bsm=r''):
-    """
-
-    Parameters
-    ----------
-    xbins :
-        
-    xlabel :
-        
-    xmin :
-        
-    xmax :
-        
-    xsecs :
-        
-    matrices :
-        
-    matrices_aux :
-        
-    filename :
-        
-    ylabel_addition :
-         (Default value = '')
-    log_xsec :
-         (Default value = False)
-    norm_xsec :
-         (Default value = True)
-    show_aux :
-         (Default value = False)
-    show_labels :
-         (Default value = False)
-    label_pos_information :
-         (Default value = (0.)
-    0.) :
-        
-    label_pos_sm :
-         (Default value = (0.)
-    label_pos_bsm :
-         (Default value = (0.)
-    label_pos_bkg :
-         (Default value = (0.)
-    label_bsm :
-         (Default value = r'')
-
-    Returns
-    -------
-
-    """
     epsilon = 1.e-9
 
     # Calculate data
