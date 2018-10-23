@@ -794,6 +794,45 @@ class MLForge:
 
 
 class EnsembleForge:
+    """
+    Ensemble methods for likelihood ratio and score information.
+
+    Generally, EnsembleForge instances can be used very similarly to MLForge instances:
+
+    * The initialization of EnsembleForge takes a list of (trained or untrained) MLForge instances.
+
+    * The methods `EnsembleForge.train_one()` and `EnsembleForge.train_all()` train the estimators (this can also be
+    done outside of EnsembleForge).
+
+    * `EnsembleForge.calculate_expectation()` can be used to calculate the expectation of the estimation likelihood
+    ratio or the expected estimated score over a validation sample. Ideally (and assuming the correct sampling),
+    these expectation values should be close to zero. Deviations from zero therefore point out that the estimator
+    is probably inaccurate.
+
+    * `EnsembleForge.evaluate()` and `EnsembleForge.calculate_fisher_information()` can then be used to calculate
+    ensemble predictions. The user has the option to treat all estimators equally ('committee method') or to give those
+    with expected score / ratio close to zero a higher weight.
+
+    * `EnsembleForge.save()` and `EnsembleForge.load()` can store all estimators in one folder.
+
+    Note that currently EnsembleForge only supports SALLY and SALLINO estimators.
+
+    Parameters
+    ----------
+    estimators : None or list of MLForge, optional
+        The estimators in the form of (trained or untrained) MLForge instances. Note that the estimators have to be
+        consistent: either all of them are trained with a local score method ('sally' or 'sallino'); or all of them are
+        trained with a single-parameterized method ('carl', 'rolr', 'rascal', 'scandal', 'alice', or 'alices'); or all
+        of them are trained with a doubly parameterized method ('carl2', 'rolr2', 'rascal2', 'alice2', or 'alices2').
+        Mixing estimators of different types within one of these three categories is supported, but mixing estimators
+        from different categories is not and will raise a RuntimeException. Default value: None.
+
+    Attributes
+    ----------
+    estimators : list of MLForge
+        The estimators in the form of MLForge instances.
+
+    """
 
     def __init__(self, estimators=None):
         if estimators is None:
@@ -810,17 +849,43 @@ class EnsembleForge:
         self._check_consistency()
 
     def train_one(self, i, **kwargs):
+        """
+        Trains an individual estimator.
+
+        Parameters
+        ----------
+        i : int
+            The index `0 <= i < n_estimators` of the estimator to be trained.
+
+        kwargs : dict
+            Parameters for `MLForge.train()`.
+
+        Returns
+        -------
+            None
+
+        """
+
         self._check_consistency(kwargs)
 
         self.estimators[i].train(**kwargs)
 
-    def train_all_same(self, **kwargs):
-        self._check_consistency(kwargs)
+    def train_all(self, **kwargs):
+        """
+        Trains all estimators.
 
-        for estimator in self.estimators:
-            estimator.train(**kwargs)
+        Parameters
+        ----------
+        kwargs : dict
+            Parameters for `MLForge.train()`. If a value in this dict is a list, it has to have length `n_estimators`
+            and contain one value of this parameter for each of the estimators. Otherwise the value is used as parameter
+            for the training of all the estimators.
 
-    def train_all_differently(self, **kwargs):
+        Returns
+        -------
+            None
+
+        """
         for key, value in six.iteritems(kwargs):
             if not isinstance(value, list):
                 kwargs[key] = [value for _ in range(self.n_estimators)]
@@ -840,6 +905,33 @@ class EnsembleForge:
                               x_filename,
                               theta0_filename=None,
                               theta1_filename=None):
+        """
+        Calculates the expectation of the estimation likelihood ratio or the expected estimated score over a validation
+        sample. Ideally (and assuming the correct sampling), these expectation values should be close to zero.
+        Deviations from zero therefore point out that the estimator is probably inaccurate.
+
+        Parameters
+        ----------
+        x_filename : str
+            Path to an unweighted sample of observations, as saved by the `madminer.sampling.SampleAugmenter` functions.
+
+        theta0_filename : str or None, optional
+            Path to an unweighted sample of numerator parameters, as saved by the `madminer.sampling.SampleAugmenter`
+            functions. Required if the estimators were trained with the 'alice', 'alice2', 'alices', 'alices2', 'carl',
+            'carl2', 'nde', 'rascal', 'rascal2', 'rolr', 'rolr2', or 'scandal' method. Default value: None.
+
+        theta1_filename : str or None, optional
+            Path to an unweighted sample of denominator parameters, as saved by the `madminer.sampling.SampleAugmenter`
+            functions. Required if the estimators were trained with the 'alice2', 'alices2', 'carl2', 'rascal2', or
+            'rolr2' method. Default value: None.
+
+        Returns
+        -------
+        expectations : ndarray
+            Expected score (if the estimators were trained with the 'sally' or 'sallino' methods) or likelihood ratio
+            (otherwise).
+
+        """
 
         self.expectations = []
         method_type = self._check_consistency()
@@ -864,9 +956,66 @@ class EnsembleForge:
                  theta0_filename=None,
                  theta1_filename=None,
                  test_all_combinations=True,
-                 evaluate_score=False,
                  vote_expectation_weight=None,
                  return_individual_predictions=False):
+
+        """
+        Evaluates the estimators of the likelihood ratio (or, if method is 'sally' or 'sallino', the score), and
+        calculates the ensemble mean or variance.
+
+        The user has the option to treat all estimators equally ('committee method') or to give those with expected
+        score / ratio close to zero (as calculated by `calculate_expectation()`) a higher weight. In the latter case,
+        the ensemble mean `f(x)` is calculated as `f(x)  =  sum_i w_i f_i(x)` with weights
+        `w_i  =  exp(-vote_expectation_weight |E[f_i]|) / sum_j exp(-vote_expectation_weight |E[f_j]|)`. Here `f_i(x)`
+        are the individual estimators and `E[f_i]` is the expectation value calculated by `calculate_expectation()`.
+
+        Parameters
+        ----------
+        x_filename : str
+            Path to an unweighted sample of observations, as saved by the `madminer.sampling.SampleAugmenter` functions.
+
+        theta0_filename : str or None, optional
+            Path to an unweighted sample of numerator parameters, as saved by the `madminer.sampling.SampleAugmenter`
+            functions. Required if the estimator was trained with the 'alice', 'alice2', 'alices', 'alices2', 'carl',
+            'carl2', 'nde', 'rascal', 'rascal2', 'rolr', 'rolr2', or 'scandal' method. Default value: None.
+
+        theta1_filename : str or None, optional
+            Path to an unweighted sample of denominator parameters, as saved by the `madminer.sampling.SampleAugmenter`
+            functions. Required if the estimator was trained with the 'alice2', 'alices2', 'carl2', 'rascal2', or
+            'rolr2' method. Default value: None.
+
+        test_all_combinations : bool, optional
+            If method is not 'sally' and not 'sallino': If False, the number of samples in the observable and theta
+            files has to match, and the likelihood ratio is evaluated only for the combinations
+            `r(x_i | theta0_i, theta1_i)`. If True, `r(x_i | theta0_j, theta1_j)` for all pairwise combinations `i, j`
+            are evaluated. Default value: True.
+
+        vote_expectation_weight : float or None, optional
+            Factor that determines how much more weight is given to those estimators with small expectation value (as
+            calculated by `calculate_expectation()`). If None, or if `calculate_expectation()` has not been called,
+            all estimators are treated equal. Default value: None.
+
+        return_individual_predictions : bool, optional
+            Whether the individual estimator predictions are returned. Default value: False.
+
+        Returns
+        -------
+        mean_prediction : ndarray
+            The (weighted) ensemble mean of the estimators. If the estimators were trained with `method='sally'` or
+            `method='sallino'`, this is an array of the estimator for `t(x_i | theta_ref)` for all events `i`.
+            Otherwise, the estimated likelihood ratio (if test_all_combinations is True, the result has shape
+            `(n_thetas, n_x)`, otherwise, it has shape `(n_samples,)`).
+
+        std_prediction : ndarray
+            The square root of the estimated ensemble variance.
+
+        weights : ndarray
+            Only returned if return_individual_predictions is True. The estimator weights `w_i`.
+
+        individual_predictions : ndarray
+            Only returned if return_individual_predictions is True. The individual estimator predictions.
+
+        """
 
         # Calculate weights of each estimator in vote
         if self.expectations is None or vote_expectation_weight is None:
@@ -884,7 +1033,7 @@ class EnsembleForge:
                 theta0_filename,
                 theta1_filename,
                 test_all_combinations,
-                evaluate_score
+                evaluate_score=False
             ))
         predictions = np.array(predictions)
 
@@ -914,12 +1063,58 @@ class EnsembleForge:
                                      n_events=1,
                                      vote_expectation_weight=None,
                                      return_individual_predictions=False):
+        """
+        Calculates the expected Fisher information matrices for each estimator, and then returns the ensemble mean and
+        variance.
+
+        The user has the option to treat all estimators equally ('committee method') or to give those with expected
+        score / ratio close to zero (as calculated by `calculate_expectation()`) a higher weight. In the latter case,
+        the ensemble mean `I` is calculated as `I  =  sum_i w_i I_i` with weights
+        `w_i  =  exp(-vote_expectation_weight |E[t_i]|) / sum_j exp(-vote_expectation_weight |E[t_k]|)`. Here `I_i`
+        are the individual estimators and `E[t_i]` is the expectation value calculated by `calculate_expectation()`.
+
+        Parameters
+        ----------
+        x_filename : str
+            Path to an unweighted sample of observations, as saved by the `madminer.sampling.SampleAugmenter` functions.
+            Note that this sample has to be sample from the reference parameter where the score is estimated with the
+            SALLY / SALLINO estimator!
+
+        n_events : int, optional
+            Number of events for which the kinematic Fisher information should be calculated. Default value: 1.
+
+        vote_expectation_weight : float or None, optional
+            Factor that determines how much more weight is given to those estimators with small expectation value (as
+            calculated by `calculate_expectation()`). If None, or if `calculate_expectation()` has not been called,
+            all estimators are treated equal. Default value: None.
+
+        return_individual_predictions : bool, optional
+            Whether the individual estimator predictions are returned. Default value: False.
+
+        Returns
+        -------
+        mean_prediction : ndarray
+            The (weighted) ensemble mean of the estimators. If the estimators were trained with `method='sally'` or
+            `method='sallino'`, this is an array of the estimator for `t(x_i | theta_ref)` for all events `i`.
+            Otherwise, the estimated likelihood ratio (if test_all_combinations is True, the result has shape
+            `(n_thetas, n_x)`, otherwise, it has shape `(n_samples,)`).
+
+        std_prediction : ndarray
+            The square root of the estimated ensemble variance.
+
+        weights : ndarray
+            Only returned if return_individual_predictions is True. The estimator weights `w_i`.
+
+        individual_predictions : ndarray
+            Only returned if return_individual_predictions is True. The individual estimator predictions.
+
+        """
 
         # Calculate weights of each estimator in vote
         if self.expectations is None or vote_expectation_weight is None:
             weights = np.ones(self.n_estimators)
         else:
-            weights = np.exp(-vote_expectation_weight * self.expectations)
+            weights = np.exp(-vote_expectation_weight * np.linalg.norm(self.expectations))
 
         weights /= np.sum(weights)
 
@@ -951,6 +1146,20 @@ class EnsembleForge:
         return mean, std
 
     def save(self, folder):
+        """
+        Saves the estimator ensemble to a folder.
+
+        Parameters
+        ----------
+        folder : str
+            Path to the folder.
+
+        Returns
+        -------
+            None
+
+        """
+
         # Check paths
         create_missing_folders([folder])
 
@@ -968,6 +1177,20 @@ class EnsembleForge:
             estimator.save(folder + '/estimator_' + str(i))
 
     def load(self, folder):
+        """
+        Loads the estimator ensemble from a folder.
+
+        Parameters
+        ----------
+        folder : str
+            Path to the folder.
+
+        Returns
+        -------
+            None
+
+        """
+
         # Load ensemble settings
         logging.info('Loading ensemble setup from %/ensemble.json', folder)
 
@@ -992,6 +1215,27 @@ class EnsembleForge:
             self.estimators.append(estimator)
 
     def _check_consistency(self, keywords=None):
+        """
+        Internal function that checks if all estimators belong to the same category
+        (local score regression, single-parameterized likelihood ratio estimator,
+        doubly parameterized likelihood ratio estimator).
+
+        Parameters
+        ----------
+        keywords : dict or None, optional
+            kwargs passed to `train_one()` or `train_all()`.
+
+        Returns
+        -------
+        method_type : {"local_score", "parameterized", "doubly_parameterized"}
+            Method type of this ensemble.
+
+        Raises
+        ------
+        RuntimeError
+            Estimators are inconsistent.
+
+        """
         # Accumulate methods of all estimators
         methods = [estimator.method for estimator in self.estimators]
 

@@ -274,7 +274,8 @@ class SampleAugmenter:
                                     test_split=0.5):
         """
         Extracts plain training samples `x ~ p(x|theta)` without any augmented data. This can be use for standard
-        inference methods such as ABC, histograms of observables, or neural density estimation techniques.
+        inference methods such as ABC, histograms of observables, or neural density estimation techniques. It can also
+        be used to create validation or calibration samples.
 
         Parameters
         ----------
