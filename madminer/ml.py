@@ -880,8 +880,11 @@ class EnsembleForge:
 
         # Calculate weighted variance
         if self.n_estimators > 1:
-            variance = np.average((predictions - mean) ** 2, axis=0, weights=weights)
-            variance *= float(self.n_estimators) / float(self.n_estimators - 1.)  # Unbiased estimator of pop. var.
+            variance = np.average((predictions - mean)**2, axis=0, weights=weights)
+
+            # Correct bias, see https://en.wikipedia.org/wiki/Weighted_arithmetic_mean#Reliability_weights
+            bias = 1. - np.sum(weights**2) / np.sum(weights)**2
+            variance /= bias
         else:
             logging.warning('Only one estimator, no meaningful variance calculation!')
             variance = np.zeros_like(mean)
