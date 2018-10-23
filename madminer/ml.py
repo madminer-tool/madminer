@@ -1069,6 +1069,8 @@ class EnsembleForge:
 
         std = np.sqrt(variance)
 
+        # TODO: We actually want to the covariance matrix, not the variance!
+
         if return_individual_predictions:
             return mean, std, weights, predictions
 
@@ -1159,6 +1161,8 @@ class EnsembleForge:
 
         std = np.sqrt(variance)
 
+        # TODO: We actually want to the covariance matrix, not the variance!
+
         if return_individual_predictions:
             return mean, std, weights, predictions
 
@@ -1183,10 +1187,16 @@ class EnsembleForge:
         create_missing_folders([folder])
 
         # Save ensemble settings
-        logging.info('Saving ensemble setup to %/ensemble.json', folder)
+        logging.info('Saving ensemble setup to %s/ensemble.json', folder)
+
+
+        if self.expectations is None:
+            expectations = 'None'
+        else:
+            expectations = self.expectations.tolist()
 
         settings = {'n_estimators': self.n_estimators,
-                    'expectations': 'None' if self.expectations is None else list(self.expectations)}
+                    'expectations': expectations}
 
         with open(folder + '/ensemble.json', 'w') as f:
             json.dump(settings, f)
@@ -1211,7 +1221,7 @@ class EnsembleForge:
         """
 
         # Load ensemble settings
-        logging.info('Loading ensemble setup from %/ensemble.json', folder)
+        logging.info('Loading ensemble setup from %s/ensemble.json', folder)
 
         with open(folder + '/ensemble.json', 'r') as f:
             settings = json.load(f)
