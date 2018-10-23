@@ -11,6 +11,8 @@ import shutil
 
 from madminer import __version__
 
+printed_splash = False
+
 
 def general_init(debug=False):
     """
@@ -24,18 +26,23 @@ def general_init(debug=False):
     -------
 
     """
+    global printed_splash
+
     logging.basicConfig(format='%(asctime)s  %(message)s', datefmt='%H:%M')
     logging.getLogger().setLevel(logging.DEBUG if debug else logging.INFO)
 
-    logging.info('')
-    logging.info('------------------------------------------------------------')
-    logging.info('|                                                          |')
-    logging.info('|  MadMiner v{}|'.format(__version__.ljust(46)))
-    logging.info('|                                                          |')
-    logging.info('|           Johann Brehmer, Kyle Cranmer, and Felix Kling  |')
-    logging.info('|                                                          |')
-    logging.info('------------------------------------------------------------')
-    logging.info('')
+    if not printed_splash:
+        logging.info('')
+        logging.info('------------------------------------------------------------')
+        logging.info('|                                                          |')
+        logging.info('|  MadMiner v{}|'.format(__version__.ljust(46)))
+        logging.info('|                                                          |')
+        logging.info('|           Johann Brehmer, Kyle Cranmer, and Felix Kling  |')
+        logging.info('|                                                          |')
+        logging.info('------------------------------------------------------------')
+        logging.info('')
+
+        printed_splash = True
 
 
 def call_command(cmd, log_file=None):

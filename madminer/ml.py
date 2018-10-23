@@ -832,9 +832,15 @@ class EnsembleForge:
     estimators : list of MLForge
         The estimators in the form of MLForge instances.
 
+    debug : bool, optional
+        If True, additional detailed debugging output is printed. Default value: False.
+
     """
 
-    def __init__(self, estimators=None):
+    def __init__(self, estimators=None, debug=False):
+        general_init(debug=debug)
+
+        # Save settings
         if estimators is None:
             estimators = []
 
@@ -886,11 +892,13 @@ class EnsembleForge:
             None
 
         """
+        logging.info('Training %s estimators in ensemble', self.n_estimators)
+
         for key, value in six.iteritems(kwargs):
             if not isinstance(value, list):
                 kwargs[key] = [value for _ in range(self.n_estimators)]
 
-            assert len(key) == self.n_estimators, 'Keyword {} has wrong length {}'.format(key, len(value))
+            assert len(kwargs[key]) == self.n_estimators, 'Keyword {} has wrong length {}'.format(key, len(value))
 
         self._check_consistency(kwargs)
 
@@ -899,6 +907,7 @@ class EnsembleForge:
             for key, value in six.iteritems(kwargs):
                 kwargs_this_estimator[key] = value[i]
 
+            logging.info('Training estimator %s / %s in ensemble', i + 1, self.n_estimators)
             estimator.train(**kwargs_this_estimator)
 
     def calculate_expectation(self,
@@ -933,10 +942,14 @@ class EnsembleForge:
 
         """
 
+        logging.info('Calculating expectation for %s estimators in ensemble', self.n_estimators)
+
         self.expectations = []
         method_type = self._check_consistency()
 
-        for estimator in self.estimators:
+        for i, estimator in enumerate(self.estimators):
+            logging.info('Starting evaluation for estimator %s / %s in ensemble', i + 1, self.n_estimators)
+
             # Calculate expected score / ratio
             if method_type == 'local_score':
                 prediction = estimator.evaluate(x_filename, theta0_filename, theta1_filename)
@@ -1016,6 +1029,7 @@ class EnsembleForge:
             Only returned if return_individual_predictions is True. The individual estimator predictions.
 
         """
+        logging.info('Evaluating %s estimators in ensemble', self.n_estimators)
 
         # Calculate weights of each estimator in vote
         if self.expectations is None or vote_expectation_weight is None:
@@ -1027,7 +1041,9 @@ class EnsembleForge:
 
         # Calculate estimator predictions
         predictions = []
-        for estimator in self.estimators:
+        for i, estimator in enumerate(self.estimators):
+            logging.info('Starting evaluation for estimator %s / %s in ensemble', i + 1, self.n_estimators)
+
             predictions.append(estimator.evaluate(
                 x_filename,
                 theta0_filename,
@@ -1109,6 +1125,7 @@ class EnsembleForge:
             Only returned if return_individual_predictions is True. The individual estimator predictions.
 
         """
+        logging.info('Evaluating Fisher information for %s estimators in ensemble', self.n_estimators)
 
         # Calculate weights of each estimator in vote
         if self.expectations is None or vote_expectation_weight is None:
@@ -1120,7 +1137,9 @@ class EnsembleForge:
 
         # Calculate estimator predictions
         predictions = []
-        for estimator in self.estimators:
+        for i, estimator in enumerate(self.estimators):
+            logging.info('Starting evaluation for estimator %s / %s in ensemble', i + 1, self.n_estimators)
+
             predictions.append(estimator.calculate_fisher_information(
                 x_filename=x_filename,
                 n_events=n_events
