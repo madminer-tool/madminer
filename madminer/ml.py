@@ -493,10 +493,6 @@ class MLForge:
             If method is not 'sally' and not 'sallino', this sets whether in addition to the likelihood ratio the score
             is evaluated. Default value: False.
 
-        features : list of int or None, optional
-            Indices of observables (features) that are used as input to the neural networks. If None, all observables
-            are used. Has to match the keyword 'features' used during training. Default value: None.
-
         Returns
         -------
         sally_estimated_score : ndarray
@@ -845,8 +841,23 @@ class EnsembleForge:
                               theta0_filename=None,
                               theta1_filename=None):
 
-        # Calculate E[f(x)] for each estimator
-        raise NotImplementedError
+        self.expectations = []
+        method_type = self._check_consistency()
+
+        for estimator in self.estimators:
+            # Calculate expected score / ratio
+            if method_type == 'local_score':
+                prediction = estimator.evaluate(x_filename, theta0_filename, theta1_filename)
+            else:
+                raise NotImplementedError('Expectation calculation currently only implemented for SALLY and SALLINO!')
+
+            self.expectations.append(
+                np.mean(prediction, axis=0)
+            )
+
+        self.expectations = np.array(self.expectations)
+
+        return self.expectations
 
     def evaluate(self,
                  x_filename,
@@ -997,12 +1008,10 @@ class EnsembleForge:
             if method in ['sally', 'sallino']:
                 this_method_type = 'local_score'
             elif method in ['carl', 'rolr', 'rascal', 'alice', 'alices', 'nde', 'scandal']:
-                this_method_type = 'parameterized'
-
+                # this_method_type = 'parameterized'
                 raise NotImplementedError('For now, ensemble methods are only implemented for SALLY and SALLINO.')
             elif method in ['carl2', 'rolr2', 'rascal2', 'alice2', 'alices2']:
-                this_method_type = 'doubly_parameterized'
-
+                # this_method_type = 'doubly_parameterized'
                 raise NotImplementedError('For now, ensemble methods are only implemented for SALLY and SALLINO.')
             elif method is None:
                 continue
