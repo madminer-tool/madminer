@@ -1,5 +1,6 @@
 from __future__ import absolute_import, division, print_function
 
+import six
 import logging
 import os
 import json
@@ -623,8 +624,7 @@ class MLForge:
 
     def calculate_fisher_information(self,
                                      x_filename,
-                                     n_events=1,
-                                     features=None):
+                                     n_events=1):
 
         """
         Calculates the expected Fisher information matrix based on the kinematic information in a given number of
@@ -795,3 +795,187 @@ class MLForge:
         # Load state dict
         logging.info('Loading state dictionary from %s_state_dict.pt', filename)
         self.model.load_state_dict(torch.load(filename + '_state_dict.pt'))
+
+
+class EnsembleForge:
+
+    def __init__(self, estimators):
+        self.estimators = estimators
+        self.n_estimators = len(self.estimators)
+        self.expectations = None
+
+        # Consistency checks
+        assert self.n_estimators > 0, 'No estimators in ensemble'
+        for estimator in self.estimators:
+            assert isinstance(estimator, MLForge), 'Estimator is no MLForge instance!'
+
+        self._check_consistency()
+
+    def train_one(self, i, **kwargs):
+        self._check_consistency(kwargs)
+
+        self.estimators[i].train(**kwargs)
+
+    def train_all_same(self, **kwargs):
+        self._check_consistency(kwargs)
+
+        for estimator in self.estimators:
+            estimator.train(**kwargs)
+
+    def train_all_differently(self, **kwargs):
+        for key, value in six.iteritems(kwargs):
+            if not isinstance(value, list):
+                kwargs[key] = [value for _ in range(self.n_estimators)]
+
+            assert len(key) == self.n_estimators, 'Keyword {} has wrong length {}'.format(key, len(value))
+
+        self._check_consistency(kwargs)
+
+        for i, estimator in enumerate(self.estimators):
+            kwargs_this_estimator = {}
+            for key, value in six.iteritems(kwargs):
+                kwargs_this_estimator[key] = value[i]
+
+            estimator.train(**kwargs_this_estimator)
+
+    def calculate_expectation(self,
+                              x_filename,
+                              theta0_filename=None,
+                              theta1_filename=None):
+
+        # Calculate E[f(x)] for each estimator
+        raise NotImplementedError
+
+    def evaluate(self,
+                 x_filename,
+                 theta0_filename=None,
+                 theta1_filename=None,
+                 test_all_combinations=True,
+                 evaluate_score=False,
+                 vote_expectation_weight=None,
+                 return_individual_predictions=False):
+
+        # Calculate weights of each estimator in vote
+        if self.expectations is None or vote_expectation_weight is None:
+            weights = np.ones(self.n_estimators)
+        else:
+            weights = np.exp(-vote_expectation_weight * self.expectations)
+
+        weights /= np.sum(weights)
+
+        # Calculate estimator predictions
+        predictions = []
+        for estimator in self.estimators:
+            predictions.append(estimator.evaluate(
+                x_filename,
+                theta0_filename,
+                theta1_filename,
+                test_all_combinations,
+                evaluate_score
+            ))
+        predictions = np.array(predictions)
+
+        # Calculate weighted mean
+        mean = np.average(predictions, axis=0, weights=weights)
+
+        # Calculate weighted variance
+        if self.n_estimators > 1:
+            variance = np.average((predictions - mean) ** 2, axis=0, weights=weights)
+            variance *= float(self.n_estimators) / float(self.n_estimators - 1.)  # Unbiased estimator of pop. var.
+        else:
+            logging.warning('Only one estimator, no meaningful variance calculation!')
+            variance = np.zeros_like(mean)
+
+        std = np.sqrt(variance)
+
+        if return_individual_predictions:
+            return mean, std, weights, predictions
+
+        return mean, std
+
+    def calculate_fisher_information(self,
+                                     x_filename,
+                                     n_events=1,
+                                     vote_expectation_weight=None,
+                                     return_individual_predictions=False):
+
+        # Calculate weights of each estimator in vote
+        if self.expectations is None or vote_expectation_weight is None:
+            weights = np.ones(self.n_estimators)
+        else:
+            weights = np.exp(-vote_expectation_weight * self.expectations)
+
+        weights /= np.sum(weights)
+
+        # Calculate estimator predictions
+        predictions = []
+        for estimator in self.estimators:
+            predictions.append(estimator.calculate_fisher_information(
+                x_filename=x_filename,
+                n_events=n_events
+            ))
+        predictions = np.array(predictions)
+
+        # Calculate weighted mean
+        mean = np.average(predictions, axis=0, weights=weights)
+
+        # Calculate weighted variance
+        if self.n_estimators > 1:
+            variance = np.average((predictions - mean) ** 2, axis=0, weights=weights)
+            variance *= float(self.n_estimators) / float(self.n_estimators - 1.)  # Unbiased estimator of pop. var.
+        else:
+            logging.warning('Only one estimator, no meaningful variance calculation!')
+            variance = np.zeros_like(mean)
+
+        std = np.sqrt(variance)
+
+        if return_individual_predictions:
+            return mean, std, weights, predictions
+
+        return mean, std
+
+    def save(self):
+        raise NotImplementedError
+
+    def load(self):
+        raise NotImplementedError
+
+    def _check_consistency(self, keywords=None):
+        # Accumulate methods of all estimators
+        methods = [estimator.method for estimator in self.estimators]
+
+        if keywords is not None:
+            keyword_method = keywords.get("method", None)
+            if isinstance(keyword_method, list):
+                methods += keyword_method
+            else:
+                methods.append(keyword_method)
+
+        # Check consistency
+        method_type = None
+        for method in methods:
+            if method in ['sally', 'sallino']:
+                this_method_type = 'local_score'
+            elif method in ['carl', 'rolr', 'rascal', 'alice', 'alices', 'nde', 'scandal']:
+                this_method_type = 'parameterized'
+
+                raise NotImplementedError('For now, ensemble methods are only implemented for SALLY and SALLINO.')
+            elif method in ['carl2', 'rolr2', 'rascal2', 'alice2', 'alices2']:
+                this_method_type = 'doubly_parameterized'
+
+                raise NotImplementedError('For now, ensemble methods are only implemented for SALLY and SALLINO.')
+            elif method is None:
+                continue
+            else:
+                raise RuntimeError('Unknown method %s', method)
+
+            if method_type is None:
+                method_type = this_method_type
+
+            if method_type != this_method_type:
+                raise RuntimeError('Ensemble with inconsistent estimator methods! All methods have to be either'
+                                   ' single-parameterized ratio estimators, doubly parameterized ratio estimators,'
+                                   ' or local score estimators. Found methods ' + ', '.join(methods) + '.')
+
+        # Return method type of ensemble
+        return method_type
