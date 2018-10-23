@@ -799,13 +799,15 @@ class MLForge:
 
 class EnsembleForge:
 
-    def __init__(self, estimators):
+    def __init__(self, estimators=None):
+        if estimators is None:
+            estimators = []
+
         self.estimators = estimators
         self.n_estimators = len(self.estimators)
         self.expectations = None
 
         # Consistency checks
-        assert self.n_estimators > 0, 'No estimators in ensemble'
         for estimator in self.estimators:
             assert isinstance(estimator, MLForge), 'Estimator is no MLForge instance!'
 
@@ -880,10 +882,10 @@ class EnsembleForge:
 
         # Calculate weighted variance
         if self.n_estimators > 1:
-            variance = np.average((predictions - mean)**2, axis=0, weights=weights)
+            variance = np.average((predictions - mean) ** 2, axis=0, weights=weights)
 
-            # Correct bias, see https://en.wikipedia.org/wiki/Weighted_arithmetic_mean#Reliability_weights
-            bias = 1. - np.sum(weights**2) / np.sum(weights)**2
+            # Correct bias, see https://en.wikipedia.org/wiki/Weighted_arithmetic_mean#Reliability_weights.
+            bias = 1. - np.sum(weights ** 2) / np.sum(weights) ** 2
             variance /= bias
         else:
             logging.warning('Only one estimator, no meaningful variance calculation!')
@@ -937,11 +939,46 @@ class EnsembleForge:
 
         return mean, std
 
-    def save(self):
-        raise NotImplementedError
+    def save(self, folder):
+        # Check paths
+        create_missing_folders([folder])
 
-    def load(self):
-        raise NotImplementedError
+        # Save ensemble settings
+        logging.info('Saving ensemble setup to %/ensemble.json', folder)
+
+        settings = {'n_estimators': self.n_estimators,
+                    'expectations': 'None' if self.expectations is None else list(self.expectations)}
+
+        with open(folder + '/ensemble.json', 'w') as f:
+            json.dump(settings, f)
+
+        # Save estimators
+        for i, estimator in enumerate(self.estimators):
+            estimator.save(folder + '/estimator_' + str(i))
+
+    def load(self, folder):
+        # Load ensemble settings
+        logging.info('Loading ensemble setup from %/ensemble.json', folder)
+
+        with open(folder + '/ensemble.json', 'r') as f:
+            settings = json.load(f)
+
+        self.n_estimators = settings['n_estimators']
+        self.expectations = settings['expectations']
+        if self.expectations == 'None':
+            self.expectations = None
+        if self.expectations is not None:
+            self.expectations = np.array(self.expectations)
+
+        logging.info('  Found ensemble with %s estimators and expectations %s',
+                     self.n_estimators, self.expectations)
+
+        # Load estimators
+        self.estimators = []
+        for i in range(self.n_estimators):
+            estimator = MLForge()
+            estimator.load(folder + '/estimator_' + str(i))
+            self.estimators.append(estimator)
 
     def _check_consistency(self, keywords=None):
         # Accumulate methods of all estimators
