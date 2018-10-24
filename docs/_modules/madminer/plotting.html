@@ -51,33 +51,6 @@
                            <span class="n">yrange</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mf">1.</span><span class="p">,</span> <span class="mf">1.</span><span class="p">),</span>
                            <span class="n">crange</span><span class="o">=</span><span class="p">(</span><span class="mf">1.</span><span class="p">,</span> <span class="mf">100.</span><span class="p">),</span>
                            <span class="n">resolution</span><span class="o">=</span><span class="mi">100</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
-
-<span class="sd">    Parameters</span>
-<span class="sd">    ----------</span>
-<span class="sd">    morpher :</span>
-<span class="sd">        </span>
-<span class="sd">    xlabel :</span>
-<span class="sd">         (Default value = r&#39;$\theta_0$&#39;)</span>
-<span class="sd">    ylabel :</span>
-<span class="sd">         (Default value = r&#39;$\theta_1$&#39;)</span>
-<span class="sd">    xrange :</span>
-<span class="sd">         (Default value = (-1.)</span>
-<span class="sd">    1.) :</span>
-<span class="sd">        </span>
-<span class="sd">    yrange :</span>
-<span class="sd">         (Default value = (-1.)</span>
-<span class="sd">    crange :</span>
-<span class="sd">         (Default value = (1.)</span>
-<span class="sd">    100.) :</span>
-<span class="sd">        </span>
-<span class="sd">    resolution :</span>
-<span class="sd">         (Default value = 100)</span>
-
-<span class="sd">    Returns</span>
-<span class="sd">    -------</span>
-
-<span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">basis</span> <span class="o">=</span> <span class="n">morpher</span><span class="o">.</span><span class="n">basis</span>
 
     <span class="k">assert</span> <span class="n">basis</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;No basis defined&quot;</span>
@@ -120,23 +93,6 @@
         <span class="n">crange</span><span class="o">=</span><span class="p">(</span><span class="mf">1.</span><span class="p">,</span> <span class="mf">100.</span><span class="p">),</span>
         <span class="n">n_test_thetas</span><span class="o">=</span><span class="mi">1000</span>
 <span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
-
-<span class="sd">    Parameters</span>
-<span class="sd">    ----------</span>
-<span class="sd">    morpher :</span>
-<span class="sd">        </span>
-<span class="sd">    crange :</span>
-<span class="sd">         (Default value = (1.)</span>
-<span class="sd">    100.) :</span>
-<span class="sd">        </span>
-<span class="sd">    n_test_thetas :</span>
-<span class="sd">         (Default value = 1000)</span>
-
-<span class="sd">    Returns</span>
-<span class="sd">    -------</span>
-
-<span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">basis</span> <span class="o">=</span> <span class="n">morpher</span><span class="o">.</span><span class="n">basis</span>
 
     <span class="k">assert</span> <span class="n">basis</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;No basis defined&quot;</span>
@@ -175,23 +131,6 @@
         <span class="n">crange</span><span class="o">=</span><span class="p">(</span><span class="mf">1.</span><span class="p">,</span> <span class="mf">100.</span><span class="p">),</span>
         <span class="n">resolution</span><span class="o">=</span><span class="mi">50</span>
 <span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
-
-<span class="sd">    Parameters</span>
-<span class="sd">    ----------</span>
-<span class="sd">    morpher :</span>
-<span class="sd">        </span>
-<span class="sd">    crange :</span>
-<span class="sd">         (Default value = (1.)</span>
-<span class="sd">    100.) :</span>
-<span class="sd">        </span>
-<span class="sd">    resolution :</span>
-<span class="sd">         (Default value = 50)</span>
-
-<span class="sd">    Returns</span>
-<span class="sd">    -------</span>
-
-<span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">basis</span> <span class="o">=</span> <span class="n">morpher</span><span class="o">.</span><span class="n">basis</span>
 
     <span class="k">assert</span> <span class="n">basis</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;No basis defined&quot;</span>
@@ -243,60 +182,54 @@
 
 <div class="viewcode-block" id="plot_fisher_information_contours_2d"><a class="viewcode-back" href="../../madminer.plotting.html#madminer.plotting.plot_fisher_information_contours_2d">[docs]</a><span class="k">def</span> <span class="nf">plot_fisher_information_contours_2d</span><span class="p">(</span>
         <span class="n">fisher_information_matrices</span><span class="p">,</span>
+        <span class="n">fisher_information_covariances</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">contour_distance</span><span class="o">=</span><span class="mf">1.</span><span class="p">,</span>
         <span class="n">xlabel</span><span class="o">=</span><span class="sa">r</span><span class="s1">&#39;$\theta_0$&#39;</span><span class="p">,</span>
         <span class="n">ylabel</span><span class="o">=</span><span class="sa">r</span><span class="s1">&#39;$\theta_1$&#39;</span><span class="p">,</span>
         <span class="n">xrange</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mf">1.</span><span class="p">,</span> <span class="mf">1.</span><span class="p">),</span>
         <span class="n">yrange</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mf">1.</span><span class="p">,</span> <span class="mf">1.</span><span class="p">),</span>
-        <span class="n">matrix_labels</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-        <span class="n">resolution</span><span class="o">=</span><span class="mi">100</span>
+        <span class="n">labels</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">inline_labels</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">resolution</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+        <span class="n">colors</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">linestyles</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">linewidths</span><span class="o">=</span><span class="mf">1.5</span><span class="p">,</span>
+        <span class="n">alphas</span><span class="o">=</span><span class="mf">1.</span><span class="p">,</span>
+        <span class="n">alphas_uncertainties</span><span class="o">=</span><span class="mf">0.25</span>
 <span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;:fisher_information_matrices: list of ndarrays, 2x2 Fisher information matrices</span>
-<span class="sd">    :contour_distance: float, Fisher distance drawn</span>
-<span class="sd">    :matrix_labels:  None or list of str, legend labels for the contours</span>
-<span class="sd">    :xlabel: str, label of x axis</span>
-<span class="sd">    :ylabel: str, label of y axis</span>
-<span class="sd">    :xrange: tuple of 2 floats, x axis range</span>
-<span class="sd">    :xrange: tuple of 2 floats, y axis range</span>
-<span class="sd">    :resolution: int, number of points per axis for the calculation of the Fisher distances</span>
-
-<span class="sd">    Parameters</span>
-<span class="sd">    ----------</span>
-<span class="sd">    fisher_information_matrices :</span>
-<span class="sd">        </span>
-<span class="sd">    contour_distance :</span>
-<span class="sd">         (Default value = 1.)</span>
-<span class="sd">    xlabel :</span>
-<span class="sd">         (Default value = r&#39;$\theta_0$&#39;)</span>
-<span class="sd">    ylabel :</span>
-<span class="sd">         (Default value = r&#39;$\theta_1$&#39;)</span>
-<span class="sd">    xrange :</span>
-<span class="sd">         (Default value = (-1.)</span>
-<span class="sd">    1.) :</span>
-<span class="sd">        </span>
-<span class="sd">    yrange :</span>
-<span class="sd">         (Default value = (-1.)</span>
-<span class="sd">    matrix_labels :</span>
-<span class="sd">         (Default value = None)</span>
-<span class="sd">    resolution :</span>
-<span class="sd">         (Default value = 100)</span>
-
-<span class="sd">    Returns</span>
-<span class="sd">    -------</span>
-
-<span class="sd">    &quot;&quot;&quot;</span>
-
-    <span class="c1"># Input</span>
+    <span class="c1"># Input data</span>
     <span class="n">fisher_information_matrices</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">fisher_information_matrices</span><span class="p">)</span>
+
     <span class="n">n_matrices</span> <span class="o">=</span> <span class="n">fisher_information_matrices</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
     <span class="k">if</span> <span class="n">fisher_information_matrices</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="p">(</span><span class="n">n_matrices</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">):</span>
         <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;Fisher information matrices have shape </span><span class="si">{}</span><span class="s2">, not (n, 2,2)!&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
             <span class="n">fisher_information_matrices</span><span class="o">.</span><span class="n">shape</span><span class="p">))</span>
 
+    <span class="k">if</span> <span class="n">fisher_information_covariances</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">fisher_information_covariances</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_matrices</span><span class="p">)]</span>
+
+    <span class="n">d2_threshold</span> <span class="o">=</span> <span class="n">contour_distance</span> <span class="o">**</span> <span class="mf">2.</span>
+
     <span class="c1"># Line formatting</span>
-    <span class="n">colors</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;C&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">)]</span> <span class="o">*</span> <span class="p">(</span><span class="n">n_matrices</span> <span class="o">//</span> <span class="mi">10</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
-    <span class="n">linestyles</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;solid&#39;</span><span class="p">,</span> <span class="s1">&#39;dashed&#39;</span><span class="p">,</span> <span class="s1">&#39;dotted&#39;</span><span class="p">,</span> <span class="s1">&#39;dashdot&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="n">n_matrices</span> <span class="o">//</span> <span class="mi">4</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
-    <span class="n">linewidth</span> <span class="o">=</span> <span class="mf">1.5</span>
+    <span class="k">if</span> <span class="n">colors</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">colors</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;C&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">)]</span> <span class="o">*</span> <span class="p">(</span><span class="n">n_matrices</span> <span class="o">//</span> <span class="mi">10</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">colors</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+        <span class="n">colors</span> <span class="o">=</span> <span class="p">[</span><span class="n">colors</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_matrices</span><span class="p">)]</span>
+
+    <span class="k">if</span> <span class="n">linestyles</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">linestyles</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;solid&#39;</span><span class="p">,</span> <span class="s1">&#39;dashed&#39;</span><span class="p">,</span> <span class="s1">&#39;dotted&#39;</span><span class="p">,</span> <span class="s1">&#39;dashdot&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="n">n_matrices</span> <span class="o">//</span> <span class="mi">4</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">linestyles</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+        <span class="n">linestyles</span> <span class="o">=</span> <span class="p">[</span><span class="n">linestyles</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_matrices</span><span class="p">)]</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">linewidths</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+        <span class="n">linewidths</span> <span class="o">=</span> <span class="p">[</span><span class="n">linewidths</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_matrices</span><span class="p">)]</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">alphas</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+        <span class="n">alphas</span> <span class="o">=</span> <span class="p">[</span><span class="n">alphas</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_matrices</span><span class="p">)]</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">alphas_uncertainties</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+        <span class="n">alphas_uncertainties</span> <span class="o">=</span> <span class="p">[</span><span class="n">alphas_uncertainties</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_matrices</span><span class="p">)]</span>
 
     <span class="c1"># Grid</span>
     <span class="n">xi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">xrange</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">xrange</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">resolution</span><span class="p">)</span>
@@ -318,23 +251,62 @@
 
     <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Fisher distances: </span><span class="se">\n</span><span class="s1"> </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">fisher_distances_squared</span><span class="p">)</span>
 
+    <span class="n">fisher_distances_alt</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;ni,mij,nj-&gt;mn&#39;</span><span class="p">,</span> <span class="n">thetas</span><span class="p">,</span> <span class="n">fisher_information_matrices</span><span class="p">,</span> <span class="n">thetas</span><span class="p">)</span>
+    <span class="n">fisher_distances_alt_squared</span> <span class="o">=</span> <span class="n">fisher_distances_alt</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="n">n_matrices</span><span class="p">,</span> <span class="n">resolution</span><span class="p">,</span> <span class="n">resolution</span><span class="p">))</span>
+    <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Diff: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">fisher_distances_squared</span> <span class="o">-</span> <span class="n">fisher_distances_alt_squared</span><span class="p">)</span>
+
+    <span class="c1"># Calculate uncertainties of Fisher distances</span>
+    <span class="n">fisher_distances_squared_uncertainties</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">inf_cov</span> <span class="ow">in</span> <span class="n">fisher_information_covariances</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">inf_cov</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">fisher_distances_squared_uncertainties</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
+            <span class="k">continue</span>
+
+        <span class="n">var</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;ni,nj,ijkl,nk,nl-&gt;n&#39;</span><span class="p">,</span> <span class="n">thetas</span><span class="p">,</span> <span class="n">thetas</span><span class="p">,</span> <span class="n">inf_cov</span><span class="p">,</span> <span class="n">thetas</span><span class="p">,</span> <span class="n">thetas</span><span class="p">)</span>
+
+        <span class="n">uncertainties</span> <span class="o">=</span> <span class="p">(</span><span class="n">var</span> <span class="o">**</span> <span class="mf">0.5</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="n">resolution</span><span class="p">,</span> <span class="n">resolution</span><span class="p">))</span>
+
+        <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Std: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">uncertainties</span><span class="p">)</span>
+
+        <span class="n">fisher_distances_squared_uncertainties</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">uncertainties</span><span class="p">)</span>
+
     <span class="c1"># Plot results</span>
     <span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mf">5.</span><span class="p">,</span> <span class="mf">5.</span><span class="p">))</span>
 
+    <span class="c1"># Error bands</span>
     <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_matrices</span><span class="p">):</span>
-        <span class="n">contour_levels</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">contour_distance</span> <span class="o">**</span> <span class="mf">2.</span><span class="p">])</span>
+        <span class="k">if</span> <span class="n">fisher_information_covariances</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">d2_up</span> <span class="o">=</span> <span class="n">fisher_distances_squared</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+</span> <span class="n">fisher_distances_squared_uncertainties</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="n">d2_down</span> <span class="o">=</span> <span class="n">fisher_distances_squared</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">-</span> <span class="n">fisher_distances_squared_uncertainties</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="n">band</span> <span class="o">=</span> <span class="p">(</span><span class="n">d2_up</span> <span class="o">&gt;</span> <span class="n">d2_threshold</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">d2_down</span> <span class="o">&lt;</span> <span class="n">d2_threshold</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="n">d2_up</span> <span class="o">&lt;</span> <span class="n">d2_threshold</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">d2_down</span> <span class="o">&gt;</span> <span class="n">d2_threshold</span><span class="p">)</span>
 
+            <span class="n">plt</span><span class="o">.</span><span class="n">contourf</span><span class="p">(</span>
+                <span class="n">xi</span><span class="p">,</span> <span class="n">yi</span><span class="p">,</span>
+                <span class="n">band</span><span class="p">,</span>
+                <span class="p">[</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">2.5</span><span class="p">],</span>
+                <span class="n">colors</span><span class="o">=</span><span class="n">colors</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
+                <span class="n">alpha</span><span class="o">=</span><span class="n">alphas_uncertainties</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="p">)</span>
+
+    <span class="c1"># Predictions</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_matrices</span><span class="p">):</span>
         <span class="n">cs</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">contour</span><span class="p">(</span>
             <span class="n">xi</span><span class="p">,</span> <span class="n">yi</span><span class="p">,</span>
             <span class="n">fisher_distances_squared</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
-            <span class="n">contour_levels</span><span class="p">,</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">d2_threshold</span><span class="p">]),</span>
             <span class="n">colors</span><span class="o">=</span><span class="n">colors</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
             <span class="n">linestyles</span><span class="o">=</span><span class="n">linestyles</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
-            <span class="n">linewidths</span><span class="o">=</span><span class="n">linewidth</span>
+            <span class="n">linewidths</span><span class="o">=</span><span class="n">linewidths</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
+            <span class="n">alpha</span><span class="o">=</span><span class="n">alphas</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
+            <span class="n">label</span><span class="o">=</span><span class="kc">None</span> <span class="k">if</span> <span class="n">labels</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">labels</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
         <span class="p">)</span>
 
-        <span class="k">if</span> <span class="n">matrix_labels</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">matrix_labels</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="n">plt</span><span class="o">.</span><span class="n">clabel</span><span class="p">(</span><span class="n">cs</span><span class="p">,</span> <span class="n">cs</span><span class="o">.</span><span class="n">levels</span><span class="p">,</span> <span class="n">inline</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">12</span><span class="p">,</span> <span class="n">fmt</span><span class="o">=</span><span class="p">{</span><span class="n">contour_levels</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span> <span class="n">matrix_labels</span><span class="p">[</span><span class="n">i</span><span class="p">]})</span>
+        <span class="k">if</span> <span class="n">inline_labels</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">inline_labels</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">inline_labels</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">clabel</span><span class="p">(</span><span class="n">cs</span><span class="p">,</span> <span class="n">cs</span><span class="o">.</span><span class="n">levels</span><span class="p">,</span> <span class="n">inline</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">12</span><span class="p">,</span> <span class="n">fmt</span><span class="o">=</span><span class="p">{</span><span class="n">d2_threshold</span><span class="p">:</span> <span class="n">inline_labels</span><span class="p">[</span><span class="n">i</span><span class="p">]})</span>
+
+    <span class="c1"># Legend and decorations</span>
+    <span class="k">if</span> <span class="n">labels</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
 
     <span class="n">plt</span><span class="o">.</span><span class="n">axes</span><span class="p">()</span><span class="o">.</span><span class="n">set_xlim</span><span class="p">(</span><span class="n">xrange</span><span class="p">)</span>
     <span class="n">plt</span><span class="o">.</span><span class="n">axes</span><span class="p">()</span><span class="o">.</span><span class="n">set_ylim</span><span class="p">(</span><span class="n">yrange</span><span class="p">)</span>
@@ -358,7 +330,8 @@
                             <span class="n">use_bar_colors</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                             <span class="n">eigenvalue_operator_legend</span><span class="o">=</span><span class="kc">True</span>
                             <span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;:matrices: list (length N) of fisher infos (n x n tensors) for eigenvalue decomposition</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    :matrices: list (length N) of fisher infos (n x n tensors) for eigenvalue decomposition</span>
 <span class="sd">    :matrices_for_determinants: list (length N) of fisher infos (n x n tensors) for determinant evaluation</span>
 <span class="sd">    :labels: list (length N) of analysis label (string)</span>
 <span class="sd">    :categories: group into categories (integer) - there will be extra space between categories</span>
@@ -369,35 +342,6 @@
 <span class="sd">    :normalise_determinants: are determinants normalized to unity (bool)</span>
 <span class="sd">    :use_bar_colors: are bars in lower panel colored (bool)</span>
 <span class="sd">    :eigenvalue_operator_legend: plot legend for operators (bool)</span>
-
-<span class="sd">    Parameters</span>
-<span class="sd">    ----------</span>
-<span class="sd">    matrices :</span>
-<span class="sd">        </span>
-<span class="sd">    matrices_for_determinants :</span>
-<span class="sd">        </span>
-<span class="sd">    labels :</span>
-<span class="sd">        </span>
-<span class="sd">    categories :</span>
-<span class="sd">        </span>
-<span class="sd">    operatorlabels :</span>
-<span class="sd">        </span>
-<span class="sd">    filename :</span>
-<span class="sd">        </span>
-<span class="sd">    additional_label :</span>
-<span class="sd">         (Default value = &#39;&#39;)</span>
-<span class="sd">    top_label :</span>
-<span class="sd">         (Default value = &#39;&#39;)</span>
-<span class="sd">    normalise_determinants :</span>
-<span class="sd">         (Default value = False)</span>
-<span class="sd">    use_bar_colors :</span>
-<span class="sd">         (Default value = False)</span>
-<span class="sd">    eigenvalue_operator_legend :</span>
-<span class="sd">         (Default value = True)</span>
-
-<span class="sd">    Returns</span>
-<span class="sd">    -------</span>
-
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="c1">#################################################################################</span>
@@ -554,60 +498,16 @@
     <span class="n">epsilon</span> <span class="o">=</span> <span class="mf">1.e-9</span>
 
     <span class="k">def</span> <span class="nf">precision_to_information</span><span class="p">(</span><span class="n">precision</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
-
-<span class="sd">        Parameters</span>
-<span class="sd">        ----------</span>
-<span class="sd">        precision :</span>
-<span class="sd">            </span>
-
-<span class="sd">        Returns</span>
-<span class="sd">        -------</span>
-
-<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">precision</span><span class="p">,</span> <span class="n">epsilon</span><span class="p">)</span> <span class="o">/</span> <span class="mf">0.246</span><span class="p">)</span> <span class="o">**</span> <span class="mf">4.</span>
 
     <span class="k">def</span> <span class="nf">information_to_precision</span><span class="p">(</span><span class="n">fisher_inf</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
-
-<span class="sd">        Parameters</span>
-<span class="sd">        ----------</span>
-<span class="sd">        fisher_inf :</span>
-<span class="sd">            </span>
-
-<span class="sd">        Returns</span>
-<span class="sd">        -------</span>
-
-<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="mf">0.246</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">fisher_inf</span><span class="p">,</span> <span class="n">epsilon</span><span class="p">)</span> <span class="o">**</span> <span class="mf">0.25</span>
 
     <span class="k">def</span> <span class="nf">tick_function_information</span><span class="p">(</span><span class="n">fisher_inf</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
-
-<span class="sd">        Parameters</span>
-<span class="sd">        ----------</span>
-<span class="sd">        fisher_inf :</span>
-<span class="sd">            </span>
-
-<span class="sd">        Returns</span>
-<span class="sd">        -------</span>
-
-<span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">precision</span> <span class="o">=</span> <span class="mf">0.246</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">fisher_inf</span><span class="p">,</span> <span class="n">epsilon</span><span class="p">)</span> <span class="o">**</span> <span class="mf">0.25</span>
         <span class="k">return</span> <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">z</span><span class="p">)</span> <span class="k">for</span> <span class="n">z</span> <span class="ow">in</span> <span class="n">precision</span><span class="p">]</span>
 
     <span class="k">def</span> <span class="nf">tick_function_precision</span><span class="p">(</span><span class="n">precision</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
-
-<span class="sd">        Parameters</span>
-<span class="sd">        ----------</span>
-<span class="sd">        precision :</span>
-<span class="sd">            </span>
-
-<span class="sd">        Returns</span>
-<span class="sd">        -------</span>
-
-<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">z</span><span class="p">)</span> <span class="k">for</span> <span class="n">z</span> <span class="ow">in</span> <span class="n">precision</span><span class="p">]</span>
 
     <span class="n">ax2_limits</span> <span class="o">=</span> <span class="n">ax1</span><span class="o">.</span><span class="n">get_ylim</span><span class="p">()</span>
@@ -683,45 +583,12 @@
                  <span class="n">verticalalignment</span><span class="o">=</span><span class="s1">&#39;center&#39;</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">precision_to_norm_information</span><span class="p">(</span><span class="n">precision</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
-
-<span class="sd">        Parameters</span>
-<span class="sd">        ----------</span>
-<span class="sd">        precision :</span>
-<span class="sd">            </span>
-
-<span class="sd">        Returns</span>
-<span class="sd">        -------</span>
-
-<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">precision</span><span class="p">,</span> <span class="n">epsilon</span><span class="p">)</span> <span class="o">/</span> <span class="mf">0.246</span><span class="p">)</span> <span class="o">**</span> <span class="mf">4.</span> <span class="o">/</span> <span class="n">max_information</span>
 
     <span class="k">def</span> <span class="nf">norm_information_to_precision</span><span class="p">(</span><span class="n">fisher_inf</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
-
-<span class="sd">        Parameters</span>
-<span class="sd">        ----------</span>
-<span class="sd">        fisher_inf :</span>
-<span class="sd">            </span>
-
-<span class="sd">        Returns</span>
-<span class="sd">        -------</span>
-
-<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="mf">0.246</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">fisher_inf</span> <span class="o">*</span> <span class="n">max_information</span><span class="p">,</span> <span class="n">epsilon</span><span class="p">)</span> <span class="o">**</span> <span class="mf">0.25</span>
 
     <span class="k">def</span> <span class="nf">tick_function_precision</span><span class="p">(</span><span class="n">precision</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
-
-<span class="sd">        Parameters</span>
-<span class="sd">        ----------</span>
-<span class="sd">        precision :</span>
-<span class="sd">            </span>
-
-<span class="sd">        Returns</span>
-<span class="sd">        -------</span>
-
-<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">z</span><span class="p">)</span> <span class="k">for</span> <span class="n">z</span> <span class="ow">in</span> <span class="n">precision</span><span class="p">]</span>
 
     <span class="c1"># Second axis with typical precision</span>
@@ -777,53 +644,6 @@
                                           <span class="n">label_pos_bsm</span><span class="o">=</span><span class="p">(</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">),</span>
                                           <span class="n">label_pos_bkg</span><span class="o">=</span><span class="p">(</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">),</span>
                                           <span class="n">label_bsm</span><span class="o">=</span><span class="sa">r</span><span class="s1">&#39;&#39;</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
-
-<span class="sd">    Parameters</span>
-<span class="sd">    ----------</span>
-<span class="sd">    xbins :</span>
-<span class="sd">        </span>
-<span class="sd">    xlabel :</span>
-<span class="sd">        </span>
-<span class="sd">    xmin :</span>
-<span class="sd">        </span>
-<span class="sd">    xmax :</span>
-<span class="sd">        </span>
-<span class="sd">    xsecs :</span>
-<span class="sd">        </span>
-<span class="sd">    matrices :</span>
-<span class="sd">        </span>
-<span class="sd">    matrices_aux :</span>
-<span class="sd">        </span>
-<span class="sd">    filename :</span>
-<span class="sd">        </span>
-<span class="sd">    ylabel_addition :</span>
-<span class="sd">         (Default value = &#39;&#39;)</span>
-<span class="sd">    log_xsec :</span>
-<span class="sd">         (Default value = False)</span>
-<span class="sd">    norm_xsec :</span>
-<span class="sd">         (Default value = True)</span>
-<span class="sd">    show_aux :</span>
-<span class="sd">         (Default value = False)</span>
-<span class="sd">    show_labels :</span>
-<span class="sd">         (Default value = False)</span>
-<span class="sd">    label_pos_information :</span>
-<span class="sd">         (Default value = (0.)</span>
-<span class="sd">    0.) :</span>
-<span class="sd">        </span>
-<span class="sd">    label_pos_sm :</span>
-<span class="sd">         (Default value = (0.)</span>
-<span class="sd">    label_pos_bsm :</span>
-<span class="sd">         (Default value = (0.)</span>
-<span class="sd">    label_pos_bkg :</span>
-<span class="sd">         (Default value = (0.)</span>
-<span class="sd">    label_bsm :</span>
-<span class="sd">         (Default value = r&#39;&#39;)</span>
-
-<span class="sd">    Returns</span>
-<span class="sd">    -------</span>
-
-<span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">epsilon</span> <span class="o">=</span> <span class="mf">1.e-9</span>
 
     <span class="c1"># Calculate data</span>
