@@ -147,29 +147,54 @@ def plot_nd_morphing_basis_slices(
 
 def plot_fisher_information_contours_2d(
         fisher_information_matrices,
+        fisher_information_covariances=None,
         contour_distance=1.,
         xlabel=r'$\theta_0$',
         ylabel=r'$\theta_1$',
         xrange=(-1., 1.),
         yrange=(-1., 1.),
-        matrix_labels=None,
+        labels=None,
+        inline_labels=None,
         resolution=100,
         colors=None,
-        linestyles=None
+        linestyles=None,
+        linewidths=1.5,
+        alphas=1.,
+        alphas_uncertainties=0.25
 ):
-    # Input
+    # Input data
     fisher_information_matrices = np.asarray(fisher_information_matrices)
+
     n_matrices = fisher_information_matrices.shape[0]
+
     if fisher_information_matrices.shape != (n_matrices, 2, 2):
         raise RuntimeError("Fisher information matrices have shape {}, not (n, 2,2)!".format(
             fisher_information_matrices.shape))
 
+    if fisher_information_covariances is None:
+        fisher_information_covariances = [None for _ in range(n_matrices)]
+
+    d2_threshold = contour_distance ** 2.
+
     # Line formatting
     if colors is None:
         colors = ['C' + str(i) for i in range(10)] * (n_matrices // 10 + 1)
+    elif not isinstance(colors, list):
+        colors = [colors for _ in range(n_matrices)]
+
     if linestyles is None:
         linestyles = ['solid', 'dashed', 'dotted', 'dashdot'] * (n_matrices // 4 + 1)
-    linewidth = 1.5
+    elif not isinstance(linestyles, list):
+        linestyles = [linestyles for _ in range(n_matrices)]
+
+    if not isinstance(linewidths, list):
+        linewidths = [linewidths for _ in range(n_matrices)]
+
+    if not isinstance(alphas, list):
+        alphas = [alphas for _ in range(n_matrices)]
+
+    if not isinstance(alphas_uncertainties, list):
+        alphas_uncertainties = [alphas_uncertainties for _ in range(n_matrices)]
 
     # Grid
     xi = np.linspace(xrange[0], xrange[1], resolution)
@@ -191,23 +216,62 @@ def plot_fisher_information_contours_2d(
 
     logging.debug('Fisher distances: \n %s', fisher_distances_squared)
 
+    fisher_distances_alt = np.einsum('ni,mij,nj->mn', thetas, fisher_information_matrices, thetas)
+    fisher_distances_alt_squared = fisher_distances_alt.reshape((n_matrices, resolution, resolution))
+    logging.debug('Diff: %s', fisher_distances_squared - fisher_distances_alt_squared)
+
+    # Calculate uncertainties of Fisher distances
+    fisher_distances_squared_uncertainties = []
+    for inf_cov in fisher_information_covariances:
+        if inf_cov is None:
+            fisher_distances_squared_uncertainties.append(None)
+            continue
+
+        var = np.einsum('ni,nj,ijkl,nk,nl->n', thetas, thetas, inf_cov, thetas, thetas)
+
+        uncertainties = (var ** 0.5).reshape((resolution, resolution))
+
+        logging.debug('Std: %s', uncertainties)
+
+        fisher_distances_squared_uncertainties.append(uncertainties)
+
     # Plot results
     fig = plt.figure(figsize=(5., 5.))
 
+    # Error bands
     for i in range(n_matrices):
-        contour_levels = np.array([contour_distance ** 2.])
+        if fisher_information_covariances[i] is not None:
+            d2_up = fisher_distances_squared[i] + fisher_distances_squared_uncertainties[i]
+            d2_down = fisher_distances_squared[i] - fisher_distances_squared_uncertainties[i]
+            band = (d2_up > d2_threshold) * (d2_down < d2_threshold) + (d2_up < d2_threshold) * (d2_down > d2_threshold)
 
+            plt.contourf(
+                xi, yi,
+                band,
+                [0.5, 2.5],
+                colors=colors[i],
+                alpha=alphas_uncertainties[i]
+            )
+
+    # Predictions
+    for i in range(n_matrices):
         cs = plt.contour(
             xi, yi,
             fisher_distances_squared[i],
-            contour_levels,
+            np.array([d2_threshold]),
             colors=colors[i],
             linestyles=linestyles[i],
-            linewidths=linewidth
+            linewidths=linewidths[i],
+            alpha=alphas[i],
+            label=None if labels is None else labels[i]
         )
 
-        if matrix_labels is not None and len(matrix_labels[i]) > 0:
-            plt.clabel(cs, cs.levels, inline=True, fontsize=12, fmt={contour_levels[0]: matrix_labels[i]})
+        if inline_labels is not None and inline_labels[i] is not None and len(inline_labels[i]) > 0:
+            plt.clabel(cs, cs.levels, inline=True, fontsize=12, fmt={d2_threshold: inline_labels[i]})
+
+    # Legend and decorations
+    if labels is not None:
+        plt.legend()
 
     plt.axes().set_xlim(xrange)
     plt.axes().set_ylim(yrange)

@@ -3,12 +3,13 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import logging
 import numpy as np
 import six
+import os
 
 from madminer.utils.interfaces.hdf5 import load_madminer_settings, madminer_event_loader
 from madminer.utils.analysis import get_theta_benchmark_matrix, get_dtheta_benchmark_matrix
 from madminer.morphing import Morpher
 from madminer.utils.various import general_init, format_benchmark, math_commands
-from madminer.ml import MLForge
+from madminer.ml import MLForge, EnsembleForge
 
 
 def project_information(fisher_information, remaining_components):
@@ -222,7 +223,8 @@ class FisherInformation:
         return fisher_info
 
     def calculate_fisher_information_full_detector(self, theta, model_file, unweighted_x_sample_file,
-                                                   luminosity=300000., cuts=None):
+                                                   luminosity=300000., cuts=None, return_error=None,
+                                                   ensemble_vote_expectation_weight=None):
         """
         Calculates the full Fisher information in realistic detector-level observations, estimated with neural networks.
         In addition to the MadMiner file, this requires a trained SALLY or SALLINO estimator as well as an unweighted
@@ -234,11 +236,11 @@ class FisherInformation:
             Parameter point `theta` at which the Fisher information matrix `I_ij(theta)` is evaluated.
 
         model_file : str
-            str, filename of a trained local score regression model that was trained on samples from `theta` (see
+            Filename of a trained local score regression model that was trained on samples from `theta` (see
             `madminer.ml.MLForge`).
 
         unweighted_x_sample_file : str
-            str, filename of an unweighted x sample that is sampled according to theta and obeys the cuts
+            Filename of an unweighted x sample that is sampled according to theta and obeys the cuts
             (see `madminer.sampling.SampleAugmenter.extract_samples_train_local()`)
 
         luminosity : float
@@ -248,10 +250,24 @@ class FisherInformation:
             Cuts. Each entry is a parseable Python expression that returns a bool (True if the event should pass a cut,
             False otherwise). Default value: None.
 
+        return_error : None or bool, optional
+            Whether an uncertainty of the Fisher information is returned together with the prediction. If None, it is
+            returned only if model_file points to the directory of an ensemble. Default value: None.
+
+        ensemble_vote_expectation_weight : float or None, optional
+            For ensemble models, the factor that determines how much more weight is given to those estimators with
+            small expectation value. If None, or if `EnsembleForge.calculate_expectation()` has not been called,
+            all estimators are treated equal. Default value: None.
+
         Returns
         -------
         fisher_information : ndarray
             Estimated expected full detector-level Fisher information matrix with shape `(n_parameters, n_parameters)`.
+
+        fisher_information_uncertainty : ndarray
+            Returned only if return_error is True, or if return_error is None and model_file is the directory of an
+            ensemble. Uncertainty of the expected full detector-level Fisher information matrix with shape
+            `(n_parameters, n_parameters)`.
 
         """
 
@@ -270,13 +286,38 @@ class FisherInformation:
             cuts=cuts
         )
 
-        # Kinematic part of Fisher information
-        model = MLForge()
-        model.load(model_file)
-        fisher_info_kin = model.calculate_fisher_information(
-            unweighted_x_sample_file,
-            n_events=luminosity * total_xsec
-        )
+        # Kinematic part of Fisher information: either with MLForge or with EnsembleForge
+        if os.path.isdir(model_file):
+            # Ensemble method
+            model = EnsembleForge()
+            model.load(model_file)
+
+            fisher_info_kin, fisher_info_uncertainty = model.calculate_fisher_information(
+                unweighted_x_sample_file,
+                n_events=luminosity * total_xsec,
+                vote_expectation_weight=ensemble_vote_expectation_weight
+            )
+
+            if return_error is None:
+                return_error = True
+
+        else:
+            # One ML instance
+            model = MLForge()
+            model.load(model_file)
+
+            fisher_info_kin = model.calculate_fisher_information(
+                unweighted_x_sample_file,
+                n_events=luminosity * total_xsec
+            )
+
+            fisher_info_uncertainty = None
+
+            if return_error is None:
+                return_error = False
+
+        if return_error:
+            return fisher_info_rate + fisher_info_kin, fisher_info_uncertainty
 
         return fisher_info_rate + fisher_info_kin
 
