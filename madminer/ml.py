@@ -1019,8 +1019,8 @@ class EnsembleForge:
             Otherwise, the estimated likelihood ratio (if test_all_combinations is True, the result has shape
             `(n_thetas, n_x)`, otherwise, it has shape `(n_samples,)`).
 
-        std_prediction : ndarray
-            The square root of the estimated ensemble variance.
+        covariance : ndarray
+            The covariance matrix of the (flattened) predictions.
 
         weights : ndarray
             Only returned if return_individual_predictions is True. The estimator weights `w_i`.
@@ -1056,25 +1056,14 @@ class EnsembleForge:
         # Calculate weighted mean
         mean = np.average(predictions, axis=0, weights=weights)
 
-        # Calculate weighted variance
-        if self.n_estimators > 1:
-            variance = np.average((predictions - mean) ** 2, axis=0, weights=weights)
-
-            # Correct bias, see https://en.wikipedia.org/wiki/Weighted_arithmetic_mean#Reliability_weights.
-            bias = 1. - np.sum(weights ** 2) / np.sum(weights) ** 2
-            variance /= bias
-        else:
-            logging.warning('Only one estimator, no meaningful variance calculation!')
-            variance = np.zeros_like(mean)
-
-        std = np.sqrt(variance)
-
-        # TODO: We actually want to the covariance matrix, not the variance!
+        # Calculate covariance matrix
+        predictions_flat = mean.reshape(predictions.shape[0], -1)
+        covariance = np.cov(predictions_flat, aweights=weights)
 
         if return_individual_predictions:
-            return mean, std, weights, predictions
+            return mean, covariance, weights, predictions
 
-        return mean, std
+        return mean, covariance
 
     def calculate_fisher_information(self,
                                      x_filename,
@@ -1117,8 +1106,10 @@ class EnsembleForge:
             Otherwise, the estimated likelihood ratio (if test_all_combinations is True, the result has shape
             `(n_thetas, n_x)`, otherwise, it has shape `(n_samples,)`).
 
-        std_prediction : ndarray
-            The square root of the estimated ensemble variance.
+        covariance : ndarray
+            The covariance matrix of the Fisher information estimate. This object has four indices,
+            `cov_(ij)(i'j')`, ordered as i j i' j'. It has shape
+            `(n_parameters, n_parameters, n_parameters, n_parameters)`.
 
         weights : ndarray
             Only returned if return_individual_predictions is True. The estimator weights `w_i`.
@@ -1151,22 +1142,17 @@ class EnsembleForge:
         # Calculate weighted mean
         mean = np.average(predictions, axis=0, weights=weights)
 
-        # Calculate weighted variance
-        if self.n_estimators > 1:
-            variance = np.average((predictions - mean) ** 2, axis=0, weights=weights)
-            variance *= float(self.n_estimators) / float(self.n_estimators - 1.)  # Unbiased estimator of pop. var.
-        else:
-            logging.warning('Only one estimator, no meaningful variance calculation!')
-            variance = np.zeros_like(mean)
-
-        std = np.sqrt(variance)
-
-        # TODO: We actually want to the covariance matrix, not the variance!
+        # Calculate covariance matrix
+        predictions_flat = mean.reshape(predictions.shape[0], -1)
+        covariance = np.cov(predictions_flat, aweights=weights)
+        covariance_shape = (predictions_flat.shape[1], predictions_flat.shape[2],
+                            predictions_flat.shape[1], predictions_flat.shape[2])
+        covariance = covariance.reshape(covariance_shape)
 
         if return_individual_predictions:
-            return mean, std, weights, predictions
+            return mean, covariance, weights, predictions
 
-        return mean, std
+        return mean, covariance
 
     def save(self, folder):
         """
