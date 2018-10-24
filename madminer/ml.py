@@ -1057,8 +1057,8 @@ class EnsembleForge:
         mean = np.average(predictions, axis=0, weights=weights)
 
         # Calculate covariance matrix
-        predictions_flat = mean.reshape(predictions.shape[0], -1)
-        covariance = np.cov(predictions_flat, aweights=weights)
+        predictions_flat = predictions.reshape((predictions.shape[0], -1))
+        covariance = np.cov(predictions_flat.T, aweights=weights)
 
         if return_individual_predictions:
             return mean, covariance, weights, predictions
@@ -1143,10 +1143,10 @@ class EnsembleForge:
         mean = np.average(predictions, axis=0, weights=weights)
 
         # Calculate covariance matrix
-        predictions_flat = mean.reshape(predictions.shape[0], -1)
-        covariance = np.cov(predictions_flat, aweights=weights)
-        covariance_shape = (predictions_flat.shape[1], predictions_flat.shape[2],
-                            predictions_flat.shape[1], predictions_flat.shape[2])
+        predictions_flat = predictions.reshape((predictions.shape[0], -1))
+        covariance = np.cov(predictions_flat.T, aweights=weights)
+        covariance_shape = (predictions.shape[1], predictions.shape[2],
+                            predictions.shape[1], predictions.shape[2])
         covariance = covariance.reshape(covariance_shape)
 
         if return_individual_predictions:
