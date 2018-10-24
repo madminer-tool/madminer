@@ -21,16 +21,15 @@ from madminer.utils.various import create_missing_folders, load_and_check, gener
 
 class MLForge:
     """
-    Estimators for the likelihood ratio and score based on machine learning.
+    Estimating likelihood ratios and scores with machine learning.
 
     Each instance of this class represents one neural estimator. The most important functions are:
 
-    * `MLForge.train()` to train an estimator.
-
+    * `MLForge.train()` to train an estimator. The keyword `method` determines the inference technique
+      and whether a class instance represents a single-parameterized likelihood ratio estimator, a doubly-parameterized
+      likelihood ratio estimator, or a local score estimator.
     * `MLForge.evaluate()` to evaluate the estimator.
-
     * `MLForge.save()` to save the trained model to files.
-
     * `MLForge.load()` to load the trained model from files.
 
     Please see the tutorial for a detailed walk-through.
@@ -87,23 +86,27 @@ class MLForge:
         Trains a neural network to estimate either the likelihood ratio or, if method is 'sally' or 'sallino', the
         score.
 
+        The keyword method determines the structure of the estimator that an instance of this class represents:
+
+        * For 'alice', 'alices', 'carl', 'nde', 'rascal', 'rolr', and 'scandal', the neural network models
+          the likelihood ratio as a function of the observables `x` and the numerator hypothesis `theta0`, while
+          the denominator hypothesis is kept at a fixed reference value ("single-parameterized likelihood ratio
+          estimator"). In addition to the likelihood ratio, the estimator allows to estimate the score at `theta0`.
+        * For 'alice2', 'alices2', 'carl2', 'rascal2', and 'rolr2', the neural network models
+          the likelihood ratio as a function of the observables `x`, the numerator hypothesis `theta0`, and the
+          denominator hypothesis `theta1` ("doubly parameterized likelihood ratio estimator"). The score at `theta0`
+          and `theta1` can also be evaluated.
+        * For 'sally' and 'sallino', the neural networks models the score evaluated at some reference hypothesis
+          ("local score regression"). The likelihood ratio cannot be estimated directly from the neural network, but
+          can be estimated in a second step through density estimation in the estimated score space.
+
         Parameters
         ----------
-        method : {'alice', 'alice2', 'alices', 'alices2', 'carl', 'carl2', 'nde', 'rascal', 'rascal2', 'rolr', 'rolr2',
-        'sally', 'sallino', 'scandal'}
-            The inference method used:
-
-             * For 'alice', 'alices', 'carl', 'nde', 'rascal', 'rolr', and 'scandal', the neural network models
-             the likelihood ratio as a function of the observables `x` and the numerator hypothesis `theta0`, while
-             the denominator hypothesis is kept at a fixed reference value. The score at `theta0` can also be evaluated.
-
-             * For 'alice2', 'alices2', 'carl2', 'rascal2', and 'rolr2', the neural network models
-             the likelihood ratio as a function of the observables `x`, the numerator hypothesis `theta0`, and the
-             denominator hypothesis `theta1`. The score at `theta0` and `theta1` can also be evaluated.
-
-             * For 'sally' and 'sallino', the neural networks models the score evaluated at some reference hypothesis.
-             The likelihood ratio cannot be estimated directly from the neural network, but can be estimated in a second
-             step through density estimation in the estimated score space.
+        method : str
+            The inference method used. Allows values are 'alice', 'alices', 'carl', 'nde', 'rascal', 'rolr', and
+            'scandal' for a single-parameterized likelihood ratio estimator; 'alice2', 'alices2', 'carl2', 'rascal2',
+            and 'rolr2' for a doubly-parameterized likelihood ratio estimator; and 'sally' and 'sallino' for local
+            score regression.
             
         x_filename : str
             Path to an unweighted sample of observations, as saved by the `madminer.sampling.SampleAugmenter` functions.
@@ -800,20 +803,20 @@ class EnsembleForge:
     Generally, EnsembleForge instances can be used very similarly to MLForge instances:
 
     * The initialization of EnsembleForge takes a list of (trained or untrained) MLForge instances.
-
     * The methods `EnsembleForge.train_one()` and `EnsembleForge.train_all()` train the estimators (this can also be
-    done outside of EnsembleForge).
-
+      done outside of EnsembleForge).
     * `EnsembleForge.calculate_expectation()` can be used to calculate the expectation of the estimation likelihood
-    ratio or the expected estimated score over a validation sample. Ideally (and assuming the correct sampling),
-    these expectation values should be close to zero. Deviations from zero therefore point out that the estimator
-    is probably inaccurate.
-
+      ratio or the expected estimated score over a validation sample. Ideally (and assuming the correct sampling),
+      these expectation values should be close to zero. Deviations from zero therefore point out that the estimator
+      is probably inaccurate.
     * `EnsembleForge.evaluate()` and `EnsembleForge.calculate_fisher_information()` can then be used to calculate
-    ensemble predictions. The user has the option to treat all estimators equally ('committee method') or to give those
-    with expected score / ratio close to zero a higher weight.
-
+      ensemble predictions. The user has the option to treat all estimators equally ('committee method') or to give those
+      with expected score / ratio close to zero a higher weight.
     * `EnsembleForge.save()` and `EnsembleForge.load()` can store all estimators in one folder.
+
+    The individual estimators in the ensemble can be trained with different methods, but they have to be of the same
+    type: either all estimators are single-parameterized likelihood ratio estimators, or all estimators are
+    doubly-parameterized likelihood estimators, or all estimators are local score regressors.
 
     Note that currently EnsembleForge only supports SALLY and SALLINO estimators.
 

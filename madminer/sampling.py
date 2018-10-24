@@ -198,18 +198,14 @@ class SampleAugmenter:
     Depending on the downstream inference algorithm, there are different possibilities:
 
     * `SampleAugmenter.extract_samples_train_plain()` creates plain training samples without augmented data.
-
     * `SampleAugmenter.extract_samples_train_local()` creates training samples for local methods based on the score,
-    such as SALLY and SALLINO.
-
+      such as SALLY and SALLINO.
     * `SampleAugmenter.extract_samples_train_ratio()` creates training samples for non-local, ratio-based methods
-    like RASCAL, ALICE, and SCANDAL.
-
+      like RASCAL, ALICE, and SCANDAL.
     * `SampleAugmenter.extract_samples_train_more_ratios()` does the same, but can extract joint ratios and scores
-    at more parameter points. This additional information  can be used efficiently in the setup with a "doubly
-    parameterized" likelihood ratio estimator that models the dependence on both the numerator and denominator
-    hypothesis.
-
+      at more parameter points. This additional information  can be used efficiently in the setup with a "doubly
+      parameterized" likelihood ratio estimator that models the dependence on both the numerator and denominator
+      hypothesis.
     * `SampleAugmenter.extract_samples_test()` creates evaluation samples for all methods.
 
     Please see the tutorial for a walkthrough.
