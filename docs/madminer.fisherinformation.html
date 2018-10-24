@@ -16,6 +16,8 @@
     <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="madminer.ml module" href="madminer.ml.html" />
+    <link rel="prev" title="madminer.delphes module" href="madminer.delphes.html" />
    
   <link rel="stylesheet" href="_static/custom.css" type="text/css" />
   
@@ -118,7 +120,7 @@ requires a trained SALLY or SALLINO estimator as well as an unweighted evaluatio
 </table>
 <dl class="method">
 <dt id="madminer.fisherinformation.FisherInformation.calculate_fisher_information_full_detector">
-<code class="descname">calculate_fisher_information_full_detector</code><span class="sig-paren">(</span><em>theta</em>, <em>model_file</em>, <em>unweighted_x_sample_file</em>, <em>luminosity=300000.0</em>, <em>cuts=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/fisherinformation.html#FisherInformation.calculate_fisher_information_full_detector"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.fisherinformation.FisherInformation.calculate_fisher_information_full_detector" title="Permalink to this definition">¶</a></dt>
+<code class="descname">calculate_fisher_information_full_detector</code><span class="sig-paren">(</span><em>theta</em>, <em>model_file</em>, <em>unweighted_x_sample_file</em>, <em>luminosity=300000.0</em>, <em>cuts=None</em>, <em>return_error=None</em>, <em>ensemble_vote_expectation_weight=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/fisherinformation.html#FisherInformation.calculate_fisher_information_full_detector"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.fisherinformation.FisherInformation.calculate_fisher_information_full_detector" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculates the full Fisher information in realistic detector-level observations, estimated with neural networks.
 In addition to the MadMiner file, this requires a trained SALLY or SALLINO estimator as well as an unweighted
 evaluation sample.</p>
@@ -131,19 +133,28 @@ evaluation sample.</p>
 <dd><p class="first last">Parameter point <cite>theta</cite> at which the Fisher information matrix <cite>I_ij(theta)</cite> is evaluated.</p>
 </dd>
 <dt><strong>model_file</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
-<dd><p class="first last">str, filename of a trained local score regression model that was trained on samples from <cite>theta</cite> (see
+<dd><p class="first last">Filename of a trained local score regression model that was trained on samples from <cite>theta</cite> (see
 <cite>madminer.ml.MLForge</cite>).</p>
 </dd>
 <dt><strong>unweighted_x_sample_file</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
-<dd><p class="first last">str, filename of an unweighted x sample that is sampled according to theta and obeys the cuts
+<dd><p class="first last">Filename of an unweighted x sample that is sampled according to theta and obeys the cuts
 (see <cite>madminer.sampling.SampleAugmenter.extract_samples_train_local()</cite>)</p>
 </dd>
-<dt><strong>luminosity</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float, optional</span></dt>
-<dd><p class="first last">Luminosity in pb^-1. Default value: 300000.</p>
+<dt><strong>luminosity</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">Luminosity in pb^-1.</p>
 </dd>
 <dt><strong>cuts</strong> <span class="classifier-delimiter">:</span> <span class="classifier">None or list of str, optional</span></dt>
 <dd><p class="first last">Cuts. Each entry is a parseable Python expression that returns a bool (True if the event should pass a cut,
 False otherwise). Default value: None.</p>
+</dd>
+<dt><strong>return_error</strong> <span class="classifier-delimiter">:</span> <span class="classifier">None or bool, optional</span></dt>
+<dd><p class="first last">Whether an uncertainty of the Fisher information is returned together with the prediction. If None, it is
+returned only if model_file points to the directory of an ensemble. Default value: None.</p>
+</dd>
+<dt><strong>ensemble_vote_expectation_weight</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float or None, optional</span></dt>
+<dd><p class="first last">For ensemble models, the factor that determines how much more weight is given to those estimators with
+small expectation value. If None, or if <cite>EnsembleForge.calculate_expectation()</cite> has not been called,
+all estimators are treated equal. Default value: None.</p>
 </dd>
 </dl>
 </td>
@@ -151,6 +162,11 @@ False otherwise). Default value: None.</p>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
 <dt><strong>fisher_information</strong> <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
 <dd><p class="first last">Estimated expected full detector-level Fisher information matrix with shape <cite>(n_parameters, n_parameters)</cite>.</p>
+</dd>
+<dt><strong>fisher_information_uncertainty</strong> <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
+<dd><p class="first last">Returned only if return_error is True, or if return_error is None and model_file is the directory of an
+ensemble. Uncertainty of the expected full detector-level Fisher information matrix with shape
+<cite>(n_parameters, n_parameters)</cite>.</p>
 </dd>
 </dl>
 </td>
@@ -173,8 +189,8 @@ perfect accuracy, i.e. the latent variables <cite>z_parton</cite> can be measure
 <dt><strong>theta</strong> <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
 <dd><p class="first last">Parameter point <cite>theta</cite> at which the Fisher information matrix <cite>I_ij(theta)</cite> is evaluated.</p>
 </dd>
-<dt><strong>luminosity</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float, optional</span></dt>
-<dd><p class="first last">Luminosity in pb^-1. Default value: 300000.</p>
+<dt><strong>luminosity</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">Luminosity in pb^-1.</p>
 </dd>
 <dt><strong>cuts</strong> <span class="classifier-delimiter">:</span> <span class="classifier">None or list of str, optional</span></dt>
 <dd><p class="first last">Cuts. Each entry is a parseable Python expression that returns a bool (True if the event should pass a cut,
@@ -211,8 +227,8 @@ depending on how the observations in the MadMiner file were calculated) observab
 <dt><strong>theta</strong> <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
 <dd><p class="first last">Parameter point <cite>theta</cite> at which the Fisher information matrix <cite>I_ij(theta)</cite> is evaluated.</p>
 </dd>
-<dt><strong>luminosity</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float, optional</span></dt>
-<dd><p class="first last">Luminosity in pb^-1. Default value: 300000.</p>
+<dt><strong>luminosity</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">Luminosity in pb^-1.</p>
 </dd>
 <dt><strong>observable</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
 <dd><p class="first last">Expression for the observable to be histogrammed. The str will be parsed by Python’s <cite>eval()</cite> function
@@ -259,8 +275,8 @@ depending on how the observations in the MadMiner file were calculated) observab
 <dt><strong>theta</strong> <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
 <dd><p class="first last">Parameter point <cite>theta</cite> at which the Fisher information matrix <cite>I_ij(theta)</cite> is evaluated.</p>
 </dd>
-<dt><strong>luminosity</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float, optional</span></dt>
-<dd><p class="first last">Luminosity in pb^-1. Default value: 300000.</p>
+<dt><strong>luminosity</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">Luminosity in pb^-1.</p>
 </dd>
 <dt><strong>observable1</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
 <dd><p class="first last">Expression for the first observable to be histogrammed. The str will be parsed by Python’s <cite>eval()</cite> function
@@ -319,8 +335,8 @@ information).</p>
 <dt><strong>theta</strong> <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
 <dd><p class="first last">Parameter point <cite>theta</cite> at which the Fisher information matrix <cite>I_ij(theta)</cite> is evaluated.</p>
 </dd>
-<dt><strong>luminosity</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float, optional</span></dt>
-<dd><p class="first last">Luminosity in pb^-1. Default value: 300000.</p>
+<dt><strong>luminosity</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">Luminosity in pb^-1.</p>
 </dd>
 <dt><strong>cuts</strong> <span class="classifier-delimiter">:</span> <span class="classifier">None or list of str, optional</span></dt>
 <dd><p class="first last">Cuts. Each entry is a parseable Python expression that returns a bool (True if the event should pass a cut,
@@ -416,8 +432,8 @@ weights for the given parameter theta with shape <cite>(n_unweighted_samples,)</
 <dt><strong>theta</strong> <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
 <dd><p class="first last">Parameter point <cite>theta</cite> at which the Fisher information matrix <cite>I_ij(theta)</cite> is evaluated.</p>
 </dd>
-<dt><strong>luminosity</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float, optional</span></dt>
-<dd><p class="first last">Luminosity in pb^-1. Default value: 300000.</p>
+<dt><strong>luminosity</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">Luminosity in pb^-1.</p>
 </dd>
 <dt><strong>observable</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
 <dd><p class="first last">Expression for the observable to be sliced. The str will be parsed by Python’s <cite>eval()</cite> function
@@ -546,12 +562,12 @@ their new order. All other parameters or projected out.</p>
 
 <h3>Navigation</h3>
 <p class="caption"><span class="caption-text">Contents:</span></p>
-<ul>
+<ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="madminer.core.html">madminer.core module</a></li>
 <li class="toctree-l1"><a class="reference internal" href="madminer.delphes.html">madminer.delphes module</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">madminer.fisherinformation module</a></li>
 <li class="toctree-l1"><a class="reference internal" href="madminer.ml.html">madminer.ml module</a></li>
 <li class="toctree-l1"><a class="reference internal" href="madminer.morphing.html">madminer.morphing module</a></li>
-<li class="toctree-l1"><a class="reference internal" href="madminer.plotting.html">madminer.plotting module</a></li>
 <li class="toctree-l1"><a class="reference internal" href="madminer.sampling.html">madminer.sampling module</a></li>
 </ul>
 
@@ -559,6 +575,8 @@ their new order. All other parameters or projected out.</p>
 <h3>Related Topics</h3>
 <ul>
   <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="madminer.delphes.html" title="previous chapter">madminer.delphes module</a></li>
+      <li>Next: <a href="madminer.ml.html" title="next chapter">madminer.ml module</a></li>
   </ul></li>
 </ul>
 </div>

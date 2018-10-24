@@ -16,7 +16,7 @@
     <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="prev" title="madminer.plotting module" href="madminer.plotting.html" />
+    <link rel="prev" title="madminer.morphing module" href="madminer.morphing.html" />
    
   <link rel="stylesheet" href="_static/custom.css" type="text/css" />
   
@@ -205,7 +205,7 @@ sampling. Pass the output of the functions <cite>constant_benchmark_theta()</cit
 <dd><p class="first last">Filenames for the resulting samples. A prefix such as ‘x’ or ‘theta0’ as well as the extension
 ‘.npy’ will be added automatically.</p>
 </dd>
-<dt><strong>test_split</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float, optional</span></dt>
+<dt><strong>test_split</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float or None, optional</span></dt>
 <dd><p class="first last">Fraction of events reserved for the evaluation sample (that will not be used for any training samples).
 Default value: 0.5.</p>
 </dd>
@@ -252,7 +252,7 @@ evaluated. Pass the output of the functions <cite>constant_benchmark_theta()</ci
 <dd><p class="first last">Filenames for the resulting samples. A prefix such as ‘x’ or ‘theta0’ as well as the extension
 ‘.npy’ will be added automatically.</p>
 </dd>
-<dt><strong>test_split</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float, optional</span></dt>
+<dt><strong>test_split</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float or None, optional</span></dt>
 <dd><p class="first last">Fraction of events reserved for the evaluation sample (that will not be used for any training samples).
 Default value: 0.5.</p>
 </dd>
@@ -322,7 +322,7 @@ ratio on both the numerator and denominator hypothesis. Pass the output of  the 
 <cite>constant_benchmark_theta()</cite>, <cite>multiple_benchmark_thetas()</cite>, <cite>constant_morphing_theta()</cite>,
 <cite>multiple_morphing_thetas()</cite>, or <cite>random_morphing_thetas()</cite>. Default value: None.</p>
 </dd>
-<dt><strong>test_split</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float, optional</span></dt>
+<dt><strong>test_split</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float or None, optional</span></dt>
 <dd><p class="first last">Fraction of events reserved for the evaluation sample (that will not be used for any training samples).
 Default value: 0.5.</p>
 </dd>
@@ -365,7 +365,8 @@ file in the given folder.</p>
 <dt id="madminer.sampling.SampleAugmenter.extract_samples_train_plain">
 <code class="descname">extract_samples_train_plain</code><span class="sig-paren">(</span><em>theta</em>, <em>n_samples</em>, <em>folder</em>, <em>filename</em>, <em>test_split=0.5</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/sampling.html#SampleAugmenter.extract_samples_train_plain"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.sampling.SampleAugmenter.extract_samples_train_plain" title="Permalink to this definition">¶</a></dt>
 <dd><p>Extracts plain training samples <cite>x ~ p(x|theta)</cite> without any augmented data. This can be use for standard
-inference methods such as ABC, histograms of observables, or neural density estimation techniques.</p>
+inference methods such as ABC, histograms of observables, or neural density estimation techniques. It can also
+be used to create validation or calibration samples.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -386,7 +387,7 @@ sampling. Pass the output of the functions <cite>constant_benchmark_theta()</cit
 <dd><p class="first last">Filenames for the resulting samples. A prefix such as ‘x’ or ‘theta0’ as well as the extension
 ‘.npy’ will be added automatically.</p>
 </dd>
-<dt><strong>test_split</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float, optional</span></dt>
+<dt><strong>test_split</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float or None, optional</span></dt>
 <dd><p class="first last">Fraction of events reserved for the evaluation sample (that will not be used for any training samples).
 Default value: 0.5.</p>
 </dd>
@@ -440,7 +441,7 @@ sampling. Pass the output of the functions <cite>constant_benchmark_theta()</cit
 <dd><p class="first last">Filenames for the resulting samples. A prefix such as ‘x’ or ‘theta0’ as well as the extension
 ‘.npy’ will be added automatically.</p>
 </dd>
-<dt><strong>test_split</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float, optional</span></dt>
+<dt><strong>test_split</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float or None, optional</span></dt>
 <dd><p class="first last">Fraction of events reserved for the evaluation sample (that will not be used for any training samples).
 Default value: 0.5.</p>
 </dd>
@@ -679,9 +680,9 @@ bound of the flat prior, and <cite>gaussian</cite>, in which case they are the m
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="madminer.core.html">madminer.core module</a></li>
 <li class="toctree-l1"><a class="reference internal" href="madminer.delphes.html">madminer.delphes module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="madminer.fisherinformation.html">madminer.fisherinformation module</a></li>
 <li class="toctree-l1"><a class="reference internal" href="madminer.ml.html">madminer.ml module</a></li>
 <li class="toctree-l1"><a class="reference internal" href="madminer.morphing.html">madminer.morphing module</a></li>
-<li class="toctree-l1"><a class="reference internal" href="madminer.plotting.html">madminer.plotting module</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">madminer.sampling module</a></li>
 </ul>
 
@@ -689,7 +690,7 @@ bound of the flat prior, and <cite>gaussian</cite>, in which case they are the m
 <h3>Related Topics</h3>
 <ul>
   <li><a href="index.html">Documentation overview</a><ul>
-      <li>Previous: <a href="madminer.plotting.html" title="previous chapter">madminer.plotting module</a></li>
+      <li>Previous: <a href="madminer.morphing.html" title="previous chapter">madminer.morphing module</a></li>
   </ul></li>
 </ul>
 </div>

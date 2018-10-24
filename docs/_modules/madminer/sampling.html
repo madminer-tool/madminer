@@ -309,7 +309,8 @@
                                     <span class="n">test_split</span><span class="o">=</span><span class="mf">0.5</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Extracts plain training samples `x ~ p(x|theta)` without any augmented data. This can be use for standard</span>
-<span class="sd">        inference methods such as ABC, histograms of observables, or neural density estimation techniques.</span>
+<span class="sd">        inference methods such as ABC, histograms of observables, or neural density estimation techniques. It can also</span>
+<span class="sd">        be used to create validation or calibration samples.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
@@ -328,7 +329,7 @@
 <span class="sd">            Filenames for the resulting samples. A prefix such as &#39;x&#39; or &#39;theta0&#39; as well as the extension</span>
 <span class="sd">            &#39;.npy&#39; will be added automatically.</span>
 
-<span class="sd">        test_split : float, optional</span>
+<span class="sd">        test_split : float or None, optional</span>
 <span class="sd">            Fraction of events reserved for the evaluation sample (that will not be used for any training samples).</span>
 <span class="sd">            Default value: 0.5.</span>
 
@@ -402,7 +403,7 @@
 <span class="sd">            Filenames for the resulting samples. A prefix such as &#39;x&#39; or &#39;theta0&#39; as well as the extension</span>
 <span class="sd">            &#39;.npy&#39; will be added automatically.</span>
 
-<span class="sd">        test_split : float, optional</span>
+<span class="sd">        test_split : float or None, optional</span>
 <span class="sd">            Fraction of events reserved for the evaluation sample (that will not be used for any training samples).</span>
 <span class="sd">            Default value: 0.5.</span>
 
@@ -497,7 +498,7 @@
 <span class="sd">            Filenames for the resulting samples. A prefix such as &#39;x&#39; or &#39;theta0&#39; as well as the extension</span>
 <span class="sd">            &#39;.npy&#39; will be added automatically.</span>
 
-<span class="sd">        test_split : float, optional</span>
+<span class="sd">        test_split : float or None, optional</span>
 <span class="sd">            Fraction of events reserved for the evaluation sample (that will not be used for any training samples).</span>
 <span class="sd">            Default value: 0.5.</span>
 
@@ -658,7 +659,7 @@
 <span class="sd">            `constant_benchmark_theta()`, `multiple_benchmark_thetas()`, `constant_morphing_theta()`,</span>
 <span class="sd">            `multiple_morphing_thetas()`, or `random_morphing_thetas()`. Default value: None.</span>
 
-<span class="sd">        test_split : float, optional</span>
+<span class="sd">        test_split : float or None, optional</span>
 <span class="sd">            Fraction of events reserved for the evaluation sample (that will not be used for any training samples).</span>
 <span class="sd">            Default value: 0.5.</span>
 
@@ -896,7 +897,7 @@
 <span class="sd">            Filenames for the resulting samples. A prefix such as &#39;x&#39; or &#39;theta0&#39; as well as the extension</span>
 <span class="sd">            &#39;.npy&#39; will be added automatically.</span>
 
-<span class="sd">        test_split : float, optional</span>
+<span class="sd">        test_split : float or None, optional</span>
 <span class="sd">            Fraction of events reserved for the evaluation sample (that will not be used for any training samples).</span>
 <span class="sd">            Default value: 0.5.</span>
 
@@ -1021,6 +1022,44 @@
         <span class="n">all_xsec_uncertainties</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">all_xsec_uncertainties</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="n">all_thetas</span><span class="p">,</span> <span class="n">all_xsecs</span><span class="p">,</span> <span class="n">all_xsec_uncertainties</span></div>
+
+<div class="viewcode-block" id="SampleAugmenter.extract_raw_data"><a class="viewcode-back" href="../../madminer.sampling.html#madminer.sampling.SampleAugmenter.extract_raw_data">[docs]</a>    <span class="k">def</span> <span class="nf">extract_raw_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns all events together with the benchmark weights (if theta is None) or weights for a given theta.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        theta : None or ndarray</span>
+<span class="sd">            If None, the function returns the benchmark weights. Otherwise it uses morphing to calculate the weights for</span>
+<span class="sd">            this value of theta. Default value: None.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        x : ndarray</span>
+<span class="sd">            Observables with shape `(n_unweighted_samples, n_observables)`.</span>
+
+<span class="sd">        weights : ndarray</span>
+<span class="sd">            If theta is None, benchmark weights with shape  `(n_unweighted_samples, n_benchmarks)` in pb. Otherwise,</span>
+<span class="sd">            weights for the given parameter theta with shape `(n_unweighted_samples,)` in pb.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">x</span><span class="p">,</span> <span class="n">weights_benchmarks</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">madminer_event_loader</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">madminer_filename</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="kc">None</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="n">theta</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">theta_matrix</span> <span class="o">=</span> <span class="n">get_theta_benchmark_matrix</span><span class="p">(</span>
+                <span class="s1">&#39;morphing&#39;</span><span class="p">,</span>
+                <span class="n">theta</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">benchmarks</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">morpher</span>
+            <span class="p">)</span>
+
+            <span class="n">weights_theta</span> <span class="o">=</span> <span class="n">theta_matrix</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">weights_benchmarks</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+
+            <span class="k">return</span> <span class="n">x</span><span class="p">,</span> <span class="n">weights_theta</span>
+
+        <span class="k">return</span> <span class="n">x</span><span class="p">,</span> <span class="n">weights_benchmarks</span></div>
 
     <span class="k">def</span> <span class="nf">_extract_sample</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                         <span class="n">theta_sets_types</span><span class="p">,</span>
@@ -1180,7 +1219,7 @@
             <span class="n">rms_xsec_sampling_theta</span> <span class="o">=</span> <span class="p">((</span><span class="n">sampling_theta_matrix</span> <span class="o">*</span> <span class="n">sampling_theta_matrix</span><span class="p">)</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span>
                 <span class="n">squared_weight_sum_benchmarks</span><span class="p">))</span> <span class="o">**</span> <span class="mf">0.5</span>
 
-            <span class="k">if</span> <span class="n">rms_xsec_sampling_theta</span> <span class="o">&gt;</span> <span class="mf">0.2</span> <span class="o">*</span> <span class="n">xsec_sampling_theta</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">rms_xsec_sampling_theta</span> <span class="o">&gt;</span> <span class="mf">0.1</span> <span class="o">*</span> <span class="n">xsec_sampling_theta</span><span class="p">:</span>
                 <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;Warning: large statistical uncertainty on the total cross section for theta = </span><span class="si">%s</span><span class="s1">: &#39;</span>
                                 <span class="s1">&#39;(</span><span class="si">%s</span><span class="s1"> +/- </span><span class="si">%s</span><span class="s1">) pb&#39;</span><span class="p">,</span>
                                 <span class="n">thetas</span><span class="p">[</span><span class="n">sampling_theta_index</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span>
@@ -1270,45 +1309,7 @@
         <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">all_augmented_data</span><span class="p">)):</span>
             <span class="n">all_augmented_data</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">(</span><span class="n">all_augmented_data</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
 
-        <span class="k">return</span> <span class="n">all_x</span><span class="p">,</span> <span class="n">all_augmented_data</span><span class="p">,</span> <span class="n">all_thetas</span>
-
-<div class="viewcode-block" id="SampleAugmenter.extract_raw_data"><a class="viewcode-back" href="../../madminer.sampling.html#madminer.sampling.SampleAugmenter.extract_raw_data">[docs]</a>    <span class="k">def</span> <span class="nf">extract_raw_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-
-        <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Returns all events together with the benchmark weights (if theta is None) or weights for a given theta.</span>
-
-<span class="sd">        Parameters</span>
-<span class="sd">        ----------</span>
-<span class="sd">        theta : None or ndarray</span>
-<span class="sd">            If None, the function returns the benchmark weights. Otherwise it uses morphing to calculate the weights for</span>
-<span class="sd">            this value of theta. Default value: None.</span>
-
-<span class="sd">        Returns</span>
-<span class="sd">        -------</span>
-<span class="sd">        x : ndarray</span>
-<span class="sd">            Observables with shape `(n_unweighted_samples, n_observables)`.</span>
-
-<span class="sd">        weights : ndarray</span>
-<span class="sd">            If theta is None, benchmark weights with shape  `(n_unweighted_samples, n_benchmarks)` in pb. Otherwise,</span>
-<span class="sd">            weights for the given parameter theta with shape `(n_unweighted_samples,)` in pb.</span>
-
-<span class="sd">        &quot;&quot;&quot;</span>
-
-        <span class="n">x</span><span class="p">,</span> <span class="n">weights_benchmarks</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">madminer_event_loader</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">madminer_filename</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="kc">None</span><span class="p">))</span>
-
-        <span class="k">if</span> <span class="n">theta</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">theta_matrix</span> <span class="o">=</span> <span class="n">get_theta_benchmark_matrix</span><span class="p">(</span>
-                <span class="s1">&#39;morphing&#39;</span><span class="p">,</span>
-                <span class="n">theta</span><span class="p">,</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">benchmarks</span><span class="p">,</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">morpher</span>
-            <span class="p">)</span>
-
-            <span class="n">weights_theta</span> <span class="o">=</span> <span class="n">theta_matrix</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">weights_benchmarks</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
-
-            <span class="k">return</span> <span class="n">x</span><span class="p">,</span> <span class="n">weights_theta</span>
-
-        <span class="k">return</span> <span class="n">x</span><span class="p">,</span> <span class="n">weights_benchmarks</span></div></div>
+        <span class="k">return</span> <span class="n">all_x</span><span class="p">,</span> <span class="n">all_augmented_data</span><span class="p">,</span> <span class="n">all_thetas</span></div>
 </pre></div>
 
           </div>

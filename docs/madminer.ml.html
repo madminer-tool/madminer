@@ -17,7 +17,7 @@
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="madminer.morphing module" href="madminer.morphing.html" />
-    <link rel="prev" title="madminer.delphes module" href="madminer.delphes.html" />
+    <link rel="prev" title="madminer.fisherinformation module" href="madminer.fisherinformation.html" />
    
   <link rel="stylesheet" href="_static/custom.css" type="text/css" />
   
@@ -36,6 +36,363 @@
             
   <div class="section" id="module-madminer.ml">
 <span id="madminer-ml-module"></span><h1>madminer.ml module<a class="headerlink" href="#module-madminer.ml" title="Permalink to this headline">¶</a></h1>
+<dl class="class">
+<dt id="madminer.ml.EnsembleForge">
+<em class="property">class </em><code class="descclassname">madminer.ml.</code><code class="descname">EnsembleForge</code><span class="sig-paren">(</span><em>estimators=None</em>, <em>debug=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/ml.html#EnsembleForge"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.ml.EnsembleForge" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Ensemble methods for likelihood ratio and score information.</p>
+<p>Generally, EnsembleForge instances can be used very similarly to MLForge instances:</p>
+<ul class="simple">
+<li>The initialization of EnsembleForge takes a list of (trained or untrained) MLForge instances.</li>
+<li>The methods <cite>EnsembleForge.train_one()</cite> and <cite>EnsembleForge.train_all()</cite> train the estimators (this can also be</li>
+</ul>
+<p>done outside of EnsembleForge).</p>
+<ul class="simple">
+<li><cite>EnsembleForge.calculate_expectation()</cite> can be used to calculate the expectation of the estimation likelihood</li>
+</ul>
+<p>ratio or the expected estimated score over a validation sample. Ideally (and assuming the correct sampling),
+these expectation values should be close to zero. Deviations from zero therefore point out that the estimator
+is probably inaccurate.</p>
+<ul class="simple">
+<li><cite>EnsembleForge.evaluate()</cite> and <cite>EnsembleForge.calculate_fisher_information()</cite> can then be used to calculate</li>
+</ul>
+<p>ensemble predictions. The user has the option to treat all estimators equally (‘committee method’) or to give those
+with expected score / ratio close to zero a higher weight.</p>
+<ul class="simple">
+<li><cite>EnsembleForge.save()</cite> and <cite>EnsembleForge.load()</cite> can store all estimators in one folder.</li>
+</ul>
+<p>Note that currently EnsembleForge only supports SALLY and SALLINO estimators.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>estimators</strong> <span class="classifier-delimiter">:</span> <span class="classifier">None or list of MLForge, optional</span></dt>
+<dd><p class="first last">The estimators in the form of (trained or untrained) MLForge instances. Note that the estimators have to be
+consistent: either all of them are trained with a local score method (‘sally’ or ‘sallino’); or all of them are
+trained with a single-parameterized method (‘carl’, ‘rolr’, ‘rascal’, ‘scandal’, ‘alice’, or ‘alices’); or all
+of them are trained with a doubly parameterized method (‘carl2’, ‘rolr2’, ‘rascal2’, ‘alice2’, or ‘alices2’).
+Mixing estimators of different types within one of these three categories is supported, but mixing estimators
+from different categories is not and will raise a RuntimeException. Default value: None.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Attributes:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>estimators</strong> <span class="classifier-delimiter">:</span> <span class="classifier">list of MLForge</span></dt>
+<dd><p class="first last">The estimators in the form of MLForge instances.</p>
+</dd>
+<dt><strong>debug</strong> <span class="classifier-delimiter">:</span> <span class="classifier">bool, optional</span></dt>
+<dd><p class="first last">If True, additional detailed debugging output is printed. Default value: False.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Methods</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><a class="reference internal" href="#madminer.ml.EnsembleForge.calculate_expectation" title="madminer.ml.EnsembleForge.calculate_expectation"><code class="xref py py-obj docutils literal notranslate"><span class="pre">calculate_expectation</span></code></a>(x_filename[,&nbsp;…])</td>
+<td>Calculates the expectation of the estimation likelihood ratio or the expected estimated score over a validation sample.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#madminer.ml.EnsembleForge.calculate_fisher_information" title="madminer.ml.EnsembleForge.calculate_fisher_information"><code class="xref py py-obj docutils literal notranslate"><span class="pre">calculate_fisher_information</span></code></a>(x_filename[,&nbsp;…])</td>
+<td>Calculates the expected Fisher information matrices for each estimator, and then returns the ensemble mean and variance.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#madminer.ml.EnsembleForge.evaluate" title="madminer.ml.EnsembleForge.evaluate"><code class="xref py py-obj docutils literal notranslate"><span class="pre">evaluate</span></code></a>(x_filename[,&nbsp;theta0_filename,&nbsp;…])</td>
+<td>Evaluates the estimators of the likelihood ratio (or, if method is ‘sally’ or ‘sallino’, the score), and calculates the ensemble mean or variance.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#madminer.ml.EnsembleForge.load" title="madminer.ml.EnsembleForge.load"><code class="xref py py-obj docutils literal notranslate"><span class="pre">load</span></code></a>(folder)</td>
+<td>Loads the estimator ensemble from a folder.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#madminer.ml.EnsembleForge.save" title="madminer.ml.EnsembleForge.save"><code class="xref py py-obj docutils literal notranslate"><span class="pre">save</span></code></a>(folder)</td>
+<td>Saves the estimator ensemble to a folder.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#madminer.ml.EnsembleForge.train_all" title="madminer.ml.EnsembleForge.train_all"><code class="xref py py-obj docutils literal notranslate"><span class="pre">train_all</span></code></a>(**kwargs)</td>
+<td>Trains all estimators.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#madminer.ml.EnsembleForge.train_one" title="madminer.ml.EnsembleForge.train_one"><code class="xref py py-obj docutils literal notranslate"><span class="pre">train_one</span></code></a>(i,&nbsp;**kwargs)</td>
+<td>Trains an individual estimator.</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="madminer.ml.EnsembleForge.calculate_expectation">
+<code class="descname">calculate_expectation</code><span class="sig-paren">(</span><em>x_filename</em>, <em>theta0_filename=None</em>, <em>theta1_filename=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/ml.html#EnsembleForge.calculate_expectation"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.ml.EnsembleForge.calculate_expectation" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates the expectation of the estimation likelihood ratio or the expected estimated score over a validation
+sample. Ideally (and assuming the correct sampling), these expectation values should be close to zero.
+Deviations from zero therefore point out that the estimator is probably inaccurate.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>x_filename</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
+<dd><p class="first last">Path to an unweighted sample of observations, as saved by the <cite>madminer.sampling.SampleAugmenter</cite> functions.</p>
+</dd>
+<dt><strong>theta0_filename</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str or None, optional</span></dt>
+<dd><p class="first last">Path to an unweighted sample of numerator parameters, as saved by the <cite>madminer.sampling.SampleAugmenter</cite>
+functions. Required if the estimators were trained with the ‘alice’, ‘alice2’, ‘alices’, ‘alices2’, ‘carl’,
+‘carl2’, ‘nde’, ‘rascal’, ‘rascal2’, ‘rolr’, ‘rolr2’, or ‘scandal’ method. Default value: None.</p>
+</dd>
+<dt><strong>theta1_filename</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str or None, optional</span></dt>
+<dd><p class="first last">Path to an unweighted sample of denominator parameters, as saved by the <cite>madminer.sampling.SampleAugmenter</cite>
+functions. Required if the estimators were trained with the ‘alice2’, ‘alices2’, ‘carl2’, ‘rascal2’, or
+‘rolr2’ method. Default value: None.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>expectations</strong> <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
+<dd><p class="first last">Expected score (if the estimators were trained with the ‘sally’ or ‘sallino’ methods) or likelihood ratio
+(otherwise).</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="madminer.ml.EnsembleForge.calculate_fisher_information">
+<code class="descname">calculate_fisher_information</code><span class="sig-paren">(</span><em>x_filename</em>, <em>n_events=1</em>, <em>vote_expectation_weight=None</em>, <em>return_individual_predictions=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/ml.html#EnsembleForge.calculate_fisher_information"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.ml.EnsembleForge.calculate_fisher_information" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates the expected Fisher information matrices for each estimator, and then returns the ensemble mean and
+variance.</p>
+<p>The user has the option to treat all estimators equally (‘committee method’) or to give those with expected
+score / ratio close to zero (as calculated by <cite>calculate_expectation()</cite>) a higher weight. In the latter case,
+the ensemble mean <cite>I</cite> is calculated as <cite>I  =  sum_i w_i I_i</cite> with weights
+<cite>w_i  =  exp(-vote_expectation_weight |E[t_i]|) / sum_j exp(-vote_expectation_weight |E[t_k]|)</cite>. Here <cite>I_i</cite>
+are the individual estimators and <cite>E[t_i]</cite> is the expectation value calculated by <cite>calculate_expectation()</cite>.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>x_filename</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
+<dd><p class="first last">Path to an unweighted sample of observations, as saved by the <cite>madminer.sampling.SampleAugmenter</cite> functions.
+Note that this sample has to be sample from the reference parameter where the score is estimated with the
+SALLY / SALLINO estimator!</p>
+</dd>
+<dt><strong>n_events</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int, optional</span></dt>
+<dd><p class="first last">Number of events for which the kinematic Fisher information should be calculated. Default value: 1.</p>
+</dd>
+<dt><strong>vote_expectation_weight</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float or None, optional</span></dt>
+<dd><p class="first last">Factor that determines how much more weight is given to those estimators with small expectation value (as
+calculated by <cite>calculate_expectation()</cite>). If None, or if <cite>calculate_expectation()</cite> has not been called,
+all estimators are treated equal. Default value: None.</p>
+</dd>
+<dt><strong>return_individual_predictions</strong> <span class="classifier-delimiter">:</span> <span class="classifier">bool, optional</span></dt>
+<dd><p class="first last">Whether the individual estimator predictions are returned. Default value: False.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>mean_prediction</strong> <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
+<dd><p class="first last">The (weighted) ensemble mean of the estimators. If the estimators were trained with <cite>method=’sally’</cite> or
+<cite>method=’sallino’</cite>, this is an array of the estimator for <cite>t(x_i | theta_ref)</cite> for all events <cite>i</cite>.
+Otherwise, the estimated likelihood ratio (if test_all_combinations is True, the result has shape
+<cite>(n_thetas, n_x)</cite>, otherwise, it has shape <cite>(n_samples,)</cite>).</p>
+</dd>
+<dt><strong>covariance</strong> <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
+<dd><p class="first last">The covariance matrix of the Fisher information estimate. This object has four indices,
+<cite>cov_(ij)(i’j’)</cite>, ordered as i j i’ j’. It has shape
+<cite>(n_parameters, n_parameters, n_parameters, n_parameters)</cite>.</p>
+</dd>
+<dt><strong>weights</strong> <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
+<dd><p class="first last">Only returned if return_individual_predictions is True. The estimator weights <cite>w_i</cite>.</p>
+</dd>
+<dt><strong>individual_predictions</strong> <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
+<dd><p class="first last">Only returned if return_individual_predictions is True. The individual estimator predictions.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="madminer.ml.EnsembleForge.evaluate">
+<code class="descname">evaluate</code><span class="sig-paren">(</span><em>x_filename</em>, <em>theta0_filename=None</em>, <em>theta1_filename=None</em>, <em>test_all_combinations=True</em>, <em>vote_expectation_weight=None</em>, <em>return_individual_predictions=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/ml.html#EnsembleForge.evaluate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.ml.EnsembleForge.evaluate" title="Permalink to this definition">¶</a></dt>
+<dd><p>Evaluates the estimators of the likelihood ratio (or, if method is ‘sally’ or ‘sallino’, the score), and
+calculates the ensemble mean or variance.</p>
+<p>The user has the option to treat all estimators equally (‘committee method’) or to give those with expected
+score / ratio close to zero (as calculated by <cite>calculate_expectation()</cite>) a higher weight. In the latter case,
+the ensemble mean <cite>f(x)</cite> is calculated as <cite>f(x)  =  sum_i w_i f_i(x)</cite> with weights
+<cite>w_i  =  exp(-vote_expectation_weight |E[f_i]|) / sum_j exp(-vote_expectation_weight |E[f_j]|)</cite>. Here <cite>f_i(x)</cite>
+are the individual estimators and <cite>E[f_i]</cite> is the expectation value calculated by <cite>calculate_expectation()</cite>.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>x_filename</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
+<dd><p class="first last">Path to an unweighted sample of observations, as saved by the <cite>madminer.sampling.SampleAugmenter</cite> functions.</p>
+</dd>
+<dt><strong>theta0_filename</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str or None, optional</span></dt>
+<dd><p class="first last">Path to an unweighted sample of numerator parameters, as saved by the <cite>madminer.sampling.SampleAugmenter</cite>
+functions. Required if the estimator was trained with the ‘alice’, ‘alice2’, ‘alices’, ‘alices2’, ‘carl’,
+‘carl2’, ‘nde’, ‘rascal’, ‘rascal2’, ‘rolr’, ‘rolr2’, or ‘scandal’ method. Default value: None.</p>
+</dd>
+<dt><strong>theta1_filename</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str or None, optional</span></dt>
+<dd><p class="first last">Path to an unweighted sample of denominator parameters, as saved by the <cite>madminer.sampling.SampleAugmenter</cite>
+functions. Required if the estimator was trained with the ‘alice2’, ‘alices2’, ‘carl2’, ‘rascal2’, or
+‘rolr2’ method. Default value: None.</p>
+</dd>
+<dt><strong>test_all_combinations</strong> <span class="classifier-delimiter">:</span> <span class="classifier">bool, optional</span></dt>
+<dd><p class="first last">If method is not ‘sally’ and not ‘sallino’: If False, the number of samples in the observable and theta
+files has to match, and the likelihood ratio is evaluated only for the combinations
+<cite>r(x_i | theta0_i, theta1_i)</cite>. If True, <cite>r(x_i | theta0_j, theta1_j)</cite> for all pairwise combinations <cite>i, j</cite>
+are evaluated. Default value: True.</p>
+</dd>
+<dt><strong>vote_expectation_weight</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float or None, optional</span></dt>
+<dd><p class="first last">Factor that determines how much more weight is given to those estimators with small expectation value (as
+calculated by <cite>calculate_expectation()</cite>). If None, or if <cite>calculate_expectation()</cite> has not been called,
+all estimators are treated equal. Default value: None.</p>
+</dd>
+<dt><strong>return_individual_predictions</strong> <span class="classifier-delimiter">:</span> <span class="classifier">bool, optional</span></dt>
+<dd><p class="first last">Whether the individual estimator predictions are returned. Default value: False.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>mean_prediction</strong> <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
+<dd><p class="first last">The (weighted) ensemble mean of the estimators. If the estimators were trained with <cite>method=’sally’</cite> or
+<cite>method=’sallino’</cite>, this is an array of the estimator for <cite>t(x_i | theta_ref)</cite> for all events <cite>i</cite>.
+Otherwise, the estimated likelihood ratio (if test_all_combinations is True, the result has shape
+<cite>(n_thetas, n_x)</cite>, otherwise, it has shape <cite>(n_samples,)</cite>).</p>
+</dd>
+<dt><strong>covariance</strong> <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
+<dd><p class="first last">The covariance matrix of the (flattened) predictions.</p>
+</dd>
+<dt><strong>weights</strong> <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
+<dd><p class="first last">Only returned if return_individual_predictions is True. The estimator weights <cite>w_i</cite>.</p>
+</dd>
+<dt><strong>individual_predictions</strong> <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
+<dd><p class="first last">Only returned if return_individual_predictions is True. The individual estimator predictions.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="madminer.ml.EnsembleForge.load">
+<code class="descname">load</code><span class="sig-paren">(</span><em>folder</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/ml.html#EnsembleForge.load"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.ml.EnsembleForge.load" title="Permalink to this definition">¶</a></dt>
+<dd><p>Loads the estimator ensemble from a folder.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>folder</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
+<dd><p class="first last">Path to the folder.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>None</strong></dt>
+<dd></dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="madminer.ml.EnsembleForge.save">
+<code class="descname">save</code><span class="sig-paren">(</span><em>folder</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/ml.html#EnsembleForge.save"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.ml.EnsembleForge.save" title="Permalink to this definition">¶</a></dt>
+<dd><p>Saves the estimator ensemble to a folder.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>folder</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
+<dd><p class="first last">Path to the folder.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>None</strong></dt>
+<dd></dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="madminer.ml.EnsembleForge.train_all">
+<code class="descname">train_all</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/ml.html#EnsembleForge.train_all"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.ml.EnsembleForge.train_all" title="Permalink to this definition">¶</a></dt>
+<dd><p>Trains all estimators.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>kwargs</strong> <span class="classifier-delimiter">:</span> <span class="classifier">dict</span></dt>
+<dd><p class="first last">Parameters for <cite>MLForge.train()</cite>. If a value in this dict is a list, it has to have length <cite>n_estimators</cite>
+and contain one value of this parameter for each of the estimators. Otherwise the value is used as parameter
+for the training of all the estimators.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>None</strong></dt>
+<dd></dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="madminer.ml.EnsembleForge.train_one">
+<code class="descname">train_one</code><span class="sig-paren">(</span><em>i</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/ml.html#EnsembleForge.train_one"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.ml.EnsembleForge.train_one" title="Permalink to this definition">¶</a></dt>
+<dd><p>Trains an individual estimator.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>i</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
+<dd><p class="first last">The index <cite>0 &lt;= i &lt; n_estimators</cite> of the estimator to be trained.</p>
+</dd>
+<dt><strong>kwargs</strong> <span class="classifier-delimiter">:</span> <span class="classifier">dict</span></dt>
+<dd><p class="first last">Parameters for <cite>MLForge.train()</cite>.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>None</strong></dt>
+<dd></dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
 <dl class="class">
 <dt id="madminer.ml.MLForge">
 <em class="property">class </em><code class="descclassname">madminer.ml.</code><code class="descname">MLForge</code><span class="sig-paren">(</span><em>debug=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/ml.html#MLForge"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.ml.MLForge" title="Permalink to this definition">¶</a></dt>
@@ -88,7 +445,7 @@
 </table>
 <dl class="method">
 <dt id="madminer.ml.MLForge.calculate_fisher_information">
-<code class="descname">calculate_fisher_information</code><span class="sig-paren">(</span><em>x_filename</em>, <em>n_events=1</em>, <em>features=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/ml.html#MLForge.calculate_fisher_information"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.ml.MLForge.calculate_fisher_information" title="Permalink to this definition">¶</a></dt>
+<code class="descname">calculate_fisher_information</code><span class="sig-paren">(</span><em>x_filename</em>, <em>n_events=1</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/ml.html#MLForge.calculate_fisher_information"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.ml.MLForge.calculate_fisher_information" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculates the expected Fisher information matrix based on the kinematic information in a given number of
 events. Currently only supported for estimators trained with <cite>method=’sally’</cite> or <cite>method=’sallino’</cite>.</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -149,10 +506,6 @@ are evaluated. Default value: True.</p>
 <dt><strong>evaluate_score</strong> <span class="classifier-delimiter">:</span> <span class="classifier">bool, optional</span></dt>
 <dd><p class="first last">If method is not ‘sally’ and not ‘sallino’, this sets whether in addition to the likelihood ratio the score
 is evaluated. Default value: False.</p>
-</dd>
-<dt><strong>features</strong> <span class="classifier-delimiter">:</span> <span class="classifier">list of int or None, optional</span></dt>
-<dd><p class="first last">Indices of observables (features) that are used as input to the neural networks. If None, all observables
-are used. Has to match the keyword ‘features’ used during training. Default value: None.</p>
 </dd>
 </dl>
 </td>
@@ -240,7 +593,7 @@ file.</p>
 
 <dl class="method">
 <dt id="madminer.ml.MLForge.train">
-<code class="descname">train</code><span class="sig-paren">(</span><em>method</em>, <em>x_filename</em>, <em>y_filename=None</em>, <em>theta0_filename=None</em>, <em>theta1_filename=None</em>, <em>r_xz_filename=None</em>, <em>t_xz0_filename=None</em>, <em>t_xz1_filename=None</em>, <em>features=None</em>, <em>nde_type='maf'</em>, <em>n_hidden=(100</em>, <em>100</em>, <em>100)</em>, <em>activation='tanh'</em>, <em>maf_n_mades=3</em>, <em>maf_batch_norm=True</em>, <em>maf_batch_norm_alpha=0.1</em>, <em>maf_mog_n_components=10</em>, <em>alpha=1.0</em>, <em>n_epochs=20</em>, <em>batch_size=64</em>, <em>initial_lr=0.001</em>, <em>final_lr=0.0001</em>, <em>validation_split=0.2</em>, <em>early_stopping=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/ml.html#MLForge.train"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.ml.MLForge.train" title="Permalink to this definition">¶</a></dt>
+<code class="descname">train</code><span class="sig-paren">(</span><em>method</em>, <em>x_filename</em>, <em>y_filename=None</em>, <em>theta0_filename=None</em>, <em>theta1_filename=None</em>, <em>r_xz_filename=None</em>, <em>t_xz0_filename=None</em>, <em>t_xz1_filename=None</em>, <em>features=None</em>, <em>nde_type='maf'</em>, <em>n_hidden=(100</em>, <em>100</em>, <em>100)</em>, <em>activation='tanh'</em>, <em>maf_n_mades=3</em>, <em>maf_batch_norm=True</em>, <em>maf_batch_norm_alpha=0.1</em>, <em>maf_mog_n_components=10</em>, <em>alpha=1.0</em>, <em>n_epochs=20</em>, <em>batch_size=128</em>, <em>initial_lr=0.002</em>, <em>final_lr=0.0001</em>, <em>validation_split=0.2</em>, <em>early_stopping=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/ml.html#MLForge.train"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.ml.MLForge.train" title="Permalink to this definition">¶</a></dt>
 <dd><p>Trains a neural network to estimate either the likelihood ratio or, if method is ‘sally’ or ‘sallino’, the
 score.</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -342,11 +695,11 @@ Default value: 10.</p>
 <dd><p class="first last">Number of epochs. Default value: 20.</p>
 </dd>
 <dt><strong>batch_size</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int, optional</span></dt>
-<dd><p class="first last">Batch size. Default value: 64.</p>
+<dd><p class="first last">Batch size. Default value: 128.</p>
 </dd>
 <dt><strong>initial_lr</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float, optional</span></dt>
 <dd><p class="first last">Learning rate during the first epoch, after which it exponentially decays to final_lr. Default value:
-0.001.</p>
+0.002.</p>
 </dd>
 <dt><strong>final_lr</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float, optional</span></dt>
 <dd><p class="first last">Learning rate during the last epoch. Default value: 0.0001.</p>
@@ -396,9 +749,9 @@ sample is used for training and early stopping is deactivated. Default value: 0.
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="madminer.core.html">madminer.core module</a></li>
 <li class="toctree-l1"><a class="reference internal" href="madminer.delphes.html">madminer.delphes module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="madminer.fisherinformation.html">madminer.fisherinformation module</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">madminer.ml module</a></li>
 <li class="toctree-l1"><a class="reference internal" href="madminer.morphing.html">madminer.morphing module</a></li>
-<li class="toctree-l1"><a class="reference internal" href="madminer.plotting.html">madminer.plotting module</a></li>
 <li class="toctree-l1"><a class="reference internal" href="madminer.sampling.html">madminer.sampling module</a></li>
 </ul>
 
@@ -406,7 +759,7 @@ sample is used for training and early stopping is deactivated. Default value: 0.
 <h3>Related Topics</h3>
 <ul>
   <li><a href="index.html">Documentation overview</a><ul>
-      <li>Previous: <a href="madminer.delphes.html" title="previous chapter">madminer.delphes module</a></li>
+      <li>Previous: <a href="madminer.fisherinformation.html" title="previous chapter">madminer.fisherinformation module</a></li>
       <li>Next: <a href="madminer.morphing.html" title="next chapter">madminer.morphing module</a></li>
   </ul></li>
 </ul>

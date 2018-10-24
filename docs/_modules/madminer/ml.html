@@ -35,6 +35,7 @@
   <h1>Source code for madminer.ml</h1><div class="highlight"><pre>
 <span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">absolute_import</span><span class="p">,</span> <span class="n">division</span><span class="p">,</span> <span class="n">print_function</span>
 
+<span class="kn">import</span> <span class="nn">six</span>
 <span class="kn">import</span> <span class="nn">logging</span>
 <span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">import</span> <span class="nn">json</span>
@@ -111,8 +112,8 @@
               <span class="n">maf_mog_n_components</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
               <span class="n">alpha</span><span class="o">=</span><span class="mf">1.</span><span class="p">,</span>
               <span class="n">n_epochs</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>
-              <span class="n">batch_size</span><span class="o">=</span><span class="mi">64</span><span class="p">,</span>
-              <span class="n">initial_lr</span><span class="o">=</span><span class="mf">0.001</span><span class="p">,</span>
+              <span class="n">batch_size</span><span class="o">=</span><span class="mi">128</span><span class="p">,</span>
+              <span class="n">initial_lr</span><span class="o">=</span><span class="mf">0.002</span><span class="p">,</span>
               <span class="n">final_lr</span><span class="o">=</span><span class="mf">0.0001</span><span class="p">,</span>
               <span class="n">validation_split</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span>
               <span class="n">early_stopping</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
@@ -211,11 +212,11 @@
 <span class="sd">            Number of epochs. Default value: 20.</span>
 
 <span class="sd">        batch_size : int, optional</span>
-<span class="sd">            Batch size. Default value: 64.</span>
+<span class="sd">            Batch size. Default value: 128.</span>
 
 <span class="sd">        initial_lr : float, optional</span>
 <span class="sd">            Learning rate during the first epoch, after which it exponentially decays to final_lr. Default value:</span>
-<span class="sd">            0.001.</span>
+<span class="sd">            0.002.</span>
 
 <span class="sd">        final_lr : float, optional</span>
 <span class="sd">            Learning rate during the last epoch. Default value: 0.0001.</span>
@@ -527,10 +528,6 @@
 <span class="sd">            If method is not &#39;sally&#39; and not &#39;sallino&#39;, this sets whether in addition to the likelihood ratio the score</span>
 <span class="sd">            is evaluated. Default value: False.</span>
 
-<span class="sd">        features : list of int or None, optional</span>
-<span class="sd">            Indices of observables (features) that are used as input to the neural networks. If None, all observables</span>
-<span class="sd">            are used. Has to match the keyword &#39;features&#39; used during training. Default value: None.</span>
-
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
 <span class="sd">        sally_estimated_score : ndarray</span>
@@ -571,20 +568,7 @@
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">features</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">xs</span> <span class="o">=</span> <span class="n">xs</span><span class="p">[:,</span> <span class="bp">self</span><span class="o">.</span><span class="n">features</span><span class="p">]</span>
 
-        <span class="c1"># Balance thetas</span>
-        <span class="k">if</span> <span class="n">theta1s</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">theta0s</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">theta1s</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">theta0s</span><span class="p">]</span>
-        <span class="k">elif</span> <span class="n">theta1s</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">theta0s</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">theta1s</span><span class="p">)</span> <span class="o">&gt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">theta0s</span><span class="p">):</span>
-                <span class="n">theta0s</span> <span class="o">=</span> <span class="p">[</span><span class="n">theta0s</span><span class="p">[</span><span class="n">i</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="n">theta0s</span><span class="p">)]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">theta1s</span><span class="p">))]</span>
-            <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">theta1s</span><span class="p">)</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">theta0s</span><span class="p">):</span>
-                <span class="n">theta1s</span> <span class="o">=</span> <span class="p">[</span><span class="n">theta1s</span><span class="p">[</span><span class="n">i</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="n">theta1s</span><span class="p">)]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">theta0s</span><span class="p">))]</span>
-
-        <span class="c1"># Loop over thetas</span>
-        <span class="n">all_log_r_hat</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="n">all_t_hat0</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="n">all_t_hat1</span> <span class="o">=</span> <span class="p">[]</span>
-
+        <span class="c1"># SALLY evaluation</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">method</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;sally&#39;</span><span class="p">,</span> <span class="s1">&#39;sallino&#39;</span><span class="p">]:</span>
             <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Starting score evaluation&#39;</span><span class="p">)</span>
 
@@ -594,6 +578,20 @@
             <span class="p">)</span>
 
             <span class="k">return</span> <span class="n">all_t_hat</span>
+
+        <span class="c1"># Balance thetas</span>
+        <span class="k">if</span> <span class="n">theta1s</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">theta0s</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">theta1s</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">theta0s</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="n">theta1s</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">theta0s</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">theta1s</span><span class="p">)</span> <span class="o">&gt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">theta0s</span><span class="p">):</span>
+                <span class="n">theta0s</span> <span class="o">=</span> <span class="p">[</span><span class="n">theta0s</span><span class="p">[</span><span class="n">i</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="n">theta0s</span><span class="p">)]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">theta1s</span><span class="p">))]</span>
+            <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">theta1s</span><span class="p">)</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">theta0s</span><span class="p">):</span>
+                <span class="n">theta1s</span> <span class="o">=</span> <span class="p">[</span><span class="n">theta1s</span><span class="p">[</span><span class="n">i</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="n">theta1s</span><span class="p">)]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">theta0s</span><span class="p">))]</span>
+
+        <span class="c1"># Evaluation for all other methods</span>
+        <span class="n">all_log_r_hat</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">all_t_hat0</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">all_t_hat1</span> <span class="o">=</span> <span class="p">[]</span>
 
         <span class="k">if</span> <span class="n">test_all_combinations</span><span class="p">:</span>
             <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Starting ratio evaluation for all combinations&#39;</span><span class="p">)</span>
@@ -657,8 +655,7 @@
 
 <div class="viewcode-block" id="MLForge.calculate_fisher_information"><a class="viewcode-back" href="../../madminer.ml.html#madminer.ml.MLForge.calculate_fisher_information">[docs]</a>    <span class="k">def</span> <span class="nf">calculate_fisher_information</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                                      <span class="n">x_filename</span><span class="p">,</span>
-                                     <span class="n">n_events</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
-                                     <span class="n">features</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+                                     <span class="n">n_events</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
 
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Calculates the expected Fisher information matrix based on the kinematic information in a given number of</span>
@@ -829,6 +826,502 @@
         <span class="c1"># Load state dict</span>
         <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Loading state dictionary from </span><span class="si">%s</span><span class="s1">_state_dict.pt&#39;</span><span class="p">,</span> <span class="n">filename</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">load_state_dict</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">filename</span> <span class="o">+</span> <span class="s1">&#39;_state_dict.pt&#39;</span><span class="p">))</span></div></div>
+
+
+<div class="viewcode-block" id="EnsembleForge"><a class="viewcode-back" href="../../madminer.ml.html#madminer.ml.EnsembleForge">[docs]</a><span class="k">class</span> <span class="nc">EnsembleForge</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Ensemble methods for likelihood ratio and score information.</span>
+
+<span class="sd">    Generally, EnsembleForge instances can be used very similarly to MLForge instances:</span>
+
+<span class="sd">    * The initialization of EnsembleForge takes a list of (trained or untrained) MLForge instances.</span>
+
+<span class="sd">    * The methods `EnsembleForge.train_one()` and `EnsembleForge.train_all()` train the estimators (this can also be</span>
+<span class="sd">    done outside of EnsembleForge).</span>
+
+<span class="sd">    * `EnsembleForge.calculate_expectation()` can be used to calculate the expectation of the estimation likelihood</span>
+<span class="sd">    ratio or the expected estimated score over a validation sample. Ideally (and assuming the correct sampling),</span>
+<span class="sd">    these expectation values should be close to zero. Deviations from zero therefore point out that the estimator</span>
+<span class="sd">    is probably inaccurate.</span>
+
+<span class="sd">    * `EnsembleForge.evaluate()` and `EnsembleForge.calculate_fisher_information()` can then be used to calculate</span>
+<span class="sd">    ensemble predictions. The user has the option to treat all estimators equally (&#39;committee method&#39;) or to give those</span>
+<span class="sd">    with expected score / ratio close to zero a higher weight.</span>
+
+<span class="sd">    * `EnsembleForge.save()` and `EnsembleForge.load()` can store all estimators in one folder.</span>
+
+<span class="sd">    Note that currently EnsembleForge only supports SALLY and SALLINO estimators.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    estimators : None or list of MLForge, optional</span>
+<span class="sd">        The estimators in the form of (trained or untrained) MLForge instances. Note that the estimators have to be</span>
+<span class="sd">        consistent: either all of them are trained with a local score method (&#39;sally&#39; or &#39;sallino&#39;); or all of them are</span>
+<span class="sd">        trained with a single-parameterized method (&#39;carl&#39;, &#39;rolr&#39;, &#39;rascal&#39;, &#39;scandal&#39;, &#39;alice&#39;, or &#39;alices&#39;); or all</span>
+<span class="sd">        of them are trained with a doubly parameterized method (&#39;carl2&#39;, &#39;rolr2&#39;, &#39;rascal2&#39;, &#39;alice2&#39;, or &#39;alices2&#39;).</span>
+<span class="sd">        Mixing estimators of different types within one of these three categories is supported, but mixing estimators</span>
+<span class="sd">        from different categories is not and will raise a RuntimeException. Default value: None.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    estimators : list of MLForge</span>
+<span class="sd">        The estimators in the form of MLForge instances.</span>
+
+<span class="sd">    debug : bool, optional</span>
+<span class="sd">        If True, additional detailed debugging output is printed. Default value: False.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">estimators</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">debug</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="n">general_init</span><span class="p">(</span><span class="n">debug</span><span class="o">=</span><span class="n">debug</span><span class="p">)</span>
+
+        <span class="c1"># Save settings</span>
+        <span class="k">if</span> <span class="n">estimators</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">estimators</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">estimators</span> <span class="o">=</span> <span class="n">estimators</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_estimators</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">estimators</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">expectations</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="c1"># Consistency checks</span>
+        <span class="k">for</span> <span class="n">estimator</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">estimators</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">estimator</span><span class="p">,</span> <span class="n">MLForge</span><span class="p">),</span> <span class="s1">&#39;Estimator is no MLForge instance!&#39;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_check_consistency</span><span class="p">()</span>
+
+<div class="viewcode-block" id="EnsembleForge.train_one"><a class="viewcode-back" href="../../madminer.ml.html#madminer.ml.EnsembleForge.train_one">[docs]</a>    <span class="k">def</span> <span class="nf">train_one</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Trains an individual estimator.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        i : int</span>
+<span class="sd">            The index `0 &lt;= i &lt; n_estimators` of the estimator to be trained.</span>
+
+<span class="sd">        kwargs : dict</span>
+<span class="sd">            Parameters for `MLForge.train()`.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">            None</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_check_consistency</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">estimators</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="EnsembleForge.train_all"><a class="viewcode-back" href="../../madminer.ml.html#madminer.ml.EnsembleForge.train_all">[docs]</a>    <span class="k">def</span> <span class="nf">train_all</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Trains all estimators.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        kwargs : dict</span>
+<span class="sd">            Parameters for `MLForge.train()`. If a value in this dict is a list, it has to have length `n_estimators`</span>
+<span class="sd">            and contain one value of this parameter for each of the estimators. Otherwise the value is used as parameter</span>
+<span class="sd">            for the training of all the estimators.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">            None</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Training </span><span class="si">%s</span><span class="s1"> estimators in ensemble&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_estimators</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">iteritems</span><span class="p">(</span><span class="n">kwargs</span><span class="p">):</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+                <span class="n">kwargs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">value</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_estimators</span><span class="p">)]</span>
+
+            <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="n">key</span><span class="p">])</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_estimators</span><span class="p">,</span> <span class="s1">&#39;Keyword </span><span class="si">{}</span><span class="s1"> has wrong length </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">value</span><span class="p">))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_check_consistency</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">estimator</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">estimators</span><span class="p">):</span>
+            <span class="n">kwargs_this_estimator</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">iteritems</span><span class="p">(</span><span class="n">kwargs</span><span class="p">):</span>
+                <span class="n">kwargs_this_estimator</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Training estimator </span><span class="si">%s</span><span class="s1"> / </span><span class="si">%s</span><span class="s1"> in ensemble&#39;</span><span class="p">,</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_estimators</span><span class="p">)</span>
+            <span class="n">estimator</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs_this_estimator</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="EnsembleForge.calculate_expectation"><a class="viewcode-back" href="../../madminer.ml.html#madminer.ml.EnsembleForge.calculate_expectation">[docs]</a>    <span class="k">def</span> <span class="nf">calculate_expectation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                              <span class="n">x_filename</span><span class="p">,</span>
+                              <span class="n">theta0_filename</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                              <span class="n">theta1_filename</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculates the expectation of the estimation likelihood ratio or the expected estimated score over a validation</span>
+<span class="sd">        sample. Ideally (and assuming the correct sampling), these expectation values should be close to zero.</span>
+<span class="sd">        Deviations from zero therefore point out that the estimator is probably inaccurate.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        x_filename : str</span>
+<span class="sd">            Path to an unweighted sample of observations, as saved by the `madminer.sampling.SampleAugmenter` functions.</span>
+
+<span class="sd">        theta0_filename : str or None, optional</span>
+<span class="sd">            Path to an unweighted sample of numerator parameters, as saved by the `madminer.sampling.SampleAugmenter`</span>
+<span class="sd">            functions. Required if the estimators were trained with the &#39;alice&#39;, &#39;alice2&#39;, &#39;alices&#39;, &#39;alices2&#39;, &#39;carl&#39;,</span>
+<span class="sd">            &#39;carl2&#39;, &#39;nde&#39;, &#39;rascal&#39;, &#39;rascal2&#39;, &#39;rolr&#39;, &#39;rolr2&#39;, or &#39;scandal&#39; method. Default value: None.</span>
+
+<span class="sd">        theta1_filename : str or None, optional</span>
+<span class="sd">            Path to an unweighted sample of denominator parameters, as saved by the `madminer.sampling.SampleAugmenter`</span>
+<span class="sd">            functions. Required if the estimators were trained with the &#39;alice2&#39;, &#39;alices2&#39;, &#39;carl2&#39;, &#39;rascal2&#39;, or</span>
+<span class="sd">            &#39;rolr2&#39; method. Default value: None.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        expectations : ndarray</span>
+<span class="sd">            Expected score (if the estimators were trained with the &#39;sally&#39; or &#39;sallino&#39; methods) or likelihood ratio</span>
+<span class="sd">            (otherwise).</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Calculating expectation for </span><span class="si">%s</span><span class="s1"> estimators in ensemble&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_estimators</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">expectations</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">method_type</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_check_consistency</span><span class="p">()</span>
+
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">estimator</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">estimators</span><span class="p">):</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Starting evaluation for estimator </span><span class="si">%s</span><span class="s1"> / </span><span class="si">%s</span><span class="s1"> in ensemble&#39;</span><span class="p">,</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_estimators</span><span class="p">)</span>
+
+            <span class="c1"># Calculate expected score / ratio</span>
+            <span class="k">if</span> <span class="n">method_type</span> <span class="o">==</span> <span class="s1">&#39;local_score&#39;</span><span class="p">:</span>
+                <span class="n">prediction</span> <span class="o">=</span> <span class="n">estimator</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="n">x_filename</span><span class="p">,</span> <span class="n">theta0_filename</span><span class="p">,</span> <span class="n">theta1_filename</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Expectation calculation currently only implemented for SALLY and SALLINO!&#39;</span><span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">expectations</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">prediction</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">expectations</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">expectations</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">expectations</span></div>
+
+<div class="viewcode-block" id="EnsembleForge.evaluate"><a class="viewcode-back" href="../../madminer.ml.html#madminer.ml.EnsembleForge.evaluate">[docs]</a>    <span class="k">def</span> <span class="nf">evaluate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">x_filename</span><span class="p">,</span>
+                 <span class="n">theta0_filename</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">theta1_filename</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">test_all_combinations</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                 <span class="n">vote_expectation_weight</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">return_individual_predictions</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Evaluates the estimators of the likelihood ratio (or, if method is &#39;sally&#39; or &#39;sallino&#39;, the score), and</span>
+<span class="sd">        calculates the ensemble mean or variance.</span>
+
+<span class="sd">        The user has the option to treat all estimators equally (&#39;committee method&#39;) or to give those with expected</span>
+<span class="sd">        score / ratio close to zero (as calculated by `calculate_expectation()`) a higher weight. In the latter case,</span>
+<span class="sd">        the ensemble mean `f(x)` is calculated as `f(x)  =  sum_i w_i f_i(x)` with weights</span>
+<span class="sd">        `w_i  =  exp(-vote_expectation_weight |E[f_i]|) / sum_j exp(-vote_expectation_weight |E[f_j]|)`. Here `f_i(x)`</span>
+<span class="sd">        are the individual estimators and `E[f_i]` is the expectation value calculated by `calculate_expectation()`.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        x_filename : str</span>
+<span class="sd">            Path to an unweighted sample of observations, as saved by the `madminer.sampling.SampleAugmenter` functions.</span>
+
+<span class="sd">        theta0_filename : str or None, optional</span>
+<span class="sd">            Path to an unweighted sample of numerator parameters, as saved by the `madminer.sampling.SampleAugmenter`</span>
+<span class="sd">            functions. Required if the estimator was trained with the &#39;alice&#39;, &#39;alice2&#39;, &#39;alices&#39;, &#39;alices2&#39;, &#39;carl&#39;,</span>
+<span class="sd">            &#39;carl2&#39;, &#39;nde&#39;, &#39;rascal&#39;, &#39;rascal2&#39;, &#39;rolr&#39;, &#39;rolr2&#39;, or &#39;scandal&#39; method. Default value: None.</span>
+
+<span class="sd">        theta1_filename : str or None, optional</span>
+<span class="sd">            Path to an unweighted sample of denominator parameters, as saved by the `madminer.sampling.SampleAugmenter`</span>
+<span class="sd">            functions. Required if the estimator was trained with the &#39;alice2&#39;, &#39;alices2&#39;, &#39;carl2&#39;, &#39;rascal2&#39;, or</span>
+<span class="sd">            &#39;rolr2&#39; method. Default value: None.</span>
+
+<span class="sd">        test_all_combinations : bool, optional</span>
+<span class="sd">            If method is not &#39;sally&#39; and not &#39;sallino&#39;: If False, the number of samples in the observable and theta</span>
+<span class="sd">            files has to match, and the likelihood ratio is evaluated only for the combinations</span>
+<span class="sd">            `r(x_i | theta0_i, theta1_i)`. If True, `r(x_i | theta0_j, theta1_j)` for all pairwise combinations `i, j`</span>
+<span class="sd">            are evaluated. Default value: True.</span>
+
+<span class="sd">        vote_expectation_weight : float or None, optional</span>
+<span class="sd">            Factor that determines how much more weight is given to those estimators with small expectation value (as</span>
+<span class="sd">            calculated by `calculate_expectation()`). If None, or if `calculate_expectation()` has not been called,</span>
+<span class="sd">            all estimators are treated equal. Default value: None.</span>
+
+<span class="sd">        return_individual_predictions : bool, optional</span>
+<span class="sd">            Whether the individual estimator predictions are returned. Default value: False.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        mean_prediction : ndarray</span>
+<span class="sd">            The (weighted) ensemble mean of the estimators. If the estimators were trained with `method=&#39;sally&#39;` or</span>
+<span class="sd">            `method=&#39;sallino&#39;`, this is an array of the estimator for `t(x_i | theta_ref)` for all events `i`.</span>
+<span class="sd">            Otherwise, the estimated likelihood ratio (if test_all_combinations is True, the result has shape</span>
+<span class="sd">            `(n_thetas, n_x)`, otherwise, it has shape `(n_samples,)`).</span>
+
+<span class="sd">        covariance : ndarray</span>
+<span class="sd">            The covariance matrix of the (flattened) predictions.</span>
+
+<span class="sd">        weights : ndarray</span>
+<span class="sd">            Only returned if return_individual_predictions is True. The estimator weights `w_i`.</span>
+
+<span class="sd">        individual_predictions : ndarray</span>
+<span class="sd">            Only returned if return_individual_predictions is True. The individual estimator predictions.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Evaluating </span><span class="si">%s</span><span class="s1"> estimators in ensemble&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_estimators</span><span class="p">)</span>
+
+        <span class="c1"># Calculate weights of each estimator in vote</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">expectations</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">vote_expectation_weight</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">weights</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_estimators</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">weights</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">vote_expectation_weight</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">expectations</span><span class="p">)</span>
+
+        <span class="n">weights</span> <span class="o">/=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">weights</span><span class="p">)</span>
+
+        <span class="c1"># Calculate estimator predictions</span>
+        <span class="n">predictions</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">estimator</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">estimators</span><span class="p">):</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Starting evaluation for estimator </span><span class="si">%s</span><span class="s1"> / </span><span class="si">%s</span><span class="s1"> in ensemble&#39;</span><span class="p">,</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_estimators</span><span class="p">)</span>
+
+            <span class="n">predictions</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">estimator</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span>
+                <span class="n">x_filename</span><span class="p">,</span>
+                <span class="n">theta0_filename</span><span class="p">,</span>
+                <span class="n">theta1_filename</span><span class="p">,</span>
+                <span class="n">test_all_combinations</span><span class="p">,</span>
+                <span class="n">evaluate_score</span><span class="o">=</span><span class="kc">False</span>
+            <span class="p">))</span>
+        <span class="n">predictions</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">predictions</span><span class="p">)</span>
+
+        <span class="c1"># Calculate weighted mean</span>
+        <span class="n">mean</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">average</span><span class="p">(</span><span class="n">predictions</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="n">weights</span><span class="p">)</span>
+
+        <span class="c1"># Calculate covariance matrix</span>
+        <span class="n">predictions_flat</span> <span class="o">=</span> <span class="n">predictions</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="n">predictions</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+        <span class="n">covariance</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cov</span><span class="p">(</span><span class="n">predictions_flat</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">aweights</span><span class="o">=</span><span class="n">weights</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">return_individual_predictions</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">mean</span><span class="p">,</span> <span class="n">covariance</span><span class="p">,</span> <span class="n">weights</span><span class="p">,</span> <span class="n">predictions</span>
+
+        <span class="k">return</span> <span class="n">mean</span><span class="p">,</span> <span class="n">covariance</span></div>
+
+<div class="viewcode-block" id="EnsembleForge.calculate_fisher_information"><a class="viewcode-back" href="../../madminer.ml.html#madminer.ml.EnsembleForge.calculate_fisher_information">[docs]</a>    <span class="k">def</span> <span class="nf">calculate_fisher_information</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                                     <span class="n">x_filename</span><span class="p">,</span>
+                                     <span class="n">n_events</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                                     <span class="n">vote_expectation_weight</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                                     <span class="n">return_individual_predictions</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculates the expected Fisher information matrices for each estimator, and then returns the ensemble mean and</span>
+<span class="sd">        variance.</span>
+
+<span class="sd">        The user has the option to treat all estimators equally (&#39;committee method&#39;) or to give those with expected</span>
+<span class="sd">        score / ratio close to zero (as calculated by `calculate_expectation()`) a higher weight. In the latter case,</span>
+<span class="sd">        the ensemble mean `I` is calculated as `I  =  sum_i w_i I_i` with weights</span>
+<span class="sd">        `w_i  =  exp(-vote_expectation_weight |E[t_i]|) / sum_j exp(-vote_expectation_weight |E[t_k]|)`. Here `I_i`</span>
+<span class="sd">        are the individual estimators and `E[t_i]` is the expectation value calculated by `calculate_expectation()`.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        x_filename : str</span>
+<span class="sd">            Path to an unweighted sample of observations, as saved by the `madminer.sampling.SampleAugmenter` functions.</span>
+<span class="sd">            Note that this sample has to be sample from the reference parameter where the score is estimated with the</span>
+<span class="sd">            SALLY / SALLINO estimator!</span>
+
+<span class="sd">        n_events : int, optional</span>
+<span class="sd">            Number of events for which the kinematic Fisher information should be calculated. Default value: 1.</span>
+
+<span class="sd">        vote_expectation_weight : float or None, optional</span>
+<span class="sd">            Factor that determines how much more weight is given to those estimators with small expectation value (as</span>
+<span class="sd">            calculated by `calculate_expectation()`). If None, or if `calculate_expectation()` has not been called,</span>
+<span class="sd">            all estimators are treated equal. Default value: None.</span>
+
+<span class="sd">        return_individual_predictions : bool, optional</span>
+<span class="sd">            Whether the individual estimator predictions are returned. Default value: False.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        mean_prediction : ndarray</span>
+<span class="sd">            The (weighted) ensemble mean of the estimators. If the estimators were trained with `method=&#39;sally&#39;` or</span>
+<span class="sd">            `method=&#39;sallino&#39;`, this is an array of the estimator for `t(x_i | theta_ref)` for all events `i`.</span>
+<span class="sd">            Otherwise, the estimated likelihood ratio (if test_all_combinations is True, the result has shape</span>
+<span class="sd">            `(n_thetas, n_x)`, otherwise, it has shape `(n_samples,)`).</span>
+
+<span class="sd">        covariance : ndarray</span>
+<span class="sd">            The covariance matrix of the Fisher information estimate. This object has four indices,</span>
+<span class="sd">            `cov_(ij)(i&#39;j&#39;)`, ordered as i j i&#39; j&#39;. It has shape</span>
+<span class="sd">            `(n_parameters, n_parameters, n_parameters, n_parameters)`.</span>
+
+<span class="sd">        weights : ndarray</span>
+<span class="sd">            Only returned if return_individual_predictions is True. The estimator weights `w_i`.</span>
+
+<span class="sd">        individual_predictions : ndarray</span>
+<span class="sd">            Only returned if return_individual_predictions is True. The individual estimator predictions.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Evaluating Fisher information for </span><span class="si">%s</span><span class="s1"> estimators in ensemble&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_estimators</span><span class="p">)</span>
+
+        <span class="c1"># Calculate weights of each estimator in vote</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">expectations</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">vote_expectation_weight</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">weights</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_estimators</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">weights</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">vote_expectation_weight</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">expectations</span><span class="p">))</span>
+
+        <span class="n">weights</span> <span class="o">/=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">weights</span><span class="p">)</span>
+
+        <span class="c1"># Calculate estimator predictions</span>
+        <span class="n">predictions</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">estimator</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">estimators</span><span class="p">):</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Starting evaluation for estimator </span><span class="si">%s</span><span class="s1"> / </span><span class="si">%s</span><span class="s1"> in ensemble&#39;</span><span class="p">,</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_estimators</span><span class="p">)</span>
+
+            <span class="n">predictions</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">estimator</span><span class="o">.</span><span class="n">calculate_fisher_information</span><span class="p">(</span>
+                <span class="n">x_filename</span><span class="o">=</span><span class="n">x_filename</span><span class="p">,</span>
+                <span class="n">n_events</span><span class="o">=</span><span class="n">n_events</span>
+            <span class="p">))</span>
+        <span class="n">predictions</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">predictions</span><span class="p">)</span>
+
+        <span class="c1"># Calculate weighted mean</span>
+        <span class="n">mean</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">average</span><span class="p">(</span><span class="n">predictions</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="n">weights</span><span class="p">)</span>
+
+        <span class="c1"># Calculate covariance matrix</span>
+        <span class="n">predictions_flat</span> <span class="o">=</span> <span class="n">predictions</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="n">predictions</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+        <span class="n">covariance</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cov</span><span class="p">(</span><span class="n">predictions_flat</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">aweights</span><span class="o">=</span><span class="n">weights</span><span class="p">)</span>
+        <span class="n">covariance_shape</span> <span class="o">=</span> <span class="p">(</span><span class="n">predictions</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">predictions</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span>
+                            <span class="n">predictions</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">predictions</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+        <span class="n">covariance</span> <span class="o">=</span> <span class="n">covariance</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">covariance_shape</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">return_individual_predictions</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">mean</span><span class="p">,</span> <span class="n">covariance</span><span class="p">,</span> <span class="n">weights</span><span class="p">,</span> <span class="n">predictions</span>
+
+        <span class="k">return</span> <span class="n">mean</span><span class="p">,</span> <span class="n">covariance</span></div>
+
+<div class="viewcode-block" id="EnsembleForge.save"><a class="viewcode-back" href="../../madminer.ml.html#madminer.ml.EnsembleForge.save">[docs]</a>    <span class="k">def</span> <span class="nf">save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">folder</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Saves the estimator ensemble to a folder.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        folder : str</span>
+<span class="sd">            Path to the folder.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">            None</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Check paths</span>
+        <span class="n">create_missing_folders</span><span class="p">([</span><span class="n">folder</span><span class="p">])</span>
+
+        <span class="c1"># Save ensemble settings</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Saving ensemble setup to </span><span class="si">%s</span><span class="s1">/ensemble.json&#39;</span><span class="p">,</span> <span class="n">folder</span><span class="p">)</span>
+
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">expectations</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">expectations</span> <span class="o">=</span> <span class="s1">&#39;None&#39;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">expectations</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">expectations</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+
+        <span class="n">settings</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;n_estimators&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_estimators</span><span class="p">,</span>
+                    <span class="s1">&#39;expectations&#39;</span><span class="p">:</span> <span class="n">expectations</span><span class="p">}</span>
+
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">folder</span> <span class="o">+</span> <span class="s1">&#39;/ensemble.json&#39;</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">settings</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span>
+
+        <span class="c1"># Save estimators</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">estimator</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">estimators</span><span class="p">):</span>
+            <span class="n">estimator</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">folder</span> <span class="o">+</span> <span class="s1">&#39;/estimator_&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="EnsembleForge.load"><a class="viewcode-back" href="../../madminer.ml.html#madminer.ml.EnsembleForge.load">[docs]</a>    <span class="k">def</span> <span class="nf">load</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">folder</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Loads the estimator ensemble from a folder.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        folder : str</span>
+<span class="sd">            Path to the folder.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">            None</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Load ensemble settings</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Loading ensemble setup from </span><span class="si">%s</span><span class="s1">/ensemble.json&#39;</span><span class="p">,</span> <span class="n">folder</span><span class="p">)</span>
+
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">folder</span> <span class="o">+</span> <span class="s1">&#39;/ensemble.json&#39;</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">settings</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_estimators</span> <span class="o">=</span> <span class="n">settings</span><span class="p">[</span><span class="s1">&#39;n_estimators&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">expectations</span> <span class="o">=</span> <span class="n">settings</span><span class="p">[</span><span class="s1">&#39;expectations&#39;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">expectations</span> <span class="o">==</span> <span class="s1">&#39;None&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">expectations</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">expectations</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">expectations</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">expectations</span><span class="p">)</span>
+
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;  Found ensemble with </span><span class="si">%s</span><span class="s1"> estimators and expectations </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span>
+                     <span class="bp">self</span><span class="o">.</span><span class="n">n_estimators</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">expectations</span><span class="p">)</span>
+
+        <span class="c1"># Load estimators</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">estimators</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_estimators</span><span class="p">):</span>
+            <span class="n">estimator</span> <span class="o">=</span> <span class="n">MLForge</span><span class="p">()</span>
+            <span class="n">estimator</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">folder</span> <span class="o">+</span> <span class="s1">&#39;/estimator_&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">estimators</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">estimator</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">_check_consistency</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">keywords</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Internal function that checks if all estimators belong to the same category</span>
+<span class="sd">        (local score regression, single-parameterized likelihood ratio estimator,</span>
+<span class="sd">        doubly parameterized likelihood ratio estimator).</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        keywords : dict or None, optional</span>
+<span class="sd">            kwargs passed to `train_one()` or `train_all()`.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        method_type : {&quot;local_score&quot;, &quot;parameterized&quot;, &quot;doubly_parameterized&quot;}</span>
+<span class="sd">            Method type of this ensemble.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        RuntimeError</span>
+<span class="sd">            Estimators are inconsistent.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Accumulate methods of all estimators</span>
+        <span class="n">methods</span> <span class="o">=</span> <span class="p">[</span><span class="n">estimator</span><span class="o">.</span><span class="n">method</span> <span class="k">for</span> <span class="n">estimator</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">estimators</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">keywords</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">keyword_method</span> <span class="o">=</span> <span class="n">keywords</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;method&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">keyword_method</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+                <span class="n">methods</span> <span class="o">+=</span> <span class="n">keyword_method</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">methods</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">keyword_method</span><span class="p">)</span>
+
+        <span class="c1"># Check consistency</span>
+        <span class="n">method_type</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">for</span> <span class="n">method</span> <span class="ow">in</span> <span class="n">methods</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">method</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;sally&#39;</span><span class="p">,</span> <span class="s1">&#39;sallino&#39;</span><span class="p">]:</span>
+                <span class="n">this_method_type</span> <span class="o">=</span> <span class="s1">&#39;local_score&#39;</span>
+            <span class="k">elif</span> <span class="n">method</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;carl&#39;</span><span class="p">,</span> <span class="s1">&#39;rolr&#39;</span><span class="p">,</span> <span class="s1">&#39;rascal&#39;</span><span class="p">,</span> <span class="s1">&#39;alice&#39;</span><span class="p">,</span> <span class="s1">&#39;alices&#39;</span><span class="p">,</span> <span class="s1">&#39;nde&#39;</span><span class="p">,</span> <span class="s1">&#39;scandal&#39;</span><span class="p">]:</span>
+                <span class="c1"># this_method_type = &#39;parameterized&#39;</span>
+                <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;For now, ensemble methods are only implemented for SALLY and SALLINO.&#39;</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">method</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;carl2&#39;</span><span class="p">,</span> <span class="s1">&#39;rolr2&#39;</span><span class="p">,</span> <span class="s1">&#39;rascal2&#39;</span><span class="p">,</span> <span class="s1">&#39;alice2&#39;</span><span class="p">,</span> <span class="s1">&#39;alices2&#39;</span><span class="p">]:</span>
+                <span class="c1"># this_method_type = &#39;doubly_parameterized&#39;</span>
+                <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;For now, ensemble methods are only implemented for SALLY and SALLINO.&#39;</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">method</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s1">&#39;Unknown method </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">method</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">method_type</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">method_type</span> <span class="o">=</span> <span class="n">this_method_type</span>
+
+            <span class="k">if</span> <span class="n">method_type</span> <span class="o">!=</span> <span class="n">this_method_type</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s1">&#39;Ensemble with inconsistent estimator methods! All methods have to be either&#39;</span>
+                                   <span class="s1">&#39; single-parameterized ratio estimators, doubly parameterized ratio estimators,&#39;</span>
+                                   <span class="s1">&#39; or local score estimators. Found methods &#39;</span> <span class="o">+</span> <span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">methods</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;.&#39;</span><span class="p">)</span>
+
+        <span class="c1"># Return method type of ensemble</span>
+        <span class="k">return</span> <span class="n">method_type</span></div>
 </pre></div>
 
           </div>

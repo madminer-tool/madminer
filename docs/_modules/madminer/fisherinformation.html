@@ -38,12 +38,13 @@
 <span class="kn">import</span> <span class="nn">logging</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">six</span>
+<span class="kn">import</span> <span class="nn">os</span>
 
 <span class="kn">from</span> <span class="nn">madminer.utils.interfaces.hdf5</span> <span class="k">import</span> <span class="n">load_madminer_settings</span><span class="p">,</span> <span class="n">madminer_event_loader</span>
 <span class="kn">from</span> <span class="nn">madminer.utils.analysis</span> <span class="k">import</span> <span class="n">get_theta_benchmark_matrix</span><span class="p">,</span> <span class="n">get_dtheta_benchmark_matrix</span>
 <span class="kn">from</span> <span class="nn">madminer.morphing</span> <span class="k">import</span> <span class="n">Morpher</span>
 <span class="kn">from</span> <span class="nn">madminer.utils.various</span> <span class="k">import</span> <span class="n">general_init</span><span class="p">,</span> <span class="n">format_benchmark</span><span class="p">,</span> <span class="n">math_commands</span>
-<span class="kn">from</span> <span class="nn">madminer.ml</span> <span class="k">import</span> <span class="n">MLForge</span>
+<span class="kn">from</span> <span class="nn">madminer.ml</span> <span class="k">import</span> <span class="n">MLForge</span><span class="p">,</span> <span class="n">EnsembleForge</span>
 
 
 <div class="viewcode-block" id="project_information"><a class="viewcode-back" href="../../madminer.fisherinformation.html#madminer.fisherinformation.project_information">[docs]</a><span class="k">def</span> <span class="nf">project_information</span><span class="p">(</span><span class="n">fisher_information</span><span class="p">,</span> <span class="n">remaining_components</span><span class="p">):</span>
@@ -113,10 +114,11 @@
     <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">remaining_components</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">remaining_components_checked</span><span class="p">),</span> <span class="s2">&quot;Inconsistent input&quot;</span>
 
     <span class="c1"># Sort Fisher information such that the remaining components are  at the beginning and the profiled at the end</span>
-    <span class="n">profiled_fisher_information</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">fisher_information</span><span class="p">[</span><span class="n">new_index_order</span><span class="p">,</span> <span class="n">new_index_order</span><span class="p">])</span>
+    <span class="n">profiled_fisher_information</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">fisher_information</span><span class="p">[</span><span class="n">new_index_order</span><span class="p">,</span> <span class="p">:])</span>
+    <span class="n">profiled_fisher_information</span> <span class="o">=</span> <span class="n">profiled_fisher_information</span><span class="p">[:,</span> <span class="n">new_index_order</span><span class="p">]</span>
 
     <span class="c1"># Profile over one component at a time</span>
-    <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="nb">reversed</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">remaining_components</span><span class="p">),</span> <span class="n">n_components</span><span class="p">)):</span>
+    <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_components</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">remaining_components</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">):</span>
         <span class="n">profiled_fisher_information</span> <span class="o">=</span> <span class="p">(</span><span class="n">profiled_fisher_information</span><span class="p">[:</span><span class="n">c</span><span class="p">,</span> <span class="p">:</span><span class="n">c</span><span class="p">]</span>
                                        <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="n">profiled_fisher_information</span><span class="p">[</span><span class="n">c</span><span class="p">,</span> <span class="p">:</span><span class="n">c</span><span class="p">],</span>
                                                   <span class="n">profiled_fisher_information</span><span class="p">[</span><span class="n">c</span><span class="p">,</span> <span class="p">:</span><span class="n">c</span><span class="p">])</span>
@@ -200,6 +202,492 @@
 
         <span class="k">else</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s1">&#39;Did not find morphing setup.&#39;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="FisherInformation.calculate_fisher_information_full_truth"><a class="viewcode-back" href="../../madminer.fisherinformation.html#madminer.fisherinformation.FisherInformation.calculate_fisher_information_full_truth">[docs]</a>    <span class="k">def</span> <span class="nf">calculate_fisher_information_full_truth</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">luminosity</span><span class="o">=</span><span class="mf">300000.</span><span class="p">,</span> <span class="n">cuts</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">efficiency_functions</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculates the full Fisher information at parton / truth level. This is the information in an idealized</span>
+<span class="sd">        measurement where all parton-level particles with their charges, flavours, and four-momenta can be accessed with</span>
+<span class="sd">        perfect accuracy, i.e. the latent variables `z_parton` can be measured directly.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        theta : ndarray</span>
+<span class="sd">            Parameter point `theta` at which the Fisher information matrix `I_ij(theta)` is evaluated.</span>
+
+<span class="sd">        luminosity : float</span>
+<span class="sd">            Luminosity in pb^-1.</span>
+
+<span class="sd">        cuts : None or list of str, optional</span>
+<span class="sd">            Cuts. Each entry is a parseable Python expression that returns a bool (True if the event should pass a cut,</span>
+<span class="sd">            False otherwise). Default value: None.</span>
+
+<span class="sd">        efficiency_functions : list of str or None</span>
+<span class="sd">            Efficiencies. Each entry is a parseable Python expression that returns a float for the efficiency of one</span>
+<span class="sd">            component. Default value: None.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        fisher_information : ndarray</span>
+<span class="sd">            Expected full truth-level Fisher information matrix with shape `(n_parameters, n_parameters)`.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Input</span>
+        <span class="k">if</span> <span class="n">cuts</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">cuts</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="n">efficiency_functions</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">efficiency_functions</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="c1"># Loop over batches</span>
+        <span class="n">fisher_info</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">n_parameters</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_parameters</span><span class="p">))</span>
+
+        <span class="k">for</span> <span class="n">observations</span><span class="p">,</span> <span class="n">weights</span> <span class="ow">in</span> <span class="n">madminer_event_loader</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">madminer_filename</span><span class="p">):</span>
+            <span class="c1"># Cuts</span>
+            <span class="n">cut_filter</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_pass_cuts</span><span class="p">(</span><span class="n">obs_event</span><span class="p">,</span> <span class="n">cuts</span><span class="p">)</span> <span class="k">for</span> <span class="n">obs_event</span> <span class="ow">in</span> <span class="n">observations</span><span class="p">]</span>
+            <span class="n">observations</span> <span class="o">=</span> <span class="n">observations</span><span class="p">[</span><span class="n">cut_filter</span><span class="p">]</span>
+            <span class="n">weights</span> <span class="o">=</span> <span class="n">weights</span><span class="p">[</span><span class="n">cut_filter</span><span class="p">]</span>
+
+            <span class="c1"># Efficiencies</span>
+            <span class="n">efficiencies</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+                <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_eval_efficiency</span><span class="p">(</span><span class="n">obs_event</span><span class="p">,</span> <span class="n">efficiency_functions</span><span class="p">)</span> <span class="k">for</span> <span class="n">obs_event</span> <span class="ow">in</span> <span class="n">observations</span><span class="p">])</span>
+            <span class="n">weights</span> <span class="o">*=</span> <span class="n">efficiencies</span><span class="p">[:,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span>
+
+            <span class="c1"># Fisher information</span>
+            <span class="n">fisher_info</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calculate_fisher_information</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">weights</span><span class="p">,</span> <span class="n">luminosity</span><span class="p">,</span> <span class="n">sum_events</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">fisher_info</span></div>
+
+<div class="viewcode-block" id="FisherInformation.calculate_fisher_information_full_detector"><a class="viewcode-back" href="../../madminer.fisherinformation.html#madminer.fisherinformation.FisherInformation.calculate_fisher_information_full_detector">[docs]</a>    <span class="k">def</span> <span class="nf">calculate_fisher_information_full_detector</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">model_file</span><span class="p">,</span> <span class="n">unweighted_x_sample_file</span><span class="p">,</span>
+                                                   <span class="n">luminosity</span><span class="o">=</span><span class="mf">300000.</span><span class="p">,</span> <span class="n">cuts</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">return_error</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                                                   <span class="n">ensemble_vote_expectation_weight</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculates the full Fisher information in realistic detector-level observations, estimated with neural networks.</span>
+<span class="sd">        In addition to the MadMiner file, this requires a trained SALLY or SALLINO estimator as well as an unweighted</span>
+<span class="sd">        evaluation sample.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        theta : ndarray</span>
+<span class="sd">            Parameter point `theta` at which the Fisher information matrix `I_ij(theta)` is evaluated.</span>
+
+<span class="sd">        model_file : str</span>
+<span class="sd">            Filename of a trained local score regression model that was trained on samples from `theta` (see</span>
+<span class="sd">            `madminer.ml.MLForge`).</span>
+
+<span class="sd">        unweighted_x_sample_file : str</span>
+<span class="sd">            Filename of an unweighted x sample that is sampled according to theta and obeys the cuts</span>
+<span class="sd">            (see `madminer.sampling.SampleAugmenter.extract_samples_train_local()`)</span>
+
+<span class="sd">        luminosity : float</span>
+<span class="sd">            Luminosity in pb^-1.</span>
+
+<span class="sd">        cuts : None or list of str, optional</span>
+<span class="sd">            Cuts. Each entry is a parseable Python expression that returns a bool (True if the event should pass a cut,</span>
+<span class="sd">            False otherwise). Default value: None.</span>
+
+<span class="sd">        return_error : None or bool, optional</span>
+<span class="sd">            Whether an uncertainty of the Fisher information is returned together with the prediction. If None, it is</span>
+<span class="sd">            returned only if model_file points to the directory of an ensemble. Default value: None.</span>
+
+<span class="sd">        ensemble_vote_expectation_weight : float or None, optional</span>
+<span class="sd">            For ensemble models, the factor that determines how much more weight is given to those estimators with</span>
+<span class="sd">            small expectation value. If None, or if `EnsembleForge.calculate_expectation()` has not been called,</span>
+<span class="sd">            all estimators are treated equal. Default value: None.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        fisher_information : ndarray</span>
+<span class="sd">            Estimated expected full detector-level Fisher information matrix with shape `(n_parameters, n_parameters)`.</span>
+
+<span class="sd">        fisher_information_uncertainty : ndarray</span>
+<span class="sd">            Returned only if return_error is True, or if return_error is None and model_file is the directory of an</span>
+<span class="sd">            ensemble. Uncertainty of the expected full detector-level Fisher information matrix with shape</span>
+<span class="sd">            `(n_parameters, n_parameters)`.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Input</span>
+        <span class="k">if</span> <span class="n">cuts</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">cuts</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="c1"># Rate part of Fisher information</span>
+        <span class="n">fisher_info_rate</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">calculate_fisher_information_rate</span><span class="p">(</span>
+            <span class="n">theta</span><span class="o">=</span><span class="n">theta</span><span class="p">,</span>
+            <span class="n">luminosity</span><span class="o">=</span><span class="n">luminosity</span><span class="p">,</span>
+            <span class="n">cuts</span><span class="o">=</span><span class="n">cuts</span>
+        <span class="p">)</span>
+        <span class="n">total_xsec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calculate_xsec</span><span class="p">(</span>
+            <span class="n">theta</span><span class="o">=</span><span class="n">theta</span><span class="p">,</span>
+            <span class="n">cuts</span><span class="o">=</span><span class="n">cuts</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Kinematic part of Fisher information: either with MLForge or with EnsembleForge</span>
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">model_file</span><span class="p">):</span>
+            <span class="c1"># Ensemble method</span>
+            <span class="n">model</span> <span class="o">=</span> <span class="n">EnsembleForge</span><span class="p">()</span>
+            <span class="n">model</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">model_file</span><span class="p">)</span>
+
+            <span class="n">fisher_info_kin</span><span class="p">,</span> <span class="n">fisher_info_uncertainty</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">calculate_fisher_information</span><span class="p">(</span>
+                <span class="n">unweighted_x_sample_file</span><span class="p">,</span>
+                <span class="n">n_events</span><span class="o">=</span><span class="n">luminosity</span> <span class="o">*</span> <span class="n">total_xsec</span><span class="p">,</span>
+                <span class="n">vote_expectation_weight</span><span class="o">=</span><span class="n">ensemble_vote_expectation_weight</span>
+            <span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">return_error</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">return_error</span> <span class="o">=</span> <span class="kc">True</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># One ML instance</span>
+            <span class="n">model</span> <span class="o">=</span> <span class="n">MLForge</span><span class="p">()</span>
+            <span class="n">model</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">model_file</span><span class="p">)</span>
+
+            <span class="n">fisher_info_kin</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">calculate_fisher_information</span><span class="p">(</span>
+                <span class="n">unweighted_x_sample_file</span><span class="p">,</span>
+                <span class="n">n_events</span><span class="o">=</span><span class="n">luminosity</span> <span class="o">*</span> <span class="n">total_xsec</span>
+            <span class="p">)</span>
+
+            <span class="n">fisher_info_uncertainty</span> <span class="o">=</span> <span class="kc">None</span>
+
+            <span class="k">if</span> <span class="n">return_error</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">return_error</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="k">if</span> <span class="n">return_error</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">fisher_info_rate</span> <span class="o">+</span> <span class="n">fisher_info_kin</span><span class="p">,</span> <span class="n">fisher_info_uncertainty</span>
+
+        <span class="k">return</span> <span class="n">fisher_info_rate</span> <span class="o">+</span> <span class="n">fisher_info_kin</span></div>
+
+<div class="viewcode-block" id="FisherInformation.calculate_fisher_information_rate"><a class="viewcode-back" href="../../madminer.fisherinformation.html#madminer.fisherinformation.FisherInformation.calculate_fisher_information_rate">[docs]</a>    <span class="k">def</span> <span class="nf">calculate_fisher_information_rate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">luminosity</span><span class="p">,</span> <span class="n">cuts</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">efficiency_functions</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculates the Fisher information in a measurement of the total cross section (without any kinematic</span>
+<span class="sd">        information).</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        theta : ndarray</span>
+<span class="sd">            Parameter point `theta` at which the Fisher information matrix `I_ij(theta)` is evaluated.</span>
+
+<span class="sd">        luminosity : float</span>
+<span class="sd">            Luminosity in pb^-1.</span>
+
+<span class="sd">        cuts : None or list of str, optional</span>
+<span class="sd">            Cuts. Each entry is a parseable Python expression that returns a bool (True if the event should pass a cut,</span>
+<span class="sd">            False otherwise). Default value: None.</span>
+
+<span class="sd">        efficiency_functions : list of str or None</span>
+<span class="sd">            Efficiencies. Each entry is a parseable Python expression that returns a float for the efficiency of one</span>
+<span class="sd">            component. Default value: None.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        fisher_information : ndarray</span>
+<span class="sd">            Expected Fisher information in the total cross section with shape `(n_parameters, n_parameters)`.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Get weights at benchmarks</span>
+        <span class="n">weights_benchmarks</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calculate_xsec</span><span class="p">(</span>
+            <span class="n">cuts</span><span class="o">=</span><span class="n">cuts</span><span class="p">,</span>
+            <span class="n">efficiency_functions</span><span class="o">=</span><span class="n">efficiency_functions</span><span class="p">,</span>
+            <span class="n">return_benchmark_xsecs</span><span class="o">=</span><span class="kc">True</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Get Fisher information</span>
+        <span class="n">fisher_info</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calculate_fisher_information</span><span class="p">(</span>
+            <span class="n">theta</span><span class="o">=</span><span class="n">theta</span><span class="p">,</span>
+            <span class="n">weights_benchmarks</span><span class="o">=</span><span class="n">weights_benchmarks</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span> <span class="p">:],</span>
+            <span class="n">luminosity</span><span class="o">=</span><span class="n">luminosity</span><span class="p">,</span>
+            <span class="n">sum_events</span><span class="o">=</span><span class="kc">True</span>
+        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">fisher_info</span></div>
+
+<div class="viewcode-block" id="FisherInformation.calculate_fisher_information_hist1d"><a class="viewcode-back" href="../../madminer.fisherinformation.html#madminer.fisherinformation.FisherInformation.calculate_fisher_information_hist1d">[docs]</a>    <span class="k">def</span> <span class="nf">calculate_fisher_information_hist1d</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">luminosity</span><span class="p">,</span> <span class="n">observable</span><span class="p">,</span> <span class="n">nbins</span><span class="p">,</span> <span class="n">histrange</span><span class="p">,</span> <span class="n">cuts</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                                            <span class="n">efficiency_functions</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculates the Fisher information in the one-dimensional histogram of an (parton-level or detector-level,</span>
+<span class="sd">        depending on how the observations in the MadMiner file were calculated) observable.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        theta : ndarray</span>
+<span class="sd">            Parameter point `theta` at which the Fisher information matrix `I_ij(theta)` is evaluated.</span>
+
+<span class="sd">        luminosity : float</span>
+<span class="sd">            Luminosity in pb^-1.</span>
+
+<span class="sd">        observable : str</span>
+<span class="sd">            Expression for the observable to be histogrammed. The str will be parsed by Python&#39;s `eval()` function</span>
+<span class="sd">            and can use the names of the observables in the MadMiner files.</span>
+
+<span class="sd">        nbins : int</span>
+<span class="sd">            Number of bins in the histogram, excluding overflow bins.</span>
+
+<span class="sd">        histrange : tuple of float</span>
+<span class="sd">            Minimum and maximum value of the histogram in the form `(min, max)`. Overflow bins are always added.</span>
+
+<span class="sd">        cuts : None or list of str, optional</span>
+<span class="sd">            Cuts. Each entry is a parseable Python expression that returns a bool (True if the event should pass a cut,</span>
+<span class="sd">            False otherwise). Default value: None.</span>
+
+<span class="sd">        efficiency_functions : list of str or None</span>
+<span class="sd">            Efficiencies. Each entry is a parseable Python expression that returns a float for the efficiency of one</span>
+<span class="sd">            component. Default value: None.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        fisher_information : ndarray</span>
+<span class="sd">            Expected Fisher information in the histogram with shape `(n_parameters, n_parameters)`.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Input</span>
+        <span class="k">if</span> <span class="n">cuts</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">cuts</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="n">efficiency_functions</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">efficiency_functions</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="c1"># Number of bins</span>
+        <span class="n">n_bins_total</span> <span class="o">=</span> <span class="n">nbins</span> <span class="o">+</span> <span class="mi">2</span>
+        <span class="n">bin_boundaries</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">histrange</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">histrange</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">num</span><span class="o">=</span><span class="n">nbins</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+
+        <span class="c1"># Loop over batches</span>
+        <span class="n">weights_benchmarks</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n_bins_total</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_benchmarks</span><span class="p">))</span>
+
+        <span class="k">for</span> <span class="n">observations</span><span class="p">,</span> <span class="n">weights</span> <span class="ow">in</span> <span class="n">madminer_event_loader</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">madminer_filename</span><span class="p">):</span>
+            <span class="c1"># Cuts</span>
+            <span class="n">cut_filter</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_pass_cuts</span><span class="p">(</span><span class="n">obs_event</span><span class="p">,</span> <span class="n">cuts</span><span class="p">)</span> <span class="k">for</span> <span class="n">obs_event</span> <span class="ow">in</span> <span class="n">observations</span><span class="p">]</span>
+            <span class="n">observations</span> <span class="o">=</span> <span class="n">observations</span><span class="p">[</span><span class="n">cut_filter</span><span class="p">]</span>
+            <span class="n">weights</span> <span class="o">=</span> <span class="n">weights</span><span class="p">[</span><span class="n">cut_filter</span><span class="p">]</span>
+
+            <span class="c1"># Efficiencies</span>
+            <span class="n">efficiencies</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+                <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_eval_efficiency</span><span class="p">(</span><span class="n">obs_event</span><span class="p">,</span> <span class="n">efficiency_functions</span><span class="p">)</span> <span class="k">for</span> <span class="n">obs_event</span> <span class="ow">in</span> <span class="n">observations</span><span class="p">])</span>
+            <span class="n">weights</span> <span class="o">*=</span> <span class="n">efficiencies</span><span class="p">[:,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span>
+
+            <span class="c1"># Evaluate histogrammed observable</span>
+            <span class="n">histo_observables</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">_eval_observable</span><span class="p">(</span><span class="n">obs_event</span><span class="p">,</span> <span class="n">observable</span><span class="p">)</span> <span class="k">for</span> <span class="n">obs_event</span> <span class="ow">in</span> <span class="n">observations</span><span class="p">])</span>
+
+            <span class="c1"># Find bins</span>
+            <span class="n">bins</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">searchsorted</span><span class="p">(</span><span class="n">bin_boundaries</span><span class="p">,</span> <span class="n">histo_observables</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="p">((</span><span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">bins</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">bins</span> <span class="o">&lt;</span> <span class="n">n_bins_total</span><span class="p">))</span><span class="o">.</span><span class="n">all</span><span class="p">(),</span> <span class="s1">&#39;Wrong bin </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">bins</span><span class="p">)</span>
+
+            <span class="c1"># Add up</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_bins_total</span><span class="p">):</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">weights</span><span class="p">[</span><span class="n">bins</span> <span class="o">==</span> <span class="n">i</span><span class="p">])</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">weights_benchmarks</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">weights</span><span class="p">[</span><span class="n">bins</span> <span class="o">==</span> <span class="n">i</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+        <span class="c1"># Calculate Fisher information in histogram</span>
+        <span class="n">fisher_info</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calculate_fisher_information</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">weights_benchmarks</span><span class="p">,</span> <span class="n">luminosity</span><span class="p">,</span> <span class="n">sum_events</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">fisher_info</span></div>
+
+<div class="viewcode-block" id="FisherInformation.calculate_fisher_information_hist2d"><a class="viewcode-back" href="../../madminer.fisherinformation.html#madminer.fisherinformation.FisherInformation.calculate_fisher_information_hist2d">[docs]</a>    <span class="k">def</span> <span class="nf">calculate_fisher_information_hist2d</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">luminosity</span><span class="p">,</span> <span class="n">observable1</span><span class="p">,</span> <span class="n">nbins1</span><span class="p">,</span> <span class="n">histrange1</span><span class="p">,</span> <span class="n">observable2</span><span class="p">,</span>
+                                            <span class="n">nbins2</span><span class="p">,</span> <span class="n">histrange2</span><span class="p">,</span> <span class="n">cuts</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">efficiency_functions</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculates the Fisher information in a two-dimensional histogram of two (parton-level or detector-level,</span>
+<span class="sd">        depending on how the observations in the MadMiner file were calculated) observables.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        theta : ndarray</span>
+<span class="sd">            Parameter point `theta` at which the Fisher information matrix `I_ij(theta)` is evaluated.</span>
+
+<span class="sd">        luminosity : float</span>
+<span class="sd">            Luminosity in pb^-1.</span>
+
+<span class="sd">        observable1 : str</span>
+<span class="sd">            Expression for the first observable to be histogrammed. The str will be parsed by Python&#39;s `eval()` function</span>
+<span class="sd">            and can use the names of the observables in the MadMiner files.</span>
+
+<span class="sd">        nbins1 : int</span>
+<span class="sd">            Number of bins along the first axis in the histogram, excluding overflow bins.</span>
+
+<span class="sd">        histrange1 : tuple of float</span>
+<span class="sd">            Minimum and maximum value of the first axis of the histogram in the form `(min, max)`. Overflow bins are</span>
+<span class="sd">            always added.</span>
+
+<span class="sd">        observable2 : str</span>
+<span class="sd">            Expression for the first observable to be histogrammed. The str will be parsed by Python&#39;s `eval()` function</span>
+<span class="sd">            and can use the names of the observables in the MadMiner files.</span>
+
+<span class="sd">        nbins2 : int</span>
+<span class="sd">            Number of bins along the first axis in the histogram, excluding overflow bins.</span>
+
+<span class="sd">        histrange2 : tuple of float</span>
+<span class="sd">            Minimum and maximum value of the first axis of the histogram in the form `(min, max)`. Overflow bins are</span>
+<span class="sd">            always added.</span>
+
+<span class="sd">        cuts : None or list of str, optional</span>
+<span class="sd">            Cuts. Each entry is a parseable Python expression that returns a bool (True if the event should pass a cut,</span>
+<span class="sd">            False otherwise). Default value: None.</span>
+
+<span class="sd">        efficiency_functions : list of str or None</span>
+<span class="sd">            Efficiencies. Each entry is a parseable Python expression that returns a float for the efficiency of one</span>
+<span class="sd">            component. Default value: None.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        fisher_information : ndarray</span>
+<span class="sd">            Expected Fisher information in the histogram with shape `(n_parameters, n_parameters)`.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Input</span>
+        <span class="k">if</span> <span class="n">cuts</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">cuts</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="n">efficiency_functions</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">efficiency_functions</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="c1"># Number of bins</span>
+        <span class="n">n_bins1_total</span> <span class="o">=</span> <span class="n">nbins1</span> <span class="o">+</span> <span class="mi">2</span>
+        <span class="n">bin1_boundaries</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">histrange1</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">histrange1</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">num</span><span class="o">=</span><span class="n">nbins1</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">n_bins2_total</span> <span class="o">=</span> <span class="n">nbins1</span> <span class="o">+</span> <span class="mi">2</span>
+        <span class="n">bin2_boundaries</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">histrange2</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">histrange2</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">num</span><span class="o">=</span><span class="n">nbins2</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+
+        <span class="c1"># Loop over batches</span>
+        <span class="n">weights_benchmarks</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n_bins1_total</span><span class="p">,</span> <span class="n">n_bins2_total</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_benchmarks</span><span class="p">))</span>
+
+        <span class="k">for</span> <span class="n">observations</span><span class="p">,</span> <span class="n">weights</span> <span class="ow">in</span> <span class="n">madminer_event_loader</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">madminer_filename</span><span class="p">):</span>
+            <span class="c1"># Cuts</span>
+            <span class="n">cut_filter</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_pass_cuts</span><span class="p">(</span><span class="n">obs_event</span><span class="p">,</span> <span class="n">cuts</span><span class="p">)</span> <span class="k">for</span> <span class="n">obs_event</span> <span class="ow">in</span> <span class="n">observations</span><span class="p">]</span>
+            <span class="n">observations</span> <span class="o">=</span> <span class="n">observations</span><span class="p">[</span><span class="n">cut_filter</span><span class="p">]</span>
+            <span class="n">weights</span> <span class="o">=</span> <span class="n">weights</span><span class="p">[</span><span class="n">cut_filter</span><span class="p">]</span>
+
+            <span class="c1"># Efficiencies</span>
+            <span class="n">efficiencies</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+                <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_eval_efficiency</span><span class="p">(</span><span class="n">obs_event</span><span class="p">,</span> <span class="n">efficiency_functions</span><span class="p">)</span> <span class="k">for</span> <span class="n">obs_event</span> <span class="ow">in</span> <span class="n">observations</span><span class="p">])</span>
+            <span class="n">weights</span> <span class="o">*=</span> <span class="n">efficiencies</span><span class="p">[:,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span>
+
+            <span class="c1"># Evaluate histogrammed observable</span>
+            <span class="n">histo1_observables</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span>
+                <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_eval_observable</span><span class="p">(</span><span class="n">obs_event</span><span class="p">,</span> <span class="n">observable1</span><span class="p">)</span> <span class="k">for</span> <span class="n">obs_event</span> <span class="ow">in</span> <span class="n">observations</span><span class="p">])</span>
+            <span class="n">histo2_observables</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span>
+                <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_eval_observable</span><span class="p">(</span><span class="n">obs_event</span><span class="p">,</span> <span class="n">observable2</span><span class="p">)</span> <span class="k">for</span> <span class="n">obs_event</span> <span class="ow">in</span> <span class="n">observations</span><span class="p">])</span>
+
+            <span class="c1"># Find bins</span>
+            <span class="n">bins1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">searchsorted</span><span class="p">(</span><span class="n">bin1_boundaries</span><span class="p">,</span> <span class="n">histo1_observables</span><span class="p">)</span>
+            <span class="n">bins2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">searchsorted</span><span class="p">(</span><span class="n">bin2_boundaries</span><span class="p">,</span> <span class="n">histo2_observables</span><span class="p">)</span>
+
+            <span class="k">assert</span> <span class="p">((</span><span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">bins1</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">bins1</span> <span class="o">&lt;</span> <span class="n">n_bins1_total</span><span class="p">))</span><span class="o">.</span><span class="n">all</span><span class="p">(),</span> <span class="s1">&#39;Wrong bin </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">bins1</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="p">((</span><span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">bins1</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">bins1</span> <span class="o">&lt;</span> <span class="n">n_bins1_total</span><span class="p">))</span><span class="o">.</span><span class="n">all</span><span class="p">(),</span> <span class="s1">&#39;Wrong bin </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">bins1</span><span class="p">)</span>
+
+            <span class="c1"># Add up</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_bins1_total</span><span class="p">):</span>
+                <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_bins2_total</span><span class="p">):</span>
+                    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">weights</span><span class="p">[(</span><span class="n">bins1</span> <span class="o">==</span> <span class="n">i</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">bins2</span> <span class="o">==</span> <span class="n">j</span><span class="p">)])</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                        <span class="n">weights_benchmarks</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">+=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">weights</span><span class="p">[(</span><span class="n">bins1</span> <span class="o">==</span> <span class="n">i</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">bins2</span> <span class="o">==</span> <span class="n">j</span><span class="p">)],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+        <span class="c1"># Calculate Fisher information in histogram</span>
+        <span class="n">weights_benchmarks</span> <span class="o">=</span> <span class="n">weights_benchmarks</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_benchmarks</span><span class="p">)</span>
+        <span class="n">fisher_info</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calculate_fisher_information</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">weights_benchmarks</span><span class="p">,</span> <span class="n">luminosity</span><span class="p">,</span> <span class="n">sum_events</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">fisher_info</span></div>
+
+<div class="viewcode-block" id="FisherInformation.histogram_of_fisher_information"><a class="viewcode-back" href="../../madminer.fisherinformation.html#madminer.fisherinformation.FisherInformation.histogram_of_fisher_information">[docs]</a>    <span class="k">def</span> <span class="nf">histogram_of_fisher_information</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">luminosity</span><span class="p">,</span> <span class="n">observable</span><span class="p">,</span> <span class="n">nbins</span><span class="p">,</span> <span class="n">histrange</span><span class="p">,</span> <span class="n">cuts</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                                        <span class="n">efficiency_functions</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculates the full and rate-only Fisher information in slices of one observable.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        theta : ndarray</span>
+<span class="sd">            Parameter point `theta` at which the Fisher information matrix `I_ij(theta)` is evaluated.</span>
+
+<span class="sd">        luminosity : float</span>
+<span class="sd">            Luminosity in pb^-1.</span>
+
+<span class="sd">        observable : str</span>
+<span class="sd">            Expression for the observable to be sliced. The str will be parsed by Python&#39;s `eval()` function</span>
+<span class="sd">            and can use the names of the observables in the MadMiner files.</span>
+
+<span class="sd">        nbins : int</span>
+<span class="sd">            Number of bins in the slicing, excluding overflow bins.</span>
+
+<span class="sd">        histrange : tuple of float</span>
+<span class="sd">            Minimum and maximum value of the slicing in the form `(min, max)`. Overflow bins are always added.</span>
+
+<span class="sd">        cuts : None or list of str, optional</span>
+<span class="sd">            Cuts. Each entry is a parseable Python expression that returns a bool (True if the event should pass a cut,</span>
+<span class="sd">            False otherwise). Default value: None.</span>
+
+<span class="sd">        efficiency_functions : list of str or None</span>
+<span class="sd">            Efficiencies. Each entry is a parseable Python expression that returns a float for the efficiency of one</span>
+<span class="sd">            component. Default value: None.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        bin_boundaries : ndarray</span>
+<span class="sd">            Observable slice boundaries.</span>
+
+<span class="sd">        sigma_bins : ndarray</span>
+<span class="sd">            Cross section in pb in each of the slices.</span>
+
+<span class="sd">        rate_fisher_infos : ndarray</span>
+<span class="sd">            Expected rate-only Fisher information for each slice. Has shape `(n_slices, n_parameters, n_parameters)`.</span>
+
+<span class="sd">        full_fisher_infos_truth : ndarray</span>
+<span class="sd">            Expected full truth-level Fisher information for each slice. Has shape</span>
+<span class="sd">            `(n_slices, n_parameters, n_parameters)`.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Input</span>
+        <span class="k">if</span> <span class="n">cuts</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">cuts</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="n">efficiency_functions</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">efficiency_functions</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="c1"># Number of bins</span>
+        <span class="n">n_bins_total</span> <span class="o">=</span> <span class="n">nbins</span> <span class="o">+</span> <span class="mi">2</span>
+        <span class="n">bin_boundaries</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">histrange</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">histrange</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">num</span><span class="o">=</span><span class="n">nbins</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+
+        <span class="c1"># Loop over batches</span>
+        <span class="n">weights_benchmarks_bins</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n_bins_total</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_benchmarks</span><span class="p">))</span>
+        <span class="n">fisher_info_full_bins</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n_bins_total</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_parameters</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_parameters</span><span class="p">))</span>
+
+        <span class="k">for</span> <span class="n">observations</span><span class="p">,</span> <span class="n">weights</span> <span class="ow">in</span> <span class="n">madminer_event_loader</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">madminer_filename</span><span class="p">):</span>
+            <span class="c1"># Cuts</span>
+            <span class="n">cut_filter</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_pass_cuts</span><span class="p">(</span><span class="n">obs_event</span><span class="p">,</span> <span class="n">cuts</span><span class="p">)</span> <span class="k">for</span> <span class="n">obs_event</span> <span class="ow">in</span> <span class="n">observations</span><span class="p">]</span>
+            <span class="n">observations</span> <span class="o">=</span> <span class="n">observations</span><span class="p">[</span><span class="n">cut_filter</span><span class="p">]</span>
+            <span class="n">weights</span> <span class="o">=</span> <span class="n">weights</span><span class="p">[</span><span class="n">cut_filter</span><span class="p">]</span>
+
+            <span class="c1"># Efficiencies</span>
+            <span class="n">efficiencies</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+                <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_eval_efficiency</span><span class="p">(</span><span class="n">obs_event</span><span class="p">,</span> <span class="n">efficiency_functions</span><span class="p">)</span> <span class="k">for</span> <span class="n">obs_event</span> <span class="ow">in</span> <span class="n">observations</span><span class="p">])</span>
+            <span class="n">weights</span> <span class="o">*=</span> <span class="n">efficiencies</span><span class="p">[:,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span>
+
+            <span class="c1"># Fisher info per event</span>
+            <span class="n">fisher_info_events</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calculate_fisher_information</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">weights</span><span class="p">,</span> <span class="n">luminosity</span><span class="p">,</span>
+                                                                    <span class="n">sum_events</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+            <span class="c1"># Evaluate histogrammed observable</span>
+            <span class="n">histo_observables</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">_eval_observable</span><span class="p">(</span><span class="n">obs_event</span><span class="p">,</span> <span class="n">observable</span><span class="p">)</span> <span class="k">for</span> <span class="n">obs_event</span> <span class="ow">in</span> <span class="n">observations</span><span class="p">])</span>
+
+            <span class="c1"># Find bins</span>
+            <span class="n">bins</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">searchsorted</span><span class="p">(</span><span class="n">bin_boundaries</span><span class="p">,</span> <span class="n">histo_observables</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="p">((</span><span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">bins</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">bins</span> <span class="o">&lt;</span> <span class="n">n_bins_total</span><span class="p">))</span><span class="o">.</span><span class="n">all</span><span class="p">(),</span> <span class="s1">&#39;Wrong bin </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">bins</span><span class="p">)</span>
+
+            <span class="c1"># Add up</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_bins_total</span><span class="p">):</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">weights</span><span class="p">[</span><span class="n">bins</span> <span class="o">==</span> <span class="n">i</span><span class="p">])</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">weights_benchmarks_bins</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">weights</span><span class="p">[</span><span class="n">bins</span> <span class="o">==</span> <span class="n">i</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+                    <span class="n">fisher_info_full_bins</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">fisher_info_events</span><span class="p">[</span><span class="n">bins</span> <span class="o">==</span> <span class="n">i</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+        <span class="c1"># Calculate xsecs in bins</span>
+        <span class="n">theta_matrix</span> <span class="o">=</span> <span class="n">get_theta_benchmark_matrix</span><span class="p">(</span>
+            <span class="s1">&#39;morphing&#39;</span><span class="p">,</span>
+            <span class="n">theta</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">benchmarks</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">morpher</span>
+        <span class="p">)</span>
+        <span class="n">sigma_bins</span> <span class="o">=</span> <span class="n">theta_matrix</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">weights_benchmarks_bins</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>  <span class="c1"># (n_bins,)</span>
+
+        <span class="c1"># Calculate rate-only Fisher informations in bins</span>
+        <span class="n">fisher_info_rate_bins</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calculate_fisher_information</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">weights_benchmarks_bins</span><span class="p">,</span> <span class="n">luminosity</span><span class="p">,</span>
+                                                                   <span class="n">sum_events</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">bin_boundaries</span><span class="p">,</span> <span class="n">sigma_bins</span><span class="p">,</span> <span class="n">fisher_info_rate_bins</span><span class="p">,</span> <span class="n">fisher_info_full_bins</span></div>
 
 <div class="viewcode-block" id="FisherInformation.extract_raw_data"><a class="viewcode-back" href="../../madminer.fisherinformation.html#madminer.fisherinformation.FisherInformation.extract_raw_data">[docs]</a>    <span class="k">def</span> <span class="nf">extract_raw_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 
@@ -287,8 +775,8 @@
 <span class="sd">        weights_benchmarks : ndarray</span>
 <span class="sd">            Benchmark weights.  Shape (n_events, n_benchmark).</span>
 
-<span class="sd">        luminosity : float, optional</span>
-<span class="sd">            Luminosity in pb^-1. Default value: 300000.</span>
+<span class="sd">        luminosity : float</span>
+<span class="sd">            Luminosity in pb^-1.</span>
 
 <span class="sd">        sum_events : bool, optional</span>
 <span class="sd">            If True, returns the summed FIsher information. Otherwise, a list of Fisher</span>
@@ -513,453 +1001,7 @@
         <span class="p">)</span>
         <span class="n">xsec</span> <span class="o">=</span> <span class="n">theta_matrix</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">xsecs_benchmarks</span><span class="p">)</span>
 
-        <span class="k">return</span> <span class="n">xsec</span>
-
-<div class="viewcode-block" id="FisherInformation.calculate_fisher_information_full_truth"><a class="viewcode-back" href="../../madminer.fisherinformation.html#madminer.fisherinformation.FisherInformation.calculate_fisher_information_full_truth">[docs]</a>    <span class="k">def</span> <span class="nf">calculate_fisher_information_full_truth</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">luminosity</span><span class="o">=</span><span class="mf">300000.</span><span class="p">,</span> <span class="n">cuts</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">efficiency_functions</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Calculates the full Fisher information at parton / truth level. This is the information in an idealized</span>
-<span class="sd">        measurement where all parton-level particles with their charges, flavours, and four-momenta can be accessed with</span>
-<span class="sd">        perfect accuracy, i.e. the latent variables `z_parton` can be measured directly.</span>
-
-<span class="sd">        Parameters</span>
-<span class="sd">        ----------</span>
-<span class="sd">        theta : ndarray</span>
-<span class="sd">            Parameter point `theta` at which the Fisher information matrix `I_ij(theta)` is evaluated.</span>
-
-<span class="sd">        luminosity : float, optional</span>
-<span class="sd">            Luminosity in pb^-1. Default value: 300000.</span>
-
-<span class="sd">        cuts : None or list of str, optional</span>
-<span class="sd">            Cuts. Each entry is a parseable Python expression that returns a bool (True if the event should pass a cut,</span>
-<span class="sd">            False otherwise). Default value: None.</span>
-
-<span class="sd">        efficiency_functions : list of str or None</span>
-<span class="sd">            Efficiencies. Each entry is a parseable Python expression that returns a float for the efficiency of one</span>
-<span class="sd">            component. Default value: None.</span>
-
-<span class="sd">        Returns</span>
-<span class="sd">        -------</span>
-<span class="sd">        fisher_information : ndarray</span>
-<span class="sd">            Expected full truth-level Fisher information matrix with shape `(n_parameters, n_parameters)`.</span>
-
-<span class="sd">        &quot;&quot;&quot;</span>
-
-        <span class="c1"># Input</span>
-        <span class="k">if</span> <span class="n">cuts</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">cuts</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="k">if</span> <span class="n">efficiency_functions</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">efficiency_functions</span> <span class="o">=</span> <span class="p">[]</span>
-
-        <span class="c1"># Loop over batches</span>
-        <span class="n">fisher_info</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">n_parameters</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_parameters</span><span class="p">))</span>
-
-        <span class="k">for</span> <span class="n">observations</span><span class="p">,</span> <span class="n">weights</span> <span class="ow">in</span> <span class="n">madminer_event_loader</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">madminer_filename</span><span class="p">):</span>
-            <span class="c1"># Cuts</span>
-            <span class="n">cut_filter</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_pass_cuts</span><span class="p">(</span><span class="n">obs_event</span><span class="p">,</span> <span class="n">cuts</span><span class="p">)</span> <span class="k">for</span> <span class="n">obs_event</span> <span class="ow">in</span> <span class="n">observations</span><span class="p">]</span>
-            <span class="n">observations</span> <span class="o">=</span> <span class="n">observations</span><span class="p">[</span><span class="n">cut_filter</span><span class="p">]</span>
-            <span class="n">weights</span> <span class="o">=</span> <span class="n">weights</span><span class="p">[</span><span class="n">cut_filter</span><span class="p">]</span>
-
-            <span class="c1"># Efficiencies</span>
-            <span class="n">efficiencies</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
-                <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_eval_efficiency</span><span class="p">(</span><span class="n">obs_event</span><span class="p">,</span> <span class="n">efficiency_functions</span><span class="p">)</span> <span class="k">for</span> <span class="n">obs_event</span> <span class="ow">in</span> <span class="n">observations</span><span class="p">])</span>
-            <span class="n">weights</span> <span class="o">*=</span> <span class="n">efficiencies</span><span class="p">[:,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span>
-
-            <span class="c1"># Fisher information</span>
-            <span class="n">fisher_info</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calculate_fisher_information</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">weights</span><span class="p">,</span> <span class="n">luminosity</span><span class="p">,</span> <span class="n">sum_events</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-
-        <span class="k">return</span> <span class="n">fisher_info</span></div>
-
-<div class="viewcode-block" id="FisherInformation.calculate_fisher_information_full_detector"><a class="viewcode-back" href="../../madminer.fisherinformation.html#madminer.fisherinformation.FisherInformation.calculate_fisher_information_full_detector">[docs]</a>    <span class="k">def</span> <span class="nf">calculate_fisher_information_full_detector</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">model_file</span><span class="p">,</span> <span class="n">unweighted_x_sample_file</span><span class="p">,</span>
-                                                   <span class="n">luminosity</span><span class="o">=</span><span class="mf">300000.</span><span class="p">,</span> <span class="n">cuts</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Calculates the full Fisher information in realistic detector-level observations, estimated with neural networks.</span>
-<span class="sd">        In addition to the MadMiner file, this requires a trained SALLY or SALLINO estimator as well as an unweighted</span>
-<span class="sd">        evaluation sample.</span>
-
-<span class="sd">        Parameters</span>
-<span class="sd">        ----------</span>
-<span class="sd">        theta : ndarray</span>
-<span class="sd">            Parameter point `theta` at which the Fisher information matrix `I_ij(theta)` is evaluated.</span>
-
-<span class="sd">        model_file : str</span>
-<span class="sd">            str, filename of a trained local score regression model that was trained on samples from `theta` (see</span>
-<span class="sd">            `madminer.ml.MLForge`).</span>
-
-<span class="sd">        unweighted_x_sample_file : str</span>
-<span class="sd">            str, filename of an unweighted x sample that is sampled according to theta and obeys the cuts</span>
-<span class="sd">            (see `madminer.sampling.SampleAugmenter.extract_samples_train_local()`)</span>
-
-<span class="sd">        luminosity : float, optional</span>
-<span class="sd">            Luminosity in pb^-1. Default value: 300000.</span>
-
-<span class="sd">        cuts : None or list of str, optional</span>
-<span class="sd">            Cuts. Each entry is a parseable Python expression that returns a bool (True if the event should pass a cut,</span>
-<span class="sd">            False otherwise). Default value: None.</span>
-
-<span class="sd">        Returns</span>
-<span class="sd">        -------</span>
-<span class="sd">        fisher_information : ndarray</span>
-<span class="sd">            Estimated expected full detector-level Fisher information matrix with shape `(n_parameters, n_parameters)`.</span>
-
-<span class="sd">        &quot;&quot;&quot;</span>
-
-        <span class="c1"># Input</span>
-        <span class="k">if</span> <span class="n">cuts</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">cuts</span> <span class="o">=</span> <span class="p">[]</span>
-
-        <span class="c1"># Rate part of Fisher information</span>
-        <span class="n">fisher_info_rate</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">calculate_fisher_information_rate</span><span class="p">(</span>
-            <span class="n">theta</span><span class="o">=</span><span class="n">theta</span><span class="p">,</span>
-            <span class="n">luminosity</span><span class="o">=</span><span class="n">luminosity</span><span class="p">,</span>
-            <span class="n">cuts</span><span class="o">=</span><span class="n">cuts</span>
-        <span class="p">)</span>
-        <span class="n">total_xsec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calculate_xsec</span><span class="p">(</span>
-            <span class="n">theta</span><span class="o">=</span><span class="n">theta</span><span class="p">,</span>
-            <span class="n">cuts</span><span class="o">=</span><span class="n">cuts</span>
-        <span class="p">)</span>
-
-        <span class="c1"># Kinematic part of Fisher information</span>
-        <span class="n">model</span> <span class="o">=</span> <span class="n">MLForge</span><span class="p">()</span>
-        <span class="n">model</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">model_file</span><span class="p">)</span>
-        <span class="n">fisher_info_kin</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">calculate_fisher_information</span><span class="p">(</span>
-            <span class="n">unweighted_x_sample_file</span><span class="p">,</span>
-            <span class="n">n_events</span><span class="o">=</span><span class="n">luminosity</span> <span class="o">*</span> <span class="n">total_xsec</span>
-        <span class="p">)</span>
-
-        <span class="k">return</span> <span class="n">fisher_info_rate</span> <span class="o">+</span> <span class="n">fisher_info_kin</span></div>
-
-<div class="viewcode-block" id="FisherInformation.calculate_fisher_information_rate"><a class="viewcode-back" href="../../madminer.fisherinformation.html#madminer.fisherinformation.FisherInformation.calculate_fisher_information_rate">[docs]</a>    <span class="k">def</span> <span class="nf">calculate_fisher_information_rate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">luminosity</span><span class="p">,</span> <span class="n">cuts</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">efficiency_functions</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Calculates the Fisher information in a measurement of the total cross section (without any kinematic</span>
-<span class="sd">        information).</span>
-
-<span class="sd">        Parameters</span>
-<span class="sd">        ----------</span>
-<span class="sd">        theta : ndarray</span>
-<span class="sd">            Parameter point `theta` at which the Fisher information matrix `I_ij(theta)` is evaluated.</span>
-
-<span class="sd">        luminosity : float, optional</span>
-<span class="sd">            Luminosity in pb^-1. Default value: 300000.</span>
-
-<span class="sd">        cuts : None or list of str, optional</span>
-<span class="sd">            Cuts. Each entry is a parseable Python expression that returns a bool (True if the event should pass a cut,</span>
-<span class="sd">            False otherwise). Default value: None.</span>
-
-<span class="sd">        efficiency_functions : list of str or None</span>
-<span class="sd">            Efficiencies. Each entry is a parseable Python expression that returns a float for the efficiency of one</span>
-<span class="sd">            component. Default value: None.</span>
-
-<span class="sd">        Returns</span>
-<span class="sd">        -------</span>
-<span class="sd">        fisher_information : ndarray</span>
-<span class="sd">            Expected Fisher information in the total cross section with shape `(n_parameters, n_parameters)`.</span>
-
-<span class="sd">        &quot;&quot;&quot;</span>
-
-        <span class="c1"># Get weights at benchmarks</span>
-        <span class="n">weights_benchmarks</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calculate_xsec</span><span class="p">(</span>
-            <span class="n">cuts</span><span class="o">=</span><span class="n">cuts</span><span class="p">,</span>
-            <span class="n">efficiency_functions</span><span class="o">=</span><span class="n">efficiency_functions</span><span class="p">,</span>
-            <span class="n">return_benchmark_xsecs</span><span class="o">=</span><span class="kc">True</span>
-        <span class="p">)</span>
-
-        <span class="c1"># Get Fisher information</span>
-        <span class="n">fisher_info</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calculate_fisher_information</span><span class="p">(</span>
-            <span class="n">theta</span><span class="o">=</span><span class="n">theta</span><span class="p">,</span>
-            <span class="n">weights_benchmarks</span><span class="o">=</span><span class="n">weights_benchmarks</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span> <span class="p">:],</span>
-            <span class="n">luminosity</span><span class="o">=</span><span class="n">luminosity</span><span class="p">,</span>
-            <span class="n">sum_events</span><span class="o">=</span><span class="kc">True</span>
-        <span class="p">)</span>
-
-        <span class="k">return</span> <span class="n">fisher_info</span></div>
-
-<div class="viewcode-block" id="FisherInformation.calculate_fisher_information_hist1d"><a class="viewcode-back" href="../../madminer.fisherinformation.html#madminer.fisherinformation.FisherInformation.calculate_fisher_information_hist1d">[docs]</a>    <span class="k">def</span> <span class="nf">calculate_fisher_information_hist1d</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">luminosity</span><span class="p">,</span> <span class="n">observable</span><span class="p">,</span> <span class="n">nbins</span><span class="p">,</span> <span class="n">histrange</span><span class="p">,</span> <span class="n">cuts</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                                            <span class="n">efficiency_functions</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Calculates the Fisher information in the one-dimensional histogram of an (parton-level or detector-level,</span>
-<span class="sd">        depending on how the observations in the MadMiner file were calculated) observable.</span>
-
-<span class="sd">        Parameters</span>
-<span class="sd">        ----------</span>
-<span class="sd">        theta : ndarray</span>
-<span class="sd">            Parameter point `theta` at which the Fisher information matrix `I_ij(theta)` is evaluated.</span>
-
-<span class="sd">        luminosity : float, optional</span>
-<span class="sd">            Luminosity in pb^-1. Default value: 300000.</span>
-
-<span class="sd">        observable : str</span>
-<span class="sd">            Expression for the observable to be histogrammed. The str will be parsed by Python&#39;s `eval()` function</span>
-<span class="sd">            and can use the names of the observables in the MadMiner files.</span>
-
-<span class="sd">        nbins : int</span>
-<span class="sd">            Number of bins in the histogram, excluding overflow bins.</span>
-
-<span class="sd">        histrange : tuple of float</span>
-<span class="sd">            Minimum and maximum value of the histogram in the form `(min, max)`. Overflow bins are always added.</span>
-
-<span class="sd">        cuts : None or list of str, optional</span>
-<span class="sd">            Cuts. Each entry is a parseable Python expression that returns a bool (True if the event should pass a cut,</span>
-<span class="sd">            False otherwise). Default value: None.</span>
-
-<span class="sd">        efficiency_functions : list of str or None</span>
-<span class="sd">            Efficiencies. Each entry is a parseable Python expression that returns a float for the efficiency of one</span>
-<span class="sd">            component. Default value: None.</span>
-
-<span class="sd">        Returns</span>
-<span class="sd">        -------</span>
-<span class="sd">        fisher_information : ndarray</span>
-<span class="sd">            Expected Fisher information in the histogram with shape `(n_parameters, n_parameters)`.</span>
-
-<span class="sd">        &quot;&quot;&quot;</span>
-
-        <span class="c1"># Input</span>
-        <span class="k">if</span> <span class="n">cuts</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">cuts</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="k">if</span> <span class="n">efficiency_functions</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">efficiency_functions</span> <span class="o">=</span> <span class="p">[]</span>
-
-        <span class="c1"># Number of bins</span>
-        <span class="n">n_bins_total</span> <span class="o">=</span> <span class="n">nbins</span> <span class="o">+</span> <span class="mi">2</span>
-        <span class="n">bin_boundaries</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">histrange</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">histrange</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">num</span><span class="o">=</span><span class="n">nbins</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
-
-        <span class="c1"># Loop over batches</span>
-        <span class="n">weights_benchmarks</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n_bins_total</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_benchmarks</span><span class="p">))</span>
-
-        <span class="k">for</span> <span class="n">observations</span><span class="p">,</span> <span class="n">weights</span> <span class="ow">in</span> <span class="n">madminer_event_loader</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">madminer_filename</span><span class="p">):</span>
-            <span class="c1"># Cuts</span>
-            <span class="n">cut_filter</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_pass_cuts</span><span class="p">(</span><span class="n">obs_event</span><span class="p">,</span> <span class="n">cuts</span><span class="p">)</span> <span class="k">for</span> <span class="n">obs_event</span> <span class="ow">in</span> <span class="n">observations</span><span class="p">]</span>
-            <span class="n">observations</span> <span class="o">=</span> <span class="n">observations</span><span class="p">[</span><span class="n">cut_filter</span><span class="p">]</span>
-            <span class="n">weights</span> <span class="o">=</span> <span class="n">weights</span><span class="p">[</span><span class="n">cut_filter</span><span class="p">]</span>
-
-            <span class="c1"># Efficiencies</span>
-            <span class="n">efficiencies</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
-                <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_eval_efficiency</span><span class="p">(</span><span class="n">obs_event</span><span class="p">,</span> <span class="n">efficiency_functions</span><span class="p">)</span> <span class="k">for</span> <span class="n">obs_event</span> <span class="ow">in</span> <span class="n">observations</span><span class="p">])</span>
-            <span class="n">weights</span> <span class="o">*=</span> <span class="n">efficiencies</span><span class="p">[:,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span>
-
-            <span class="c1"># Evaluate histogrammed observable</span>
-            <span class="n">histo_observables</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">_eval_observable</span><span class="p">(</span><span class="n">obs_event</span><span class="p">,</span> <span class="n">observable</span><span class="p">)</span> <span class="k">for</span> <span class="n">obs_event</span> <span class="ow">in</span> <span class="n">observations</span><span class="p">])</span>
-
-            <span class="c1"># Find bins</span>
-            <span class="n">bins</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">searchsorted</span><span class="p">(</span><span class="n">bin_boundaries</span><span class="p">,</span> <span class="n">histo_observables</span><span class="p">)</span>
-            <span class="k">assert</span> <span class="p">((</span><span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">bins</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">bins</span> <span class="o">&lt;</span> <span class="n">n_bins_total</span><span class="p">))</span><span class="o">.</span><span class="n">all</span><span class="p">(),</span> <span class="s1">&#39;Wrong bin </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">bins</span><span class="p">)</span>
-
-            <span class="c1"># Add up</span>
-            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_bins_total</span><span class="p">):</span>
-                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">weights</span><span class="p">[</span><span class="n">bins</span> <span class="o">==</span> <span class="n">i</span><span class="p">])</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-                    <span class="n">weights_benchmarks</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">weights</span><span class="p">[</span><span class="n">bins</span> <span class="o">==</span> <span class="n">i</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
-
-        <span class="c1"># Calculate Fisher information in histogram</span>
-        <span class="n">fisher_info</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calculate_fisher_information</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">weights_benchmarks</span><span class="p">,</span> <span class="n">luminosity</span><span class="p">,</span> <span class="n">sum_events</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-
-        <span class="k">return</span> <span class="n">fisher_info</span></div>
-
-<div class="viewcode-block" id="FisherInformation.calculate_fisher_information_hist2d"><a class="viewcode-back" href="../../madminer.fisherinformation.html#madminer.fisherinformation.FisherInformation.calculate_fisher_information_hist2d">[docs]</a>    <span class="k">def</span> <span class="nf">calculate_fisher_information_hist2d</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">luminosity</span><span class="p">,</span> <span class="n">observable1</span><span class="p">,</span> <span class="n">nbins1</span><span class="p">,</span> <span class="n">histrange1</span><span class="p">,</span> <span class="n">observable2</span><span class="p">,</span>
-                                            <span class="n">nbins2</span><span class="p">,</span> <span class="n">histrange2</span><span class="p">,</span> <span class="n">cuts</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">efficiency_functions</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-
-        <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Calculates the Fisher information in a two-dimensional histogram of two (parton-level or detector-level,</span>
-<span class="sd">        depending on how the observations in the MadMiner file were calculated) observables.</span>
-
-<span class="sd">        Parameters</span>
-<span class="sd">        ----------</span>
-<span class="sd">        theta : ndarray</span>
-<span class="sd">            Parameter point `theta` at which the Fisher information matrix `I_ij(theta)` is evaluated.</span>
-
-<span class="sd">        luminosity : float, optional</span>
-<span class="sd">            Luminosity in pb^-1. Default value: 300000.</span>
-
-<span class="sd">        observable1 : str</span>
-<span class="sd">            Expression for the first observable to be histogrammed. The str will be parsed by Python&#39;s `eval()` function</span>
-<span class="sd">            and can use the names of the observables in the MadMiner files.</span>
-
-<span class="sd">        nbins1 : int</span>
-<span class="sd">            Number of bins along the first axis in the histogram, excluding overflow bins.</span>
-
-<span class="sd">        histrange1 : tuple of float</span>
-<span class="sd">            Minimum and maximum value of the first axis of the histogram in the form `(min, max)`. Overflow bins are</span>
-<span class="sd">            always added.</span>
-
-<span class="sd">        observable2 : str</span>
-<span class="sd">            Expression for the first observable to be histogrammed. The str will be parsed by Python&#39;s `eval()` function</span>
-<span class="sd">            and can use the names of the observables in the MadMiner files.</span>
-
-<span class="sd">        nbins2 : int</span>
-<span class="sd">            Number of bins along the first axis in the histogram, excluding overflow bins.</span>
-
-<span class="sd">        histrange2 : tuple of float</span>
-<span class="sd">            Minimum and maximum value of the first axis of the histogram in the form `(min, max)`. Overflow bins are</span>
-<span class="sd">            always added.</span>
-
-<span class="sd">        cuts : None or list of str, optional</span>
-<span class="sd">            Cuts. Each entry is a parseable Python expression that returns a bool (True if the event should pass a cut,</span>
-<span class="sd">            False otherwise). Default value: None.</span>
-
-<span class="sd">        efficiency_functions : list of str or None</span>
-<span class="sd">            Efficiencies. Each entry is a parseable Python expression that returns a float for the efficiency of one</span>
-<span class="sd">            component. Default value: None.</span>
-
-<span class="sd">        Returns</span>
-<span class="sd">        -------</span>
-<span class="sd">        fisher_information : ndarray</span>
-<span class="sd">            Expected Fisher information in the histogram with shape `(n_parameters, n_parameters)`.</span>
-
-<span class="sd">        &quot;&quot;&quot;</span>
-
-        <span class="c1"># Input</span>
-        <span class="k">if</span> <span class="n">cuts</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">cuts</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="k">if</span> <span class="n">efficiency_functions</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">efficiency_functions</span> <span class="o">=</span> <span class="p">[]</span>
-
-        <span class="c1"># Number of bins</span>
-        <span class="n">n_bins1_total</span> <span class="o">=</span> <span class="n">nbins1</span> <span class="o">+</span> <span class="mi">2</span>
-        <span class="n">bin1_boundaries</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">histrange1</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">histrange1</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">num</span><span class="o">=</span><span class="n">nbins1</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
-        <span class="n">n_bins2_total</span> <span class="o">=</span> <span class="n">nbins1</span> <span class="o">+</span> <span class="mi">2</span>
-        <span class="n">bin2_boundaries</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">histrange2</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">histrange2</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">num</span><span class="o">=</span><span class="n">nbins2</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
-
-        <span class="c1"># Loop over batches</span>
-        <span class="n">weights_benchmarks</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n_bins1_total</span><span class="p">,</span> <span class="n">n_bins2_total</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_benchmarks</span><span class="p">))</span>
-
-        <span class="k">for</span> <span class="n">observations</span><span class="p">,</span> <span class="n">weights</span> <span class="ow">in</span> <span class="n">madminer_event_loader</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">madminer_filename</span><span class="p">):</span>
-            <span class="c1"># Cuts</span>
-            <span class="n">cut_filter</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_pass_cuts</span><span class="p">(</span><span class="n">obs_event</span><span class="p">,</span> <span class="n">cuts</span><span class="p">)</span> <span class="k">for</span> <span class="n">obs_event</span> <span class="ow">in</span> <span class="n">observations</span><span class="p">]</span>
-            <span class="n">observations</span> <span class="o">=</span> <span class="n">observations</span><span class="p">[</span><span class="n">cut_filter</span><span class="p">]</span>
-            <span class="n">weights</span> <span class="o">=</span> <span class="n">weights</span><span class="p">[</span><span class="n">cut_filter</span><span class="p">]</span>
-
-            <span class="c1"># Efficiencies</span>
-            <span class="n">efficiencies</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
-                <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_eval_efficiency</span><span class="p">(</span><span class="n">obs_event</span><span class="p">,</span> <span class="n">efficiency_functions</span><span class="p">)</span> <span class="k">for</span> <span class="n">obs_event</span> <span class="ow">in</span> <span class="n">observations</span><span class="p">])</span>
-            <span class="n">weights</span> <span class="o">*=</span> <span class="n">efficiencies</span><span class="p">[:,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span>
-
-            <span class="c1"># Evaluate histogrammed observable</span>
-            <span class="n">histo1_observables</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span>
-                <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_eval_observable</span><span class="p">(</span><span class="n">obs_event</span><span class="p">,</span> <span class="n">observable1</span><span class="p">)</span> <span class="k">for</span> <span class="n">obs_event</span> <span class="ow">in</span> <span class="n">observations</span><span class="p">])</span>
-            <span class="n">histo2_observables</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span>
-                <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_eval_observable</span><span class="p">(</span><span class="n">obs_event</span><span class="p">,</span> <span class="n">observable2</span><span class="p">)</span> <span class="k">for</span> <span class="n">obs_event</span> <span class="ow">in</span> <span class="n">observations</span><span class="p">])</span>
-
-            <span class="c1"># Find bins</span>
-            <span class="n">bins1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">searchsorted</span><span class="p">(</span><span class="n">bin1_boundaries</span><span class="p">,</span> <span class="n">histo1_observables</span><span class="p">)</span>
-            <span class="n">bins2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">searchsorted</span><span class="p">(</span><span class="n">bin2_boundaries</span><span class="p">,</span> <span class="n">histo2_observables</span><span class="p">)</span>
-
-            <span class="k">assert</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">bins1</span> <span class="o">&lt;</span> <span class="n">n_bins1_total</span><span class="p">),</span> <span class="s1">&#39;Wrong bin </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">bins1</span><span class="p">)</span>
-            <span class="k">assert</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">bins2</span> <span class="o">&lt;</span> <span class="n">n_bins2_total</span><span class="p">),</span> <span class="s1">&#39;Wrong bin </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">bins2</span><span class="p">)</span>
-
-            <span class="c1"># Add up</span>
-            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_bins1_total</span><span class="p">):</span>
-                <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_bins2_total</span><span class="p">):</span>
-                    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">weights</span><span class="p">[(</span><span class="n">bins1</span> <span class="o">==</span> <span class="n">i</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">bins2</span> <span class="o">==</span> <span class="n">j</span><span class="p">)])</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-                        <span class="n">weights_benchmarks</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">+=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">weights</span><span class="p">[(</span><span class="n">bins1</span> <span class="o">==</span> <span class="n">i</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">bins2</span> <span class="o">==</span> <span class="n">j</span><span class="p">)],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
-
-        <span class="c1"># Calculate Fisher information in histogram</span>
-        <span class="n">weights_benchmarks</span> <span class="o">=</span> <span class="n">weights_benchmarks</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_benchmarks</span><span class="p">)</span>
-        <span class="n">fisher_info</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calculate_fisher_information</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">weights_benchmarks</span><span class="p">,</span> <span class="n">luminosity</span><span class="p">,</span> <span class="n">sum_events</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-
-        <span class="k">return</span> <span class="n">fisher_info</span></div>
-
-<div class="viewcode-block" id="FisherInformation.histogram_of_fisher_information"><a class="viewcode-back" href="../../madminer.fisherinformation.html#madminer.fisherinformation.FisherInformation.histogram_of_fisher_information">[docs]</a>    <span class="k">def</span> <span class="nf">histogram_of_fisher_information</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">luminosity</span><span class="p">,</span> <span class="n">observable</span><span class="p">,</span> <span class="n">nbins</span><span class="p">,</span> <span class="n">histrange</span><span class="p">,</span> <span class="n">cuts</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                                        <span class="n">efficiency_functions</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Calculates the full and rate-only Fisher information in slices of one observable.</span>
-
-<span class="sd">        Parameters</span>
-<span class="sd">        ----------</span>
-<span class="sd">        theta : ndarray</span>
-<span class="sd">            Parameter point `theta` at which the Fisher information matrix `I_ij(theta)` is evaluated.</span>
-
-<span class="sd">        luminosity : float, optional</span>
-<span class="sd">            Luminosity in pb^-1. Default value: 300000.</span>
-
-<span class="sd">        observable : str</span>
-<span class="sd">            Expression for the observable to be sliced. The str will be parsed by Python&#39;s `eval()` function</span>
-<span class="sd">            and can use the names of the observables in the MadMiner files.</span>
-
-<span class="sd">        nbins : int</span>
-<span class="sd">            Number of bins in the slicing, excluding overflow bins.</span>
-
-<span class="sd">        histrange : tuple of float</span>
-<span class="sd">            Minimum and maximum value of the slicing in the form `(min, max)`. Overflow bins are always added.</span>
-
-<span class="sd">        cuts : None or list of str, optional</span>
-<span class="sd">            Cuts. Each entry is a parseable Python expression that returns a bool (True if the event should pass a cut,</span>
-<span class="sd">            False otherwise). Default value: None.</span>
-
-<span class="sd">        efficiency_functions : list of str or None</span>
-<span class="sd">            Efficiencies. Each entry is a parseable Python expression that returns a float for the efficiency of one</span>
-<span class="sd">            component. Default value: None.</span>
-
-<span class="sd">        Returns</span>
-<span class="sd">        -------</span>
-<span class="sd">        bin_boundaries : ndarray</span>
-<span class="sd">            Observable slice boundaries.</span>
-
-<span class="sd">        sigma_bins : ndarray</span>
-<span class="sd">            Cross section in pb in each of the slices.</span>
-
-<span class="sd">        rate_fisher_infos : ndarray</span>
-<span class="sd">            Expected rate-only Fisher information for each slice. Has shape `(n_slices, n_parameters, n_parameters)`.</span>
-
-<span class="sd">        full_fisher_infos_truth : ndarray</span>
-<span class="sd">            Expected full truth-level Fisher information for each slice. Has shape</span>
-<span class="sd">            `(n_slices, n_parameters, n_parameters)`.</span>
-
-<span class="sd">        &quot;&quot;&quot;</span>
-
-        <span class="c1"># Input</span>
-        <span class="k">if</span> <span class="n">cuts</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">cuts</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="k">if</span> <span class="n">efficiency_functions</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">efficiency_functions</span> <span class="o">=</span> <span class="p">[]</span>
-
-        <span class="c1"># Number of bins</span>
-        <span class="n">n_bins_total</span> <span class="o">=</span> <span class="n">nbins</span> <span class="o">+</span> <span class="mi">2</span>
-        <span class="n">bin_boundaries</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">histrange</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">histrange</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">num</span><span class="o">=</span><span class="n">nbins</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
-
-        <span class="c1"># Loop over batches</span>
-        <span class="n">weights_benchmarks_bins</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n_bins_total</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_benchmarks</span><span class="p">))</span>
-        <span class="n">fisher_info_full_bins</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n_bins_total</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_parameters</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_parameters</span><span class="p">))</span>
-
-        <span class="k">for</span> <span class="n">observations</span><span class="p">,</span> <span class="n">weights</span> <span class="ow">in</span> <span class="n">madminer_event_loader</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">madminer_filename</span><span class="p">):</span>
-            <span class="c1"># Cuts</span>
-            <span class="n">cut_filter</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_pass_cuts</span><span class="p">(</span><span class="n">obs_event</span><span class="p">,</span> <span class="n">cuts</span><span class="p">)</span> <span class="k">for</span> <span class="n">obs_event</span> <span class="ow">in</span> <span class="n">observations</span><span class="p">]</span>
-            <span class="n">observations</span> <span class="o">=</span> <span class="n">observations</span><span class="p">[</span><span class="n">cut_filter</span><span class="p">]</span>
-            <span class="n">weights</span> <span class="o">=</span> <span class="n">weights</span><span class="p">[</span><span class="n">cut_filter</span><span class="p">]</span>
-
-            <span class="c1"># Efficiencies</span>
-            <span class="n">efficiencies</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
-                <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_eval_efficiency</span><span class="p">(</span><span class="n">obs_event</span><span class="p">,</span> <span class="n">efficiency_functions</span><span class="p">)</span> <span class="k">for</span> <span class="n">obs_event</span> <span class="ow">in</span> <span class="n">observations</span><span class="p">])</span>
-            <span class="n">weights</span> <span class="o">*=</span> <span class="n">efficiencies</span><span class="p">[:,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span>
-
-            <span class="c1"># Fisher info per event</span>
-            <span class="n">fisher_info_events</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calculate_fisher_information</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">weights_benchmarks_bins</span><span class="p">,</span> <span class="n">luminosity</span><span class="p">,</span>
-                                                                    <span class="n">sum_events</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-
-            <span class="c1"># Evaluate histogrammed observable</span>
-            <span class="n">histo_observables</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">_eval_observable</span><span class="p">(</span><span class="n">obs_event</span><span class="p">,</span> <span class="n">observable</span><span class="p">)</span> <span class="k">for</span> <span class="n">obs_event</span> <span class="ow">in</span> <span class="n">observations</span><span class="p">])</span>
-
-            <span class="c1"># Find bins</span>
-            <span class="n">bins</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">searchsorted</span><span class="p">(</span><span class="n">bin_boundaries</span><span class="p">,</span> <span class="n">histo_observables</span><span class="p">)</span>
-            <span class="k">assert</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">bins</span> <span class="o">&lt;</span> <span class="n">n_bins_total</span><span class="p">),</span> <span class="s1">&#39;Wrong bin </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">bins</span><span class="p">)</span>
-
-            <span class="c1"># Add up</span>
-            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_bins_total</span><span class="p">):</span>
-                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">weights</span><span class="p">[</span><span class="n">bins</span> <span class="o">==</span> <span class="n">i</span><span class="p">])</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-                    <span class="n">weights_benchmarks_bins</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">weights</span><span class="p">[</span><span class="n">bins</span> <span class="o">==</span> <span class="n">i</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
-                    <span class="n">fisher_info_full_bins</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">fisher_info_events</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
-
-        <span class="c1"># Calculate xsecs in bins</span>
-        <span class="n">theta_matrix</span> <span class="o">=</span> <span class="n">get_theta_benchmark_matrix</span><span class="p">(</span>
-            <span class="s1">&#39;morphing&#39;</span><span class="p">,</span>
-            <span class="n">theta</span><span class="p">,</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">benchmarks</span><span class="p">,</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">morpher</span>
-        <span class="p">)</span>
-        <span class="n">sigma_bins</span> <span class="o">=</span> <span class="n">theta_matrix</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">weights_benchmarks_bins</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>  <span class="c1"># (n_bins,)</span>
-
-        <span class="c1"># Calculate rate-only Fisher informations in bins</span>
-        <span class="n">fisher_info_rate_bins</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calculate_fisher_information</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">weights_benchmarks_bins</span><span class="p">,</span> <span class="n">luminosity</span><span class="p">,</span>
-                                                                   <span class="n">sum_events</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-
-        <span class="k">return</span> <span class="n">bin_boundaries</span><span class="p">,</span> <span class="n">sigma_bins</span><span class="p">,</span> <span class="n">fisher_info_rate_bins</span><span class="p">,</span> <span class="n">fisher_info_full_bins</span></div></div>
+        <span class="k">return</span> <span class="n">xsec</span></div>
 </pre></div>
 
           </div>
