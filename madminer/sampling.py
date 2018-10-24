@@ -1138,6 +1138,7 @@ class SampleAugmenter:
         all_x = []
         all_augmented_data = [[] for _ in augmented_data_definitions]
         all_thetas = [[] for _ in range(n_thetas)]
+        all_effective_n_samples = []
 
         # Main loop over thetas
         for i_set in range(n_sets):
@@ -1197,6 +1198,8 @@ class SampleAugmenter:
                 elif definition[0] == 'score':
                     samples_augmented_data.append(np.zeros((n_samples, self.n_parameters)))
 
+            largest_weight = 0.
+
             # Main sampling loop
             while not np.all(samples_done):
 
@@ -1219,6 +1222,9 @@ class SampleAugmenter:
                         logging.warning('%s negative weights (%s)',
                                         n_negative_weights, n_negative_weights / p_theta.size)
                     p_theta[p_theta < 0.] = 0.
+
+                    # Remember largest weights (to calculate effective number of samples)
+                    largest_weight = max(largest_weight, np.max(p_theta))
 
                     # Calculate cumulative p (summing up all events until here)
                     cumulative_p = cumulative_p.flatten()[-1] + np.cumsum(p_theta)  # Shape: (n_batch_size,)
@@ -1262,6 +1268,7 @@ class SampleAugmenter:
                 all_thetas[i].append(theta)
             for i, this_samples_augmented_data in enumerate(samples_augmented_data):
                 all_augmented_data[i].append(this_samples_augmented_data)
+            all_effective_n_samples.append(1./np.max(1.e-12, largest_weight))
 
         # Combine and return results
         all_x = np.vstack(all_x)
@@ -1269,5 +1276,15 @@ class SampleAugmenter:
             all_thetas[i] = np.vstack(all_thetas[i])
         for i in range(len(all_augmented_data)):
             all_augmented_data[i] = np.vstack(all_augmented_data[i])
+        all_effective_n_samples = np.array(all_effective_n_samples)
+
+        # Report effective number of samples
+        if n_sets > 1:
+            logging.info('Effective number of samples: mean %s, with individual thetas ranging from %s to %s',
+                         np.mean(all_effective_n_samples), np.min(all_effective_n_samples),
+                         np.max(all_effective_n_samples))
+            logging.debug('Effective number of samples for all thetas: %s', all_effective_n_samples)
+        else:
+            logging.info('Effective number of samples: %s', all_effective_n_samples[0])
 
         return all_x, all_augmented_data, all_thetas
