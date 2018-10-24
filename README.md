@@ -66,6 +66,10 @@ a parton-level Fisher information analysis.
 - Finally,  `madminer.fisherinformation` contains functions to calculate the Fisher information, both on parton level
   or detector level, in the full process, individual observables, or the total cross section.
 
+### Documentation
+
+In [docs](docs/) we provide a HTML and PDF documentation of the different modules and classes.
+
 ## Acknowledgements
 
 The SCANDAL inference method is based on [Masked Autoregressive Flows](https://arxiv.org/abs/1705.07057), and its

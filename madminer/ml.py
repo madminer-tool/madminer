@@ -822,13 +822,14 @@ class EnsembleForge:
 
     Parameters
     ----------
-    estimators : None or list of MLForge, optional
-        The estimators in the form of (trained or untrained) MLForge instances. Note that the estimators have to be
-        consistent: either all of them are trained with a local score method ('sally' or 'sallino'); or all of them are
-        trained with a single-parameterized method ('carl', 'rolr', 'rascal', 'scandal', 'alice', or 'alices'); or all
-        of them are trained with a doubly parameterized method ('carl2', 'rolr2', 'rascal2', 'alice2', or 'alices2').
-        Mixing estimators of different types within one of these three categories is supported, but mixing estimators
-        from different categories is not and will raise a RuntimeException. Default value: None.
+    estimators : None or int or list of MLForge, optional
+        If int, sets the number of estimators that will be created as new MLForge instances. If list of MLForge, sets
+        the estimators directly. If None, the ensemble is initialized without estimators. Note that the estimators have
+        to be consistent: either all of them are trained with a local score method ('sally' or 'sallino'); or all of
+        them are trained with a single-parameterized method ('carl', 'rolr', 'rascal', 'scandal', 'alice', or 'alices');
+        or all of them are trained with a doubly parameterized method ('carl2', 'rolr2', 'rascal2', 'alice2', or
+        'alices2'). Mixing estimators of different types within one of these three categories is supported, but mixing
+        estimators from different categories is not and will raise a RuntimeException. Default value: None.
 
     Attributes
     ----------
@@ -843,9 +844,11 @@ class EnsembleForge:
     def __init__(self, estimators=None, debug=False):
         general_init(debug=debug)
 
-        # Save settings
+        # Initialize estimators
         if estimators is None:
             estimators = []
+        elif isinstance(estimators, int):
+            estimators = [MLForge(debug=debug) for _ in range(estimators)]
 
         self.estimators = estimators
         self.n_estimators = len(self.estimators)

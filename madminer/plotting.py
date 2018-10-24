@@ -40,7 +40,7 @@ def plot_2d_morphing_basis(morpher,
         Range `(min, max)` for the color map. Default value: (1., 100.).
 
     resolution : int, optional
-        Number of points per axis for the rendering of the squared morphing weights.
+        Number of points per axis for the rendering of the squared morphing weights. Default value: 100.
 
     Returns
     -------
@@ -221,7 +221,7 @@ def plot_fisher_information_contours_2d(
         yrange=(-1., 1.),
         labels=None,
         inline_labels=None,
-        resolution=100,
+        resolution=500,
         colors=None,
         linestyles=None,
         linewidths=1.5,
@@ -270,7 +270,7 @@ def plot_fisher_information_contours_2d(
         Inline labels for the contours. Default value: None.
 
     resolution : int
-        Number of points per axis for the calculation of the distances.
+        Number of points per axis for the calculation of the distances. Default value: 500.
 
     colors : None or str or list of str, optional
         Matplotlib line (and error band) colors for the contours. If None, uses default colors. Default value: None.
