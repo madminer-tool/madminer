@@ -44,31 +44,21 @@
 <p>After inializing a <cite>FisherInformation</cite> instance with the filename of a MadMiner file, different information matrices
 can be calculated:</p>
 <ul class="simple">
-<li><cite>FisherInformation.calculate_fisher_information_full_truth()</cite> calculates the full truth-level Fisher information.</li>
+<li><cite>FisherInformation.calculate_fisher_information_full_truth()</cite> calculates the full truth-level Fisher information.
+This is the information in an idealized measurement where all parton-level particles with their charges, flavours,
+and four-momenta can be accessed with perfect accuracy.</li>
+<li><cite>FisherInformation.calculate_fisher_information_full_detector()</cite> calculates the full Fisher information in
+realistic detector-level observations, estimated with neural networks. In addition to the MadMiner file, this
+requires a trained SALLY or SALLINO estimator as well as an unweighted evaluation sample.</li>
+<li><cite>FisherInformation.calculate_fisher_information_rate()</cite> calculates the Fisher information in the total cross
+section.</li>
+<li><cite>FisherInformation.calculate_fisher_information_hist1d()</cite> calculates the Fisher information in the histogram of
+one (parton-level or detector-level) observable.</li>
+<li><cite>FisherInformation.calculate_fisher_information_hist2d()</cite> calculates the Fisher information in a two-dimensional
+histogram of two (parton-level or detector-level) observables.</li>
+<li><cite>FisherInformation.histogram_of_fisher_information()</cite> calculates the full truth-level Fisher information in
+different slices of one observable (the “distribution of the Fisher information”).</li>
 </ul>
-<p>This is the information in an idealized measurement where all parton-level particles with their charges, flavours,
-and four-momenta can be accessed with perfect accuracy.</p>
-<ul class="simple">
-<li><cite>FisherInformation.calculate_fisher_information_full_detector()</cite> calculates the full Fisher information in</li>
-</ul>
-<p>realistic detector-level observations, estimated with neural networks. In addition to the MadMiner file, this
-requires a trained SALLY or SALLINO estimator as well as an unweighted evaluation sample.</p>
-<ul class="simple">
-<li><cite>FisherInformation.calculate_fisher_information_rate()</cite> calculates the Fisher information in the total cross</li>
-</ul>
-<p>section.</p>
-<ul class="simple">
-<li><cite>FisherInformation.calculate_fisher_information_hist1d()</cite> calculates the Fisher information in the histogram of</li>
-</ul>
-<p>one (parton-level or detector-level) observable.</p>
-<ul class="simple">
-<li><cite>FisherInformation.calculate_fisher_information_hist2d()</cite> calculates the Fisher information in a two-dimensional</li>
-</ul>
-<p>histogram of two (parton-level or detector-level) observables.</p>
-<ul class="simple">
-<li><cite>FisherInformation.histogram_of_fisher_information()</cite> calculates the full truth-level Fisher information in</li>
-</ul>
-<p>different slices of one observable (the “distribution of the Fisher information”).</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -482,7 +472,7 @@ component. Default value: None.</p>
 <dl class="function">
 <dt id="madminer.fisherinformation.profile_information">
 <code class="descclassname">madminer.fisherinformation.</code><code class="descname">profile_information</code><span class="sig-paren">(</span><em>fisher_information</em>, <em>remaining_components</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/fisherinformation.html#profile_information"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.fisherinformation.profile_information" title="Permalink to this definition">¶</a></dt>
-<dd><p>Calculates the profiled Fisher information matrix as defined in Appendix A.4 of 1612.05261.</p>
+<dd><p>Calculates the profiled Fisher information matrix as defined in Appendix A.4 of arXiv:1612.05261.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -568,6 +558,7 @@ their new order. All other parameters or projected out.</p>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">madminer.fisherinformation module</a></li>
 <li class="toctree-l1"><a class="reference internal" href="madminer.ml.html">madminer.ml module</a></li>
 <li class="toctree-l1"><a class="reference internal" href="madminer.morphing.html">madminer.morphing module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="madminer.plotting.html">madminer.plotting module</a></li>
 <li class="toctree-l1"><a class="reference internal" href="madminer.sampling.html">madminer.sampling module</a></li>
 </ul>
 

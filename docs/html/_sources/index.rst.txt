@@ -15,6 +15,7 @@ Welcome to MadMiner's documentation!
    madminer.fisherinformation
    madminer.ml
    madminer.morphing
+   madminer.plotting
    madminer.sampling
 
 

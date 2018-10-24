@@ -80,7 +80,7 @@
 
 <div class="viewcode-block" id="profile_information"><a class="viewcode-back" href="../../madminer.fisherinformation.html#madminer.fisherinformation.profile_information">[docs]</a><span class="k">def</span> <span class="nf">profile_information</span><span class="p">(</span><span class="n">fisher_information</span><span class="p">,</span> <span class="n">remaining_components</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Calculates the profiled Fisher information matrix as defined in Appendix A.4 of 1612.05261.</span>
+<span class="sd">    Calculates the profiled Fisher information matrix as defined in Appendix A.4 of arXiv:1612.05261.</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
@@ -135,24 +135,19 @@
 <span class="sd">    can be calculated:</span>
 
 <span class="sd">    * `FisherInformation.calculate_fisher_information_full_truth()` calculates the full truth-level Fisher information.</span>
-<span class="sd">    This is the information in an idealized measurement where all parton-level particles with their charges, flavours,</span>
-<span class="sd">    and four-momenta can be accessed with perfect accuracy.</span>
-
+<span class="sd">      This is the information in an idealized measurement where all parton-level particles with their charges, flavours,</span>
+<span class="sd">      and four-momenta can be accessed with perfect accuracy.</span>
 <span class="sd">    * `FisherInformation.calculate_fisher_information_full_detector()` calculates the full Fisher information in</span>
-<span class="sd">    realistic detector-level observations, estimated with neural networks. In addition to the MadMiner file, this</span>
-<span class="sd">    requires a trained SALLY or SALLINO estimator as well as an unweighted evaluation sample.</span>
-
+<span class="sd">      realistic detector-level observations, estimated with neural networks. In addition to the MadMiner file, this</span>
+<span class="sd">      requires a trained SALLY or SALLINO estimator as well as an unweighted evaluation sample.</span>
 <span class="sd">    * `FisherInformation.calculate_fisher_information_rate()` calculates the Fisher information in the total cross</span>
-<span class="sd">    section.</span>
-
+<span class="sd">      section.</span>
 <span class="sd">    * `FisherInformation.calculate_fisher_information_hist1d()` calculates the Fisher information in the histogram of</span>
-<span class="sd">    one (parton-level or detector-level) observable.</span>
-
+<span class="sd">      one (parton-level or detector-level) observable.</span>
 <span class="sd">    * `FisherInformation.calculate_fisher_information_hist2d()` calculates the Fisher information in a two-dimensional</span>
-<span class="sd">    histogram of two (parton-level or detector-level) observables.</span>
-
+<span class="sd">      histogram of two (parton-level or detector-level) observables.</span>
 <span class="sd">    * `FisherInformation.histogram_of_fisher_information()` calculates the full truth-level Fisher information in</span>
-<span class="sd">    different slices of one observable (the &quot;distribution of the Fisher information&quot;).</span>
+<span class="sd">      different slices of one observable (the &quot;distribution of the Fisher information&quot;).</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
@@ -1027,6 +1022,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../madminer.fisherinformation.html">madminer.fisherinformation module</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../madminer.ml.html">madminer.ml module</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../madminer.morphing.html">madminer.morphing module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../madminer.plotting.html">madminer.plotting module</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../madminer.sampling.html">madminer.sampling module</a></li>
 </ul>
 

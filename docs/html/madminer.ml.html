@@ -44,23 +44,20 @@
 <p>Generally, EnsembleForge instances can be used very similarly to MLForge instances:</p>
 <ul class="simple">
 <li>The initialization of EnsembleForge takes a list of (trained or untrained) MLForge instances.</li>
-<li>The methods <cite>EnsembleForge.train_one()</cite> and <cite>EnsembleForge.train_all()</cite> train the estimators (this can also be</li>
-</ul>
-<p>done outside of EnsembleForge).</p>
-<ul class="simple">
-<li><cite>EnsembleForge.calculate_expectation()</cite> can be used to calculate the expectation of the estimation likelihood</li>
-</ul>
-<p>ratio or the expected estimated score over a validation sample. Ideally (and assuming the correct sampling),
+<li>The methods <cite>EnsembleForge.train_one()</cite> and <cite>EnsembleForge.train_all()</cite> train the estimators (this can also be
+done outside of EnsembleForge).</li>
+<li><cite>EnsembleForge.calculate_expectation()</cite> can be used to calculate the expectation of the estimation likelihood
+ratio or the expected estimated score over a validation sample. Ideally (and assuming the correct sampling),
 these expectation values should be close to zero. Deviations from zero therefore point out that the estimator
-is probably inaccurate.</p>
-<ul class="simple">
-<li><cite>EnsembleForge.evaluate()</cite> and <cite>EnsembleForge.calculate_fisher_information()</cite> can then be used to calculate</li>
-</ul>
-<p>ensemble predictions. The user has the option to treat all estimators equally (‘committee method’) or to give those
-with expected score / ratio close to zero a higher weight.</p>
-<ul class="simple">
+is probably inaccurate.</li>
+<li><cite>EnsembleForge.evaluate()</cite> and <cite>EnsembleForge.calculate_fisher_information()</cite> can then be used to calculate
+ensemble predictions. The user has the option to treat all estimators equally (‘committee method’) or to give those
+with expected score / ratio close to zero a higher weight.</li>
 <li><cite>EnsembleForge.save()</cite> and <cite>EnsembleForge.load()</cite> can store all estimators in one folder.</li>
 </ul>
+<p>The individual estimators in the ensemble can be trained with different methods, but they have to be of the same
+type: either all estimators are single-parameterized likelihood ratio estimators, or all estimators are
+doubly-parameterized likelihood estimators, or all estimators are local score regressors.</p>
 <p>Note that currently EnsembleForge only supports SALLY and SALLINO estimators.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -397,10 +394,12 @@ for the training of all the estimators.</p>
 <dt id="madminer.ml.MLForge">
 <em class="property">class </em><code class="descclassname">madminer.ml.</code><code class="descname">MLForge</code><span class="sig-paren">(</span><em>debug=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/ml.html#MLForge"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.ml.MLForge" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
-<p>Estimators for the likelihood ratio and score based on machine learning.</p>
+<p>Estimating likelihood ratios and scores with machine learning.</p>
 <p>Each instance of this class represents one neural estimator. The most important functions are:</p>
 <ul class="simple">
-<li><cite>MLForge.train()</cite> to train an estimator.</li>
+<li><cite>MLForge.train()</cite> to train an estimator. The keyword <cite>method</cite> determines the inference technique
+and whether a class instance represents a single-parameterized likelihood ratio estimator, a doubly-parameterized
+likelihood ratio estimator, or a local score estimator.</li>
 <li><cite>MLForge.evaluate()</cite> to evaluate the estimator.</li>
 <li><cite>MLForge.save()</cite> to save the trained model to files.</li>
 <li><cite>MLForge.load()</cite> to load the trained model from files.</li>
@@ -596,32 +595,30 @@ file.</p>
 <code class="descname">train</code><span class="sig-paren">(</span><em>method</em>, <em>x_filename</em>, <em>y_filename=None</em>, <em>theta0_filename=None</em>, <em>theta1_filename=None</em>, <em>r_xz_filename=None</em>, <em>t_xz0_filename=None</em>, <em>t_xz1_filename=None</em>, <em>features=None</em>, <em>nde_type='maf'</em>, <em>n_hidden=(100</em>, <em>100</em>, <em>100)</em>, <em>activation='tanh'</em>, <em>maf_n_mades=3</em>, <em>maf_batch_norm=True</em>, <em>maf_batch_norm_alpha=0.1</em>, <em>maf_mog_n_components=10</em>, <em>alpha=1.0</em>, <em>n_epochs=20</em>, <em>batch_size=128</em>, <em>initial_lr=0.002</em>, <em>final_lr=0.0001</em>, <em>validation_split=0.2</em>, <em>early_stopping=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/ml.html#MLForge.train"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.ml.MLForge.train" title="Permalink to this definition">¶</a></dt>
 <dd><p>Trains a neural network to estimate either the likelihood ratio or, if method is ‘sally’ or ‘sallino’, the
 score.</p>
+<p>The keyword method determines the structure of the estimator that an instance of this class represents:</p>
+<ul class="simple">
+<li>For ‘alice’, ‘alices’, ‘carl’, ‘nde’, ‘rascal’, ‘rolr’, and ‘scandal’, the neural network models
+the likelihood ratio as a function of the observables <cite>x</cite> and the numerator hypothesis <cite>theta0</cite>, while
+the denominator hypothesis is kept at a fixed reference value (“single-parameterized likelihood ratio
+estimator”). In addition to the likelihood ratio, the estimator allows to estimate the score at <cite>theta0</cite>.</li>
+<li>For ‘alice2’, ‘alices2’, ‘carl2’, ‘rascal2’, and ‘rolr2’, the neural network models
+the likelihood ratio as a function of the observables <cite>x</cite>, the numerator hypothesis <cite>theta0</cite>, and the
+denominator hypothesis <cite>theta1</cite> (“doubly parameterized likelihood ratio estimator”). The score at <cite>theta0</cite>
+and <cite>theta1</cite> can also be evaluated.</li>
+<li>For ‘sally’ and ‘sallino’, the neural networks models the score evaluated at some reference hypothesis
+(“local score regression”). The likelihood ratio cannot be estimated directly from the neural network, but
+can be estimated in a second step through density estimation in the estimated score space.</li>
+</ul>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
-<dt><strong>method</strong> <span class="classifier-delimiter">:</span> <span class="classifier">{‘alice’, ‘alice2’, ‘alices’, ‘alices2’, ‘carl’, ‘carl2’, ‘nde’, ‘rascal’, ‘rascal2’, ‘rolr’, ‘rolr2’,</span></dt>
-<dd></dd>
-<dt><strong>‘sally’, ‘sallino’, ‘scandal’}</strong></dt>
-<dd><p class="first">The inference method used:</p>
-<blockquote class="last">
-<div><ul class="simple">
-<li>For ‘alice’, ‘alices’, ‘carl’, ‘nde’, ‘rascal’, ‘rolr’, and ‘scandal’, the neural network models</li>
-</ul>
-<p>the likelihood ratio as a function of the observables <cite>x</cite> and the numerator hypothesis <cite>theta0</cite>, while
-the denominator hypothesis is kept at a fixed reference value. The score at <cite>theta0</cite> can also be evaluated.</p>
-<ul class="simple">
-<li>For ‘alice2’, ‘alices2’, ‘carl2’, ‘rascal2’, and ‘rolr2’, the neural network models</li>
-</ul>
-<p>the likelihood ratio as a function of the observables <cite>x</cite>, the numerator hypothesis <cite>theta0</cite>, and the
-denominator hypothesis <cite>theta1</cite>. The score at <cite>theta0</cite> and <cite>theta1</cite> can also be evaluated.</p>
-<ul class="simple">
-<li>For ‘sally’ and ‘sallino’, the neural networks models the score evaluated at some reference hypothesis.</li>
-</ul>
-<p>The likelihood ratio cannot be estimated directly from the neural network, but can be estimated in a second
-step through density estimation in the estimated score space.</p>
-</div></blockquote>
+<dt><strong>method</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
+<dd><p class="first last">The inference method used. Allows values are ‘alice’, ‘alices’, ‘carl’, ‘nde’, ‘rascal’, ‘rolr’, and
+‘scandal’ for a single-parameterized likelihood ratio estimator; ‘alice2’, ‘alices2’, ‘carl2’, ‘rascal2’,
+and ‘rolr2’ for a doubly-parameterized likelihood ratio estimator; and ‘sally’ and ‘sallino’ for local
+score regression.</p>
 </dd>
 <dt><strong>x_filename</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
 <dd><p class="first last">Path to an unweighted sample of observations, as saved by the <cite>madminer.sampling.SampleAugmenter</cite> functions.
@@ -752,6 +749,7 @@ sample is used for training and early stopping is deactivated. Default value: 0.
 <li class="toctree-l1"><a class="reference internal" href="madminer.fisherinformation.html">madminer.fisherinformation module</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">madminer.ml module</a></li>
 <li class="toctree-l1"><a class="reference internal" href="madminer.morphing.html">madminer.morphing module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="madminer.plotting.html">madminer.plotting module</a></li>
 <li class="toctree-l1"><a class="reference internal" href="madminer.sampling.html">madminer.sampling module</a></li>
 </ul>
 

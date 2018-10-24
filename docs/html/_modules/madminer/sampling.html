@@ -233,18 +233,14 @@
 <span class="sd">    Depending on the downstream inference algorithm, there are different possibilities:</span>
 
 <span class="sd">    * `SampleAugmenter.extract_samples_train_plain()` creates plain training samples without augmented data.</span>
-
 <span class="sd">    * `SampleAugmenter.extract_samples_train_local()` creates training samples for local methods based on the score,</span>
-<span class="sd">    such as SALLY and SALLINO.</span>
-
+<span class="sd">      such as SALLY and SALLINO.</span>
 <span class="sd">    * `SampleAugmenter.extract_samples_train_ratio()` creates training samples for non-local, ratio-based methods</span>
-<span class="sd">    like RASCAL, ALICE, and SCANDAL.</span>
-
+<span class="sd">      like RASCAL, ALICE, and SCANDAL.</span>
 <span class="sd">    * `SampleAugmenter.extract_samples_train_more_ratios()` does the same, but can extract joint ratios and scores</span>
-<span class="sd">    at more parameter points. This additional information  can be used efficiently in the setup with a &quot;doubly</span>
-<span class="sd">    parameterized&quot; likelihood ratio estimator that models the dependence on both the numerator and denominator</span>
-<span class="sd">    hypothesis.</span>
-
+<span class="sd">      at more parameter points. This additional information  can be used efficiently in the setup with a &quot;doubly</span>
+<span class="sd">      parameterized&quot; likelihood ratio estimator that models the dependence on both the numerator and denominator</span>
+<span class="sd">      hypothesis.</span>
 <span class="sd">    * `SampleAugmenter.extract_samples_test()` creates evaluation samples for all methods.</span>
 
 <span class="sd">    Please see the tutorial for a walkthrough.</span>
@@ -1335,6 +1331,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../madminer.fisherinformation.html">madminer.fisherinformation module</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../madminer.ml.html">madminer.ml module</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../madminer.morphing.html">madminer.morphing module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../madminer.plotting.html">madminer.plotting module</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../madminer.sampling.html">madminer.sampling module</a></li>
 </ul>
 

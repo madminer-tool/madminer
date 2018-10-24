@@ -428,19 +428,19 @@ def plot_fisherinfo_barplot(matrices,
                             use_bar_colors=False,
                             eigenvalue_operator_legend=True
                             ):
-    """
-    :matrices: list (length N) of fisher infos (n x n tensors) for eigenvalue decomposition
-    :matrices_for_determinants: list (length N) of fisher infos (n x n tensors) for determinant evaluation
-    :labels: list (length N) of analysis label (string)
-    :categories: group into categories (integer) - there will be extra space between categories
-    :operatorlabels: list (length M) of operator names (string)
-    :filename: save files under path (string)
-    :additional_label: label (string) in lower panel
-    :top_label: label (string) above top panel
-    :normalise_determinants: are determinants normalized to unity (bool)
-    :use_bar_colors: are bars in lower panel colored (bool)
-    :eigenvalue_operator_legend: plot legend for operators (bool)
-    """
+    # """
+    # :matrices: list (length N) of fisher infos (n x n tensors) for eigenvalue decomposition
+    # :matrices_for_determinants: list (length N) of fisher infos (n x n tensors) for determinant evaluation
+    # :labels: list (length N) of analysis label (string)
+    # :categories: group into categories (integer) - there will be extra space between categories
+    # :operatorlabels: list (length M) of operator names (string)
+    # :filename: save files under path (string)
+    # :additional_label: label (string) in lower panel
+    # :top_label: label (string) above top panel
+    # :normalise_determinants: are determinants normalized to unity (bool)
+    # :use_bar_colors: are bars in lower panel colored (bool)
+    # :eigenvalue_operator_legend: plot legend for operators (bool)
+    # """
 
     #################################################################################
     # Data

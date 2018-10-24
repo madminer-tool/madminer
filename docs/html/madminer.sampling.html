@@ -16,7 +16,7 @@
     <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="prev" title="madminer.morphing module" href="madminer.morphing.html" />
+    <link rel="prev" title="madminer.plotting module" href="madminer.plotting.html" />
    
   <link rel="stylesheet" href="_static/custom.css" type="text/css" />
   
@@ -49,20 +49,14 @@ distribution, and the extraction of the joint likelihood ratio and / or joint sc
 Depending on the downstream inference algorithm, there are different possibilities:</p>
 <ul class="simple">
 <li><cite>SampleAugmenter.extract_samples_train_plain()</cite> creates plain training samples without augmented data.</li>
-<li><cite>SampleAugmenter.extract_samples_train_local()</cite> creates training samples for local methods based on the score,</li>
-</ul>
-<p>such as SALLY and SALLINO.</p>
-<ul class="simple">
-<li><cite>SampleAugmenter.extract_samples_train_ratio()</cite> creates training samples for non-local, ratio-based methods</li>
-</ul>
-<p>like RASCAL, ALICE, and SCANDAL.</p>
-<ul class="simple">
-<li><cite>SampleAugmenter.extract_samples_train_more_ratios()</cite> does the same, but can extract joint ratios and scores</li>
-</ul>
-<p>at more parameter points. This additional information  can be used efficiently in the setup with a “doubly
+<li><cite>SampleAugmenter.extract_samples_train_local()</cite> creates training samples for local methods based on the score,
+such as SALLY and SALLINO.</li>
+<li><cite>SampleAugmenter.extract_samples_train_ratio()</cite> creates training samples for non-local, ratio-based methods
+like RASCAL, ALICE, and SCANDAL.</li>
+<li><cite>SampleAugmenter.extract_samples_train_more_ratios()</cite> does the same, but can extract joint ratios and scores
+at more parameter points. This additional information  can be used efficiently in the setup with a “doubly
 parameterized” likelihood ratio estimator that models the dependence on both the numerator and denominator
-hypothesis.</p>
-<ul class="simple">
+hypothesis.</li>
 <li><cite>SampleAugmenter.extract_samples_test()</cite> creates evaluation samples for all methods.</li>
 </ul>
 <p>Please see the tutorial for a walkthrough.</p>
@@ -683,6 +677,7 @@ bound of the flat prior, and <cite>gaussian</cite>, in which case they are the m
 <li class="toctree-l1"><a class="reference internal" href="madminer.fisherinformation.html">madminer.fisherinformation module</a></li>
 <li class="toctree-l1"><a class="reference internal" href="madminer.ml.html">madminer.ml module</a></li>
 <li class="toctree-l1"><a class="reference internal" href="madminer.morphing.html">madminer.morphing module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="madminer.plotting.html">madminer.plotting module</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">madminer.sampling module</a></li>
 </ul>
 
@@ -690,7 +685,7 @@ bound of the flat prior, and <cite>gaussian</cite>, in which case they are the m
 <h3>Related Topics</h3>
 <ul>
   <li><a href="index.html">Documentation overview</a><ul>
-      <li>Previous: <a href="madminer.morphing.html" title="previous chapter">madminer.morphing module</a></li>
+      <li>Previous: <a href="madminer.plotting.html" title="previous chapter">madminer.plotting module</a></li>
   </ul></li>
 </ul>
 </div>

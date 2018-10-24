@@ -54,24 +54,21 @@
 <span class="sd">    A typical morphing basis setup involves the following steps:</span>
 
 <span class="sd">    * The instance of the class is initialized with the parameter setup. The user can provide the parameters either</span>
-<span class="sd">    in the format of `MadMiner.parameters`. Alternatively, human-friendly lists of the key properties can be provided.</span>
-
+<span class="sd">      in the format of `MadMiner.parameters`. Alternatively, human-friendly lists of the key properties can be provided.</span>
 <span class="sd">    * The function `find_components` can be used to find the relevant components, i.e. individual terms</span>
-<span class="sd">    contributing to the squared matrix elements (alternatively they can be defined by the user with `set_components()`).</span>
-
+<span class="sd">      contributing to the squared matrix elements (alternatively they can be defined by the user with</span>
+<span class="sd">      `set_components()`).</span>
 <span class="sd">    * The final step is the definition of the morphing basis, i.e. the benchmark points for which the squared matrix</span>
-<span class="sd">    element will be evaluated before interpolating to other parameter points. Again the user can pick this basis</span>
-<span class="sd">    manually with `set_basis()`. Alternatively, this class provides a basic optimization routine for the basis choice</span>
-<span class="sd">    in `optimize_basis()`.</span>
+<span class="sd">      element will be evaluated before interpolating to other parameter points. Again the user can pick this basis</span>
+<span class="sd">      manually with `set_basis()`. Alternatively, this class provides a basic optimization routine for the basis choice</span>
+<span class="sd">      in `optimize_basis()`.</span>
 
 <span class="sd">    The class also provides helper functions that are important for working with morphing:</span>
 
 <span class="sd">    * `calculate_morphing_matrix()` calculates the morphing matrix, i.e. the matrix that links the morphing basis to the</span>
-<span class="sd">    components.</span>
-
+<span class="sd">       components.</span>
 <span class="sd">    * `calculate_morphing_weights()` calculates the morphing weights `w_b(theta)` for a given parameter point `theta`</span>
-<span class="sd">    such that `p(theta) = sum_b w_b(theta) p(theta_b)`.</span>
-
+<span class="sd">      such that `p(theta) = sum_b w_b(theta) p(theta_b)`.</span>
 <span class="sd">    * `calculate_morphing_weight_gradient()` calculates the gradient of the morphing weights, `grad_theta w_b(theta)`.</span>
 
 <span class="sd">    Parameters</span>
@@ -669,6 +666,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../madminer.fisherinformation.html">madminer.fisherinformation module</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../madminer.ml.html">madminer.ml module</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../madminer.morphing.html">madminer.morphing module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../madminer.plotting.html">madminer.plotting module</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../madminer.sampling.html">madminer.sampling module</a></li>
 </ul>
 

@@ -51,6 +51,39 @@
                            <span class="n">yrange</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mf">1.</span><span class="p">,</span> <span class="mf">1.</span><span class="p">),</span>
                            <span class="n">crange</span><span class="o">=</span><span class="p">(</span><span class="mf">1.</span><span class="p">,</span> <span class="mf">100.</span><span class="p">),</span>
                            <span class="n">resolution</span><span class="o">=</span><span class="mi">100</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Visualizes a morphing basis and morphing errors for problems with a two-dimensional parameter space.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    morpher : Morpher</span>
+<span class="sd">        Morpher instance with defined basis.</span>
+
+<span class="sd">    xlabel : str, optional</span>
+<span class="sd">        Label for the x axis. Default value: r&#39;$\theta_0$&#39;.</span>
+
+<span class="sd">    ylabel : str, optional</span>
+<span class="sd">        Label for the y axis. Default value: r&#39;$\theta_1$&#39;.</span>
+
+<span class="sd">    xrange : tuple of float, optional</span>
+<span class="sd">        Range `(min, max)` for the x axis. Default value: (-1., 1.).</span>
+
+<span class="sd">    yrange : tuple of float, optional</span>
+<span class="sd">        Range `(min, max)` for the y axis. Default value: (-1., 1.).</span>
+
+<span class="sd">    crange : tuple of float, optional</span>
+<span class="sd">        Range `(min, max)` for the color map. Default value: (1., 100.).</span>
+
+<span class="sd">    resolution : int, optional</span>
+<span class="sd">        Number of points per axis for the rendering of the squared morphing weights.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    figure : Figure</span>
+<span class="sd">        Plot as Matplotlib Figure instance.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
     <span class="n">basis</span> <span class="o">=</span> <span class="n">morpher</span><span class="o">.</span><span class="n">basis</span>
 
     <span class="k">assert</span> <span class="n">basis</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;No basis defined&quot;</span>
@@ -88,11 +121,27 @@
     <span class="k">return</span> <span class="n">fig</span></div>
 
 
-<div class="viewcode-block" id="plot_nd_morphing_basis_scatter"><a class="viewcode-back" href="../../madminer.plotting.html#madminer.plotting.plot_nd_morphing_basis_scatter">[docs]</a><span class="k">def</span> <span class="nf">plot_nd_morphing_basis_scatter</span><span class="p">(</span>
-        <span class="n">morpher</span><span class="p">,</span>
-        <span class="n">crange</span><span class="o">=</span><span class="p">(</span><span class="mf">1.</span><span class="p">,</span> <span class="mf">100.</span><span class="p">),</span>
-        <span class="n">n_test_thetas</span><span class="o">=</span><span class="mi">1000</span>
-<span class="p">):</span>
+<div class="viewcode-block" id="plot_nd_morphing_basis_scatter"><a class="viewcode-back" href="../../madminer.plotting.html#madminer.plotting.plot_nd_morphing_basis_scatter">[docs]</a><span class="k">def</span> <span class="nf">plot_nd_morphing_basis_scatter</span><span class="p">(</span><span class="n">morpher</span><span class="p">,</span> <span class="n">crange</span><span class="o">=</span><span class="p">(</span><span class="mf">1.</span><span class="p">,</span> <span class="mf">100.</span><span class="p">),</span> <span class="n">n_test_thetas</span><span class="o">=</span><span class="mi">1000</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Visualizes a morphing basis and morphing errors with scatter plots between each pair of operators.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    morpher : Morpher</span>
+<span class="sd">        Morpher instance with defined basis.</span>
+
+<span class="sd">    crange : tuple of float, optional</span>
+<span class="sd">        Range `(min, max)` for the color map. Default value: (1. 100.).</span>
+
+<span class="sd">    n_test_thetas : int, optional</span>
+<span class="sd">        Number of random points evaluated. Default value: 1000.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    figure : Figure</span>
+<span class="sd">        Plot as Matplotlib Figure instance.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">basis</span> <span class="o">=</span> <span class="n">morpher</span><span class="o">.</span><span class="n">basis</span>
 
     <span class="k">assert</span> <span class="n">basis</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;No basis defined&quot;</span>
@@ -126,11 +175,27 @@
     <span class="k">return</span> <span class="n">fig</span></div>
 
 
-<div class="viewcode-block" id="plot_nd_morphing_basis_slices"><a class="viewcode-back" href="../../madminer.plotting.html#madminer.plotting.plot_nd_morphing_basis_slices">[docs]</a><span class="k">def</span> <span class="nf">plot_nd_morphing_basis_slices</span><span class="p">(</span>
-        <span class="n">morpher</span><span class="p">,</span>
-        <span class="n">crange</span><span class="o">=</span><span class="p">(</span><span class="mf">1.</span><span class="p">,</span> <span class="mf">100.</span><span class="p">),</span>
-        <span class="n">resolution</span><span class="o">=</span><span class="mi">50</span>
-<span class="p">):</span>
+<div class="viewcode-block" id="plot_nd_morphing_basis_slices"><a class="viewcode-back" href="../../madminer.plotting.html#madminer.plotting.plot_nd_morphing_basis_slices">[docs]</a><span class="k">def</span> <span class="nf">plot_nd_morphing_basis_slices</span><span class="p">(</span><span class="n">morpher</span><span class="p">,</span> <span class="n">crange</span><span class="o">=</span><span class="p">(</span><span class="mf">1.</span><span class="p">,</span> <span class="mf">100.</span><span class="p">),</span> <span class="n">resolution</span><span class="o">=</span><span class="mi">50</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Visualizes a morphing basis and morphing errors with two-dimensional slices through parameter space.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    morpher : Morpher</span>
+<span class="sd">        Morpher instance with defined basis.</span>
+
+<span class="sd">    crange : tuple of float, optional</span>
+<span class="sd">        Range `(min, max)` for the color map.</span>
+
+<span class="sd">    resolution : int, optional</span>
+<span class="sd">        Number of points per panel and axis for the rendering of the squared morphing weights. Default value: 50.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    figure : Figure</span>
+<span class="sd">        Plot as Matplotlib Figure instance.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">basis</span> <span class="o">=</span> <span class="n">morpher</span><span class="o">.</span><span class="n">basis</span>
 
     <span class="k">assert</span> <span class="n">basis</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;No basis defined&quot;</span>
@@ -183,6 +248,7 @@
 <div class="viewcode-block" id="plot_fisher_information_contours_2d"><a class="viewcode-back" href="../../madminer.plotting.html#madminer.plotting.plot_fisher_information_contours_2d">[docs]</a><span class="k">def</span> <span class="nf">plot_fisher_information_contours_2d</span><span class="p">(</span>
         <span class="n">fisher_information_matrices</span><span class="p">,</span>
         <span class="n">fisher_information_covariances</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">reference_thetas</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">contour_distance</span><span class="o">=</span><span class="mf">1.</span><span class="p">,</span>
         <span class="n">xlabel</span><span class="o">=</span><span class="sa">r</span><span class="s1">&#39;$\theta_0$&#39;</span><span class="p">,</span>
         <span class="n">ylabel</span><span class="o">=</span><span class="sa">r</span><span class="s1">&#39;$\theta_1$&#39;</span><span class="p">,</span>
@@ -197,6 +263,71 @@
         <span class="n">alphas</span><span class="o">=</span><span class="mf">1.</span><span class="p">,</span>
         <span class="n">alphas_uncertainties</span><span class="o">=</span><span class="mf">0.25</span>
 <span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Visualizes 2x2 Fisher information matrices as contours of constant Fisher distance from a reference point `theta0`.</span>
+
+<span class="sd">    The local (tangent-space) approximation is used: distances `d(theta)` are given by</span>
+<span class="sd">    `d(theta)^2 = (theta - theta0)_i I_ij (theta - theta0)_j`, summing over `i` and `j`.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    fisher_information_matrices : list of ndarray</span>
+<span class="sd">        Fisher information matrices, each with shape (2,2).</span>
+
+<span class="sd">    fisher_information_covariances : None or list of (ndarray or None), optional</span>
+<span class="sd">        Covariance matrices for the Fisher information matrices. Has to have the same length as</span>
+<span class="sd">        fisher_information_matrices, and each entry has to be None (no uncertainty) or a tensor with shape</span>
+<span class="sd">        (2,2,2,2). Default value: None.</span>
+
+<span class="sd">    reference_thetas : None or list of (ndarray or None), optional</span>
+<span class="sd">        Reference points from which the distances are calculated. If None, the origin (0,0) is used. Default value:</span>
+<span class="sd">        None.</span>
+
+<span class="sd">    contour_distance : float, optional.</span>
+<span class="sd">        Distance threshold at which the contours are drawn. Default value: 1.</span>
+
+<span class="sd">    xlabel : str, optional</span>
+<span class="sd">        Label for the x axis. Default value: r&#39;$\theta_0$&#39;.</span>
+
+<span class="sd">    ylabel : str, optional</span>
+<span class="sd">        Label for the y axis. Default value: r&#39;$\theta_1$&#39;.</span>
+
+<span class="sd">    xrange : tuple of float, optional</span>
+<span class="sd">        Range `(min, max)` for the x axis. Default value: (-1., 1.).</span>
+
+<span class="sd">    yrange : tuple of float, optional</span>
+<span class="sd">        Range `(min, max)` for the y axis. Default value: (-1., 1.).</span>
+
+<span class="sd">    labels : None or list of (str or None), optional</span>
+<span class="sd">        Legend labels for the contours. Default value: None.</span>
+
+<span class="sd">    inline_labels : None or list of (str or None), optional</span>
+<span class="sd">        Inline labels for the contours. Default value: None.</span>
+
+<span class="sd">    resolution : int</span>
+<span class="sd">        Number of points per axis for the calculation of the distances.</span>
+
+<span class="sd">    colors : None or str or list of str, optional</span>
+<span class="sd">        Matplotlib line (and error band) colors for the contours. If None, uses default colors. Default value: None.</span>
+
+<span class="sd">    linestyles : None or str or list of str, optional</span>
+<span class="sd">        Matploitlib line styles for the contours. If None, uses default linestyles. Default value: None.</span>
+
+<span class="sd">    linewidths : float or list of float, optional</span>
+<span class="sd">        Line widths for the contours. Default value: 1.5.</span>
+
+<span class="sd">    alphas : float or list of float, optional</span>
+<span class="sd">        Opacities for the contours. Default value: 1.</span>
+
+<span class="sd">    alphas_uncertainties : float or list of float, optional</span>
+<span class="sd">        Opacities for the error bands. Default value: 0.25.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    figure : Figure</span>
+<span class="sd">        Plot as Matplotlib Figure instance.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="c1"># Input data</span>
     <span class="n">fisher_information_matrices</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">fisher_information_matrices</span><span class="p">)</span>
 
@@ -318,6 +449,8 @@
     <span class="k">return</span> <span class="n">fig</span></div>
 
 
+<span class="c1"># TODO: Clean up below here</span>
+
 <div class="viewcode-block" id="plot_fisherinfo_barplot"><a class="viewcode-back" href="../../madminer.plotting.html#madminer.plotting.plot_fisherinfo_barplot">[docs]</a><span class="k">def</span> <span class="nf">plot_fisherinfo_barplot</span><span class="p">(</span><span class="n">matrices</span><span class="p">,</span>
                             <span class="n">matrices_for_determinants</span><span class="p">,</span>
                             <span class="n">labels</span><span class="p">,</span>
@@ -330,19 +463,19 @@
                             <span class="n">use_bar_colors</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                             <span class="n">eigenvalue_operator_legend</span><span class="o">=</span><span class="kc">True</span>
                             <span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    :matrices: list (length N) of fisher infos (n x n tensors) for eigenvalue decomposition</span>
-<span class="sd">    :matrices_for_determinants: list (length N) of fisher infos (n x n tensors) for determinant evaluation</span>
-<span class="sd">    :labels: list (length N) of analysis label (string)</span>
-<span class="sd">    :categories: group into categories (integer) - there will be extra space between categories</span>
-<span class="sd">    :operatorlabels: list (length M) of operator names (string)</span>
-<span class="sd">    :filename: save files under path (string)</span>
-<span class="sd">    :additional_label: label (string) in lower panel</span>
-<span class="sd">    :top_label: label (string) above top panel</span>
-<span class="sd">    :normalise_determinants: are determinants normalized to unity (bool)</span>
-<span class="sd">    :use_bar_colors: are bars in lower panel colored (bool)</span>
-<span class="sd">    :eigenvalue_operator_legend: plot legend for operators (bool)</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># &quot;&quot;&quot;</span>
+    <span class="c1"># :matrices: list (length N) of fisher infos (n x n tensors) for eigenvalue decomposition</span>
+    <span class="c1"># :matrices_for_determinants: list (length N) of fisher infos (n x n tensors) for determinant evaluation</span>
+    <span class="c1"># :labels: list (length N) of analysis label (string)</span>
+    <span class="c1"># :categories: group into categories (integer) - there will be extra space between categories</span>
+    <span class="c1"># :operatorlabels: list (length M) of operator names (string)</span>
+    <span class="c1"># :filename: save files under path (string)</span>
+    <span class="c1"># :additional_label: label (string) in lower panel</span>
+    <span class="c1"># :top_label: label (string) above top panel</span>
+    <span class="c1"># :normalise_determinants: are determinants normalized to unity (bool)</span>
+    <span class="c1"># :use_bar_colors: are bars in lower panel colored (bool)</span>
+    <span class="c1"># :eigenvalue_operator_legend: plot legend for operators (bool)</span>
+    <span class="c1"># &quot;&quot;&quot;</span>
 
     <span class="c1">#################################################################################</span>
     <span class="c1"># Data</span>
@@ -787,6 +920,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../madminer.fisherinformation.html">madminer.fisherinformation module</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../madminer.ml.html">madminer.ml module</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../madminer.morphing.html">madminer.morphing module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../madminer.plotting.html">madminer.plotting module</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../madminer.sampling.html">madminer.sampling module</a></li>
 </ul>
 

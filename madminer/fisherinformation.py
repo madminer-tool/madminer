@@ -101,7 +101,7 @@ class FisherInformation:
 
     * `FisherInformation.calculate_fisher_information_full_truth()` calculates the full truth-level Fisher information.
       This is the information in an idealized measurement where all parton-level particles with their charges, flavours,
-       and four-momenta can be accessed with perfect accuracy.
+      and four-momenta can be accessed with perfect accuracy.
     * `FisherInformation.calculate_fisher_information_full_detector()` calculates the full Fisher information in
       realistic detector-level observations, estimated with neural networks. In addition to the MadMiner file, this
       requires a trained SALLY or SALLINO estimator as well as an unweighted evaluation sample.
@@ -112,7 +112,7 @@ class FisherInformation:
     * `FisherInformation.calculate_fisher_information_hist2d()` calculates the Fisher information in a two-dimensional
       histogram of two (parton-level or detector-level) observables.
     * `FisherInformation.histogram_of_fisher_information()` calculates the full truth-level Fisher information in
-       different slices of one observable (the "distribution of the Fisher information").
+      different slices of one observable (the "distribution of the Fisher information").
 
     Parameters
     ----------

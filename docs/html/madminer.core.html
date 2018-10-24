@@ -45,14 +45,12 @@ Pythia.</p>
 <p>An instance of this class is the starting point of most MadMiner applications. It is typically used in four steps:</p>
 <ul class="simple">
 <li>Defining the parameter space through <cite>MadMiner.add_parameter</cite></li>
-<li>Defining the benchmarks, i.e. the points at which the squared matrix elements will be evaluated in MadGraph, with</li>
-</ul>
-<p><cite>MadMiner.add_benchmark()</cite> or, if operator morphing is used, with <cite>MadMiner.set_benchmarks_from_morphing()</cite></p>
-<ul class="simple">
+<li>Defining the benchmarks, i.e. the points at which the squared matrix elements will be evaluated in MadGraph, with
+<cite>MadMiner.add_benchmark()</cite> or, if operator morphing is used, with <cite>MadMiner.set_benchmarks_from_morphing()</cite></li>
 <li>Saving this setup with <cite>MadMiner.save()</cite> (it can be loaded in a new instance with <cite>MadMiner.load()</cite>)</li>
-<li>Running MadGraph and Pythia with the appropriate settings with <cite>MadMiner.run()</cite> or <cite>MadMiner.run_multiple()</cite> (the</li>
+<li>Running MadGraph and Pythia with the appropriate settings with <cite>MadMiner.run()</cite> or <cite>MadMiner.run_multiple()</cite> (the
+latter allows the user to combine runs from multiple run cards and sampling points)</li>
 </ul>
-<p>latter allows the user to combine runs from multiple run cards and sampling points)</p>
 <p>Please see the tutorial for a hands-on introduction to its methods.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -75,7 +73,7 @@ Pythia.</p>
 </colgroup>
 <tbody valign="top">
 <tr class="row-odd"><td><a class="reference internal" href="#madminer.core.MadMiner.add_benchmark" title="madminer.core.MadMiner.add_benchmark"><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_benchmark</span></code></a>(parameter_values[,&nbsp;benchmark_name])</td>
-<td>Manually adds an individual benchmark, i.e.</td>
+<td>Manually adds an individual benchmark, that is, a parameter point that will be evaluated by MadGraph.</td>
 </tr>
 <tr class="row-even"><td><a class="reference internal" href="#madminer.core.MadMiner.add_parameter" title="madminer.core.MadMiner.add_parameter"><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_parameter</span></code></a>(lha_block,&nbsp;lha_id[,&nbsp;…])</td>
 <td>Adds an individual parameter.</td>
@@ -93,7 +91,7 @@ Pythia.</p>
 <td>Saves MadMiner setup into a file.</td>
 </tr>
 <tr class="row-odd"><td><a class="reference internal" href="#madminer.core.MadMiner.set_benchmarks" title="madminer.core.MadMiner.set_benchmarks"><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_benchmarks</span></code></a>([benchmarks])</td>
-<td>Manually sets all benchmarks, i.e.</td>
+<td>Manually sets all benchmarks, that is, parameter points that will be evaluated by MadGraph.</td>
 </tr>
 <tr class="row-even"><td><a class="reference internal" href="#madminer.core.MadMiner.set_benchmarks_from_morphing" title="madminer.core.MadMiner.set_benchmarks_from_morphing"><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_benchmarks_from_morphing</span></code></a>([…])</td>
 <td>Sets benchmarks, i.e.</td>
@@ -106,7 +104,7 @@ Pythia.</p>
 <dl class="method">
 <dt id="madminer.core.MadMiner.add_benchmark">
 <code class="descname">add_benchmark</code><span class="sig-paren">(</span><em>parameter_values</em>, <em>benchmark_name=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/core.html#MadMiner.add_benchmark"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.core.MadMiner.add_benchmark" title="Permalink to this definition">¶</a></dt>
-<dd><p>Manually adds an individual benchmark, i.e. a parameter point that will be evaluated by MadGraph.</p>
+<dd><p>Manually adds an individual benchmark, that is, a parameter point that will be evaluated by MadGraph.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -395,8 +393,8 @@ Default value: None.</p>
 <dd><p>Saves MadMiner setup into a file.</p>
 <p>The file format follows the HDF5 standard. The saved information includes:</p>
 <ul class="simple">
-<li>the parameter definitions</li>
-<li>the benchmark points</li>
+<li>the parameter definitions,</li>
+<li>the benchmark points, and</li>
 <li>the morphing setup (if defined).</li>
 </ul>
 <p>This file is an important input to later stages in the analysis chain, including the processing of generated
@@ -427,8 +425,8 @@ weights.</p>
 <dl class="method">
 <dt id="madminer.core.MadMiner.set_benchmarks">
 <code class="descname">set_benchmarks</code><span class="sig-paren">(</span><em>benchmarks=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/core.html#MadMiner.set_benchmarks"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.core.MadMiner.set_benchmarks" title="Permalink to this definition">¶</a></dt>
-<dd><p>Manually sets all benchmarks, i.e. parameter points that will be evaluated by MadGraph, overwriting previously
-defined benchmarks.</p>
+<dd><p>Manually sets all benchmarks, that is, parameter points that will be evaluated by MadGraph. Calling this
+function overwrites all previously defined benchmarks.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -563,6 +561,7 @@ form (LHA_block, LHA_ID). Default value: None.</p>
 <li class="toctree-l1"><a class="reference internal" href="madminer.fisherinformation.html">madminer.fisherinformation module</a></li>
 <li class="toctree-l1"><a class="reference internal" href="madminer.ml.html">madminer.ml module</a></li>
 <li class="toctree-l1"><a class="reference internal" href="madminer.morphing.html">madminer.morphing module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="madminer.plotting.html">madminer.plotting module</a></li>
 <li class="toctree-l1"><a class="reference internal" href="madminer.sampling.html">madminer.sampling module</a></li>
 </ul>
 
