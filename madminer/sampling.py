@@ -1268,7 +1268,7 @@ class SampleAugmenter:
                 all_thetas[i].append(theta)
             for i, this_samples_augmented_data in enumerate(samples_augmented_data):
                 all_augmented_data[i].append(this_samples_augmented_data)
-            all_effective_n_samples.append(1./np.max(1.e-12, largest_weight))
+            all_effective_n_samples.append(1./max(1.e-12, largest_weight))
 
         # Combine and return results
         all_x = np.vstack(all_x)
