@@ -75,7 +75,7 @@
 <span class="sd">        Range `(min, max)` for the color map. Default value: (1., 100.).</span>
 
 <span class="sd">    resolution : int, optional</span>
-<span class="sd">        Number of points per axis for the rendering of the squared morphing weights.</span>
+<span class="sd">        Number of points per axis for the rendering of the squared morphing weights. Default value: 100.</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
@@ -256,7 +256,7 @@
         <span class="n">yrange</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mf">1.</span><span class="p">,</span> <span class="mf">1.</span><span class="p">),</span>
         <span class="n">labels</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">inline_labels</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-        <span class="n">resolution</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+        <span class="n">resolution</span><span class="o">=</span><span class="mi">500</span><span class="p">,</span>
         <span class="n">colors</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">linestyles</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">linewidths</span><span class="o">=</span><span class="mf">1.5</span><span class="p">,</span>
@@ -305,7 +305,7 @@
 <span class="sd">        Inline labels for the contours. Default value: None.</span>
 
 <span class="sd">    resolution : int</span>
-<span class="sd">        Number of points per axis for the calculation of the distances.</span>
+<span class="sd">        Number of points per axis for the calculation of the distances. Default value: 500.</span>
 
 <span class="sd">    colors : None or str or list of str, optional</span>
 <span class="sd">        Matplotlib line (and error band) colors for the contours. If None, uses default colors. Default value: None.</span>

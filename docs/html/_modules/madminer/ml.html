@@ -857,13 +857,14 @@
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
-<span class="sd">    estimators : None or list of MLForge, optional</span>
-<span class="sd">        The estimators in the form of (trained or untrained) MLForge instances. Note that the estimators have to be</span>
-<span class="sd">        consistent: either all of them are trained with a local score method (&#39;sally&#39; or &#39;sallino&#39;); or all of them are</span>
-<span class="sd">        trained with a single-parameterized method (&#39;carl&#39;, &#39;rolr&#39;, &#39;rascal&#39;, &#39;scandal&#39;, &#39;alice&#39;, or &#39;alices&#39;); or all</span>
-<span class="sd">        of them are trained with a doubly parameterized method (&#39;carl2&#39;, &#39;rolr2&#39;, &#39;rascal2&#39;, &#39;alice2&#39;, or &#39;alices2&#39;).</span>
-<span class="sd">        Mixing estimators of different types within one of these three categories is supported, but mixing estimators</span>
-<span class="sd">        from different categories is not and will raise a RuntimeException. Default value: None.</span>
+<span class="sd">    estimators : None or int or list of MLForge, optional</span>
+<span class="sd">        If int, sets the number of estimators that will be created as new MLForge instances. If list of MLForge, sets</span>
+<span class="sd">        the estimators directly. If None, the ensemble is initialized without estimators. Note that the estimators have</span>
+<span class="sd">        to be consistent: either all of them are trained with a local score method (&#39;sally&#39; or &#39;sallino&#39;); or all of</span>
+<span class="sd">        them are trained with a single-parameterized method (&#39;carl&#39;, &#39;rolr&#39;, &#39;rascal&#39;, &#39;scandal&#39;, &#39;alice&#39;, or &#39;alices&#39;);</span>
+<span class="sd">        or all of them are trained with a doubly parameterized method (&#39;carl2&#39;, &#39;rolr2&#39;, &#39;rascal2&#39;, &#39;alice2&#39;, or</span>
+<span class="sd">        &#39;alices2&#39;). Mixing estimators of different types within one of these three categories is supported, but mixing</span>
+<span class="sd">        estimators from different categories is not and will raise a RuntimeException. Default value: None.</span>
 
 <span class="sd">    Attributes</span>
 <span class="sd">    ----------</span>
@@ -878,9 +879,11 @@
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">estimators</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">debug</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
         <span class="n">general_init</span><span class="p">(</span><span class="n">debug</span><span class="o">=</span><span class="n">debug</span><span class="p">)</span>
 
-        <span class="c1"># Save settings</span>
+        <span class="c1"># Initialize estimators</span>
         <span class="k">if</span> <span class="n">estimators</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">estimators</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">estimators</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+            <span class="n">estimators</span> <span class="o">=</span> <span class="p">[</span><span class="n">MLForge</span><span class="p">(</span><span class="n">debug</span><span class="o">=</span><span class="n">debug</span><span class="p">)</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">estimators</span><span class="p">)]</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">estimators</span> <span class="o">=</span> <span class="n">estimators</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">n_estimators</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">estimators</span><span class="p">)</span>
