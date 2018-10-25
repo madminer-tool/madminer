@@ -64,13 +64,14 @@ doubly-parameterized likelihood estimators, or all estimators are local score re
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
-<dt><strong>estimators</strong> <span class="classifier-delimiter">:</span> <span class="classifier">None or list of MLForge, optional</span></dt>
-<dd><p class="first last">The estimators in the form of (trained or untrained) MLForge instances. Note that the estimators have to be
-consistent: either all of them are trained with a local score method (‘sally’ or ‘sallino’); or all of them are
-trained with a single-parameterized method (‘carl’, ‘rolr’, ‘rascal’, ‘scandal’, ‘alice’, or ‘alices’); or all
-of them are trained with a doubly parameterized method (‘carl2’, ‘rolr2’, ‘rascal2’, ‘alice2’, or ‘alices2’).
-Mixing estimators of different types within one of these three categories is supported, but mixing estimators
-from different categories is not and will raise a RuntimeException. Default value: None.</p>
+<dt><strong>estimators</strong> <span class="classifier-delimiter">:</span> <span class="classifier">None or int or list of MLForge, optional</span></dt>
+<dd><p class="first last">If int, sets the number of estimators that will be created as new MLForge instances. If list of MLForge, sets
+the estimators directly. If None, the ensemble is initialized without estimators. Note that the estimators have
+to be consistent: either all of them are trained with a local score method (‘sally’ or ‘sallino’); or all of
+them are trained with a single-parameterized method (‘carl’, ‘rolr’, ‘rascal’, ‘scandal’, ‘alice’, or ‘alices’);
+or all of them are trained with a doubly parameterized method (‘carl2’, ‘rolr2’, ‘rascal2’, ‘alice2’, or
+‘alices2’). Mixing estimators of different types within one of these three categories is supported, but mixing
+estimators from different categories is not and will raise a RuntimeException. Default value: None.</p>
 </dd>
 </dl>
 </td>

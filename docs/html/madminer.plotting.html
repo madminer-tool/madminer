@@ -69,7 +69,7 @@
 <dd><p class="first last">Range <cite>(min, max)</cite> for the color map. Default value: (1., 100.).</p>
 </dd>
 <dt><strong>resolution</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int, optional</span></dt>
-<dd><p class="first last">Number of points per axis for the rendering of the squared morphing weights.</p>
+<dd><p class="first last">Number of points per axis for the rendering of the squared morphing weights. Default value: 100.</p>
 </dd>
 </dl>
 </td>
@@ -87,7 +87,7 @@
 
 <dl class="function">
 <dt id="madminer.plotting.plot_fisher_information_contours_2d">
-<code class="descclassname">madminer.plotting.</code><code class="descname">plot_fisher_information_contours_2d</code><span class="sig-paren">(</span><em>fisher_information_matrices</em>, <em>fisher_information_covariances=None</em>, <em>reference_thetas=None</em>, <em>contour_distance=1.0</em>, <em>xlabel='$\\theta_0$'</em>, <em>ylabel='$\\theta_1$'</em>, <em>xrange=(-1.0</em>, <em>1.0)</em>, <em>yrange=(-1.0</em>, <em>1.0)</em>, <em>labels=None</em>, <em>inline_labels=None</em>, <em>resolution=100</em>, <em>colors=None</em>, <em>linestyles=None</em>, <em>linewidths=1.5</em>, <em>alphas=1.0</em>, <em>alphas_uncertainties=0.25</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/plotting.html#plot_fisher_information_contours_2d"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.plotting.plot_fisher_information_contours_2d" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">madminer.plotting.</code><code class="descname">plot_fisher_information_contours_2d</code><span class="sig-paren">(</span><em>fisher_information_matrices</em>, <em>fisher_information_covariances=None</em>, <em>reference_thetas=None</em>, <em>contour_distance=1.0</em>, <em>xlabel='$\\theta_0$'</em>, <em>ylabel='$\\theta_1$'</em>, <em>xrange=(-1.0</em>, <em>1.0)</em>, <em>yrange=(-1.0</em>, <em>1.0)</em>, <em>labels=None</em>, <em>inline_labels=None</em>, <em>resolution=500</em>, <em>colors=None</em>, <em>linestyles=None</em>, <em>linewidths=1.5</em>, <em>alphas=1.0</em>, <em>alphas_uncertainties=0.25</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/plotting.html#plot_fisher_information_contours_2d"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.plotting.plot_fisher_information_contours_2d" title="Permalink to this definition">¶</a></dt>
 <dd><p>Visualizes 2x2 Fisher information matrices as contours of constant Fisher distance from a reference point <cite>theta0</cite>.</p>
 <p>The local (tangent-space) approximation is used: distances <cite>d(theta)</cite> are given by
 <cite>d(theta)^2 = (theta - theta0)_i I_ij (theta - theta0)_j</cite>, summing over <cite>i</cite> and <cite>j</cite>.</p>
@@ -130,7 +130,7 @@ None.</p>
 <dd><p class="first last">Inline labels for the contours. Default value: None.</p>
 </dd>
 <dt><strong>resolution</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
-<dd><p class="first last">Number of points per axis for the calculation of the distances.</p>
+<dd><p class="first last">Number of points per axis for the calculation of the distances. Default value: 500.</p>
 </dd>
 <dt><strong>colors</strong> <span class="classifier-delimiter">:</span> <span class="classifier">None or str or list of str, optional</span></dt>
 <dd><p class="first last">Matplotlib line (and error band) colors for the contours. If None, uses default colors. Default value: None.</p>
