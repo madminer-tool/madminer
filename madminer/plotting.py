@@ -16,6 +16,39 @@ def plot_2d_morphing_basis(morpher,
                            yrange=(-1., 1.),
                            crange=(1., 100.),
                            resolution=100):
+    """
+    Visualizes a morphing basis and morphing errors for problems with a two-dimensional parameter space.
+
+    Parameters
+    ----------
+    morpher : Morpher
+        Morpher instance with defined basis.
+
+    xlabel : str, optional
+        Label for the x axis. Default value: r'$\theta_0$'.
+
+    ylabel : str, optional
+        Label for the y axis. Default value: r'$\theta_1$'.
+
+    xrange : tuple of float, optional
+        Range `(min, max)` for the x axis. Default value: (-1., 1.).
+
+    yrange : tuple of float, optional
+        Range `(min, max)` for the y axis. Default value: (-1., 1.).
+
+    crange : tuple of float, optional
+        Range `(min, max)` for the color map. Default value: (1., 100.).
+
+    resolution : int, optional
+        Number of points per axis for the rendering of the squared morphing weights. Default value: 100.
+
+    Returns
+    -------
+    figure : Figure
+        Plot as Matplotlib Figure instance.
+
+    """
+
     basis = morpher.basis
 
     assert basis is not None, "No basis defined"
@@ -53,11 +86,27 @@ def plot_2d_morphing_basis(morpher,
     return fig
 
 
-def plot_nd_morphing_basis_scatter(
-        morpher,
-        crange=(1., 100.),
-        n_test_thetas=1000
-):
+def plot_nd_morphing_basis_scatter(morpher, crange=(1., 100.), n_test_thetas=1000):
+    """
+    Visualizes a morphing basis and morphing errors with scatter plots between each pair of operators.
+
+    Parameters
+    ----------
+    morpher : Morpher
+        Morpher instance with defined basis.
+
+    crange : tuple of float, optional
+        Range `(min, max)` for the color map. Default value: (1. 100.).
+
+    n_test_thetas : int, optional
+        Number of random points evaluated. Default value: 1000.
+
+    Returns
+    -------
+    figure : Figure
+        Plot as Matplotlib Figure instance.
+
+    """
     basis = morpher.basis
 
     assert basis is not None, "No basis defined"
@@ -91,11 +140,27 @@ def plot_nd_morphing_basis_scatter(
     return fig
 
 
-def plot_nd_morphing_basis_slices(
-        morpher,
-        crange=(1., 100.),
-        resolution=50
-):
+def plot_nd_morphing_basis_slices(morpher, crange=(1., 100.), resolution=50):
+    """
+    Visualizes a morphing basis and morphing errors with two-dimensional slices through parameter space.
+
+    Parameters
+    ----------
+    morpher : Morpher
+        Morpher instance with defined basis.
+
+    crange : tuple of float, optional
+        Range `(min, max)` for the color map.
+
+    resolution : int, optional
+        Number of points per panel and axis for the rendering of the squared morphing weights. Default value: 50.
+
+    Returns
+    -------
+    figure : Figure
+        Plot as Matplotlib Figure instance.
+
+    """
     basis = morpher.basis
 
     assert basis is not None, "No basis defined"
@@ -148,6 +213,7 @@ def plot_nd_morphing_basis_slices(
 def plot_fisher_information_contours_2d(
         fisher_information_matrices,
         fisher_information_covariances=None,
+        reference_thetas=None,
         contour_distance=1.,
         xlabel=r'$\theta_0$',
         ylabel=r'$\theta_1$',
@@ -155,13 +221,78 @@ def plot_fisher_information_contours_2d(
         yrange=(-1., 1.),
         labels=None,
         inline_labels=None,
-        resolution=100,
+        resolution=500,
         colors=None,
         linestyles=None,
         linewidths=1.5,
         alphas=1.,
         alphas_uncertainties=0.25
 ):
+    """
+    Visualizes 2x2 Fisher information matrices as contours of constant Fisher distance from a reference point `theta0`.
+
+    The local (tangent-space) approximation is used: distances `d(theta)` are given by
+    `d(theta)^2 = (theta - theta0)_i I_ij (theta - theta0)_j`, summing over `i` and `j`.
+
+    Parameters
+    ----------
+    fisher_information_matrices : list of ndarray
+        Fisher information matrices, each with shape (2,2).
+
+    fisher_information_covariances : None or list of (ndarray or None), optional
+        Covariance matrices for the Fisher information matrices. Has to have the same length as
+        fisher_information_matrices, and each entry has to be None (no uncertainty) or a tensor with shape
+        (2,2,2,2). Default value: None.
+
+    reference_thetas : None or list of (ndarray or None), optional
+        Reference points from which the distances are calculated. If None, the origin (0,0) is used. Default value:
+        None.
+
+    contour_distance : float, optional.
+        Distance threshold at which the contours are drawn. Default value: 1.
+
+    xlabel : str, optional
+        Label for the x axis. Default value: r'$\theta_0$'.
+
+    ylabel : str, optional
+        Label for the y axis. Default value: r'$\theta_1$'.
+
+    xrange : tuple of float, optional
+        Range `(min, max)` for the x axis. Default value: (-1., 1.).
+
+    yrange : tuple of float, optional
+        Range `(min, max)` for the y axis. Default value: (-1., 1.).
+
+    labels : None or list of (str or None), optional
+        Legend labels for the contours. Default value: None.
+
+    inline_labels : None or list of (str or None), optional
+        Inline labels for the contours. Default value: None.
+
+    resolution : int
+        Number of points per axis for the calculation of the distances. Default value: 500.
+
+    colors : None or str or list of str, optional
+        Matplotlib line (and error band) colors for the contours. If None, uses default colors. Default value: None.
+
+    linestyles : None or str or list of str, optional
+        Matploitlib line styles for the contours. If None, uses default linestyles. Default value: None.
+
+    linewidths : float or list of float, optional
+        Line widths for the contours. Default value: 1.5.
+
+    alphas : float or list of float, optional
+        Opacities for the contours. Default value: 1.
+
+    alphas_uncertainties : float or list of float, optional
+        Opacities for the error bands. Default value: 0.25.
+
+    Returns
+    -------
+    figure : Figure
+        Plot as Matplotlib Figure instance.
+
+    """
     # Input data
     fisher_information_matrices = np.asarray(fisher_information_matrices)
 
@@ -283,6 +414,8 @@ def plot_fisher_information_contours_2d(
     return fig
 
 
+# TODO: Clean up below here
+
 def plot_fisherinfo_barplot(matrices,
                             matrices_for_determinants,
                             labels,
@@ -295,19 +428,19 @@ def plot_fisherinfo_barplot(matrices,
                             use_bar_colors=False,
                             eigenvalue_operator_legend=True
                             ):
-    """
-    :matrices: list (length N) of fisher infos (n x n tensors) for eigenvalue decomposition
-    :matrices_for_determinants: list (length N) of fisher infos (n x n tensors) for determinant evaluation
-    :labels: list (length N) of analysis label (string)
-    :categories: group into categories (integer) - there will be extra space between categories
-    :operatorlabels: list (length M) of operator names (string)
-    :filename: save files under path (string)
-    :additional_label: label (string) in lower panel
-    :top_label: label (string) above top panel
-    :normalise_determinants: are determinants normalized to unity (bool)
-    :use_bar_colors: are bars in lower panel colored (bool)
-    :eigenvalue_operator_legend: plot legend for operators (bool)
-    """
+    # """
+    # :matrices: list (length N) of fisher infos (n x n tensors) for eigenvalue decomposition
+    # :matrices_for_determinants: list (length N) of fisher infos (n x n tensors) for determinant evaluation
+    # :labels: list (length N) of analysis label (string)
+    # :categories: group into categories (integer) - there will be extra space between categories
+    # :operatorlabels: list (length M) of operator names (string)
+    # :filename: save files under path (string)
+    # :additional_label: label (string) in lower panel
+    # :top_label: label (string) above top panel
+    # :normalise_determinants: are determinants normalized to unity (bool)
+    # :use_bar_colors: are bars in lower panel colored (bool)
+    # :eigenvalue_operator_legend: plot legend for operators (bool)
+    # """
 
     #################################################################################
     # Data

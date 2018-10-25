@@ -47,11 +47,14 @@ Clone the repository and run `pip install -e <path to repository>`.
 
 ### Tutorials
 
-In  [tutorial.ipynb](examples/tutorial/tutorial.ipynb) we provide a detailed tutorial that goes through the main steps
-of a detector-level analysis.
+In [tutorial_1.ipynb](examples/tutorial/tutorial_1.ipynb) we provide a detailed tutorial that goes through the main
+steps of a detector-level analysis.
 
-In addition, we provide [tutorial_parton.ipynb](examples/tutorial/tutorial.ipynb). This tutorial explains how to perform
-a parton-level Fisher information analysis.
+After that, we recommend going through [tutorial_2.ipynb](examples/tutorial/tutorial_1.ipynb), which explains local
+score methods, how to estimate the Fisher information, and introduces some convenient ensemble methods.
+
+Finally, [tutorial_parton.ipynb](examples/tutorial/tutorial.ipynb) explains how to perform a parton-level Fisher
+information analysis.
 
 ### Package structure
 
@@ -65,6 +68,10 @@ a parton-level Fisher information analysis.
   for the likelihood ratio or score.
 - Finally,  `madminer.fisherinformation` contains functions to calculate the Fisher information, both on parton level
   or detector level, in the full process, individual observables, or the total cross section.
+
+### Documentation
+
+In [docs](docs/) we provide a HTML and PDF documentation of the different modules and classes.
 
 ## Acknowledgements
 

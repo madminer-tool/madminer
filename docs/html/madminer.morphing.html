@@ -1,0 +1,491 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>madminer.morphing module &#8212; MadMiner  documentation</title>
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="madminer.plotting module" href="madminer.plotting.html" />
+    <link rel="prev" title="madminer.ml module" href="madminer.ml.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="module-madminer.morphing">
+<span id="madminer-morphing-module"></span><h1>madminer.morphing module<a class="headerlink" href="#module-madminer.morphing" title="Permalink to this headline">¶</a></h1>
+<dl class="class">
+<dt id="madminer.morphing.Morpher">
+<em class="property">class </em><code class="descclassname">madminer.morphing.</code><code class="descname">Morpher</code><span class="sig-paren">(</span><em>parameters_from_madminer=None</em>, <em>parameter_max_power=None</em>, <em>parameter_range=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/morphing.html#Morpher"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.morphing.Morpher" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Morphing functionality. Morphing is a technique that allows MadMax to infer the full probability distribution
+<cite>p(x_i | theta)</cite> for each simulated event <cite>x_i</cite> and any <cite>theta</cite>, not just the benchmarks.</p>
+<p>For a typical MadMiner application, it is not necessary to use the morphing classes directly. The other MadMiner
+classes use the morphing functions “under the hood” when needed. Only for an isolated study of the morphing setup
+(e.g. to optimize the morphing basis), the Morpher class itself may be of interest.</p>
+<p>A typical morphing basis setup involves the following steps:</p>
+<ul class="simple">
+<li>The instance of the class is initialized with the parameter setup. The user can provide the parameters either
+in the format of <cite>MadMiner.parameters</cite>. Alternatively, human-friendly lists of the key properties can be provided.</li>
+<li>The function <cite>find_components</cite> can be used to find the relevant components, i.e. individual terms
+contributing to the squared matrix elements (alternatively they can be defined by the user with
+<cite>set_components()</cite>).</li>
+<li>The final step is the definition of the morphing basis, i.e. the benchmark points for which the squared matrix
+element will be evaluated before interpolating to other parameter points. Again the user can pick this basis
+manually with <cite>set_basis()</cite>. Alternatively, this class provides a basic optimization routine for the basis choice
+in <cite>optimize_basis()</cite>.</li>
+</ul>
+<p>The class also provides helper functions that are important for working with morphing:</p>
+<ul class="simple">
+<li><dl class="first docutils">
+<dt><cite>calculate_morphing_matrix()</cite> calculates the morphing matrix, i.e. the matrix that links the morphing basis to the</dt>
+<dd>components.</dd>
+</dl>
+</li>
+<li><cite>calculate_morphing_weights()</cite> calculates the morphing weights <cite>w_b(theta)</cite> for a given parameter point <cite>theta</cite>
+such that <cite>p(theta) = sum_b w_b(theta) p(theta_b)</cite>.</li>
+<li><cite>calculate_morphing_weight_gradient()</cite> calculates the gradient of the morphing weights, <cite>grad_theta w_b(theta)</cite>.</li>
+</ul>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>parameters_from_madminer</strong> <span class="classifier-delimiter">:</span> <span class="classifier">OrderedDict or None, optional</span></dt>
+<dd><p class="first last">Parameters in the <cite>MadMiner.parameters</cite> convention. OrderedDict with keys equal to the parameter names and
+values equal to tuples (LHA_block, LHA_ID, morphing_max_power, param_min, param_max)</p>
+</dd>
+<dt><strong>parameter_max_power</strong> <span class="classifier-delimiter">:</span> <span class="classifier">None or list of int  or list of tuple of int, optional</span></dt>
+<dd><p class="first last">Only used if parameters_from_madminer is not None. Maximal power with which each parameter contributes to
+the squared matrix element. If tuples are given, gives this
+maximal power for each of several operator configurations. Typically at tree level,
+this maximal number is 2 for parameters that affect one vertex (e.g. only production
+or only decay of a particle), and 4 for parameters that affect two vertices (e.g.
+production and decay).</p>
+</dd>
+<dt><strong>parameter_range</strong> <span class="classifier-delimiter">:</span> <span class="classifier">None or list of tuple of float, optional</span></dt>
+<dd><p class="first last">Only used if parameters_from_madminer is not None. Parameter range (param_min, param_max) for each parameter.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Methods</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><a class="reference internal" href="#madminer.morphing.Morpher.calculate_morphing_matrix" title="madminer.morphing.Morpher.calculate_morphing_matrix"><code class="xref py py-obj docutils literal notranslate"><span class="pre">calculate_morphing_matrix</span></code></a>([basis])</td>
+<td>Calculates the morphing matrix that links the components to the basis benchmarks.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#madminer.morphing.Morpher.calculate_morphing_weight_gradient" title="madminer.morphing.Morpher.calculate_morphing_weight_gradient"><code class="xref py py-obj docutils literal notranslate"><span class="pre">calculate_morphing_weight_gradient</span></code></a>(theta[,&nbsp;…])</td>
+<td>Calculates the gradient of the morphing weights, <cite>grad_i w_b(theta)</cite>.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#madminer.morphing.Morpher.calculate_morphing_weights" title="madminer.morphing.Morpher.calculate_morphing_weights"><code class="xref py py-obj docutils literal notranslate"><span class="pre">calculate_morphing_weights</span></code></a>(theta[,&nbsp;basis,&nbsp;…])</td>
+<td>Calculates the morphing weights <cite>w_b(theta)</cite> for a given morphing basis <cite>{theta_b}</cite>.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#madminer.morphing.Morpher.evaluate_morphing" title="madminer.morphing.Morpher.evaluate_morphing"><code class="xref py py-obj docutils literal notranslate"><span class="pre">evaluate_morphing</span></code></a>([basis,&nbsp;morphing_matrix,&nbsp;…])</td>
+<td>Evaluates the expected sum of the squared morphing weights for a given basis.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#madminer.morphing.Morpher.find_components" title="madminer.morphing.Morpher.find_components"><code class="xref py py-obj docutils literal notranslate"><span class="pre">find_components</span></code></a>([max_overall_power])</td>
+<td>Finds the components, i.e.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#madminer.morphing.Morpher.optimize_basis" title="madminer.morphing.Morpher.optimize_basis"><code class="xref py py-obj docutils literal notranslate"><span class="pre">optimize_basis</span></code></a>([n_bases,&nbsp;…])</td>
+<td>Optimizes the morphing basis.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#madminer.morphing.Morpher.set_basis" title="madminer.morphing.Morpher.set_basis"><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_basis</span></code></a>([basis_from_madminer,&nbsp;…])</td>
+<td>Manually sets the basis benchmarks.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#madminer.morphing.Morpher.set_components" title="madminer.morphing.Morpher.set_components"><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_components</span></code></a>(components)</td>
+<td>Manually defines the components, i.e.</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="madminer.morphing.Morpher.calculate_morphing_matrix">
+<code class="descname">calculate_morphing_matrix</code><span class="sig-paren">(</span><em>basis=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/morphing.html#Morpher.calculate_morphing_matrix"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.morphing.Morpher.calculate_morphing_matrix" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates the morphing matrix that links the components to the basis benchmarks.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>basis</strong> <span class="classifier-delimiter">:</span> <span class="classifier">ndarray or None, optional</span></dt>
+<dd><p class="first last">Manually specified morphing basis for which the morphing matrix is calculated. This array has shape
+<cite>(n_basis_benchmarks, n_parameters)</cite>. If None, the basis from the last call of <cite>set_basis()</cite> or
+<cite>find_basis()</cite> is used. Default value: None.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>morphing_matrix</strong> <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
+<dd><p class="first last">Morphing matrix with shape <cite>(n_basis_benchmarks, n_components)</cite></p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="madminer.morphing.Morpher.calculate_morphing_weight_gradient">
+<code class="descname">calculate_morphing_weight_gradient</code><span class="sig-paren">(</span><em>theta</em>, <em>basis=None</em>, <em>morphing_matrix=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/morphing.html#Morpher.calculate_morphing_weight_gradient"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.morphing.Morpher.calculate_morphing_weight_gradient" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates the gradient of the morphing weights, <cite>grad_i w_b(theta)</cite>.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>theta</strong> <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
+<dd><p class="first last">Parameter point <cite>theta</cite> with shape <cite>(n_parameters,)</cite>.</p>
+</dd>
+<dt><strong>basis</strong> <span class="classifier-delimiter">:</span> <span class="classifier">ndarray or None, optional</span></dt>
+<dd><p class="first last">Manually specified morphing basis for which the weights are calculated. This array has shape
+<cite>(n_basis_benchmarks, n_parameters)</cite>. If None, the basis from the last call of <cite>set_basis()</cite> or
+<cite>find_basis()</cite> is used. Default value: None.</p>
+</dd>
+<dt><strong>morphing_matrix</strong> <span class="classifier-delimiter">:</span> <span class="classifier">ndarray or None, optional</span></dt>
+<dd><p class="first last">Manually specified morphing matrix for the given morphing basis. This array has shape
+<cite>(n_basis_benchmarks, n_components)</cite>. If None, the morphing matrix is calculated automatically. Default
+value: None.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>morphing_weight_gradients</strong> <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
+<dd><p class="first last">Morphing weights as an array with shape <cite>(n_parameters, n_basis_benchmarks,)</cite>, where the first component
+refers to the gradient direction.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="madminer.morphing.Morpher.calculate_morphing_weights">
+<code class="descname">calculate_morphing_weights</code><span class="sig-paren">(</span><em>theta</em>, <em>basis=None</em>, <em>morphing_matrix=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/morphing.html#Morpher.calculate_morphing_weights"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.morphing.Morpher.calculate_morphing_weights" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates the morphing weights <cite>w_b(theta)</cite> for a given morphing basis <cite>{theta_b}</cite>.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>theta</strong> <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
+<dd><p class="first last">Parameter point <cite>theta</cite> with shape <cite>(n_parameters,)</cite>.</p>
+</dd>
+<dt><strong>basis</strong> <span class="classifier-delimiter">:</span> <span class="classifier">ndarray or None, optional</span></dt>
+<dd><p class="first last">Manually specified morphing basis for which the weights are calculated. This array has shape
+<cite>(n_basis_benchmarks, n_parameters)</cite>. If None, the basis from the last call of <cite>set_basis()</cite> or
+<cite>find_basis()</cite> is used. Default value: None.</p>
+</dd>
+<dt><strong>morphing_matrix</strong> <span class="classifier-delimiter">:</span> <span class="classifier">ndarray or None, optional</span></dt>
+<dd><p class="first last">Manually specified morphing matrix for the given morphing basis. This array has shape
+<cite>(n_basis_benchmarks, n_components)</cite>. If None, the morphing matrix is calculated automatically. Default
+value: None.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>morphing_weights</strong> <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
+<dd><p class="first last">Morphing weights as an array with shape <cite>(n_basis_benchmarks,)</cite>.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="madminer.morphing.Morpher.evaluate_morphing">
+<code class="descname">evaluate_morphing</code><span class="sig-paren">(</span><em>basis=None</em>, <em>morphing_matrix=None</em>, <em>n_test_thetas=100</em>, <em>return_weights_and_thetas=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/morphing.html#Morpher.evaluate_morphing"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.morphing.Morpher.evaluate_morphing" title="Permalink to this definition">¶</a></dt>
+<dd><p>Evaluates the expected sum of the squared morphing weights for a given basis.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>basis</strong> <span class="classifier-delimiter">:</span> <span class="classifier">ndarray or None, optional</span></dt>
+<dd><p class="first last">Manually specified morphing basis for which the weights are calculated. This array has shape
+<cite>(n_basis_benchmarks, n_parameters)</cite>. If None, the basis from the last call of <cite>set_basis()</cite> or
+<cite>find_basis()</cite> is used. Default value: None.</p>
+</dd>
+<dt><strong>morphing_matrix</strong> <span class="classifier-delimiter">:</span> <span class="classifier">ndarray or None, optional</span></dt>
+<dd><p class="first last">Manually specified morphing matrix for the given morphing basis. This array has shape
+<cite>(n_basis_benchmarks, n_components)</cite>. If None, the morphing matrix is calculated automatically. Default
+value: None.</p>
+</dd>
+<dt><strong>n_test_thetas</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int, optional</span></dt>
+<dd><p class="first last">Number of random parameter points used to evaluate the expected mean squared morphing weights. A larger
+number will increase the run time of the optimization, but lead to better results. Default value: 100.</p>
+</dd>
+<dt><strong>return_weights_and_thetas</strong> <span class="classifier-delimiter">:</span> <span class="classifier">bool, optional</span></dt>
+<dd><p class="first last">If True, results for each evaluation theta are returned, rather than taking their average. Default value:
+False.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>thetas_test</strong> <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
+<dd><p class="first last">Random parameter points used for evaluation. Only returned if <cite>return_weights_and_thetas=True</cite> is used.</p>
+</dd>
+<dt><strong>squared_weights</strong> <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
+<dd><p class="first last">Squared summed morphing weights at each evaluation parameter point. Only returned if
+<cite>return_weights_and_thetas=True</cite> is used.</p>
+</dd>
+<dt><strong>negative_expected_sum_squared_weights</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
+<dd><p class="first last">Negative expected sum of the square of the morphing weights. Objective function in the optimization.
+Only returned with <cite>return_weights_and_thetas=False</cite>.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="madminer.morphing.Morpher.find_components">
+<code class="descname">find_components</code><span class="sig-paren">(</span><em>max_overall_power=4</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/morphing.html#Morpher.find_components"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.morphing.Morpher.find_components" title="Permalink to this definition">¶</a></dt>
+<dd><p>Finds the components, i.e. the individual terms contributing to the squared matrix element.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>max_overall_power</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int or tuple of int, optional</span></dt>
+<dd><p class="first last">The maximal sum of powers of all parameters contributing to the squared matrix element. If a tuple is given,
+gives the maximal sum of powers for each of several operator configurations (see constructor).
+Typically, if parameters can affect the couplings at n vertices, this number is 2n. Default value: 4.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>components</strong> <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
+<dd><p class="first last">Array with shape (n_components, n_parameters), where each entry gives the power with which a parameter
+scales a given component.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="madminer.morphing.Morpher.optimize_basis">
+<code class="descname">optimize_basis</code><span class="sig-paren">(</span><em>n_bases=1</em>, <em>fixed_benchmarks_from_madminer=None</em>, <em>fixed_benchmarks_numpy=None</em>, <em>n_trials=100</em>, <em>n_test_thetas=100</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/morphing.html#Morpher.optimize_basis"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.morphing.Morpher.optimize_basis" title="Permalink to this definition">¶</a></dt>
+<dd><p>Optimizes the morphing basis. If either fixed_benchmarks_from_maxminer or fixed_benchmarks_numpy are not
+None, then these will be used as fixed basis points and only the remaining part of the basis will be optimized.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>n_bases</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int, optional</span></dt>
+<dd><p class="first last">The number of morphing bases generated. If n_bases &gt; 1, multiple bases are combined, and the
+weights for each basis are reduced by a factor 1 / n_bases. Currently only the default choice of 1 is
+fully implemented. Do not use any other value for now. Default value: 1.</p>
+</dd>
+<dt><strong>fixed_benchmarks_from_madminer</strong> <span class="classifier-delimiter">:</span> <span class="classifier">OrderedDict or None, optional</span></dt>
+<dd><p class="first last">Input basis vectors in the <cite>MadMiner.benchmarks</cite> conventions. Default value: None.</p>
+</dd>
+<dt><strong>fixed_benchmarks_numpy</strong> <span class="classifier-delimiter">:</span> <span class="classifier">ndarray or None, optional</span></dt>
+<dd><p class="first last">Input basis vectors as a ndarray with shape <cite>(n_fixed_basis_points, n_parameters)</cite>. Default value: None.</p>
+</dd>
+<dt><strong>n_trials</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int, optional</span></dt>
+<dd><p class="first last">Number of random basis configurations tested in the optimization procedure. A larger number will increase
+the run time of the optimization, but lead to better results. Default value: 100.</p>
+</dd>
+<dt><strong>n_test_thetas</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int, optional</span></dt>
+<dd><p class="first last">Number of random parameter points used to evaluate the expected mean squared morphing weights. A larger
+number will increase the run time of the optimization, but lead to better results. Default value: 100.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>basis</strong> <span class="classifier-delimiter">:</span> <span class="classifier">OrderedDict or ndarray</span></dt>
+<dd><p class="first last">Optimized basis in the same format (MadMiner or numpy) as the parameters provided during instantiation.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="madminer.morphing.Morpher.set_basis">
+<code class="descname">set_basis</code><span class="sig-paren">(</span><em>basis_from_madminer=None</em>, <em>basis_numpy=None</em>, <em>morphing_matrix=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/morphing.html#Morpher.set_basis"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.morphing.Morpher.set_basis" title="Permalink to this definition">¶</a></dt>
+<dd><p>Manually sets the basis benchmarks.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>basis_from_madminer</strong> <span class="classifier-delimiter">:</span> <span class="classifier">OrderedDict or None, optional</span></dt>
+<dd><p class="first last">Basis in the <cite>MadMiner.benchmarks</cite> conventions. Default value: None.</p>
+</dd>
+<dt><strong>basis_numpy</strong> <span class="classifier-delimiter">:</span> <span class="classifier">ndarray or None, optional</span></dt>
+<dd><p class="first last">Only used if basis_from_madminer is None. Basis as a ndarray with shape (n_components, n_parameters).</p>
+</dd>
+<dt><strong>morphing_matrix</strong> <span class="classifier-delimiter">:</span> <span class="classifier">ndarray or None, optional</span></dt>
+<dd><p class="first last">Manually provided morphing matrix. If None, the morphing matrix is calculated automatically. Default value:
+None.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>None</strong></dt>
+<dd></dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="madminer.morphing.Morpher.set_components">
+<code class="descname">set_components</code><span class="sig-paren">(</span><em>components</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/morphing.html#Morpher.set_components"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.morphing.Morpher.set_components" title="Permalink to this definition">¶</a></dt>
+<dd><p>Manually defines the components, i.e. the individual terms contributing to the squared matrix element.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>components</strong> <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
+<dd><p class="first last">Array with shape (n_components, n_parameters), where each entry gives the power with which a parameter
+scales a given component. For instance, a typical signal, interference, background situation with one
+parameter might be described by the components [[2], [1], [0]].</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>None</strong></dt>
+<dd></dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">MadMiner</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="madminer.core.html">madminer.core module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="madminer.delphes.html">madminer.delphes module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="madminer.fisherinformation.html">madminer.fisherinformation module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="madminer.ml.html">madminer.ml module</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">madminer.morphing module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="madminer.plotting.html">madminer.plotting module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="madminer.sampling.html">madminer.sampling module</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="madminer.ml.html" title="previous chapter">madminer.ml module</a></li>
+      <li>Next: <a href="madminer.plotting.html" title="next chapter">madminer.plotting module</a></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;Johann Brehmer, Kyle Cranmer, and Felix Kling 2018.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.8.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="_sources/madminer.morphing.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

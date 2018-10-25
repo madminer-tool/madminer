@@ -19,24 +19,21 @@ class Morpher:
     A typical morphing basis setup involves the following steps:
 
     * The instance of the class is initialized with the parameter setup. The user can provide the parameters either
-    in the format of `MadMiner.parameters`. Alternatively, human-friendly lists of the key properties can be provided.
-
+      in the format of `MadMiner.parameters`. Alternatively, human-friendly lists of the key properties can be provided.
     * The function `find_components` can be used to find the relevant components, i.e. individual terms
-    contributing to the squared matrix elements (alternatively they can be defined by the user with `set_components()`).
-
+      contributing to the squared matrix elements (alternatively they can be defined by the user with
+      `set_components()`).
     * The final step is the definition of the morphing basis, i.e. the benchmark points for which the squared matrix
-    element will be evaluated before interpolating to other parameter points. Again the user can pick this basis
-    manually with `set_basis()`. Alternatively, this class provides a basic optimization routine for the basis choice
-    in `optimize_basis()`.
+      element will be evaluated before interpolating to other parameter points. Again the user can pick this basis
+      manually with `set_basis()`. Alternatively, this class provides a basic optimization routine for the basis choice
+      in `optimize_basis()`.
 
     The class also provides helper functions that are important for working with morphing:
 
     * `calculate_morphing_matrix()` calculates the morphing matrix, i.e. the matrix that links the morphing basis to the
-    components.
-
+       components.
     * `calculate_morphing_weights()` calculates the morphing weights `w_b(theta)` for a given parameter point `theta`
-    such that `p(theta) = sum_b w_b(theta) p(theta_b)`.
-
+      such that `p(theta) = sum_b w_b(theta) p(theta_b)`.
     * `calculate_morphing_weight_gradient()` calculates the gradient of the morphing weights, `grad_theta w_b(theta)`.
 
     Parameters

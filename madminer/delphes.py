@@ -24,20 +24,13 @@ class DelphesProcessor:
     This class provides an example implementation based on Delphes. Its workflow consists of the following steps:
 
     * Initializing the class with the filename of a MadMiner HDF5 file (the output of `madminer.core.MadMiner.save()`)
-
     * Adding one or multiple HepMC samples produced by Pythia in `DelphesProcessor.add_hepmc_sample()`
-
     * Running Delphes on these samples through `DelphesProcessor.run_delphes()`
-
     * Optionally, acceptance cuts for all visible particles can be defined with `DelphesProcessor.set_acceptance()`.
-
     * Defining observables through `DelphesProcessor.add_observables()`. A simple set of default observables is provided
-    with `DelphesProcessor.add_default_observables()`
-
+      with `DelphesProcessor.add_default_observables()`
     * Optionally, cuts can be set with `DelphesProcessor.add_cut()`
-
     * Calculating the observables from the Delphes ROOT files with `DelphesProcessor.analyse_delphes_samples()`
-
     * Saving the results with `DelphesProcessor.save()`
     
     Please see the tutorial for a detailed walk-through.

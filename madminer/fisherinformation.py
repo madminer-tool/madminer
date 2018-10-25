@@ -45,7 +45,7 @@ def project_information(fisher_information, remaining_components):
 
 def profile_information(fisher_information, remaining_components):
     """
-    Calculates the profiled Fisher information matrix as defined in Appendix A.4 of 1612.05261.
+    Calculates the profiled Fisher information matrix as defined in Appendix A.4 of arXiv:1612.05261.
 
     Parameters
     ----------
@@ -100,24 +100,19 @@ class FisherInformation:
     can be calculated:
 
     * `FisherInformation.calculate_fisher_information_full_truth()` calculates the full truth-level Fisher information.
-    This is the information in an idealized measurement where all parton-level particles with their charges, flavours,
-    and four-momenta can be accessed with perfect accuracy.
-
+      This is the information in an idealized measurement where all parton-level particles with their charges, flavours,
+      and four-momenta can be accessed with perfect accuracy.
     * `FisherInformation.calculate_fisher_information_full_detector()` calculates the full Fisher information in
-    realistic detector-level observations, estimated with neural networks. In addition to the MadMiner file, this
-    requires a trained SALLY or SALLINO estimator as well as an unweighted evaluation sample.
-
+      realistic detector-level observations, estimated with neural networks. In addition to the MadMiner file, this
+      requires a trained SALLY or SALLINO estimator as well as an unweighted evaluation sample.
     * `FisherInformation.calculate_fisher_information_rate()` calculates the Fisher information in the total cross
-    section.
-
+      section.
     * `FisherInformation.calculate_fisher_information_hist1d()` calculates the Fisher information in the histogram of
-    one (parton-level or detector-level) observable.
-
+      one (parton-level or detector-level) observable.
     * `FisherInformation.calculate_fisher_information_hist2d()` calculates the Fisher information in a two-dimensional
-    histogram of two (parton-level or detector-level) observables.
-
+      histogram of two (parton-level or detector-level) observables.
     * `FisherInformation.histogram_of_fisher_information()` calculates the full truth-level Fisher information in
-    different slices of one observable (the "distribution of the Fisher information").
+      different slices of one observable (the "distribution of the Fisher information").
 
     Parameters
     ----------

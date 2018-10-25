@@ -1,0 +1,617 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>madminer.core module &#8212; MadMiner  documentation</title>
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="madminer.delphes module" href="madminer.delphes.html" />
+    <link rel="prev" title="Welcome to MadMiner’s documentation!" href="index.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="module-madminer.core">
+<span id="madminer-core-module"></span><h1>madminer.core module<a class="headerlink" href="#module-madminer.core" title="Permalink to this headline">¶</a></h1>
+<dl class="class">
+<dt id="madminer.core.MadMiner">
+<em class="property">class </em><code class="descclassname">madminer.core.</code><code class="descname">MadMiner</code><span class="sig-paren">(</span><em>debug=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/core.html#MadMiner"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.core.MadMiner" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>The central class to manage parameter spaces, benchmarks, and the generation of events through MadGraph and
+Pythia.</p>
+<p>An instance of this class is the starting point of most MadMiner applications. It is typically used in four steps:</p>
+<ul class="simple">
+<li>Defining the parameter space through <cite>MadMiner.add_parameter</cite></li>
+<li>Defining the benchmarks, i.e. the points at which the squared matrix elements will be evaluated in MadGraph, with
+<cite>MadMiner.add_benchmark()</cite> or, if operator morphing is used, with <cite>MadMiner.set_benchmarks_from_morphing()</cite></li>
+<li>Saving this setup with <cite>MadMiner.save()</cite> (it can be loaded in a new instance with <cite>MadMiner.load()</cite>)</li>
+<li>Running MadGraph and Pythia with the appropriate settings with <cite>MadMiner.run()</cite> or <cite>MadMiner.run_multiple()</cite> (the
+latter allows the user to combine runs from multiple run cards and sampling points)</li>
+</ul>
+<p>Please see the tutorial for a hands-on introduction to its methods.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>debug</strong> <span class="classifier-delimiter">:</span> <span class="classifier">bool, optional</span></dt>
+<dd><p class="first last">If True, additional detailed debugging output is printed. Default value: False.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Methods</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><a class="reference internal" href="#madminer.core.MadMiner.add_benchmark" title="madminer.core.MadMiner.add_benchmark"><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_benchmark</span></code></a>(parameter_values[,&nbsp;benchmark_name])</td>
+<td>Manually adds an individual benchmark, that is, a parameter point that will be evaluated by MadGraph.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#madminer.core.MadMiner.add_parameter" title="madminer.core.MadMiner.add_parameter"><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_parameter</span></code></a>(lha_block,&nbsp;lha_id[,&nbsp;…])</td>
+<td>Adds an individual parameter.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#madminer.core.MadMiner.load" title="madminer.core.MadMiner.load"><code class="xref py py-obj docutils literal notranslate"><span class="pre">load</span></code></a>(filename[,&nbsp;disable_morphing])</td>
+<td>Loads MadMiner setup from a file.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#madminer.core.MadMiner.run" title="madminer.core.MadMiner.run"><code class="xref py py-obj docutils literal notranslate"><span class="pre">run</span></code></a>(mg_directory,&nbsp;proc_card_file,&nbsp;…[,&nbsp;…])</td>
+<td>High-level function that creates the the MadGraph process, all required cards, and prepares or runs the event generation for one combination of cards.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#madminer.core.MadMiner.run_multiple" title="madminer.core.MadMiner.run_multiple"><code class="xref py py-obj docutils literal notranslate"><span class="pre">run_multiple</span></code></a>(mg_directory,&nbsp;proc_card_file,&nbsp;…)</td>
+<td>High-level function that creates the the MadGraph process, all required cards, and prepares or runs the event generation for multiple combinations of run_cards or importance samplings (<cite>sample_benchmarks</cite>).</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#madminer.core.MadMiner.save" title="madminer.core.MadMiner.save"><code class="xref py py-obj docutils literal notranslate"><span class="pre">save</span></code></a>(filename)</td>
+<td>Saves MadMiner setup into a file.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#madminer.core.MadMiner.set_benchmarks" title="madminer.core.MadMiner.set_benchmarks"><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_benchmarks</span></code></a>([benchmarks])</td>
+<td>Manually sets all benchmarks, that is, parameter points that will be evaluated by MadGraph.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#madminer.core.MadMiner.set_benchmarks_from_morphing" title="madminer.core.MadMiner.set_benchmarks_from_morphing"><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_benchmarks_from_morphing</span></code></a>([…])</td>
+<td>Sets benchmarks, i.e.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#madminer.core.MadMiner.set_parameters" title="madminer.core.MadMiner.set_parameters"><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_parameters</span></code></a>([parameters])</td>
+<td>Manually sets all parameters, overwriting previously added parameters.</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="madminer.core.MadMiner.add_benchmark">
+<code class="descname">add_benchmark</code><span class="sig-paren">(</span><em>parameter_values</em>, <em>benchmark_name=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/core.html#MadMiner.add_benchmark"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.core.MadMiner.add_benchmark" title="Permalink to this definition">¶</a></dt>
+<dd><p>Manually adds an individual benchmark, that is, a parameter point that will be evaluated by MadGraph.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>parameter_values</strong> <span class="classifier-delimiter">:</span> <span class="classifier">dict</span></dt>
+<dd><p class="first last">The keys of this dict should be the parameter names and the values the corresponding parameter values.</p>
+</dd>
+<dt><strong>benchmark_name</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str or None, optional</span></dt>
+<dd><p class="first last">Name of benchmark. If None, a default name is used. Default value: None.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>None</strong></dt>
+<dd></dd>
+</dl>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Raises:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>RuntimeError</strong></dt>
+<dd><p class="first last">If a benchmark with the same name already exists, if parameter_values is not a dict, or if a key of
+parameter_values does not correspond to a defined parameter.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="madminer.core.MadMiner.add_parameter">
+<code class="descname">add_parameter</code><span class="sig-paren">(</span><em>lha_block</em>, <em>lha_id</em>, <em>parameter_name=None</em>, <em>param_card_transform=None</em>, <em>morphing_max_power=2</em>, <em>parameter_range=(0.0</em>, <em>1.0)</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/core.html#MadMiner.add_parameter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.core.MadMiner.add_parameter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Adds an individual parameter.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>lha_block</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
+<dd><p class="first last">The name of the LHA block as used in the param_card. Case-sensitive.</p>
+</dd>
+<dt><strong>lha_id</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
+<dd><p class="first last">The LHA id as used in the param_card.</p>
+</dd>
+<dt><strong>parameter_name</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str or None</span></dt>
+<dd><p class="first last">An internal name for the parameter. If None, a the default ‘benchmark_i’ is used.</p>
+</dd>
+<dt><strong>morphing_max_power</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int or tuple of int</span></dt>
+<dd><p class="first last">The maximal power with which this parameter contributes to the
+squared matrix element of the process of interest. If a tuple is given, gives this
+maximal power for each of several operator configurations. Typically at tree level,
+this maximal number is 2 for parameters that affect one vertex (e.g. only production
+or only decay of a particle), and 4 for parameters that affect two vertices (e.g.
+production and decay). Default value: 2.</p>
+</dd>
+<dt><strong>param_card_transform</strong> <span class="classifier-delimiter">:</span> <span class="classifier">None or str</span></dt>
+<dd><p class="first last">Represents a one-parameter function mapping the parameter
+(<cite>“theta”</cite>) to the value that should be written in the parameter cards. This
+str is parsed by Python’s <cite>eval()</cite> function, and <cite>“theta”</cite> is parsed as the
+parameter value. Default value: None.</p>
+</dd>
+<dt><strong>parameter_range</strong> <span class="classifier-delimiter">:</span> <span class="classifier">tuple of float</span></dt>
+<dd><p class="first last">The range of parameter values of primary interest. Only affects the
+basis optimization. Default value: (0., 1.).</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>None</strong></dt>
+<dd></dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="madminer.core.MadMiner.load">
+<code class="descname">load</code><span class="sig-paren">(</span><em>filename</em>, <em>disable_morphing=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/core.html#MadMiner.load"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.core.MadMiner.load" title="Permalink to this definition">¶</a></dt>
+<dd><p>Loads MadMiner setup from a file. All parameters, benchmarks, and morphing settings are overwritten. See <cite>save</cite>
+for more details.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>filename</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
+<dd><p class="first last">Path to the MadMiner file.</p>
+</dd>
+<dt><strong>disable_morphing</strong> <span class="classifier-delimiter">:</span> <span class="classifier">bool, optional</span></dt>
+<dd><p class="first last">If True, the morphing setup is not loaded from the file. Default value: False.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>None</strong></dt>
+<dd></dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="madminer.core.MadMiner.run">
+<code class="descname">run</code><span class="sig-paren">(</span><em>mg_directory</em>, <em>proc_card_file</em>, <em>param_card_template_file</em>, <em>reweight_card_template_file</em>, <em>run_card_file=None</em>, <em>mg_process_directory=None</em>, <em>pythia8_card_file=None</em>, <em>sample_benchmark=None</em>, <em>is_background=False</em>, <em>only_prepare_script=False</em>, <em>ufo_model_directory=None</em>, <em>log_directory=None</em>, <em>temp_directory=None</em>, <em>initial_command=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/core.html#MadMiner.run"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.core.MadMiner.run" title="Permalink to this definition">¶</a></dt>
+<dd><p>High-level function that creates the the MadGraph process, all required cards, and prepares or runs the event
+generation for one combination of cards.</p>
+<p>If <cite>only_prepare_scripts=True</cite>, the event generation is not run
+directly, but a bash script is created in <cite>&lt;process_folder&gt;/madminer/run.sh</cite> that will start the event
+generation with the correct settings.</p>
+<p>High-level function that creates the the MadGraph process, all required cards, and prepares or runs the event
+generation for multiple combinations of run_cards or importance samplings (<cite>sample_benchmarks</cite>).</p>
+<p>If <cite>only_prepare_scripts=True</cite>, the event generation is not run
+directly, but a bash script is created in <cite>&lt;process_folder&gt;/madminer/run.sh</cite> that will start the event
+generation with the correct settings.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>mg_directory</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
+<dd><p class="first last">Path to the MadGraph 5 base directory.</p>
+</dd>
+<dt><strong>proc_card_file</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
+<dd><p class="first last">Path to the process card that tells MadGraph how to generate the process.</p>
+</dd>
+<dt><strong>param_card_template_file</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
+<dd><p class="first last">Path to a param card that will be used as template to create the
+appropriate param cards for these runs.</p>
+</dd>
+<dt><strong>reweight_card_template_file</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
+<dd><p class="first last">Path to an empty reweight card that will be used as template to create
+the appropriate reweight cards for these runs.</p>
+</dd>
+<dt><strong>run_card_file</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
+<dd><p class="first last">Paths to the MadGraph run card. If None, the default run_card is used.</p>
+</dd>
+<dt><strong>mg_process_directory</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str or None, optional</span></dt>
+<dd><p class="first last">Path to the MG process directory. If None, MadMiner uses ./MG_process. Default value: None.</p>
+</dd>
+<dt><strong>pythia8_card_file</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str or None, optional</span></dt>
+<dd><p class="first last">Path to the MadGraph Pythia8 card. If None, the card present in the process folder is used.
+Default value: None.</p>
+</dd>
+<dt><strong>sample_benchmark</strong> <span class="classifier-delimiter">:</span> <span class="classifier">list of str or None, optional</span></dt>
+<dd><p class="first last">Lists the names of benchmarks that should be used to sample events. A different sampling does not change
+the expected differential cross sections, but will change which regions of phase space have many events
+(small variance) or few events (high variance). If None, the benchmark added first is used. Default value:
+None.</p>
+</dd>
+<dt><strong>is_background</strong> <span class="classifier-delimiter">:</span> <span class="classifier">bool, optional</span></dt>
+<dd><p class="first last">Should be True for background processes, i.e. process in which the differential cross section does not
+depend on the parameters (i.e. is the same for all benchmarks). In this case, no reweighting is run, which
+can substantially speed up the event generation. Default value: False.</p>
+</dd>
+<dt><strong>only_prepare_script</strong> <span class="classifier-delimiter">:</span> <span class="classifier">bool, optional</span></dt>
+<dd><p class="first last">If True, the event generation is not started, but instead a run.sh script is created in the process
+directory. Default value: False.</p>
+</dd>
+<dt><strong>only_prepare_script</strong> <span class="classifier-delimiter">:</span> <span class="classifier">bool, optional</span></dt>
+<dd><p class="first last">If True, MadGraph is not executed, but instead a run.sh script is created in
+the process directory. Default value: False.</p>
+</dd>
+<dt><strong>ufo_model_directory</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str or None, optional</span></dt>
+<dd><p class="first last">Path to an UFO model directory that should be used, but is not yet installed in mg_directory/models. The
+model will be copied to the MadGraph model directory before the process directory is generated. (Default
+value = None.</p>
+</dd>
+<dt><strong>log_directory</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str or None, optional</span></dt>
+<dd><p class="first last">Directory for log files with the MadGraph output. If None, ./logs is used. Default value: None.</p>
+</dd>
+<dt><strong>temp_directory</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str or None, optional</span></dt>
+<dd><p class="first last">Path to a temporary directory. If None, a system default is used. Default value: None.</p>
+</dd>
+<dt><strong>initial_command</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str or None, optional</span></dt>
+<dd><p class="first last">Initial shell commands that have to be executed before MG is run (e.g. to load a virtual environment).
+Default value: None.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>None</strong></dt>
+<dd></dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="madminer.core.MadMiner.run_multiple">
+<code class="descname">run_multiple</code><span class="sig-paren">(</span><em>mg_directory</em>, <em>proc_card_file</em>, <em>param_card_template_file</em>, <em>reweight_card_template_file</em>, <em>run_card_files</em>, <em>mg_process_directory=None</em>, <em>pythia8_card_file=None</em>, <em>sample_benchmarks=None</em>, <em>is_background=False</em>, <em>only_prepare_script=False</em>, <em>ufo_model_directory=None</em>, <em>log_directory=None</em>, <em>temp_directory=None</em>, <em>initial_command=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/core.html#MadMiner.run_multiple"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.core.MadMiner.run_multiple" title="Permalink to this definition">¶</a></dt>
+<dd><p>High-level function that creates the the MadGraph process, all required cards, and prepares or runs the event
+generation for multiple combinations of run_cards or importance samplings (<cite>sample_benchmarks</cite>).</p>
+<p>If <cite>only_prepare_scripts=True</cite>, the event generation is not run
+directly, but a bash script is created in <cite>&lt;process_folder&gt;/madminer/run.sh</cite> that will start the event
+generation with the correct settings.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>mg_directory</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
+<dd><p class="first last">Path to the MadGraph 5 base directory.</p>
+</dd>
+<dt><strong>proc_card_file</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
+<dd><p class="first last">Path to the process card that tells MadGraph how to generate the process.</p>
+</dd>
+<dt><strong>param_card_template_file</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
+<dd><p class="first last">Path to a param card that will be used as template to create the appropriate param cards for these runs.</p>
+</dd>
+<dt><strong>reweight_card_template_file</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
+<dd><p class="first last">Path to an empty reweight card that will be used as template to create the appropriate reweight cards for
+these runs.</p>
+</dd>
+<dt><strong>run_card_files</strong> <span class="classifier-delimiter">:</span> <span class="classifier">list of str</span></dt>
+<dd><p class="first last">Paths to the MadGraph run card.</p>
+</dd>
+<dt><strong>mg_process_directory</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str or None, optional</span></dt>
+<dd><p class="first last">Path to the MG process directory. If None, MadMiner uses ./MG_process. Default value: None.</p>
+</dd>
+<dt><strong>pythia8_card_file</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str, optional</span></dt>
+<dd><p class="first last">Path to the MadGraph Pythia8 card. If None, the card present in the process folder
+is used. Default value: None.</p>
+</dd>
+<dt><strong>sample_benchmarks</strong> <span class="classifier-delimiter">:</span> <span class="classifier">list of str or None, optional</span></dt>
+<dd><p class="first last">Lists the names of benchmarks that should be used to sample events. A different sampling does not change
+the expected differential cross sections, but will change which regions of phase space have many events
+(small variance) or few events (high variance). If None, a run is started for each of the benchmarks, which
+should map out all regions of phase space well. Default value: None.</p>
+</dd>
+<dt><strong>is_background</strong> <span class="classifier-delimiter">:</span> <span class="classifier">bool, optional</span></dt>
+<dd><p class="first last">Should be True for background processes, i.e. process in which the differential cross section does not
+depend on the parameters (i.e. is the same for all benchmarks). In this case, no reweighting is run, which
+can substantially speed up the event generation. Default value: False.</p>
+</dd>
+<dt><strong>only_prepare_script</strong> <span class="classifier-delimiter">:</span> <span class="classifier">bool, optional</span></dt>
+<dd><p class="first last">If True, the event generation is not started, but instead a run.sh script is created in the process
+directory. Default value: False.</p>
+</dd>
+<dt><strong>only_prepare_script</strong> <span class="classifier-delimiter">:</span> <span class="classifier">bool, optional</span></dt>
+<dd><p class="first last">If True, MadGraph is not executed, but instead a run.sh script is created in
+the process directory. Default value: False.</p>
+</dd>
+<dt><strong>ufo_model_directory</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str or None, optional</span></dt>
+<dd><p class="first last">Path to an UFO model directory that should be used, but is not yet installed in mg_directory/models. The
+model will be copied to the MadGraph model directory before the process directory is generated. (Default
+value = None)</p>
+</dd>
+<dt><strong>log_directory</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str or None, optional</span></dt>
+<dd><p class="first last">Directory for log files with the MadGraph output. If None, ./logs is used. Default value: None.</p>
+</dd>
+<dt><strong>temp_directory</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str or None, optional</span></dt>
+<dd><p class="first last">Path to a temporary directory. If None, a system default is used. Default value: None.</p>
+</dd>
+<dt><strong>initial_command</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str or None, optional</span></dt>
+<dd><p class="first last">Initial shell commands that have to be executed before MG is run (e.g. to load a virtual environment).
+Default value: None.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>None</strong></dt>
+<dd></dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="madminer.core.MadMiner.save">
+<code class="descname">save</code><span class="sig-paren">(</span><em>filename</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/core.html#MadMiner.save"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.core.MadMiner.save" title="Permalink to this definition">¶</a></dt>
+<dd><p>Saves MadMiner setup into a file.</p>
+<p>The file format follows the HDF5 standard. The saved information includes:</p>
+<ul class="simple">
+<li>the parameter definitions,</li>
+<li>the benchmark points, and</li>
+<li>the morphing setup (if defined).</li>
+</ul>
+<p>This file is an important input to later stages in the analysis chain, including the processing of generated
+events, extraction of training samples, and calculation of Fisher information matrices. In these downstream
+tasks, additional information will be written to the MadMiner file, including the observations and event
+weights.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>filename</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
+<dd><p class="first last">Path to the MadMiner file.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>None</strong></dt>
+<dd></dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="madminer.core.MadMiner.set_benchmarks">
+<code class="descname">set_benchmarks</code><span class="sig-paren">(</span><em>benchmarks=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/core.html#MadMiner.set_benchmarks"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.core.MadMiner.set_benchmarks" title="Permalink to this definition">¶</a></dt>
+<dd><p>Manually sets all benchmarks, that is, parameter points that will be evaluated by MadGraph. Calling this
+function overwrites all previously defined benchmarks.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>benchmarks</strong> <span class="classifier-delimiter">:</span> <span class="classifier">dict or list or None, optional</span></dt>
+<dd><p class="first last">Specifies all benchmarks. If None, all benchmarks are reset. If dict, the keys are the benchmark names and
+the values are dicts of the form {parameter_name:value}. If list, the entries are dicts
+{parameter_name:value} (and the benchmark names are chosen automatically). Default value: None.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>None</strong></dt>
+<dd></dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="madminer.core.MadMiner.set_benchmarks_from_morphing">
+<code class="descname">set_benchmarks_from_morphing</code><span class="sig-paren">(</span><em>max_overall_power=4</em>, <em>n_bases=1</em>, <em>keep_existing_benchmarks=True</em>, <em>n_trials=100</em>, <em>n_test_thetas=100</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/core.html#MadMiner.set_benchmarks_from_morphing"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.core.MadMiner.set_benchmarks_from_morphing" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sets benchmarks, i.e. parameter points that will be evaluated by MadGraph, for a morphing algorithm, and
+calculates all information required for morphing. Morphing is a technique that allows MadMax to infer the full
+probability distribution <cite>p(x_i | theta)</cite> for each simulated event <cite>x_i</cite> and any <cite>theta</cite>, not just the
+benchmarks.</p>
+<p>The morphing basis is optimized with respect to the expected mean squared morphing weights over the parameter
+region of interest. If keep_existing_benchmarks=True, benchmarks defined previously will be incorporated in the
+morphing basis and only the remaining basis points will be optimized.</p>
+<p>Note that any subsequent call to <cite>set_benchmarks</cite> or <cite>add_benchmark</cite> will overwrite the morphing setup. The
+correct order is therefore to manually define benchmarks first, using <cite>set_benchmarks</cite> or <cite>add_benchmark</cite>, and
+then to create the morphing setup and complete the basis by calling
+<cite>set_benchmarks_from_morphing(keep_existing_benchmarks=True)</cite>.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>max_overall_power</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int or tuple of int, optional</span></dt>
+<dd><p class="first last">The maximal sum of powers of all parameters contributing to the squared matrix element. If a tuple is given,
+gives the maximal sum of powers for each of several operator configurations (see <cite>add_parameter</cite>).
+Typically, if parameters can affect the couplings at n vertices, this number is 2n. Default value: 4.</p>
+</dd>
+<dt><strong>n_bases</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int, optional</span></dt>
+<dd><p class="first last">The number of morphing bases generated. If n_bases &gt; 1, multiple bases are combined, and the
+weights for each basis are reduced by a factor 1 / n_bases. Currently only the default choice of 1 is
+fully implemented. Do not use any other value for now. Default value: 1.</p>
+</dd>
+<dt><strong>keep_existing_benchmarks</strong> <span class="classifier-delimiter">:</span> <span class="classifier">bool, optional</span></dt>
+<dd><p class="first last">If True, the previously defined benchmarks are included in the basis. In that case, the number of free
+parameters in the optimization routine is reduced. If False, all benchmarks are optimized and all previously
+defined benchmarks forgotten. Default value: True.</p>
+</dd>
+<dt><strong>n_trials</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int, optional</span></dt>
+<dd><p class="first last">Number of random basis configurations tested in the optimization procedure. A larger number will increase
+the run time of the optimization, but lead to better results. Default value: 100.</p>
+</dd>
+<dt><strong>n_test_thetas</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int, optional</span></dt>
+<dd><p class="first last">Number of random parameter points used to evaluate the expected mean squared morphing weights. A larger
+number will increase the run time of the optimization, but lead to better results. Default value: 100.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>None</strong></dt>
+<dd></dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="madminer.core.MadMiner.set_parameters">
+<code class="descname">set_parameters</code><span class="sig-paren">(</span><em>parameters=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/core.html#MadMiner.set_parameters"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.core.MadMiner.set_parameters" title="Permalink to this definition">¶</a></dt>
+<dd><p>Manually sets all parameters, overwriting previously added parameters.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>parameters</strong> <span class="classifier-delimiter">:</span> <span class="classifier">dict or list or None, optional</span></dt>
+<dd><p class="first last">If parameters is None, resets parameters. If parameters is an dict, the keys should be str and give the
+parameter names, and the values are tuples of the form (LHA_block, LHA_ID, morphing_max_power, param_min,
+param_max) or of the form (LHA_block, LHA_ID). If parameters is a list, the items should be tuples of the
+form (LHA_block, LHA_ID). Default value: None.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>None</strong></dt>
+<dd></dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">MadMiner</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">madminer.core module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="madminer.delphes.html">madminer.delphes module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="madminer.fisherinformation.html">madminer.fisherinformation module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="madminer.ml.html">madminer.ml module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="madminer.morphing.html">madminer.morphing module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="madminer.plotting.html">madminer.plotting module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="madminer.sampling.html">madminer.sampling module</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="index.html" title="previous chapter">Welcome to MadMiner’s documentation!</a></li>
+      <li>Next: <a href="madminer.delphes.html" title="next chapter">madminer.delphes module</a></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;Johann Brehmer, Kyle Cranmer, and Felix Kling 2018.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.8.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="_sources/madminer.core.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>
