@@ -24,7 +24,7 @@ def run_delphes(delphes_directory,
         if not os.path.exists(filename):
             call_command('gunzip -k {}'.format(hepmc_sample_filename))
         if delete_unzipped_file:
-            to_delete = hepmc_sample_filename
+            to_delete = filename
         hepmc_sample_filename = filename
 
     # Where to put Delphes sample
