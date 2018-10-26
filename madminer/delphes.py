@@ -368,10 +368,16 @@ class DelphesProcessor:
         self.cuts.append(definition)
         self.cuts_default_pass.append(pass_if_not_parsed)
 
-    def analyse_delphes_samples(self):
+    def analyse_delphes_samples(self, delete_delphes_files=False):
         """
         Main function that parses the Delphes samples (ROOT files), checks acceptance and cuts, and extracts
         the observables and weights.
+
+        Parameters
+        ----------
+        delete_delphes_files : bool, optional
+            If True, the Delphes ROOT files will be deleted after extracting the information from them. Default value:
+            False.
 
         Returns
         -------
@@ -394,7 +400,7 @@ class DelphesProcessor:
                 self.cuts,
                 self.cuts_default_pass,
                 weight_labels,
-
+                delphes_sample_file=delete_delphes_files
             )
 
             # Number of benchmarks
