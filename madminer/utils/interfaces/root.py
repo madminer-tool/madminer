@@ -6,6 +6,7 @@ from collections import OrderedDict
 import uproot
 from madminer.utils.particle import MadMinerParticle
 import logging
+import os
 
 
 def extract_observables_from_delphes_file(delphes_sample_file,
@@ -22,46 +23,10 @@ def extract_observables_from_delphes_file(delphes_sample_file,
                                           acceptance_eta_max_e=10.,
                                           acceptance_eta_max_mu=10.,
                                           acceptance_eta_max_a=10.,
-                                          acceptance_eta_max_j=20.):
-    """
+                                          acceptance_eta_max_j=20.,
+                                          delete_delphes_sample_file=False):
+    """ Extracts observables and weights from a Delphes ROOT file """
 
-    Parameters
-    ----------
-    delphes_sample_file :
-        
-    observables :
-        
-    observables_required :
-        
-    observables_defaults :
-        
-    cuts :
-        
-    cuts_default_pass :
-        
-    weight_labels :
-        
-    acceptance_pt_min_e :
-         (Default value = 10.)
-    acceptance_pt_min_mu :
-         (Default value = 10.)
-    acceptance_pt_min_a :
-         (Default value = 10.)
-    acceptance_pt_min_j :
-         (Default value = 20.)
-    acceptance_eta_max_e :
-         (Default value = 10.)
-    acceptance_eta_max_mu :
-         (Default value = 10.)
-    acceptance_eta_max_a :
-         (Default value = 10.)
-    acceptance_eta_max_j :
-         (Default value = 20.)
-
-    Returns
-    -------
-
-    """
     # Delphes ROOT file
     root_file = uproot.open(delphes_sample_file)
 
@@ -184,6 +149,11 @@ def extract_observables_from_delphes_file(delphes_sample_file,
     weights_dict = OrderedDict()
     for weight_label, this_weights in zip(weight_labels, weights):
         weights_dict[weight_label] = this_weights
+
+    # Delete Delphes file
+    if delete_delphes_sample_file:
+        logging.debug('Deleting %s', delphes_sample_file)
+        os.remove(delphes_sample_file)
 
     return observable_values, weights_dict
 
