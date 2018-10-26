@@ -73,7 +73,7 @@ def extract_observables_from_delphes_file(delphes_sample_file,
             'met': met_all_events[ievent][0],
             'visible': visible_momentum,
             'all': all_momentum,
-            'boost_to_com': lambda momentum: momentum.boost(all_momentum)
+            'boost_to_com': lambda momentum: momentum.boost(all_momentum.boost_vector())
         })
 
         return objects
