@@ -249,7 +249,8 @@ class DelphesProcessor:
             n_leptons_max=2,
             n_photons_max=2,
             n_jets_max=2,
-            include_met=True
+            include_met=True,
+            include_visible_sum=True
     ):
         """
         Adds a set of simple standard observables: the four-momenta (parameterized as E, pT, eta, phi) of the hardest
@@ -269,6 +270,9 @@ class DelphesProcessor:
         include_met : bool, optional
             Whether the missing energy observables are stored. Default value: True.
 
+        include_visible_sum : bool, optional
+            Whether observables characterizing the sum of all particles are stored. Default value: True.
+
         Returns
         -------
             None
@@ -287,8 +291,22 @@ class DelphesProcessor:
                 required=True
             )
 
-        # Observed particles
-        for n, symbol in zip([n_leptons_max, n_photons_max, n_jets_max], ['l', 'a', 'j']):
+        # Sum of visible particles
+        if include_visible_sum:
+            self.add_observable(
+                'e_visible',
+                'visible.e',
+                required=True
+            )
+            self.add_observable(
+                'eta_visible',
+                'visible.eta',
+                required=True
+            )
+
+        # Individual observed particles
+        for n, symbol, include_charge in zip([n_leptons_max, n_photons_max, n_jets_max],
+                                             ['l', 'a', 'j'], [False, False, True]):
             self.add_observable(
                 'n_{}s'.format(symbol),
                 'len({})'.format(symbol),
@@ -320,6 +338,13 @@ class DelphesProcessor:
                     required=False,
                     default=0.
                 )
+                if include_charge:
+                    self.add_observable(
+                        'charge_{}{}'.format(symbol, i + 1),
+                        '{}[{}].charge'.format(symbol, i),
+                        required=False,
+                        default=0.
+                    )
 
     def add_cut(self, definition, pass_if_not_parsed=False):
 
