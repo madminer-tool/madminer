@@ -90,7 +90,7 @@ def extract_observables_from_delphes_file(delphes_sample_file,
 
             try:
                 values_this_observable.append(eval(obs_definition, variables))
-            except (SyntaxError, NameError, TypeError, ZeroDivisionError):
+            except (SyntaxError, NameError, TypeError, ZeroDivisionError, IndexError):
                 default = observables_defaults[obs_name]
                 if default is None:
                     default = np.nan
@@ -114,7 +114,7 @@ def extract_observables_from_delphes_file(delphes_sample_file,
 
             try:
                 values_this_cut.append(eval(cut, variables))
-            except (SyntaxError, NameError, TypeError, ZeroDivisionError):
+            except (SyntaxError, NameError, TypeError, ZeroDivisionError, IndexError):
                 values_this_cut.append(default_pass)
 
         values_this_cut = np.array(values_this_cut, dtype=np.bool)
