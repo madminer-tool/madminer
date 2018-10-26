@@ -764,6 +764,7 @@ def kinematic_distribution_of_information(xbins,
 
     # Get xvals from xbins
     xvals = [(xbins[i] + xbins[i + 1]) / 2 for i in range(0, len(xbins) - 1)]
+    xvals = [xbins[0]-epsilon] + xvals +  [xbins[len(xbins)-1]+epsilon]
     assert len(xvals) == n_entries
 
     # Plotting options

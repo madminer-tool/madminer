@@ -369,25 +369,6 @@ class FisherInformation:
 
         Parameters
         ----------
-<<<<<<< HEAD
-        theta :
-            ndarray. The parameter point.
-        luminosity :
-            float. Luminosity in pb^-1.
-        observable :
-            str. Observable  to be histogrammed.
-        nbins :
-            int. Number of bins in the histogram, excluding overflow bins.
-        histrange :
-            tuple of two floats. Minimum and maximum value of the histogram. Overflow bins are always
-            added.
-        cuts :
-            None or list strings. Each entry is a parseable Python expression that returns a bool
-            (True if the event should pass a cut, False otherwise). (Default value = None)
-        efficiency_functions :
-            None or list strings. Each entry is a parseable Python expression that returns a
-            float for the efficiency of one component. (Default value = None)
-=======
         theta : ndarray
             Parameter point `theta` at which the Fisher information matrix `I_ij(theta)` is evaluated.
 
@@ -411,7 +392,6 @@ class FisherInformation:
         efficiency_functions : list of str or None
             Efficiencies. Each entry is a parseable Python expression that returns a float for the efficiency of one
             component. Default value: None.
->>>>>>> upstream/master
 
         Returns
         -------
@@ -449,12 +429,7 @@ class FisherInformation:
 
             # Find bins
             bins = np.searchsorted(bin_boundaries, histo_observables)
-<<<<<<< HEAD
-            #assert np.all(0 <= bins < n_bins_total), 'Wrong bin {}'.format(bins)
-            assert np.all(0 <= np.array(bins)) and np.all( np.array(bins) < n_bins_total) , 'Wrong bin {}'.format(bins)
-=======
             assert ((0 <= bins) & (bins < n_bins_total)).all(), 'Wrong bin {}'.format(bins)
->>>>>>> upstream/master
 
             # Add up
             for i in range(n_bins_total):
@@ -554,15 +529,8 @@ class FisherInformation:
             bins1 = np.searchsorted(bin1_boundaries, histo1_observables)
             bins2 = np.searchsorted(bin2_boundaries, histo2_observables)
 
-<<<<<<< HEAD
-            #assert np.all(0 <= bins1 < n_bins1_total), 'Wrong bin {}'.format(bins1)
-            #assert np.all(0 <= bins2 < n_bins2_total), 'Wrong bin {}'.format(bins2)
-            assert np.all(0 <= np.array(bins1)) and np.all( np.array(bins1) < n_bins1_total), 'Wrong bin {}'.format(bins1)
-            assert np.all(0 <= np.array(bins2)) and np.all( np.array(bins2) < n_bins2_total), 'Wrong bin {}'.format(bins2)
-=======
             assert ((0 <= bins1) & (bins1 < n_bins1_total)).all(), 'Wrong bin {}'.format(bins1)
             assert ((0 <= bins1) & (bins1 < n_bins1_total)).all(), 'Wrong bin {}'.format(bins1)
->>>>>>> upstream/master
 
             # Add up
             for i in range(n_bins1_total):
@@ -658,14 +626,8 @@ class FisherInformation:
 
             # Find bins
             bins = np.searchsorted(bin_boundaries, histo_observables)
-<<<<<<< HEAD
-            #assert np.all(0 <= bins < n_bins_total), 'Wrong bin {}'.format(bins)
-            assert np.all(0 <= np.array(bins)) and np.all( np.array(bins) < n_bins_total) , 'Wrong bin {}'.format(bins)
-            
-=======
             assert ((0 <= bins) & (bins < n_bins_total)).all(), 'Wrong bin {}'.format(bins)
 
->>>>>>> upstream/master
             # Add up
             for i in range(n_bins_total):
                 if len(weights[bins == i]) > 0:
