@@ -1,6 +1,7 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import os
+import logging
 
 from madminer.utils.various import call_command
 
@@ -11,36 +12,19 @@ def run_delphes(delphes_directory,
                 delphes_sample_filename=None,
                 initial_command=None,
                 log_file=None,
-                overwrite_existing_delphes_root_file=True):
-    """
-
-    Parameters
-    ----------
-    delphes_directory :
-        
-    delphes_card_filename :
-        
-    hepmc_sample_filename :
-        
-    delphes_sample_filename :
-         (Default value = None)
-    initial_command :
-         (Default value = None)
-    log_file :
-         (Default value = None)
-    overwrite_existing_delphes_root_file :
-         (Default value = True)
-
-    Returns
-    -------
-
-    """
+                overwrite_existing_delphes_root_file=True,
+                delete_unzipped_file=True):
+    """ Runs Delphes on a HepMC sample """
 
     # Untar event file
     filename, extension = os.path.splitext(hepmc_sample_filename)
+    to_delete = None
     if extension == '.gz':
+        logging.debug('Unzipping %s', hepmc_sample_filename)
         if not os.path.exists(filename):
             call_command('gunzip -k {}'.format(hepmc_sample_filename))
+        if delete_unzipped_file:
+            to_delete = hepmc_sample_filename
         hepmc_sample_filename = filename
 
     # Where to put Delphes sample
@@ -79,5 +63,10 @@ def run_delphes(delphes_directory,
         ),
         log_file=log_file
     )
+
+    # Delete untarred file
+    if to_delete is not None:
+        logging.debug('Deleting %s', to_delete)
+        os.remove(to_delete)
 
     return delphes_sample_filename
