@@ -198,18 +198,14 @@ class SampleAugmenter:
     Depending on the downstream inference algorithm, there are different possibilities:
 
     * `SampleAugmenter.extract_samples_train_plain()` creates plain training samples without augmented data.
-
     * `SampleAugmenter.extract_samples_train_local()` creates training samples for local methods based on the score,
-    such as SALLY and SALLINO.
-
+      such as SALLY and SALLINO.
     * `SampleAugmenter.extract_samples_train_ratio()` creates training samples for non-local, ratio-based methods
-    like RASCAL, ALICE, and SCANDAL.
-
+      like RASCAL, ALICE, and SCANDAL.
     * `SampleAugmenter.extract_samples_train_more_ratios()` does the same, but can extract joint ratios and scores
-    at more parameter points. This additional information  can be used efficiently in the setup with a "doubly
-    parameterized" likelihood ratio estimator that models the dependence on both the numerator and denominator
-    hypothesis.
-
+      at more parameter points. This additional information  can be used efficiently in the setup with a "doubly
+      parameterized" likelihood ratio estimator that models the dependence on both the numerator and denominator
+      hypothesis.
     * `SampleAugmenter.extract_samples_test()` creates evaluation samples for all methods.
 
     Please see the tutorial for a walkthrough.
@@ -271,10 +267,12 @@ class SampleAugmenter:
                                     n_samples,
                                     folder,
                                     filename,
-                                    test_split=0.5):
+                                    test_split=0.5,
+                                    switch_train_test_events=False):
         """
         Extracts plain training samples `x ~ p(x|theta)` without any augmented data. This can be use for standard
-        inference methods such as ABC, histograms of observables, or neural density estimation techniques.
+        inference methods such as ABC, histograms of observables, or neural density estimation techniques. It can also
+        be used to create validation or calibration samples.
 
         Parameters
         ----------
@@ -293,9 +291,13 @@ class SampleAugmenter:
             Filenames for the resulting samples. A prefix such as 'x' or 'theta0' as well as the extension
             '.npy' will be added automatically.
 
-        test_split : float, optional
+        test_split : float or None, optional
             Fraction of events reserved for the evaluation sample (that will not be used for any training samples).
             Default value: 0.5.
+
+        switch_train_test_events : bool, optional
+            If True, this function generates a training sample from the events normally reserved for test samples.
+            Default value: False.
 
         Returns
         -------
@@ -317,21 +319,15 @@ class SampleAugmenter:
         theta_types, theta_values, n_samples_per_theta = parse_theta(theta, n_samples)
 
         # Train / test split
-        if test_split is None or test_split <= 0. or test_split >= 1.:
-            last_train_index = None
-        else:
-            last_train_index = int(round((1. - test_split) * self.n_samples, 0))
-
-            if last_train_index < 0 or last_train_index > self.n_samples:
-                raise ValueError("Irregular train / test split: sample {} / {}", last_train_index, self.n_samples)
+        start_event, end_event = self._train_test_split(not switch_train_test_events, test_split)
 
         # Start
         x, _, (theta,) = self._extract_sample(
             theta_sets_types=[theta_types],
             theta_sets_values=[theta_values],
             n_samples_per_theta=n_samples_per_theta,
-            start_event=0,
-            end_event=last_train_index
+            start_event=start_event,
+            end_event=end_event
         )
 
         # Save data
@@ -346,7 +342,8 @@ class SampleAugmenter:
                                     n_samples,
                                     folder,
                                     filename,
-                                    test_split=0.5):
+                                    test_split=0.5,
+                                    switch_train_test_events=False):
         """
         Extracts training samples x ~ p(x|theta) as well as the joint score t(x, z|theta). This can be used for
         inference methods such as SALLY and SALLINO.
@@ -367,9 +364,13 @@ class SampleAugmenter:
             Filenames for the resulting samples. A prefix such as 'x' or 'theta0' as well as the extension
             '.npy' will be added automatically.
 
-        test_split : float, optional
+        test_split : float or None, optional
             Fraction of events reserved for the evaluation sample (that will not be used for any training samples).
             Default value: 0.5.
+
+        switch_train_test_events : bool, optional
+            If True, this function generates a training sample from the events normally reserved for test samples.
+            Default value: False.
 
         Returns
         -------
@@ -402,13 +403,7 @@ class SampleAugmenter:
         augmented_data_definitions = [('score', 0)]
 
         # Train / test split
-        if test_split is None or test_split <= 0. or test_split >= 1.:
-            last_train_index = None
-        else:
-            last_train_index = int(round((1. - test_split) * self.n_samples, 0))
-
-            if last_train_index < 0 or last_train_index > self.n_samples:
-                raise ValueError("Irregular train / test split: sample {} / {}", last_train_index, self.n_samples)
+        start_event, end_event = self._train_test_split(not switch_train_test_events, test_split)
 
         # Start
         x, (t_xz,), (theta,) = self._extract_sample(
@@ -416,8 +411,8 @@ class SampleAugmenter:
             theta_sets_values=[theta_values],
             n_samples_per_theta=n_samples_per_theta,
             augmented_data_definitions=augmented_data_definitions,
-            start_event=0,
-            end_event=last_train_index
+            start_event=start_event,
+            end_event=end_event
         )
 
         # Save data
@@ -434,7 +429,8 @@ class SampleAugmenter:
                                     n_samples,
                                     folder,
                                     filename,
-                                    test_split=0.5):
+                                    test_split=0.5,
+                                    switch_train_test_events=False):
         """
         Extracts training samples `x ~ p(x|theta0)` and `x ~ p(x|theta1)` together with the class label `y`, the joint
         likelihood ratio `r(x,z|theta0, theta1)`, and the joint score `t(x,z|theta0)`. This information can be used in
@@ -462,9 +458,13 @@ class SampleAugmenter:
             Filenames for the resulting samples. A prefix such as 'x' or 'theta0' as well as the extension
             '.npy' will be added automatically.
 
-        test_split : float, optional
+        test_split : float or None, optional
             Fraction of events reserved for the evaluation sample (that will not be used for any training samples).
             Default value: 0.5.
+
+        switch_train_test_events : bool, optional
+            If True, this function generates a training sample from the events normally reserved for test samples.
+            Default value: False.
 
         Returns
         -------
@@ -507,13 +507,7 @@ class SampleAugmenter:
                                       ('score', 0)]
 
         # Train / test split
-        if test_split is None or test_split <= 0. or test_split >= 1.:
-            last_train_index = None
-        else:
-            last_train_index = int(round((1. - test_split) * self.n_samples, 0))
-
-            if last_train_index < 0 or last_train_index > self.n_samples:
-                raise ValueError("Irregular train / test split: sample {} / {}", last_train_index, self.n_samples)
+        start_event, end_event = self._train_test_split(not switch_train_test_events, test_split)
 
         # Thetas for theta0 sampling
         theta0_types, theta0_values, n_samples_per_theta0 = parse_theta(theta0, n_samples // 2)
@@ -528,8 +522,8 @@ class SampleAugmenter:
             sampling_theta_index=0,
             n_samples_per_theta=n_samples_per_theta,
             augmented_data_definitions=augmented_data_definitions,
-            start_event=0,
-            end_event=last_train_index
+            start_event=start_event,
+            end_event=end_event
         )
 
         # Thetas for theta1 sampling (could be different if num or denom are random)
@@ -545,8 +539,8 @@ class SampleAugmenter:
             sampling_theta_index=1,
             n_samples_per_theta=n_samples_per_theta,
             augmented_data_definitions=augmented_data_definitions,
-            start_event=0,
-            end_event=last_train_index
+            start_event=start_event,
+            end_event=end_event
         )
 
         # Combine
@@ -582,7 +576,8 @@ class SampleAugmenter:
                                           folder,
                                           filename,
                                           additional_thetas=None,
-                                          test_split=0.3):
+                                          test_split=0.5,
+                                          switch_train_test_events=False):
         """
         Extracts training samples `x ~ p(x|theta0)` and `x ~ p(x|theta1)` together with the class label `y`, the joint
         likelihood ratio `r(x,z|theta0, theta1)`, and the joint score `t(x,z|theta0)`. This information can be used in
@@ -623,9 +618,13 @@ class SampleAugmenter:
             `constant_benchmark_theta()`, `multiple_benchmark_thetas()`, `constant_morphing_theta()`,
             `multiple_morphing_thetas()`, or `random_morphing_thetas()`. Default value: None.
 
-        test_split : float, optional
+        test_split : float or None, optional
             Fraction of events reserved for the evaluation sample (that will not be used for any training samples).
             Default value: 0.5.
+
+        switch_train_test_events : bool, optional
+            If True, this function generates a training sample from the events normally reserved for test samples.
+            Default value: False.
 
         Returns
         -------
@@ -681,13 +680,7 @@ class SampleAugmenter:
             augmented_data_definitions_1.append(('score', i + 2))
 
         # Train / test split
-        if test_split is None or test_split <= 0. or test_split >= 1.:
-            last_train_index = None
-        else:
-            last_train_index = int(round((1. - test_split) * self.n_samples, 0))
-
-            if last_train_index < 0 or last_train_index > self.n_samples:
-                raise ValueError("Irregular train / test split: sample {} / {}", last_train_index, self.n_samples)
+        start_event, end_event = self._train_test_split(not switch_train_test_events, test_split)
 
         # Parse thetas for theta0 sampling
         theta_types = []
@@ -718,8 +711,8 @@ class SampleAugmenter:
             n_samples_per_theta=n_samples_per_theta,
             augmented_data_definitions=augmented_data_definitions_0,
             sampling_theta_index=0,
-            start_event=0,
-            end_event=last_train_index
+            start_event=start_event,
+            end_event=end_event
         )
         n_actual_samples = x_0.shape[0]
 
@@ -775,8 +768,8 @@ class SampleAugmenter:
             n_samples_per_theta=n_samples_per_theta,
             augmented_data_definitions=augmented_data_definitions_1,
             sampling_theta_index=1,
-            start_event=0,
-            end_event=last_train_index
+            start_event=start_event,
+            end_event=end_event
         )
         n_actual_samples += x_1.shape[0]
 
@@ -840,7 +833,8 @@ class SampleAugmenter:
                              n_samples,
                              folder,
                              filename,
-                             test_split=0.3):
+                             test_split=0.5,
+                             switch_train_test_events=False):
         """
         Extracts evaluation samples `x ~ p(x|theta)` without any augmented data.
 
@@ -861,9 +855,13 @@ class SampleAugmenter:
             Filenames for the resulting samples. A prefix such as 'x' or 'theta0' as well as the extension
             '.npy' will be added automatically.
 
-        test_split : float, optional
+        test_split : float or None, optional
             Fraction of events reserved for the evaluation sample (that will not be used for any training samples).
             Default value: 0.5.
+
+        switch_train_test_events : bool, optional
+            If True, this function generates a test sample from the events normally reserved for training samples.
+            Default value: False.
 
         Returns
         -------
@@ -885,21 +883,15 @@ class SampleAugmenter:
         theta_types, theta_values, n_samples_per_theta = parse_theta(theta, n_samples)
 
         # Train / test split
-        if test_split is None or test_split <= 0. or test_split >= 1.:
-            first_test_index = 0
-        else:
-            first_test_index = int(round((1. - test_split) * self.n_samples, 0)) + 1
-
-            if first_test_index < 0 or first_test_index > self.n_samples:
-                raise ValueError("Irregular in train / test split: sample {} / {}", first_test_index, self.n_samples)
+        start_event, end_event = self._train_test_split(switch_train_test_events, test_split)
 
         # Extract information
         x, _, (theta,) = self._extract_sample(
             theta_sets_types=[theta_types],
             theta_sets_values=[theta_values],
             n_samples_per_theta=n_samples_per_theta,
-            start_event=first_test_index,
-            end_event=None
+            start_event=start_event,
+            end_event=end_event
         )
 
         # Save data
@@ -986,6 +978,44 @@ class SampleAugmenter:
         all_xsec_uncertainties = np.array(all_xsec_uncertainties)
 
         return all_thetas, all_xsecs, all_xsec_uncertainties
+
+    def extract_raw_data(self, theta=None):
+
+        """
+        Returns all events together with the benchmark weights (if theta is None) or weights for a given theta.
+
+        Parameters
+        ----------
+        theta : None or ndarray
+            If None, the function returns the benchmark weights. Otherwise it uses morphing to calculate the weights for
+            this value of theta. Default value: None.
+
+        Returns
+        -------
+        x : ndarray
+            Observables with shape `(n_unweighted_samples, n_observables)`.
+
+        weights : ndarray
+            If theta is None, benchmark weights with shape  `(n_unweighted_samples, n_benchmarks)` in pb. Otherwise,
+            weights for the given parameter theta with shape `(n_unweighted_samples,)` in pb.
+
+        """
+
+        x, weights_benchmarks = next(madminer_event_loader(self.madminer_filename, batch_size=None))
+
+        if theta is not None:
+            theta_matrix = get_theta_benchmark_matrix(
+                'morphing',
+                theta,
+                self.benchmarks,
+                self.morpher
+            )
+
+            weights_theta = theta_matrix.dot(weights_benchmarks.T)
+
+            return x, weights_theta
+
+        return x, weights_benchmarks
 
     def _extract_sample(self,
                         theta_sets_types,
@@ -1103,6 +1133,7 @@ class SampleAugmenter:
         all_x = []
         all_augmented_data = [[] for _ in augmented_data_definitions]
         all_thetas = [[] for _ in range(n_thetas)]
+        all_effective_n_samples = []
 
         # Main loop over thetas
         for i_set in range(n_sets):
@@ -1145,7 +1176,7 @@ class SampleAugmenter:
             rms_xsec_sampling_theta = ((sampling_theta_matrix * sampling_theta_matrix).dot(
                 squared_weight_sum_benchmarks)) ** 0.5
 
-            if rms_xsec_sampling_theta > 0.2 * xsec_sampling_theta:
+            if rms_xsec_sampling_theta > 0.1 * xsec_sampling_theta:
                 logging.warning('Warning: large statistical uncertainty on the total cross section for theta = %s: '
                                 '(%s +/- %s) pb',
                                 thetas[sampling_theta_index][0],
@@ -1161,6 +1192,8 @@ class SampleAugmenter:
                     samples_augmented_data.append(np.zeros((n_samples, 1)))
                 elif definition[0] == 'score':
                     samples_augmented_data.append(np.zeros((n_samples, self.n_parameters)))
+
+            largest_weight = 0.
 
             # Main sampling loop
             while not np.all(samples_done):
@@ -1184,6 +1217,9 @@ class SampleAugmenter:
                         logging.warning('%s negative weights (%s)',
                                         n_negative_weights, n_negative_weights / p_theta.size)
                     p_theta[p_theta < 0.] = 0.
+
+                    # Remember largest weights (to calculate effective number of samples)
+                    largest_weight = max(largest_weight, np.max(p_theta))
 
                     # Calculate cumulative p (summing up all events until here)
                     cumulative_p = cumulative_p.flatten()[-1] + np.cumsum(p_theta)  # Shape: (n_batch_size,)
@@ -1227,6 +1263,7 @@ class SampleAugmenter:
                 all_thetas[i].append(theta)
             for i, this_samples_augmented_data in enumerate(samples_augmented_data):
                 all_augmented_data[i].append(this_samples_augmented_data)
+            all_effective_n_samples.append(1. / max(1.e-12, largest_weight))
 
         # Combine and return results
         all_x = np.vstack(all_x)
@@ -1234,44 +1271,58 @@ class SampleAugmenter:
             all_thetas[i] = np.vstack(all_thetas[i])
         for i in range(len(all_augmented_data)):
             all_augmented_data[i] = np.vstack(all_augmented_data[i])
+        all_effective_n_samples = np.array(all_effective_n_samples)
+
+        # Report effective number of samples
+        if n_sets > 1:
+            logging.info('Effective number of samples: mean %s, with individual thetas ranging from %s to %s',
+                         np.mean(all_effective_n_samples), np.min(all_effective_n_samples),
+                         np.max(all_effective_n_samples))
+            logging.debug('Effective number of samples for all thetas: %s', all_effective_n_samples)
+        else:
+            logging.info('Effective number of samples: %s', all_effective_n_samples[0])
 
         return all_x, all_augmented_data, all_thetas
 
-    def extract_raw_data(self, theta=None):
-
+    def _train_test_split(self, train, test_split):
         """
-        Returns all events together with the benchmark weights (if theta is None)
-        or weights for a given theta.
+        Returns the start and end event for train samples (train = True) or test samples (train = False).
 
         Parameters
         ----------
-        theta : None or ndarray
-            If None, the function returns the benchmark weights. Otherwise it uses morphing to calculate the weights for
-            this value of theta. Default value: None.
+        train : bool
+            True if training data is generated, False if test data is generated.
+
+        test_split : float
+            Fraction of events reserved for testing.
 
         Returns
         -------
-        x : ndarray
-            Observables with shape `(n_unweighted_samples, n_observables)`.
+        start_event : int
+            Index of the first unweighted event to consider.
 
-        weights : ndarray
-            If theta is None, benchmark weights with shape  `(n_unweighted_samples, n_benchmarks)` in pb. Otherwise,
-            weights for the given parameter theta with shape `(n_unweighted_samples,)` in pb.
+        end_event : int
+            Index of the last unweighted event to consider.
 
         """
+        if train:
+            start_event = 0
 
-        x, weights_benchmarks = next(madminer_event_loader(self.madminer_filename, batch_size=None))
+            if test_split is None or test_split <= 0. or test_split >= 1.:
+                end_event = None
+            else:
+                end_event = int(round((1. - test_split) * self.n_samples, 0))
+                if end_event < 0 or end_event > self.n_samples:
+                    raise ValueError("Irregular train / test split: sample {} / {}", end_event, self.n_samples)
 
-        if theta is not None:
-            theta_matrix = get_theta_benchmark_matrix(
-                'morphing',
-                theta,
-                self.benchmarks,
-                self.morpher
-            )
+        else:
+            if test_split is None or test_split <= 0. or test_split >= 1.:
+                start_event = 0
+            else:
+                start_event = int(round((1. - test_split) * self.n_samples, 0)) + 1
+                if start_event < 0 or start_event > self.n_samples:
+                    raise ValueError("Irregular train / test split: sample {} / {}", start_event, self.n_samples)
 
-            weights_theta = theta_matrix.dot(weights_benchmarks.T)
+            end_event = None
 
-            return x, weights_theta
-
-        return x, weights_benchmarks
+        return start_event, end_event

@@ -17,32 +17,38 @@ def plot_2d_morphing_basis(morpher,
                            crange=(1., 100.),
                            resolution=100):
     """
+    Visualizes a morphing basis and morphing errors for problems with a two-dimensional parameter space.
 
     Parameters
     ----------
-    morpher :
-        
-    xlabel :
-         (Default value = r'$\theta_0$')
-    ylabel :
-         (Default value = r'$\theta_1$')
-    xrange :
-         (Default value = (-1.)
-    1.) :
-        
-    yrange :
-         (Default value = (-1.)
-    crange :
-         (Default value = (1.)
-    100.) :
-        
-    resolution :
-         (Default value = 100)
+    morpher : Morpher
+        Morpher instance with defined basis.
+
+    xlabel : str, optional
+        Label for the x axis. Default value: r'$\theta_0$'.
+
+    ylabel : str, optional
+        Label for the y axis. Default value: r'$\theta_1$'.
+
+    xrange : tuple of float, optional
+        Range `(min, max)` for the x axis. Default value: (-1., 1.).
+
+    yrange : tuple of float, optional
+        Range `(min, max)` for the y axis. Default value: (-1., 1.).
+
+    crange : tuple of float, optional
+        Range `(min, max)` for the color map. Default value: (1., 100.).
+
+    resolution : int, optional
+        Number of points per axis for the rendering of the squared morphing weights. Default value: 100.
 
     Returns
     -------
+    figure : Figure
+        Plot as Matplotlib Figure instance.
 
     """
+
     basis = morpher.basis
 
     assert basis is not None, "No basis defined"
@@ -80,26 +86,25 @@ def plot_2d_morphing_basis(morpher,
     return fig
 
 
-def plot_nd_morphing_basis_scatter(
-        morpher,
-        crange=(1., 100.),
-        n_test_thetas=1000
-):
+def plot_nd_morphing_basis_scatter(morpher, crange=(1., 100.), n_test_thetas=1000):
     """
+    Visualizes a morphing basis and morphing errors with scatter plots between each pair of operators.
 
     Parameters
     ----------
-    morpher :
-        
-    crange :
-         (Default value = (1.)
-    100.) :
-        
-    n_test_thetas :
-         (Default value = 1000)
+    morpher : Morpher
+        Morpher instance with defined basis.
+
+    crange : tuple of float, optional
+        Range `(min, max)` for the color map. Default value: (1. 100.).
+
+    n_test_thetas : int, optional
+        Number of random points evaluated. Default value: 1000.
 
     Returns
     -------
+    figure : Figure
+        Plot as Matplotlib Figure instance.
 
     """
     basis = morpher.basis
@@ -135,26 +140,25 @@ def plot_nd_morphing_basis_scatter(
     return fig
 
 
-def plot_nd_morphing_basis_slices(
-        morpher,
-        crange=(1., 100.),
-        resolution=50
-):
+def plot_nd_morphing_basis_slices(morpher, crange=(1., 100.), resolution=50):
     """
+    Visualizes a morphing basis and morphing errors with two-dimensional slices through parameter space.
 
     Parameters
     ----------
-    morpher :
-        
-    crange :
-         (Default value = (1.)
-    100.) :
-        
-    resolution :
-         (Default value = 50)
+    morpher : Morpher
+        Morpher instance with defined basis.
+
+    crange : tuple of float, optional
+        Range `(min, max)` for the color map.
+
+    resolution : int, optional
+        Number of points per panel and axis for the rendering of the squared morphing weights. Default value: 50.
 
     Returns
     -------
+    figure : Figure
+        Plot as Matplotlib Figure instance.
 
     """
     basis = morpher.basis
@@ -208,60 +212,120 @@ def plot_nd_morphing_basis_slices(
 
 def plot_fisher_information_contours_2d(
         fisher_information_matrices,
+        fisher_information_covariances=None,
+        reference_thetas=None,
         contour_distance=1.,
         xlabel=r'$\theta_0$',
         ylabel=r'$\theta_1$',
         xrange=(-1., 1.),
         yrange=(-1., 1.),
-        matrix_labels=None,
-        resolution=100
+        labels=None,
+        inline_labels=None,
+        resolution=500,
+        colors=None,
+        linestyles=None,
+        linewidths=1.5,
+        alphas=1.,
+        alphas_uncertainties=0.25
 ):
-    """:fisher_information_matrices: list of ndarrays, 2x2 Fisher information matrices
-    :contour_distance: float, Fisher distance drawn
-    :matrix_labels:  None or list of str, legend labels for the contours
-    :xlabel: str, label of x axis
-    :ylabel: str, label of y axis
-    :xrange: tuple of 2 floats, x axis range
-    :xrange: tuple of 2 floats, y axis range
-    :resolution: int, number of points per axis for the calculation of the Fisher distances
+    """
+    Visualizes 2x2 Fisher information matrices as contours of constant Fisher distance from a reference point `theta0`.
+
+    The local (tangent-space) approximation is used: distances `d(theta)` are given by
+    `d(theta)^2 = (theta - theta0)_i I_ij (theta - theta0)_j`, summing over `i` and `j`.
 
     Parameters
     ----------
-    fisher_information_matrices :
-        
-    contour_distance :
-         (Default value = 1.)
-    xlabel :
-         (Default value = r'$\theta_0$')
-    ylabel :
-         (Default value = r'$\theta_1$')
-    xrange :
-         (Default value = (-1.)
-    1.) :
-        
-    yrange :
-         (Default value = (-1.)
-    matrix_labels :
-         (Default value = None)
-    resolution :
-         (Default value = 100)
+    fisher_information_matrices : list of ndarray
+        Fisher information matrices, each with shape (2,2).
+
+    fisher_information_covariances : None or list of (ndarray or None), optional
+        Covariance matrices for the Fisher information matrices. Has to have the same length as
+        fisher_information_matrices, and each entry has to be None (no uncertainty) or a tensor with shape
+        (2,2,2,2). Default value: None.
+
+    reference_thetas : None or list of (ndarray or None), optional
+        Reference points from which the distances are calculated. If None, the origin (0,0) is used. Default value:
+        None.
+
+    contour_distance : float, optional.
+        Distance threshold at which the contours are drawn. Default value: 1.
+
+    xlabel : str, optional
+        Label for the x axis. Default value: r'$\theta_0$'.
+
+    ylabel : str, optional
+        Label for the y axis. Default value: r'$\theta_1$'.
+
+    xrange : tuple of float, optional
+        Range `(min, max)` for the x axis. Default value: (-1., 1.).
+
+    yrange : tuple of float, optional
+        Range `(min, max)` for the y axis. Default value: (-1., 1.).
+
+    labels : None or list of (str or None), optional
+        Legend labels for the contours. Default value: None.
+
+    inline_labels : None or list of (str or None), optional
+        Inline labels for the contours. Default value: None.
+
+    resolution : int
+        Number of points per axis for the calculation of the distances. Default value: 500.
+
+    colors : None or str or list of str, optional
+        Matplotlib line (and error band) colors for the contours. If None, uses default colors. Default value: None.
+
+    linestyles : None or str or list of str, optional
+        Matploitlib line styles for the contours. If None, uses default linestyles. Default value: None.
+
+    linewidths : float or list of float, optional
+        Line widths for the contours. Default value: 1.5.
+
+    alphas : float or list of float, optional
+        Opacities for the contours. Default value: 1.
+
+    alphas_uncertainties : float or list of float, optional
+        Opacities for the error bands. Default value: 0.25.
 
     Returns
     -------
+    figure : Figure
+        Plot as Matplotlib Figure instance.
 
     """
-
-    # Input
+    # Input data
     fisher_information_matrices = np.asarray(fisher_information_matrices)
+
     n_matrices = fisher_information_matrices.shape[0]
+
     if fisher_information_matrices.shape != (n_matrices, 2, 2):
         raise RuntimeError("Fisher information matrices have shape {}, not (n, 2,2)!".format(
             fisher_information_matrices.shape))
 
+    if fisher_information_covariances is None:
+        fisher_information_covariances = [None for _ in range(n_matrices)]
+
+    d2_threshold = contour_distance ** 2.
+
     # Line formatting
-    colors = ['C' + str(i) for i in range(10)] * (n_matrices // 10 + 1)
-    linestyles = ['solid', 'dashed', 'dotted', 'dashdot'] * (n_matrices // 4 + 1)
-    linewidth = 1.5
+    if colors is None:
+        colors = ['C' + str(i) for i in range(10)] * (n_matrices // 10 + 1)
+    elif not isinstance(colors, list):
+        colors = [colors for _ in range(n_matrices)]
+
+    if linestyles is None:
+        linestyles = ['solid', 'dashed', 'dotted', 'dashdot'] * (n_matrices // 4 + 1)
+    elif not isinstance(linestyles, list):
+        linestyles = [linestyles for _ in range(n_matrices)]
+
+    if not isinstance(linewidths, list):
+        linewidths = [linewidths for _ in range(n_matrices)]
+
+    if not isinstance(alphas, list):
+        alphas = [alphas for _ in range(n_matrices)]
+
+    if not isinstance(alphas_uncertainties, list):
+        alphas_uncertainties = [alphas_uncertainties for _ in range(n_matrices)]
 
     # Grid
     xi = np.linspace(xrange[0], xrange[1], resolution)
@@ -283,23 +347,62 @@ def plot_fisher_information_contours_2d(
 
     logging.debug('Fisher distances: \n %s', fisher_distances_squared)
 
+    fisher_distances_alt = np.einsum('ni,mij,nj->mn', thetas, fisher_information_matrices, thetas)
+    fisher_distances_alt_squared = fisher_distances_alt.reshape((n_matrices, resolution, resolution))
+    logging.debug('Diff: %s', fisher_distances_squared - fisher_distances_alt_squared)
+
+    # Calculate uncertainties of Fisher distances
+    fisher_distances_squared_uncertainties = []
+    for inf_cov in fisher_information_covariances:
+        if inf_cov is None:
+            fisher_distances_squared_uncertainties.append(None)
+            continue
+
+        var = np.einsum('ni,nj,ijkl,nk,nl->n', thetas, thetas, inf_cov, thetas, thetas)
+
+        uncertainties = (var ** 0.5).reshape((resolution, resolution))
+
+        logging.debug('Std: %s', uncertainties)
+
+        fisher_distances_squared_uncertainties.append(uncertainties)
+
     # Plot results
     fig = plt.figure(figsize=(5., 5.))
 
+    # Error bands
     for i in range(n_matrices):
-        contour_levels = np.array([contour_distance ** 2.])
+        if fisher_information_covariances[i] is not None:
+            d2_up = fisher_distances_squared[i] + fisher_distances_squared_uncertainties[i]
+            d2_down = fisher_distances_squared[i] - fisher_distances_squared_uncertainties[i]
+            band = (d2_up > d2_threshold) * (d2_down < d2_threshold) + (d2_up < d2_threshold) * (d2_down > d2_threshold)
 
+            plt.contourf(
+                xi, yi,
+                band,
+                [0.5, 2.5],
+                colors=colors[i],
+                alpha=alphas_uncertainties[i]
+            )
+
+    # Predictions
+    for i in range(n_matrices):
         cs = plt.contour(
             xi, yi,
             fisher_distances_squared[i],
-            contour_levels,
+            np.array([d2_threshold]),
             colors=colors[i],
             linestyles=linestyles[i],
-            linewidths=linewidth
+            linewidths=linewidths[i],
+            alpha=alphas[i],
+            label=None if labels is None else labels[i]
         )
 
-        if matrix_labels is not None and len(matrix_labels[i]) > 0:
-            plt.clabel(cs, cs.levels, inline=True, fontsize=12, fmt={contour_levels[0]: matrix_labels[i]})
+        if inline_labels is not None and inline_labels[i] is not None and len(inline_labels[i]) > 0:
+            plt.clabel(cs, cs.levels, inline=True, fontsize=12, fmt={d2_threshold: inline_labels[i]})
+
+    # Legend and decorations
+    if labels is not None:
+        plt.legend()
 
     plt.axes().set_xlim(xrange)
     plt.axes().set_ylim(yrange)
@@ -310,6 +413,8 @@ def plot_fisher_information_contours_2d(
 
     return fig
 
+
+# TODO: Clean up below here
 
 def plot_fisherinfo_barplot(matrices,
                             matrices_for_determinants,
@@ -323,47 +428,19 @@ def plot_fisherinfo_barplot(matrices,
                             use_bar_colors=False,
                             eigenvalue_operator_legend=True
                             ):
-    """:matrices: list (length N) of fisher infos (n x n tensors) for eigenvalue decomposition
-    :matrices_for_determinants: list (length N) of fisher infos (n x n tensors) for determinant evaluation
-    :labels: list (length N) of analysis label (string)
-    :categories: group into categories (integer) - there will be extra space between categories
-    :operatorlabels: list (length M) of operator names (string)
-    :filename: save files under path (string)
-    :additional_label: label (string) in lower panel
-    :top_label: label (string) above top panel
-    :normalise_determinants: are determinants normalized to unity (bool)
-    :use_bar_colors: are bars in lower panel colored (bool)
-    :eigenvalue_operator_legend: plot legend for operators (bool)
-
-    Parameters
-    ----------
-    matrices :
-        
-    matrices_for_determinants :
-        
-    labels :
-        
-    categories :
-        
-    operatorlabels :
-        
-    filename :
-        
-    additional_label :
-         (Default value = '')
-    top_label :
-         (Default value = '')
-    normalise_determinants :
-         (Default value = False)
-    use_bar_colors :
-         (Default value = False)
-    eigenvalue_operator_legend :
-         (Default value = True)
-
-    Returns
-    -------
-
-    """
+    # """
+    # :matrices: list (length N) of fisher infos (n x n tensors) for eigenvalue decomposition
+    # :matrices_for_determinants: list (length N) of fisher infos (n x n tensors) for determinant evaluation
+    # :labels: list (length N) of analysis label (string)
+    # :categories: group into categories (integer) - there will be extra space between categories
+    # :operatorlabels: list (length M) of operator names (string)
+    # :filename: save files under path (string)
+    # :additional_label: label (string) in lower panel
+    # :top_label: label (string) above top panel
+    # :normalise_determinants: are determinants normalized to unity (bool)
+    # :use_bar_colors: are bars in lower panel colored (bool)
+    # :eigenvalue_operator_legend: plot legend for operators (bool)
+    # """
 
     #################################################################################
     # Data
@@ -519,60 +596,16 @@ def plot_fisherinfo_barplot(matrices,
     epsilon = 1.e-9
 
     def precision_to_information(precision):
-        """
-
-        Parameters
-        ----------
-        precision :
-            
-
-        Returns
-        -------
-
-        """
         return (np.maximum(precision, epsilon) / 0.246) ** 4.
 
     def information_to_precision(fisher_inf):
-        """
-
-        Parameters
-        ----------
-        fisher_inf :
-            
-
-        Returns
-        -------
-
-        """
         return 0.246 * np.maximum(fisher_inf, epsilon) ** 0.25
 
     def tick_function_information(fisher_inf):
-        """
-
-        Parameters
-        ----------
-        fisher_inf :
-            
-
-        Returns
-        -------
-
-        """
         precision = 0.246 * np.maximum(fisher_inf, epsilon) ** 0.25
         return [str(z) for z in precision]
 
     def tick_function_precision(precision):
-        """
-
-        Parameters
-        ----------
-        precision :
-            
-
-        Returns
-        -------
-
-        """
         return [str(z) for z in precision]
 
     ax2_limits = ax1.get_ylim()
@@ -648,45 +681,12 @@ def plot_fisherinfo_barplot(matrices,
                  verticalalignment='center')
 
     def precision_to_norm_information(precision):
-        """
-
-        Parameters
-        ----------
-        precision :
-            
-
-        Returns
-        -------
-
-        """
         return (np.maximum(precision, epsilon) / 0.246) ** 4. / max_information
 
     def norm_information_to_precision(fisher_inf):
-        """
-
-        Parameters
-        ----------
-        fisher_inf :
-            
-
-        Returns
-        -------
-
-        """
         return 0.246 * np.maximum(fisher_inf * max_information, epsilon) ** 0.25
 
     def tick_function_precision(precision):
-        """
-
-        Parameters
-        ----------
-        precision :
-            
-
-        Returns
-        -------
-
-        """
         return [str(z) for z in precision]
 
     # Second axis with typical precision
@@ -742,53 +742,6 @@ def kinematic_distribution_of_information(xbins,
                                           label_pos_bsm=(0., 0.),
                                           label_pos_bkg=(0., 0.),
                                           label_bsm=r''):
-    """
-
-    Parameters
-    ----------
-    xbins :
-        
-    xlabel :
-        
-    xmin :
-        
-    xmax :
-        
-    xsecs :
-        
-    matrices :
-        
-    matrices_aux :
-        
-    filename :
-        
-    ylabel_addition :
-         (Default value = '')
-    log_xsec :
-         (Default value = False)
-    norm_xsec :
-         (Default value = True)
-    show_aux :
-         (Default value = False)
-    show_labels :
-         (Default value = False)
-    label_pos_information :
-         (Default value = (0.)
-    0.) :
-        
-    label_pos_sm :
-         (Default value = (0.)
-    label_pos_bsm :
-         (Default value = (0.)
-    label_pos_bkg :
-         (Default value = (0.)
-    label_bsm :
-         (Default value = r'')
-
-    Returns
-    -------
-
-    """
     epsilon = 1.e-9
 
     # Calculate data

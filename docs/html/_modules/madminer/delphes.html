@@ -59,20 +59,13 @@
 <span class="sd">    This class provides an example implementation based on Delphes. Its workflow consists of the following steps:</span>
 
 <span class="sd">    * Initializing the class with the filename of a MadMiner HDF5 file (the output of `madminer.core.MadMiner.save()`)</span>
-
 <span class="sd">    * Adding one or multiple HepMC samples produced by Pythia in `DelphesProcessor.add_hepmc_sample()`</span>
-
 <span class="sd">    * Running Delphes on these samples through `DelphesProcessor.run_delphes()`</span>
-
 <span class="sd">    * Optionally, acceptance cuts for all visible particles can be defined with `DelphesProcessor.set_acceptance()`.</span>
-
 <span class="sd">    * Defining observables through `DelphesProcessor.add_observables()`. A simple set of default observables is provided</span>
-<span class="sd">    with `DelphesProcessor.add_default_observables()`</span>
-
+<span class="sd">      with `DelphesProcessor.add_default_observables()`</span>
 <span class="sd">    * Optionally, cuts can be set with `DelphesProcessor.add_cut()`</span>
-
 <span class="sd">    * Calculating the observables from the Delphes ROOT files with `DelphesProcessor.analyse_delphes_samples()`</span>
-
 <span class="sd">    * Saving the results with `DelphesProcessor.save()`</span>
 <span class="sd">    </span>
 <span class="sd">    Please see the tutorial for a detailed walk-through.</span>
@@ -532,6 +525,7 @@
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../madminer.core.html">madminer.core module</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../madminer.delphes.html">madminer.delphes module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../madminer.fisherinformation.html">madminer.fisherinformation module</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../madminer.ml.html">madminer.ml module</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../madminer.morphing.html">madminer.morphing module</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../madminer.plotting.html">madminer.plotting module</a></li>

@@ -49,20 +49,14 @@ distribution, and the extraction of the joint likelihood ratio and / or joint sc
 Depending on the downstream inference algorithm, there are different possibilities:</p>
 <ul class="simple">
 <li><cite>SampleAugmenter.extract_samples_train_plain()</cite> creates plain training samples without augmented data.</li>
-<li><cite>SampleAugmenter.extract_samples_train_local()</cite> creates training samples for local methods based on the score,</li>
-</ul>
-<p>such as SALLY and SALLINO.</p>
-<ul class="simple">
-<li><cite>SampleAugmenter.extract_samples_train_ratio()</cite> creates training samples for non-local, ratio-based methods</li>
-</ul>
-<p>like RASCAL, ALICE, and SCANDAL.</p>
-<ul class="simple">
-<li><cite>SampleAugmenter.extract_samples_train_more_ratios()</cite> does the same, but can extract joint ratios and scores</li>
-</ul>
-<p>at more parameter points. This additional information  can be used efficiently in the setup with a “doubly
+<li><cite>SampleAugmenter.extract_samples_train_local()</cite> creates training samples for local methods based on the score,
+such as SALLY and SALLINO.</li>
+<li><cite>SampleAugmenter.extract_samples_train_ratio()</cite> creates training samples for non-local, ratio-based methods
+like RASCAL, ALICE, and SCANDAL.</li>
+<li><cite>SampleAugmenter.extract_samples_train_more_ratios()</cite> does the same, but can extract joint ratios and scores
+at more parameter points. This additional information  can be used efficiently in the setup with a “doubly
 parameterized” likelihood ratio estimator that models the dependence on both the numerator and denominator
-hypothesis.</p>
-<ul class="simple">
+hypothesis.</li>
 <li><cite>SampleAugmenter.extract_samples_test()</cite> creates evaluation samples for all methods.</li>
 </ul>
 <p>Please see the tutorial for a walkthrough.</p>
@@ -153,8 +147,7 @@ section is calculated. Pass the output of the functions <cite>constant_benchmark
 <dl class="method">
 <dt id="madminer.sampling.SampleAugmenter.extract_raw_data">
 <code class="descname">extract_raw_data</code><span class="sig-paren">(</span><em>theta=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/sampling.html#SampleAugmenter.extract_raw_data"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.sampling.SampleAugmenter.extract_raw_data" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns all events together with the benchmark weights (if theta is None)
-or weights for a given theta.</p>
+<dd><p>Returns all events together with the benchmark weights (if theta is None) or weights for a given theta.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -184,7 +177,7 @@ weights for the given parameter theta with shape <cite>(n_unweighted_samples,)</
 
 <dl class="method">
 <dt id="madminer.sampling.SampleAugmenter.extract_samples_test">
-<code class="descname">extract_samples_test</code><span class="sig-paren">(</span><em>theta</em>, <em>n_samples</em>, <em>folder</em>, <em>filename</em>, <em>test_split=0.3</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/sampling.html#SampleAugmenter.extract_samples_test"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.sampling.SampleAugmenter.extract_samples_test" title="Permalink to this definition">¶</a></dt>
+<code class="descname">extract_samples_test</code><span class="sig-paren">(</span><em>theta</em>, <em>n_samples</em>, <em>folder</em>, <em>filename</em>, <em>test_split=0.5</em>, <em>switch_train_test_events=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/sampling.html#SampleAugmenter.extract_samples_test"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.sampling.SampleAugmenter.extract_samples_test" title="Permalink to this definition">¶</a></dt>
 <dd><p>Extracts evaluation samples <cite>x ~ p(x|theta)</cite> without any augmented data.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -206,9 +199,13 @@ sampling. Pass the output of the functions <cite>constant_benchmark_theta()</cit
 <dd><p class="first last">Filenames for the resulting samples. A prefix such as ‘x’ or ‘theta0’ as well as the extension
 ‘.npy’ will be added automatically.</p>
 </dd>
-<dt><strong>test_split</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float, optional</span></dt>
+<dt><strong>test_split</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float or None, optional</span></dt>
 <dd><p class="first last">Fraction of events reserved for the evaluation sample (that will not be used for any training samples).
 Default value: 0.5.</p>
+</dd>
+<dt><strong>switch_train_test_events</strong> <span class="classifier-delimiter">:</span> <span class="classifier">bool, optional</span></dt>
+<dd><p class="first last">If True, this function generates a test sample from the events normally reserved for training samples.
+Default value: False.</p>
 </dd>
 </dl>
 </td>
@@ -231,7 +228,7 @@ a file in the given folder.</p>
 
 <dl class="method">
 <dt id="madminer.sampling.SampleAugmenter.extract_samples_train_local">
-<code class="descname">extract_samples_train_local</code><span class="sig-paren">(</span><em>theta</em>, <em>n_samples</em>, <em>folder</em>, <em>filename</em>, <em>test_split=0.5</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/sampling.html#SampleAugmenter.extract_samples_train_local"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.sampling.SampleAugmenter.extract_samples_train_local" title="Permalink to this definition">¶</a></dt>
+<code class="descname">extract_samples_train_local</code><span class="sig-paren">(</span><em>theta</em>, <em>n_samples</em>, <em>folder</em>, <em>filename</em>, <em>test_split=0.5</em>, <em>switch_train_test_events=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/sampling.html#SampleAugmenter.extract_samples_train_local"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.sampling.SampleAugmenter.extract_samples_train_local" title="Permalink to this definition">¶</a></dt>
 <dd><p>Extracts training samples x ~ p(x|theta) as well as the joint score t(x, z|theta). This can be used for
 inference methods such as SALLY and SALLINO.</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -253,9 +250,13 @@ evaluated. Pass the output of the functions <cite>constant_benchmark_theta()</ci
 <dd><p class="first last">Filenames for the resulting samples. A prefix such as ‘x’ or ‘theta0’ as well as the extension
 ‘.npy’ will be added automatically.</p>
 </dd>
-<dt><strong>test_split</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float, optional</span></dt>
+<dt><strong>test_split</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float or None, optional</span></dt>
 <dd><p class="first last">Fraction of events reserved for the evaluation sample (that will not be used for any training samples).
 Default value: 0.5.</p>
+</dd>
+<dt><strong>switch_train_test_events</strong> <span class="classifier-delimiter">:</span> <span class="classifier">bool, optional</span></dt>
+<dd><p class="first last">If True, this function generates a training sample from the events normally reserved for test samples.
+Default value: False.</p>
 </dd>
 </dl>
 </td>
@@ -282,7 +283,7 @@ file in the given folder.</p>
 
 <dl class="method">
 <dt id="madminer.sampling.SampleAugmenter.extract_samples_train_more_ratios">
-<code class="descname">extract_samples_train_more_ratios</code><span class="sig-paren">(</span><em>theta0</em>, <em>theta1</em>, <em>n_samples</em>, <em>folder</em>, <em>filename</em>, <em>additional_thetas=None</em>, <em>test_split=0.3</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/sampling.html#SampleAugmenter.extract_samples_train_more_ratios"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.sampling.SampleAugmenter.extract_samples_train_more_ratios" title="Permalink to this definition">¶</a></dt>
+<code class="descname">extract_samples_train_more_ratios</code><span class="sig-paren">(</span><em>theta0</em>, <em>theta1</em>, <em>n_samples</em>, <em>folder</em>, <em>filename</em>, <em>additional_thetas=None</em>, <em>test_split=0.5</em>, <em>switch_train_test_events=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/sampling.html#SampleAugmenter.extract_samples_train_more_ratios"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.sampling.SampleAugmenter.extract_samples_train_more_ratios" title="Permalink to this definition">¶</a></dt>
 <dd><p>Extracts training samples <cite>x ~ p(x|theta0)</cite> and <cite>x ~ p(x|theta1)</cite> together with the class label <cite>y</cite>, the joint
 likelihood ratio <cite>r(x,z|theta0, theta1)</cite>, and the joint score <cite>t(x,z|theta0)</cite>. This information can be used in
 inference methods such as CARL, ROLR, CASCAL, and RASCAL.</p>
@@ -323,9 +324,13 @@ ratio on both the numerator and denominator hypothesis. Pass the output of  the 
 <cite>constant_benchmark_theta()</cite>, <cite>multiple_benchmark_thetas()</cite>, <cite>constant_morphing_theta()</cite>,
 <cite>multiple_morphing_thetas()</cite>, or <cite>random_morphing_thetas()</cite>. Default value: None.</p>
 </dd>
-<dt><strong>test_split</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float, optional</span></dt>
+<dt><strong>test_split</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float or None, optional</span></dt>
 <dd><p class="first last">Fraction of events reserved for the evaluation sample (that will not be used for any training samples).
 Default value: 0.5.</p>
+</dd>
+<dt><strong>switch_train_test_events</strong> <span class="classifier-delimiter">:</span> <span class="classifier">bool, optional</span></dt>
+<dd><p class="first last">If True, this function generates a training sample from the events normally reserved for test samples.
+Default value: False.</p>
 </dd>
 </dl>
 </td>
@@ -364,9 +369,10 @@ file in the given folder.</p>
 
 <dl class="method">
 <dt id="madminer.sampling.SampleAugmenter.extract_samples_train_plain">
-<code class="descname">extract_samples_train_plain</code><span class="sig-paren">(</span><em>theta</em>, <em>n_samples</em>, <em>folder</em>, <em>filename</em>, <em>test_split=0.5</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/sampling.html#SampleAugmenter.extract_samples_train_plain"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.sampling.SampleAugmenter.extract_samples_train_plain" title="Permalink to this definition">¶</a></dt>
+<code class="descname">extract_samples_train_plain</code><span class="sig-paren">(</span><em>theta</em>, <em>n_samples</em>, <em>folder</em>, <em>filename</em>, <em>test_split=0.5</em>, <em>switch_train_test_events=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/sampling.html#SampleAugmenter.extract_samples_train_plain"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.sampling.SampleAugmenter.extract_samples_train_plain" title="Permalink to this definition">¶</a></dt>
 <dd><p>Extracts plain training samples <cite>x ~ p(x|theta)</cite> without any augmented data. This can be use for standard
-inference methods such as ABC, histograms of observables, or neural density estimation techniques.</p>
+inference methods such as ABC, histograms of observables, or neural density estimation techniques. It can also
+be used to create validation or calibration samples.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -387,9 +393,13 @@ sampling. Pass the output of the functions <cite>constant_benchmark_theta()</cit
 <dd><p class="first last">Filenames for the resulting samples. A prefix such as ‘x’ or ‘theta0’ as well as the extension
 ‘.npy’ will be added automatically.</p>
 </dd>
-<dt><strong>test_split</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float, optional</span></dt>
+<dt><strong>test_split</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float or None, optional</span></dt>
 <dd><p class="first last">Fraction of events reserved for the evaluation sample (that will not be used for any training samples).
 Default value: 0.5.</p>
+</dd>
+<dt><strong>switch_train_test_events</strong> <span class="classifier-delimiter">:</span> <span class="classifier">bool, optional</span></dt>
+<dd><p class="first last">If True, this function generates a training sample from the events normally reserved for test samples.
+Default value: False.</p>
 </dd>
 </dl>
 </td>
@@ -412,7 +422,7 @@ a file in the given folder.</p>
 
 <dl class="method">
 <dt id="madminer.sampling.SampleAugmenter.extract_samples_train_ratio">
-<code class="descname">extract_samples_train_ratio</code><span class="sig-paren">(</span><em>theta0</em>, <em>theta1</em>, <em>n_samples</em>, <em>folder</em>, <em>filename</em>, <em>test_split=0.5</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/sampling.html#SampleAugmenter.extract_samples_train_ratio"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.sampling.SampleAugmenter.extract_samples_train_ratio" title="Permalink to this definition">¶</a></dt>
+<code class="descname">extract_samples_train_ratio</code><span class="sig-paren">(</span><em>theta0</em>, <em>theta1</em>, <em>n_samples</em>, <em>folder</em>, <em>filename</em>, <em>test_split=0.5</em>, <em>switch_train_test_events=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/sampling.html#SampleAugmenter.extract_samples_train_ratio"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.sampling.SampleAugmenter.extract_samples_train_ratio" title="Permalink to this definition">¶</a></dt>
 <dd><p>Extracts training samples <cite>x ~ p(x|theta0)</cite> and <cite>x ~ p(x|theta1)</cite> together with the class label <cite>y</cite>, the joint
 likelihood ratio <cite>r(x,z|theta0, theta1)</cite>, and the joint score <cite>t(x,z|theta0)</cite>. This information can be used in
 inference methods such as CARL, ROLR, CASCAL, and RASCAL.</p>
@@ -441,9 +451,13 @@ sampling. Pass the output of the functions <cite>constant_benchmark_theta()</cit
 <dd><p class="first last">Filenames for the resulting samples. A prefix such as ‘x’ or ‘theta0’ as well as the extension
 ‘.npy’ will be added automatically.</p>
 </dd>
-<dt><strong>test_split</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float, optional</span></dt>
+<dt><strong>test_split</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float or None, optional</span></dt>
 <dd><p class="first last">Fraction of events reserved for the evaluation sample (that will not be used for any training samples).
 Default value: 0.5.</p>
+</dd>
+<dt><strong>switch_train_test_events</strong> <span class="classifier-delimiter">:</span> <span class="classifier">bool, optional</span></dt>
+<dd><p class="first last">If True, this function generates a training sample from the events normally reserved for test samples.
+Default value: False.</p>
 </dd>
 </dl>
 </td>
@@ -680,6 +694,7 @@ bound of the flat prior, and <cite>gaussian</cite>, in which case they are the m
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="madminer.core.html">madminer.core module</a></li>
 <li class="toctree-l1"><a class="reference internal" href="madminer.delphes.html">madminer.delphes module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="madminer.fisherinformation.html">madminer.fisherinformation module</a></li>
 <li class="toctree-l1"><a class="reference internal" href="madminer.ml.html">madminer.ml module</a></li>
 <li class="toctree-l1"><a class="reference internal" href="madminer.morphing.html">madminer.morphing module</a></li>
 <li class="toctree-l1"><a class="reference internal" href="madminer.plotting.html">madminer.plotting module</a></li>

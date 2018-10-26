@@ -45,7 +45,7 @@
 
 
 <div class="viewcode-block" id="LHEProcessor"><a class="viewcode-back" href="../../madminer.lhe.html#madminer.lhe.LHEProcessor">[docs]</a><span class="k">class</span> <span class="nc">LHEProcessor</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot; &quot;&quot;&quot;</span>
+    <span class="sd">&quot;&quot;&quot; Parton-level observable calculation &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">debug</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Constructor &quot;&quot;&quot;</span>
@@ -68,56 +68,15 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">benchmark_names</span> <span class="o">=</span> <span class="kc">None</span>
 
 <div class="viewcode-block" id="LHEProcessor.read_benchmark_names"><a class="viewcode-back" href="../../madminer.lhe.html#madminer.lhe.LHEProcessor.read_benchmark_names">[docs]</a>    <span class="k">def</span> <span class="nf">read_benchmark_names</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
-
-<span class="sd">        Parameters</span>
-<span class="sd">        ----------</span>
-<span class="sd">        filename :</span>
-<span class="sd">            </span>
-
-<span class="sd">        Returns</span>
-<span class="sd">        -------</span>
-
-<span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">benchmark_names</span> <span class="o">=</span> <span class="n">load_benchmarks_from_madminer_file</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="LHEProcessor.add_lhe_sample"><a class="viewcode-back" href="../../madminer.lhe.html#madminer.lhe.LHEProcessor.add_lhe_sample">[docs]</a>    <span class="k">def</span> <span class="nf">add_lhe_sample</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">sampling_benchmark</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
-
-<span class="sd">        Parameters</span>
-<span class="sd">        ----------</span>
-<span class="sd">        filename :</span>
-<span class="sd">            </span>
-<span class="sd">        sampling_benchmark :</span>
-<span class="sd">            </span>
-
-<span class="sd">        Returns</span>
-<span class="sd">        -------</span>
-
-<span class="sd">        &quot;&quot;&quot;</span>
-
         <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Adding LHE sample at </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">filename</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">lhe_sample_filenames</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">sampling_benchmarks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">sampling_benchmark</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="LHEProcessor.add_observable"><a class="viewcode-back" href="../../madminer.lhe.html#madminer.lhe.LHEProcessor.add_observable">[docs]</a>    <span class="k">def</span> <span class="nf">add_observable</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">definition</span><span class="p">,</span> <span class="n">required</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
-
-<span class="sd">        Parameters</span>
-<span class="sd">        ----------</span>
-<span class="sd">        name :</span>
-<span class="sd">            </span>
-<span class="sd">        definition :</span>
-<span class="sd">            </span>
-<span class="sd">        required :</span>
-<span class="sd">             (Default value = False)</span>
-
-<span class="sd">        Returns</span>
-<span class="sd">        -------</span>
-
-<span class="sd">        &quot;&quot;&quot;</span>
-
         <span class="k">if</span> <span class="n">required</span><span class="p">:</span>
             <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Adding required observable </span><span class="si">%s</span><span class="s1"> = </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">definition</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
@@ -126,27 +85,10 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">observables</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">definition</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">observables_required</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">required</span></div>
 
-<div class="viewcode-block" id="LHEProcessor.read_observables_from_file"><a class="viewcode-back" href="../../madminer.lhe.html#madminer.lhe.LHEProcessor.read_observables_from_file">[docs]</a>    <span class="k">def</span> <span class="nf">read_observables_from_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
-
-<span class="sd">        Parameters</span>
-<span class="sd">        ----------</span>
-<span class="sd">        filename :</span>
-<span class="sd">            </span>
-
-<span class="sd">        Returns</span>
-<span class="sd">        -------</span>
-
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
-
 <div class="viewcode-block" id="LHEProcessor.set_default_observables"><a class="viewcode-back" href="../../madminer.lhe.html#madminer.lhe.LHEProcessor.set_default_observables">[docs]</a>    <span class="k">def</span> <span class="nf">set_default_observables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot; &quot;&quot;&quot;</span>
         <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
 
 <div class="viewcode-block" id="LHEProcessor.analyse_lhe_samples"><a class="viewcode-back" href="../../madminer.lhe.html#madminer.lhe.LHEProcessor.analyse_lhe_samples">[docs]</a>    <span class="k">def</span> <span class="nf">analyse_lhe_samples</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot; &quot;&quot;&quot;</span>
-
         <span class="k">for</span> <span class="n">lhe_file</span><span class="p">,</span> <span class="n">sampling_benchmark</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lhe_sample_filenames</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">sampling_benchmarks</span><span class="p">):</span>
 
             <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Analysing LHE sample </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">lhe_file</span><span class="p">)</span>
@@ -183,20 +125,6 @@
                 <span class="bp">self</span><span class="o">.</span><span class="n">observations</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">observations</span><span class="p">[</span><span class="n">key</span><span class="p">],</span> <span class="n">this_observations</span><span class="p">[</span><span class="n">key</span><span class="p">]])</span></div>
 
 <div class="viewcode-block" id="LHEProcessor.save"><a class="viewcode-back" href="../../madminer.lhe.html#madminer.lhe.LHEProcessor.save">[docs]</a>    <span class="k">def</span> <span class="nf">save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename_out</span><span class="p">,</span> <span class="n">filename_in</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
-
-<span class="sd">        Parameters</span>
-<span class="sd">        ----------</span>
-<span class="sd">        filename_out :</span>
-<span class="sd">            </span>
-<span class="sd">        filename_in :</span>
-<span class="sd">             (Default value = None)</span>
-
-<span class="sd">        Returns</span>
-<span class="sd">        -------</span>
-
-<span class="sd">        &quot;&quot;&quot;</span>
-
         <span class="k">assert</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">observables</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">observations</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
                 <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">weights</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">),</span> <span class="s1">&#39;Nothing to save!&#39;</span>
 
@@ -232,6 +160,7 @@
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../madminer.core.html">madminer.core module</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../madminer.delphes.html">madminer.delphes module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../madminer.fisherinformation.html">madminer.fisherinformation module</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../madminer.ml.html">madminer.ml module</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../madminer.morphing.html">madminer.morphing module</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../madminer.plotting.html">madminer.plotting module</a></li>

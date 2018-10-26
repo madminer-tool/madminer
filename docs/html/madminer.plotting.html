@@ -1,0 +1,312 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>madminer.plotting module &#8212; MadMiner  documentation</title>
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="madminer.sampling module" href="madminer.sampling.html" />
+    <link rel="prev" title="madminer.morphing module" href="madminer.morphing.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="module-madminer.plotting">
+<span id="madminer-plotting-module"></span><h1>madminer.plotting module<a class="headerlink" href="#module-madminer.plotting" title="Permalink to this headline">¶</a></h1>
+<dl class="function">
+<dt id="madminer.plotting.kinematic_distribution_of_information">
+<code class="descclassname">madminer.plotting.</code><code class="descname">kinematic_distribution_of_information</code><span class="sig-paren">(</span><em>xbins</em>, <em>xlabel</em>, <em>xmin</em>, <em>xmax</em>, <em>xsecs</em>, <em>matrices</em>, <em>matrices_aux</em>, <em>filename</em>, <em>ylabel_addition=''</em>, <em>log_xsec=False</em>, <em>norm_xsec=True</em>, <em>show_aux=False</em>, <em>show_labels=False</em>, <em>label_pos_information=(0.0</em>, <em>0.0)</em>, <em>label_pos_sm=(0.0</em>, <em>0.0)</em>, <em>label_pos_bsm=(0.0</em>, <em>0.0)</em>, <em>label_pos_bkg=(0.0</em>, <em>0.0)</em>, <em>label_bsm=''</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/plotting.html#kinematic_distribution_of_information"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.plotting.kinematic_distribution_of_information" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="madminer.plotting.plot_2d_morphing_basis">
+<code class="descclassname">madminer.plotting.</code><code class="descname">plot_2d_morphing_basis</code><span class="sig-paren">(</span><em>morpher</em>, <em>xlabel='$\\theta_0$'</em>, <em>ylabel='$\\theta_1$'</em>, <em>xrange=(-1.0</em>, <em>1.0)</em>, <em>yrange=(-1.0</em>, <em>1.0)</em>, <em>crange=(1.0</em>, <em>100.0)</em>, <em>resolution=100</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/plotting.html#plot_2d_morphing_basis"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.plotting.plot_2d_morphing_basis" title="Permalink to this definition">¶</a></dt>
+<dd><p>Visualizes a morphing basis and morphing errors for problems with a two-dimensional parameter space.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>morpher</strong> <span class="classifier-delimiter">:</span> <span class="classifier">Morpher</span></dt>
+<dd><p class="first last">Morpher instance with defined basis.</p>
+</dd>
+<dt><strong>xlabel</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str, optional</span></dt>
+<dd><p class="first last">Label for the x axis. Default value: r’$        heta_0$’.</p>
+</dd>
+<dt><strong>ylabel</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str, optional</span></dt>
+<dd><p class="first last">Label for the y axis. Default value: r’$        heta_1$’.</p>
+</dd>
+<dt><strong>xrange</strong> <span class="classifier-delimiter">:</span> <span class="classifier">tuple of float, optional</span></dt>
+<dd><p class="first last">Range <cite>(min, max)</cite> for the x axis. Default value: (-1., 1.).</p>
+</dd>
+<dt><strong>yrange</strong> <span class="classifier-delimiter">:</span> <span class="classifier">tuple of float, optional</span></dt>
+<dd><p class="first last">Range <cite>(min, max)</cite> for the y axis. Default value: (-1., 1.).</p>
+</dd>
+<dt><strong>crange</strong> <span class="classifier-delimiter">:</span> <span class="classifier">tuple of float, optional</span></dt>
+<dd><p class="first last">Range <cite>(min, max)</cite> for the color map. Default value: (1., 100.).</p>
+</dd>
+<dt><strong>resolution</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int, optional</span></dt>
+<dd><p class="first last">Number of points per axis for the rendering of the squared morphing weights. Default value: 100.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>figure</strong> <span class="classifier-delimiter">:</span> <span class="classifier">Figure</span></dt>
+<dd><p class="first last">Plot as Matplotlib Figure instance.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="madminer.plotting.plot_fisher_information_contours_2d">
+<code class="descclassname">madminer.plotting.</code><code class="descname">plot_fisher_information_contours_2d</code><span class="sig-paren">(</span><em>fisher_information_matrices</em>, <em>fisher_information_covariances=None</em>, <em>reference_thetas=None</em>, <em>contour_distance=1.0</em>, <em>xlabel='$\\theta_0$'</em>, <em>ylabel='$\\theta_1$'</em>, <em>xrange=(-1.0</em>, <em>1.0)</em>, <em>yrange=(-1.0</em>, <em>1.0)</em>, <em>labels=None</em>, <em>inline_labels=None</em>, <em>resolution=500</em>, <em>colors=None</em>, <em>linestyles=None</em>, <em>linewidths=1.5</em>, <em>alphas=1.0</em>, <em>alphas_uncertainties=0.25</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/plotting.html#plot_fisher_information_contours_2d"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.plotting.plot_fisher_information_contours_2d" title="Permalink to this definition">¶</a></dt>
+<dd><p>Visualizes 2x2 Fisher information matrices as contours of constant Fisher distance from a reference point <cite>theta0</cite>.</p>
+<p>The local (tangent-space) approximation is used: distances <cite>d(theta)</cite> are given by
+<cite>d(theta)^2 = (theta - theta0)_i I_ij (theta - theta0)_j</cite>, summing over <cite>i</cite> and <cite>j</cite>.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>fisher_information_matrices</strong> <span class="classifier-delimiter">:</span> <span class="classifier">list of ndarray</span></dt>
+<dd><p class="first last">Fisher information matrices, each with shape (2,2).</p>
+</dd>
+<dt><strong>fisher_information_covariances</strong> <span class="classifier-delimiter">:</span> <span class="classifier">None or list of (ndarray or None), optional</span></dt>
+<dd><p class="first last">Covariance matrices for the Fisher information matrices. Has to have the same length as
+fisher_information_matrices, and each entry has to be None (no uncertainty) or a tensor with shape
+(2,2,2,2). Default value: None.</p>
+</dd>
+<dt><strong>reference_thetas</strong> <span class="classifier-delimiter">:</span> <span class="classifier">None or list of (ndarray or None), optional</span></dt>
+<dd><p class="first last">Reference points from which the distances are calculated. If None, the origin (0,0) is used. Default value:
+None.</p>
+</dd>
+<dt><strong>contour_distance</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float, optional.</span></dt>
+<dd><p class="first last">Distance threshold at which the contours are drawn. Default value: 1.</p>
+</dd>
+<dt><strong>xlabel</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str, optional</span></dt>
+<dd><p class="first last">Label for the x axis. Default value: r’$        heta_0$’.</p>
+</dd>
+<dt><strong>ylabel</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str, optional</span></dt>
+<dd><p class="first last">Label for the y axis. Default value: r’$        heta_1$’.</p>
+</dd>
+<dt><strong>xrange</strong> <span class="classifier-delimiter">:</span> <span class="classifier">tuple of float, optional</span></dt>
+<dd><p class="first last">Range <cite>(min, max)</cite> for the x axis. Default value: (-1., 1.).</p>
+</dd>
+<dt><strong>yrange</strong> <span class="classifier-delimiter">:</span> <span class="classifier">tuple of float, optional</span></dt>
+<dd><p class="first last">Range <cite>(min, max)</cite> for the y axis. Default value: (-1., 1.).</p>
+</dd>
+<dt><strong>labels</strong> <span class="classifier-delimiter">:</span> <span class="classifier">None or list of (str or None), optional</span></dt>
+<dd><p class="first last">Legend labels for the contours. Default value: None.</p>
+</dd>
+<dt><strong>inline_labels</strong> <span class="classifier-delimiter">:</span> <span class="classifier">None or list of (str or None), optional</span></dt>
+<dd><p class="first last">Inline labels for the contours. Default value: None.</p>
+</dd>
+<dt><strong>resolution</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
+<dd><p class="first last">Number of points per axis for the calculation of the distances. Default value: 500.</p>
+</dd>
+<dt><strong>colors</strong> <span class="classifier-delimiter">:</span> <span class="classifier">None or str or list of str, optional</span></dt>
+<dd><p class="first last">Matplotlib line (and error band) colors for the contours. If None, uses default colors. Default value: None.</p>
+</dd>
+<dt><strong>linestyles</strong> <span class="classifier-delimiter">:</span> <span class="classifier">None or str or list of str, optional</span></dt>
+<dd><p class="first last">Matploitlib line styles for the contours. If None, uses default linestyles. Default value: None.</p>
+</dd>
+<dt><strong>linewidths</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float or list of float, optional</span></dt>
+<dd><p class="first last">Line widths for the contours. Default value: 1.5.</p>
+</dd>
+<dt><strong>alphas</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float or list of float, optional</span></dt>
+<dd><p class="first last">Opacities for the contours. Default value: 1.</p>
+</dd>
+<dt><strong>alphas_uncertainties</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float or list of float, optional</span></dt>
+<dd><p class="first last">Opacities for the error bands. Default value: 0.25.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>figure</strong> <span class="classifier-delimiter">:</span> <span class="classifier">Figure</span></dt>
+<dd><p class="first last">Plot as Matplotlib Figure instance.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="madminer.plotting.plot_fisherinfo_barplot">
+<code class="descclassname">madminer.plotting.</code><code class="descname">plot_fisherinfo_barplot</code><span class="sig-paren">(</span><em>matrices</em>, <em>matrices_for_determinants</em>, <em>labels</em>, <em>categories</em>, <em>operatorlabels</em>, <em>filename</em>, <em>additional_label=''</em>, <em>top_label=''</em>, <em>normalise_determinants=False</em>, <em>use_bar_colors=False</em>, <em>eigenvalue_operator_legend=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/plotting.html#plot_fisherinfo_barplot"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.plotting.plot_fisherinfo_barplot" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="madminer.plotting.plot_nd_morphing_basis_scatter">
+<code class="descclassname">madminer.plotting.</code><code class="descname">plot_nd_morphing_basis_scatter</code><span class="sig-paren">(</span><em>morpher</em>, <em>crange=(1.0</em>, <em>100.0)</em>, <em>n_test_thetas=1000</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/plotting.html#plot_nd_morphing_basis_scatter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.plotting.plot_nd_morphing_basis_scatter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Visualizes a morphing basis and morphing errors with scatter plots between each pair of operators.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>morpher</strong> <span class="classifier-delimiter">:</span> <span class="classifier">Morpher</span></dt>
+<dd><p class="first last">Morpher instance with defined basis.</p>
+</dd>
+<dt><strong>crange</strong> <span class="classifier-delimiter">:</span> <span class="classifier">tuple of float, optional</span></dt>
+<dd><p class="first last">Range <cite>(min, max)</cite> for the color map. Default value: (1. 100.).</p>
+</dd>
+<dt><strong>n_test_thetas</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int, optional</span></dt>
+<dd><p class="first last">Number of random points evaluated. Default value: 1000.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>figure</strong> <span class="classifier-delimiter">:</span> <span class="classifier">Figure</span></dt>
+<dd><p class="first last">Plot as Matplotlib Figure instance.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="madminer.plotting.plot_nd_morphing_basis_slices">
+<code class="descclassname">madminer.plotting.</code><code class="descname">plot_nd_morphing_basis_slices</code><span class="sig-paren">(</span><em>morpher</em>, <em>crange=(1.0</em>, <em>100.0)</em>, <em>resolution=50</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/plotting.html#plot_nd_morphing_basis_slices"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.plotting.plot_nd_morphing_basis_slices" title="Permalink to this definition">¶</a></dt>
+<dd><p>Visualizes a morphing basis and morphing errors with two-dimensional slices through parameter space.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>morpher</strong> <span class="classifier-delimiter">:</span> <span class="classifier">Morpher</span></dt>
+<dd><p class="first last">Morpher instance with defined basis.</p>
+</dd>
+<dt><strong>crange</strong> <span class="classifier-delimiter">:</span> <span class="classifier">tuple of float, optional</span></dt>
+<dd><p class="first last">Range <cite>(min, max)</cite> for the color map.</p>
+</dd>
+<dt><strong>resolution</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int, optional</span></dt>
+<dd><p class="first last">Number of points per panel and axis for the rendering of the squared morphing weights. Default value: 50.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>figure</strong> <span class="classifier-delimiter">:</span> <span class="classifier">Figure</span></dt>
+<dd><p class="first last">Plot as Matplotlib Figure instance.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">MadMiner</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="madminer.core.html">madminer.core module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="madminer.delphes.html">madminer.delphes module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="madminer.fisherinformation.html">madminer.fisherinformation module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="madminer.ml.html">madminer.ml module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="madminer.morphing.html">madminer.morphing module</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">madminer.plotting module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="madminer.sampling.html">madminer.sampling module</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="madminer.morphing.html" title="previous chapter">madminer.morphing module</a></li>
+      <li>Next: <a href="madminer.sampling.html" title="next chapter">madminer.sampling module</a></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;Johann Brehmer, Kyle Cranmer, and Felix Kling 2018.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.8.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="_sources/madminer.plotting.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

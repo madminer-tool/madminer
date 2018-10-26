@@ -57,14 +57,11 @@
 <span class="sd">    An instance of this class is the starting point of most MadMiner applications. It is typically used in four steps:</span>
 
 <span class="sd">    * Defining the parameter space through `MadMiner.add_parameter`</span>
-
 <span class="sd">    * Defining the benchmarks, i.e. the points at which the squared matrix elements will be evaluated in MadGraph, with</span>
-<span class="sd">    `MadMiner.add_benchmark()` or, if operator morphing is used, with `MadMiner.set_benchmarks_from_morphing()`</span>
-
+<span class="sd">      `MadMiner.add_benchmark()` or, if operator morphing is used, with `MadMiner.set_benchmarks_from_morphing()`</span>
 <span class="sd">    * Saving this setup with `MadMiner.save()` (it can be loaded in a new instance with `MadMiner.load()`)</span>
-
 <span class="sd">    * Running MadGraph and Pythia with the appropriate settings with `MadMiner.run()` or `MadMiner.run_multiple()` (the</span>
-<span class="sd">    latter allows the user to combine runs from multiple run cards and sampling points)</span>
+<span class="sd">      latter allows the user to combine runs from multiple run cards and sampling points)</span>
 <span class="sd">    </span>
 <span class="sd">    Please see the tutorial for a hands-on introduction to its methods.</span>
 
@@ -214,7 +211,7 @@
                       <span class="n">parameter_values</span><span class="p">,</span>
                       <span class="n">benchmark_name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Manually adds an individual benchmark, i.e. a parameter point that will be evaluated by MadGraph.</span>
+<span class="sd">        Manually adds an individual benchmark, that is, a parameter point that will be evaluated by MadGraph.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
@@ -266,8 +263,8 @@
 <div class="viewcode-block" id="MadMiner.set_benchmarks"><a class="viewcode-back" href="../../madminer.core.html#madminer.core.MadMiner.set_benchmarks">[docs]</a>    <span class="k">def</span> <span class="nf">set_benchmarks</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                        <span class="n">benchmarks</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Manually sets all benchmarks, i.e. parameter points that will be evaluated by MadGraph, overwriting previously</span>
-<span class="sd">        defined benchmarks.</span>
+<span class="sd">        Manually sets all benchmarks, that is, parameter points that will be evaluated by MadGraph. Calling this</span>
+<span class="sd">        function overwrites all previously defined benchmarks.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
@@ -430,10 +427,8 @@
 
 <span class="sd">        The file format follows the HDF5 standard. The saved information includes:</span>
 
-<span class="sd">        * the parameter definitions</span>
-
-<span class="sd">        * the benchmark points</span>
-
+<span class="sd">        * the parameter definitions,</span>
+<span class="sd">        * the benchmark points, and</span>
 <span class="sd">        * the morphing setup (if defined).</span>
 
 <span class="sd">        This file is an important input to later stages in the analysis chain, including the processing of generated</span>
@@ -1064,6 +1059,7 @@
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../madminer.core.html">madminer.core module</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../madminer.delphes.html">madminer.delphes module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../madminer.fisherinformation.html">madminer.fisherinformation module</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../madminer.ml.html">madminer.ml module</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../madminer.morphing.html">madminer.morphing module</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../madminer.plotting.html">madminer.plotting module</a></li>

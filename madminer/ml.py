@@ -1,5 +1,6 @@
 from __future__ import absolute_import, division, print_function
 
+import six
 import logging
 import os
 import json
@@ -20,16 +21,15 @@ from madminer.utils.various import create_missing_folders, load_and_check, gener
 
 class MLForge:
     """
-    Estimators for the likelihood ratio and score based on machine learning.
+    Estimating likelihood ratios and scores with machine learning.
 
     Each instance of this class represents one neural estimator. The most important functions are:
 
-    * `MLForge.train()` to train an estimator.
-
+    * `MLForge.train()` to train an estimator. The keyword `method` determines the inference technique
+      and whether a class instance represents a single-parameterized likelihood ratio estimator, a doubly-parameterized
+      likelihood ratio estimator, or a local score estimator.
     * `MLForge.evaluate()` to evaluate the estimator.
-
     * `MLForge.save()` to save the trained model to files.
-
     * `MLForge.load()` to load the trained model from files.
 
     Please see the tutorial for a detailed walk-through.
@@ -76,8 +76,8 @@ class MLForge:
               maf_mog_n_components=10,
               alpha=1.,
               n_epochs=20,
-              batch_size=64,
-              initial_lr=0.001,
+              batch_size=128,
+              initial_lr=0.002,
               final_lr=0.0001,
               validation_split=0.2,
               early_stopping=True):
@@ -86,23 +86,27 @@ class MLForge:
         Trains a neural network to estimate either the likelihood ratio or, if method is 'sally' or 'sallino', the
         score.
 
+        The keyword method determines the structure of the estimator that an instance of this class represents:
+
+        * For 'alice', 'alices', 'carl', 'nde', 'rascal', 'rolr', and 'scandal', the neural network models
+          the likelihood ratio as a function of the observables `x` and the numerator hypothesis `theta0`, while
+          the denominator hypothesis is kept at a fixed reference value ("single-parameterized likelihood ratio
+          estimator"). In addition to the likelihood ratio, the estimator allows to estimate the score at `theta0`.
+        * For 'alice2', 'alices2', 'carl2', 'rascal2', and 'rolr2', the neural network models
+          the likelihood ratio as a function of the observables `x`, the numerator hypothesis `theta0`, and the
+          denominator hypothesis `theta1` ("doubly parameterized likelihood ratio estimator"). The score at `theta0`
+          and `theta1` can also be evaluated.
+        * For 'sally' and 'sallino', the neural networks models the score evaluated at some reference hypothesis
+          ("local score regression"). The likelihood ratio cannot be estimated directly from the neural network, but
+          can be estimated in a second step through density estimation in the estimated score space.
+
         Parameters
         ----------
-        method : {'alice', 'alice2', 'alices', 'alices2', 'carl', 'carl2', 'nde', 'rascal', 'rascal2', 'rolr', 'rolr2',
-        'sally', 'sallino', 'scandal'}
-            The inference method used:
-
-             * For 'alice', 'alices', 'carl', 'nde', 'rascal', 'rolr', and 'scandal', the neural network models
-             the likelihood ratio as a function of the observables `x` and the numerator hypothesis `theta0`, while
-             the denominator hypothesis is kept at a fixed reference value. The score at `theta0` can also be evaluated.
-
-             * For 'alice2', 'alices2', 'carl2', 'rascal2', and 'rolr2', the neural network models
-             the likelihood ratio as a function of the observables `x`, the numerator hypothesis `theta0`, and the
-             denominator hypothesis `theta1`. The score at `theta0` and `theta1` can also be evaluated.
-
-             * For 'sally' and 'sallino', the neural networks models the score evaluated at some reference hypothesis.
-             The likelihood ratio cannot be estimated directly from the neural network, but can be estimated in a second
-             step through density estimation in the estimated score space.
+        method : str
+            The inference method used. Allows values are 'alice', 'alices', 'carl', 'nde', 'rascal', 'rolr', and
+            'scandal' for a single-parameterized likelihood ratio estimator; 'alice2', 'alices2', 'carl2', 'rascal2',
+            and 'rolr2' for a doubly-parameterized likelihood ratio estimator; and 'sally' and 'sallino' for local
+            score regression.
             
         x_filename : str
             Path to an unweighted sample of observations, as saved by the `madminer.sampling.SampleAugmenter` functions.
@@ -176,11 +180,11 @@ class MLForge:
             Number of epochs. Default value: 20.
 
         batch_size : int, optional
-            Batch size. Default value: 64.
+            Batch size. Default value: 128.
 
         initial_lr : float, optional
             Learning rate during the first epoch, after which it exponentially decays to final_lr. Default value:
-            0.001.
+            0.002.
 
         final_lr : float, optional
             Learning rate during the last epoch. Default value: 0.0001.
@@ -492,10 +496,6 @@ class MLForge:
             If method is not 'sally' and not 'sallino', this sets whether in addition to the likelihood ratio the score
             is evaluated. Default value: False.
 
-        features : list of int or None, optional
-            Indices of observables (features) that are used as input to the neural networks. If None, all observables
-            are used. Has to match the keyword 'features' used during training. Default value: None.
-
         Returns
         -------
         sally_estimated_score : ndarray
@@ -536,20 +536,7 @@ class MLForge:
         if self.features is not None:
             xs = xs[:, self.features]
 
-        # Balance thetas
-        if theta1s is None and theta0s is not None:
-            theta1s = [None for _ in theta0s]
-        elif theta1s is not None and theta0s is not None:
-            if len(theta1s) > len(theta0s):
-                theta0s = [theta0s[i % len(theta0s)] for i in range(len(theta1s))]
-            elif len(theta1s) < len(theta0s):
-                theta1s = [theta1s[i % len(theta1s)] for i in range(len(theta0s))]
-
-        # Loop over thetas
-        all_log_r_hat = []
-        all_t_hat0 = []
-        all_t_hat1 = []
-
+        # SALLY evaluation
         if self.method in ['sally', 'sallino']:
             logging.info('Starting score evaluation')
 
@@ -559,6 +546,20 @@ class MLForge:
             )
 
             return all_t_hat
+
+        # Balance thetas
+        if theta1s is None and theta0s is not None:
+            theta1s = [None for _ in theta0s]
+        elif theta1s is not None and theta0s is not None:
+            if len(theta1s) > len(theta0s):
+                theta0s = [theta0s[i % len(theta0s)] for i in range(len(theta1s))]
+            elif len(theta1s) < len(theta0s):
+                theta1s = [theta1s[i % len(theta1s)] for i in range(len(theta0s))]
+
+        # Evaluation for all other methods
+        all_log_r_hat = []
+        all_t_hat0 = []
+        all_t_hat1 = []
 
         if test_all_combinations:
             logging.info('Starting ratio evaluation for all combinations')
@@ -622,8 +623,7 @@ class MLForge:
 
     def calculate_fisher_information(self,
                                      x_filename,
-                                     n_events=1,
-                                     features=None):
+                                     n_events=1):
 
         """
         Calculates the expected Fisher information matrix based on the kinematic information in a given number of
@@ -794,3 +794,502 @@ class MLForge:
         # Load state dict
         logging.info('Loading state dictionary from %s_state_dict.pt', filename)
         self.model.load_state_dict(torch.load(filename + '_state_dict.pt'))
+
+
+class EnsembleForge:
+    """
+    Ensemble methods for likelihood ratio and score information.
+
+    Generally, EnsembleForge instances can be used very similarly to MLForge instances:
+
+    * The initialization of EnsembleForge takes a list of (trained or untrained) MLForge instances.
+    * The methods `EnsembleForge.train_one()` and `EnsembleForge.train_all()` train the estimators (this can also be
+      done outside of EnsembleForge).
+    * `EnsembleForge.calculate_expectation()` can be used to calculate the expectation of the estimation likelihood
+      ratio or the expected estimated score over a validation sample. Ideally (and assuming the correct sampling),
+      these expectation values should be close to zero. Deviations from zero therefore point out that the estimator
+      is probably inaccurate.
+    * `EnsembleForge.evaluate()` and `EnsembleForge.calculate_fisher_information()` can then be used to calculate
+      ensemble predictions. The user has the option to treat all estimators equally ('committee method') or to give those
+      with expected score / ratio close to zero a higher weight.
+    * `EnsembleForge.save()` and `EnsembleForge.load()` can store all estimators in one folder.
+
+    The individual estimators in the ensemble can be trained with different methods, but they have to be of the same
+    type: either all estimators are single-parameterized likelihood ratio estimators, or all estimators are
+    doubly-parameterized likelihood estimators, or all estimators are local score regressors.
+
+    Note that currently EnsembleForge only supports SALLY and SALLINO estimators.
+
+    Parameters
+    ----------
+    estimators : None or int or list of MLForge, optional
+        If int, sets the number of estimators that will be created as new MLForge instances. If list of MLForge, sets
+        the estimators directly. If None, the ensemble is initialized without estimators. Note that the estimators have
+        to be consistent: either all of them are trained with a local score method ('sally' or 'sallino'); or all of
+        them are trained with a single-parameterized method ('carl', 'rolr', 'rascal', 'scandal', 'alice', or 'alices');
+        or all of them are trained with a doubly parameterized method ('carl2', 'rolr2', 'rascal2', 'alice2', or
+        'alices2'). Mixing estimators of different types within one of these three categories is supported, but mixing
+        estimators from different categories is not and will raise a RuntimeException. Default value: None.
+
+    Attributes
+    ----------
+    estimators : list of MLForge
+        The estimators in the form of MLForge instances.
+
+    debug : bool, optional
+        If True, additional detailed debugging output is printed. Default value: False.
+
+    """
+
+    def __init__(self, estimators=None, debug=False):
+        general_init(debug=debug)
+
+        # Initialize estimators
+        if estimators is None:
+            estimators = []
+        elif isinstance(estimators, int):
+            estimators = [MLForge(debug=debug) for _ in range(estimators)]
+
+        self.estimators = estimators
+        self.n_estimators = len(self.estimators)
+        self.expectations = None
+
+        # Consistency checks
+        for estimator in self.estimators:
+            assert isinstance(estimator, MLForge), 'Estimator is no MLForge instance!'
+
+        self._check_consistency()
+
+    def train_one(self, i, **kwargs):
+        """
+        Trains an individual estimator.
+
+        Parameters
+        ----------
+        i : int
+            The index `0 <= i < n_estimators` of the estimator to be trained.
+
+        kwargs : dict
+            Parameters for `MLForge.train()`.
+
+        Returns
+        -------
+            None
+
+        """
+
+        self._check_consistency(kwargs)
+
+        self.estimators[i].train(**kwargs)
+
+    def train_all(self, **kwargs):
+        """
+        Trains all estimators.
+
+        Parameters
+        ----------
+        kwargs : dict
+            Parameters for `MLForge.train()`. If a value in this dict is a list, it has to have length `n_estimators`
+            and contain one value of this parameter for each of the estimators. Otherwise the value is used as parameter
+            for the training of all the estimators.
+
+        Returns
+        -------
+            None
+
+        """
+        logging.info('Training %s estimators in ensemble', self.n_estimators)
+
+        for key, value in six.iteritems(kwargs):
+            if not isinstance(value, list):
+                kwargs[key] = [value for _ in range(self.n_estimators)]
+
+            assert len(kwargs[key]) == self.n_estimators, 'Keyword {} has wrong length {}'.format(key, len(value))
+
+        self._check_consistency(kwargs)
+
+        for i, estimator in enumerate(self.estimators):
+            kwargs_this_estimator = {}
+            for key, value in six.iteritems(kwargs):
+                kwargs_this_estimator[key] = value[i]
+
+            logging.info('Training estimator %s / %s in ensemble', i + 1, self.n_estimators)
+            estimator.train(**kwargs_this_estimator)
+
+    def calculate_expectation(self,
+                              x_filename,
+                              theta0_filename=None,
+                              theta1_filename=None):
+        """
+        Calculates the expectation of the estimation likelihood ratio or the expected estimated score over a validation
+        sample. Ideally (and assuming the correct sampling), these expectation values should be close to zero.
+        Deviations from zero therefore point out that the estimator is probably inaccurate.
+
+        Parameters
+        ----------
+        x_filename : str
+            Path to an unweighted sample of observations, as saved by the `madminer.sampling.SampleAugmenter` functions.
+
+        theta0_filename : str or None, optional
+            Path to an unweighted sample of numerator parameters, as saved by the `madminer.sampling.SampleAugmenter`
+            functions. Required if the estimators were trained with the 'alice', 'alice2', 'alices', 'alices2', 'carl',
+            'carl2', 'nde', 'rascal', 'rascal2', 'rolr', 'rolr2', or 'scandal' method. Default value: None.
+
+        theta1_filename : str or None, optional
+            Path to an unweighted sample of denominator parameters, as saved by the `madminer.sampling.SampleAugmenter`
+            functions. Required if the estimators were trained with the 'alice2', 'alices2', 'carl2', 'rascal2', or
+            'rolr2' method. Default value: None.
+
+        Returns
+        -------
+        expectations : ndarray
+            Expected score (if the estimators were trained with the 'sally' or 'sallino' methods) or likelihood ratio
+            (otherwise).
+
+        """
+
+        logging.info('Calculating expectation for %s estimators in ensemble', self.n_estimators)
+
+        self.expectations = []
+        method_type = self._check_consistency()
+
+        for i, estimator in enumerate(self.estimators):
+            logging.info('Starting evaluation for estimator %s / %s in ensemble', i + 1, self.n_estimators)
+
+            # Calculate expected score / ratio
+            if method_type == 'local_score':
+                prediction = estimator.evaluate(x_filename, theta0_filename, theta1_filename)
+            else:
+                raise NotImplementedError('Expectation calculation currently only implemented for SALLY and SALLINO!')
+
+            self.expectations.append(
+                np.mean(prediction, axis=0)
+            )
+
+        self.expectations = np.array(self.expectations)
+
+        return self.expectations
+
+    def evaluate(self,
+                 x_filename,
+                 theta0_filename=None,
+                 theta1_filename=None,
+                 test_all_combinations=True,
+                 vote_expectation_weight=None,
+                 return_individual_predictions=False):
+
+        """
+        Evaluates the estimators of the likelihood ratio (or, if method is 'sally' or 'sallino', the score), and
+        calculates the ensemble mean or variance.
+
+        The user has the option to treat all estimators equally ('committee method') or to give those with expected
+        score / ratio close to zero (as calculated by `calculate_expectation()`) a higher weight. In the latter case,
+        the ensemble mean `f(x)` is calculated as `f(x)  =  sum_i w_i f_i(x)` with weights
+        `w_i  =  exp(-vote_expectation_weight |E[f_i]|) / sum_j exp(-vote_expectation_weight |E[f_j]|)`. Here `f_i(x)`
+        are the individual estimators and `E[f_i]` is the expectation value calculated by `calculate_expectation()`.
+
+        Parameters
+        ----------
+        x_filename : str
+            Path to an unweighted sample of observations, as saved by the `madminer.sampling.SampleAugmenter` functions.
+
+        theta0_filename : str or None, optional
+            Path to an unweighted sample of numerator parameters, as saved by the `madminer.sampling.SampleAugmenter`
+            functions. Required if the estimator was trained with the 'alice', 'alice2', 'alices', 'alices2', 'carl',
+            'carl2', 'nde', 'rascal', 'rascal2', 'rolr', 'rolr2', or 'scandal' method. Default value: None.
+
+        theta1_filename : str or None, optional
+            Path to an unweighted sample of denominator parameters, as saved by the `madminer.sampling.SampleAugmenter`
+            functions. Required if the estimator was trained with the 'alice2', 'alices2', 'carl2', 'rascal2', or
+            'rolr2' method. Default value: None.
+
+        test_all_combinations : bool, optional
+            If method is not 'sally' and not 'sallino': If False, the number of samples in the observable and theta
+            files has to match, and the likelihood ratio is evaluated only for the combinations
+            `r(x_i | theta0_i, theta1_i)`. If True, `r(x_i | theta0_j, theta1_j)` for all pairwise combinations `i, j`
+            are evaluated. Default value: True.
+
+        vote_expectation_weight : float or None, optional
+            Factor that determines how much more weight is given to those estimators with small expectation value (as
+            calculated by `calculate_expectation()`). If None, or if `calculate_expectation()` has not been called,
+            all estimators are treated equal. Default value: None.
+
+        return_individual_predictions : bool, optional
+            Whether the individual estimator predictions are returned. Default value: False.
+
+        Returns
+        -------
+        mean_prediction : ndarray
+            The (weighted) ensemble mean of the estimators. If the estimators were trained with `method='sally'` or
+            `method='sallino'`, this is an array of the estimator for `t(x_i | theta_ref)` for all events `i`.
+            Otherwise, the estimated likelihood ratio (if test_all_combinations is True, the result has shape
+            `(n_thetas, n_x)`, otherwise, it has shape `(n_samples,)`).
+
+        covariance : ndarray
+            The covariance matrix of the (flattened) predictions.
+
+        weights : ndarray
+            Only returned if return_individual_predictions is True. The estimator weights `w_i`.
+
+        individual_predictions : ndarray
+            Only returned if return_individual_predictions is True. The individual estimator predictions.
+
+        """
+        logging.info('Evaluating %s estimators in ensemble', self.n_estimators)
+
+        # Calculate weights of each estimator in vote
+        if self.expectations is None or vote_expectation_weight is None:
+            weights = np.ones(self.n_estimators)
+        else:
+            weights = np.exp(-vote_expectation_weight * self.expectations)
+
+        weights /= np.sum(weights)
+
+        # Calculate estimator predictions
+        predictions = []
+        for i, estimator in enumerate(self.estimators):
+            logging.info('Starting evaluation for estimator %s / %s in ensemble', i + 1, self.n_estimators)
+
+            predictions.append(estimator.evaluate(
+                x_filename,
+                theta0_filename,
+                theta1_filename,
+                test_all_combinations,
+                evaluate_score=False
+            ))
+        predictions = np.array(predictions)
+
+        # Calculate weighted mean
+        mean = np.average(predictions, axis=0, weights=weights)
+
+        # Calculate covariance matrix
+        predictions_flat = predictions.reshape((predictions.shape[0], -1))
+        covariance = np.cov(predictions_flat.T, aweights=weights)
+
+        if return_individual_predictions:
+            return mean, covariance, weights, predictions
+
+        return mean, covariance
+
+    def calculate_fisher_information(self,
+                                     x_filename,
+                                     n_events=1,
+                                     vote_expectation_weight=None,
+                                     return_individual_predictions=False):
+        """
+        Calculates the expected Fisher information matrices for each estimator, and then returns the ensemble mean and
+        variance.
+
+        The user has the option to treat all estimators equally ('committee method') or to give those with expected
+        score / ratio close to zero (as calculated by `calculate_expectation()`) a higher weight. In the latter case,
+        the ensemble mean `I` is calculated as `I  =  sum_i w_i I_i` with weights
+        `w_i  =  exp(-vote_expectation_weight |E[t_i]|) / sum_j exp(-vote_expectation_weight |E[t_k]|)`. Here `I_i`
+        are the individual estimators and `E[t_i]` is the expectation value calculated by `calculate_expectation()`.
+
+        Parameters
+        ----------
+        x_filename : str
+            Path to an unweighted sample of observations, as saved by the `madminer.sampling.SampleAugmenter` functions.
+            Note that this sample has to be sample from the reference parameter where the score is estimated with the
+            SALLY / SALLINO estimator!
+
+        n_events : int, optional
+            Number of events for which the kinematic Fisher information should be calculated. Default value: 1.
+
+        vote_expectation_weight : float or None, optional
+            Factor that determines how much more weight is given to those estimators with small expectation value (as
+            calculated by `calculate_expectation()`). If None, or if `calculate_expectation()` has not been called,
+            all estimators are treated equal. Default value: None.
+
+        return_individual_predictions : bool, optional
+            Whether the individual estimator predictions are returned. Default value: False.
+
+        Returns
+        -------
+        mean_prediction : ndarray
+            The (weighted) ensemble mean of the estimators. If the estimators were trained with `method='sally'` or
+            `method='sallino'`, this is an array of the estimator for `t(x_i | theta_ref)` for all events `i`.
+            Otherwise, the estimated likelihood ratio (if test_all_combinations is True, the result has shape
+            `(n_thetas, n_x)`, otherwise, it has shape `(n_samples,)`).
+
+        covariance : ndarray
+            The covariance matrix of the Fisher information estimate. This object has four indices,
+            `cov_(ij)(i'j')`, ordered as i j i' j'. It has shape
+            `(n_parameters, n_parameters, n_parameters, n_parameters)`.
+
+        weights : ndarray
+            Only returned if return_individual_predictions is True. The estimator weights `w_i`.
+
+        individual_predictions : ndarray
+            Only returned if return_individual_predictions is True. The individual estimator predictions.
+
+        """
+        logging.info('Evaluating Fisher information for %s estimators in ensemble', self.n_estimators)
+
+        # Calculate weights of each estimator in vote
+        if self.expectations is None or vote_expectation_weight is None:
+            weights = np.ones(self.n_estimators)
+        else:
+            weights = np.exp(-vote_expectation_weight * np.linalg.norm(self.expectations))
+
+        weights /= np.sum(weights)
+
+        # Calculate estimator predictions
+        predictions = []
+        for i, estimator in enumerate(self.estimators):
+            logging.info('Starting evaluation for estimator %s / %s in ensemble', i + 1, self.n_estimators)
+
+            predictions.append(estimator.calculate_fisher_information(
+                x_filename=x_filename,
+                n_events=n_events
+            ))
+        predictions = np.array(predictions)
+
+        # Calculate weighted mean
+        mean = np.average(predictions, axis=0, weights=weights)
+
+        # Calculate covariance matrix
+        predictions_flat = predictions.reshape((predictions.shape[0], -1))
+        covariance = np.cov(predictions_flat.T, aweights=weights)
+        covariance_shape = (predictions.shape[1], predictions.shape[2],
+                            predictions.shape[1], predictions.shape[2])
+        covariance = covariance.reshape(covariance_shape)
+
+        if return_individual_predictions:
+            return mean, covariance, weights, predictions
+
+        return mean, covariance
+
+    def save(self, folder):
+        """
+        Saves the estimator ensemble to a folder.
+
+        Parameters
+        ----------
+        folder : str
+            Path to the folder.
+
+        Returns
+        -------
+            None
+
+        """
+
+        # Check paths
+        create_missing_folders([folder])
+
+        # Save ensemble settings
+        logging.info('Saving ensemble setup to %s/ensemble.json', folder)
+
+
+        if self.expectations is None:
+            expectations = 'None'
+        else:
+            expectations = self.expectations.tolist()
+
+        settings = {'n_estimators': self.n_estimators,
+                    'expectations': expectations}
+
+        with open(folder + '/ensemble.json', 'w') as f:
+            json.dump(settings, f)
+
+        # Save estimators
+        for i, estimator in enumerate(self.estimators):
+            estimator.save(folder + '/estimator_' + str(i))
+
+    def load(self, folder):
+        """
+        Loads the estimator ensemble from a folder.
+
+        Parameters
+        ----------
+        folder : str
+            Path to the folder.
+
+        Returns
+        -------
+            None
+
+        """
+
+        # Load ensemble settings
+        logging.info('Loading ensemble setup from %s/ensemble.json', folder)
+
+        with open(folder + '/ensemble.json', 'r') as f:
+            settings = json.load(f)
+
+        self.n_estimators = settings['n_estimators']
+        self.expectations = settings['expectations']
+        if self.expectations == 'None':
+            self.expectations = None
+        if self.expectations is not None:
+            self.expectations = np.array(self.expectations)
+
+        logging.info('  Found ensemble with %s estimators and expectations %s',
+                     self.n_estimators, self.expectations)
+
+        # Load estimators
+        self.estimators = []
+        for i in range(self.n_estimators):
+            estimator = MLForge()
+            estimator.load(folder + '/estimator_' + str(i))
+            self.estimators.append(estimator)
+
+    def _check_consistency(self, keywords=None):
+        """
+        Internal function that checks if all estimators belong to the same category
+        (local score regression, single-parameterized likelihood ratio estimator,
+        doubly parameterized likelihood ratio estimator).
+
+        Parameters
+        ----------
+        keywords : dict or None, optional
+            kwargs passed to `train_one()` or `train_all()`.
+
+        Returns
+        -------
+        method_type : {"local_score", "parameterized", "doubly_parameterized"}
+            Method type of this ensemble.
+
+        Raises
+        ------
+        RuntimeError
+            Estimators are inconsistent.
+
+        """
+        # Accumulate methods of all estimators
+        methods = [estimator.method for estimator in self.estimators]
+
+        if keywords is not None:
+            keyword_method = keywords.get("method", None)
+            if isinstance(keyword_method, list):
+                methods += keyword_method
+            else:
+                methods.append(keyword_method)
+
+        # Check consistency
+        method_type = None
+        for method in methods:
+            if method in ['sally', 'sallino']:
+                this_method_type = 'local_score'
+            elif method in ['carl', 'rolr', 'rascal', 'alice', 'alices', 'nde', 'scandal']:
+                # this_method_type = 'parameterized'
+                raise NotImplementedError('For now, ensemble methods are only implemented for SALLY and SALLINO.')
+            elif method in ['carl2', 'rolr2', 'rascal2', 'alice2', 'alices2']:
+                # this_method_type = 'doubly_parameterized'
+                raise NotImplementedError('For now, ensemble methods are only implemented for SALLY and SALLINO.')
+            elif method is None:
+                continue
+            else:
+                raise RuntimeError('Unknown method %s', method)
+
+            if method_type is None:
+                method_type = this_method_type
+
+            if method_type != this_method_type:
+                raise RuntimeError('Ensemble with inconsistent estimator methods! All methods have to be either'
+                                   ' single-parameterized ratio estimators, doubly parameterized ratio estimators,'
+                                   ' or local score estimators. Found methods ' + ', '.join(methods) + '.')
+
+        # Return method type of ensemble
+        return method_type

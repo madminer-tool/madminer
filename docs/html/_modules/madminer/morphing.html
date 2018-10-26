@@ -54,24 +54,21 @@
 <span class="sd">    A typical morphing basis setup involves the following steps:</span>
 
 <span class="sd">    * The instance of the class is initialized with the parameter setup. The user can provide the parameters either</span>
-<span class="sd">    in the format of `MadMiner.parameters`. Alternatively, human-friendly lists of the key properties can be provided.</span>
-
+<span class="sd">      in the format of `MadMiner.parameters`. Alternatively, human-friendly lists of the key properties can be provided.</span>
 <span class="sd">    * The function `find_components` can be used to find the relevant components, i.e. individual terms</span>
-<span class="sd">    contributing to the squared matrix elements (alternatively they can be defined by the user with `set_components()`).</span>
-
+<span class="sd">      contributing to the squared matrix elements (alternatively they can be defined by the user with</span>
+<span class="sd">      `set_components()`).</span>
 <span class="sd">    * The final step is the definition of the morphing basis, i.e. the benchmark points for which the squared matrix</span>
-<span class="sd">    element will be evaluated before interpolating to other parameter points. Again the user can pick this basis</span>
-<span class="sd">    manually with `set_basis()`. Alternatively, this class provides a basic optimization routine for the basis choice</span>
-<span class="sd">    in `optimize_basis()`.</span>
+<span class="sd">      element will be evaluated before interpolating to other parameter points. Again the user can pick this basis</span>
+<span class="sd">      manually with `set_basis()`. Alternatively, this class provides a basic optimization routine for the basis choice</span>
+<span class="sd">      in `optimize_basis()`.</span>
 
 <span class="sd">    The class also provides helper functions that are important for working with morphing:</span>
 
 <span class="sd">    * `calculate_morphing_matrix()` calculates the morphing matrix, i.e. the matrix that links the morphing basis to the</span>
-<span class="sd">    components.</span>
-
+<span class="sd">       components.</span>
 <span class="sd">    * `calculate_morphing_weights()` calculates the morphing weights `w_b(theta)` for a given parameter point `theta`</span>
-<span class="sd">    such that `p(theta) = sum_b w_b(theta) p(theta_b)`.</span>
-
+<span class="sd">      such that `p(theta) = sum_b w_b(theta) p(theta_b)`.</span>
 <span class="sd">    * `calculate_morphing_weight_gradient()` calculates the gradient of the morphing weights, `grad_theta w_b(theta)`.</span>
 
 <span class="sd">    Parameters</span>
@@ -351,32 +348,6 @@
         <span class="c1"># Normal output</span>
         <span class="k">return</span> <span class="n">best_basis</span></div>
 
-    <span class="k">def</span> <span class="nf">_propose_basis</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fixed_benchmarks</span><span class="p">,</span> <span class="n">n_missing_benchmarks</span><span class="p">):</span>
-
-        <span class="sd">&quot;&quot;&quot; Proposes a random basis. &quot;&quot;&quot;</span>
-
-        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">fixed_benchmarks</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="n">basis</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">([</span>
-                <span class="n">fixed_benchmarks</span><span class="p">,</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_draw_random_thetas</span><span class="p">(</span><span class="n">n_missing_benchmarks</span><span class="p">)</span>
-            <span class="p">])</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">basis</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_draw_random_thetas</span><span class="p">(</span><span class="n">n_missing_benchmarks</span><span class="p">)</span>
-
-        <span class="k">return</span> <span class="n">basis</span>
-
-    <span class="k">def</span> <span class="nf">_draw_random_thetas</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n_thetas</span><span class="p">):</span>
-
-        <span class="sd">&quot;&quot;&quot; Randomly draws parameter vectors within the specified parameter ranges. &quot;&quot;&quot;</span>
-
-        <span class="c1"># First draw random numbers in range [0, 1)^n_parameters</span>
-        <span class="n">u</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="n">n_thetas</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_parameters</span><span class="p">)</span>
-
-        <span class="c1"># Transform to right range</span>
-        <span class="n">thetas</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameter_range</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">u</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">parameter_range</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameter_range</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">])</span>
-
-        <span class="k">return</span> <span class="n">thetas</span>
-
 <div class="viewcode-block" id="Morpher.calculate_morphing_matrix"><a class="viewcode-back" href="../../madminer.morphing.html#madminer.morphing.Morpher.calculate_morphing_matrix">[docs]</a>    <span class="k">def</span> <span class="nf">calculate_morphing_matrix</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">basis</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 
         <span class="sd">&quot;&quot;&quot;</span>
@@ -643,7 +614,33 @@
 
         <span class="n">squared_weights</span> <span class="o">/=</span> <span class="nb">float</span><span class="p">(</span><span class="n">n_test_thetas</span><span class="p">)</span>
 
-        <span class="k">return</span> <span class="o">-</span><span class="n">squared_weights</span></div></div>
+        <span class="k">return</span> <span class="o">-</span><span class="n">squared_weights</span></div>
+
+    <span class="k">def</span> <span class="nf">_propose_basis</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fixed_benchmarks</span><span class="p">,</span> <span class="n">n_missing_benchmarks</span><span class="p">):</span>
+
+        <span class="sd">&quot;&quot;&quot; Proposes a random basis. &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">fixed_benchmarks</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">basis</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">([</span>
+                <span class="n">fixed_benchmarks</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_draw_random_thetas</span><span class="p">(</span><span class="n">n_missing_benchmarks</span><span class="p">)</span>
+            <span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">basis</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_draw_random_thetas</span><span class="p">(</span><span class="n">n_missing_benchmarks</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">basis</span>
+
+    <span class="k">def</span> <span class="nf">_draw_random_thetas</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n_thetas</span><span class="p">):</span>
+
+        <span class="sd">&quot;&quot;&quot; Randomly draws parameter vectors within the specified parameter ranges. &quot;&quot;&quot;</span>
+
+        <span class="c1"># First draw random numbers in range [0, 1)^n_parameters</span>
+        <span class="n">u</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="n">n_thetas</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_parameters</span><span class="p">)</span>
+
+        <span class="c1"># Transform to right range</span>
+        <span class="n">thetas</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameter_range</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">u</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">parameter_range</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameter_range</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">])</span>
+
+        <span class="k">return</span> <span class="n">thetas</span></div>
 </pre></div>
 
           </div>
@@ -666,6 +663,7 @@
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../madminer.core.html">madminer.core module</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../madminer.delphes.html">madminer.delphes module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../madminer.fisherinformation.html">madminer.fisherinformation module</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../madminer.ml.html">madminer.ml module</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../madminer.morphing.html">madminer.morphing module</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../madminer.plotting.html">madminer.plotting module</a></li>
