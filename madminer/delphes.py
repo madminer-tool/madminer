@@ -150,25 +150,6 @@ class DelphesProcessor:
             )
             self.delphes_sample_filenames.append(delphes_sample_filename)
 
-    # def add_delphes_sample(self, filename):
-    #     """
-    #
-    #     Parameters
-    #     ----------
-    #     filename :
-    #
-    #
-    #     Returns
-    #     -------
-    #
-    #     """
-    #
-    #     raise NotImplementedError('Direct use of Delphes samples is currently disabled since the Delphes file alone '
-    #                               'does not contain any information linking the weights to the benchmarks ')
-    #
-    #     logging.info('Adding Delphes sample at %s', filename)
-    #     self.delphes_sample_filenames.append(filename)
-
     def set_acceptance(self, pt_min_e=10., pt_min_mu=10., pt_min_a=0., pt_min_j=20.,
                        eta_max_e=2.5, eta_max_mu=2.5, eta_max_a=2.5, eta_max_j=5.):
         """
@@ -400,7 +381,7 @@ class DelphesProcessor:
                 self.cuts,
                 self.cuts_default_pass,
                 weight_labels,
-                delphes_sample_file=delete_delphes_files
+                delete_delphes_sample_file=delete_delphes_files
             )
 
             # Number of benchmarks
