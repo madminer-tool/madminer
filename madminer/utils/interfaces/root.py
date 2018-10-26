@@ -8,6 +8,8 @@ from madminer.utils.particle import MadMinerParticle
 import logging
 import os
 
+from madminer.utils.various import math_commands
+
 
 def extract_observables_from_delphes_file(delphes_sample_file,
                                           observables,
@@ -53,6 +55,29 @@ def extract_observables_from_delphes_file(delphes_sample_file,
     jets_all_events = _get_particles_jets(tree, acceptance_pt_min_j, acceptance_eta_max_j)
     met_all_events = _get_particles_met(tree)
 
+    # Prepare variables
+    def get_objects(ievent):
+        visible_momentum = MadMinerParticle()
+        for p in (electrons_all_events[ievent] + jets_all_events[ievent] + muons_all_events[ievent]
+                  + leptons_all_events[ievent]):
+            visible_momentum += p
+        all_momentum = visible_momentum + met_all_events[ievent][0]
+
+        objects = math_commands()
+        objects.update({
+            'e': electrons_all_events[ievent],
+            'j': jets_all_events[ievent],
+            'a': photons_all_events[ievent],
+            'mu': muons_all_events[ievent],
+            'l': leptons_all_events[ievent],
+            'met': met_all_events[ievent][0],
+            'visible': visible_momentum,
+            'all': all_momentum,
+            'boost_to_com': lambda momentum: momentum.boost(all_momentum)
+        })
+
+        return objects
+
     # Observations
     observable_values = OrderedDict()
 
@@ -61,16 +86,11 @@ def extract_observables_from_delphes_file(delphes_sample_file,
 
         # Loop over events
         for event in range(n_events):
-            variables = {'e': electrons_all_events[event],
-                         'j': jets_all_events[event],
-                         'a': photons_all_events[event],
-                         'mu': muons_all_events[event],
-                         'l': leptons_all_events[event],
-                         'met': met_all_events[event][0]}
+            variables = get_objects(event)
 
             try:
                 values_this_observable.append(eval(obs_definition, variables))
-            except Exception:
+            except (SyntaxError, NameError, TypeError, ZeroDivisionError):
                 default = observables_defaults[obs_name]
                 if default is None:
                     default = np.nan
@@ -87,19 +107,14 @@ def extract_observables_from_delphes_file(delphes_sample_file,
 
         # Loop over events
         for event in range(n_events):
-            variables = {'e': electrons_all_events[event],
-                         'j': jets_all_events[event],
-                         'a': photons_all_events[event],
-                         'mu': muons_all_events[event],
-                         'l': leptons_all_events[event],
-                         'met': met_all_events[event][0]}
+            variables = get_objects(event)
 
             for obs_name in observable_values:
                 variables[obs_name] = observable_values[obs_name][event]
 
             try:
                 values_this_cut.append(eval(cut, variables))
-            except Exception:
+            except (SyntaxError, NameError, TypeError, ZeroDivisionError):
                 values_this_cut.append(default_pass)
 
         values_this_cut = np.array(values_this_cut, dtype=np.bool)
@@ -159,27 +174,6 @@ def extract_observables_from_delphes_file(delphes_sample_file,
 
 
 def _get_particles_charged(tree, name, mass, pdgid_positive_charge, pt_min, eta_max):
-    """
-
-    Parameters
-    ----------
-    tree :
-        
-    name :
-        
-    mass :
-        
-    pdgid_positive_charge :
-        
-    pt_min :
-        
-    eta_max :
-        
-
-    Returns
-    -------
-
-    """
     pts = tree.array(name + '.PT')
     etas = tree.array(name + '.Eta')
     phis = tree.array(name + '.Phi')
@@ -210,25 +204,6 @@ def _get_particles_charged(tree, name, mass, pdgid_positive_charge, pt_min, eta_
 
 
 def _get_particles_leptons(tree, pt_min_e, eta_max_e, pt_min_mu, eta_max_mu):
-    """
-
-    Parameters
-    ----------
-    tree :
-        
-    pt_min_e :
-        
-    eta_max_e :
-        
-    pt_min_mu :
-        
-    eta_max_mu :
-        
-
-    Returns
-    -------
-
-    """
     pt_mu = tree.array('Muon.PT')
     eta_mu = tree.array('Muon.Eta')
     phi_mu = tree.array('Muon.Phi')
@@ -308,21 +283,6 @@ def _get_particles_leptons(tree, pt_min_e, eta_max_e, pt_min_mu, eta_max_mu):
 
 
 def _get_particles_photons(tree, pt_min, eta_max):
-    """
-
-    Parameters
-    ----------
-    tree :
-        
-    pt_min :
-        
-    eta_max :
-        
-
-    Returns
-    -------
-
-    """
     pts = tree.array('Photon.PT')
     etas = tree.array('Photon.Eta')
     phis = tree.array('Photon.Phi')
@@ -351,21 +311,6 @@ def _get_particles_photons(tree, pt_min, eta_max):
 
 
 def _get_particles_jets(tree, pt_min, eta_max):
-    """
-
-    Parameters
-    ----------
-    tree :
-        
-    pt_min :
-        
-    eta_max :
-        
-
-    Returns
-    -------
-
-    """
     pts = tree.array('Jet.PT')
     etas = tree.array('Jet.Eta')
     phis = tree.array('Jet.Phi')
@@ -394,17 +339,6 @@ def _get_particles_jets(tree, pt_min, eta_max):
 
 
 def _get_particles_met(tree):
-    """
-
-    Parameters
-    ----------
-    tree :
-        
-
-    Returns
-    -------
-
-    """
     mets = tree.array('MissingET.MET')
     phis = tree.array('MissingET.Phi')
 
