@@ -1096,27 +1096,31 @@ class EnsembleForge:
             `r(x_i | theta0_i, theta1_i)`. If True, `r(x_i | theta0_j, theta1_j)` for all pairwise combinations `i, j`
             are evaluated. Default value: True.
 
-        vote_expectation_weight : float or None, optional
+        vote_expectation_weight : float or list of float or None, optional
             Factor that determines how much more weight is given to those estimators with small expectation value (as
-            calculated by `calculate_expectation()`). If None, or if `calculate_expectation()` has not been called,
-            all estimators are treated equal. Default value: None.
+            calculated by `calculate_expectation()`). If a list is given, results are returned for each element in the
+            list. If None, or if `calculate_expectation()` has not been called, all estimators are treated equal.
+            Default value: None.
 
         return_individual_predictions : bool, optional
             Whether the individual estimator predictions are returned. Default value: False.
 
         Returns
         -------
-        mean_prediction : ndarray
+        mean_prediction : ndarray or list of ndarray
             The (weighted) ensemble mean of the estimators. If the estimators were trained with `method='sally'` or
             `method='sallino'`, this is an array of the estimator for `t(x_i | theta_ref)` for all events `i`.
             Otherwise, the estimated likelihood ratio (if test_all_combinations is True, the result has shape
-            `(n_thetas, n_x)`, otherwise, it has shape `(n_samples,)`).
+            `(n_thetas, n_x)`, otherwise, it has shape `(n_samples,)`). If more then one value vote_expectation_weight
+            is given, this is a list with results for all entries in vote_expectation_weight.
 
-        covariance : ndarray
-            The covariance matrix of the (flattened) predictions.
+        covariance : ndarray or list of ndarray
+            The covariance matrix of the (flattened) predictions. If more then one value vote_expectation_weight
+            is given, this is a list with results for all entries in vote_expectation_weight.
 
-        weights : ndarray
-            Only returned if return_individual_predictions is True. The estimator weights `w_i`.
+        weights : ndarray or list of ndarray
+            Only returned if return_individual_predictions is True. The estimator weights `w_i`. If more then one value
+            vote_expectation_weight is given, this is a list with results for all entries in vote_expectation_weight.
 
         individual_predictions : ndarray
             Only returned if return_individual_predictions is True. The individual estimator predictions.
@@ -1126,7 +1130,7 @@ class EnsembleForge:
 
         # Calculate weights of each estimator in vote
         if self.expectations is None or vote_expectation_weight is None:
-            weights = np.ones(self.n_estimators)
+            weights = [np.ones(self.n_estimators)]
         else:
             if len(self.expectations.shape) == 1:
                 expectations_norm = self.expectations
@@ -1136,9 +1140,18 @@ class EnsembleForge:
                 expectations_norm = [
                     np.linalg.norm(expectation) for expectation in self.expectations
                 ]
-            weights = np.exp(-vote_expectation_weight * expectations_norm)
 
-        weights /= np.sum(weights)
+            if not isinstance(vote_expectation_weight, list):
+                vote_expectation_weight = [vote_expectation_weight]
+
+            weights = []
+            for vote_weight in vote_expectation_weight:
+                if vote_weight is None:
+                    these_weights = np.ones(self.n_estimators)
+                else:
+                    these_weights = np.exp(-vote_weight * expectations_norm)
+                these_weights /= np.sum(these_weights)
+                weights.append(these_weights)
 
         logging.debug("  Estimator weights: %s", weights)
 
@@ -1162,17 +1175,27 @@ class EnsembleForge:
             )
         predictions = np.array(predictions)
 
-        # Calculate weighted mean
-        mean = np.average(predictions, axis=0, weights=weights)
+        # Calculate weighted means and covariance matrices
+        means = []
+        covariances = []
 
-        # Calculate covariance matrix
-        predictions_flat = predictions.reshape((predictions.shape[0], -1))
-        covariance = np.cov(predictions_flat.T, aweights=weights)
+        for these_weights in weights:
+            mean = np.average(predictions, axis=0, weights=these_weights)
+            means.append(mean)
+
+            predictions_flat = predictions.reshape((predictions.shape[0], -1))
+            covariance = np.cov(predictions_flat.T, aweights=these_weights)
+            covariances.append(covariance)
+
+        # Returns
+        if len(weights) == 1:
+            if return_individual_predictions:
+                return means[0], covariances[0], weights[0], predictions
+            return means[0], covariances[0]
 
         if return_individual_predictions:
-            return mean, covariance, weights, predictions
-
-        return mean, covariance
+            return means, covariances, weights, predictions
+        return means, covariances
 
     def calculate_fisher_information(
         self,
@@ -1201,29 +1224,33 @@ class EnsembleForge:
         n_events : int, optional
             Number of events for which the kinematic Fisher information should be calculated. Default value: 1.
 
-        vote_expectation_weight : float or None, optional
+        vote_expectation_weight : float or list of float or None, optional
             Factor that determines how much more weight is given to those estimators with small expectation value (as
-            calculated by `calculate_expectation()`). If None, or if `calculate_expectation()` has not been called,
-            all estimators are treated equal. Default value: None.
+            calculated by `calculate_expectation()`). If a list is given, results are returned for each element in the
+            list. If None, or if `calculate_expectation()` has not been called, all estimators are treated equal.
+            Default value: None.
 
         return_individual_predictions : bool, optional
             Whether the individual estimator predictions are returned. Default value: False.
 
         Returns
         -------
-        mean_prediction : ndarray
+        mean_prediction : ndarray or list of ndarray
             The (weighted) ensemble mean of the estimators. If the estimators were trained with `method='sally'` or
             `method='sallino'`, this is an array of the estimator for `t(x_i | theta_ref)` for all events `i`.
             Otherwise, the estimated likelihood ratio (if test_all_combinations is True, the result has shape
-            `(n_thetas, n_x)`, otherwise, it has shape `(n_samples,)`).
+            `(n_thetas, n_x)`, otherwise, it has shape `(n_samples,)`). If more then one value vote_expectation_weight
+            is given, this is a list with results for all entries in vote_expectation_weight.
 
-        covariance : ndarray
+        covariance : ndarray or list of ndarray
             The covariance matrix of the Fisher information estimate. This object has four indices,
             `cov_(ij)(i'j')`, ordered as i j i' j'. It has shape
-            `(n_parameters, n_parameters, n_parameters, n_parameters)`.
+            `(n_parameters, n_parameters, n_parameters, n_parameters)`. If more then one value vote_expectation_weight
+            is given, this is a list with results for all entries in vote_expectation_weight.
 
-        weights : ndarray
-            Only returned if return_individual_predictions is True. The estimator weights `w_i`.
+        weights : ndarray or list of ndarray
+            Only returned if return_individual_predictions is True. The estimator weights `w_i`. If more then one value
+            vote_expectation_weight is given, this is a list with results for all entries in vote_expectation_weight.
 
         individual_predictions : ndarray
             Only returned if return_individual_predictions is True. The individual estimator predictions.
@@ -1236,7 +1263,7 @@ class EnsembleForge:
 
         # Calculate weights of each estimator in vote
         if self.expectations is None or vote_expectation_weight is None:
-            weights = np.ones(self.n_estimators)
+            weights = [np.ones(self.n_estimators)]
         else:
             if len(self.expectations.shape) == 1:
                 expectations_norm = self.expectations
@@ -1246,9 +1273,18 @@ class EnsembleForge:
                 expectations_norm = [
                     np.linalg.norm(expectation) for expectation in self.expectations
                 ]
-            weights = np.exp(-vote_expectation_weight * expectations_norm)
 
-        weights /= np.sum(weights)
+            if not isinstance(vote_expectation_weight, list):
+                vote_expectation_weight = [vote_expectation_weight]
+
+            weights = []
+            for vote_weight in vote_expectation_weight:
+                if vote_weight is None:
+                    these_weights = np.ones(self.n_estimators)
+                else:
+                    these_weights = np.exp(-vote_weight * expectations_norm)
+                these_weights /= np.sum(these_weights)
+                weights.append(these_weights)
 
         logging.debug("  Estimator weights: %s", weights)
 
@@ -1268,24 +1304,27 @@ class EnsembleForge:
             )
         predictions = np.array(predictions)
 
-        # Calculate weighted mean
-        mean = np.average(predictions, axis=0, weights=weights)
+        # Calculate weighted means and covariance matrices
+        means = []
+        covariances = []
 
-        # Calculate covariance matrix
-        predictions_flat = predictions.reshape((predictions.shape[0], -1))
-        covariance = np.cov(predictions_flat.T, aweights=weights)
-        covariance_shape = (
-            predictions.shape[1],
-            predictions.shape[2],
-            predictions.shape[1],
-            predictions.shape[2],
-        )
-        covariance = covariance.reshape(covariance_shape)
+        for these_weights in weights:
+            mean = np.average(predictions, axis=0, weights=these_weights)
+            means.append(mean)
+
+            predictions_flat = predictions.reshape((predictions.shape[0], -1))
+            covariance = np.cov(predictions_flat.T, aweights=these_weights)
+            covariances.append(covariance)
+
+        # Returns
+        if len(weights) == 1:
+            if return_individual_predictions:
+                return means[0], covariances[0], weights[0], predictions
+            return means[0], covariances[0]
 
         if return_individual_predictions:
-            return mean, covariance, weights, predictions
-
-        return mean, covariance
+            return means, covariances, weights, predictions
+        return means, covariances
 
     def save(self, folder):
         """

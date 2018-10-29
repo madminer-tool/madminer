@@ -293,20 +293,24 @@ class FisherInformation:
             Whether an uncertainty of the Fisher information is returned together with the prediction. If None, it is
             returned only if model_file points to the directory of an ensemble. Default value: None.
 
-        ensemble_vote_expectation_weight : float or None, optional
-            For ensemble models, the factor that determines how much more weight is given to those estimators with
-            small expectation value. If None, or if `EnsembleForge.calculate_expectation()` has not been called,
-            all estimators are treated equal. Default value: None.
+        ensemble_vote_expectation_weight : float or list of float or None, optional
+            For ensemble models, the factor that determines how much more weight is given to those estimators with small
+            expectation value. If a list is given, results are returned for each element in the list. If None, or if
+            `EnsembleForge.calculate_expectation()` has not been called, all estimators are treated equal. Default
+            value: None.
 
         Returns
         -------
-        fisher_information : ndarray
+        fisher_information : ndarray or list of ndarray
             Estimated expected full detector-level Fisher information matrix with shape `(n_parameters, n_parameters)`.
+            If more then one value ensemble_vote_expectation_weight is given, this is a list with results for all
+            entries in ensemble_vote_expectation_weight.
 
-        fisher_information_uncertainty : ndarray
+        fisher_information_uncertainty : ndarray or list of ndarray
             Returned only if return_error is True, or if return_error is None and model_file is the directory of an
             ensemble. Uncertainty of the expected full detector-level Fisher information matrix with shape
-            `(n_parameters, n_parameters)`.
+            `(n_parameters, n_parameters)`. If more then one value ensemble_vote_expectation_weight is given, this is a
+            list with results for all entries in ensemble_vote_expectation_weight.
 
         """
 
@@ -349,9 +353,21 @@ class FisherInformation:
             if return_error is None:
                 return_error = False
 
+        # Returns
+        if (
+            isinstance(ensemble_vote_expectation_weight, list)
+            and len(ensemble_vote_expectation_weight) > 1
+        ):
+            fisher_info_results = [
+                fisher_info_rate + this_fisher_info_kin
+                for this_fisher_info_kin in fisher_info_kin
+            ]
+            if return_error:
+                return fisher_info_results, fisher_info_uncertainty
+            return fisher_info_results
+
         if return_error:
             return fisher_info_rate + fisher_info_kin, fisher_info_uncertainty
-
         return fisher_info_rate + fisher_info_kin
 
     def calculate_fisher_information_rate(

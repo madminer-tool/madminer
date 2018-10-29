@@ -1,8 +1,9 @@
 # MadMiner
 
-Mining gold from MadGraph to improve limit setting in particle physics. Work in progress by Johann Brehmer, Kyle Cranmer,
+Mining gold from MadGraph for better inference in particle physics. Work in progress by Johann Brehmer, Kyle Cranmer,
 and Felix Kling. Note that this is a prototype and all the interfaces are still constantly changing.
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Binder](https://mybinder.org/badge.svg)](https://mybinder.org/v2/gh/johannbrehmer/madminer/master)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/ambv/black)
 
