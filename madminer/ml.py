@@ -1042,9 +1042,9 @@ class EnsembleForge:
             weights = np.ones(self.n_estimators)
         else:
             if len(self.expectations.shape) == 1:
-                expectations_norm = self.expectactations
+                expectations_norm = self.expectations
             elif len(self.expectations.shape) == 2:
-                expectations_norm = np.linalg.norm(self.expectactations, axis=1)
+                expectations_norm = np.linalg.norm(self.expectations, axis=1)
             else:
                 expectations_norm = [np.linalg.norm(expectation) for expectation in self.expectations]
             weights = np.exp(-vote_expectation_weight * expectations_norm)
@@ -1139,9 +1139,9 @@ class EnsembleForge:
             weights = np.ones(self.n_estimators)
         else:
             if len(self.expectations.shape) == 1:
-                expectations_norm = self.expectactations
+                expectations_norm = self.expectations
             elif len(self.expectations.shape) == 2:
-                expectations_norm = np.linalg.norm(self.expectactations, axis=1)
+                expectations_norm = np.linalg.norm(self.expectations, axis=1)
             else:
                 expectations_norm = [np.linalg.norm(expectation) for expectation in self.expectations]
             weights = np.exp(-vote_expectation_weight * expectations_norm)
