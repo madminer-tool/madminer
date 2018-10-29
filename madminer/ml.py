@@ -1041,9 +1041,17 @@ class EnsembleForge:
         if self.expectations is None or vote_expectation_weight is None:
             weights = np.ones(self.n_estimators)
         else:
-            weights = np.exp(-vote_expectation_weight * self.expectations)
+            if len(self.expectations.shape) == 1:
+                expectations_norm = self.expectactations
+            elif len(self.expectations.shape) == 2:
+                expectations_norm = np.linalg.norm(self.expectactations, axis=1)
+            else:
+                expectations_norm = [np.linalg.norm(expectation) for expectation in self.expectations]
+            weights = np.exp(-vote_expectation_weight * expectations_norm)
 
         weights /= np.sum(weights)
+
+        logging.debug('  Estimator weights: %s', weights)
 
         # Calculate estimator predictions
         predictions = []
@@ -1130,9 +1138,17 @@ class EnsembleForge:
         if self.expectations is None or vote_expectation_weight is None:
             weights = np.ones(self.n_estimators)
         else:
-            weights = np.exp(-vote_expectation_weight * np.linalg.norm(self.expectations))
+            if len(self.expectations.shape) == 1:
+                expectations_norm = self.expectactations
+            elif len(self.expectations.shape) == 2:
+                expectations_norm = np.linalg.norm(self.expectactations, axis=1)
+            else:
+                expectations_norm = [np.linalg.norm(expectation) for expectation in self.expectations]
+            weights = np.exp(-vote_expectation_weight * expectations_norm)
 
         weights /= np.sum(weights)
+
+        logging.debug('  Estimator weights: %s', weights)
 
         # Calculate estimator predictions
         predictions = []
