@@ -9,13 +9,15 @@ import logging
 from madminer.utils.various import create_missing_folders
 
 
-def plot_2d_morphing_basis(morpher,
-                           xlabel=r'$\theta_0$',
-                           ylabel=r'$\theta_1$',
-                           xrange=(-1., 1.),
-                           yrange=(-1., 1.),
-                           crange=(1., 100.),
-                           resolution=100):
+def plot_2d_morphing_basis(
+    morpher,
+    xlabel=r"$\theta_0$",
+    ylabel=r"$\theta_1$",
+    xrange=(-1.0, 1.0),
+    yrange=(-1.0, 1.0),
+    crange=(1.0, 100.0),
+    resolution=100,
+):
     """
     Visualizes a morphing basis and morphing errors for problems with a two-dimensional parameter space.
 
@@ -52,9 +54,12 @@ def plot_2d_morphing_basis(morpher,
     basis = morpher.basis
 
     assert basis is not None, "No basis defined"
-    assert basis.shape[1] == 2, 'Only 2d problems can be plotted with this function'
+    assert basis.shape[1] == 2, "Only 2d problems can be plotted with this function"
 
-    xi, yi = np.linspace(xrange[0], xrange[1], resolution), np.linspace(yrange[0], yrange[1], resolution)
+    xi, yi = (
+        np.linspace(xrange[0], xrange[1], resolution),
+        np.linspace(yrange[0], yrange[1], resolution),
+    )
     xx, yy = np.meshgrid(xi, yi)
     xx, yy = xx.reshape((-1, 1)), yy.reshape((-1, 1))
     theta_test = np.hstack([xx, yy])
@@ -68,16 +73,20 @@ def plot_2d_morphing_basis(morpher,
     fig = plt.figure(figsize=(6.5, 5))
     ax = plt.gca()
 
-    pcm = ax.pcolormesh(xi, yi, squared_weights,
-                        norm=matplotlib.colors.LogNorm(vmin=crange[0], vmax=crange[1]),
-                        cmap='viridis_r')
-    cbar = fig.colorbar(pcm, ax=ax, extend='both')
+    pcm = ax.pcolormesh(
+        xi,
+        yi,
+        squared_weights,
+        norm=matplotlib.colors.LogNorm(vmin=crange[0], vmax=crange[1]),
+        cmap="viridis_r",
+    )
+    cbar = fig.colorbar(pcm, ax=ax, extend="both")
 
-    plt.scatter(basis[:, 0], basis[:, 1], s=50., c='black')
+    plt.scatter(basis[:, 0], basis[:, 1], s=50.0, c="black")
 
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
-    cbar.set_label(r'$\sqrt{\sum w_i^2}$')
+    cbar.set_label(r"$\sqrt{\sum w_i^2}$")
     plt.xlim(xrange[0], xrange[1])
     plt.ylim(yrange[0], yrange[1])
 
@@ -86,7 +95,7 @@ def plot_2d_morphing_basis(morpher,
     return fig
 
 
-def plot_nd_morphing_basis_scatter(morpher, crange=(1., 100.), n_test_thetas=1000):
+def plot_nd_morphing_basis_scatter(morpher, crange=(1.0, 100.0), n_test_thetas=1000):
     """
     Visualizes a morphing basis and morphing errors with scatter plots between each pair of operators.
 
@@ -114,33 +123,47 @@ def plot_nd_morphing_basis_scatter(morpher, crange=(1., 100.), n_test_thetas=100
     n_parameters = basis.shape[1]
 
     #  Get squared weights
-    thetas, squared_weights = morpher.evaluate_morphing(n_test_thetas=n_test_thetas, return_weights_and_thetas=True)
+    thetas, squared_weights = morpher.evaluate_morphing(
+        n_test_thetas=n_test_thetas, return_weights_and_thetas=True
+    )
 
     # Plot
-    fig = plt.figure(figsize=((n_parameters - 1) * 5., (n_parameters - 1) * 4.))
+    fig = plt.figure(figsize=((n_parameters - 1) * 5.0, (n_parameters - 1) * 4.0))
 
     for iy in range(1, n_parameters):
         for ix in range(0, iy):
             i_panel = 1 + (iy - 1) * (n_parameters - 1) + ix
             ax = plt.subplot(n_parameters - 1, n_parameters - 1, i_panel)
 
-            sc = plt.scatter(thetas[:, ix], thetas[:, iy], c=squared_weights, s=20.,
-                             norm=matplotlib.colors.LogNorm(vmin=crange[0], vmax=crange[1]),
-                             cmap='viridis_r')
-            cbar = fig.colorbar(sc, ax=ax, extend='both')
+            sc = plt.scatter(
+                thetas[:, ix],
+                thetas[:, iy],
+                c=squared_weights,
+                s=20.0,
+                norm=matplotlib.colors.LogNorm(vmin=crange[0], vmax=crange[1]),
+                cmap="viridis_r",
+            )
+            cbar = fig.colorbar(sc, ax=ax, extend="both")
 
-            plt.scatter(basis[:, ix], basis[:, iy], s=100., lw=1., edgecolor='black', c='white')
+            plt.scatter(
+                basis[:, ix],
+                basis[:, iy],
+                s=100.0,
+                lw=1.0,
+                edgecolor="black",
+                c="white",
+            )
 
-            plt.xlabel(r'$\theta_' + str(ix) + '$')
-            plt.ylabel(r'$\theta_' + str(iy) + '$')
-            cbar.set_label(r'$\sqrt{\sum w_i^2}$')
+            plt.xlabel(r"$\theta_" + str(ix) + "$")
+            plt.ylabel(r"$\theta_" + str(iy) + "$")
+            cbar.set_label(r"$\sqrt{\sum w_i^2}$")
 
     plt.tight_layout()
 
     return fig
 
 
-def plot_nd_morphing_basis_slices(morpher, crange=(1., 100.), resolution=50):
+def plot_nd_morphing_basis_slices(morpher, crange=(1.0, 100.0), resolution=50):
     """
     Visualizes a morphing basis and morphing errors with two-dimensional slices through parameter space.
 
@@ -168,7 +191,7 @@ def plot_nd_morphing_basis_slices(morpher, crange=(1., 100.), resolution=50):
     n_parameters = basis.shape[1]
 
     # Plot
-    fig = plt.figure(figsize=((n_parameters - 1) * 5., (n_parameters - 1) * 4.))
+    fig = plt.figure(figsize=((n_parameters - 1) * 5.0, (n_parameters - 1) * 4.0))
 
     for iy in range(1, n_parameters):
         for ix in range(0, iy):
@@ -192,18 +215,31 @@ def plot_nd_morphing_basis_slices(morpher, crange=(1., 100.), resolution=50):
             for theta in theta_test:
                 wi = morpher.calculate_morphing_weights(theta, None)
                 squared_weights.append(np.sum(wi * wi) ** 0.5)
-            squared_weights = np.array(squared_weights).reshape((resolution, resolution))
+            squared_weights = np.array(squared_weights).reshape(
+                (resolution, resolution)
+            )
 
-            pcm = ax.pcolormesh(xi, yi, squared_weights,
-                                norm=matplotlib.colors.LogNorm(vmin=crange[0], vmax=crange[1]),
-                                cmap='viridis_r')
-            cbar = fig.colorbar(pcm, ax=ax, extend='both')
+            pcm = ax.pcolormesh(
+                xi,
+                yi,
+                squared_weights,
+                norm=matplotlib.colors.LogNorm(vmin=crange[0], vmax=crange[1]),
+                cmap="viridis_r",
+            )
+            cbar = fig.colorbar(pcm, ax=ax, extend="both")
 
-            plt.scatter(basis[:, ix], basis[:, iy], s=100., lw=1., edgecolor='black', c='white')
+            plt.scatter(
+                basis[:, ix],
+                basis[:, iy],
+                s=100.0,
+                lw=1.0,
+                edgecolor="black",
+                c="white",
+            )
 
-            plt.xlabel(r'$\theta_' + str(ix) + '$')
-            plt.ylabel(r'$\theta_' + str(iy) + '$')
-            cbar.set_label(r'$\sqrt{\sum w_i^2}$')
+            plt.xlabel(r"$\theta_" + str(ix) + "$")
+            plt.ylabel(r"$\theta_" + str(iy) + "$")
+            cbar.set_label(r"$\sqrt{\sum w_i^2}$")
 
     plt.tight_layout()
 
@@ -211,22 +247,22 @@ def plot_nd_morphing_basis_slices(morpher, crange=(1., 100.), resolution=50):
 
 
 def plot_fisher_information_contours_2d(
-        fisher_information_matrices,
-        fisher_information_covariances=None,
-        reference_thetas=None,
-        contour_distance=1.,
-        xlabel=r'$\theta_0$',
-        ylabel=r'$\theta_1$',
-        xrange=(-1., 1.),
-        yrange=(-1., 1.),
-        labels=None,
-        inline_labels=None,
-        resolution=500,
-        colors=None,
-        linestyles=None,
-        linewidths=1.5,
-        alphas=1.,
-        alphas_uncertainties=0.25
+    fisher_information_matrices,
+    fisher_information_covariances=None,
+    reference_thetas=None,
+    contour_distance=1.0,
+    xlabel=r"$\theta_0$",
+    ylabel=r"$\theta_1$",
+    xrange=(-1.0, 1.0),
+    yrange=(-1.0, 1.0),
+    labels=None,
+    inline_labels=None,
+    resolution=500,
+    colors=None,
+    linestyles=None,
+    linewidths=1.5,
+    alphas=1.0,
+    alphas_uncertainties=0.25,
 ):
     """
     Visualizes 2x2 Fisher information matrices as contours of constant Fisher distance from a reference point `theta0`.
@@ -299,22 +335,25 @@ def plot_fisher_information_contours_2d(
     n_matrices = fisher_information_matrices.shape[0]
 
     if fisher_information_matrices.shape != (n_matrices, 2, 2):
-        raise RuntimeError("Fisher information matrices have shape {}, not (n, 2,2)!".format(
-            fisher_information_matrices.shape))
+        raise RuntimeError(
+            "Fisher information matrices have shape {}, not (n, 2,2)!".format(
+                fisher_information_matrices.shape
+            )
+        )
 
     if fisher_information_covariances is None:
         fisher_information_covariances = [None for _ in range(n_matrices)]
 
-    d2_threshold = contour_distance ** 2.
+    d2_threshold = contour_distance ** 2.0
 
     # Line formatting
     if colors is None:
-        colors = ['C' + str(i) for i in range(10)] * (n_matrices // 10 + 1)
+        colors = ["C" + str(i) for i in range(10)] * (n_matrices // 10 + 1)
     elif not isinstance(colors, list):
         colors = [colors for _ in range(n_matrices)]
 
     if linestyles is None:
-        linestyles = ['solid', 'dashed', 'dotted', 'dashdot'] * (n_matrices // 4 + 1)
+        linestyles = ["solid", "dashed", "dotted", "dashdot"] * (n_matrices // 4 + 1)
     elif not isinstance(linestyles, list):
         linestyles = [linestyles for _ in range(n_matrices)]
 
@@ -337,19 +376,25 @@ def plot_fisher_information_contours_2d(
     # Calculate Fisher distances
     fisher_distances_squared = np.matmul(
         fisher_information_matrices[:, np.newaxis, :, :],  # (n_matrices, 1, m, n)
-        thetas[np.newaxis, :, :, np.newaxis]  # (1, n_grid, n, 1)
+        thetas[np.newaxis, :, :, np.newaxis],  # (1, n_grid, n, 1)
     )
     fisher_distances_squared = np.matmul(
         thetas[np.newaxis, :, np.newaxis, :],  # (1, n_grid, 1, m)
-        fisher_distances_squared  # (n_matrices, n_grid, m, 1)
+        fisher_distances_squared,  # (n_matrices, n_grid, m, 1)
     )
-    fisher_distances_squared = fisher_distances_squared.reshape((n_matrices, resolution, resolution))
+    fisher_distances_squared = fisher_distances_squared.reshape(
+        (n_matrices, resolution, resolution)
+    )
 
-    logging.debug('Fisher distances: \n %s', fisher_distances_squared)
+    logging.debug("Fisher distances: \n %s", fisher_distances_squared)
 
-    fisher_distances_alt = np.einsum('ni,mij,nj->mn', thetas, fisher_information_matrices, thetas)
-    fisher_distances_alt_squared = fisher_distances_alt.reshape((n_matrices, resolution, resolution))
-    logging.debug('Diff: %s', fisher_distances_squared - fisher_distances_alt_squared)
+    fisher_distances_alt = np.einsum(
+        "ni,mij,nj->mn", thetas, fisher_information_matrices, thetas
+    )
+    fisher_distances_alt_squared = fisher_distances_alt.reshape(
+        (n_matrices, resolution, resolution)
+    )
+    logging.debug("Diff: %s", fisher_distances_squared - fisher_distances_alt_squared)
 
     # Calculate uncertainties of Fisher distances
     fisher_distances_squared_uncertainties = []
@@ -358,47 +403,65 @@ def plot_fisher_information_contours_2d(
             fisher_distances_squared_uncertainties.append(None)
             continue
 
-        var = np.einsum('ni,nj,ijkl,nk,nl->n', thetas, thetas, inf_cov, thetas, thetas)
+        var = np.einsum("ni,nj,ijkl,nk,nl->n", thetas, thetas, inf_cov, thetas, thetas)
 
         uncertainties = (var ** 0.5).reshape((resolution, resolution))
 
-        logging.debug('Std: %s', uncertainties)
+        logging.debug("Std: %s", uncertainties)
 
         fisher_distances_squared_uncertainties.append(uncertainties)
 
     # Plot results
-    fig = plt.figure(figsize=(5., 5.))
+    fig = plt.figure(figsize=(5.0, 5.0))
 
     # Error bands
     for i in range(n_matrices):
         if fisher_information_covariances[i] is not None:
-            d2_up = fisher_distances_squared[i] + fisher_distances_squared_uncertainties[i]
-            d2_down = fisher_distances_squared[i] - fisher_distances_squared_uncertainties[i]
-            band = (d2_up > d2_threshold) * (d2_down < d2_threshold) + (d2_up < d2_threshold) * (d2_down > d2_threshold)
+            d2_up = (
+                fisher_distances_squared[i] + fisher_distances_squared_uncertainties[i]
+            )
+            d2_down = (
+                fisher_distances_squared[i] - fisher_distances_squared_uncertainties[i]
+            )
+            band = (d2_up > d2_threshold) * (d2_down < d2_threshold) + (
+                d2_up < d2_threshold
+            ) * (d2_down > d2_threshold)
 
             plt.contourf(
-                xi, yi,
+                xi,
+                yi,
                 band,
                 [0.5, 2.5],
                 colors=colors[i],
-                alpha=alphas_uncertainties[i]
+                alpha=alphas_uncertainties[i],
             )
 
     # Predictions
     for i in range(n_matrices):
         cs = plt.contour(
-            xi, yi,
+            xi,
+            yi,
             fisher_distances_squared[i],
             np.array([d2_threshold]),
             colors=colors[i],
             linestyles=linestyles[i],
             linewidths=linewidths[i],
             alpha=alphas[i],
-            label=None if labels is None else labels[i]
+            label=None if labels is None else labels[i],
         )
 
-        if inline_labels is not None and inline_labels[i] is not None and len(inline_labels[i]) > 0:
-            plt.clabel(cs, cs.levels, inline=True, fontsize=12, fmt={d2_threshold: inline_labels[i]})
+        if (
+            inline_labels is not None
+            and inline_labels[i] is not None
+            and len(inline_labels[i]) > 0
+        ):
+            plt.clabel(
+                cs,
+                cs.levels,
+                inline=True,
+                fontsize=12,
+                fmt={d2_threshold: inline_labels[i]},
+            )
 
     # Legend and decorations
     if labels is not None:
@@ -416,18 +479,20 @@ def plot_fisher_information_contours_2d(
 
 # TODO: Clean up below here
 
-def plot_fisherinfo_barplot(matrices,
-                            matrices_for_determinants,
-                            labels,
-                            categories,
-                            operatorlabels,
-                            filename,
-                            additional_label='',
-                            top_label='',
-                            normalise_determinants=False,
-                            use_bar_colors=False,
-                            eigenvalue_operator_legend=True
-                            ):
+
+def plot_fisherinfo_barplot(
+    matrices,
+    matrices_for_determinants,
+    labels,
+    categories,
+    operatorlabels,
+    filename,
+    additional_label="",
+    top_label="",
+    normalise_determinants=False,
+    use_bar_colors=False,
+    eigenvalue_operator_legend=True,
+):
     # """
     # :matrices: list (length N) of fisher infos (n x n tensors) for eigenvalue decomposition
     # :matrices_for_determinants: list (length N) of fisher infos (n x n tensors) for determinant evaluation
@@ -449,24 +514,26 @@ def plot_fisherinfo_barplot(matrices,
     # dimensionality of matrices
     size_upper = len(matrices[1])
     size_lower = len(matrices_for_determinants[1])
-    exponent_upper = 1. / float(size_upper)
-    exponent_lower = 1. / float(size_lower)
+    exponent_upper = 1.0 / float(size_upper)
+    exponent_lower = 1.0 / float(size_lower)
 
     # calculate + normalize determinants
-    determinants = [np.linalg.det(m) ** exponent_lower for m in matrices_for_determinants]
+    determinants = [
+        np.linalg.det(m) ** exponent_lower for m in matrices_for_determinants
+    ]
 
     if normalise_determinants:
         max_information = max(determinants)
         determinants = determinants / max_information
     else:
-        max_information = 1.
+        max_information = 1.0
 
     assert len(determinants) == len(labels)
     n_entries = len(determinants)
 
-    print('')
+    print("")
     for l, d in zip(labels, determinants):
-        print(l + ': det I_{ij} =', d)
+        print(l + ": det I_{ij} =", d)
 
     # calculate eigenvalues + eigenvalue composition
     eigenvalues = []
@@ -476,9 +543,7 @@ def plot_fisherinfo_barplot(matrices,
     for m in matrices:
         v, w = np.linalg.eig(m)
         w = np.transpose(w)
-        v, w = zip(*sorted(zip(v, w),
-                           key=lambda x: x[0],
-                           reverse=True))
+        v, w = zip(*sorted(zip(v, w), key=lambda x: x[0], reverse=True))
         temp = []
         temp_dominant_components = []
         temp_composition = []
@@ -500,12 +565,12 @@ def plot_fisherinfo_barplot(matrices,
     #################################################################################
 
     # Base x values
-    base_xvalues = np.linspace(0., float(n_entries) - 1., n_entries)
+    base_xvalues = np.linspace(0.0, float(n_entries) - 1.0, n_entries)
     for i in range(n_entries):
-        base_xvalues[i] += (float(categories[i]) * 1.)
+        base_xvalues[i] += float(categories[i]) * 1.0
 
     base_xmin = base_xvalues[0]
-    base_xmax = base_xvalues[n_entries - 1] + 1.
+    base_xmax = base_xvalues[n_entries - 1] + 1.0
 
     xpos = base_xvalues + 0.2
     width = 0.6
@@ -518,13 +583,27 @@ def plot_fisherinfo_barplot(matrices,
 
     # barcolored - either colored or gray
     if use_bar_colors:
-        bar_colors = ['red', 'blue', 'green', 'darkorange', 'fuchsia', 'turquoise'] * 5
-        bar_colors_light = ['red', 'blue', 'green', 'darkorange', 'fuchsia', 'turquoise'] * 5
+        bar_colors = ["red", "blue", "green", "darkorange", "fuchsia", "turquoise"] * 5
+        bar_colors_light = [
+            "red",
+            "blue",
+            "green",
+            "darkorange",
+            "fuchsia",
+            "turquoise",
+        ] * 5
     else:
-        bar_colors = ['0.5'] * 30
-        bar_colors_light = ['0.9'] * 30
+        bar_colors = ["0.5"] * 30
+        bar_colors_light = ["0.9"] * 30
 
-    eigenvalue_colors = ['red', 'blue', 'green', 'darkorange', 'fuchsia', 'turquoise'] * 5
+    eigenvalue_colors = [
+        "red",
+        "blue",
+        "green",
+        "darkorange",
+        "fuchsia",
+        "turquoise",
+    ] * 5
     operator_order = [i for i in range(0, size_upper)]
     eigenvalue_linewidth = 1.5
 
@@ -533,10 +612,12 @@ def plot_fisherinfo_barplot(matrices,
     #################################################################################
 
     # Plot bars!
-    fig = plt.figure(figsize=(9., 6.))
+    fig = plt.figure(figsize=(9.0, 6.0))
     ax1 = plt.subplot(211)
-    ax1.set_yscale('log')
-    fig.subplots_adjust(left=0.075, right=0.925, bottom=0.15, top=0.95, wspace=0, hspace=0)
+    ax1.set_yscale("log")
+    fig.subplots_adjust(
+        left=0.075, right=0.925, bottom=0.15, top=0.95, wspace=0, hspace=0
+    )
 
     # Plot eigenvalues
     for i in range(n_entries):
@@ -549,54 +630,65 @@ def plot_fisherinfo_barplot(matrices,
                 if fraction >= minimal_fraction_for_plot:
                     n_gaps += 1
             gap_fraction = 0.04
-            gap_correction_factor = 1. - n_gaps * gap_fraction
+            gap_correction_factor = 1.0 - n_gaps * gap_fraction
 
-            fraction_finished = 0.
+            fraction_finished = 0.0
 
             for j in range(len(composition)):
                 component = operator_order[j]
                 fraction = composition[component]
 
                 if fraction >= minimal_fraction_for_plot:
-                    plt.hlines([eigenvalue],
-                               xmin_eigenvalues[i] + fraction_finished * (xmax_eigenvalues[i] - xmin_eigenvalues[i]),
-                               xmin_eigenvalues[i] + (fraction_finished + gap_correction_factor * fraction) * (
-                                       xmax_eigenvalues[i] - xmin_eigenvalues[i]),
-                               eigenvalue_colors[component],
-                               linestyles='solid',
-                               linewidth=eigenvalue_linewidth)
+                    plt.hlines(
+                        [eigenvalue],
+                        xmin_eigenvalues[i]
+                        + fraction_finished
+                        * (xmax_eigenvalues[i] - xmin_eigenvalues[i]),
+                        xmin_eigenvalues[i]
+                        + (fraction_finished + gap_correction_factor * fraction)
+                        * (xmax_eigenvalues[i] - xmin_eigenvalues[i]),
+                        eigenvalue_colors[component],
+                        linestyles="solid",
+                        linewidth=eigenvalue_linewidth,
+                    )
                     fraction_finished += gap_correction_factor * fraction + gap_fraction
 
     ax1.set_xlim([base_xmin - 0.2, base_xmax + 0.2])
 
     if size_upper > 2:
-        orderofmagnitudes = 1.e6
-        topfactor = 10.
+        orderofmagnitudes = 1.0e6
+        topfactor = 10.0
     else:
-        orderofmagnitudes = 1.e3
-        topfactor = 5.
+        orderofmagnitudes = 1.0e3
+        topfactor = 5.0
 
-    ax1.set_ylim([max([max(ev) for ev in eigenvalues]) / orderofmagnitudes,
-                  max([max(ev) for ev in eigenvalues]) * topfactor])
-    legend_position = max([max(ev) for ev in eigenvalues]) * topfactor / (topfactor * orderofmagnitudes) ** 0.1
+    ax1.set_ylim(
+        [
+            max([max(ev) for ev in eigenvalues]) / orderofmagnitudes,
+            max([max(ev) for ev in eigenvalues]) * topfactor,
+        ]
+    )
+    legend_position = (
+        max([max(ev) for ev in eigenvalues])
+        * topfactor
+        / (topfactor * orderofmagnitudes) ** 0.1
+    )
 
     ax1.set_xticks(xpos_ticks)
-    ax1.set_xticklabels(['' for l in labels], rotation=40, ha='right')
-    ax1.set_ylabel(r'$I_{ij}$ eigenvalues')
+    ax1.set_xticklabels(["" for l in labels], rotation=40, ha="right")
+    ax1.set_ylabel(r"$I_{ij}$ eigenvalues")
     ax1.yaxis.set_label_coords(-0.055, 0.5)
 
-    plt.title(top_label,
-              fontdict={'fontsize': 12.},
-              loc='right')
+    plt.title(top_label, fontdict={"fontsize": 12.0}, loc="right")
 
     # Second axis with typical precision
     ax2 = ax1.twinx()
-    ax2.set_yscale('log')
+    ax2.set_yscale("log")
 
-    epsilon = 1.e-9
+    epsilon = 1.0e-9
 
     def precision_to_information(precision):
-        return (np.maximum(precision, epsilon) / 0.246) ** 4.
+        return (np.maximum(precision, epsilon) / 0.246) ** 4.0
 
     def information_to_precision(fisher_inf):
         return 0.246 * np.maximum(fisher_inf, epsilon) ** 0.25
@@ -611,39 +703,45 @@ def plot_fisherinfo_barplot(matrices,
     ax2_limits = ax1.get_ylim()
     precision_limits = information_to_precision(ax2_limits)
 
-    precision_ticks = np.array([0.1, 0.2, 0.5, 1., 1.5, 2.0, 3.0, 4.0, 5.0])
+    precision_ticks = np.array([0.1, 0.2, 0.5, 1.0, 1.5, 2.0, 3.0, 4.0, 5.0])
     ax2_ticks = precision_to_information(precision_ticks)
 
-    precision_minor_ticks = np.linspace(0., 5., 51)
+    precision_minor_ticks = np.linspace(0.0, 5.0, 51)
     ax2_minor_ticks = precision_to_information(precision_minor_ticks)
     ax2.set_yticks(ax2_ticks, minor=False)
     ax2.set_yticklabels(tick_function_precision(precision_ticks))
     ax2.set_yticks(ax2_minor_ticks, minor=True)
     ax2.set_ylim(ax2_limits)
 
-    ax2.set_ylabel(r'Reach $\Lambda / \sqrt{f}$ [TeV]')
+    ax2.set_ylabel(r"Reach $\Lambda / \sqrt{f}$ [TeV]")
     ax2.yaxis.set_label_coords(1.058, 0.5)
 
     # legend
     if eigenvalue_operator_legend:
 
         if size_upper == 2:
-            legend_labels = [r'Eigenvector composition:'] + operatorlabels
+            legend_labels = [r"Eigenvector composition:"] + operatorlabels
             legend_labels_x = [0.58, 0.88, 0.94]
-            legend_labels_color = ['black'] + eigenvalue_colors
+            legend_labels_color = ["black"] + eigenvalue_colors
         else:
-            legend_labels = [r'Eigenvector composition:'] + operatorlabels
-            legend_labels_x = [0.94 - (len(operatorlabels) - 1) * 0.1 - 0.4] + np.linspace(
-                0.94 - (len(operatorlabels) - 1) * 0.1, 0.94, num=2)
-            legend_labels_color = ['black'] + eigenvalue_colors
+            legend_labels = [r"Eigenvector composition:"] + operatorlabels
+            legend_labels_x = [
+                0.94 - (len(operatorlabels) - 1) * 0.1 - 0.4
+            ] + np.linspace(0.94 - (len(operatorlabels) - 1) * 0.1, 0.94, num=2)
+            legend_labels_color = ["black"] + eigenvalue_colors
 
-        for legend_label, x, col in zip(legend_labels, legend_labels_x, legend_labels_color):
-            ax1.text(x * base_xmax, legend_position,
-                     legend_label,
-                     fontsize=12,
-                     color=col,
-                     horizontalalignment='left',
-                     verticalalignment='center')
+        for legend_label, x, col in zip(
+            legend_labels, legend_labels_x, legend_labels_color
+        ):
+            ax1.text(
+                x * base_xmax,
+                legend_position,
+                legend_label,
+                fontsize=12,
+                color=col,
+                horizontalalignment="left",
+                verticalalignment="center",
+            )
 
     #################################################################################
     # Lower plot
@@ -652,36 +750,40 @@ def plot_fisherinfo_barplot(matrices,
     # Plot bars!
     ax3 = plt.subplot(212)
 
-    bar_plot = ax3.bar(xpos_lower,
-                       determinants,
-                       width=width_lower,
-                       log=False)
+    bar_plot = ax3.bar(xpos_lower, determinants, width=width_lower, log=False)
 
     for i in range(n_entries):
         bar_plot[i].set_color(bar_colors_light[categories[i]])
         bar_plot[i].set_edgecolor(bar_colors[categories[i]])
 
     ax3.set_xlim([base_xmin - 0.2, base_xmax + 0.2])
-    ax3.set_ylim([0., max(determinants) * 1.05])
+    ax3.set_ylim([0.0, max(determinants) * 1.05])
 
     ax3.set_xticks(xpos_ticks)
-    ax3.set_xticklabels(labels, rotation=40, ha='right')
+    ax3.set_xticklabels(labels, rotation=40, ha="right")
     if normalise_determinants:
-        ax3.set_ylabel(r'$(\det \ I_{ij} / \det \ I_{ij}^{\mathrm{full}})^{1/' + str(size_lower) + r'}$')
+        ax3.set_ylabel(
+            r"$(\det \ I_{ij} / \det \ I_{ij}^{\mathrm{full}})^{1/"
+            + str(size_lower)
+            + r"}$"
+        )
     else:
-        ax3.set_ylabel(r'$(\det \ I_{ij})^{1/' + str(size_lower) + r'}$')
+        ax3.set_ylabel(r"$(\det \ I_{ij})^{1/" + str(size_lower) + r"}$")
     ax3.yaxis.set_label_coords(-0.052, 0.5)
 
     if len(additional_label) > 0:
-        ax3.text(0.99 * base_xmax, max(determinants) * 0.93,
-                 additional_label,
-                 fontsize=12,
-                 color='black',
-                 horizontalalignment='right',
-                 verticalalignment='center')
+        ax3.text(
+            0.99 * base_xmax,
+            max(determinants) * 0.93,
+            additional_label,
+            fontsize=12,
+            color="black",
+            horizontalalignment="right",
+            verticalalignment="center",
+        )
 
     def precision_to_norm_information(precision):
-        return (np.maximum(precision, epsilon) / 0.246) ** 4. / max_information
+        return (np.maximum(precision, epsilon) / 0.246) ** 4.0 / max_information
 
     def norm_information_to_precision(fisher_inf):
         return 0.246 * np.maximum(fisher_inf * max_information, epsilon) ** 0.25
@@ -695,7 +797,9 @@ def plot_fisherinfo_barplot(matrices,
     precision_limits = norm_information_to_precision(np.array(ax4_limits))
 
     # precision_ticks = np.array([1.e-3,1.e-2,1.e-1,1.,1.e1,1.e2,1.e3])
-    precision_ticks = np.array([0.1, 0.2, 0.3, 0.4, 0.5, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5])
+    precision_ticks = np.array(
+        [0.1, 0.2, 0.3, 0.4, 0.5, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5]
+    )
     ax4_ticks = precision_to_norm_information(precision_ticks)
 
     ## precision_minor_ticks = []
@@ -704,7 +808,7 @@ def plot_fisherinfo_barplot(matrices,
     ##         precision_minor_ticks.append(i * j)
     ## precision_minor_ticks.append(precision_ticks[-1])
     ## precision_minor_ticks = np.array(precision_minor_ticks)
-    precision_minor_ticks = np.linspace(0.1, 5., 50)
+    precision_minor_ticks = np.linspace(0.1, 5.0, 50)
     ax4_minor_ticks = precision_to_norm_information(precision_minor_ticks)
 
     ax4.set_yticks(ax4_ticks, minor=False)
@@ -713,7 +817,7 @@ def plot_fisherinfo_barplot(matrices,
 
     ax4.set_ylim(ax4_limits)
 
-    ax4.set_ylabel(r'Reach $\Lambda / \sqrt{f}$ [TeV]')
+    ax4.set_ylabel(r"Reach $\Lambda / \sqrt{f}$ [TeV]")
     ax4.yaxis.set_label_coords(1.058, 0.5)
 
     #################################################################################
@@ -726,27 +830,31 @@ def plot_fisherinfo_barplot(matrices,
     plt.close()
 
 
-def kinematic_distribution_of_information(xbins,
-                                          xlabel, xmin, xmax,
-                                          xsecs,
-                                          matrices,
-                                          matrices_aux,
-                                          filename,
-                                          ylabel_addition='',
-                                          log_xsec=False,
-                                          norm_xsec=True,
-                                          show_aux=False,
-                                          show_labels=False,
-                                          label_pos_information=(0., 0.),
-                                          label_pos_sm=(0., 0.),
-                                          label_pos_bsm=(0., 0.),
-                                          label_pos_bkg=(0., 0.),
-                                          label_bsm=r''):
-    epsilon = 1.e-9
+def kinematic_distribution_of_information(
+    xbins,
+    xlabel,
+    xmin,
+    xmax,
+    xsecs,
+    matrices,
+    matrices_aux,
+    filename,
+    ylabel_addition="",
+    log_xsec=False,
+    norm_xsec=True,
+    show_aux=False,
+    show_labels=False,
+    label_pos_information=(0.0, 0.0),
+    label_pos_sm=(0.0, 0.0),
+    label_pos_bsm=(0.0, 0.0),
+    label_pos_bkg=(0.0, 0.0),
+    label_bsm=r"",
+):
+    epsilon = 1.0e-9
 
     # Calculate data
     size = len(matrices[1])
-    exponent = 1. / float(size)
+    exponent = 1.0 / float(size)
     determinants = [np.linalg.det(m) ** exponent for m in matrices]
     determinants_aux = [np.linalg.det(m) ** exponent for m in matrices_aux]
 
@@ -755,30 +863,30 @@ def kinematic_distribution_of_information(xbins,
 
     # extract normalized xsec information
     if norm_xsec:
-        norm = 1. / max(sum([xs for xs in xsecs]), epsilon)
+        norm = 1.0 / max(sum([xs for xs in xsecs]), epsilon)
     else:
-        norm = 1.
+        norm = 1.0
     xsec_norm = [norm * xs for xs in xsecs]
 
     n_entries = len(determinants)
 
     # Get xvals from xbins
     xvals = [(xbins[i] + xbins[i + 1]) / 2 for i in range(0, len(xbins) - 1)]
-    xvals = [xbins[0]-epsilon] + xvals +  [xbins[len(xbins)-1]+epsilon]
+    xvals = [xbins[0] - epsilon] + xvals + [xbins[len(xbins) - 1] + epsilon]
     assert len(xvals) == n_entries
 
     # Plotting options
-    xs_color = 'black'
-    xs_linestyle = 'solid'
+    xs_color = "black"
+    xs_linestyle = "solid"
     xs_linewidth = 1.5
 
-    det_color = 'red'
-    det_linestyle = 'solid'
+    det_color = "red"
+    det_linestyle = "solid"
     det_linewidth = 1.5
     det_alpha = 0.04
 
-    det_aux_color = 'red'
-    det_aux_linestyle = 'dashed'
+    det_aux_color = "red"
+    det_aux_linestyle = "dashed"
     det_aux_linewidth = 1.5
 
     #################################################################################
@@ -787,30 +895,30 @@ def kinematic_distribution_of_information(xbins,
 
     fig = plt.figure(figsize=(5.4, 4.5))
     ax1 = plt.subplot(111)
-    fig.subplots_adjust(left=0.1667, right=0.8333,
-                        bottom=0.17, top=0.97)
+    fig.subplots_adjust(left=0.1667, right=0.8333, bottom=0.17, top=0.97)
 
     if log_xsec:
-        ax1.set_yscale('log')
+        ax1.set_yscale("log")
 
     # SM signal
-    ax1.hist(xvals,
-             weights=xsec_norm,
-             bins=xbins,
-             range=(xmin, xmax),
-             histtype='step',
-             color=xs_color,
-             linewidth=xs_linewidth,
-             linestyle=xs_linestyle)
+    ax1.hist(
+        xvals,
+        weights=xsec_norm,
+        bins=xbins,
+        range=(xmin, xmax),
+        histtype="step",
+        color=xs_color,
+        linewidth=xs_linewidth,
+        linestyle=xs_linestyle,
+    )
 
     # axis
     if norm_xsec:
-        ax1.set_ylabel(r"Normalized distribution",
-                       color=xs_color)
+        ax1.set_ylabel(r"Normalized distribution", color=xs_color)
     else:
         ax1.set_ylabel(r"$\sigma$ [pb/bin]")
     ax1.set_xlim([xmin, xmax])
-    ax1.set_ylim([0., max(xsec_norm) * 1.05])
+    ax1.set_ylim([0.0, max(xsec_norm) * 1.05])
     ax1.set_xlabel(xlabel)
     for tl in ax1.get_yticklabels():
         tl.set_color(xs_color)
@@ -819,36 +927,44 @@ def kinematic_distribution_of_information(xbins,
     ax2 = ax1.twinx()
 
     if show_aux:
-        ax2.hist(xvals,
-                 weights=determinants_aux,
-                 bins=xbins,
-                 range=(xmin, xmax),
-                 histtype='step',
-                 color=det_aux_color,
-                 linewidth=det_aux_linewidth,
-                 linestyle=det_aux_linestyle)
+        ax2.hist(
+            xvals,
+            weights=determinants_aux,
+            bins=xbins,
+            range=(xmin, xmax),
+            histtype="step",
+            color=det_aux_color,
+            linewidth=det_aux_linewidth,
+            linestyle=det_aux_linestyle,
+        )
 
-    ax2.hist(xvals,
-             weights=determinants,
-             bins=xbins,
-             range=(xmin, xmax),
-             histtype='stepfilled',
-             alpha=det_alpha,
-             color=det_color,
-             linewidth=0.)
+    ax2.hist(
+        xvals,
+        weights=determinants,
+        bins=xbins,
+        range=(xmin, xmax),
+        histtype="stepfilled",
+        alpha=det_alpha,
+        color=det_color,
+        linewidth=0.0,
+    )
 
-    ax2.hist(xvals,
-             weights=determinants,
-             bins=xbins,
-             range=(xmin, xmax),
-             histtype='step',
-             color=det_color,
-             linewidth=det_linewidth,
-             linestyle=det_linestyle)
+    ax2.hist(
+        xvals,
+        weights=determinants,
+        bins=xbins,
+        range=(xmin, xmax),
+        histtype="step",
+        color=det_color,
+        linewidth=det_linewidth,
+        linestyle=det_linestyle,
+    )
 
     ax2.set_xlim([xmin, xmax])
-    ax2.set_ylim([0., max(determinants) * 1.1])
-    ax2.set_ylabel(r"$(\det \; I_{ij})^{1/" + str(size) + "}$" + ylabel_addition, color=det_color)
+    ax2.set_ylim([0.0, max(determinants) * 1.1])
+    ax2.set_ylabel(
+        r"$(\det \; I_{ij})^{1/" + str(size) + "}$" + ylabel_addition, color=det_color
+    )
     for tl in ax2.get_yticklabels():
         tl.set_color(det_color)
 

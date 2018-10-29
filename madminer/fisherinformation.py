@@ -6,7 +6,10 @@ import six
 import os
 
 from madminer.utils.interfaces.hdf5 import load_madminer_settings, madminer_event_loader
-from madminer.utils.analysis import get_theta_benchmark_matrix, get_dtheta_benchmark_matrix
+from madminer.utils.analysis import (
+    get_theta_benchmark_matrix,
+    get_dtheta_benchmark_matrix,
+)
 from madminer.morphing import Morpher
 from madminer.utils.various import general_init, format_benchmark, math_commands
 from madminer.ml import MLForge, EnsembleForge
@@ -76,7 +79,9 @@ def profile_information(fisher_information, remaining_components):
             profiled_components.append(i)
     new_index_order = remaining_components + profiled_components
 
-    assert len(remaining_components) == len(remaining_components_checked), "Inconsistent input"
+    assert len(remaining_components) == len(
+        remaining_components_checked
+    ), "Inconsistent input"
 
     # Sort Fisher information such that the remaining components are  at the beginning and the profiled at the end
     profiled_fisher_information = np.copy(fisher_information[new_index_order, :])
@@ -84,10 +89,13 @@ def profile_information(fisher_information, remaining_components):
 
     # Profile over one component at a time
     for c in range(n_components - 1, len(remaining_components) - 1, -1):
-        profiled_fisher_information = (profiled_fisher_information[:c, :c]
-                                       - np.outer(profiled_fisher_information[c, :c],
-                                                  profiled_fisher_information[c, :c])
-                                       / profiled_fisher_information[c, c])
+        profiled_fisher_information = (
+            profiled_fisher_information[:c, :c]
+            - np.outer(
+                profiled_fisher_information[c, :c], profiled_fisher_information[c, :c]
+            )
+            / profiled_fisher_information[c, c]
+        )
 
     return profiled_fisher_information
 
@@ -130,40 +138,61 @@ class FisherInformation:
 
         self.madminer_filename = filename
 
-        logging.info('Loading data from %s', filename)
+        logging.info("Loading data from %s", filename)
 
         # Load data
-        (self.parameters, self.benchmarks, self.morphing_components, self.morphing_matrix,
-         self.observables, self.n_samples) = load_madminer_settings(filename)
+        (
+            self.parameters,
+            self.benchmarks,
+            self.morphing_components,
+            self.morphing_matrix,
+            self.observables,
+            self.n_samples,
+        ) = load_madminer_settings(filename)
         self.n_parameters = len(self.parameters)
         self.n_benchmarks = len(self.benchmarks)
 
-        logging.info('Found %s parameters:', len(self.parameters))
+        logging.info("Found %s parameters:", len(self.parameters))
         for key, values in six.iteritems(self.parameters):
-            logging.info('   %s (LHA: %s %s, maximal power in squared ME: %s, range: %s)',
-                         key, values[0], values[1], values[2], values[3])
+            logging.info(
+                "   %s (LHA: %s %s, maximal power in squared ME: %s, range: %s)",
+                key,
+                values[0],
+                values[1],
+                values[2],
+                values[3],
+            )
 
-        logging.info('Found %s benchmarks:', len(self.benchmarks))
+        logging.info("Found %s benchmarks:", len(self.benchmarks))
         for key, values in six.iteritems(self.benchmarks):
-            logging.info('   %s: %s',
-                         key, format_benchmark(values))
+            logging.info("   %s: %s", key, format_benchmark(values))
 
-        logging.info('Found %s observables: %s', len(self.observables), ', '.join(self.observables))
-        logging.info('Found %s events', self.n_samples)
+        logging.info(
+            "Found %s observables: %s",
+            len(self.observables),
+            ", ".join(self.observables),
+        )
+        logging.info("Found %s events", self.n_samples)
 
         # Morphing
         self.morpher = None
         if self.morphing_matrix is not None and self.morphing_components is not None:
             self.morpher = Morpher(self.parameters)
             self.morpher.set_components(self.morphing_components)
-            self.morpher.set_basis(self.benchmarks, morphing_matrix=self.morphing_matrix)
+            self.morpher.set_basis(
+                self.benchmarks, morphing_matrix=self.morphing_matrix
+            )
 
-            logging.info('Found morphing setup with %s components', len(self.morphing_components))
+            logging.info(
+                "Found morphing setup with %s components", len(self.morphing_components)
+            )
 
         else:
-            raise RuntimeError('Did not find morphing setup.')
+            raise RuntimeError("Did not find morphing setup.")
 
-    def calculate_fisher_information_full_truth(self, theta, luminosity=300000., cuts=None, efficiency_functions=None):
+    def calculate_fisher_information_full_truth(
+        self, theta, luminosity=300000.0, cuts=None, efficiency_functions=None
+    ):
         """
         Calculates the full Fisher information at parton / truth level. This is the information in an idealized
         measurement where all parton-level particles with their charges, flavours, and four-momenta can be accessed with
@@ -203,23 +232,38 @@ class FisherInformation:
 
         for observations, weights in madminer_event_loader(self.madminer_filename):
             # Cuts
-            cut_filter = [self._pass_cuts(obs_event, cuts) for obs_event in observations]
+            cut_filter = [
+                self._pass_cuts(obs_event, cuts) for obs_event in observations
+            ]
             observations = observations[cut_filter]
             weights = weights[cut_filter]
 
             # Efficiencies
             efficiencies = np.array(
-                [self._eval_efficiency(obs_event, efficiency_functions) for obs_event in observations])
+                [
+                    self._eval_efficiency(obs_event, efficiency_functions)
+                    for obs_event in observations
+                ]
+            )
             weights *= efficiencies[:, np.newaxis]
 
             # Fisher information
-            fisher_info += self._calculate_fisher_information(theta, weights, luminosity, sum_events=True)
+            fisher_info += self._calculate_fisher_information(
+                theta, weights, luminosity, sum_events=True
+            )
 
         return fisher_info
 
-    def calculate_fisher_information_full_detector(self, theta, model_file, unweighted_x_sample_file,
-                                                   luminosity=300000., cuts=None, return_error=None,
-                                                   ensemble_vote_expectation_weight=None):
+    def calculate_fisher_information_full_detector(
+        self,
+        theta,
+        model_file,
+        unweighted_x_sample_file,
+        luminosity=300000.0,
+        cuts=None,
+        return_error=None,
+        ensemble_vote_expectation_weight=None,
+    ):
         """
         Calculates the full Fisher information in realistic detector-level observations, estimated with neural networks.
         In addition to the MadMiner file, this requires a trained SALLY or SALLINO estimator as well as an unweighted
@@ -272,14 +316,9 @@ class FisherInformation:
 
         # Rate part of Fisher information
         fisher_info_rate = self.calculate_fisher_information_rate(
-            theta=theta,
-            luminosity=luminosity,
-            cuts=cuts
+            theta=theta, luminosity=luminosity, cuts=cuts
         )
-        total_xsec = self._calculate_xsec(
-            theta=theta,
-            cuts=cuts
-        )
+        total_xsec = self._calculate_xsec(theta=theta, cuts=cuts)
 
         # Kinematic part of Fisher information: either with MLForge or with EnsembleForge
         if os.path.isdir(model_file):
@@ -290,7 +329,7 @@ class FisherInformation:
             fisher_info_kin, fisher_info_uncertainty = model.calculate_fisher_information(
                 unweighted_x_sample_file,
                 n_events=luminosity * total_xsec,
-                vote_expectation_weight=ensemble_vote_expectation_weight
+                vote_expectation_weight=ensemble_vote_expectation_weight,
             )
 
             if return_error is None:
@@ -302,8 +341,7 @@ class FisherInformation:
             model.load(model_file)
 
             fisher_info_kin = model.calculate_fisher_information(
-                unweighted_x_sample_file,
-                n_events=luminosity * total_xsec
+                unweighted_x_sample_file, n_events=luminosity * total_xsec
             )
 
             fisher_info_uncertainty = None
@@ -316,7 +354,9 @@ class FisherInformation:
 
         return fisher_info_rate + fisher_info_kin
 
-    def calculate_fisher_information_rate(self, theta, luminosity, cuts=None, efficiency_functions=None):
+    def calculate_fisher_information_rate(
+        self, theta, luminosity, cuts=None, efficiency_functions=None
+    ):
         """
         Calculates the Fisher information in a measurement of the total cross section (without any kinematic
         information).
@@ -348,7 +388,7 @@ class FisherInformation:
         weights_benchmarks = self._calculate_xsec(
             cuts=cuts,
             efficiency_functions=efficiency_functions,
-            return_benchmark_xsecs=True
+            return_benchmark_xsecs=True,
         )
 
         # Get Fisher information
@@ -356,13 +396,21 @@ class FisherInformation:
             theta=theta,
             weights_benchmarks=weights_benchmarks[np.newaxis, :],
             luminosity=luminosity,
-            sum_events=True
+            sum_events=True,
         )
 
         return fisher_info
 
-    def calculate_fisher_information_hist1d(self, theta, luminosity, observable, nbins, histrange, cuts=None,
-                                            efficiency_functions=None):
+    def calculate_fisher_information_hist1d(
+        self,
+        theta,
+        luminosity,
+        observable,
+        nbins,
+        histrange,
+        cuts=None,
+        efficiency_functions=None,
+    ):
         """
         Calculates the Fisher information in the one-dimensional histogram of an (parton-level or detector-level,
         depending on how the observations in the MadMiner file were calculated) observable.
@@ -415,21 +463,34 @@ class FisherInformation:
 
         for observations, weights in madminer_event_loader(self.madminer_filename):
             # Cuts
-            cut_filter = [self._pass_cuts(obs_event, cuts) for obs_event in observations]
+            cut_filter = [
+                self._pass_cuts(obs_event, cuts) for obs_event in observations
+            ]
             observations = observations[cut_filter]
             weights = weights[cut_filter]
 
             # Efficiencies
             efficiencies = np.array(
-                [self._eval_efficiency(obs_event, efficiency_functions) for obs_event in observations])
+                [
+                    self._eval_efficiency(obs_event, efficiency_functions)
+                    for obs_event in observations
+                ]
+            )
             weights *= efficiencies[:, np.newaxis]
 
             # Evaluate histogrammed observable
-            histo_observables = np.asarray([self._eval_observable(obs_event, observable) for obs_event in observations])
+            histo_observables = np.asarray(
+                [
+                    self._eval_observable(obs_event, observable)
+                    for obs_event in observations
+                ]
+            )
 
             # Find bins
             bins = np.searchsorted(bin_boundaries, histo_observables)
-            assert ((0 <= bins) & (bins < n_bins_total)).all(), 'Wrong bin {}'.format(bins)
+            assert ((0 <= bins) & (bins < n_bins_total)).all(), "Wrong bin {}".format(
+                bins
+            )
 
             # Add up
             for i in range(n_bins_total):
@@ -437,12 +498,25 @@ class FisherInformation:
                     weights_benchmarks[i] += np.sum(weights[bins == i], axis=0)
 
         # Calculate Fisher information in histogram
-        fisher_info = self._calculate_fisher_information(theta, weights_benchmarks, luminosity, sum_events=True)
+        fisher_info = self._calculate_fisher_information(
+            theta, weights_benchmarks, luminosity, sum_events=True
+        )
 
         return fisher_info
 
-    def calculate_fisher_information_hist2d(self, theta, luminosity, observable1, nbins1, histrange1, observable2,
-                                            nbins2, histrange2, cuts=None, efficiency_functions=None):
+    def calculate_fisher_information_hist2d(
+        self,
+        theta,
+        luminosity,
+        observable1,
+        nbins1,
+        histrange1,
+        observable2,
+        nbins2,
+        histrange2,
+        cuts=None,
+        efficiency_functions=None,
+    ):
 
         """
         Calculates the Fisher information in a two-dimensional histogram of two (parton-level or detector-level,
@@ -510,42 +584,72 @@ class FisherInformation:
 
         for observations, weights in madminer_event_loader(self.madminer_filename):
             # Cuts
-            cut_filter = [self._pass_cuts(obs_event, cuts) for obs_event in observations]
+            cut_filter = [
+                self._pass_cuts(obs_event, cuts) for obs_event in observations
+            ]
             observations = observations[cut_filter]
             weights = weights[cut_filter]
 
             # Efficiencies
             efficiencies = np.array(
-                [self._eval_efficiency(obs_event, efficiency_functions) for obs_event in observations])
+                [
+                    self._eval_efficiency(obs_event, efficiency_functions)
+                    for obs_event in observations
+                ]
+            )
             weights *= efficiencies[:, np.newaxis]
 
             # Evaluate histogrammed observable
             histo1_observables = np.asarray(
-                [self._eval_observable(obs_event, observable1) for obs_event in observations])
+                [
+                    self._eval_observable(obs_event, observable1)
+                    for obs_event in observations
+                ]
+            )
             histo2_observables = np.asarray(
-                [self._eval_observable(obs_event, observable2) for obs_event in observations])
+                [
+                    self._eval_observable(obs_event, observable2)
+                    for obs_event in observations
+                ]
+            )
 
             # Find bins
             bins1 = np.searchsorted(bin1_boundaries, histo1_observables)
             bins2 = np.searchsorted(bin2_boundaries, histo2_observables)
 
-            assert ((0 <= bins1) & (bins1 < n_bins1_total)).all(), 'Wrong bin {}'.format(bins1)
-            assert ((0 <= bins1) & (bins1 < n_bins1_total)).all(), 'Wrong bin {}'.format(bins1)
+            assert (
+                (0 <= bins1) & (bins1 < n_bins1_total)
+            ).all(), "Wrong bin {}".format(bins1)
+            assert (
+                (0 <= bins1) & (bins1 < n_bins1_total)
+            ).all(), "Wrong bin {}".format(bins1)
 
             # Add up
             for i in range(n_bins1_total):
                 for j in range(n_bins2_total):
                     if len(weights[(bins1 == i) & (bins2 == j)]) > 0:
-                        weights_benchmarks[i, j] += np.sum(weights[(bins1 == i) & (bins2 == j)], axis=0)
+                        weights_benchmarks[i, j] += np.sum(
+                            weights[(bins1 == i) & (bins2 == j)], axis=0
+                        )
 
         # Calculate Fisher information in histogram
         weights_benchmarks = weights_benchmarks.reshape(-1, self.n_benchmarks)
-        fisher_info = self._calculate_fisher_information(theta, weights_benchmarks, luminosity, sum_events=True)
+        fisher_info = self._calculate_fisher_information(
+            theta, weights_benchmarks, luminosity, sum_events=True
+        )
 
         return fisher_info
 
-    def histogram_of_fisher_information(self, theta, luminosity, observable, nbins, histrange, cuts=None,
-                                        efficiency_functions=None):
+    def histogram_of_fisher_information(
+        self,
+        theta,
+        luminosity,
+        observable,
+        nbins,
+        histrange,
+        cuts=None,
+        efficiency_functions=None,
+    ):
         """
         Calculates the full and rate-only Fisher information in slices of one observable.
 
@@ -604,48 +708,64 @@ class FisherInformation:
 
         # Loop over batches
         weights_benchmarks_bins = np.zeros((n_bins_total, self.n_benchmarks))
-        fisher_info_full_bins = np.zeros((n_bins_total, self.n_parameters, self.n_parameters))
+        fisher_info_full_bins = np.zeros(
+            (n_bins_total, self.n_parameters, self.n_parameters)
+        )
 
         for observations, weights in madminer_event_loader(self.madminer_filename):
             # Cuts
-            cut_filter = [self._pass_cuts(obs_event, cuts) for obs_event in observations]
+            cut_filter = [
+                self._pass_cuts(obs_event, cuts) for obs_event in observations
+            ]
             observations = observations[cut_filter]
             weights = weights[cut_filter]
 
             # Efficiencies
             efficiencies = np.array(
-                [self._eval_efficiency(obs_event, efficiency_functions) for obs_event in observations])
+                [
+                    self._eval_efficiency(obs_event, efficiency_functions)
+                    for obs_event in observations
+                ]
+            )
             weights *= efficiencies[:, np.newaxis]
 
             # Fisher info per event
-            fisher_info_events = self._calculate_fisher_information(theta, weights, luminosity,
-                                                                    sum_events=False)
+            fisher_info_events = self._calculate_fisher_information(
+                theta, weights, luminosity, sum_events=False
+            )
 
             # Evaluate histogrammed observable
-            histo_observables = np.asarray([self._eval_observable(obs_event, observable) for obs_event in observations])
+            histo_observables = np.asarray(
+                [
+                    self._eval_observable(obs_event, observable)
+                    for obs_event in observations
+                ]
+            )
 
             # Find bins
             bins = np.searchsorted(bin_boundaries, histo_observables)
-            assert ((0 <= bins) & (bins < n_bins_total)).all(), 'Wrong bin {}'.format(bins)
+            assert ((0 <= bins) & (bins < n_bins_total)).all(), "Wrong bin {}".format(
+                bins
+            )
 
             # Add up
             for i in range(n_bins_total):
                 if len(weights[bins == i]) > 0:
                     weights_benchmarks_bins[i] += np.sum(weights[bins == i], axis=0)
-                    fisher_info_full_bins[i] += np.sum(fisher_info_events[bins == i], axis=0)
+                    fisher_info_full_bins[i] += np.sum(
+                        fisher_info_events[bins == i], axis=0
+                    )
 
         # Calculate xsecs in bins
         theta_matrix = get_theta_benchmark_matrix(
-            'morphing',
-            theta,
-            self.benchmarks,
-            self.morpher
+            "morphing", theta, self.benchmarks, self.morpher
         )
         sigma_bins = theta_matrix.dot(weights_benchmarks_bins.T)  # (n_bins,)
 
         # Calculate rate-only Fisher informations in bins
-        fisher_info_rate_bins = self._calculate_fisher_information(theta, weights_benchmarks_bins, luminosity,
-                                                                   sum_events=False)
+        fisher_info_rate_bins = self._calculate_fisher_information(
+            theta, weights_benchmarks_bins, luminosity, sum_events=False
+        )
 
         return bin_boundaries, sigma_bins, fisher_info_rate_bins, fisher_info_full_bins
 
@@ -671,14 +791,13 @@ class FisherInformation:
 
         """
 
-        x, weights_benchmarks = next(madminer_event_loader(self.madminer_filename, batch_size=None))
+        x, weights_benchmarks = next(
+            madminer_event_loader(self.madminer_filename, batch_size=None)
+        )
 
         if theta is not None:
             theta_matrix = get_theta_benchmark_matrix(
-                'morphing',
-                theta,
-                self.benchmarks,
-                self.morpher
+                "morphing", theta, self.benchmarks, self.morpher
             )
 
             weights_theta = theta_matrix.dot(weights_benchmarks.T)
@@ -706,15 +825,14 @@ class FisherInformation:
 
         """
 
-        x, weights_benchmarks = next(madminer_event_loader(self.madminer_filename, batch_size=None))
+        x, weights_benchmarks = next(
+            madminer_event_loader(self.madminer_filename, batch_size=None)
+        )
 
         weights_thetas = []
         for theta in thetas:
             theta_matrix = get_theta_benchmark_matrix(
-                'morphing',
-                theta,
-                self.benchmarks,
-                self.morpher
+                "morphing", theta, self.benchmarks, self.morpher
             )
             weights_thetas.append(theta_matrix.dot(weights_benchmarks.T))
 
@@ -722,7 +840,9 @@ class FisherInformation:
 
         return x, weights_thetas
 
-    def _calculate_fisher_information(self, theta, weights_benchmarks, luminosity=300000., sum_events=False):
+    def _calculate_fisher_information(
+        self, theta, weights_benchmarks, luminosity=300000.0, sum_events=False
+    ):
         """
         Low-level function that calculates a list of full Fisher information matrices for a given parameter point and
         benchmark weights. Do not use this function directly, instead use the other `FisherInformation` functions.
@@ -753,26 +873,26 @@ class FisherInformation:
 
         # Get morphing matrices
         theta_matrix = get_theta_benchmark_matrix(
-            'morphing',
-            theta,
-            self.benchmarks,
-            self.morpher
+            "morphing", theta, self.benchmarks, self.morpher
         )
         dtheta_matrix = get_dtheta_benchmark_matrix(
-            'morphing',
-            theta,
-            self.benchmarks,
-            self.morpher
+            "morphing", theta, self.benchmarks, self.morpher
         )
 
         # Get differential xsec per event, and the derivative wrt to theta
         sigma = theta_matrix.dot(weights_benchmarks.T)  # Shape (n_events,)
-        dsigma = dtheta_matrix.dot(weights_benchmarks.T)  # Shape (n_parameters, n_events)
+        dsigma = dtheta_matrix.dot(
+            weights_benchmarks.T
+        )  # Shape (n_parameters, n_events)
 
         # Calculate Fisher info for this event
         fisher_info = []
         for i_event in range(len(sigma)):
-            fisher_info.append(luminosity / sigma[i_event] * np.tensordot(dsigma.T[i_event], dsigma.T[i_event], axes=0))
+            fisher_info.append(
+                luminosity
+                / sigma[i_event]
+                * np.tensordot(dsigma.T[i_event], dsigma.T[i_event], axes=0)
+            )
         fisher_info = np.array(fisher_info)
 
         fisher_info = np.nan_to_num(fisher_info)
@@ -805,7 +925,9 @@ class FisherInformation:
         if cuts is None:
             cuts = []
 
-        assert len(observations) == len(self.observables), 'Mismatch between observables and observations'
+        assert len(observations) == len(
+            self.observables
+        ), "Mismatch between observables and observations"
 
         # Variables that can be used in cuts
         variables = math_commands()
@@ -845,7 +967,9 @@ class FisherInformation:
         if efficiency_functions is None:
             efficiency_functions = []
 
-        assert len(observations) == len(self.observables), 'Mismatch between observables and observations'
+        assert len(observations) == len(
+            self.observables
+        ), "Mismatch between observables and observations"
 
         # Variables that can be used in efficiency functions
         variables = math_commands()
@@ -854,7 +978,7 @@ class FisherInformation:
             variables[observable_name] = observable_value
 
         # Check cuts
-        efficiency = 1.
+        efficiency = 1.0
         for efficency_function in efficiency_functions:
             efficiency *= float(eval(efficency_function, variables))
 
@@ -879,7 +1003,9 @@ class FisherInformation:
 
         """
 
-        assert len(observations) == len(self.observables), 'Mismatch between observables and observations'
+        assert len(observations) == len(
+            self.observables
+        ), "Mismatch between observables and observations"
 
         # Variables that can be used in efficiency functions
         variables = math_commands()
@@ -890,7 +1016,13 @@ class FisherInformation:
         # Check cuts
         return float(eval(observable_definition, variables))
 
-    def _calculate_xsec(self, theta=None, cuts=None, efficiency_functions=None, return_benchmark_xsecs=False):
+    def _calculate_xsec(
+        self,
+        theta=None,
+        cuts=None,
+        efficiency_functions=None,
+        return_benchmark_xsecs=False,
+    ):
         """
         Calculates the total cross section for a parameter point.
 
@@ -925,20 +1057,30 @@ class FisherInformation:
         if efficiency_functions is None:
             efficiency_functions = []
 
-        assert (theta is not None) or return_benchmark_xsecs, 'Please supply theta or set return_benchmark_xsecs=True'
+        assert (
+            theta is not None
+        ) or return_benchmark_xsecs, (
+            "Please supply theta or set return_benchmark_xsecs=True"
+        )
 
         # Total xsecs for benchmarks
         xsecs_benchmarks = None
 
         for observations, weights in madminer_event_loader(self.madminer_filename):
             # Cuts
-            cut_filter = [self._pass_cuts(obs_event, cuts) for obs_event in observations]
+            cut_filter = [
+                self._pass_cuts(obs_event, cuts) for obs_event in observations
+            ]
             observations = observations[cut_filter]
             weights = weights[cut_filter]
 
             # Efficiencies
             efficiencies = np.array(
-                [self._eval_efficiency(obs_event, efficiency_functions) for obs_event in observations])
+                [
+                    self._eval_efficiency(obs_event, efficiency_functions)
+                    for obs_event in observations
+                ]
+            )
             weights *= efficiencies[:, np.newaxis]
 
             # xsecs
@@ -954,10 +1096,7 @@ class FisherInformation:
 
         # Translate to xsec for theta
         theta_matrix = get_theta_benchmark_matrix(
-            'morphing',
-            theta,
-            self.benchmarks,
-            self.morpher
+            "morphing", theta, self.benchmarks, self.morpher
         )
         xsec = theta_matrix.dot(xsecs_benchmarks)
 

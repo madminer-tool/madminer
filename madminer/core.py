@@ -7,10 +7,23 @@ from collections import OrderedDict
 import tempfile
 
 from madminer.morphing import Morpher
-from madminer.utils.interfaces.hdf5 import save_madminer_settings, load_madminer_settings
+from madminer.utils.interfaces.hdf5 import (
+    save_madminer_settings,
+    load_madminer_settings,
+)
 from madminer.utils.interfaces.mg_cards import export_param_card, export_reweight_card
-from madminer.utils.interfaces.mg import generate_mg_process, prepare_run_mg_pythia, run_mg_pythia, copy_ufo_model
-from madminer.utils.various import create_missing_folders, general_init, format_benchmark, make_file_executable
+from madminer.utils.interfaces.mg import (
+    generate_mg_process,
+    prepare_run_mg_pythia,
+    run_mg_pythia,
+    copy_ufo_model,
+)
+from madminer.utils.various import (
+    create_missing_folders,
+    general_init,
+    format_benchmark,
+    make_file_executable,
+)
 from madminer.utils.various import copy_file
 
 
@@ -46,13 +59,15 @@ class MadMiner:
         self.morpher = None
         self.export_morphing = False
 
-    def add_parameter(self,
-                      lha_block,
-                      lha_id,
-                      parameter_name=None,
-                      param_card_transform=None,
-                      morphing_max_power=2,
-                      parameter_range=(0., 1.)):
+    def add_parameter(
+        self,
+        lha_block,
+        lha_id,
+        parameter_name=None,
+        param_card_transform=None,
+        morphing_max_power=2,
+        parameter_range=(0.0, 1.0),
+    ):
 
         """
         Adds an individual parameter.
@@ -95,33 +110,49 @@ class MadMiner:
 
         # Default names
         if parameter_name is None:
-            parameter_name = 'parameter_' + str(len(self.parameters))
+            parameter_name = "parameter_" + str(len(self.parameters))
 
         # Check and sanitize input
-        assert isinstance(parameter_name, six.string_types), 'Parameter name is not a string: {}'.format(parameter_name)
-        assert isinstance(lha_block, six.string_types), 'LHA block is not a string: {}'.format(lha_block)
-        assert isinstance(lha_id, int), 'LHA id is not an integer: {}'.format(lha_id)
+        assert isinstance(
+            parameter_name, six.string_types
+        ), "Parameter name is not a string: {}".format(parameter_name)
+        assert isinstance(
+            lha_block, six.string_types
+        ), "LHA block is not a string: {}".format(lha_block)
+        assert isinstance(lha_id, int), "LHA id is not an integer: {}".format(lha_id)
 
-        parameter_name = parameter_name.replace(' ', '_')
-        parameter_name = parameter_name.replace('-', '_')
+        parameter_name = parameter_name.replace(" ", "_")
+        parameter_name = parameter_name.replace("-", "_")
 
-        assert parameter_name not in self.parameters, 'Parameter name exists already: {}'.format(parameter_name)
+        assert (
+            parameter_name not in self.parameters
+        ), "Parameter name exists already: {}".format(parameter_name)
 
         if isinstance(morphing_max_power, int):
             morphing_max_power = (morphing_max_power,)
 
         # Add parameter
-        self.parameters[parameter_name] = (lha_block, lha_id,
-                                           morphing_max_power, parameter_range, param_card_transform)
+        self.parameters[parameter_name] = (
+            lha_block,
+            lha_id,
+            morphing_max_power,
+            parameter_range,
+            param_card_transform,
+        )
 
         # After manually adding parameters, the morphing information is not accurate anymore
         self.morpher = None
 
-        logging.info('Added parameter %s (LHA: %s %s, maximal power in squared ME: %s, range: %s)', parameter_name,
-                     lha_block, lha_id, morphing_max_power, parameter_range)
+        logging.info(
+            "Added parameter %s (LHA: %s %s, maximal power in squared ME: %s, range: %s)",
+            parameter_name,
+            lha_block,
+            lha_id,
+            morphing_max_power,
+            parameter_range,
+        )
 
-    def set_parameters(self,
-                       parameters=None):
+    def set_parameters(self, parameters=None):
 
         """
         Manually sets all parameters, overwriting previously added parameters.
@@ -153,28 +184,28 @@ class MadMiner:
                         lha_id=values[1],
                         parameter_name=key,
                         parameter_range=[values[3], values[4]],
-                        morphing_max_power=values[2]
+                        morphing_max_power=values[2],
                     )
                 elif len(values) == 2:
                     self.add_parameter(
-                        lha_block=values[0],
-                        lha_id=values[1],
-                        parameter_name=key
+                        lha_block=values[0], lha_id=values[1], parameter_name=key
                     )
                 else:
-                    raise ValueError('Parameter properties has unexpected length: {0}'.format(values))
+                    raise ValueError(
+                        "Parameter properties has unexpected length: {0}".format(values)
+                    )
 
         else:
             for values in parameters:
-                assert len(values) == 2, 'Parameter list entry does not have length 2: {0}'.format(values)
+                assert (
+                    len(values) == 2
+                ), "Parameter list entry does not have length 2: {0}".format(values)
                 self.add_parameter(values[0], values[1])
 
         # After manually adding parameters, the morphing information is not accurate anymore
         self.morpher = None
 
-    def add_benchmark(self,
-                      parameter_values,
-                      benchmark_name=None):
+    def add_benchmark(self, parameter_values, benchmark_name=None):
         """
         Manually adds an individual benchmark, that is, a parameter point that will be evaluated by MadGraph.
 
@@ -200,18 +231,22 @@ class MadMiner:
 
         # Default names
         if benchmark_name is None:
-            benchmark_name = 'benchmark_' + str(len(self.benchmarks))
+            benchmark_name = "benchmark_" + str(len(self.benchmarks))
 
         # Check input
         if not isinstance(parameter_values, dict):
-            raise RuntimeError('Parameter values are not a dict: {}'.format(parameter_values))
+            raise RuntimeError(
+                "Parameter values are not a dict: {}".format(parameter_values)
+            )
 
         for key, value in six.iteritems(parameter_values):
             if key not in self.parameters:
-                raise RuntimeError('Unknown parameter: {0}'.format(key))
+                raise RuntimeError("Unknown parameter: {0}".format(key))
 
         if benchmark_name in self.benchmarks:
-            raise RuntimeError('Benchmark name {} exists already'.format(benchmark_name))
+            raise RuntimeError(
+                "Benchmark name {} exists already".format(benchmark_name)
+            )
 
         # Add benchmark
         self.benchmarks[benchmark_name] = parameter_values
@@ -223,10 +258,13 @@ class MadMiner:
         # After manually adding benchmarks, the morphing information is not accurate anymore
         self.morpher = None
 
-        logging.info('Added benchmark %s: %s)', benchmark_name, format_benchmark(parameter_values))
+        logging.info(
+            "Added benchmark %s: %s)",
+            benchmark_name,
+            format_benchmark(parameter_values),
+        )
 
-    def set_benchmarks(self,
-                       benchmarks=None):
+    def set_benchmarks(self, benchmarks=None):
         """
         Manually sets all benchmarks, that is, parameter points that will be evaluated by MadGraph. Calling this
         function overwrites all previously defined benchmarks.
@@ -260,12 +298,14 @@ class MadMiner:
         # After manually adding benchmarks, the morphing information is not accurate anymore
         self.morpher = None
 
-    def set_benchmarks_from_morphing(self,
-                                     max_overall_power=4,
-                                     n_bases=1,
-                                     keep_existing_benchmarks=True,
-                                     n_trials=100,
-                                     n_test_thetas=100):
+    def set_benchmarks_from_morphing(
+        self,
+        max_overall_power=4,
+        n_bases=1,
+        keep_existing_benchmarks=True,
+        n_trials=100,
+        n_test_thetas=100,
+    ):
         """
         Sets benchmarks, i.e. parameter points that will be evaluated by MadGraph, for a morphing algorithm, and
         calculates all information required for morphing. Morphing is a technique that allows MadMax to infer the full
@@ -312,7 +352,7 @@ class MadMiner:
 
         """
 
-        logging.info('Optimizing basis for morphing')
+        logging.info("Optimizing basis for morphing")
 
         if isinstance(max_overall_power, int):
             max_overall_power = (max_overall_power,)
@@ -321,15 +361,19 @@ class MadMiner:
         morpher.find_components(max_overall_power)
 
         if keep_existing_benchmarks:
-            basis = morpher.optimize_basis(n_bases=n_bases,
-                                           fixed_benchmarks_from_madminer=self.benchmarks,
-                                           n_trials=n_trials,
-                                           n_test_thetas=n_test_thetas)
+            basis = morpher.optimize_basis(
+                n_bases=n_bases,
+                fixed_benchmarks_from_madminer=self.benchmarks,
+                n_trials=n_trials,
+                n_test_thetas=n_test_thetas,
+            )
         else:
-            basis = morpher.optimize_basis(n_bases=n_bases,
-                                           fixed_benchmarks_from_madminer=None,
-                                           n_trials=n_trials,
-                                           n_test_thetas=n_test_thetas)
+            basis = morpher.optimize_basis(
+                n_bases=n_bases,
+                fixed_benchmarks_from_madminer=None,
+                n_trials=n_trials,
+                n_test_thetas=n_test_thetas,
+            )
 
         self.set_benchmarks(basis)
         self.morpher = morpher
@@ -355,18 +399,29 @@ class MadMiner:
         """
 
         # Load data
-        (self.parameters, self.benchmarks, morphing_components, morphing_matrix,
-         _, _) = load_madminer_settings(filename)
+        (
+            self.parameters,
+            self.benchmarks,
+            morphing_components,
+            morphing_matrix,
+            _,
+            _,
+        ) = load_madminer_settings(filename)
 
-        logging.info('Found %s parameters:', len(self.parameters))
+        logging.info("Found %s parameters:", len(self.parameters))
         for key, values in six.iteritems(self.parameters):
-            logging.info('   %s (LHA: %s %s, maximal power in squared ME: %s, range: %s)',
-                         key, values[0], values[1], values[2], values[3])
+            logging.info(
+                "   %s (LHA: %s %s, maximal power in squared ME: %s, range: %s)",
+                key,
+                values[0],
+                values[1],
+                values[2],
+                values[3],
+            )
 
-        logging.info('Found %s benchmarks:', len(self.benchmarks))
+        logging.info("Found %s benchmarks:", len(self.benchmarks))
         for key, values in six.iteritems(self.benchmarks):
-            logging.info('   %s: %s',
-                         key, format_benchmark(values))
+            logging.info("   %s: %s", key, format_benchmark(values))
 
             if self.default_benchmark is None:
                 self.default_benchmark = key
@@ -375,16 +430,22 @@ class MadMiner:
         self.morpher = None
         self.export_morphing = False
 
-        if morphing_matrix is not None and morphing_components is not None and not disable_morphing:
+        if (
+            morphing_matrix is not None
+            and morphing_components is not None
+            and not disable_morphing
+        ):
             self.morpher = Morpher(self.parameters)
             self.morpher.set_components(morphing_components)
             self.morpher.set_basis(self.benchmarks, morphing_matrix=morphing_matrix)
             self.export_morphing = True
 
-            logging.info('Found morphing setup with %s components', len(morphing_components))
+            logging.info(
+                "Found morphing setup with %s components", len(morphing_components)
+            )
 
         else:
-            logging.info('Did not find morphing setup.')
+            logging.info("Did not find morphing setup.")
 
     def save(self, filename):
         """
@@ -415,29 +476,33 @@ class MadMiner:
         create_missing_folders([os.path.dirname(filename)])
 
         if self.morpher is not None:
-            logging.info('Saving setup (including morphing) to %s', filename)
+            logging.info("Saving setup (including morphing) to %s", filename)
 
-            save_madminer_settings(filename=filename,
-                                   parameters=self.parameters,
-                                   benchmarks=self.benchmarks,
-                                   morphing_components=self.morpher.components,
-                                   morphing_matrix=self.morpher.morphing_matrix)
+            save_madminer_settings(
+                filename=filename,
+                parameters=self.parameters,
+                benchmarks=self.benchmarks,
+                morphing_components=self.morpher.components,
+                morphing_matrix=self.morpher.morphing_matrix,
+            )
         else:
-            logging.info('Saving setup (without morphing) to %s', filename)
+            logging.info("Saving setup (without morphing) to %s", filename)
 
-            save_madminer_settings(filename=filename,
-                                   parameters=self.parameters,
-                                   benchmarks=self.benchmarks)
+            save_madminer_settings(
+                filename=filename,
+                parameters=self.parameters,
+                benchmarks=self.benchmarks,
+            )
 
     @staticmethod
     def _generate_mg_process(
-            mg_directory,
-            temp_directory,
-            proc_card_file,
-            mg_process_directory,
-            ufo_model_directory=None,
-            log_file=None,
-            initial_command=None
+        mg_directory,
+        temp_directory,
+        proc_card_file,
+        mg_process_directory,
+        ufo_model_directory=None,
+        log_file=None,
+        initial_command=None,
     ):
 
         """
@@ -475,9 +540,15 @@ class MadMiner:
 
         """
 
-        logging.info('Generating MadGraph process folder from %s at %s', proc_card_file, mg_process_directory)
+        logging.info(
+            "Generating MadGraph process folder from %s at %s",
+            proc_card_file,
+            mg_process_directory,
+        )
 
-        create_missing_folders([temp_directory, mg_process_directory, os.path.dirname(log_file)])
+        create_missing_folders(
+            [temp_directory, mg_process_directory, os.path.dirname(log_file)]
+        )
 
         if ufo_model_directory is not None:
             copy_ufo_model(ufo_model_directory, mg_directory)
@@ -488,17 +559,17 @@ class MadMiner:
             proc_card_file,
             mg_process_directory,
             initial_command=initial_command,
-            log_file=log_file
+            log_file=log_file,
         )
 
     def _export_cards(
-            self,
-            param_card_template_file,
-            reweight_card_template_file,
-            mg_process_directory,
-            sample_benchmark=None,
-            param_card_filename=None,
-            reweight_card_filename=None
+        self,
+        param_card_template_file,
+        reweight_card_template_file,
+        mg_process_directory,
+        sample_benchmark=None,
+        param_card_filename=None,
+        reweight_card_filename=None,
     ):
 
         """
@@ -535,10 +606,15 @@ class MadMiner:
         """
 
         if param_card_filename is None or reweight_card_filename is None:
-            logging.info('Creating param and reweight cards in %s', mg_process_directory)
+            logging.info(
+                "Creating param and reweight cards in %s", mg_process_directory
+            )
         else:
-            logging.info('Creating param and reweight cards in %s, %s', param_card_filename,
-                         reweight_card_filename)
+            logging.info(
+                "Creating param and reweight cards in %s, %s",
+                param_card_filename,
+                reweight_card_filename,
+            )
 
         # Check status
         assert self.default_benchmark is not None
@@ -554,7 +630,7 @@ class MadMiner:
             parameters=self.parameters,
             param_card_template_file=param_card_template_file,
             mg_process_directory=mg_process_directory,
-            param_card_filename=param_card_filename
+            param_card_filename=param_card_filename,
         )
 
         # Export reweight card
@@ -564,22 +640,24 @@ class MadMiner:
             parameters=self.parameters,
             reweight_card_template_file=reweight_card_template_file,
             mg_process_directory=mg_process_directory,
-            reweight_card_filename=reweight_card_filename
+            reweight_card_filename=reweight_card_filename,
         )
 
     @staticmethod
-    def _run_or_prepare_mg_and_pythia(mg_directory,
-                                      mg_process_directory,
-                                      proc_card_filename=None,
-                                      run_card_file=None,
-                                      param_card_file=None,
-                                      reweight_card_file=None,
-                                      pythia8_card_file=None,
-                                      is_background=False,
-                                      only_prepare_script=False,
-                                      script_filename=None,
-                                      initial_command=None,
-                                      log_file=None):
+    def _run_or_prepare_mg_and_pythia(
+        mg_directory,
+        mg_process_directory,
+        proc_card_filename=None,
+        run_card_file=None,
+        param_card_file=None,
+        reweight_card_file=None,
+        pythia8_card_file=None,
+        is_background=False,
+        only_prepare_script=False,
+        script_filename=None,
+        initial_command=None,
+        log_file=None,
+    ):
 
         """
         Calls MadGraph to either generate events (with `only_prepare_scripts=False`) or to prepare a bash script that
@@ -647,7 +725,10 @@ class MadMiner:
 
         # Prepare run...
         if only_prepare_script:
-            logging.info('Preparing script to run MadGraph and Pythia in %s', mg_process_directory)
+            logging.info(
+                "Preparing script to run MadGraph and Pythia in %s",
+                mg_process_directory,
+            )
 
             return prepare_run_mg_pythia(
                 mg_directory,
@@ -660,12 +741,12 @@ class MadMiner:
                 script_file=script_filename,
                 is_background=is_background,
                 initial_command=initial_command,
-                log_file=log_file
+                log_file=log_file,
             )
 
         # ... or just run it already
         else:
-            logging.info('Starting MadGraph and Pythia in %s', mg_process_directory)
+            logging.info("Starting MadGraph and Pythia in %s", mg_process_directory)
 
             run_mg_pythia(
                 mg_directory,
@@ -677,27 +758,27 @@ class MadMiner:
                 pythia8_card_file,
                 is_background=is_background,
                 initial_command=initial_command,
-                log_file=log_file
+                log_file=log_file,
             )
 
             return None
 
     def run(
-            self,
-            mg_directory,
-            proc_card_file,
-            param_card_template_file,
-            reweight_card_template_file,
-            run_card_file=None,
-            mg_process_directory=None,
-            pythia8_card_file=None,
-            sample_benchmark=None,
-            is_background=False,
-            only_prepare_script=False,
-            ufo_model_directory=None,
-            log_directory=None,
-            temp_directory=None,
-            initial_command=None
+        self,
+        mg_directory,
+        proc_card_file,
+        param_card_template_file,
+        reweight_card_template_file,
+        run_card_file=None,
+        mg_process_directory=None,
+        pythia8_card_file=None,
+        sample_benchmark=None,
+        is_background=False,
+        only_prepare_script=False,
+        ufo_model_directory=None,
+        log_directory=None,
+        temp_directory=None,
+        initial_command=None,
     ):
 
         """
@@ -798,25 +879,25 @@ class MadMiner:
             ufo_model_directory=ufo_model_directory,
             log_directory=log_directory,
             temp_directory=temp_directory,
-            initial_command=initial_command
+            initial_command=initial_command,
         )
 
     def run_multiple(
-            self,
-            mg_directory,
-            proc_card_file,
-            param_card_template_file,
-            reweight_card_template_file,
-            run_card_files,
-            mg_process_directory=None,
-            pythia8_card_file=None,
-            sample_benchmarks=None,
-            is_background=False,
-            only_prepare_script=False,
-            ufo_model_directory=None,
-            log_directory=None,
-            temp_directory=None,
-            initial_command=None
+        self,
+        mg_directory,
+        proc_card_file,
+        param_card_template_file,
+        reweight_card_template_file,
+        run_card_files,
+        mg_process_directory=None,
+        pythia8_card_file=None,
+        sample_benchmarks=None,
+        is_background=False,
+        only_prepare_script=False,
+        ufo_model_directory=None,
+        log_directory=None,
+        temp_directory=None,
+        initial_command=None,
     ):
 
         """
@@ -894,19 +975,19 @@ class MadMiner:
 
         # Defaults
         if mg_process_directory is None:
-            mg_process_directory = './MG_process'
+            mg_process_directory = "./MG_process"
 
         if temp_directory is None:
             temp_directory = tempfile.gettempdir()
 
         if log_directory is None:
-            log_directory = './logs'
+            log_directory = "./logs"
 
         if sample_benchmarks is None:
             sample_benchmarks = [benchmark for benchmark in self.benchmarks]
 
         # Generate process folder
-        log_file_generate = log_directory + '/generate.log'
+        log_file_generate = log_directory + "/generate.log"
 
         self._generate_mg_process(
             mg_directory,
@@ -915,13 +996,17 @@ class MadMiner:
             mg_process_directory,
             ufo_model_directory=ufo_model_directory,
             initial_command=initial_command,
-            log_file=log_file_generate
+            log_file=log_file_generate,
         )
 
         # Make card folder
-        create_missing_folders([mg_process_directory + '/madminer',
-                                mg_process_directory + '/madminer/cards',
-                                mg_process_directory + '/madminer/scripts'])
+        create_missing_folders(
+            [
+                mg_process_directory + "/madminer",
+                mg_process_directory + "/madminer/cards",
+                mg_process_directory + "/madminer/scripts",
+            ]
+        )
 
         # Loop over settings
         i = 0
@@ -931,27 +1016,43 @@ class MadMiner:
             for sample_benchmark in sample_benchmarks:
 
                 # Files
-                script_file = mg_process_directory + '/madminer/scripts/run_{}.sh'.format(i)
-                log_file_run = log_directory + '/run_{}.log'.format(i)
-                mg_commands_filename = mg_process_directory + '/madminer/cards/mg_commands_{}.dat'.format(i)
-                param_card_file = mg_process_directory + '/madminer/cards/param_card_{}.dat'.format(i)
-                reweight_card_file = mg_process_directory + '/madminer/cards/reweight_card_{}.dat'.format(i)
+                script_file = (
+                    mg_process_directory + "/madminer/scripts/run_{}.sh".format(i)
+                )
+                log_file_run = log_directory + "/run_{}.log".format(i)
+                mg_commands_filename = (
+                    mg_process_directory
+                    + "/madminer/cards/mg_commands_{}.dat".format(i)
+                )
+                param_card_file = (
+                    mg_process_directory + "/madminer/cards/param_card_{}.dat".format(i)
+                )
+                reweight_card_file = (
+                    mg_process_directory
+                    + "/madminer/cards/reweight_card_{}.dat".format(i)
+                )
                 new_pythia8_card_file = None
                 if pythia8_card_file is not None:
-                    new_pythia8_card_file = mg_process_directory + '/madminer/cards/pythia8_card_{}.dat'.format(i)
+                    new_pythia8_card_file = (
+                        mg_process_directory
+                        + "/madminer/cards/pythia8_card_{}.dat".format(i)
+                    )
                 new_run_card_file = None
                 if run_card_file is not None:
-                    new_run_card_file = mg_process_directory + '/madminer/cards/run_card_{}.dat'.format(i)
+                    new_run_card_file = (
+                        mg_process_directory
+                        + "/madminer/cards/run_card_{}.dat".format(i)
+                    )
 
-                logging.info('Run %s', i)
-                logging.info('  Sampling from benchmark: %s', sample_benchmark)
-                logging.info('  Original run card:       %s', run_card_file)
-                logging.info('  Original Pythia8 card:   %s', run_card_file)
-                logging.info('  Copied run card:         %s', new_run_card_file)
-                logging.info('  Copied Pythia8 card:     %s', new_pythia8_card_file)
-                logging.info('  Param card:              %s', param_card_file)
-                logging.info('  Reweight card:           %s', reweight_card_file)
-                logging.info('  Log file:                %s', log_file_run)
+                logging.info("Run %s", i)
+                logging.info("  Sampling from benchmark: %s", sample_benchmark)
+                logging.info("  Original run card:       %s", run_card_file)
+                logging.info("  Original Pythia8 card:   %s", run_card_file)
+                logging.info("  Copied run card:         %s", new_run_card_file)
+                logging.info("  Copied Pythia8 card:     %s", new_pythia8_card_file)
+                logging.info("  Param card:              %s", param_card_file)
+                logging.info("  Reweight card:           %s", reweight_card_file)
+                logging.info("  Log file:                %s", log_file_run)
 
                 # Creat param and reweight cards
                 self._export_cards(
@@ -960,7 +1061,7 @@ class MadMiner:
                     mg_process_directory,
                     sample_benchmark=sample_benchmark,
                     param_card_filename=param_card_file,
-                    reweight_card_filename=reweight_card_file
+                    reweight_card_filename=reweight_card_file,
                 )
 
                 # Copy run and Pythia cards
@@ -982,7 +1083,7 @@ class MadMiner:
                     only_prepare_script=only_prepare_script,
                     script_filename=script_file,
                     initial_command=initial_command,
-                    log_file=log_file_run
+                    log_file=log_file_run,
                 )
 
                 results.append(result)
@@ -991,14 +1092,14 @@ class MadMiner:
 
         # Master shell script
         if only_prepare_script:
-            master_script_filename = mg_process_directory + '/madminer/run.sh'
+            master_script_filename = mg_process_directory + "/madminer/run.sh"
 
-            commands = '\n'.join(results)
-            script = '#!/bin/bash\n\n{}'.format(commands)
+            commands = "\n".join(results)
+            script = "#!/bin/bash\n\n{}".format(commands)
 
-            with open(master_script_filename, 'w') as file:
+            with open(master_script_filename, "w") as file:
                 file.write(script)
 
             make_file_executable(master_script_filename)
 
-            logging.info('To run MadGraph, please execute %s', master_script_filename)
+            logging.info("To run MadGraph, please execute %s", master_script_filename)

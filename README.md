@@ -4,6 +4,7 @@ Mining gold from MadGraph to improve limit setting in particle physics. Work in 
 and Felix Kling. Note that this is a prototype and all the interfaces are still constantly changing.
 
 [![Binder](https://mybinder.org/badge.svg)](https://mybinder.org/v2/gh/johannbrehmer/madminer/master)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/ambv/black)
 
 ## Introduction
 
