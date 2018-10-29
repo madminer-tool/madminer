@@ -5,7 +5,10 @@ from collections import OrderedDict
 import numpy as np
 import logging
 
-from madminer.utils.interfaces.hdf5 import save_events_to_madminer_file, load_benchmarks_from_madminer_file
+from madminer.utils.interfaces.hdf5 import (
+    save_events_to_madminer_file,
+    load_benchmarks_from_madminer_file,
+)
 from madminer.utils.interfaces.delphes import run_delphes
 from madminer.utils.interfaces.root import extract_observables_from_delphes_file
 from madminer.utils.interfaces.hepmc import extract_weight_order
@@ -64,14 +67,14 @@ class DelphesProcessor:
         self.cuts_default_pass = []
 
         # Initialize acceptance cuts
-        self.acceptance_pt_min_e = 10.
-        self.acceptance_pt_min_mu = 10.
-        self.acceptance_pt_min_a = 10.
-        self.acceptance_pt_min_j = 20.
+        self.acceptance_pt_min_e = 10.0
+        self.acceptance_pt_min_mu = 10.0
+        self.acceptance_pt_min_a = 10.0
+        self.acceptance_pt_min_j = 20.0
         self.acceptance_eta_max_e = 2.5
         self.acceptance_eta_max_mu = 2.5
         self.acceptance_eta_max_a = 2.5
-        self.acceptance_eta_max_j = 5.
+        self.acceptance_eta_max_j = 5.0
 
         # Initialize samples
         self.observations = None
@@ -103,14 +106,16 @@ class DelphesProcessor:
 
         """
 
-        logging.info('Adding HepMC sample at %s', filename)
+        logging.info("Adding HepMC sample at %s", filename)
 
         self.hepmc_sample_filenames.append(filename)
         self.hepmc_sample_weight_labels.append(
             extract_weight_order(filename, sampled_from_benchmark)
         )
 
-    def run_delphes(self, delphes_directory, delphes_card, initial_command=None, log_directory=None):
+    def run_delphes(
+        self, delphes_directory, delphes_card, initial_command=None, log_directory=None
+    ):
         """
         Runs the fast detector simulation on all HepMC samples added so far.
 
@@ -136,22 +141,35 @@ class DelphesProcessor:
         """
 
         if log_directory is None:
-            log_directory = './logs'
-        log_file = log_directory + '/delphes.log'
+            log_directory = "./logs"
+        log_file = log_directory + "/delphes.log"
 
         for hepmc_sample_filename in self.hepmc_sample_filenames:
-            logging.info('Running Delphes (%s) on event sample at %s', delphes_directory, hepmc_sample_filename)
+            logging.info(
+                "Running Delphes (%s) on event sample at %s",
+                delphes_directory,
+                hepmc_sample_filename,
+            )
             delphes_sample_filename = run_delphes(
                 delphes_directory,
                 delphes_card,
                 hepmc_sample_filename,
                 initial_command=initial_command,
-                log_file=log_file
+                log_file=log_file,
             )
             self.delphes_sample_filenames.append(delphes_sample_filename)
 
-    def set_acceptance(self, pt_min_e=10., pt_min_mu=10., pt_min_a=0., pt_min_j=20.,
-                       eta_max_e=2.5, eta_max_mu=2.5, eta_max_a=2.5, eta_max_j=5.):
+    def set_acceptance(
+        self,
+        pt_min_e=10.0,
+        pt_min_mu=10.0,
+        pt_min_a=0.0,
+        pt_min_j=20.0,
+        eta_max_e=2.5,
+        eta_max_mu=2.5,
+        eta_max_a=2.5,
+        eta_max_j=5.0,
+    ):
         """
         Sets acceptance cuts for all visible particles. These are taken into account before observables and cuts
         are calculated.
@@ -236,21 +254,26 @@ class DelphesProcessor:
         """
 
         if required:
-            logging.debug('Adding required observable %s = %s', name, definition)
+            logging.debug("Adding required observable %s = %s", name, definition)
         else:
-            logging.debug('Adding optional observable %s = %s with default %s', name, definition, default)
+            logging.debug(
+                "Adding optional observable %s = %s with default %s",
+                name,
+                definition,
+                default,
+            )
 
         self.observables[name] = definition
         self.observables_required[name] = required
         self.observables_defaults[name] = default
 
     def add_default_observables(
-            self,
-            n_leptons_max=2,
-            n_photons_max=2,
-            n_jets_max=2,
-            include_met=True,
-            include_visible_sum=True
+        self,
+        n_leptons_max=2,
+        n_photons_max=2,
+        n_jets_max=2,
+        include_met=True,
+        include_visible_sum=True,
     ):
         """
         Adds a set of simple standard observables: the four-momenta (parameterized as E, pT, eta, phi) of the hardest
@@ -280,70 +303,55 @@ class DelphesProcessor:
         """
         # ETMiss
         if include_met:
-            self.add_observable(
-                'et_miss',
-                'met.pt',
-                required=True
-            )
-            self.add_observable(
-                'phi_miss',
-                'met.phi()',
-                required=True
-            )
+            self.add_observable("et_miss", "met.pt", required=True)
+            self.add_observable("phi_miss", "met.phi()", required=True)
 
         # Sum of visible particles
         if include_visible_sum:
-            self.add_observable(
-                'e_visible',
-                'visible.e',
-                required=True
-            )
-            self.add_observable(
-                'eta_visible',
-                'visible.eta',
-                required=True
-            )
+            self.add_observable("e_visible", "visible.e", required=True)
+            self.add_observable("eta_visible", "visible.eta", required=True)
 
         # Individual observed particles
-        for n, symbol, include_charge in zip([n_leptons_max, n_photons_max, n_jets_max],
-                                             ['l', 'a', 'j'], [False, False, True]):
+        for n, symbol, include_charge in zip(
+            [n_leptons_max, n_photons_max, n_jets_max],
+            ["l", "a", "j"],
+            [False, False, True],
+        ):
             self.add_observable(
-                'n_{}s'.format(symbol),
-                'len({})'.format(symbol),
-                required=True
+                "n_{}s".format(symbol), "len({})".format(symbol), required=True
             )
 
             for i in range(n):
                 self.add_observable(
-                    'e_{}{}'.format(symbol, i + 1),
-                    '{}[{}].pt'.format(symbol, i),
+                    "e_{}{}".format(symbol, i + 1),
+                    "{}[{}].pt".format(symbol, i),
                     required=False,
-                    default=0.
+                    default=0.0,
                 )
                 self.add_observable(
-                    'pt_{}{}'.format(symbol, i + 1),
-                    '{}[{}].e'.format(symbol, i),
+                    "pt_{}{}".format(symbol, i + 1),
+                    "{}[{}].e".format(symbol, i),
                     required=False,
-                    default=0.
+                    default=0.0,
                 )
                 self.add_observable(
-                    'eta_{}{}'.format(symbol, i + 1),
-                    '{}[{}].eta'.format(symbol, i),
+                    "eta_{}{}".format(symbol, i + 1),
+                    "{}[{}].eta".format(symbol, i),
                     required=False,
-                    default=0.
+                    default=0.0,
                 )
                 self.add_observable(
-                    'phi_{}{}'.format(symbol, i + 1),
-                    '{}[{}].phi()'.format(symbol, i),
+                    "phi_{}{}".format(symbol, i + 1),
+                    "{}[{}].phi()".format(symbol, i),
                     required=False,
-                    default=0.
+                    default=0.0,
                 )
                 if include_charge:
                     self.add_observable(
-                        'charge_{}{}'.format(symbol, i + 1),
-                        '{}[{}].charge'.format(symbol, i),
+                        "charge_{}{}".format(symbol, i + 1),
+                        "{}[{}].charge".format(symbol, i),
                         required=False,
-                        default=0.
+                        default=0.0,
                     )
 
     def add_cut(self, definition, pass_if_not_parsed=False):
@@ -374,7 +382,7 @@ class DelphesProcessor:
             None
 
         """
-        logging.info('Adding cut %s', definition)
+        logging.info("Adding cut %s", definition)
         self.cuts.append(definition)
         self.cuts_default_pass.append(pass_if_not_parsed)
 
@@ -395,11 +403,15 @@ class DelphesProcessor:
 
         """
 
-        n_benchmarks = None if self.benchmark_names is None else len(self.benchmark_names)
+        n_benchmarks = (
+            None if self.benchmark_names is None else len(self.benchmark_names)
+        )
 
-        for delphes_file, weight_labels in zip(self.delphes_sample_filenames, self.hepmc_sample_weight_labels):
+        for delphes_file, weight_labels in zip(
+            self.delphes_sample_filenames, self.hepmc_sample_weight_labels
+        ):
 
-            logging.info('Analysing Delphes sample %s', delphes_file)
+            logging.info("Analysing Delphes sample %s", delphes_file)
 
             # Calculate observables and weights in Delphes ROOT file
             this_observations, this_weights = extract_observables_from_delphes_file(
@@ -410,7 +422,7 @@ class DelphesProcessor:
                 self.cuts,
                 self.cuts_default_pass,
                 weight_labels,
-                delete_delphes_sample_file=delete_delphes_files
+                delete_delphes_sample_file=delete_delphes_files,
             )
 
             # Number of benchmarks
@@ -433,26 +445,32 @@ class DelphesProcessor:
 
             # Following results: check consistency with previous results
             if len(self.weights) != len(this_weights):
-                raise ValueError("Number of weights in different Delphes files incompatible: {} vs {}".format(
-                    len(self.weights), len(this_weights)
-                ))
+                raise ValueError(
+                    "Number of weights in different Delphes files incompatible: {} vs {}".format(
+                        len(self.weights), len(this_weights)
+                    )
+                )
             if len(self.observations) != len(this_observations):
-                raise ValueError("Number of observations in different Delphes files incompatible: {} vs {}".format(
-                    len(self.observations), len(this_observations)
-                ))
+                raise ValueError(
+                    "Number of observations in different Delphes files incompatible: {} vs {}".format(
+                        len(self.observations), len(this_observations)
+                    )
+                )
 
             # Merge results with previous
             for key in self.weights:
-                assert key in this_weights, "Weight label {} not found in Delphes sample!".format(
-                    key
-                )
+                assert (
+                    key in this_weights
+                ), "Weight label {} not found in Delphes sample!".format(key)
                 self.weights[key] = np.hstack([self.weights[key], this_weights[key]])
 
             for key in self.observations:
-                assert key in this_observations, "Observable {} not found in Delphes sample!".format(
-                    key
+                assert (
+                    key in this_observations
+                ), "Observable {} not found in Delphes sample!".format(key)
+                self.observations[key] = np.hstack(
+                    [self.observations[key], this_observations[key]]
                 )
-                self.observations[key] = np.hstack([self.observations[key], this_observations[key]])
 
     def save(self, filename_out):
         """
@@ -471,16 +489,25 @@ class DelphesProcessor:
 
         """
 
-        assert (self.observables is not None and self.observations is not None
-                and self.weights is not None), 'Nothing to save!'
+        assert (
+            self.observables is not None
+            and self.observations is not None
+            and self.weights is not None
+        ), "Nothing to save!"
 
         if self.filename is None:
-            logging.info('Saving HDF5 file to %s', filename_out)
+            logging.info("Saving HDF5 file to %s", filename_out)
         else:
-            logging.info('Loading HDF5 data from %s and saving file to %s', self.filename, filename_out)
+            logging.info(
+                "Loading HDF5 data from %s and saving file to %s",
+                self.filename,
+                filename_out,
+            )
 
-        save_events_to_madminer_file(filename_out,
-                                     self.observables,
-                                     self.observations,
-                                     self.weights,
-                                     copy_from=self.filename)
+        save_events_to_madminer_file(
+            filename_out,
+            self.observables,
+            self.observations,
+            self.weights,
+            copy_from=self.filename,
+        )

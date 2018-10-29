@@ -10,16 +10,28 @@ from torch.utils.data import Dataset, DataLoader
 from torch.utils.data.sampler import SubsetRandomSampler
 from torch.nn.utils import clip_grad_norm_
 
-from madminer.utils.ml.models.ratio import ParameterizedRatioEstimator, DoublyParameterizedRatioEstimator
+from madminer.utils.ml.models.ratio import (
+    ParameterizedRatioEstimator,
+    DoublyParameterizedRatioEstimator,
+)
 
 
 class GoldDataset(torch.utils.data.Dataset):
     """ """
 
-    def __init__(self, theta0=None, theta1=None, x=None, y=None, r_xz=None, t_xz0=None, t_xz1=None):
+    def __init__(
+        self,
+        theta0=None,
+        theta1=None,
+        x=None,
+        y=None,
+        r_xz=None,
+        t_xz0=None,
+        t_xz1=None,
+    ):
         self.n = theta0.shape[0]
 
-        placeholder = torch.stack([tensor([0.]) for _ in range(self.n)])
+        placeholder = torch.stack([tensor([0.0]) for _ in range(self.n)])
 
         assert x is not None
         assert theta0 is not None
@@ -41,32 +53,47 @@ class GoldDataset(torch.utils.data.Dataset):
         assert len(self.t_xz1) == self.n
 
     def __getitem__(self, index):
-        return (self.theta0[index],
-                self.theta1[index],
-                self.x[index],
-                self.y[index],
-                self.r_xz[index],
-                self.t_xz0[index],
-                self.t_xz1[index])
+        return (
+            self.theta0[index],
+            self.theta1[index],
+            self.x[index],
+            self.y[index],
+            self.r_xz[index],
+            self.t_xz0[index],
+            self.t_xz1[index],
+        )
 
     def __len__(self):
         return self.n
 
 
-def train_ratio_model(model,
-                      loss_functions,
-                      method_type='parameterized',
-                      theta0s=None, theta1s=None, xs=None, ys=None, r_xzs=None, t_xz0s=None, t_xz1s=None,
-                      loss_weights=None,
-                      loss_labels=None,
-                      batch_size=64,
-                      initial_learning_rate=0.01, final_learning_rate=0.0001, n_epochs=50,
-                      clip_gradient=100.,
-                      run_on_gpu=True,
-                      double_precision=False,
-                      validation_split=0.2, early_stopping=True, early_stopping_patience=20,
-                      learning_curve_folder=None, learning_curve_filename=None,
-                      verbose='some'):
+def train_ratio_model(
+    model,
+    loss_functions,
+    method_type="parameterized",
+    theta0s=None,
+    theta1s=None,
+    xs=None,
+    ys=None,
+    r_xzs=None,
+    t_xz0s=None,
+    t_xz1s=None,
+    loss_weights=None,
+    loss_labels=None,
+    batch_size=64,
+    initial_learning_rate=0.01,
+    final_learning_rate=0.0001,
+    n_epochs=50,
+    clip_gradient=100.0,
+    run_on_gpu=True,
+    double_precision=False,
+    validation_split=0.2,
+    early_stopping=True,
+    early_stopping_patience=20,
+    learning_curve_folder=None,
+    learning_curve_filename=None,
+    verbose="some",
+):
     """
 
     Parameters
@@ -155,7 +182,9 @@ def train_ratio_model(model,
 
     # Train / validation split
     if validation_split is not None:
-        assert 0. < validation_split < 1., 'Wrong validation split: {}'.format(validation_split)
+        assert 0.0 < validation_split < 1.0, "Wrong validation split: {}".format(
+            validation_split
+        )
 
         n_samples = len(dataset)
         indices = list(range(n_samples))
@@ -167,30 +196,26 @@ def train_ratio_model(model,
         validation_sampler = SubsetRandomSampler(valid_idx)
 
         train_loader = DataLoader(
-            dataset,
-            sampler=train_sampler,
-            batch_size=batch_size,
-            pin_memory=run_on_gpu
+            dataset, sampler=train_sampler, batch_size=batch_size, pin_memory=run_on_gpu
         )
         validation_loader = DataLoader(
             dataset,
             sampler=validation_sampler,
             batch_size=batch_size,
-            pin_memory=run_on_gpu
+            pin_memory=run_on_gpu,
         )
     else:
         train_loader = DataLoader(
-            dataset,
-            batch_size=batch_size,
-            shuffle=True,
-            pin_memory=run_on_gpu
+            dataset, batch_size=batch_size, shuffle=True, pin_memory=run_on_gpu
         )
 
     # Optimizer
     optimizer = optim.Adam(model.parameters(), lr=initial_learning_rate)
 
     # Early stopping
-    early_stopping = early_stopping and (validation_split is not None) and (n_epochs > 1)
+    early_stopping = (
+        early_stopping and (validation_split is not None) and (n_epochs > 1)
+    )
     early_stopping_best_val_loss = None
     early_stopping_best_model = None
     early_stopping_epoch = None
@@ -199,7 +224,7 @@ def train_ratio_model(model,
     n_losses = len(loss_functions)
 
     if loss_weights is None:
-        loss_weights = [1.] * n_losses
+        loss_weights = [1.0] * n_losses
 
     # Losses over training
     individual_losses_train = []
@@ -209,9 +234,9 @@ def train_ratio_model(model,
 
     # Verbosity
     n_epochs_verbose = None
-    if verbose == 'all':  # Print output after every epoch
+    if verbose == "all":  # Print output after every epoch
         n_epochs_verbose = 1
-    elif verbose == 'some':  # Print output after 10%, 20%, ..., 100% progress
+    elif verbose == "some":  # Print output after 10%, 20%, ..., 100% progress
         n_epochs_verbose = max(int(round(n_epochs / 10, 0)), 1)
 
     # Loop over epochs
@@ -224,12 +249,16 @@ def train_ratio_model(model,
 
         # Learning rate decay
         if n_epochs > 1:
-            lr = initial_learning_rate * (final_learning_rate / initial_learning_rate) ** float(epoch / (n_epochs - 1.))
+            lr = initial_learning_rate * (
+                final_learning_rate / initial_learning_rate
+            ) ** float(epoch / (n_epochs - 1.0))
             for param_group in optimizer.param_groups:
-                param_group['lr'] = lr
+                param_group["lr"] = lr
 
         # Loop over batches
-        for i_batch, (theta0, theta1, x, y, r_xz, t_xz0, t_xz1) in enumerate(train_loader):
+        for i_batch, (theta0, theta1, x, y, r_xz, t_xz0, t_xz1) in enumerate(
+            train_loader
+        ):
             theta0 = theta0.to(device, dtype)
             x = x.to(device, dtype)
             y = y.to(device, dtype)
@@ -253,16 +282,18 @@ def train_ratio_model(model,
             optimizer.zero_grad()
 
             # Evaluate loss
-            if method_type == 'parameterized':
+            if method_type == "parameterized":
                 s_hat, log_r_hat, t_hat0 = model(theta0, x)
                 t_hat1 = None
-            elif method_type == 'doubly_parameterized':
+            elif method_type == "doubly_parameterized":
                 s_hat, log_r_hat, t_hat0, t_hat1 = model(theta0, theta1, x)
             else:
-                raise ValueError('Unknown method type {}'.format(method_type))
+                raise ValueError("Unknown method type {}".format(method_type))
 
-            losses = [loss_function(s_hat, log_r_hat, t_hat0, t_hat1, y, r_xz, t_xz0, t_xz1)
-                      for loss_function in loss_functions]
+            losses = [
+                loss_function(s_hat, log_r_hat, t_hat0, t_hat1, y, r_xz, t_xz0, t_xz1)
+                for loss_function in loss_functions
+            ]
             loss = loss_weights[0] * losses[0]
             for _w, _l in zip(loss_weights[1:], losses[1:]):
                 loss += _w * _l
@@ -287,9 +318,15 @@ def train_ratio_model(model,
 
         # Validation
         if validation_split is None:
-            if n_epochs_verbose is not None and n_epochs_verbose > 0 and (epoch + 1) % n_epochs_verbose == 0:
-                logging.info('  Epoch %d: train loss %.2f (%s)'
-                             % (epoch + 1, total_losses_train[-1], individual_losses_train[-1]))
+            if (
+                n_epochs_verbose is not None
+                and n_epochs_verbose > 0
+                and (epoch + 1) % n_epochs_verbose == 0
+            ):
+                logging.info(
+                    "  Epoch %d: train loss %.2f (%s)"
+                    % (epoch + 1, total_losses_train[-1], individual_losses_train[-1])
+                )
             continue
 
         # with torch.no_grad():
@@ -297,7 +334,9 @@ def train_ratio_model(model,
         individual_val_loss = np.zeros(n_losses)
         total_val_loss = 0.0
 
-        for i_batch, (theta0, theta1, x, y, r_xz, t_xz0, t_xz1) in enumerate(validation_loader):
+        for i_batch, (theta0, theta1, x, y, r_xz, t_xz0, t_xz1) in enumerate(
+            validation_loader
+        ):
             theta0 = theta0.to(device, dtype)
             x = x.to(device, dtype)
             y = y.to(device, dtype)
@@ -319,16 +358,18 @@ def train_ratio_model(model,
                 pass
 
             # Evaluate loss
-            if method_type == 'parameterized':
+            if method_type == "parameterized":
                 s_hat, log_r_hat, t_hat0 = model(theta0, x)
                 t_hat1 = None
-            elif method_type == 'doubly_parameterized':
+            elif method_type == "doubly_parameterized":
                 s_hat, log_r_hat, t_hat0, t_hat1 = model(theta0, theta1, x)
             else:
-                raise ValueError('Unknown method type %s', method_type)
+                raise ValueError("Unknown method type %s", method_type)
 
-            losses = [loss_function(s_hat, log_r_hat, t_hat0, t_hat1, y, r_xz, t_xz0, t_xz1)
-                      for loss_function in loss_functions]
+            losses = [
+                loss_function(s_hat, log_r_hat, t_hat0, t_hat1, y, r_xz, t_xz0, t_xz1)
+                for loss_function in loss_functions
+            ]
             loss = loss_weights[0] * losses[0]
             for _w, _l in zip(loss_weights[1:], losses[1:]):
                 loss += _w * _l
@@ -345,43 +386,77 @@ def train_ratio_model(model,
 
         # Early stopping: best epoch so far?
         if early_stopping:
-            if early_stopping_best_val_loss is None or total_val_loss < early_stopping_best_val_loss:
+            if (
+                early_stopping_best_val_loss is None
+                or total_val_loss < early_stopping_best_val_loss
+            ):
                 early_stopping_best_val_loss = total_val_loss
                 early_stopping_best_model = model.state_dict()
                 early_stopping_epoch = epoch
 
         # Print out information
-        if n_epochs_verbose is not None and n_epochs_verbose > 0 and (epoch + 1) % n_epochs_verbose == 0:
+        if (
+            n_epochs_verbose is not None
+            and n_epochs_verbose > 0
+            and (epoch + 1) % n_epochs_verbose == 0
+        ):
             if early_stopping and epoch == early_stopping_epoch:
-                logging.info('  Epoch %d: train loss %.2f (%s), validation loss %.2f (%s) (*)'
-                             % (epoch + 1, total_losses_train[-1], individual_losses_train[-1],
-                                total_losses_val[-1], individual_losses_val[-1]))
+                logging.info(
+                    "  Epoch %d: train loss %.2f (%s), validation loss %.2f (%s) (*)"
+                    % (
+                        epoch + 1,
+                        total_losses_train[-1],
+                        individual_losses_train[-1],
+                        total_losses_val[-1],
+                        individual_losses_val[-1],
+                    )
+                )
             else:
-                logging.info('  Epoch %d: train loss %.2f (%s), validation loss %.2f (%s)'
-                             % (epoch + 1, total_losses_train[-1], individual_losses_train[-1],
-                                total_losses_val[-1], individual_losses_val[-1]))
+                logging.info(
+                    "  Epoch %d: train loss %.2f (%s), validation loss %.2f (%s)"
+                    % (
+                        epoch + 1,
+                        total_losses_train[-1],
+                        individual_losses_train[-1],
+                        total_losses_val[-1],
+                        individual_losses_val[-1],
+                    )
+                )
 
         # Early stopping: actually stop training
         if early_stopping and early_stopping_patience is not None:
             if epoch - early_stopping_epoch >= early_stopping_patience > 0:
-                logging.info('No improvement for %s epochs, stopping training', epoch - early_stopping_epoch)
+                logging.info(
+                    "No improvement for %s epochs, stopping training",
+                    epoch - early_stopping_epoch,
+                )
                 break
 
     # Early stopping: back to best state
     if early_stopping:
         if early_stopping_best_val_loss < total_val_loss:
-            logging.info('Early stopping after epoch %s, with loss %.2f compared to final loss %.2f',
-                         early_stopping_epoch + 1, early_stopping_best_val_loss, total_val_loss)
+            logging.info(
+                "Early stopping after epoch %s, with loss %.2f compared to final loss %.2f",
+                early_stopping_epoch + 1,
+                early_stopping_best_val_loss,
+                total_val_loss,
+            )
             model.load_state_dict(early_stopping_best_model)
         else:
-            logging.info('Early stopping did not improve performance')
+            logging.info("Early stopping did not improve performance")
 
     # Save learning curve
     if learning_curve_folder is not None and learning_curve_filename is not None:
 
-        np.save(learning_curve_folder + '/loss_train' + learning_curve_filename + '.npy', total_losses_train)
+        np.save(
+            learning_curve_folder + "/loss_train" + learning_curve_filename + ".npy",
+            total_losses_train,
+        )
         if validation_split is not None:
-            np.save(learning_curve_folder + '/loss_val' + learning_curve_filename + '.npy', total_losses_val)
+            np.save(
+                learning_curve_folder + "/loss_val" + learning_curve_filename + ".npy",
+                total_losses_val,
+            )
 
         if loss_labels is not None:
             individual_losses_train = np.array(individual_losses_train)
@@ -389,26 +464,40 @@ def train_ratio_model(model,
 
             for i, label in enumerate(loss_labels):
                 np.save(
-                    learning_curve_folder + '/loss_' + label + '_train' + learning_curve_filename + '.npy',
-                    individual_losses_train[:, i]
+                    learning_curve_folder
+                    + "/loss_"
+                    + label
+                    + "_train"
+                    + learning_curve_filename
+                    + ".npy",
+                    individual_losses_train[:, i],
                 )
                 if validation_split is not None:
                     np.save(
-                        learning_curve_folder + '/loss_' + label + '_val' + learning_curve_filename + '.npy',
-                        individual_losses_val[:, i]
+                        learning_curve_folder
+                        + "/loss_"
+                        + label
+                        + "_val"
+                        + learning_curve_filename
+                        + ".npy",
+                        individual_losses_val[:, i],
                     )
 
-    logging.info('Finished training')
+    logging.info("Finished training")
 
     return total_losses_train, total_losses_val
 
 
-def evaluate_ratio_model(model,
-                         method_type=None,
-                         theta0s=None, theta1s=None, xs=None,
-                         evaluate_score=False,
-                         run_on_gpu=True,
-                         double_precision=False):
+def evaluate_ratio_model(
+    model,
+    method_type=None,
+    theta0s=None,
+    theta1s=None,
+    xs=None,
+    evaluate_score=False,
+    run_on_gpu=True,
+    double_precision=False,
+):
     """
 
     Parameters
@@ -443,11 +532,11 @@ def evaluate_ratio_model(model,
     # Figure out method type
     if method_type is None:
         if isinstance(model, ParameterizedRatioEstimator):
-            method_type = 'parameterized'
+            method_type = "parameterized"
         elif isinstance(model, DoublyParameterizedRatioEstimator):
-            method_type = 'doubly_parameterized'
+            method_type = "doubly_parameterized"
         else:
-            raise RuntimeError('Cannot infer method type automatically')
+            raise RuntimeError("Cannot infer method type automatically")
 
     # Balance theta0 and theta1
     if theta1s is None:
@@ -455,19 +544,19 @@ def evaluate_ratio_model(model,
     else:
         n_thetas = max(len(theta0s), len(theta1s))
         if len(theta0s) > len(theta1s):
-            theta1s = np.array([
-                theta1s[i % len(theta1s)] for i in range(len(theta0s))
-            ])
+            theta1s = np.array([theta1s[i % len(theta1s)] for i in range(len(theta0s))])
         elif len(theta0s) < len(theta1s):
-            theta0s = np.array([
-                theta0s[i % len(theta0s)] for i in range(len(theta1s))
-            ])
+            theta0s = np.array([theta0s[i % len(theta0s)] for i in range(len(theta1s))])
 
     # Prepare data
     n_xs = len(xs)
-    theta0s = torch.stack([tensor(theta0s[i % n_thetas], requires_grad=True) for i in range(n_xs)])
+    theta0s = torch.stack(
+        [tensor(theta0s[i % n_thetas], requires_grad=True) for i in range(n_xs)]
+    )
     if theta1s is not None:
-        theta1s = torch.stack([tensor(theta1s[i % n_thetas], requires_grad=True) for i in range(n_xs)])
+        theta1s = torch.stack(
+            [tensor(theta1s[i % n_thetas], requires_grad=True) for i in range(n_xs)]
+        )
     xs = torch.stack([tensor(i) for i in xs])
 
     model = model.to(device, dtype)
@@ -481,13 +570,13 @@ def evaluate_ratio_model(model,
         # with torch.no_grad(): # doesn't work with score
         model.eval()
 
-        if method_type == 'parameterized':
+        if method_type == "parameterized":
             s_hat, log_r_hat, t_hat0 = model(theta0s, xs)
             t_hat1 = None
-        elif method_type == 'doubly_parameterized':
+        elif method_type == "doubly_parameterized":
             s_hat, log_r_hat, t_hat0, t_hat1 = model(theta0s, theta1s, xs)
         else:
-            raise ValueError('Unknown method type %s', method_type)
+            raise ValueError("Unknown method type %s", method_type)
 
         # Get data and return
         s_hat = s_hat.detach().numpy().flatten()
@@ -501,12 +590,12 @@ def evaluate_ratio_model(model,
         with torch.no_grad():
             model.eval()
 
-            if method_type == 'parameterized':
+            if method_type == "parameterized":
                 s_hat, log_r_hat, _ = model(theta0s, xs, track_score=False)
-            elif method_type == 'doubly_parameterized':
+            elif method_type == "doubly_parameterized":
                 s_hat, log_r_hat, _, _ = model(theta0s, theta1s, xs, track_score=False)
             else:
-                raise ValueError('Unknown method type %s', method_type)
+                raise ValueError("Unknown method type %s", method_type)
 
             # Get data and return
             s_hat = s_hat.detach().numpy().flatten()

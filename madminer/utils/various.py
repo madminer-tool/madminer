@@ -28,19 +28,19 @@ def general_init(debug=False):
     """
     global printed_splash
 
-    logging.basicConfig(format='%(asctime)s  %(message)s', datefmt='%H:%M')
+    logging.basicConfig(format="%(asctime)s  %(message)s", datefmt="%H:%M")
     logging.getLogger().setLevel(logging.DEBUG if debug else logging.INFO)
 
     if not printed_splash:
-        logging.info('')
-        logging.info('------------------------------------------------------------')
-        logging.info('|                                                          |')
-        logging.info('|  MadMiner v{}|'.format(__version__.ljust(46)))
-        logging.info('|                                                          |')
-        logging.info('|           Johann Brehmer, Kyle Cranmer, and Felix Kling  |')
-        logging.info('|                                                          |')
-        logging.info('------------------------------------------------------------')
-        logging.info('')
+        logging.info("")
+        logging.info("------------------------------------------------------------")
+        logging.info("|                                                          |")
+        logging.info("|  MadMiner v{}|".format(__version__.ljust(46)))
+        logging.info("|                                                          |")
+        logging.info("|           Johann Brehmer, Kyle Cranmer, and Felix Kling  |")
+        logging.info("|                                                          |")
+        logging.info("------------------------------------------------------------")
+        logging.info("")
 
         printed_splash = True
 
@@ -59,17 +59,17 @@ def call_command(cmd, log_file=None):
     -------
 
     """
-    logging.debug('Calling %s > %s', cmd, log_file)
+    logging.debug("Calling %s > %s", cmd, log_file)
 
     if log_file is not None:
-        with io.open(log_file, 'wb') as log:
+        with io.open(log_file, "wb") as log:
             proc = Popen(cmd, stdout=log, stderr=log, shell=True)
             _ = proc.communicate()
             exitcode = proc.returncode
 
         if exitcode != 0:
             raise RuntimeError(
-                'Calling command {} returned exit code {}. Output in file {}.'.format(
+                "Calling command {} returned exit code {}. Output in file {}.".format(
                     cmd, exitcode, log_file
                 )
             )
@@ -80,7 +80,7 @@ def call_command(cmd, log_file=None):
 
         if exitcode != 0:
             raise RuntimeError(
-                'Calling command {} returned exit code {}.\n\nStd output:\n\n{}Error output:\n\n{}'.format(
+                "Calling command {} returned exit code {}.\n\nStd output:\n\n{}Error output:\n\n{}".format(
                     cmd, exitcode, out, err
                 )
             )
@@ -111,7 +111,7 @@ def create_missing_folders(folders):
             os.makedirs(folder)
 
         elif not os.path.isdir(folder):
-            raise OSError('Path {} exists, but is no directory!'.format(folder))
+            raise OSError("Path {} exists, but is no directory!".format(folder))
 
 
 def format_benchmark(parameters, precision=2):
@@ -128,18 +128,18 @@ def format_benchmark(parameters, precision=2):
     -------
 
     """
-    output = ''
+    output = ""
 
     for i, (key, value) in enumerate(six.iteritems(parameters)):
         if i > 0:
-            output += ', '
+            output += ", "
 
         value = float(value)
 
-        if value < 2. * 10. ** (- precision) or value > 100.:
-            output += str(key) + (' = {0:.' + str(precision) + 'e}').format(value)
+        if value < 2.0 * 10.0 ** (-precision) or value > 100.0:
+            output += str(key) + (" = {0:." + str(precision) + "e}").format(value)
         else:
-            output += str(key) + (' = {0:.' + str(precision) + 'f}').format(value)
+            output += str(key) + (" = {0:." + str(precision) + "f}").format(value)
 
     return output
 
@@ -205,7 +205,7 @@ def balance_thetas(theta_sets_types, theta_sets_values):
     return theta_sets_types, theta_sets_values
 
 
-def load_and_check(filename, warning_threshold=1.e9):
+def load_and_check(filename, warning_threshold=1.0e9):
     """
 
     Parameters
@@ -229,15 +229,24 @@ def load_and_check(filename, warning_threshold=1.e9):
     n_finite = np.sum(np.isfinite(data))
 
     if n_nans + n_infs > 0:
-        logging.warning('Warning: file %s contains %s NaNs and %s Infs, compared to %s finite numbers!',
-                        filename, n_nans, n_infs, n_finite)
+        logging.warning(
+            "Warning: file %s contains %s NaNs and %s Infs, compared to %s finite numbers!",
+            filename,
+            n_nans,
+            n_infs,
+            n_finite,
+        )
 
     smallest = np.nanmin(data)
     largest = np.nanmax(data)
 
     if np.abs(smallest) > warning_threshold or np.abs(largest) > warning_threshold:
-        logging.warning('Warning: file %s has some large numbers, rangin from %s to %s',
-                        filename, smallest, largest)
+        logging.warning(
+            "Warning: file %s has some large numbers, rangin from %s to %s",
+            filename,
+            smallest,
+            largest,
+        )
 
     return data
 
@@ -245,11 +254,45 @@ def load_and_check(filename, warning_threshold=1.e9):
 def math_commands():
     """Provides list with math commands - we need this when using eval"""
 
-    from math import acos, asin, atan, atan2, ceil, cos, cosh, exp, floor, log, pi, pow, sin, sinh, sqrt, tan, tanh
+    from math import (
+        acos,
+        asin,
+        atan,
+        atan2,
+        ceil,
+        cos,
+        cosh,
+        exp,
+        floor,
+        log,
+        pi,
+        pow,
+        sin,
+        sinh,
+        sqrt,
+        tan,
+        tanh,
+    )
 
-    functions = ['acos', 'asin', 'atan', 'atan2', 'ceil', 'cos',
-                 'cosh', 'exp', 'floor', 'log', 'pi', 'pow', 'sin', 'sinh', 'sqrt',
-                 'tan', 'tanh']
+    functions = [
+        "acos",
+        "asin",
+        "atan",
+        "atan2",
+        "ceil",
+        "cos",
+        "cosh",
+        "exp",
+        "floor",
+        "log",
+        "pi",
+        "pow",
+        "sin",
+        "sinh",
+        "sqrt",
+        "tan",
+        "tanh",
+    ]
 
     mathdefinitions = {}
     for function in functions:

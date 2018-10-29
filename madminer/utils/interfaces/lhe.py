@@ -9,10 +9,9 @@ import os
 from madminer.utils.various import call_command
 
 
-def extract_observables_from_lhe_file(filename,
-                                      sampling_benchmark,
-                                      observables,
-                                      benchmark_names):
+def extract_observables_from_lhe_file(
+    filename, sampling_benchmark, observables, benchmark_names
+):
     """
 
     Parameters
@@ -32,24 +31,26 @@ def extract_observables_from_lhe_file(filename,
     """
     # Untar Event file
     new_filename, extension = os.path.splitext(filename)
-    if extension == '.gz':
+    if extension == ".gz":
         if not os.path.exists(new_filename):
-            call_command('gunzip -k {}'.format(filename))
+            call_command("gunzip -k {}".format(filename))
         filename = new_filename
 
     # Load LHE file
-    file = open(filename, 'r')
+    file = open(filename, "r")
 
     # Go to first event
     for line in file:
-        if line.strip() == '</init>':
+        if line.strip() == "</init>":
             break
 
     # Read events
     weights_all_events = []
     partons_all_events = []
     while True:
-        end_of_file, event_partons, event_weights = _read_lhe_event(file, sampling_benchmark)
+        end_of_file, event_partons, event_weights = _read_lhe_event(
+            file, sampling_benchmark
+        )
         if end_of_file:
             break
         weights_all_events.append(event_weights)
@@ -71,7 +72,7 @@ def extract_observables_from_lhe_file(filename,
         values_this_observable = []
 
         for event in range(n_events):
-            variables = {'p': partons_all_events[event]}
+            variables = {"p": partons_all_events[event]}
 
             try:
                 values_this_observable.append(eval(obs_definition, variables))
@@ -113,11 +114,11 @@ def _read_lhe_event(file, sampling_benchmark):
         # Skip empty/commented out lines
         if len(line) == 0:
             continue
-        if line.split()[0] == '#':
+        if line.split()[0] == "#":
             continue
-        if line.strip() == '</LesHouchesEvents>':
+        if line.strip() == "</LesHouchesEvents>":
             return True, event_momenta, event_weights
-        if line.strip() == '<event>':
+        if line.strip() == "<event>":
             do_tag = True
             continue
 
@@ -130,7 +131,7 @@ def _read_lhe_event(file, sampling_benchmark):
 
         # Read Momenta and store as 4-vector
         if do_momenta:
-            if line.strip() == '<rwgt>':
+            if line.strip() == "<rwgt>":
                 do_momenta = False
                 do_reweight = True
                 continue
@@ -147,14 +148,16 @@ def _read_lhe_event(file, sampling_benchmark):
 
         # Read Reweighted weights
         if do_reweight:
-            if line.strip() == '</rwgt>':
+            if line.strip() == "</rwgt>":
                 do_reweight = False
                 continue
-            rwgtid = line[line.find('<') + 1:line.find('>')].split('=')[1][1:-1]
-            rwgtval = float(line[line.find('>') + 1:line.find('<', line.find('<') + 1)])
+            rwgtid = line[line.find("<") + 1 : line.find(">")].split("=")[1][1:-1]
+            rwgtval = float(
+                line[line.find(">") + 1 : line.find("<", line.find("<") + 1)]
+            )
             event_weights[rwgtid] = rwgtval
             continue
 
         # End of Event -> return
-        if line.strip() == '</event>':
+        if line.strip() == "</event>":
             return False, event_momenta, event_weights
