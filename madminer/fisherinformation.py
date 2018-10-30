@@ -8,7 +8,7 @@ import os
 from madminer.utils.interfaces.hdf5 import load_madminer_settings, madminer_event_loader
 from madminer.utils.analysis import get_theta_benchmark_matrix, get_dtheta_benchmark_matrix
 from madminer.morphing import Morpher
-from madminer.utils.various import general_init, format_benchmark, math_commands
+from madminer.utils.various import general_init, format_benchmark, math_commands, weighted_quantile
 from madminer.ml import MLForge, EnsembleForge
 
 
@@ -256,7 +256,7 @@ class FisherInformation:
 
         unweighted_x_sample_file : str
             Filename of an unweighted x sample that is sampled according to theta and obeys the cuts
-            (see `madminer.sampling.SampleAugmenter.extract_samples_train_local()`)
+            (see `madminer.sampling.SampleAugmenter.extract_samples_train_local()`).
 
         luminosity : float
             Luminosity in pb^-1.
@@ -379,7 +379,15 @@ class FisherInformation:
         return fisher_info
 
     def calculate_fisher_information_hist1d(
-        self, theta, luminosity, observable, nbins, histrange, cuts=None, efficiency_functions=None
+        self,
+        theta,
+        luminosity,
+        observable,
+        nbins,
+        histrange=None,
+        cuts=None,
+        efficiency_functions=None,
+        n_events_dynamic_binning=100000,
     ):
         """
         Calculates the Fisher information in the one-dimensional histogram of an (parton-level or detector-level,
@@ -400,8 +408,9 @@ class FisherInformation:
         nbins : int
             Number of bins in the histogram, excluding overflow bins.
 
-        histrange : tuple of float
-            Minimum and maximum value of the histogram in the form `(min, max)`. Overflow bins are always added.
+        histrange : tuple of float or None
+            Minimum and maximum value of the histogram in the form `(min, max)`. Overflow bins are always added. If
+            None, variable-width bins with equal cross section are constructed automatically
 
         cuts : None or list of str, optional
             Cuts. Each entry is a parseable Python expression that returns a bool (True if the event should pass a cut,
@@ -426,10 +435,51 @@ class FisherInformation:
 
         # Number of bins
         n_bins_total = nbins + 2
-        bin_boundaries = np.linspace(histrange[0], histrange[1], num=nbins + 1)
+
+        # Automatic dynamic binning
+        dynamic_binning = histrange is None
+        if dynamic_binning:
+            # Quantile values
+            quantile_values = np.linspace(0.0, 1.0, nbins + 1)
+            quantile_values[0] -= 10.0
+            quantile_values[-1] += 10.0
+
+            # Get data
+            x_pilot, weights_pilot = next(
+                madminer_event_loader(self.madminer_filename, batch_size=n_events_dynamic_binning)
+            )
+
+            # Cuts
+            cut_filter = [self._pass_cuts(x, cuts) for x in x_pilot]
+            x_pilot = x_pilot[cut_filter]
+            weights_pilot = weights_pilot[cut_filter]
+
+            # Efficiencies
+            efficiencies = np.array([self._eval_efficiency(x, efficiency_functions) for x in x_pilot])
+            weights_pilot *= efficiencies[:, np.newaxis]
+
+            # Evaluate histogrammed observable
+            histo_observables_pilot = np.asarray([self._eval_observable(x, observable) for x in x_pilot])
+
+            # Weights at theta
+            theta_matrix = get_theta_benchmark_matrix("morphing", theta, self.benchmarks, self.morpher)
+            weight_theta_pilot = theta_matrix.dot(weights_pilot.T)
+
+            # Bin boundaries
+            bin_boundaries = weighted_quantile(histo_observables_pilot, quantile_values, weight_theta_pilot)
+
+            logging.debug('Automatic dybnamic binning: bin boundaries %s', bin_boundaries)
+
+        # Manual binning
+        else:
+            bin_boundaries = np.linspace(histrange[0], histrange[1], num=nbins + 1)
 
         # Loop over batches
         weights_benchmarks = np.zeros((n_bins_total, self.n_benchmarks))
+
+        # Prepare for dynamic binning
+        all_weights = []
+        all_histo_observables = []
 
         for observations, weights in madminer_event_loader(self.madminer_filename):
             # Cuts
