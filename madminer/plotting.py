@@ -56,10 +56,7 @@ def plot_2d_morphing_basis(
     assert basis is not None, "No basis defined"
     assert basis.shape[1] == 2, "Only 2d problems can be plotted with this function"
 
-    xi, yi = (
-        np.linspace(xrange[0], xrange[1], resolution),
-        np.linspace(yrange[0], yrange[1], resolution),
-    )
+    xi, yi = (np.linspace(xrange[0], xrange[1], resolution), np.linspace(yrange[0], yrange[1], resolution))
     xx, yy = np.meshgrid(xi, yi)
     xx, yy = xx.reshape((-1, 1)), yy.reshape((-1, 1))
     theta_test = np.hstack([xx, yy])
@@ -74,11 +71,7 @@ def plot_2d_morphing_basis(
     ax = plt.gca()
 
     pcm = ax.pcolormesh(
-        xi,
-        yi,
-        squared_weights,
-        norm=matplotlib.colors.LogNorm(vmin=crange[0], vmax=crange[1]),
-        cmap="viridis_r",
+        xi, yi, squared_weights, norm=matplotlib.colors.LogNorm(vmin=crange[0], vmax=crange[1]), cmap="viridis_r"
     )
     cbar = fig.colorbar(pcm, ax=ax, extend="both")
 
@@ -123,9 +116,7 @@ def plot_nd_morphing_basis_scatter(morpher, crange=(1.0, 100.0), n_test_thetas=1
     n_parameters = basis.shape[1]
 
     #  Get squared weights
-    thetas, squared_weights = morpher.evaluate_morphing(
-        n_test_thetas=n_test_thetas, return_weights_and_thetas=True
-    )
+    thetas, squared_weights = morpher.evaluate_morphing(n_test_thetas=n_test_thetas, return_weights_and_thetas=True)
 
     # Plot
     fig = plt.figure(figsize=((n_parameters - 1) * 5.0, (n_parameters - 1) * 4.0))
@@ -145,14 +136,7 @@ def plot_nd_morphing_basis_scatter(morpher, crange=(1.0, 100.0), n_test_thetas=1
             )
             cbar = fig.colorbar(sc, ax=ax, extend="both")
 
-            plt.scatter(
-                basis[:, ix],
-                basis[:, iy],
-                s=100.0,
-                lw=1.0,
-                edgecolor="black",
-                c="white",
-            )
+            plt.scatter(basis[:, ix], basis[:, iy], s=100.0, lw=1.0, edgecolor="black", c="white")
 
             plt.xlabel(r"$\theta_" + str(ix) + "$")
             plt.ylabel(r"$\theta_" + str(iy) + "$")
@@ -215,9 +199,7 @@ def plot_nd_morphing_basis_slices(morpher, crange=(1.0, 100.0), resolution=50):
             for theta in theta_test:
                 wi = morpher.calculate_morphing_weights(theta, None)
                 squared_weights.append(np.sum(wi * wi) ** 0.5)
-            squared_weights = np.array(squared_weights).reshape(
-                (resolution, resolution)
-            )
+            squared_weights = np.array(squared_weights).reshape((resolution, resolution))
 
             pcm = ax.pcolormesh(
                 xi,
@@ -228,14 +210,7 @@ def plot_nd_morphing_basis_slices(morpher, crange=(1.0, 100.0), resolution=50):
             )
             cbar = fig.colorbar(pcm, ax=ax, extend="both")
 
-            plt.scatter(
-                basis[:, ix],
-                basis[:, iy],
-                s=100.0,
-                lw=1.0,
-                edgecolor="black",
-                c="white",
-            )
+            plt.scatter(basis[:, ix], basis[:, iy], s=100.0, lw=1.0, edgecolor="black", c="white")
 
             plt.xlabel(r"$\theta_" + str(ix) + "$")
             plt.ylabel(r"$\theta_" + str(iy) + "$")
@@ -336,9 +311,7 @@ def plot_fisher_information_contours_2d(
 
     if fisher_information_matrices.shape != (n_matrices, 2, 2):
         raise RuntimeError(
-            "Fisher information matrices have shape {}, not (n, 2,2)!".format(
-                fisher_information_matrices.shape
-            )
+            "Fisher information matrices have shape {}, not (n, 2,2)!".format(fisher_information_matrices.shape)
         )
 
     if fisher_information_covariances is None:
@@ -382,18 +355,12 @@ def plot_fisher_information_contours_2d(
         thetas[np.newaxis, :, np.newaxis, :],  # (1, n_grid, 1, m)
         fisher_distances_squared,  # (n_matrices, n_grid, m, 1)
     )
-    fisher_distances_squared = fisher_distances_squared.reshape(
-        (n_matrices, resolution, resolution)
-    )
+    fisher_distances_squared = fisher_distances_squared.reshape((n_matrices, resolution, resolution))
 
     logging.debug("Fisher distances: \n %s", fisher_distances_squared)
 
-    fisher_distances_alt = np.einsum(
-        "ni,mij,nj->mn", thetas, fisher_information_matrices, thetas
-    )
-    fisher_distances_alt_squared = fisher_distances_alt.reshape(
-        (n_matrices, resolution, resolution)
-    )
+    fisher_distances_alt = np.einsum("ni,mij,nj->mn", thetas, fisher_information_matrices, thetas)
+    fisher_distances_alt_squared = fisher_distances_alt.reshape((n_matrices, resolution, resolution))
     logging.debug("Diff: %s", fisher_distances_squared - fisher_distances_alt_squared)
 
     # Calculate uncertainties of Fisher distances
@@ -417,24 +384,11 @@ def plot_fisher_information_contours_2d(
     # Error bands
     for i in range(n_matrices):
         if fisher_information_covariances[i] is not None:
-            d2_up = (
-                fisher_distances_squared[i] + fisher_distances_squared_uncertainties[i]
-            )
-            d2_down = (
-                fisher_distances_squared[i] - fisher_distances_squared_uncertainties[i]
-            )
-            band = (d2_up > d2_threshold) * (d2_down < d2_threshold) + (
-                d2_up < d2_threshold
-            ) * (d2_down > d2_threshold)
+            d2_up = fisher_distances_squared[i] + fisher_distances_squared_uncertainties[i]
+            d2_down = fisher_distances_squared[i] - fisher_distances_squared_uncertainties[i]
+            band = (d2_up > d2_threshold) * (d2_down < d2_threshold) + (d2_up < d2_threshold) * (d2_down > d2_threshold)
 
-            plt.contourf(
-                xi,
-                yi,
-                band,
-                [0.5, 2.5],
-                colors=colors[i],
-                alpha=alphas_uncertainties[i],
-            )
+            plt.contourf(xi, yi, band, [0.5, 2.5], colors=colors[i], alpha=alphas_uncertainties[i])
 
     # Predictions
     for i in range(n_matrices):
@@ -450,18 +404,8 @@ def plot_fisher_information_contours_2d(
             label=None if labels is None else labels[i],
         )
 
-        if (
-            inline_labels is not None
-            and inline_labels[i] is not None
-            and len(inline_labels[i]) > 0
-        ):
-            plt.clabel(
-                cs,
-                cs.levels,
-                inline=True,
-                fontsize=12,
-                fmt={d2_threshold: inline_labels[i]},
-            )
+        if inline_labels is not None and inline_labels[i] is not None and len(inline_labels[i]) > 0:
+            plt.clabel(cs, cs.levels, inline=True, fontsize=12, fmt={d2_threshold: inline_labels[i]})
 
     # Legend and decorations
     if labels is not None:
@@ -518,9 +462,7 @@ def plot_fisherinfo_barplot(
     exponent_lower = 1.0 / float(size_lower)
 
     # calculate + normalize determinants
-    determinants = [
-        np.linalg.det(m) ** exponent_lower for m in matrices_for_determinants
-    ]
+    determinants = [np.linalg.det(m) ** exponent_lower for m in matrices_for_determinants]
 
     if normalise_determinants:
         max_information = max(determinants)
@@ -584,26 +526,12 @@ def plot_fisherinfo_barplot(
     # barcolored - either colored or gray
     if use_bar_colors:
         bar_colors = ["red", "blue", "green", "darkorange", "fuchsia", "turquoise"] * 5
-        bar_colors_light = [
-            "red",
-            "blue",
-            "green",
-            "darkorange",
-            "fuchsia",
-            "turquoise",
-        ] * 5
+        bar_colors_light = ["red", "blue", "green", "darkorange", "fuchsia", "turquoise"] * 5
     else:
         bar_colors = ["0.5"] * 30
         bar_colors_light = ["0.9"] * 30
 
-    eigenvalue_colors = [
-        "red",
-        "blue",
-        "green",
-        "darkorange",
-        "fuchsia",
-        "turquoise",
-    ] * 5
+    eigenvalue_colors = ["red", "blue", "green", "darkorange", "fuchsia", "turquoise"] * 5
     operator_order = [i for i in range(0, size_upper)]
     eigenvalue_linewidth = 1.5
 
@@ -615,9 +543,7 @@ def plot_fisherinfo_barplot(
     fig = plt.figure(figsize=(9.0, 6.0))
     ax1 = plt.subplot(211)
     ax1.set_yscale("log")
-    fig.subplots_adjust(
-        left=0.075, right=0.925, bottom=0.15, top=0.95, wspace=0, hspace=0
-    )
+    fig.subplots_adjust(left=0.075, right=0.925, bottom=0.15, top=0.95, wspace=0, hspace=0)
 
     # Plot eigenvalues
     for i in range(n_entries):
@@ -641,9 +567,7 @@ def plot_fisherinfo_barplot(
                 if fraction >= minimal_fraction_for_plot:
                     plt.hlines(
                         [eigenvalue],
-                        xmin_eigenvalues[i]
-                        + fraction_finished
-                        * (xmax_eigenvalues[i] - xmin_eigenvalues[i]),
+                        xmin_eigenvalues[i] + fraction_finished * (xmax_eigenvalues[i] - xmin_eigenvalues[i]),
                         xmin_eigenvalues[i]
                         + (fraction_finished + gap_correction_factor * fraction)
                         * (xmax_eigenvalues[i] - xmin_eigenvalues[i]),
@@ -663,16 +587,9 @@ def plot_fisherinfo_barplot(
         topfactor = 5.0
 
     ax1.set_ylim(
-        [
-            max([max(ev) for ev in eigenvalues]) / orderofmagnitudes,
-            max([max(ev) for ev in eigenvalues]) * topfactor,
-        ]
+        [max([max(ev) for ev in eigenvalues]) / orderofmagnitudes, max([max(ev) for ev in eigenvalues]) * topfactor]
     )
-    legend_position = (
-        max([max(ev) for ev in eigenvalues])
-        * topfactor
-        / (topfactor * orderofmagnitudes) ** 0.1
-    )
+    legend_position = max([max(ev) for ev in eigenvalues]) * topfactor / (topfactor * orderofmagnitudes) ** 0.1
 
     ax1.set_xticks(xpos_ticks)
     ax1.set_xticklabels(["" for l in labels], rotation=40, ha="right")
@@ -725,14 +642,12 @@ def plot_fisherinfo_barplot(
             legend_labels_color = ["black"] + eigenvalue_colors
         else:
             legend_labels = [r"Eigenvector composition:"] + operatorlabels
-            legend_labels_x = [
-                0.94 - (len(operatorlabels) - 1) * 0.1 - 0.4
-            ] + np.linspace(0.94 - (len(operatorlabels) - 1) * 0.1, 0.94, num=2)
+            legend_labels_x = [0.94 - (len(operatorlabels) - 1) * 0.1 - 0.4] + np.linspace(
+                0.94 - (len(operatorlabels) - 1) * 0.1, 0.94, num=2
+            )
             legend_labels_color = ["black"] + eigenvalue_colors
 
-        for legend_label, x, col in zip(
-            legend_labels, legend_labels_x, legend_labels_color
-        ):
+        for legend_label, x, col in zip(legend_labels, legend_labels_x, legend_labels_color):
             ax1.text(
                 x * base_xmax,
                 legend_position,
@@ -762,11 +677,7 @@ def plot_fisherinfo_barplot(
     ax3.set_xticks(xpos_ticks)
     ax3.set_xticklabels(labels, rotation=40, ha="right")
     if normalise_determinants:
-        ax3.set_ylabel(
-            r"$(\det \ I_{ij} / \det \ I_{ij}^{\mathrm{full}})^{1/"
-            + str(size_lower)
-            + r"}$"
-        )
+        ax3.set_ylabel(r"$(\det \ I_{ij} / \det \ I_{ij}^{\mathrm{full}})^{1/" + str(size_lower) + r"}$")
     else:
         ax3.set_ylabel(r"$(\det \ I_{ij})^{1/" + str(size_lower) + r"}$")
     ax3.yaxis.set_label_coords(-0.052, 0.5)
@@ -797,9 +708,7 @@ def plot_fisherinfo_barplot(
     precision_limits = norm_information_to_precision(np.array(ax4_limits))
 
     # precision_ticks = np.array([1.e-3,1.e-2,1.e-1,1.,1.e1,1.e2,1.e3])
-    precision_ticks = np.array(
-        [0.1, 0.2, 0.3, 0.4, 0.5, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5]
-    )
+    precision_ticks = np.array([0.1, 0.2, 0.3, 0.4, 0.5, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5])
     ax4_ticks = precision_to_norm_information(precision_ticks)
 
     ## precision_minor_ticks = []
@@ -962,9 +871,7 @@ def kinematic_distribution_of_information(
 
     ax2.set_xlim([xmin, xmax])
     ax2.set_ylim([0.0, max(determinants) * 1.1])
-    ax2.set_ylabel(
-        r"$(\det \; I_{ij})^{1/" + str(size) + "}$" + ylabel_addition, color=det_color
-    )
+    ax2.set_ylabel(r"$(\det \; I_{ij})^{1/" + str(size) + "}$" + ylabel_addition, color=det_color)
     for tl in ax2.get_yticklabels():
         tl.set_color(det_color)
 

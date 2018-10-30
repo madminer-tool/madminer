@@ -105,9 +105,7 @@ def get_dtheta_benchmark_matrix(theta_type, theta_value, benchmarks, morpher=Non
         if morpher is None:
             raise RuntimeError("Cannot calculate score without morphing")
 
-        dtheta_matrix = morpher.calculate_morphing_weight_gradient(
-            theta_value
-        )  # Shape (n_parameters, n_benchmarks)
+        dtheta_matrix = morpher.calculate_morphing_weight_gradient(theta_value)  # Shape (n_parameters, n_benchmarks)
 
     elif theta_type == "sampling":
         dtheta_matrix = "sampling_gradient"
@@ -122,11 +120,7 @@ def get_dtheta_benchmark_matrix(theta_type, theta_value, benchmarks, morpher=Non
 
 
 def extract_augmented_data(
-    augmented_data_definitions,
-    weights_benchmarks,
-    xsecs_benchmarks,
-    theta_matrices,
-    theta_gradient_matrices,
+    augmented_data_definitions, weights_benchmarks, xsecs_benchmarks, theta_matrices, theta_gradient_matrices
 ):
     """
 
@@ -236,16 +230,12 @@ def parse_theta(theta, n_samples):
             if prior[0] == "flat":
                 prior_min = prior[1]
                 prior_max = prior[2]
-                theta_values.append(
-                    prior_min + (prior_max - prior_min) * np.random.rand(n_benchmarks)
-                )
+                theta_values.append(prior_min + (prior_max - prior_min) * np.random.rand(n_benchmarks))
 
             elif prior[0] == "gaussian":
                 prior_mean = prior[1]
                 prior_std = prior[2]
-                theta_values.append(
-                    np.random.normal(loc=prior_mean, scale=prior_std, size=n_benchmarks)
-                )
+                theta_values.append(np.random.normal(loc=prior_mean, scale=prior_std, size=n_benchmarks))
 
             else:
                 raise ValueError("Unknown prior {}".format(prior))

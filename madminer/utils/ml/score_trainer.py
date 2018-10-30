@@ -114,9 +114,7 @@ def train_local_score_model(
 
     # Train / validation split
     if validation_split is not None:
-        assert 0.0 < validation_split < 1.0, "Wrong validation split: {}".format(
-            validation_split
-        )
+        assert 0.0 < validation_split < 1.0, "Wrong validation split: {}".format(validation_split)
 
         n_samples = len(dataset)
         indices = list(range(n_samples))
@@ -127,27 +125,18 @@ def train_local_score_model(
         train_sampler = SubsetRandomSampler(train_idx)
         validation_sampler = SubsetRandomSampler(valid_idx)
 
-        train_loader = DataLoader(
-            dataset, sampler=train_sampler, batch_size=batch_size, pin_memory=run_on_gpu
-        )
+        train_loader = DataLoader(dataset, sampler=train_sampler, batch_size=batch_size, pin_memory=run_on_gpu)
         validation_loader = DataLoader(
-            dataset,
-            sampler=validation_sampler,
-            batch_size=batch_size,
-            pin_memory=run_on_gpu,
+            dataset, sampler=validation_sampler, batch_size=batch_size, pin_memory=run_on_gpu
         )
     else:
-        train_loader = DataLoader(
-            dataset, batch_size=batch_size, shuffle=True, pin_memory=run_on_gpu
-        )
+        train_loader = DataLoader(dataset, batch_size=batch_size, shuffle=True, pin_memory=run_on_gpu)
 
     # Optimizer
     optimizer = optim.Adam(model.parameters(), lr=initial_learning_rate)
 
     # Early stopping
-    early_stopping = (
-        early_stopping and (validation_split is not None) and (n_epochs > 1)
-    )
+    early_stopping = early_stopping and (validation_split is not None) and (n_epochs > 1)
     early_stopping_best_val_loss = None
     early_stopping_best_model = None
     early_stopping_epoch = None
@@ -181,9 +170,9 @@ def train_local_score_model(
 
         # Learning rate decay
         if n_epochs > 1:
-            lr = initial_learning_rate * (
-                final_learning_rate / initial_learning_rate
-            ) ** float(epoch / (n_epochs - 1.0))
+            lr = initial_learning_rate * (final_learning_rate / initial_learning_rate) ** float(
+                epoch / (n_epochs - 1.0)
+            )
             for param_group in optimizer.param_groups:
                 param_group["lr"] = lr
 
@@ -222,11 +211,7 @@ def train_local_score_model(
 
         # Validation
         if validation_split is None:
-            if (
-                n_epochs_verbose is not None
-                and n_epochs_verbose > 0
-                and (epoch + 1) % n_epochs_verbose == 0
-            ):
+            if n_epochs_verbose is not None and n_epochs_verbose > 0 and (epoch + 1) % n_epochs_verbose == 0:
                 logging.info(
                     "  Epoch %d: train loss %.2f (%s)"
                     % (epoch + 1, total_losses_train[-1], individual_losses_train[-1])
@@ -245,9 +230,7 @@ def train_local_score_model(
                 # Evaluate loss
                 t_hat = model(x)
 
-                losses = [
-                    loss_function(t_hat, t_xz) for loss_function in loss_functions
-                ]
+                losses = [loss_function(t_hat, t_xz) for loss_function in loss_functions]
                 loss = loss_weights[0] * losses[0]
                 for _w, _l in zip(loss_weights[1:], losses[1:]):
                     loss += _w * _l
@@ -264,20 +247,13 @@ def train_local_score_model(
 
         # Early stopping: best epoch so far?
         if early_stopping:
-            if (
-                early_stopping_best_val_loss is None
-                or total_val_loss < early_stopping_best_val_loss
-            ):
+            if early_stopping_best_val_loss is None or total_val_loss < early_stopping_best_val_loss:
                 early_stopping_best_val_loss = total_val_loss
                 early_stopping_best_model = model.state_dict()
                 early_stopping_epoch = epoch
 
         # Print out information
-        if (
-            n_epochs_verbose is not None
-            and n_epochs_verbose > 0
-            and (epoch + 1) % n_epochs_verbose == 0
-        ):
+        if n_epochs_verbose is not None and n_epochs_verbose > 0 and (epoch + 1) % n_epochs_verbose == 0:
             if early_stopping and epoch == early_stopping_epoch:
                 logging.info(
                     "  Epoch %d: train loss %.2f (%s), validation loss %.2f (%s) (*)"
@@ -304,10 +280,7 @@ def train_local_score_model(
         # Early stopping: actually stop training
         if early_stopping and early_stopping_patience is not None:
             if epoch - early_stopping_epoch >= early_stopping_patience > 0:
-                logging.info(
-                    "No improvement for %s epochs, stopping training",
-                    epoch - early_stopping_epoch,
-                )
+                logging.info("No improvement for %s epochs, stopping training", epoch - early_stopping_epoch)
                 break
 
     # Early stopping: back to best state
@@ -326,15 +299,9 @@ def train_local_score_model(
     # Save learning curve
     if learning_curve_folder is not None and learning_curve_filename is not None:
 
-        np.save(
-            learning_curve_folder + "/loss_train" + learning_curve_filename + ".npy",
-            total_losses_train,
-        )
+        np.save(learning_curve_folder + "/loss_train" + learning_curve_filename + ".npy", total_losses_train)
         if validation_split is not None:
-            np.save(
-                learning_curve_folder + "/loss_val" + learning_curve_filename + ".npy",
-                total_losses_val,
-            )
+            np.save(learning_curve_folder + "/loss_val" + learning_curve_filename + ".npy", total_losses_val)
 
         if loss_labels is not None:
             individual_losses_train = np.array(individual_losses_train)
@@ -342,22 +309,12 @@ def train_local_score_model(
 
             for i, label in enumerate(loss_labels):
                 np.save(
-                    learning_curve_folder
-                    + "/loss_"
-                    + label
-                    + "_train"
-                    + learning_curve_filename
-                    + ".npy",
+                    learning_curve_folder + "/loss_" + label + "_train" + learning_curve_filename + ".npy",
                     individual_losses_train[:, i],
                 )
                 if validation_split is not None:
                     np.save(
-                        learning_curve_folder
-                        + "/loss_"
-                        + label
-                        + "_val"
-                        + learning_curve_filename
-                        + ".npy",
+                        learning_curve_folder + "/loss_" + label + "_val" + learning_curve_filename + ".npy",
                         individual_losses_val[:, i],
                     )
 

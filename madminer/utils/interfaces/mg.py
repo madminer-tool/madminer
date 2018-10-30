@@ -8,12 +8,7 @@ from madminer.utils.various import call_command, make_file_executable
 
 
 def generate_mg_process(
-    mg_directory,
-    temp_directory,
-    proc_card_file,
-    mg_process_directory,
-    initial_command=None,
-    log_file=None,
+    mg_directory, temp_directory, proc_card_file, mg_process_directory, initial_command=None, log_file=None
 ):
     """
 
@@ -49,10 +44,7 @@ def generate_mg_process(
     else:
         initial_command = initial_command + "; "
 
-    _ = call_command(
-        initial_command + mg_directory + "/bin/mg5_aMC " + temp_proc_card_file,
-        log_file=log_file,
-    )
+    _ = call_command(initial_command + mg_directory + "/bin/mg5_aMC " + temp_proc_card_file, log_file=log_file)
 
 
 def prepare_run_mg_pythia(
@@ -102,9 +94,7 @@ def prepare_run_mg_pythia(
     # Find filenames for process card and script
     if proc_card_filename is None:
         for i in range(1000):
-            proc_card_filename = (
-                mg_process_directory + "/Cards/start_event_generation_{}.mg5".format(i)
-            )
+            proc_card_filename = mg_process_directory + "/Cards/start_event_generation_{}.mg5".format(i)
             if not os.path.isfile(proc_card_filename):
                 break
 
@@ -142,21 +132,13 @@ def prepare_run_mg_pythia(
     #  Card copying commands
     copy_commands = ""
     if run_card_file is not None:
-        copy_commands += "cp {} {}\n".format(
-            run_card_file, mg_process_directory + "/Cards/run_card.dat"
-        )
+        copy_commands += "cp {} {}\n".format(run_card_file, mg_process_directory + "/Cards/run_card.dat")
     if param_card_file is not None:
-        copy_commands += "cp {} {}\n".format(
-            param_card_file, mg_process_directory + "/Cards/param_card.dat"
-        )
+        copy_commands += "cp {} {}\n".format(param_card_file, mg_process_directory + "/Cards/param_card.dat")
     if reweight_card_file is not None and not is_background:
-        copy_commands += "cp {} {}\n".format(
-            reweight_card_file, mg_process_directory + "/Cards/reweight_card.dat"
-        )
+        copy_commands += "cp {} {}\n".format(reweight_card_file, mg_process_directory + "/Cards/reweight_card.dat")
     if pythia8_card_file is not None:
-        copy_commands += "cp {} {}\n".format(
-            pythia8_card_file, mg_process_directory + "/Cards/pythia8_card.dat"
-        )
+        copy_commands += "cp {} {}\n".format(pythia8_card_file, mg_process_directory + "/Cards/pythia8_card.dat")
 
     # Put together script
     script = "#!/bin/bash\n\n{}\n\n{}\n\n{}/bin/mg5_aMC {} > {}\n".format(
@@ -248,20 +230,14 @@ def run_mg_pythia(
     if param_card_file is not None:
         shutil.copyfile(param_card_file, mg_process_directory + "/Cards/param_card.dat")
     if reweight_card_file is not None and not is_background:
-        shutil.copyfile(
-            reweight_card_file, mg_process_directory + "/Cards/reweight_card.dat"
-        )
+        shutil.copyfile(reweight_card_file, mg_process_directory + "/Cards/reweight_card.dat")
     if pythia8_card_file is not None:
-        shutil.copyfile(
-            pythia8_card_file, mg_process_directory + "/Cards/pythia8_card.dat"
-        )
+        shutil.copyfile(pythia8_card_file, mg_process_directory + "/Cards/pythia8_card.dat")
 
     # Find filenames for process card and script
     if proc_card_filename is None:
         for i in range(1000):
-            proc_card_filename = (
-                mg_process_directory + "/Cards/start_event_generation_{}.mg5".format(i)
-            )
+            proc_card_filename = mg_process_directory + "/Cards/start_event_generation_{}.mg5".format(i)
             if not os.path.isfile(proc_card_filename):
                 break
 
@@ -290,10 +266,7 @@ def run_mg_pythia(
     else:
         initial_command = initial_command + "; "
 
-    _ = call_command(
-        initial_command + mg_directory + "/bin/mg5_aMC " + proc_card_filename,
-        log_file=log_file,
-    )
+    _ = call_command(initial_command + mg_directory + "/bin/mg5_aMC " + proc_card_filename, log_file=log_file)
 
 
 def copy_ufo_model(ufo_directory, mg_directory):

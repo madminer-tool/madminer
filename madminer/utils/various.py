@@ -69,9 +69,7 @@ def call_command(cmd, log_file=None):
 
         if exitcode != 0:
             raise RuntimeError(
-                "Calling command {} returned exit code {}. Output in file {}.".format(
-                    cmd, exitcode, log_file
-                )
+                "Calling command {} returned exit code {}. Output in file {}.".format(cmd, exitcode, log_file)
             )
     else:
         proc = Popen(cmd, stdout=PIPE, stderr=PIPE, shell=True)
@@ -241,12 +239,7 @@ def load_and_check(filename, warning_threshold=1.0e9):
     largest = np.nanmax(data)
 
     if np.abs(smallest) > warning_threshold or np.abs(largest) > warning_threshold:
-        logging.warning(
-            "Warning: file %s has some large numbers, rangin from %s to %s",
-            filename,
-            smallest,
-            largest,
-        )
+        logging.warning("Warning: file %s has some large numbers, rangin from %s to %s", filename, smallest, largest)
 
     return data
 
@@ -254,25 +247,7 @@ def load_and_check(filename, warning_threshold=1.0e9):
 def math_commands():
     """Provides list with math commands - we need this when using eval"""
 
-    from math import (
-        acos,
-        asin,
-        atan,
-        atan2,
-        ceil,
-        cos,
-        cosh,
-        exp,
-        floor,
-        log,
-        pi,
-        pow,
-        sin,
-        sinh,
-        sqrt,
-        tan,
-        tanh,
-    )
+    from math import acos, asin, atan, atan2, ceil, cos, cosh, exp, floor, log, pi, pow, sin, sinh, sqrt, tan, tanh
 
     functions = [
         "acos",
@@ -335,3 +310,56 @@ def copy_file(source, destination):
         return
 
     shutil.copyfile(source, destination)
+
+
+def weighted_quantile(values, quantiles, sample_weight=None, values_sorted=False, old_style=False):
+
+    """
+    Calculates quantiles (similar to np.percentile), but supports weights.
+
+    Parameters
+    ----------
+    values : ndarray
+        Data
+    quantiles : ndarray
+        Which quantiles to calculate
+    sample_weight : ndarray or None
+        Weights
+    values_sorted : bool
+        If True, will avoid sorting the initial array
+    old_style : bool
+        If True, will correct output to be consistent with np.percentile
+
+    Returns
+    -------
+    quantiles : ndarray
+        Quantiles
+
+    """
+
+    # Input
+    values = np.array(values, dtype=np.float64)
+    quantiles = np.array(quantiles)
+    if sample_weight is None:
+        sample_weight = np.ones(len(values))
+    sample_weight = np.array(sample_weight, dtype=np.float64)
+    assert np.all(quantiles >= 0) and np.all(quantiles <= 1), "quantiles should be in [0, 1]"
+
+    # Sort
+    if not values_sorted:
+        sorter = np.argsort(values)
+        values = values[sorter]
+        sample_weight = sample_weight[sorter]
+
+    # Quantiles
+    weighted_quantiles = np.cumsum(sample_weight) - 0.5 * sample_weight
+
+    # Postprocessing
+    if old_style:
+        # To be consistent with np.percentile
+        weighted_quantiles -= weighted_quantiles[0]
+        weighted_quantiles /= weighted_quantiles[-1]
+    else:
+        weighted_quantiles /= np.sum(sample_weight)
+
+    return np.interp(quantiles, weighted_quantiles, values)

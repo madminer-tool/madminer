@@ -48,25 +48,15 @@ def extract_observables_from_delphes_file(
     weights = np.array(ar_weights).reshape((n_events, n_weights)).T
 
     # Get all particle properties
-    photons_all_events = _get_particles_photons(
-        tree, acceptance_pt_min_a, acceptance_eta_max_a
-    )
+    photons_all_events = _get_particles_photons(tree, acceptance_pt_min_a, acceptance_eta_max_a)
     electrons_all_events = _get_particles_charged(
         tree, "Electron", 0.000511, -11, acceptance_pt_min_e, acceptance_eta_max_e
     )
-    muons_all_events = _get_particles_charged(
-        tree, "Muon", 0.105, -13, acceptance_pt_min_mu, acceptance_eta_max_mu
-    )
+    muons_all_events = _get_particles_charged(tree, "Muon", 0.105, -13, acceptance_pt_min_mu, acceptance_eta_max_mu)
     leptons_all_events = _get_particles_leptons(
-        tree,
-        acceptance_pt_min_e,
-        acceptance_eta_max_e,
-        acceptance_pt_min_mu,
-        acceptance_eta_max_mu,
+        tree, acceptance_pt_min_e, acceptance_eta_max_e, acceptance_pt_min_mu, acceptance_eta_max_mu
     )
-    jets_all_events = _get_particles_jets(
-        tree, acceptance_pt_min_j, acceptance_eta_max_j
-    )
+    jets_all_events = _get_particles_jets(tree, acceptance_pt_min_j, acceptance_eta_max_j)
     met_all_events = _get_particles_met(tree)
 
     # Prepare variables
@@ -92,9 +82,7 @@ def extract_observables_from_delphes_file(
                 "met": met_all_events[ievent][0],
                 "visible": visible_momentum,
                 "all": all_momentum,
-                "boost_to_com": lambda momentum: momentum.boost(
-                    all_momentum.boost_vector()
-                ),
+                "boost_to_com": lambda momentum: momentum.boost(all_momentum.boost_vector()),
             }
         )
 
@@ -152,10 +140,7 @@ def extract_observables_from_delphes_file(
             n_fail = np.sum(np.invert(this_filter))
 
             logging.info(
-                "Requiring existence of observable %s: %s events pass, %s events removed",
-                obs_name,
-                n_pass,
-                n_fail,
+                "Requiring existence of observable %s: %s events pass, %s events removed", obs_name, n_pass, n_fail
             )
 
             if combined_filter is None:
@@ -209,9 +194,7 @@ def _get_particles_charged(tree, name, mass, pdgid_positive_charge, pt_min, eta_
     for ievent in range(len(pts)):
         event_particles = []
 
-        for pt, eta, phi, charge in zip(
-            pts[ievent], etas[ievent], phis[ievent], charges[ievent]
-        ):
+        for pt, eta, phi, charge in zip(pts[ievent], etas[ievent], phis[ievent], charges[ievent]):
 
             if pt_min is not None and pt < pt_min:
                 continue
@@ -249,15 +232,10 @@ def _get_particles_leptons(tree, pt_min_e, eta_max_e, pt_min_mu, eta_max_mu):
         event_pts = np.concatenate((pt_mu[ievent], pt_e[ievent]))
         event_etas = np.concatenate((eta_mu[ievent], eta_e[ievent]))
         event_phis = np.concatenate((phi_mu[ievent], phi_e[ievent]))
-        event_masses = np.concatenate(
-            (0.105 * np.ones_like(pt_mu[ievent]), 0.000511 * np.ones_like(pt_e[ievent]))
-        )
+        event_masses = np.concatenate((0.105 * np.ones_like(pt_mu[ievent]), 0.000511 * np.ones_like(pt_e[ievent])))
         event_charges = np.concatenate((charge_mu[ievent], charge_e[ievent]))
         event_pdgid_positive_charges = np.concatenate(
-            (
-                -13 * np.ones_like(pt_mu[ievent], dtype=np.int),
-                -11 * np.ones_like(pt_e[ievent], dtype=np.int),
-            )
+            (-13 * np.ones_like(pt_mu[ievent], dtype=np.int), -11 * np.ones_like(pt_e[ievent], dtype=np.int))
         )
 
         # Sort by descending pT
@@ -268,12 +246,7 @@ def _get_particles_leptons(tree, pt_min_e, eta_max_e, pt_min_mu, eta_max_mu):
 
         # Create particles
         for pt, eta, phi, mass, charge, pdgid_positive_charge in zip(
-            event_pts,
-            event_etas,
-            event_phis,
-            event_masses,
-            event_charges,
-            event_pdgid_positive_charges,
+            event_pts, event_etas, event_phis, event_masses, event_charges, event_pdgid_positive_charges
         ):
 
             pdgid = pdgid_positive_charge if charge >= 0.0 else -pdgid_positive_charge
@@ -291,9 +264,7 @@ def _get_particles_leptons(tree, pt_min_e, eta_max_e, pt_min_mu, eta_max_mu):
                     continue
 
             else:
-                logging.warning(
-                    "Delphes ROOT file has lepton with PDG ID %s, ignoring it", pdgid
-                )
+                logging.warning("Delphes ROOT file has lepton with PDG ID %s, ignoring it", pdgid)
                 continue
 
             particle = MadMinerParticle()
@@ -345,9 +316,7 @@ def _get_particles_jets(tree, pt_min, eta_max):
     for ievent in range(len(pts)):
         event_particles = []
 
-        for pt, eta, phi, mass in zip(
-            pts[ievent], etas[ievent], phis[ievent], masses[ievent]
-        ):
+        for pt, eta, phi, mass in zip(pts[ievent], etas[ievent], phis[ievent], masses[ievent]):
 
             if pt_min is not None and pt < pt_min:
                 continue

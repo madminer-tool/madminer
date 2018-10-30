@@ -4,10 +4,7 @@ from collections import OrderedDict
 import numpy as np
 import logging
 
-from madminer.utils.interfaces.hdf5 import (
-    load_benchmarks_from_madminer_file,
-    save_madminer_file_from_lhe,
-)
+from madminer.utils.interfaces.hdf5 import load_benchmarks_from_madminer_file, save_madminer_file_from_lhe
 from madminer.utils.interfaces.lhe import extract_observables_from_lhe_file
 from madminer.utils.various import general_init
 
@@ -57,9 +54,7 @@ class LHEProcessor:
         raise NotImplementedError
 
     def analyse_lhe_samples(self):
-        for lhe_file, sampling_benchmark in zip(
-            self.lhe_sample_filenames, self.sampling_benchmarks
-        ):
+        for lhe_file, sampling_benchmark in zip(self.lhe_sample_filenames, self.sampling_benchmarks):
 
             logging.info("Analysing LHE sample %s", lhe_file)
 
@@ -90,33 +85,19 @@ class LHEProcessor:
             self.weights = np.hstack([self.weights, this_weights])
 
             for key in self.observations:
-                assert (
-                    key in this_observations
-                ), "Observable {} not found in LHE sample!".format(key)
-                self.observations[key] = np.hstack(
-                    [self.observations[key], this_observations[key]]
-                )
+                assert key in this_observations, "Observable {} not found in LHE sample!".format(key)
+                self.observations[key] = np.hstack([self.observations[key], this_observations[key]])
 
     def save(self, filename_out, filename_in=None):
         assert (
-            self.observables is not None
-            and self.observations is not None
-            and self.weights is not None
+            self.observables is not None and self.observations is not None and self.weights is not None
         ), "Nothing to save!"
 
         if filename_in is None:
             logging.info("Saving HDF5 file to %s", filename_out)
         else:
-            logging.info(
-                "Loading HDF5 data from %s and saving file to %s",
-                filename_in,
-                filename_out,
-            )
+            logging.info("Loading HDF5 data from %s and saving file to %s", filename_in, filename_out)
 
         save_madminer_file_from_lhe(
-            filename_out,
-            self.observables,
-            self.observations,
-            self.weights,
-            copy_from=filename_in,
+            filename_out, self.observables, self.observations, self.weights, copy_from=filename_in
         )

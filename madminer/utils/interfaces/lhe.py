@@ -9,9 +9,7 @@ import os
 from madminer.utils.various import call_command
 
 
-def extract_observables_from_lhe_file(
-    filename, sampling_benchmark, observables, benchmark_names
-):
+def extract_observables_from_lhe_file(filename, sampling_benchmark, observables, benchmark_names):
     """
 
     Parameters
@@ -48,9 +46,7 @@ def extract_observables_from_lhe_file(
     weights_all_events = []
     partons_all_events = []
     while True:
-        end_of_file, event_partons, event_weights = _read_lhe_event(
-            file, sampling_benchmark
-        )
+        end_of_file, event_partons, event_weights = _read_lhe_event(file, sampling_benchmark)
         if end_of_file:
             break
         weights_all_events.append(event_weights)
@@ -152,9 +148,7 @@ def _read_lhe_event(file, sampling_benchmark):
                 do_reweight = False
                 continue
             rwgtid = line[line.find("<") + 1 : line.find(">")].split("=")[1][1:-1]
-            rwgtval = float(
-                line[line.find(">") + 1 : line.find("<", line.find("<") + 1)]
-            )
+            rwgtval = float(line[line.find(">") + 1 : line.find("<", line.find("<") + 1)])
             event_weights[rwgtid] = rwgtval
             continue
 

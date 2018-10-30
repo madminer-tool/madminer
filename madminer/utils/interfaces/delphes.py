@@ -48,12 +48,8 @@ def run_delphes(
                 os.remove(delphes_sample_filename)
                 break
 
-        assert (
-            delphes_sample_filename is not None
-        ), "Could not find filename for Delphes sample"
-        assert not os.path.exists(
-            delphes_sample_filename
-        ), "Could not find filename for Delphes sample"
+        assert delphes_sample_filename is not None, "Could not find filename for Delphes sample"
+        assert not os.path.exists(delphes_sample_filename), "Could not find filename for Delphes sample"
 
     # Initial commands
     if initial_command is None:
@@ -64,11 +60,7 @@ def run_delphes(
     # Call Delphes
     _ = call_command(
         "{}{}/DelphesHepMC {} {} {}".format(
-            initial_command,
-            delphes_directory,
-            delphes_card_filename,
-            delphes_sample_filename,
-            hepmc_sample_filename,
+            initial_command, delphes_directory, delphes_card_filename, delphes_sample_filename, hepmc_sample_filename
         ),
         log_file=log_file,
     )

@@ -2,13 +2,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import six
 
 
-def export_param_card(
-    benchmark,
-    parameters,
-    param_card_template_file,
-    mg_process_directory,
-    param_card_filename=None,
-):
+def export_param_card(benchmark, parameters, param_card_template_file, mg_process_directory, param_card_filename=None):
     """
 
     Parameters
@@ -45,11 +39,7 @@ def export_param_card(
 
         block_begin = param_card.lower().find(("Block " + parameter_lha_block).lower())
         if block_begin < 0:
-            raise ValueError(
-                "Could not find block {0} in param_card template!".format(
-                    parameter_lha_block
-                )
-            )
+            raise ValueError("Could not find block {0} in param_card template!".format(parameter_lha_block))
 
         block_end = param_card.lower().find("Block".lower(), block_begin + 5)
         if block_end < 0:
@@ -66,28 +56,16 @@ def export_param_card(
             if len(elements) >= 2:
                 try:
                     if int(elements[0]) == parameter_lha_id:
-                        block[i] = (
-                            "    "
-                            + str(parameter_lha_id)
-                            + "    "
-                            + str(parameter_value)
-                            + "    # MadMiner"
-                        )
+                        block[i] = "    " + str(parameter_lha_id) + "    " + str(parameter_value) + "    # MadMiner"
                         changed_line = True
                         break
                 except ValueError:
                     pass
 
         if not changed_line:
-            raise ValueError(
-                "Could not find LHA ID {0} in param_card template!".format(
-                    parameter_lha_id
-                )
-            )
+            raise ValueError("Could not find LHA ID {0} in param_card template!".format(parameter_lha_id))
 
-        param_card = (
-            param_card[:block_begin] + "\n".join(block) + param_card[block_end:]
-        )
+        param_card = param_card[:block_begin] + "\n".join(block) + param_card[block_end:]
 
     # Output filename
     if param_card_filename is None:
@@ -157,17 +135,11 @@ def export_reweight_card(
                 variables = {"theta": parameter_value}
                 parameter_value = eval(parameter_transform, variables)
 
-            lines.append(
-                "  set {0} {1} {2}".format(
-                    parameter_lha_block, parameter_lha_id, parameter_value
-                )
-            )
+            lines.append("  set {0} {1} {2}".format(parameter_lha_block, parameter_lha_id, parameter_value))
 
         lines.append("")
 
-    reweight_card = (
-        reweight_card[:insert_pos] + "\n".join(lines) + reweight_card[insert_pos:]
-    )
+    reweight_card = reweight_card[:insert_pos] + "\n".join(lines) + reweight_card[insert_pos:]
 
     # Output filename
     if reweight_card_filename is None:
