@@ -180,10 +180,11 @@ SALLY / SALLINO estimator!</p>
 <dt><strong>n_events</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int, optional</span></dt>
 <dd><p class="first last">Number of events for which the kinematic Fisher information should be calculated. Default value: 1.</p>
 </dd>
-<dt><strong>vote_expectation_weight</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float or None, optional</span></dt>
+<dt><strong>vote_expectation_weight</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float or list of float or None, optional</span></dt>
 <dd><p class="first last">Factor that determines how much more weight is given to those estimators with small expectation value (as
-calculated by <cite>calculate_expectation()</cite>). If None, or if <cite>calculate_expectation()</cite> has not been called,
-all estimators are treated equal. Default value: None.</p>
+calculated by <cite>calculate_expectation()</cite>). If a list is given, results are returned for each element in the
+list. If None, or if <cite>calculate_expectation()</cite> has not been called, all estimators are treated equal.
+Default value: None.</p>
 </dd>
 <dt><strong>return_individual_predictions</strong> <span class="classifier-delimiter">:</span> <span class="classifier">bool, optional</span></dt>
 <dd><p class="first last">Whether the individual estimator predictions are returned. Default value: False.</p>
@@ -192,19 +193,22 @@ all estimators are treated equal. Default value: None.</p>
 </td>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
-<dt><strong>mean_prediction</strong> <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
+<dt><strong>mean_prediction</strong> <span class="classifier-delimiter">:</span> <span class="classifier">ndarray or list of ndarray</span></dt>
 <dd><p class="first last">The (weighted) ensemble mean of the estimators. If the estimators were trained with <cite>method=’sally’</cite> or
 <cite>method=’sallino’</cite>, this is an array of the estimator for <cite>t(x_i | theta_ref)</cite> for all events <cite>i</cite>.
 Otherwise, the estimated likelihood ratio (if test_all_combinations is True, the result has shape
-<cite>(n_thetas, n_x)</cite>, otherwise, it has shape <cite>(n_samples,)</cite>).</p>
+<cite>(n_thetas, n_x)</cite>, otherwise, it has shape <cite>(n_samples,)</cite>). If more then one value vote_expectation_weight
+is given, this is a list with results for all entries in vote_expectation_weight.</p>
 </dd>
-<dt><strong>covariance</strong> <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
-<dd><p class="first last">The covariance matrix of the Fisher information estimate. This object has four indices,
-<cite>cov_(ij)(i’j’)</cite>, ordered as i j i’ j’. It has shape
-<cite>(n_parameters, n_parameters, n_parameters, n_parameters)</cite>.</p>
+<dt><strong>covariance</strong> <span class="classifier-delimiter">:</span> <span class="classifier">ndarray or list of ndarray</span></dt>
+<dd><p class="first last">The covariance matrix of the Fisher information estimate, defined as the ensemble covariance divided by the
+number of estimators. This object has four indices, <cite>cov_(ij)(i’j’)</cite>, ordered as i j i’ j’. It has shape
+<cite>(n_parameters, n_parameters, n_parameters, n_parameters)</cite>. If more then one value vote_expectation_weight
+is given, this is a list with results for all entries in vote_expectation_weight.</p>
 </dd>
-<dt><strong>weights</strong> <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
-<dd><p class="first last">Only returned if return_individual_predictions is True. The estimator weights <cite>w_i</cite>.</p>
+<dt><strong>weights</strong> <span class="classifier-delimiter">:</span> <span class="classifier">ndarray or list of ndarray</span></dt>
+<dd><p class="first last">Only returned if return_individual_predictions is True. The estimator weights <cite>w_i</cite>. If more then one value
+vote_expectation_weight is given, this is a list with results for all entries in vote_expectation_weight.</p>
 </dd>
 <dt><strong>individual_predictions</strong> <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
 <dd><p class="first last">Only returned if return_individual_predictions is True. The individual estimator predictions.</p>
@@ -250,10 +254,11 @@ files has to match, and the likelihood ratio is evaluated only for the combinati
 <cite>r(x_i | theta0_i, theta1_i)</cite>. If True, <cite>r(x_i | theta0_j, theta1_j)</cite> for all pairwise combinations <cite>i, j</cite>
 are evaluated. Default value: True.</p>
 </dd>
-<dt><strong>vote_expectation_weight</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float or None, optional</span></dt>
+<dt><strong>vote_expectation_weight</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float or list of float or None, optional</span></dt>
 <dd><p class="first last">Factor that determines how much more weight is given to those estimators with small expectation value (as
-calculated by <cite>calculate_expectation()</cite>). If None, or if <cite>calculate_expectation()</cite> has not been called,
-all estimators are treated equal. Default value: None.</p>
+calculated by <cite>calculate_expectation()</cite>). If a list is given, results are returned for each element in the
+list. If None, or if <cite>calculate_expectation()</cite> has not been called, all estimators are treated equal.
+Default value: None.</p>
 </dd>
 <dt><strong>return_individual_predictions</strong> <span class="classifier-delimiter">:</span> <span class="classifier">bool, optional</span></dt>
 <dd><p class="first last">Whether the individual estimator predictions are returned. Default value: False.</p>
@@ -262,17 +267,21 @@ all estimators are treated equal. Default value: None.</p>
 </td>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
-<dt><strong>mean_prediction</strong> <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
+<dt><strong>mean_prediction</strong> <span class="classifier-delimiter">:</span> <span class="classifier">ndarray or list of ndarray</span></dt>
 <dd><p class="first last">The (weighted) ensemble mean of the estimators. If the estimators were trained with <cite>method=’sally’</cite> or
 <cite>method=’sallino’</cite>, this is an array of the estimator for <cite>t(x_i | theta_ref)</cite> for all events <cite>i</cite>.
 Otherwise, the estimated likelihood ratio (if test_all_combinations is True, the result has shape
-<cite>(n_thetas, n_x)</cite>, otherwise, it has shape <cite>(n_samples,)</cite>).</p>
+<cite>(n_thetas, n_x)</cite>, otherwise, it has shape <cite>(n_samples,)</cite>). If more then one value vote_expectation_weight
+is given, this is a list with results for all entries in vote_expectation_weight.</p>
 </dd>
-<dt><strong>covariance</strong> <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
-<dd><p class="first last">The covariance matrix of the (flattened) predictions.</p>
+<dt><strong>covariance</strong> <span class="classifier-delimiter">:</span> <span class="classifier">ndarray or list of ndarray</span></dt>
+<dd><p class="first last">The covariance matrix of the (flattened) predictions, defined as the ensemble covariance divided by the
+number of estimators. If more then one value vote_expectation_weight is given, this is a list with results
+for all entries in vote_expectation_weight.</p>
 </dd>
-<dt><strong>weights</strong> <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
-<dd><p class="first last">Only returned if return_individual_predictions is True. The estimator weights <cite>w_i</cite>.</p>
+<dt><strong>weights</strong> <span class="classifier-delimiter">:</span> <span class="classifier">ndarray or list of ndarray</span></dt>
+<dd><p class="first last">Only returned if return_individual_predictions is True. The estimator weights <cite>w_i</cite>. If more then one value
+vote_expectation_weight is given, this is a list with results for all entries in vote_expectation_weight.</p>
 </dd>
 <dt><strong>individual_predictions</strong> <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
 <dd><p class="first last">Only returned if return_individual_predictions is True. The individual estimator predictions.</p>

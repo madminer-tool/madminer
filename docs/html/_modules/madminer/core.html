@@ -81,13 +81,15 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">morpher</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">export_morphing</span> <span class="o">=</span> <span class="kc">False</span>
 
-<div class="viewcode-block" id="MadMiner.add_parameter"><a class="viewcode-back" href="../../madminer.core.html#madminer.core.MadMiner.add_parameter">[docs]</a>    <span class="k">def</span> <span class="nf">add_parameter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
-                      <span class="n">lha_block</span><span class="p">,</span>
-                      <span class="n">lha_id</span><span class="p">,</span>
-                      <span class="n">parameter_name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                      <span class="n">param_card_transform</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                      <span class="n">morphing_max_power</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
-                      <span class="n">parameter_range</span><span class="o">=</span><span class="p">(</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">1.</span><span class="p">)):</span>
+<div class="viewcode-block" id="MadMiner.add_parameter"><a class="viewcode-back" href="../../madminer.core.html#madminer.core.MadMiner.add_parameter">[docs]</a>    <span class="k">def</span> <span class="nf">add_parameter</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">lha_block</span><span class="p">,</span>
+        <span class="n">lha_id</span><span class="p">,</span>
+        <span class="n">parameter_name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">param_card_transform</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">morphing_max_power</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+        <span class="n">parameter_range</span><span class="o">=</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">),</span>
+    <span class="p">):</span>
 
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Adds an individual parameter.</span>
@@ -130,33 +132,37 @@
 
         <span class="c1"># Default names</span>
         <span class="k">if</span> <span class="n">parameter_name</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">parameter_name</span> <span class="o">=</span> <span class="s1">&#39;parameter_&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">))</span>
+            <span class="n">parameter_name</span> <span class="o">=</span> <span class="s2">&quot;parameter_&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">))</span>
 
         <span class="c1"># Check and sanitize input</span>
-        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">parameter_name</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">string_types</span><span class="p">),</span> <span class="s1">&#39;Parameter name is not a string: </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">parameter_name</span><span class="p">)</span>
-        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">lha_block</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">string_types</span><span class="p">),</span> <span class="s1">&#39;LHA block is not a string: </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">lha_block</span><span class="p">)</span>
-        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">lha_id</span><span class="p">,</span> <span class="nb">int</span><span class="p">),</span> <span class="s1">&#39;LHA id is not an integer: </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">lha_id</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">parameter_name</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">string_types</span><span class="p">),</span> <span class="s2">&quot;Parameter name is not a string: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">parameter_name</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">lha_block</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">string_types</span><span class="p">),</span> <span class="s2">&quot;LHA block is not a string: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">lha_block</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">lha_id</span><span class="p">,</span> <span class="nb">int</span><span class="p">),</span> <span class="s2">&quot;LHA id is not an integer: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">lha_id</span><span class="p">)</span>
 
-        <span class="n">parameter_name</span> <span class="o">=</span> <span class="n">parameter_name</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="p">,</span> <span class="s1">&#39;_&#39;</span><span class="p">)</span>
-        <span class="n">parameter_name</span> <span class="o">=</span> <span class="n">parameter_name</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;-&#39;</span><span class="p">,</span> <span class="s1">&#39;_&#39;</span><span class="p">)</span>
+        <span class="n">parameter_name</span> <span class="o">=</span> <span class="n">parameter_name</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="s2">&quot;_&quot;</span><span class="p">)</span>
+        <span class="n">parameter_name</span> <span class="o">=</span> <span class="n">parameter_name</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;-&quot;</span><span class="p">,</span> <span class="s2">&quot;_&quot;</span><span class="p">)</span>
 
-        <span class="k">assert</span> <span class="n">parameter_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">,</span> <span class="s1">&#39;Parameter name exists already: </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">parameter_name</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">parameter_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">,</span> <span class="s2">&quot;Parameter name exists already: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">parameter_name</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">morphing_max_power</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
             <span class="n">morphing_max_power</span> <span class="o">=</span> <span class="p">(</span><span class="n">morphing_max_power</span><span class="p">,)</span>
 
         <span class="c1"># Add parameter</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="n">parameter_name</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">lha_block</span><span class="p">,</span> <span class="n">lha_id</span><span class="p">,</span>
-                                           <span class="n">morphing_max_power</span><span class="p">,</span> <span class="n">parameter_range</span><span class="p">,</span> <span class="n">param_card_transform</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="n">parameter_name</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">lha_block</span><span class="p">,</span> <span class="n">lha_id</span><span class="p">,</span> <span class="n">morphing_max_power</span><span class="p">,</span> <span class="n">parameter_range</span><span class="p">,</span> <span class="n">param_card_transform</span><span class="p">)</span>
 
         <span class="c1"># After manually adding parameters, the morphing information is not accurate anymore</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">morpher</span> <span class="o">=</span> <span class="kc">None</span>
 
-        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Added parameter </span><span class="si">%s</span><span class="s1"> (LHA: </span><span class="si">%s</span><span class="s1"> </span><span class="si">%s</span><span class="s1">, maximal power in squared ME: </span><span class="si">%s</span><span class="s1">, range: </span><span class="si">%s</span><span class="s1">)&#39;</span><span class="p">,</span> <span class="n">parameter_name</span><span class="p">,</span>
-                     <span class="n">lha_block</span><span class="p">,</span> <span class="n">lha_id</span><span class="p">,</span> <span class="n">morphing_max_power</span><span class="p">,</span> <span class="n">parameter_range</span><span class="p">)</span></div>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+            <span class="s2">&quot;Added parameter </span><span class="si">%s</span><span class="s2"> (LHA: </span><span class="si">%s</span><span class="s2"> </span><span class="si">%s</span><span class="s2">, maximal power in squared ME: </span><span class="si">%s</span><span class="s2">, range: </span><span class="si">%s</span><span class="s2">)&quot;</span><span class="p">,</span>
+            <span class="n">parameter_name</span><span class="p">,</span>
+            <span class="n">lha_block</span><span class="p">,</span>
+            <span class="n">lha_id</span><span class="p">,</span>
+            <span class="n">morphing_max_power</span><span class="p">,</span>
+            <span class="n">parameter_range</span><span class="p">,</span>
+        <span class="p">)</span></div>
 
-<div class="viewcode-block" id="MadMiner.set_parameters"><a class="viewcode-back" href="../../madminer.core.html#madminer.core.MadMiner.set_parameters">[docs]</a>    <span class="k">def</span> <span class="nf">set_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
-                       <span class="n">parameters</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="MadMiner.set_parameters"><a class="viewcode-back" href="../../madminer.core.html#madminer.core.MadMiner.set_parameters">[docs]</a>    <span class="k">def</span> <span class="nf">set_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parameters</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Manually sets all parameters, overwriting previously added parameters.</span>
@@ -188,28 +194,22 @@
                         <span class="n">lha_id</span><span class="o">=</span><span class="n">values</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
                         <span class="n">parameter_name</span><span class="o">=</span><span class="n">key</span><span class="p">,</span>
                         <span class="n">parameter_range</span><span class="o">=</span><span class="p">[</span><span class="n">values</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span> <span class="n">values</span><span class="p">[</span><span class="mi">4</span><span class="p">]],</span>
-                        <span class="n">morphing_max_power</span><span class="o">=</span><span class="n">values</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+                        <span class="n">morphing_max_power</span><span class="o">=</span><span class="n">values</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span>
                     <span class="p">)</span>
                 <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">values</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span>
-                        <span class="n">lha_block</span><span class="o">=</span><span class="n">values</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
-                        <span class="n">lha_id</span><span class="o">=</span><span class="n">values</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
-                        <span class="n">parameter_name</span><span class="o">=</span><span class="n">key</span>
-                    <span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span><span class="n">lha_block</span><span class="o">=</span><span class="n">values</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">lha_id</span><span class="o">=</span><span class="n">values</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">parameter_name</span><span class="o">=</span><span class="n">key</span><span class="p">)</span>
                 <span class="k">else</span><span class="p">:</span>
-                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Parameter properties has unexpected length: </span><span class="si">{0}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">values</span><span class="p">))</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Parameter properties has unexpected length: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">values</span><span class="p">))</span>
 
         <span class="k">else</span><span class="p">:</span>
             <span class="k">for</span> <span class="n">values</span> <span class="ow">in</span> <span class="n">parameters</span><span class="p">:</span>
-                <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">values</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">,</span> <span class="s1">&#39;Parameter list entry does not have length 2: </span><span class="si">{0}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">values</span><span class="p">)</span>
+                <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">values</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">,</span> <span class="s2">&quot;Parameter list entry does not have length 2: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">values</span><span class="p">)</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span><span class="n">values</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">values</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
 
         <span class="c1"># After manually adding parameters, the morphing information is not accurate anymore</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">morpher</span> <span class="o">=</span> <span class="kc">None</span></div>
 
-<div class="viewcode-block" id="MadMiner.add_benchmark"><a class="viewcode-back" href="../../madminer.core.html#madminer.core.MadMiner.add_benchmark">[docs]</a>    <span class="k">def</span> <span class="nf">add_benchmark</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
-                      <span class="n">parameter_values</span><span class="p">,</span>
-                      <span class="n">benchmark_name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="MadMiner.add_benchmark"><a class="viewcode-back" href="../../madminer.core.html#madminer.core.MadMiner.add_benchmark">[docs]</a>    <span class="k">def</span> <span class="nf">add_benchmark</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parameter_values</span><span class="p">,</span> <span class="n">benchmark_name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Manually adds an individual benchmark, that is, a parameter point that will be evaluated by MadGraph.</span>
 
@@ -235,18 +235,18 @@
 
         <span class="c1"># Default names</span>
         <span class="k">if</span> <span class="n">benchmark_name</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">benchmark_name</span> <span class="o">=</span> <span class="s1">&#39;benchmark_&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">benchmarks</span><span class="p">))</span>
+            <span class="n">benchmark_name</span> <span class="o">=</span> <span class="s2">&quot;benchmark_&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">benchmarks</span><span class="p">))</span>
 
         <span class="c1"># Check input</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">parameter_values</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
-            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s1">&#39;Parameter values are not a dict: </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">parameter_values</span><span class="p">))</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;Parameter values are not a dict: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">parameter_values</span><span class="p">))</span>
 
         <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">iteritems</span><span class="p">(</span><span class="n">parameter_values</span><span class="p">):</span>
             <span class="k">if</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s1">&#39;Unknown parameter: </span><span class="si">{0}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">key</span><span class="p">))</span>
+                <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;Unknown parameter: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">key</span><span class="p">))</span>
 
         <span class="k">if</span> <span class="n">benchmark_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">benchmarks</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s1">&#39;Benchmark name </span><span class="si">{}</span><span class="s1"> exists already&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">benchmark_name</span><span class="p">))</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;Benchmark name </span><span class="si">{}</span><span class="s2"> exists already&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">benchmark_name</span><span class="p">))</span>
 
         <span class="c1"># Add benchmark</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">benchmarks</span><span class="p">[</span><span class="n">benchmark_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">parameter_values</span>
@@ -258,10 +258,9 @@
         <span class="c1"># After manually adding benchmarks, the morphing information is not accurate anymore</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">morpher</span> <span class="o">=</span> <span class="kc">None</span>
 
-        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Added benchmark </span><span class="si">%s</span><span class="s1">: </span><span class="si">%s</span><span class="s1">)&#39;</span><span class="p">,</span> <span class="n">benchmark_name</span><span class="p">,</span> <span class="n">format_benchmark</span><span class="p">(</span><span class="n">parameter_values</span><span class="p">))</span></div>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Added benchmark </span><span class="si">%s</span><span class="s2">: </span><span class="si">%s</span><span class="s2">)&quot;</span><span class="p">,</span> <span class="n">benchmark_name</span><span class="p">,</span> <span class="n">format_benchmark</span><span class="p">(</span><span class="n">parameter_values</span><span class="p">))</span></div>
 
-<div class="viewcode-block" id="MadMiner.set_benchmarks"><a class="viewcode-back" href="../../madminer.core.html#madminer.core.MadMiner.set_benchmarks">[docs]</a>    <span class="k">def</span> <span class="nf">set_benchmarks</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
-                       <span class="n">benchmarks</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="MadMiner.set_benchmarks"><a class="viewcode-back" href="../../madminer.core.html#madminer.core.MadMiner.set_benchmarks">[docs]</a>    <span class="k">def</span> <span class="nf">set_benchmarks</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">benchmarks</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Manually sets all benchmarks, that is, parameter points that will be evaluated by MadGraph. Calling this</span>
 <span class="sd">        function overwrites all previously defined benchmarks.</span>
@@ -295,12 +294,9 @@
         <span class="c1"># After manually adding benchmarks, the morphing information is not accurate anymore</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">morpher</span> <span class="o">=</span> <span class="kc">None</span></div>
 
-<div class="viewcode-block" id="MadMiner.set_benchmarks_from_morphing"><a class="viewcode-back" href="../../madminer.core.html#madminer.core.MadMiner.set_benchmarks_from_morphing">[docs]</a>    <span class="k">def</span> <span class="nf">set_benchmarks_from_morphing</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
-                                     <span class="n">max_overall_power</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>
-                                     <span class="n">n_bases</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
-                                     <span class="n">keep_existing_benchmarks</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-                                     <span class="n">n_trials</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
-                                     <span class="n">n_test_thetas</span><span class="o">=</span><span class="mi">100</span><span class="p">):</span>
+<div class="viewcode-block" id="MadMiner.set_benchmarks_from_morphing"><a class="viewcode-back" href="../../madminer.core.html#madminer.core.MadMiner.set_benchmarks_from_morphing">[docs]</a>    <span class="k">def</span> <span class="nf">set_benchmarks_from_morphing</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">max_overall_power</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">n_bases</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">keep_existing_benchmarks</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">n_trials</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">n_test_thetas</span><span class="o">=</span><span class="mi">100</span>
+    <span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Sets benchmarks, i.e. parameter points that will be evaluated by MadGraph, for a morphing algorithm, and</span>
 <span class="sd">        calculates all information required for morphing. Morphing is a technique that allows MadMax to infer the full</span>
@@ -347,7 +343,7 @@
 
 <span class="sd">        &quot;&quot;&quot;</span>
 
-        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Optimizing basis for morphing&#39;</span><span class="p">)</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Optimizing basis for morphing&quot;</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">max_overall_power</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
             <span class="n">max_overall_power</span> <span class="o">=</span> <span class="p">(</span><span class="n">max_overall_power</span><span class="p">,)</span>
@@ -356,15 +352,16 @@
         <span class="n">morpher</span><span class="o">.</span><span class="n">find_components</span><span class="p">(</span><span class="n">max_overall_power</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">keep_existing_benchmarks</span><span class="p">:</span>
-            <span class="n">basis</span> <span class="o">=</span> <span class="n">morpher</span><span class="o">.</span><span class="n">optimize_basis</span><span class="p">(</span><span class="n">n_bases</span><span class="o">=</span><span class="n">n_bases</span><span class="p">,</span>
-                                           <span class="n">fixed_benchmarks_from_madminer</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">benchmarks</span><span class="p">,</span>
-                                           <span class="n">n_trials</span><span class="o">=</span><span class="n">n_trials</span><span class="p">,</span>
-                                           <span class="n">n_test_thetas</span><span class="o">=</span><span class="n">n_test_thetas</span><span class="p">)</span>
+            <span class="n">basis</span> <span class="o">=</span> <span class="n">morpher</span><span class="o">.</span><span class="n">optimize_basis</span><span class="p">(</span>
+                <span class="n">n_bases</span><span class="o">=</span><span class="n">n_bases</span><span class="p">,</span>
+                <span class="n">fixed_benchmarks_from_madminer</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">benchmarks</span><span class="p">,</span>
+                <span class="n">n_trials</span><span class="o">=</span><span class="n">n_trials</span><span class="p">,</span>
+                <span class="n">n_test_thetas</span><span class="o">=</span><span class="n">n_test_thetas</span><span class="p">,</span>
+            <span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">basis</span> <span class="o">=</span> <span class="n">morpher</span><span class="o">.</span><span class="n">optimize_basis</span><span class="p">(</span><span class="n">n_bases</span><span class="o">=</span><span class="n">n_bases</span><span class="p">,</span>
-                                           <span class="n">fixed_benchmarks_from_madminer</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                                           <span class="n">n_trials</span><span class="o">=</span><span class="n">n_trials</span><span class="p">,</span>
-                                           <span class="n">n_test_thetas</span><span class="o">=</span><span class="n">n_test_thetas</span><span class="p">)</span>
+            <span class="n">basis</span> <span class="o">=</span> <span class="n">morpher</span><span class="o">.</span><span class="n">optimize_basis</span><span class="p">(</span>
+                <span class="n">n_bases</span><span class="o">=</span><span class="n">n_bases</span><span class="p">,</span> <span class="n">fixed_benchmarks_from_madminer</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">n_trials</span><span class="o">=</span><span class="n">n_trials</span><span class="p">,</span> <span class="n">n_test_thetas</span><span class="o">=</span><span class="n">n_test_thetas</span>
+            <span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">set_benchmarks</span><span class="p">(</span><span class="n">basis</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">morpher</span> <span class="o">=</span> <span class="n">morpher</span>
@@ -390,18 +387,24 @@
 <span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="c1"># Load data</span>
-        <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">benchmarks</span><span class="p">,</span> <span class="n">morphing_components</span><span class="p">,</span> <span class="n">morphing_matrix</span><span class="p">,</span>
-         <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">)</span> <span class="o">=</span> <span class="n">load_madminer_settings</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+        <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">benchmarks</span><span class="p">,</span> <span class="n">morphing_components</span><span class="p">,</span> <span class="n">morphing_matrix</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">)</span> <span class="o">=</span> <span class="n">load_madminer_settings</span><span class="p">(</span>
+            <span class="n">filename</span>
+        <span class="p">)</span>
 
-        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Found </span><span class="si">%s</span><span class="s1"> parameters:&#39;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">))</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Found </span><span class="si">%s</span><span class="s2"> parameters:&quot;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">))</span>
         <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">values</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">iteritems</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">):</span>
-            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;   </span><span class="si">%s</span><span class="s1"> (LHA: </span><span class="si">%s</span><span class="s1"> </span><span class="si">%s</span><span class="s1">, maximal power in squared ME: </span><span class="si">%s</span><span class="s1">, range: </span><span class="si">%s</span><span class="s1">)&#39;</span><span class="p">,</span>
-                         <span class="n">key</span><span class="p">,</span> <span class="n">values</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">values</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">values</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">values</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                <span class="s2">&quot;   </span><span class="si">%s</span><span class="s2"> (LHA: </span><span class="si">%s</span><span class="s2"> </span><span class="si">%s</span><span class="s2">, maximal power in squared ME: </span><span class="si">%s</span><span class="s2">, range: </span><span class="si">%s</span><span class="s2">)&quot;</span><span class="p">,</span>
+                <span class="n">key</span><span class="p">,</span>
+                <span class="n">values</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                <span class="n">values</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                <span class="n">values</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span>
+                <span class="n">values</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span>
+            <span class="p">)</span>
 
-        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Found </span><span class="si">%s</span><span class="s1"> benchmarks:&#39;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">benchmarks</span><span class="p">))</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Found </span><span class="si">%s</span><span class="s2"> benchmarks:&quot;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">benchmarks</span><span class="p">))</span>
         <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">values</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">iteritems</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">benchmarks</span><span class="p">):</span>
-            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;   </span><span class="si">%s</span><span class="s1">: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span>
-                         <span class="n">key</span><span class="p">,</span> <span class="n">format_benchmark</span><span class="p">(</span><span class="n">values</span><span class="p">))</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;   </span><span class="si">%s</span><span class="s2">: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">format_benchmark</span><span class="p">(</span><span class="n">values</span><span class="p">))</span>
 
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_benchmark</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">default_benchmark</span> <span class="o">=</span> <span class="n">key</span>
@@ -416,10 +419,10 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">morpher</span><span class="o">.</span><span class="n">set_basis</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">benchmarks</span><span class="p">,</span> <span class="n">morphing_matrix</span><span class="o">=</span><span class="n">morphing_matrix</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">export_morphing</span> <span class="o">=</span> <span class="kc">True</span>
 
-            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Found morphing setup with </span><span class="si">%s</span><span class="s1"> components&#39;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">morphing_components</span><span class="p">))</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Found morphing setup with </span><span class="si">%s</span><span class="s2"> components&quot;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">morphing_components</span><span class="p">))</span>
 
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Did not find morphing setup.&#39;</span><span class="p">)</span></div>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Did not find morphing setup.&quot;</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="MadMiner.save"><a class="viewcode-back" href="../../madminer.core.html#madminer.core.MadMiner.save">[docs]</a>    <span class="k">def</span> <span class="nf">save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
@@ -450,29 +453,29 @@
         <span class="n">create_missing_folders</span><span class="p">([</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">filename</span><span class="p">)])</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">morpher</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Saving setup (including morphing) to </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">filename</span><span class="p">)</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Saving setup (including morphing) to </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">filename</span><span class="p">)</span>
 
-            <span class="n">save_madminer_settings</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="n">filename</span><span class="p">,</span>
-                                   <span class="n">parameters</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">,</span>
-                                   <span class="n">benchmarks</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">benchmarks</span><span class="p">,</span>
-                                   <span class="n">morphing_components</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">morpher</span><span class="o">.</span><span class="n">components</span><span class="p">,</span>
-                                   <span class="n">morphing_matrix</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">morpher</span><span class="o">.</span><span class="n">morphing_matrix</span><span class="p">)</span>
+            <span class="n">save_madminer_settings</span><span class="p">(</span>
+                <span class="n">filename</span><span class="o">=</span><span class="n">filename</span><span class="p">,</span>
+                <span class="n">parameters</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">,</span>
+                <span class="n">benchmarks</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">benchmarks</span><span class="p">,</span>
+                <span class="n">morphing_components</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">morpher</span><span class="o">.</span><span class="n">components</span><span class="p">,</span>
+                <span class="n">morphing_matrix</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">morpher</span><span class="o">.</span><span class="n">morphing_matrix</span><span class="p">,</span>
+            <span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Saving setup (without morphing) to </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">filename</span><span class="p">)</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Saving setup (without morphing) to </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">filename</span><span class="p">)</span>
 
-            <span class="n">save_madminer_settings</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="n">filename</span><span class="p">,</span>
-                                   <span class="n">parameters</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">,</span>
-                                   <span class="n">benchmarks</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">benchmarks</span><span class="p">)</span></div>
+            <span class="n">save_madminer_settings</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="n">filename</span><span class="p">,</span> <span class="n">parameters</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">,</span> <span class="n">benchmarks</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">benchmarks</span><span class="p">)</span></div>
 
     <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">_generate_mg_process</span><span class="p">(</span>
-            <span class="n">mg_directory</span><span class="p">,</span>
-            <span class="n">temp_directory</span><span class="p">,</span>
-            <span class="n">proc_card_file</span><span class="p">,</span>
-            <span class="n">mg_process_directory</span><span class="p">,</span>
-            <span class="n">ufo_model_directory</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-            <span class="n">log_file</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-            <span class="n">initial_command</span><span class="o">=</span><span class="kc">None</span>
+        <span class="n">mg_directory</span><span class="p">,</span>
+        <span class="n">temp_directory</span><span class="p">,</span>
+        <span class="n">proc_card_file</span><span class="p">,</span>
+        <span class="n">mg_process_directory</span><span class="p">,</span>
+        <span class="n">ufo_model_directory</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">log_file</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">initial_command</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="p">):</span>
 
         <span class="sd">&quot;&quot;&quot;</span>
@@ -510,7 +513,7 @@
 
 <span class="sd">        &quot;&quot;&quot;</span>
 
-        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Generating MadGraph process folder from </span><span class="si">%s</span><span class="s1"> at </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">proc_card_file</span><span class="p">,</span> <span class="n">mg_process_directory</span><span class="p">)</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Generating MadGraph process folder from </span><span class="si">%s</span><span class="s2"> at </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">proc_card_file</span><span class="p">,</span> <span class="n">mg_process_directory</span><span class="p">)</span>
 
         <span class="n">create_missing_folders</span><span class="p">([</span><span class="n">temp_directory</span><span class="p">,</span> <span class="n">mg_process_directory</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">log_file</span><span class="p">)])</span>
 
@@ -523,17 +526,17 @@
             <span class="n">proc_card_file</span><span class="p">,</span>
             <span class="n">mg_process_directory</span><span class="p">,</span>
             <span class="n">initial_command</span><span class="o">=</span><span class="n">initial_command</span><span class="p">,</span>
-            <span class="n">log_file</span><span class="o">=</span><span class="n">log_file</span>
+            <span class="n">log_file</span><span class="o">=</span><span class="n">log_file</span><span class="p">,</span>
         <span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_export_cards</span><span class="p">(</span>
-            <span class="bp">self</span><span class="p">,</span>
-            <span class="n">param_card_template_file</span><span class="p">,</span>
-            <span class="n">reweight_card_template_file</span><span class="p">,</span>
-            <span class="n">mg_process_directory</span><span class="p">,</span>
-            <span class="n">sample_benchmark</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-            <span class="n">param_card_filename</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-            <span class="n">reweight_card_filename</span><span class="o">=</span><span class="kc">None</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">param_card_template_file</span><span class="p">,</span>
+        <span class="n">reweight_card_template_file</span><span class="p">,</span>
+        <span class="n">mg_process_directory</span><span class="p">,</span>
+        <span class="n">sample_benchmark</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">param_card_filename</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">reweight_card_filename</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="p">):</span>
 
         <span class="sd">&quot;&quot;&quot;</span>
@@ -570,10 +573,9 @@
 <span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="k">if</span> <span class="n">param_card_filename</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">reweight_card_filename</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Creating param and reweight cards in </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">mg_process_directory</span><span class="p">)</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Creating param and reweight cards in </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">mg_process_directory</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Creating param and reweight cards in </span><span class="si">%s</span><span class="s1">, </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">param_card_filename</span><span class="p">,</span>
-                         <span class="n">reweight_card_filename</span><span class="p">)</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Creating param and reweight cards in </span><span class="si">%s</span><span class="s2">, </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">param_card_filename</span><span class="p">,</span> <span class="n">reweight_card_filename</span><span class="p">)</span>
 
         <span class="c1"># Check status</span>
         <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_benchmark</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
@@ -589,7 +591,7 @@
             <span class="n">parameters</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">,</span>
             <span class="n">param_card_template_file</span><span class="o">=</span><span class="n">param_card_template_file</span><span class="p">,</span>
             <span class="n">mg_process_directory</span><span class="o">=</span><span class="n">mg_process_directory</span><span class="p">,</span>
-            <span class="n">param_card_filename</span><span class="o">=</span><span class="n">param_card_filename</span>
+            <span class="n">param_card_filename</span><span class="o">=</span><span class="n">param_card_filename</span><span class="p">,</span>
         <span class="p">)</span>
 
         <span class="c1"># Export reweight card</span>
@@ -599,22 +601,24 @@
             <span class="n">parameters</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">,</span>
             <span class="n">reweight_card_template_file</span><span class="o">=</span><span class="n">reweight_card_template_file</span><span class="p">,</span>
             <span class="n">mg_process_directory</span><span class="o">=</span><span class="n">mg_process_directory</span><span class="p">,</span>
-            <span class="n">reweight_card_filename</span><span class="o">=</span><span class="n">reweight_card_filename</span>
+            <span class="n">reweight_card_filename</span><span class="o">=</span><span class="n">reweight_card_filename</span><span class="p">,</span>
         <span class="p">)</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">_run_or_prepare_mg_and_pythia</span><span class="p">(</span><span class="n">mg_directory</span><span class="p">,</span>
-                                      <span class="n">mg_process_directory</span><span class="p">,</span>
-                                      <span class="n">proc_card_filename</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                                      <span class="n">run_card_file</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                                      <span class="n">param_card_file</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                                      <span class="n">reweight_card_file</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                                      <span class="n">pythia8_card_file</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                                      <span class="n">is_background</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-                                      <span class="n">only_prepare_script</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-                                      <span class="n">script_filename</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                                      <span class="n">initial_command</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                                      <span class="n">log_file</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_run_or_prepare_mg_and_pythia</span><span class="p">(</span>
+        <span class="n">mg_directory</span><span class="p">,</span>
+        <span class="n">mg_process_directory</span><span class="p">,</span>
+        <span class="n">proc_card_filename</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">run_card_file</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">param_card_file</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">reweight_card_file</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">pythia8_card_file</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">is_background</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">only_prepare_script</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">script_filename</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">initial_command</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">log_file</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="p">):</span>
 
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Calls MadGraph to either generate events (with `only_prepare_scripts=False`) or to prepare a bash script that</span>
@@ -682,7 +686,7 @@
 
         <span class="c1"># Prepare run...</span>
         <span class="k">if</span> <span class="n">only_prepare_script</span><span class="p">:</span>
-            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Preparing script to run MadGraph and Pythia in </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">mg_process_directory</span><span class="p">)</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Preparing script to run MadGraph and Pythia in </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">mg_process_directory</span><span class="p">)</span>
 
             <span class="k">return</span> <span class="n">prepare_run_mg_pythia</span><span class="p">(</span>
                 <span class="n">mg_directory</span><span class="p">,</span>
@@ -695,12 +699,12 @@
                 <span class="n">script_file</span><span class="o">=</span><span class="n">script_filename</span><span class="p">,</span>
                 <span class="n">is_background</span><span class="o">=</span><span class="n">is_background</span><span class="p">,</span>
                 <span class="n">initial_command</span><span class="o">=</span><span class="n">initial_command</span><span class="p">,</span>
-                <span class="n">log_file</span><span class="o">=</span><span class="n">log_file</span>
+                <span class="n">log_file</span><span class="o">=</span><span class="n">log_file</span><span class="p">,</span>
             <span class="p">)</span>
 
         <span class="c1"># ... or just run it already</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Starting MadGraph and Pythia in </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">mg_process_directory</span><span class="p">)</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Starting MadGraph and Pythia in </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">mg_process_directory</span><span class="p">)</span>
 
             <span class="n">run_mg_pythia</span><span class="p">(</span>
                 <span class="n">mg_directory</span><span class="p">,</span>
@@ -712,27 +716,27 @@
                 <span class="n">pythia8_card_file</span><span class="p">,</span>
                 <span class="n">is_background</span><span class="o">=</span><span class="n">is_background</span><span class="p">,</span>
                 <span class="n">initial_command</span><span class="o">=</span><span class="n">initial_command</span><span class="p">,</span>
-                <span class="n">log_file</span><span class="o">=</span><span class="n">log_file</span>
+                <span class="n">log_file</span><span class="o">=</span><span class="n">log_file</span><span class="p">,</span>
             <span class="p">)</span>
 
             <span class="k">return</span> <span class="kc">None</span>
 
 <div class="viewcode-block" id="MadMiner.run"><a class="viewcode-back" href="../../madminer.core.html#madminer.core.MadMiner.run">[docs]</a>    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span>
-            <span class="bp">self</span><span class="p">,</span>
-            <span class="n">mg_directory</span><span class="p">,</span>
-            <span class="n">proc_card_file</span><span class="p">,</span>
-            <span class="n">param_card_template_file</span><span class="p">,</span>
-            <span class="n">reweight_card_template_file</span><span class="p">,</span>
-            <span class="n">run_card_file</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-            <span class="n">mg_process_directory</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-            <span class="n">pythia8_card_file</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-            <span class="n">sample_benchmark</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-            <span class="n">is_background</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-            <span class="n">only_prepare_script</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-            <span class="n">ufo_model_directory</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-            <span class="n">log_directory</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-            <span class="n">temp_directory</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-            <span class="n">initial_command</span><span class="o">=</span><span class="kc">None</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">mg_directory</span><span class="p">,</span>
+        <span class="n">proc_card_file</span><span class="p">,</span>
+        <span class="n">param_card_template_file</span><span class="p">,</span>
+        <span class="n">reweight_card_template_file</span><span class="p">,</span>
+        <span class="n">run_card_file</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">mg_process_directory</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">pythia8_card_file</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">sample_benchmark</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">is_background</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">only_prepare_script</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">ufo_model_directory</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">log_directory</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">temp_directory</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">initial_command</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="p">):</span>
 
         <span class="sd">&quot;&quot;&quot;</span>
@@ -833,25 +837,25 @@
             <span class="n">ufo_model_directory</span><span class="o">=</span><span class="n">ufo_model_directory</span><span class="p">,</span>
             <span class="n">log_directory</span><span class="o">=</span><span class="n">log_directory</span><span class="p">,</span>
             <span class="n">temp_directory</span><span class="o">=</span><span class="n">temp_directory</span><span class="p">,</span>
-            <span class="n">initial_command</span><span class="o">=</span><span class="n">initial_command</span>
+            <span class="n">initial_command</span><span class="o">=</span><span class="n">initial_command</span><span class="p">,</span>
         <span class="p">)</span></div>
 
 <div class="viewcode-block" id="MadMiner.run_multiple"><a class="viewcode-back" href="../../madminer.core.html#madminer.core.MadMiner.run_multiple">[docs]</a>    <span class="k">def</span> <span class="nf">run_multiple</span><span class="p">(</span>
-            <span class="bp">self</span><span class="p">,</span>
-            <span class="n">mg_directory</span><span class="p">,</span>
-            <span class="n">proc_card_file</span><span class="p">,</span>
-            <span class="n">param_card_template_file</span><span class="p">,</span>
-            <span class="n">reweight_card_template_file</span><span class="p">,</span>
-            <span class="n">run_card_files</span><span class="p">,</span>
-            <span class="n">mg_process_directory</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-            <span class="n">pythia8_card_file</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-            <span class="n">sample_benchmarks</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-            <span class="n">is_background</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-            <span class="n">only_prepare_script</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-            <span class="n">ufo_model_directory</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-            <span class="n">log_directory</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-            <span class="n">temp_directory</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-            <span class="n">initial_command</span><span class="o">=</span><span class="kc">None</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">mg_directory</span><span class="p">,</span>
+        <span class="n">proc_card_file</span><span class="p">,</span>
+        <span class="n">param_card_template_file</span><span class="p">,</span>
+        <span class="n">reweight_card_template_file</span><span class="p">,</span>
+        <span class="n">run_card_files</span><span class="p">,</span>
+        <span class="n">mg_process_directory</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">pythia8_card_file</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">sample_benchmarks</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">is_background</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">only_prepare_script</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">ufo_model_directory</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">log_directory</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">temp_directory</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">initial_command</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="p">):</span>
 
         <span class="sd">&quot;&quot;&quot;</span>
@@ -929,19 +933,19 @@
 
         <span class="c1"># Defaults</span>
         <span class="k">if</span> <span class="n">mg_process_directory</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">mg_process_directory</span> <span class="o">=</span> <span class="s1">&#39;./MG_process&#39;</span>
+            <span class="n">mg_process_directory</span> <span class="o">=</span> <span class="s2">&quot;./MG_process&quot;</span>
 
         <span class="k">if</span> <span class="n">temp_directory</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">temp_directory</span> <span class="o">=</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">gettempdir</span><span class="p">()</span>
 
         <span class="k">if</span> <span class="n">log_directory</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">log_directory</span> <span class="o">=</span> <span class="s1">&#39;./logs&#39;</span>
+            <span class="n">log_directory</span> <span class="o">=</span> <span class="s2">&quot;./logs&quot;</span>
 
         <span class="k">if</span> <span class="n">sample_benchmarks</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">sample_benchmarks</span> <span class="o">=</span> <span class="p">[</span><span class="n">benchmark</span> <span class="k">for</span> <span class="n">benchmark</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">benchmarks</span><span class="p">]</span>
 
         <span class="c1"># Generate process folder</span>
-        <span class="n">log_file_generate</span> <span class="o">=</span> <span class="n">log_directory</span> <span class="o">+</span> <span class="s1">&#39;/generate.log&#39;</span>
+        <span class="n">log_file_generate</span> <span class="o">=</span> <span class="n">log_directory</span> <span class="o">+</span> <span class="s2">&quot;/generate.log&quot;</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_generate_mg_process</span><span class="p">(</span>
             <span class="n">mg_directory</span><span class="p">,</span>
@@ -950,13 +954,17 @@
             <span class="n">mg_process_directory</span><span class="p">,</span>
             <span class="n">ufo_model_directory</span><span class="o">=</span><span class="n">ufo_model_directory</span><span class="p">,</span>
             <span class="n">initial_command</span><span class="o">=</span><span class="n">initial_command</span><span class="p">,</span>
-            <span class="n">log_file</span><span class="o">=</span><span class="n">log_file_generate</span>
+            <span class="n">log_file</span><span class="o">=</span><span class="n">log_file_generate</span><span class="p">,</span>
         <span class="p">)</span>
 
         <span class="c1"># Make card folder</span>
-        <span class="n">create_missing_folders</span><span class="p">([</span><span class="n">mg_process_directory</span> <span class="o">+</span> <span class="s1">&#39;/madminer&#39;</span><span class="p">,</span>
-                                <span class="n">mg_process_directory</span> <span class="o">+</span> <span class="s1">&#39;/madminer/cards&#39;</span><span class="p">,</span>
-                                <span class="n">mg_process_directory</span> <span class="o">+</span> <span class="s1">&#39;/madminer/scripts&#39;</span><span class="p">])</span>
+        <span class="n">create_missing_folders</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="n">mg_process_directory</span> <span class="o">+</span> <span class="s2">&quot;/madminer&quot;</span><span class="p">,</span>
+                <span class="n">mg_process_directory</span> <span class="o">+</span> <span class="s2">&quot;/madminer/cards&quot;</span><span class="p">,</span>
+                <span class="n">mg_process_directory</span> <span class="o">+</span> <span class="s2">&quot;/madminer/scripts&quot;</span><span class="p">,</span>
+            <span class="p">]</span>
+        <span class="p">)</span>
 
         <span class="c1"># Loop over settings</span>
         <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span>
@@ -966,27 +974,27 @@
             <span class="k">for</span> <span class="n">sample_benchmark</span> <span class="ow">in</span> <span class="n">sample_benchmarks</span><span class="p">:</span>
 
                 <span class="c1"># Files</span>
-                <span class="n">script_file</span> <span class="o">=</span> <span class="n">mg_process_directory</span> <span class="o">+</span> <span class="s1">&#39;/madminer/scripts/run_</span><span class="si">{}</span><span class="s1">.sh&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
-                <span class="n">log_file_run</span> <span class="o">=</span> <span class="n">log_directory</span> <span class="o">+</span> <span class="s1">&#39;/run_</span><span class="si">{}</span><span class="s1">.log&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
-                <span class="n">mg_commands_filename</span> <span class="o">=</span> <span class="n">mg_process_directory</span> <span class="o">+</span> <span class="s1">&#39;/madminer/cards/mg_commands_</span><span class="si">{}</span><span class="s1">.dat&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
-                <span class="n">param_card_file</span> <span class="o">=</span> <span class="n">mg_process_directory</span> <span class="o">+</span> <span class="s1">&#39;/madminer/cards/param_card_</span><span class="si">{}</span><span class="s1">.dat&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
-                <span class="n">reweight_card_file</span> <span class="o">=</span> <span class="n">mg_process_directory</span> <span class="o">+</span> <span class="s1">&#39;/madminer/cards/reweight_card_</span><span class="si">{}</span><span class="s1">.dat&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+                <span class="n">script_file</span> <span class="o">=</span> <span class="n">mg_process_directory</span> <span class="o">+</span> <span class="s2">&quot;/madminer/scripts/run_</span><span class="si">{}</span><span class="s2">.sh&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+                <span class="n">log_file_run</span> <span class="o">=</span> <span class="n">log_directory</span> <span class="o">+</span> <span class="s2">&quot;/run_</span><span class="si">{}</span><span class="s2">.log&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+                <span class="n">mg_commands_filename</span> <span class="o">=</span> <span class="n">mg_process_directory</span> <span class="o">+</span> <span class="s2">&quot;/madminer/cards/mg_commands_</span><span class="si">{}</span><span class="s2">.dat&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+                <span class="n">param_card_file</span> <span class="o">=</span> <span class="n">mg_process_directory</span> <span class="o">+</span> <span class="s2">&quot;/madminer/cards/param_card_</span><span class="si">{}</span><span class="s2">.dat&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+                <span class="n">reweight_card_file</span> <span class="o">=</span> <span class="n">mg_process_directory</span> <span class="o">+</span> <span class="s2">&quot;/madminer/cards/reweight_card_</span><span class="si">{}</span><span class="s2">.dat&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
                 <span class="n">new_pythia8_card_file</span> <span class="o">=</span> <span class="kc">None</span>
                 <span class="k">if</span> <span class="n">pythia8_card_file</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                    <span class="n">new_pythia8_card_file</span> <span class="o">=</span> <span class="n">mg_process_directory</span> <span class="o">+</span> <span class="s1">&#39;/madminer/cards/pythia8_card_</span><span class="si">{}</span><span class="s1">.dat&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+                    <span class="n">new_pythia8_card_file</span> <span class="o">=</span> <span class="n">mg_process_directory</span> <span class="o">+</span> <span class="s2">&quot;/madminer/cards/pythia8_card_</span><span class="si">{}</span><span class="s2">.dat&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
                 <span class="n">new_run_card_file</span> <span class="o">=</span> <span class="kc">None</span>
                 <span class="k">if</span> <span class="n">run_card_file</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                    <span class="n">new_run_card_file</span> <span class="o">=</span> <span class="n">mg_process_directory</span> <span class="o">+</span> <span class="s1">&#39;/madminer/cards/run_card_</span><span class="si">{}</span><span class="s1">.dat&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+                    <span class="n">new_run_card_file</span> <span class="o">=</span> <span class="n">mg_process_directory</span> <span class="o">+</span> <span class="s2">&quot;/madminer/cards/run_card_</span><span class="si">{}</span><span class="s2">.dat&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
 
-                <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Run </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span>
-                <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;  Sampling from benchmark: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">sample_benchmark</span><span class="p">)</span>
-                <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;  Original run card:       </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">run_card_file</span><span class="p">)</span>
-                <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;  Original Pythia8 card:   </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">run_card_file</span><span class="p">)</span>
-                <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;  Copied run card:         </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">new_run_card_file</span><span class="p">)</span>
-                <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;  Copied Pythia8 card:     </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">new_pythia8_card_file</span><span class="p">)</span>
-                <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;  Param card:              </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">param_card_file</span><span class="p">)</span>
-                <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;  Reweight card:           </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">reweight_card_file</span><span class="p">)</span>
-                <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;  Log file:                </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">log_file_run</span><span class="p">)</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Run </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;  Sampling from benchmark: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">sample_benchmark</span><span class="p">)</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;  Original run card:       </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">run_card_file</span><span class="p">)</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;  Original Pythia8 card:   </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">run_card_file</span><span class="p">)</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;  Copied run card:         </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">new_run_card_file</span><span class="p">)</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;  Copied Pythia8 card:     </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">new_pythia8_card_file</span><span class="p">)</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;  Param card:              </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">param_card_file</span><span class="p">)</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;  Reweight card:           </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">reweight_card_file</span><span class="p">)</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;  Log file:                </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">log_file_run</span><span class="p">)</span>
 
                 <span class="c1"># Creat param and reweight cards</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_export_cards</span><span class="p">(</span>
@@ -995,7 +1003,7 @@
                     <span class="n">mg_process_directory</span><span class="p">,</span>
                     <span class="n">sample_benchmark</span><span class="o">=</span><span class="n">sample_benchmark</span><span class="p">,</span>
                     <span class="n">param_card_filename</span><span class="o">=</span><span class="n">param_card_file</span><span class="p">,</span>
-                    <span class="n">reweight_card_filename</span><span class="o">=</span><span class="n">reweight_card_file</span>
+                    <span class="n">reweight_card_filename</span><span class="o">=</span><span class="n">reweight_card_file</span><span class="p">,</span>
                 <span class="p">)</span>
 
                 <span class="c1"># Copy run and Pythia cards</span>
@@ -1017,7 +1025,7 @@
                     <span class="n">only_prepare_script</span><span class="o">=</span><span class="n">only_prepare_script</span><span class="p">,</span>
                     <span class="n">script_filename</span><span class="o">=</span><span class="n">script_file</span><span class="p">,</span>
                     <span class="n">initial_command</span><span class="o">=</span><span class="n">initial_command</span><span class="p">,</span>
-                    <span class="n">log_file</span><span class="o">=</span><span class="n">log_file_run</span>
+                    <span class="n">log_file</span><span class="o">=</span><span class="n">log_file_run</span><span class="p">,</span>
                 <span class="p">)</span>
 
                 <span class="n">results</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
@@ -1026,17 +1034,17 @@
 
         <span class="c1"># Master shell script</span>
         <span class="k">if</span> <span class="n">only_prepare_script</span><span class="p">:</span>
-            <span class="n">master_script_filename</span> <span class="o">=</span> <span class="n">mg_process_directory</span> <span class="o">+</span> <span class="s1">&#39;/madminer/run.sh&#39;</span>
+            <span class="n">master_script_filename</span> <span class="o">=</span> <span class="n">mg_process_directory</span> <span class="o">+</span> <span class="s2">&quot;/madminer/run.sh&quot;</span>
 
-            <span class="n">commands</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">results</span><span class="p">)</span>
-            <span class="n">script</span> <span class="o">=</span> <span class="s1">&#39;#!/bin/bash</span><span class="se">\n\n</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">commands</span><span class="p">)</span>
+            <span class="n">commands</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">results</span><span class="p">)</span>
+            <span class="n">script</span> <span class="o">=</span> <span class="s2">&quot;#!/bin/bash</span><span class="se">\n\n</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">commands</span><span class="p">)</span>
 
-            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">master_script_filename</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">file</span><span class="p">:</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">master_script_filename</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">file</span><span class="p">:</span>
                 <span class="n">file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">script</span><span class="p">)</span>
 
             <span class="n">make_file_executable</span><span class="p">(</span><span class="n">master_script_filename</span><span class="p">)</span>
 
-            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;To run MadGraph, please execute </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">master_script_filename</span><span class="p">)</span></div></div>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;To run MadGraph, please execute </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">master_script_filename</span><span class="p">)</span></div></div>
 </pre></div>
 
           </div>

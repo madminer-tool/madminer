@@ -48,10 +48,7 @@
 <span class="kn">from</span> <span class="nn">madminer.utils.various</span> <span class="k">import</span> <span class="n">general_init</span><span class="p">,</span> <span class="n">format_benchmark</span><span class="p">,</span> <span class="n">create_missing_folders</span><span class="p">,</span> <span class="n">shuffle</span><span class="p">,</span> <span class="n">balance_thetas</span>
 
 
-<div class="viewcode-block" id="combine_and_shuffle"><a class="viewcode-back" href="../../madminer.sampling.html#madminer.sampling.combine_and_shuffle">[docs]</a><span class="k">def</span> <span class="nf">combine_and_shuffle</span><span class="p">(</span><span class="n">input_filenames</span><span class="p">,</span>
-                        <span class="n">output_filename</span><span class="p">,</span>
-                        <span class="n">overwrite_existing_file</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-                        <span class="n">debug</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<div class="viewcode-block" id="combine_and_shuffle"><a class="viewcode-back" href="../../madminer.sampling.html#madminer.sampling.combine_and_shuffle">[docs]</a><span class="k">def</span> <span class="nf">combine_and_shuffle</span><span class="p">(</span><span class="n">input_filenames</span><span class="p">,</span> <span class="n">output_filename</span><span class="p">,</span> <span class="n">overwrite_existing_file</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">debug</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Combines multiple MadMiner files into one, and shuffles the order of the events.</span>
 
@@ -82,12 +79,14 @@
     <span class="n">general_init</span><span class="p">(</span><span class="n">debug</span><span class="o">=</span><span class="n">debug</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">input_filenames</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
-        <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;Careful: this tool assumes that all samples are generated with the same setup, including&#39;</span>
-                        <span class="s1">&#39; identical benchmarks (and thus morphing setup). If it is used with samples with different&#39;</span>
-                        <span class="s1">&#39; settings, there will be wrong results! There are no explicit cross checks in place yet.&#39;</span><span class="p">)</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+            <span class="s2">&quot;Careful: this tool assumes that all samples are generated with the same setup, including&quot;</span>
+            <span class="s2">&quot; identical benchmarks (and thus morphing setup). If it is used with samples with different&quot;</span>
+            <span class="s2">&quot; settings, there will be wrong results! There are no explicit cross checks in place yet.&quot;</span>
+        <span class="p">)</span>
 
     <span class="c1"># Copy first file to output_filename</span>
-    <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Copying setup from </span><span class="si">%s</span><span class="s1"> to </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">input_filenames</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">output_filename</span><span class="p">)</span>
+    <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Copying setup from </span><span class="si">%s</span><span class="s2"> to </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">input_filenames</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">output_filename</span><span class="p">)</span>
 
     <span class="c1"># TODO: More memory efficient strategy</span>
 
@@ -96,7 +95,7 @@
     <span class="n">all_weights</span> <span class="o">=</span> <span class="kc">None</span>
 
     <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">filename</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">input_filenames</span><span class="p">):</span>
-        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Loading samples from file </span><span class="si">%s</span><span class="s1"> / </span><span class="si">%s</span><span class="s1"> at </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">input_filenames</span><span class="p">),</span> <span class="n">filename</span><span class="p">)</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Loading samples from file </span><span class="si">%s</span><span class="s2"> / </span><span class="si">%s</span><span class="s2"> at </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">input_filenames</span><span class="p">),</span> <span class="n">filename</span><span class="p">)</span>
 
         <span class="k">for</span> <span class="n">observations</span><span class="p">,</span> <span class="n">weights</span> <span class="ow">in</span> <span class="n">madminer_event_loader</span><span class="p">(</span><span class="n">filename</span><span class="p">):</span>
             <span class="k">if</span> <span class="n">all_observations</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -115,7 +114,7 @@
         <span class="n">observations</span><span class="o">=</span><span class="n">all_observations</span><span class="p">,</span>
         <span class="n">weights</span><span class="o">=</span><span class="n">all_weights</span><span class="p">,</span>
         <span class="n">copy_setup_from</span><span class="o">=</span><span class="n">input_filenames</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
-        <span class="n">overwrite_existing_samples</span><span class="o">=</span><span class="n">overwrite_existing_file</span>
+        <span class="n">overwrite_existing_samples</span><span class="o">=</span><span class="n">overwrite_existing_file</span><span class="p">,</span>
     <span class="p">)</span></div>
 
 
@@ -135,7 +134,7 @@
 <span class="sd">        Input to various SampleAugmenter functions</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="s1">&#39;benchmark&#39;</span><span class="p">,</span> <span class="n">benchmark_name</span></div>
+    <span class="k">return</span> <span class="s2">&quot;benchmark&quot;</span><span class="p">,</span> <span class="n">benchmark_name</span></div>
 
 
 <div class="viewcode-block" id="multiple_benchmark_thetas"><a class="viewcode-back" href="../../madminer.sampling.html#madminer.sampling.multiple_benchmark_thetas">[docs]</a><span class="k">def</span> <span class="nf">multiple_benchmark_thetas</span><span class="p">(</span><span class="n">benchmark_names</span><span class="p">):</span>
@@ -154,7 +153,7 @@
 <span class="sd">        Input to various SampleAugmenter functions</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="s1">&#39;benchmarks&#39;</span><span class="p">,</span> <span class="n">benchmark_names</span></div>
+    <span class="k">return</span> <span class="s2">&quot;benchmarks&quot;</span><span class="p">,</span> <span class="n">benchmark_names</span></div>
 
 
 <div class="viewcode-block" id="constant_morphing_theta"><a class="viewcode-back" href="../../madminer.sampling.html#madminer.sampling.constant_morphing_theta">[docs]</a><span class="k">def</span> <span class="nf">constant_morphing_theta</span><span class="p">(</span><span class="n">theta</span><span class="p">):</span>
@@ -173,7 +172,7 @@
 <span class="sd">        Input to various SampleAugmenter functions</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="s1">&#39;theta&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span></div>
+    <span class="k">return</span> <span class="s2">&quot;theta&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="multiple_morphing_thetas"><a class="viewcode-back" href="../../madminer.sampling.html#madminer.sampling.multiple_morphing_thetas">[docs]</a><span class="k">def</span> <span class="nf">multiple_morphing_thetas</span><span class="p">(</span><span class="n">thetas</span><span class="p">):</span>
@@ -192,7 +191,7 @@
 <span class="sd">        Input to various SampleAugmenter functions</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="s1">&#39;thetas&#39;</span><span class="p">,</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span> <span class="k">for</span> <span class="n">theta</span> <span class="ow">in</span> <span class="n">thetas</span><span class="p">]</span></div>
+    <span class="k">return</span> <span class="s2">&quot;thetas&quot;</span><span class="p">,</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span> <span class="k">for</span> <span class="n">theta</span> <span class="ow">in</span> <span class="n">thetas</span><span class="p">]</span></div>
 
 
 <div class="viewcode-block" id="random_morphing_thetas"><a class="viewcode-back" href="../../madminer.sampling.html#madminer.sampling.random_morphing_thetas">[docs]</a><span class="k">def</span> <span class="nf">random_morphing_thetas</span><span class="p">(</span><span class="n">n_thetas</span><span class="p">,</span> <span class="n">priors</span><span class="p">):</span>
@@ -216,7 +215,7 @@
 <span class="sd">        Input to various SampleAugmenter functions</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="s1">&#39;random&#39;</span><span class="p">,</span> <span class="p">(</span><span class="n">n_thetas</span><span class="p">,</span> <span class="n">priors</span><span class="p">)</span></div>
+    <span class="k">return</span> <span class="s2">&quot;random&quot;</span><span class="p">,</span> <span class="p">(</span><span class="n">n_thetas</span><span class="p">,</span> <span class="n">priors</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="SampleAugmenter"><a class="viewcode-back" href="../../madminer.sampling.html#madminer.sampling.SampleAugmenter">[docs]</a><span class="k">class</span> <span class="nc">SampleAugmenter</span><span class="p">:</span>
@@ -264,26 +263,37 @@
 
         <span class="bp">self</span><span class="o">.</span><span class="n">madminer_filename</span> <span class="o">=</span> <span class="n">filename</span>
 
-        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Loading data from </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">filename</span><span class="p">)</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Loading data from </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">filename</span><span class="p">)</span>
 
         <span class="c1"># Load data</span>
-        <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">benchmarks</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">morphing_components</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">morphing_matrix</span><span class="p">,</span>
-         <span class="bp">self</span><span class="o">.</span><span class="n">observables</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_samples</span><span class="p">)</span> <span class="o">=</span> <span class="n">load_madminer_settings</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+        <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">benchmarks</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">morphing_components</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">morphing_matrix</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">observables</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">n_samples</span><span class="p">,</span>
+        <span class="p">)</span> <span class="o">=</span> <span class="n">load_madminer_settings</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">n_parameters</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">)</span>
 
-        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Found </span><span class="si">%s</span><span class="s1"> parameters:&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_parameters</span><span class="p">)</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Found </span><span class="si">%s</span><span class="s2"> parameters:&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_parameters</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">values</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">iteritems</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">):</span>
-            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;   </span><span class="si">%s</span><span class="s1"> (LHA: </span><span class="si">%s</span><span class="s1"> </span><span class="si">%s</span><span class="s1">, maximal power in squared ME: </span><span class="si">%s</span><span class="s1">, range: </span><span class="si">%s</span><span class="s1">)&#39;</span><span class="p">,</span>
-                         <span class="n">key</span><span class="p">,</span> <span class="n">values</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">values</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">values</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">values</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                <span class="s2">&quot;   </span><span class="si">%s</span><span class="s2"> (LHA: </span><span class="si">%s</span><span class="s2"> </span><span class="si">%s</span><span class="s2">, maximal power in squared ME: </span><span class="si">%s</span><span class="s2">, range: </span><span class="si">%s</span><span class="s2">)&quot;</span><span class="p">,</span>
+                <span class="n">key</span><span class="p">,</span>
+                <span class="n">values</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                <span class="n">values</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                <span class="n">values</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span>
+                <span class="n">values</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span>
+            <span class="p">)</span>
 
-        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Found </span><span class="si">%s</span><span class="s1"> benchmarks:&#39;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">benchmarks</span><span class="p">))</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Found </span><span class="si">%s</span><span class="s2"> benchmarks:&quot;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">benchmarks</span><span class="p">))</span>
         <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">values</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">iteritems</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">benchmarks</span><span class="p">):</span>
-            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;   </span><span class="si">%s</span><span class="s1">: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span>
-                         <span class="n">key</span><span class="p">,</span> <span class="n">format_benchmark</span><span class="p">(</span><span class="n">values</span><span class="p">))</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;   </span><span class="si">%s</span><span class="s2">: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">format_benchmark</span><span class="p">(</span><span class="n">values</span><span class="p">))</span>
 
-        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Found </span><span class="si">%s</span><span class="s1"> observables: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">observables</span><span class="p">),</span> <span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">observables</span><span class="p">))</span>
-        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Found </span><span class="si">%s</span><span class="s1"> events&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_samples</span><span class="p">)</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Found </span><span class="si">%s</span><span class="s2"> observables: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">observables</span><span class="p">),</span> <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">observables</span><span class="p">))</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Found </span><span class="si">%s</span><span class="s2"> events&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_samples</span><span class="p">)</span>
 
         <span class="c1"># Morphing</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">morpher</span> <span class="o">=</span> <span class="kc">None</span>
@@ -292,18 +302,14 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">morpher</span><span class="o">.</span><span class="n">set_components</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">morphing_components</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">morpher</span><span class="o">.</span><span class="n">set_basis</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">benchmarks</span><span class="p">,</span> <span class="n">morphing_matrix</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">morphing_matrix</span><span class="p">)</span>
 
-            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Found morphing setup with </span><span class="si">%s</span><span class="s1"> components&#39;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">morphing_components</span><span class="p">))</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Found morphing setup with </span><span class="si">%s</span><span class="s2"> components&quot;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">morphing_components</span><span class="p">))</span>
 
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Did not find morphing setup.&#39;</span><span class="p">)</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Did not find morphing setup.&quot;</span><span class="p">)</span>
 
-<div class="viewcode-block" id="SampleAugmenter.extract_samples_train_plain"><a class="viewcode-back" href="../../madminer.sampling.html#madminer.sampling.SampleAugmenter.extract_samples_train_plain">[docs]</a>    <span class="k">def</span> <span class="nf">extract_samples_train_plain</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
-                                    <span class="n">theta</span><span class="p">,</span>
-                                    <span class="n">n_samples</span><span class="p">,</span>
-                                    <span class="n">folder</span><span class="p">,</span>
-                                    <span class="n">filename</span><span class="p">,</span>
-                                    <span class="n">test_split</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span>
-                                    <span class="n">switch_train_test_events</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<div class="viewcode-block" id="SampleAugmenter.extract_samples_train_plain"><a class="viewcode-back" href="../../madminer.sampling.html#madminer.sampling.SampleAugmenter.extract_samples_train_plain">[docs]</a>    <span class="k">def</span> <span class="nf">extract_samples_train_plain</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">n_samples</span><span class="p">,</span> <span class="n">folder</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">test_split</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">switch_train_test_events</span><span class="o">=</span><span class="kc">False</span>
+    <span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Extracts plain training samples `x ~ p(x|theta)` without any augmented data. This can be use for standard</span>
 <span class="sd">        inference methods such as ABC, histograms of observables, or neural density estimation techniques. It can also</span>
@@ -346,7 +352,7 @@
 
 <span class="sd">        &quot;&quot;&quot;</span>
 
-        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Extracting plain training sample. Sampling according to </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">theta</span><span class="p">)</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Extracting plain training sample. Sampling according to </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">theta</span><span class="p">)</span>
 
         <span class="n">create_missing_folders</span><span class="p">([</span><span class="n">folder</span><span class="p">])</span>
 
@@ -362,23 +368,19 @@
             <span class="n">theta_sets_values</span><span class="o">=</span><span class="p">[</span><span class="n">theta_values</span><span class="p">],</span>
             <span class="n">n_samples_per_theta</span><span class="o">=</span><span class="n">n_samples_per_theta</span><span class="p">,</span>
             <span class="n">start_event</span><span class="o">=</span><span class="n">start_event</span><span class="p">,</span>
-            <span class="n">end_event</span><span class="o">=</span><span class="n">end_event</span>
+            <span class="n">end_event</span><span class="o">=</span><span class="n">end_event</span><span class="p">,</span>
         <span class="p">)</span>
 
         <span class="c1"># Save data</span>
         <span class="k">if</span> <span class="n">filename</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">folder</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">np</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">folder</span> <span class="o">+</span> <span class="s1">&#39;/theta_&#39;</span> <span class="o">+</span> <span class="n">filename</span> <span class="o">+</span> <span class="s1">&#39;.npy&#39;</span><span class="p">,</span> <span class="n">theta</span><span class="p">)</span>
-            <span class="n">np</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">folder</span> <span class="o">+</span> <span class="s1">&#39;/x_&#39;</span> <span class="o">+</span> <span class="n">filename</span> <span class="o">+</span> <span class="s1">&#39;.npy&#39;</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">folder</span> <span class="o">+</span> <span class="s2">&quot;/theta_&quot;</span> <span class="o">+</span> <span class="n">filename</span> <span class="o">+</span> <span class="s2">&quot;.npy&quot;</span><span class="p">,</span> <span class="n">theta</span><span class="p">)</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">folder</span> <span class="o">+</span> <span class="s2">&quot;/x_&quot;</span> <span class="o">+</span> <span class="n">filename</span> <span class="o">+</span> <span class="s2">&quot;.npy&quot;</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="n">x</span><span class="p">,</span> <span class="n">theta</span></div>
 
-<div class="viewcode-block" id="SampleAugmenter.extract_samples_train_local"><a class="viewcode-back" href="../../madminer.sampling.html#madminer.sampling.SampleAugmenter.extract_samples_train_local">[docs]</a>    <span class="k">def</span> <span class="nf">extract_samples_train_local</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
-                                    <span class="n">theta</span><span class="p">,</span>
-                                    <span class="n">n_samples</span><span class="p">,</span>
-                                    <span class="n">folder</span><span class="p">,</span>
-                                    <span class="n">filename</span><span class="p">,</span>
-                                    <span class="n">test_split</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span>
-                                    <span class="n">switch_train_test_events</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<div class="viewcode-block" id="SampleAugmenter.extract_samples_train_local"><a class="viewcode-back" href="../../madminer.sampling.html#madminer.sampling.SampleAugmenter.extract_samples_train_local">[docs]</a>    <span class="k">def</span> <span class="nf">extract_samples_train_local</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">n_samples</span><span class="p">,</span> <span class="n">folder</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">test_split</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">switch_train_test_events</span><span class="o">=</span><span class="kc">False</span>
+    <span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Extracts training samples x ~ p(x|theta) as well as the joint score t(x, z|theta). This can be used for</span>
 <span class="sd">        inference methods such as SALLY and SALLINO.</span>
@@ -423,19 +425,21 @@
 
 <span class="sd">        &quot;&quot;&quot;</span>
 
-        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Extracting training sample for local score regression. Sampling and score evaluation according to&#39;</span>
-                     <span class="s1">&#39; </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">theta</span><span class="p">)</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+            <span class="s2">&quot;Extracting training sample for local score regression. Sampling and score evaluation according to&quot;</span> <span class="s2">&quot; </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="n">theta</span><span class="p">,</span>
+        <span class="p">)</span>
 
         <span class="n">create_missing_folders</span><span class="p">([</span><span class="n">folder</span><span class="p">])</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">morpher</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s1">&#39;No morphing setup loaded. Cannot calculate score.&#39;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;No morphing setup loaded. Cannot calculate score.&quot;</span><span class="p">)</span>
 
         <span class="c1"># Thetas</span>
         <span class="n">theta_types</span><span class="p">,</span> <span class="n">theta_values</span><span class="p">,</span> <span class="n">n_samples_per_theta</span> <span class="o">=</span> <span class="n">parse_theta</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">n_samples</span><span class="p">)</span>
 
         <span class="c1"># Augmented data (gold)</span>
-        <span class="n">augmented_data_definitions</span> <span class="o">=</span> <span class="p">[(</span><span class="s1">&#39;score&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)]</span>
+        <span class="n">augmented_data_definitions</span> <span class="o">=</span> <span class="p">[(</span><span class="s2">&quot;score&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)]</span>
 
         <span class="c1"># Train / test split</span>
         <span class="n">start_event</span><span class="p">,</span> <span class="n">end_event</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_train_test_split</span><span class="p">(</span><span class="ow">not</span> <span class="n">switch_train_test_events</span><span class="p">,</span> <span class="n">test_split</span><span class="p">)</span>
@@ -447,25 +451,20 @@
             <span class="n">n_samples_per_theta</span><span class="o">=</span><span class="n">n_samples_per_theta</span><span class="p">,</span>
             <span class="n">augmented_data_definitions</span><span class="o">=</span><span class="n">augmented_data_definitions</span><span class="p">,</span>
             <span class="n">start_event</span><span class="o">=</span><span class="n">start_event</span><span class="p">,</span>
-            <span class="n">end_event</span><span class="o">=</span><span class="n">end_event</span>
+            <span class="n">end_event</span><span class="o">=</span><span class="n">end_event</span><span class="p">,</span>
         <span class="p">)</span>
 
         <span class="c1"># Save data</span>
         <span class="k">if</span> <span class="n">filename</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">folder</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">np</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">folder</span> <span class="o">+</span> <span class="s1">&#39;/theta_&#39;</span> <span class="o">+</span> <span class="n">filename</span> <span class="o">+</span> <span class="s1">&#39;.npy&#39;</span><span class="p">,</span> <span class="n">theta</span><span class="p">)</span>
-            <span class="n">np</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">folder</span> <span class="o">+</span> <span class="s1">&#39;/x_&#39;</span> <span class="o">+</span> <span class="n">filename</span> <span class="o">+</span> <span class="s1">&#39;.npy&#39;</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
-            <span class="n">np</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">folder</span> <span class="o">+</span> <span class="s1">&#39;/t_xz_&#39;</span> <span class="o">+</span> <span class="n">filename</span> <span class="o">+</span> <span class="s1">&#39;.npy&#39;</span><span class="p">,</span> <span class="n">t_xz</span><span class="p">)</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">folder</span> <span class="o">+</span> <span class="s2">&quot;/theta_&quot;</span> <span class="o">+</span> <span class="n">filename</span> <span class="o">+</span> <span class="s2">&quot;.npy&quot;</span><span class="p">,</span> <span class="n">theta</span><span class="p">)</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">folder</span> <span class="o">+</span> <span class="s2">&quot;/x_&quot;</span> <span class="o">+</span> <span class="n">filename</span> <span class="o">+</span> <span class="s2">&quot;.npy&quot;</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">folder</span> <span class="o">+</span> <span class="s2">&quot;/t_xz_&quot;</span> <span class="o">+</span> <span class="n">filename</span> <span class="o">+</span> <span class="s2">&quot;.npy&quot;</span><span class="p">,</span> <span class="n">t_xz</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="n">x</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">t_xz</span></div>
 
-<div class="viewcode-block" id="SampleAugmenter.extract_samples_train_ratio"><a class="viewcode-back" href="../../madminer.sampling.html#madminer.sampling.SampleAugmenter.extract_samples_train_ratio">[docs]</a>    <span class="k">def</span> <span class="nf">extract_samples_train_ratio</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
-                                    <span class="n">theta0</span><span class="p">,</span>
-                                    <span class="n">theta1</span><span class="p">,</span>
-                                    <span class="n">n_samples</span><span class="p">,</span>
-                                    <span class="n">folder</span><span class="p">,</span>
-                                    <span class="n">filename</span><span class="p">,</span>
-                                    <span class="n">test_split</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span>
-                                    <span class="n">switch_train_test_events</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<div class="viewcode-block" id="SampleAugmenter.extract_samples_train_ratio"><a class="viewcode-back" href="../../madminer.sampling.html#madminer.sampling.SampleAugmenter.extract_samples_train_ratio">[docs]</a>    <span class="k">def</span> <span class="nf">extract_samples_train_ratio</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">theta0</span><span class="p">,</span> <span class="n">theta1</span><span class="p">,</span> <span class="n">n_samples</span><span class="p">,</span> <span class="n">folder</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">test_split</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">switch_train_test_events</span><span class="o">=</span><span class="kc">False</span>
+    <span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Extracts training samples `x ~ p(x|theta0)` and `x ~ p(x|theta1)` together with the class label `y`, the joint</span>
 <span class="sd">        likelihood ratio `r(x,z|theta0, theta1)`, and the joint score `t(x,z|theta0)`. This information can be used in</span>
@@ -529,17 +528,20 @@
 
 <span class="sd">        &quot;&quot;&quot;</span>
 
-        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Extracting training sample for ratio-based methods. Numerator hypothesis: </span><span class="si">%s</span><span class="s1">, denominator &#39;</span>
-                     <span class="s1">&#39;hypothesis: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">theta0</span><span class="p">,</span> <span class="n">theta1</span><span class="p">)</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+            <span class="s2">&quot;Extracting training sample for ratio-based methods. Numerator hypothesis: </span><span class="si">%s</span><span class="s2">, denominator &quot;</span>
+            <span class="s2">&quot;hypothesis: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="n">theta0</span><span class="p">,</span>
+            <span class="n">theta1</span><span class="p">,</span>
+        <span class="p">)</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">morpher</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s1">&#39;No morphing setup loaded. Cannot calculate score.&#39;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;No morphing setup loaded. Cannot calculate score.&quot;</span><span class="p">)</span>
 
         <span class="n">create_missing_folders</span><span class="p">([</span><span class="n">folder</span><span class="p">])</span>
 
         <span class="c1"># Augmented data (gold)</span>
-        <span class="n">augmented_data_definitions</span> <span class="o">=</span> <span class="p">[(</span><span class="s1">&#39;ratio&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
-                                      <span class="p">(</span><span class="s1">&#39;score&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)]</span>
+        <span class="n">augmented_data_definitions</span> <span class="o">=</span> <span class="p">[(</span><span class="s2">&quot;ratio&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="p">(</span><span class="s2">&quot;score&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)]</span>
 
         <span class="c1"># Train / test split</span>
         <span class="n">start_event</span><span class="p">,</span> <span class="n">end_event</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_train_test_split</span><span class="p">(</span><span class="ow">not</span> <span class="n">switch_train_test_events</span><span class="p">,</span> <span class="n">test_split</span><span class="p">)</span>
@@ -558,7 +560,7 @@
             <span class="n">n_samples_per_theta</span><span class="o">=</span><span class="n">n_samples_per_theta</span><span class="p">,</span>
             <span class="n">augmented_data_definitions</span><span class="o">=</span><span class="n">augmented_data_definitions</span><span class="p">,</span>
             <span class="n">start_event</span><span class="o">=</span><span class="n">start_event</span><span class="p">,</span>
-            <span class="n">end_event</span><span class="o">=</span><span class="n">end_event</span>
+            <span class="n">end_event</span><span class="o">=</span><span class="n">end_event</span><span class="p">,</span>
         <span class="p">)</span>
 
         <span class="c1"># Thetas for theta1 sampling (could be different if num or denom are random)</span>
@@ -575,7 +577,7 @@
             <span class="n">n_samples_per_theta</span><span class="o">=</span><span class="n">n_samples_per_theta</span><span class="p">,</span>
             <span class="n">augmented_data_definitions</span><span class="o">=</span><span class="n">augmented_data_definitions</span><span class="p">,</span>
             <span class="n">start_event</span><span class="o">=</span><span class="n">start_event</span><span class="p">,</span>
-            <span class="n">end_event</span><span class="o">=</span><span class="n">end_event</span>
+            <span class="n">end_event</span><span class="o">=</span><span class="n">end_event</span><span class="p">,</span>
         <span class="p">)</span>
 
         <span class="c1"># Combine</span>
@@ -585,7 +587,7 @@
         <span class="n">theta0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">([</span><span class="n">theta0_0</span><span class="p">,</span> <span class="n">theta0_1</span><span class="p">])</span>
         <span class="n">theta1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">([</span><span class="n">theta1_0</span><span class="p">,</span> <span class="n">theta1_1</span><span class="p">])</span>
         <span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
-        <span class="n">y</span><span class="p">[</span><span class="n">x0</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]:]</span> <span class="o">=</span> <span class="mf">1.</span>
+        <span class="n">y</span><span class="p">[</span><span class="n">x0</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="p">:]</span> <span class="o">=</span> <span class="mf">1.0</span>
 
         <span class="c1"># Shuffle</span>
         <span class="n">x</span><span class="p">,</span> <span class="n">r_xz</span><span class="p">,</span> <span class="n">t_xz</span><span class="p">,</span> <span class="n">theta0</span><span class="p">,</span> <span class="n">theta1</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">shuffle</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">r_xz</span><span class="p">,</span> <span class="n">t_xz</span><span class="p">,</span> <span class="n">theta0</span><span class="p">,</span> <span class="n">theta1</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
@@ -595,24 +597,26 @@
 
         <span class="c1"># Save data</span>
         <span class="k">if</span> <span class="n">filename</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">folder</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">np</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">folder</span> <span class="o">+</span> <span class="s1">&#39;/theta0_&#39;</span> <span class="o">+</span> <span class="n">filename</span> <span class="o">+</span> <span class="s1">&#39;.npy&#39;</span><span class="p">,</span> <span class="n">theta0</span><span class="p">)</span>
-            <span class="n">np</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">folder</span> <span class="o">+</span> <span class="s1">&#39;/theta1_&#39;</span> <span class="o">+</span> <span class="n">filename</span> <span class="o">+</span> <span class="s1">&#39;.npy&#39;</span><span class="p">,</span> <span class="n">theta1</span><span class="p">)</span>
-            <span class="n">np</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">folder</span> <span class="o">+</span> <span class="s1">&#39;/x_&#39;</span> <span class="o">+</span> <span class="n">filename</span> <span class="o">+</span> <span class="s1">&#39;.npy&#39;</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
-            <span class="n">np</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">folder</span> <span class="o">+</span> <span class="s1">&#39;/y_&#39;</span> <span class="o">+</span> <span class="n">filename</span> <span class="o">+</span> <span class="s1">&#39;.npy&#39;</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
-            <span class="n">np</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">folder</span> <span class="o">+</span> <span class="s1">&#39;/r_xz_&#39;</span> <span class="o">+</span> <span class="n">filename</span> <span class="o">+</span> <span class="s1">&#39;.npy&#39;</span><span class="p">,</span> <span class="n">r_xz</span><span class="p">)</span>
-            <span class="n">np</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">folder</span> <span class="o">+</span> <span class="s1">&#39;/t_xz_&#39;</span> <span class="o">+</span> <span class="n">filename</span> <span class="o">+</span> <span class="s1">&#39;.npy&#39;</span><span class="p">,</span> <span class="n">t_xz</span><span class="p">)</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">folder</span> <span class="o">+</span> <span class="s2">&quot;/theta0_&quot;</span> <span class="o">+</span> <span class="n">filename</span> <span class="o">+</span> <span class="s2">&quot;.npy&quot;</span><span class="p">,</span> <span class="n">theta0</span><span class="p">)</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">folder</span> <span class="o">+</span> <span class="s2">&quot;/theta1_&quot;</span> <span class="o">+</span> <span class="n">filename</span> <span class="o">+</span> <span class="s2">&quot;.npy&quot;</span><span class="p">,</span> <span class="n">theta1</span><span class="p">)</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">folder</span> <span class="o">+</span> <span class="s2">&quot;/x_&quot;</span> <span class="o">+</span> <span class="n">filename</span> <span class="o">+</span> <span class="s2">&quot;.npy&quot;</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">folder</span> <span class="o">+</span> <span class="s2">&quot;/y_&quot;</span> <span class="o">+</span> <span class="n">filename</span> <span class="o">+</span> <span class="s2">&quot;.npy&quot;</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">folder</span> <span class="o">+</span> <span class="s2">&quot;/r_xz_&quot;</span> <span class="o">+</span> <span class="n">filename</span> <span class="o">+</span> <span class="s2">&quot;.npy&quot;</span><span class="p">,</span> <span class="n">r_xz</span><span class="p">)</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">folder</span> <span class="o">+</span> <span class="s2">&quot;/t_xz_&quot;</span> <span class="o">+</span> <span class="n">filename</span> <span class="o">+</span> <span class="s2">&quot;.npy&quot;</span><span class="p">,</span> <span class="n">t_xz</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="n">x</span><span class="p">,</span> <span class="n">theta0</span><span class="p">,</span> <span class="n">theta1</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">r_xz</span><span class="p">,</span> <span class="n">t_xz</span></div>
 
-<div class="viewcode-block" id="SampleAugmenter.extract_samples_train_more_ratios"><a class="viewcode-back" href="../../madminer.sampling.html#madminer.sampling.SampleAugmenter.extract_samples_train_more_ratios">[docs]</a>    <span class="k">def</span> <span class="nf">extract_samples_train_more_ratios</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
-                                          <span class="n">theta0</span><span class="p">,</span>
-                                          <span class="n">theta1</span><span class="p">,</span>
-                                          <span class="n">n_samples</span><span class="p">,</span>
-                                          <span class="n">folder</span><span class="p">,</span>
-                                          <span class="n">filename</span><span class="p">,</span>
-                                          <span class="n">additional_thetas</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                                          <span class="n">test_split</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span>
-                                          <span class="n">switch_train_test_events</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<div class="viewcode-block" id="SampleAugmenter.extract_samples_train_more_ratios"><a class="viewcode-back" href="../../madminer.sampling.html#madminer.sampling.SampleAugmenter.extract_samples_train_more_ratios">[docs]</a>    <span class="k">def</span> <span class="nf">extract_samples_train_more_ratios</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">theta0</span><span class="p">,</span>
+        <span class="n">theta1</span><span class="p">,</span>
+        <span class="n">n_samples</span><span class="p">,</span>
+        <span class="n">folder</span><span class="p">,</span>
+        <span class="n">filename</span><span class="p">,</span>
+        <span class="n">additional_thetas</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">test_split</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span>
+        <span class="n">switch_train_test_events</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Extracts training samples `x ~ p(x|theta0)` and `x ~ p(x|theta1)` together with the class label `y`, the joint</span>
 <span class="sd">        likelihood ratio `r(x,z|theta0, theta1)`, and the joint score `t(x,z|theta0)`. This information can be used in</span>
@@ -689,11 +693,15 @@
 
 <span class="sd">        &quot;&quot;&quot;</span>
 
-        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Extracting training sample for ratio-based methods. Numerator hypothesis: </span><span class="si">%s</span><span class="s1">, denominator &#39;</span>
-                     <span class="s1">&#39;hypothesis: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">theta0</span><span class="p">,</span> <span class="n">theta1</span><span class="p">)</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+            <span class="s2">&quot;Extracting training sample for ratio-based methods. Numerator hypothesis: </span><span class="si">%s</span><span class="s2">, denominator &quot;</span>
+            <span class="s2">&quot;hypothesis: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="n">theta0</span><span class="p">,</span>
+            <span class="n">theta1</span><span class="p">,</span>
+        <span class="p">)</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">morpher</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s1">&#39;No morphing setup loaded. Cannot calculate score.&#39;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;No morphing setup loaded. Cannot calculate score.&quot;</span><span class="p">)</span>
 
         <span class="n">create_missing_folders</span><span class="p">([</span><span class="n">folder</span><span class="p">])</span>
 
@@ -702,17 +710,13 @@
         <span class="n">n_additional_thetas</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">additional_thetas</span><span class="p">)</span>
 
         <span class="c1"># Augmented data (gold)</span>
-        <span class="n">augmented_data_definitions_0</span> <span class="o">=</span> <span class="p">[(</span><span class="s1">&#39;ratio&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
-                                        <span class="p">(</span><span class="s1">&#39;score&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
-                                        <span class="p">(</span><span class="s1">&#39;score&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)]</span>
-        <span class="n">augmented_data_definitions_1</span> <span class="o">=</span> <span class="p">[(</span><span class="s1">&#39;ratio&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
-                                        <span class="p">(</span><span class="s1">&#39;score&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
-                                        <span class="p">(</span><span class="s1">&#39;score&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)]</span>
+        <span class="n">augmented_data_definitions_0</span> <span class="o">=</span> <span class="p">[(</span><span class="s2">&quot;ratio&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="p">(</span><span class="s2">&quot;score&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="s2">&quot;score&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)]</span>
+        <span class="n">augmented_data_definitions_1</span> <span class="o">=</span> <span class="p">[(</span><span class="s2">&quot;ratio&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="p">(</span><span class="s2">&quot;score&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="s2">&quot;score&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)]</span>
         <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_additional_thetas</span><span class="p">):</span>
-            <span class="n">augmented_data_definitions_0</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s1">&#39;ratio&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">2</span><span class="p">))</span>
-            <span class="n">augmented_data_definitions_0</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s1">&#39;score&#39;</span><span class="p">,</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">2</span><span class="p">))</span>
-            <span class="n">augmented_data_definitions_1</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s1">&#39;ratio&#39;</span><span class="p">,</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
-            <span class="n">augmented_data_definitions_1</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s1">&#39;score&#39;</span><span class="p">,</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">2</span><span class="p">))</span>
+            <span class="n">augmented_data_definitions_0</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s2">&quot;ratio&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">2</span><span class="p">))</span>
+            <span class="n">augmented_data_definitions_0</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s2">&quot;score&quot;</span><span class="p">,</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">2</span><span class="p">))</span>
+            <span class="n">augmented_data_definitions_1</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s2">&quot;ratio&quot;</span><span class="p">,</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+            <span class="n">augmented_data_definitions_1</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s2">&quot;score&quot;</span><span class="p">,</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">2</span><span class="p">))</span>
 
         <span class="c1"># Train / test split</span>
         <span class="n">start_event</span><span class="p">,</span> <span class="n">end_event</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_train_test_split</span><span class="p">(</span><span class="ow">not</span> <span class="n">switch_train_test_events</span><span class="p">,</span> <span class="n">test_split</span><span class="p">)</span>
@@ -733,8 +737,9 @@
         <span class="n">n_samples_per_theta</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">this_n_samples</span><span class="p">,</span> <span class="n">n_samples_per_theta</span><span class="p">)</span>
 
         <span class="k">for</span> <span class="n">additional_theta</span> <span class="ow">in</span> <span class="n">additional_thetas</span><span class="p">:</span>
-            <span class="n">additional_theta_types</span><span class="p">,</span> <span class="n">additional_theta_values</span><span class="p">,</span> <span class="n">this_n_samples</span> <span class="o">=</span> <span class="n">parse_theta</span><span class="p">(</span><span class="n">additional_theta</span><span class="p">,</span>
-                                                                                          <span class="n">n_samples</span> <span class="o">//</span> <span class="mi">2</span><span class="p">)</span>
+            <span class="n">additional_theta_types</span><span class="p">,</span> <span class="n">additional_theta_values</span><span class="p">,</span> <span class="n">this_n_samples</span> <span class="o">=</span> <span class="n">parse_theta</span><span class="p">(</span>
+                <span class="n">additional_theta</span><span class="p">,</span> <span class="n">n_samples</span> <span class="o">//</span> <span class="mi">2</span>
+            <span class="p">)</span>
             <span class="n">theta_types</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">additional_theta_types</span><span class="p">)</span>
             <span class="n">theta_values</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">additional_theta_values</span><span class="p">)</span>
             <span class="n">n_samples_per_theta</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">this_n_samples</span><span class="p">,</span> <span class="n">n_samples_per_theta</span><span class="p">)</span>
@@ -747,7 +752,7 @@
             <span class="n">augmented_data_definitions</span><span class="o">=</span><span class="n">augmented_data_definitions_0</span><span class="p">,</span>
             <span class="n">sampling_theta_index</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
             <span class="n">start_event</span><span class="o">=</span><span class="n">start_event</span><span class="p">,</span>
-            <span class="n">end_event</span><span class="o">=</span><span class="n">end_event</span>
+            <span class="n">end_event</span><span class="o">=</span><span class="n">end_event</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="n">n_actual_samples</span> <span class="o">=</span> <span class="n">x_0</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 
@@ -790,8 +795,9 @@
         <span class="n">n_samples_per_theta</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">this_n_samples</span><span class="p">,</span> <span class="n">n_samples_per_theta</span><span class="p">)</span>
 
         <span class="k">for</span> <span class="n">additional_theta</span> <span class="ow">in</span> <span class="n">additional_thetas</span><span class="p">:</span>
-            <span class="n">additional_theta_types</span><span class="p">,</span> <span class="n">additional_theta_values</span><span class="p">,</span> <span class="n">this_n_samples</span> <span class="o">=</span> <span class="n">parse_theta</span><span class="p">(</span><span class="n">additional_theta</span><span class="p">,</span>
-                                                                                          <span class="n">n_samples</span> <span class="o">//</span> <span class="mi">2</span><span class="p">)</span>
+            <span class="n">additional_theta_types</span><span class="p">,</span> <span class="n">additional_theta_values</span><span class="p">,</span> <span class="n">this_n_samples</span> <span class="o">=</span> <span class="n">parse_theta</span><span class="p">(</span>
+                <span class="n">additional_theta</span><span class="p">,</span> <span class="n">n_samples</span> <span class="o">//</span> <span class="mi">2</span>
+            <span class="p">)</span>
             <span class="n">theta_types</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">additional_theta_types</span><span class="p">)</span>
             <span class="n">theta_values</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">additional_theta_values</span><span class="p">)</span>
             <span class="n">n_samples_per_theta</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">this_n_samples</span><span class="p">,</span> <span class="n">n_samples_per_theta</span><span class="p">)</span>
@@ -804,7 +810,7 @@
             <span class="n">augmented_data_definitions</span><span class="o">=</span><span class="n">augmented_data_definitions_1</span><span class="p">,</span>
             <span class="n">sampling_theta_index</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
             <span class="n">start_event</span><span class="o">=</span><span class="n">start_event</span><span class="p">,</span>
-            <span class="n">end_event</span><span class="o">=</span><span class="n">end_event</span>
+            <span class="n">end_event</span><span class="o">=</span><span class="n">end_event</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="n">n_actual_samples</span> <span class="o">+=</span> <span class="n">x_1</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 
@@ -839,11 +845,14 @@
         <span class="n">theta0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">([</span><span class="n">theta0_0</span><span class="p">,</span> <span class="n">theta0_1</span><span class="p">])</span>
         <span class="n">theta1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">([</span><span class="n">theta1_0</span><span class="p">,</span> <span class="n">theta1_1</span><span class="p">])</span>
         <span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
-        <span class="n">y</span><span class="p">[</span><span class="n">x_0</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]:]</span> <span class="o">=</span> <span class="mf">1.</span>
+        <span class="n">y</span><span class="p">[</span><span class="n">x_0</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="p">:]</span> <span class="o">=</span> <span class="mf">1.0</span>
 
         <span class="k">if</span> <span class="n">n_additional_thetas</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Oversampling: created </span><span class="si">%s</span><span class="s1"> training samples from </span><span class="si">%s</span><span class="s1"> original unweighted events&#39;</span><span class="p">,</span>
-                         <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">n_actual_samples</span><span class="p">)</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                <span class="s2">&quot;Oversampling: created </span><span class="si">%s</span><span class="s2"> training samples from </span><span class="si">%s</span><span class="s2"> original unweighted events&quot;</span><span class="p">,</span>
+                <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                <span class="n">n_actual_samples</span><span class="p">,</span>
+            <span class="p">)</span>
 
         <span class="c1"># Shuffle</span>
         <span class="n">x</span><span class="p">,</span> <span class="n">r_xz</span><span class="p">,</span> <span class="n">t_xz0</span><span class="p">,</span> <span class="n">t_xz1</span><span class="p">,</span> <span class="n">theta0</span><span class="p">,</span> <span class="n">theta1</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">shuffle</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">r_xz</span><span class="p">,</span> <span class="n">t_xz0</span><span class="p">,</span> <span class="n">t_xz1</span><span class="p">,</span> <span class="n">theta0</span><span class="p">,</span> <span class="n">theta1</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
@@ -853,23 +862,17 @@
 
         <span class="c1"># Save data</span>
         <span class="k">if</span> <span class="n">filename</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">folder</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">np</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">folder</span> <span class="o">+</span> <span class="s1">&#39;/theta0_&#39;</span> <span class="o">+</span> <span class="n">filename</span> <span class="o">+</span> <span class="s1">&#39;.npy&#39;</span><span class="p">,</span> <span class="n">theta0</span><span class="p">)</span>
-            <span class="n">np</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">folder</span> <span class="o">+</span> <span class="s1">&#39;/theta1_&#39;</span> <span class="o">+</span> <span class="n">filename</span> <span class="o">+</span> <span class="s1">&#39;.npy&#39;</span><span class="p">,</span> <span class="n">theta1</span><span class="p">)</span>
-            <span class="n">np</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">folder</span> <span class="o">+</span> <span class="s1">&#39;/x_&#39;</span> <span class="o">+</span> <span class="n">filename</span> <span class="o">+</span> <span class="s1">&#39;.npy&#39;</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
-            <span class="n">np</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">folder</span> <span class="o">+</span> <span class="s1">&#39;/y_&#39;</span> <span class="o">+</span> <span class="n">filename</span> <span class="o">+</span> <span class="s1">&#39;.npy&#39;</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
-            <span class="n">np</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">folder</span> <span class="o">+</span> <span class="s1">&#39;/r_xz_&#39;</span> <span class="o">+</span> <span class="n">filename</span> <span class="o">+</span> <span class="s1">&#39;.npy&#39;</span><span class="p">,</span> <span class="n">r_xz</span><span class="p">)</span>
-            <span class="n">np</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">folder</span> <span class="o">+</span> <span class="s1">&#39;/t_xz0_&#39;</span> <span class="o">+</span> <span class="n">filename</span> <span class="o">+</span> <span class="s1">&#39;.npy&#39;</span><span class="p">,</span> <span class="n">t_xz0</span><span class="p">)</span>
-            <span class="n">np</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">folder</span> <span class="o">+</span> <span class="s1">&#39;/t_xz1_&#39;</span> <span class="o">+</span> <span class="n">filename</span> <span class="o">+</span> <span class="s1">&#39;.npy&#39;</span><span class="p">,</span> <span class="n">t_xz1</span><span class="p">)</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">folder</span> <span class="o">+</span> <span class="s2">&quot;/theta0_&quot;</span> <span class="o">+</span> <span class="n">filename</span> <span class="o">+</span> <span class="s2">&quot;.npy&quot;</span><span class="p">,</span> <span class="n">theta0</span><span class="p">)</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">folder</span> <span class="o">+</span> <span class="s2">&quot;/theta1_&quot;</span> <span class="o">+</span> <span class="n">filename</span> <span class="o">+</span> <span class="s2">&quot;.npy&quot;</span><span class="p">,</span> <span class="n">theta1</span><span class="p">)</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">folder</span> <span class="o">+</span> <span class="s2">&quot;/x_&quot;</span> <span class="o">+</span> <span class="n">filename</span> <span class="o">+</span> <span class="s2">&quot;.npy&quot;</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">folder</span> <span class="o">+</span> <span class="s2">&quot;/y_&quot;</span> <span class="o">+</span> <span class="n">filename</span> <span class="o">+</span> <span class="s2">&quot;.npy&quot;</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">folder</span> <span class="o">+</span> <span class="s2">&quot;/r_xz_&quot;</span> <span class="o">+</span> <span class="n">filename</span> <span class="o">+</span> <span class="s2">&quot;.npy&quot;</span><span class="p">,</span> <span class="n">r_xz</span><span class="p">)</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">folder</span> <span class="o">+</span> <span class="s2">&quot;/t_xz0_&quot;</span> <span class="o">+</span> <span class="n">filename</span> <span class="o">+</span> <span class="s2">&quot;.npy&quot;</span><span class="p">,</span> <span class="n">t_xz0</span><span class="p">)</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">folder</span> <span class="o">+</span> <span class="s2">&quot;/t_xz1_&quot;</span> <span class="o">+</span> <span class="n">filename</span> <span class="o">+</span> <span class="s2">&quot;.npy&quot;</span><span class="p">,</span> <span class="n">t_xz1</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="n">x</span><span class="p">,</span> <span class="n">theta0</span><span class="p">,</span> <span class="n">theta1</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">r_xz</span><span class="p">,</span> <span class="n">t_xz0</span><span class="p">,</span> <span class="n">t_xz1</span></div>
 
-<div class="viewcode-block" id="SampleAugmenter.extract_samples_test"><a class="viewcode-back" href="../../madminer.sampling.html#madminer.sampling.SampleAugmenter.extract_samples_test">[docs]</a>    <span class="k">def</span> <span class="nf">extract_samples_test</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
-                             <span class="n">theta</span><span class="p">,</span>
-                             <span class="n">n_samples</span><span class="p">,</span>
-                             <span class="n">folder</span><span class="p">,</span>
-                             <span class="n">filename</span><span class="p">,</span>
-                             <span class="n">test_split</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span>
-                             <span class="n">switch_train_test_events</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<div class="viewcode-block" id="SampleAugmenter.extract_samples_test"><a class="viewcode-back" href="../../madminer.sampling.html#madminer.sampling.SampleAugmenter.extract_samples_test">[docs]</a>    <span class="k">def</span> <span class="nf">extract_samples_test</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">n_samples</span><span class="p">,</span> <span class="n">folder</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">test_split</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">switch_train_test_events</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Extracts evaluation samples `x ~ p(x|theta)` without any augmented data.</span>
 
@@ -910,7 +913,7 @@
 
 <span class="sd">        &quot;&quot;&quot;</span>
 
-        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Extracting evaluation sample. Sampling according to </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">theta</span><span class="p">)</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Extracting evaluation sample. Sampling according to </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">theta</span><span class="p">)</span>
 
         <span class="n">create_missing_folders</span><span class="p">([</span><span class="n">folder</span><span class="p">])</span>
 
@@ -926,13 +929,13 @@
             <span class="n">theta_sets_values</span><span class="o">=</span><span class="p">[</span><span class="n">theta_values</span><span class="p">],</span>
             <span class="n">n_samples_per_theta</span><span class="o">=</span><span class="n">n_samples_per_theta</span><span class="p">,</span>
             <span class="n">start_event</span><span class="o">=</span><span class="n">start_event</span><span class="p">,</span>
-            <span class="n">end_event</span><span class="o">=</span><span class="n">end_event</span>
+            <span class="n">end_event</span><span class="o">=</span><span class="n">end_event</span><span class="p">,</span>
         <span class="p">)</span>
 
         <span class="c1"># Save data</span>
         <span class="k">if</span> <span class="n">filename</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">folder</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">np</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">folder</span> <span class="o">+</span> <span class="s1">&#39;/theta_&#39;</span> <span class="o">+</span> <span class="n">filename</span> <span class="o">+</span> <span class="s1">&#39;.npy&#39;</span><span class="p">,</span> <span class="n">theta</span><span class="p">)</span>
-            <span class="n">np</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">folder</span> <span class="o">+</span> <span class="s1">&#39;/x_&#39;</span> <span class="o">+</span> <span class="n">filename</span> <span class="o">+</span> <span class="s1">&#39;.npy&#39;</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">folder</span> <span class="o">+</span> <span class="s2">&quot;/theta_&quot;</span> <span class="o">+</span> <span class="n">filename</span> <span class="o">+</span> <span class="s2">&quot;.npy&quot;</span><span class="p">,</span> <span class="n">theta</span><span class="p">)</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">folder</span> <span class="o">+</span> <span class="s2">&quot;/x_&quot;</span> <span class="o">+</span> <span class="n">filename</span> <span class="o">+</span> <span class="s2">&quot;.npy&quot;</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="n">x</span><span class="p">,</span> <span class="n">theta</span></div>
 
@@ -962,7 +965,7 @@
 
 <span class="sd">        &quot;&quot;&quot;</span>
 
-        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Starting cross-section calculation&#39;</span><span class="p">)</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Starting cross-section calculation&quot;</span><span class="p">)</span>
 
         <span class="c1"># Total xsecs for benchmarks</span>
         <span class="n">xsecs_benchmarks</span> <span class="o">=</span> <span class="kc">None</span>
@@ -986,16 +989,11 @@
 
         <span class="k">for</span> <span class="p">(</span><span class="n">theta_type</span><span class="p">,</span> <span class="n">theta_value</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">theta_types</span><span class="p">,</span> <span class="n">theta_values</span><span class="p">):</span>
 
-            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">morpher</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">theta_type</span> <span class="o">==</span> <span class="s1">&#39;morphing&#39;</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s1">&#39;Theta defined through morphing, but no morphing setup has been loaded.&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">morpher</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">theta_type</span> <span class="o">==</span> <span class="s2">&quot;morphing&quot;</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;Theta defined through morphing, but no morphing setup has been loaded.&quot;</span><span class="p">)</span>
 
             <span class="n">theta</span> <span class="o">=</span> <span class="n">get_theta_value</span><span class="p">(</span><span class="n">theta_type</span><span class="p">,</span> <span class="n">theta_value</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">benchmarks</span><span class="p">)</span>
-            <span class="n">theta_matrix</span> <span class="o">=</span> <span class="n">get_theta_benchmark_matrix</span><span class="p">(</span>
-                <span class="n">theta_type</span><span class="p">,</span>
-                <span class="n">theta_value</span><span class="p">,</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">benchmarks</span><span class="p">,</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">morpher</span>
-            <span class="p">)</span>
+            <span class="n">theta_matrix</span> <span class="o">=</span> <span class="n">get_theta_benchmark_matrix</span><span class="p">(</span><span class="n">theta_type</span><span class="p">,</span> <span class="n">theta_value</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">benchmarks</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">morpher</span><span class="p">)</span>
 
             <span class="c1"># Total xsec for this theta</span>
             <span class="n">xsec_theta</span> <span class="o">=</span> <span class="n">theta_matrix</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">xsecs_benchmarks</span><span class="p">)</span>
@@ -1005,7 +1003,7 @@
             <span class="n">all_xsecs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">xsec_theta</span><span class="p">)</span>
             <span class="n">all_xsec_uncertainties</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">rms_xsec_theta</span><span class="p">)</span>
 
-            <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;theta </span><span class="si">%s</span><span class="s1">: xsec = (</span><span class="si">%s</span><span class="s1"> +/- </span><span class="si">%s</span><span class="s1">) pb&#39;</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">xsec_theta</span><span class="p">,</span> <span class="n">rms_xsec_theta</span><span class="p">)</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;theta </span><span class="si">%s</span><span class="s2">: xsec = (</span><span class="si">%s</span><span class="s2"> +/- </span><span class="si">%s</span><span class="s2">) pb&quot;</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">xsec_theta</span><span class="p">,</span> <span class="n">rms_xsec_theta</span><span class="p">)</span>
 
         <span class="c1"># Return</span>
         <span class="n">all_thetas</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">all_thetas</span><span class="p">)</span>
@@ -1039,12 +1037,7 @@
         <span class="n">x</span><span class="p">,</span> <span class="n">weights_benchmarks</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">madminer_event_loader</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">madminer_filename</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="kc">None</span><span class="p">))</span>
 
         <span class="k">if</span> <span class="n">theta</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">theta_matrix</span> <span class="o">=</span> <span class="n">get_theta_benchmark_matrix</span><span class="p">(</span>
-                <span class="s1">&#39;morphing&#39;</span><span class="p">,</span>
-                <span class="n">theta</span><span class="p">,</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">benchmarks</span><span class="p">,</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">morpher</span>
-            <span class="p">)</span>
+            <span class="n">theta_matrix</span> <span class="o">=</span> <span class="n">get_theta_benchmark_matrix</span><span class="p">(</span><span class="s2">&quot;morphing&quot;</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">benchmarks</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">morpher</span><span class="p">)</span>
 
             <span class="n">weights_theta</span> <span class="o">=</span> <span class="n">theta_matrix</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">weights_benchmarks</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
 
@@ -1052,14 +1045,16 @@
 
         <span class="k">return</span> <span class="n">x</span><span class="p">,</span> <span class="n">weights_benchmarks</span></div>
 
-    <span class="k">def</span> <span class="nf">_extract_sample</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
-                        <span class="n">theta_sets_types</span><span class="p">,</span>
-                        <span class="n">theta_sets_values</span><span class="p">,</span>
-                        <span class="n">n_samples_per_theta</span><span class="p">,</span>
-                        <span class="n">sampling_theta_index</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
-                        <span class="n">augmented_data_definitions</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                        <span class="n">start_event</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
-                        <span class="n">end_event</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_extract_sample</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">theta_sets_types</span><span class="p">,</span>
+        <span class="n">theta_sets_values</span><span class="p">,</span>
+        <span class="n">n_samples_per_theta</span><span class="p">,</span>
+        <span class="n">sampling_theta_index</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">augmented_data_definitions</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">start_event</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">end_event</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Low-level function for the extraction of information from the event samples. Do not use this function directly.</span>
 
@@ -1105,16 +1100,16 @@
 
 <span class="sd">        &quot;&quot;&quot;</span>
 
-        <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Starting sample extraction&#39;</span><span class="p">)</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Starting sample extraction&quot;</span><span class="p">)</span>
 
-        <span class="k">assert</span> <span class="n">n_samples_per_theta</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Requested </span><span class="si">%s</span><span class="s1"> samples per theta!&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">n_samples_per_theta</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">n_samples_per_theta</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;Requested </span><span class="si">%s</span><span class="s2"> samples per theta!&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">n_samples_per_theta</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">augmented_data_definitions</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">augmented_data_definitions</span> <span class="o">=</span> <span class="p">[]</span>
 
-        <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Augmented data requested:&#39;</span><span class="p">)</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Augmented data requested:&quot;</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">augmented_data_definition</span> <span class="ow">in</span> <span class="n">augmented_data_definitions</span><span class="p">:</span>
-            <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;  </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">augmented_data_definition</span><span class="p">)</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;  </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">augmented_data_definition</span><span class="p">)</span>
 
         <span class="c1"># Calculate total xsecs for benchmarks</span>
         <span class="n">xsecs_benchmarks</span> <span class="o">=</span> <span class="kc">None</span>
@@ -1131,7 +1126,7 @@
 
             <span class="n">n_observables</span> <span class="o">=</span> <span class="n">obs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
 
-        <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Benchmark cross sections [pb]: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">xsecs_benchmarks</span><span class="p">)</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Benchmark cross sections [pb]: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">xsecs_benchmarks</span><span class="p">)</span>
 
         <span class="c1"># Balance thetas</span>
         <span class="n">theta_sets_types</span><span class="p">,</span> <span class="n">theta_sets_values</span> <span class="o">=</span> <span class="n">balance_thetas</span><span class="p">(</span><span class="n">theta_sets_types</span><span class="p">,</span> <span class="n">theta_sets_values</span><span class="p">)</span>
@@ -1139,16 +1134,21 @@
         <span class="c1"># Consistency checks</span>
         <span class="n">n_benchmarks</span> <span class="o">=</span> <span class="n">xsecs_benchmarks</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
         <span class="k">if</span> <span class="n">n_benchmarks</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">benchmarks</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">morphing_matrix</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Inconsistent numbers of benchmarks: </span><span class="si">{}</span><span class="s1"> in observations,&#39;</span>
-                             <span class="s1">&#39;</span><span class="si">{}</span><span class="s1"> in benchmark list&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">n_benchmarks</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">benchmarks</span><span class="p">)))</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;Inconsistent numbers of benchmarks: </span><span class="si">{}</span><span class="s2"> in observations,&quot;</span>
+                <span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> in benchmark list&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">n_benchmarks</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">benchmarks</span><span class="p">))</span>
+            <span class="p">)</span>
         <span class="k">elif</span> <span class="n">n_benchmarks</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">benchmarks</span><span class="p">)</span> <span class="ow">or</span> <span class="n">n_benchmarks</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">morphing_matrix</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Inconsistent numbers of benchmarks: </span><span class="si">{}</span><span class="s1"> in observations, </span><span class="si">{}</span><span class="s1"> in benchmark list, &#39;</span>
-                             <span class="s1">&#39;</span><span class="si">{}</span><span class="s1"> in morphing matrix&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">n_benchmarks</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">benchmarks</span><span class="p">),</span>
-                                                            <span class="bp">self</span><span class="o">.</span><span class="n">morphing_matrix</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;Inconsistent numbers of benchmarks: </span><span class="si">{}</span><span class="s2"> in observations, </span><span class="si">{}</span><span class="s2"> in benchmark list, &quot;</span>
+                <span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> in morphing matrix&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">n_benchmarks</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">benchmarks</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">morphing_matrix</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="p">)</span>
 
         <span class="k">if</span> <span class="n">n_observables</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">observables</span><span class="p">):</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Inconsistent numbers of observables: </span><span class="si">{}</span><span class="s1"> in observations,&#39;</span>
-                             <span class="s1">&#39;</span><span class="si">{}</span><span class="s1"> in observable list&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">n_observables</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">observables</span><span class="p">)))</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;Inconsistent numbers of observables: </span><span class="si">{}</span><span class="s2"> in observations,&quot;</span>
+                <span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> in observable list&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">n_observables</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">observables</span><span class="p">))</span>
+            <span class="p">)</span>
 
         <span class="n">n_thetas</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">theta_sets_types</span><span class="p">)</span>
         <span class="k">assert</span> <span class="n">n_thetas</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">theta_sets_values</span><span class="p">)</span>
@@ -1178,15 +1178,15 @@
             <span class="n">theta_types</span> <span class="o">=</span> <span class="p">[</span><span class="n">t</span><span class="p">[</span><span class="n">i_set</span><span class="p">]</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">theta_sets_types</span><span class="p">]</span>
             <span class="n">theta_values</span> <span class="o">=</span> <span class="p">[</span><span class="n">t</span><span class="p">[</span><span class="n">i_set</span><span class="p">]</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">theta_sets_values</span><span class="p">]</span>
 
-            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">morpher</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="s1">&#39;morphing&#39;</span> <span class="ow">in</span> <span class="n">theta_types</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s1">&#39;Theta defined through morphing, but no morphing setup has been loaded.&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">morpher</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="s2">&quot;morphing&quot;</span> <span class="ow">in</span> <span class="n">theta_types</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;Theta defined through morphing, but no morphing setup has been loaded.&quot;</span><span class="p">)</span>
 
             <span class="c1"># Parse thetas and calculate the w_c(theta) for them</span>
             <span class="n">thetas</span> <span class="o">=</span> <span class="p">[]</span>
             <span class="n">theta_matrices</span> <span class="o">=</span> <span class="p">[]</span>
             <span class="n">theta_gradient_matrices</span> <span class="o">=</span> <span class="p">[]</span>
 
-            <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Drawing </span><span class="si">%s</span><span class="s1"> events for the following thetas:&#39;</span><span class="p">,</span> <span class="n">n_samples</span><span class="p">)</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Drawing </span><span class="si">%s</span><span class="s2"> events for the following thetas:&quot;</span><span class="p">,</span> <span class="n">n_samples</span><span class="p">)</span>
 
             <span class="k">for</span> <span class="n">i_theta</span><span class="p">,</span> <span class="p">(</span><span class="n">theta_type</span><span class="p">,</span> <span class="n">theta_value</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">theta_types</span><span class="p">,</span> <span class="n">theta_values</span><span class="p">)):</span>
                 <span class="n">theta</span> <span class="o">=</span> <span class="n">get_theta_value</span><span class="p">(</span><span class="n">theta_type</span><span class="p">,</span> <span class="n">theta_value</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">benchmarks</span><span class="p">)</span>
@@ -1200,35 +1200,38 @@
                     <span class="n">get_dtheta_benchmark_matrix</span><span class="p">(</span><span class="n">theta_type</span><span class="p">,</span> <span class="n">theta_value</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">benchmarks</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">morpher</span><span class="p">)</span>
                 <span class="p">)</span>
 
-                <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;  theta </span><span class="si">%s</span><span class="s1"> = </span><span class="si">%s%s</span><span class="s1">&#39;</span><span class="p">,</span>
-                              <span class="n">i_theta</span><span class="p">,</span> <span class="n">theta</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:],</span>
-                              <span class="s1">&#39; (sampling)&#39;</span> <span class="k">if</span> <span class="n">i_theta</span> <span class="o">==</span> <span class="n">sampling_theta_index</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
+                    <span class="s2">&quot;  theta </span><span class="si">%s</span><span class="s2"> = </span><span class="si">%s%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">i_theta</span><span class="p">,</span> <span class="n">theta</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:],</span> <span class="s2">&quot; (sampling)&quot;</span> <span class="k">if</span> <span class="n">i_theta</span> <span class="o">==</span> <span class="n">sampling_theta_index</span> <span class="k">else</span> <span class="s2">&quot;&quot;</span>
+                <span class="p">)</span>
 
             <span class="n">sampling_theta_matrix</span> <span class="o">=</span> <span class="n">theta_matrices</span><span class="p">[</span><span class="n">sampling_theta_index</span><span class="p">]</span>
 
             <span class="c1"># Total xsec for sampling theta</span>
             <span class="n">xsec_sampling_theta</span> <span class="o">=</span> <span class="n">sampling_theta_matrix</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">xsecs_benchmarks</span><span class="p">)</span>
-            <span class="n">rms_xsec_sampling_theta</span> <span class="o">=</span> <span class="p">((</span><span class="n">sampling_theta_matrix</span> <span class="o">*</span> <span class="n">sampling_theta_matrix</span><span class="p">)</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span>
-                <span class="n">squared_weight_sum_benchmarks</span><span class="p">))</span> <span class="o">**</span> <span class="mf">0.5</span>
+            <span class="n">rms_xsec_sampling_theta</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="p">(</span><span class="n">sampling_theta_matrix</span> <span class="o">*</span> <span class="n">sampling_theta_matrix</span><span class="p">)</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">squared_weight_sum_benchmarks</span><span class="p">)</span>
+            <span class="p">)</span> <span class="o">**</span> <span class="mf">0.5</span>
 
             <span class="k">if</span> <span class="n">rms_xsec_sampling_theta</span> <span class="o">&gt;</span> <span class="mf">0.1</span> <span class="o">*</span> <span class="n">xsec_sampling_theta</span><span class="p">:</span>
-                <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;Warning: large statistical uncertainty on the total cross section for theta = </span><span class="si">%s</span><span class="s1">: &#39;</span>
-                                <span class="s1">&#39;(</span><span class="si">%s</span><span class="s1"> +/- </span><span class="si">%s</span><span class="s1">) pb&#39;</span><span class="p">,</span>
-                                <span class="n">thetas</span><span class="p">[</span><span class="n">sampling_theta_index</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span>
-                                <span class="n">xsec_sampling_theta</span><span class="p">,</span>
-                                <span class="n">rms_xsec_sampling_theta</span><span class="p">)</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                    <span class="s2">&quot;Warning: large statistical uncertainty on the total cross section for theta = </span><span class="si">%s</span><span class="s2">: &quot;</span>
+                    <span class="s2">&quot;(</span><span class="si">%s</span><span class="s2"> +/- </span><span class="si">%s</span><span class="s2">) pb&quot;</span><span class="p">,</span>
+                    <span class="n">thetas</span><span class="p">[</span><span class="n">sampling_theta_index</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span>
+                    <span class="n">xsec_sampling_theta</span><span class="p">,</span>
+                    <span class="n">rms_xsec_sampling_theta</span><span class="p">,</span>
+                <span class="p">)</span>
 
             <span class="c1"># Prepare output</span>
             <span class="n">samples_done</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n_samples</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">bool</span><span class="p">)</span>
             <span class="n">samples_x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n_samples</span><span class="p">,</span> <span class="n">n_observables</span><span class="p">))</span>
             <span class="n">samples_augmented_data</span> <span class="o">=</span> <span class="p">[]</span>
             <span class="k">for</span> <span class="n">definition</span> <span class="ow">in</span> <span class="n">augmented_data_definitions</span><span class="p">:</span>
-                <span class="k">if</span> <span class="n">definition</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;ratio&#39;</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">definition</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;ratio&quot;</span><span class="p">:</span>
                     <span class="n">samples_augmented_data</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n_samples</span><span class="p">,</span> <span class="mi">1</span><span class="p">)))</span>
-                <span class="k">elif</span> <span class="n">definition</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;score&#39;</span><span class="p">:</span>
+                <span class="k">elif</span> <span class="n">definition</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;score&quot;</span><span class="p">:</span>
                     <span class="n">samples_augmented_data</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n_samples</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_parameters</span><span class="p">)))</span>
 
-            <span class="n">largest_weight</span> <span class="o">=</span> <span class="mf">0.</span>
+            <span class="n">largest_weight</span> <span class="o">=</span> <span class="mf">0.0</span>
 
             <span class="c1"># Main sampling loop</span>
             <span class="k">while</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">samples_done</span><span class="p">):</span>
@@ -1237,21 +1240,22 @@
                 <span class="n">u</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="n">n_samples</span><span class="p">)</span>  <span class="c1"># Shape: (n_samples,)</span>
 
                 <span class="c1"># Loop over weighted events</span>
-                <span class="n">cumulative_p</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">0.</span><span class="p">])</span>
+                <span class="n">cumulative_p</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">0.0</span><span class="p">])</span>
 
-                <span class="k">for</span> <span class="n">x_batch</span><span class="p">,</span> <span class="n">weights_benchmarks_batch</span> <span class="ow">in</span> <span class="n">madminer_event_loader</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">madminer_filename</span><span class="p">,</span>
-                                                                               <span class="n">start</span><span class="o">=</span><span class="n">start_event</span><span class="p">,</span>
-                                                                               <span class="n">end</span><span class="o">=</span><span class="n">end_event</span><span class="p">):</span>
+                <span class="k">for</span> <span class="n">x_batch</span><span class="p">,</span> <span class="n">weights_benchmarks_batch</span> <span class="ow">in</span> <span class="n">madminer_event_loader</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">madminer_filename</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="n">start_event</span><span class="p">,</span> <span class="n">end</span><span class="o">=</span><span class="n">end_event</span>
+                <span class="p">):</span>
                     <span class="c1"># Evaluate p(x | sampling theta)</span>
                     <span class="n">weights_theta</span> <span class="o">=</span> <span class="n">sampling_theta_matrix</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">weights_benchmarks_batch</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>  <span class="c1"># Shape (n_batch_size,)</span>
                     <span class="n">p_theta</span> <span class="o">=</span> <span class="n">weights_theta</span> <span class="o">/</span> <span class="n">xsec_sampling_theta</span>  <span class="c1"># Shape: (n_batch_size,)</span>
 
                     <span class="c1"># Handle negative weights (should be rare)</span>
-                    <span class="n">n_negative_weights</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">p_theta</span> <span class="o">&lt;</span> <span class="mf">0.</span><span class="p">)</span>
+                    <span class="n">n_negative_weights</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">p_theta</span> <span class="o">&lt;</span> <span class="mf">0.0</span><span class="p">)</span>
                     <span class="k">if</span> <span class="n">n_negative_weights</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-                        <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> negative weights (</span><span class="si">%s</span><span class="s1">)&#39;</span><span class="p">,</span>
-                                        <span class="n">n_negative_weights</span><span class="p">,</span> <span class="n">n_negative_weights</span> <span class="o">/</span> <span class="n">p_theta</span><span class="o">.</span><span class="n">size</span><span class="p">)</span>
-                    <span class="n">p_theta</span><span class="p">[</span><span class="n">p_theta</span> <span class="o">&lt;</span> <span class="mf">0.</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.</span>
+                        <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                            <span class="s2">&quot;</span><span class="si">%s</span><span class="s2"> negative weights (</span><span class="si">%s</span><span class="s2">)&quot;</span><span class="p">,</span> <span class="n">n_negative_weights</span><span class="p">,</span> <span class="n">n_negative_weights</span> <span class="o">/</span> <span class="n">p_theta</span><span class="o">.</span><span class="n">size</span>
+                        <span class="p">)</span>
+                    <span class="n">p_theta</span><span class="p">[</span><span class="n">p_theta</span> <span class="o">&lt;</span> <span class="mf">0.0</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>
 
                     <span class="c1"># Remember largest weights (to calculate effective number of samples)</span>
                     <span class="n">largest_weight</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">largest_weight</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">p_theta</span><span class="p">))</span>
@@ -1260,10 +1264,10 @@
                     <span class="n">cumulative_p</span> <span class="o">=</span> <span class="n">cumulative_p</span><span class="o">.</span><span class="n">flatten</span><span class="p">()[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">p_theta</span><span class="p">)</span>  <span class="c1"># Shape: (n_batch_size,)</span>
 
                     <span class="c1"># When cumulative_p hits u, we store the events</span>
-                    <span class="n">indices</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">searchsorted</span><span class="p">(</span><span class="n">cumulative_p</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">side</span><span class="o">=</span><span class="s1">&#39;left&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span>
+                    <span class="n">indices</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">searchsorted</span><span class="p">(</span><span class="n">cumulative_p</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">side</span><span class="o">=</span><span class="s2">&quot;left&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span>
                     <span class="c1"># Shape: (n_samples,), values: [0, ..., n_batch_size]</span>
 
-                    <span class="n">found_now</span> <span class="o">=</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">invert</span><span class="p">(</span><span class="n">samples_done</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">indices</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">cumulative_p</span><span class="p">)))</span>  <span class="c1"># Shape: (n_samples,)</span>
+                    <span class="n">found_now</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">invert</span><span class="p">(</span><span class="n">samples_done</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">indices</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">cumulative_p</span><span class="p">))</span>  <span class="c1"># Shape: (n_samples,)</span>
                     <span class="n">samples_x</span><span class="p">[</span><span class="n">found_now</span><span class="p">]</span> <span class="o">=</span> <span class="n">x_batch</span><span class="p">[</span><span class="n">indices</span><span class="p">[</span><span class="n">found_now</span><span class="p">]]</span>
                     <span class="n">samples_done</span><span class="p">[</span><span class="n">found_now</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
 
@@ -1282,23 +1286,22 @@
                         <span class="k">break</span>
 
                 <span class="c1"># Cross-check cumulative probabilities at end</span>
-                <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;  Cumulative probability (should be close to 1): </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">cumulative_p</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;  Cumulative probability (should be close to 1): </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">cumulative_p</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
 
                 <span class="c1"># Check that we got &#39;em all, otherwise repeat</span>
                 <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">samples_done</span><span class="p">):</span>
                     <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
-                        <span class="s1">&#39;  After full pass through event files, </span><span class="si">{}</span><span class="s1"> / </span><span class="si">{}</span><span class="s1"> samples not found, u = </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
-                            <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">invert</span><span class="p">(</span><span class="n">samples_done</span><span class="p">)),</span>
-                            <span class="n">samples_done</span><span class="o">.</span><span class="n">size</span><span class="p">,</span>
-                            <span class="n">u</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">invert</span><span class="p">(</span><span class="n">samples_done</span><span class="p">)]</span>
-                        <span class="p">))</span>
+                        <span class="s2">&quot;  After full pass through event files, </span><span class="si">{}</span><span class="s2"> / </span><span class="si">{}</span><span class="s2"> samples not found, u = </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                            <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">invert</span><span class="p">(</span><span class="n">samples_done</span><span class="p">)),</span> <span class="n">samples_done</span><span class="o">.</span><span class="n">size</span><span class="p">,</span> <span class="n">u</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">invert</span><span class="p">(</span><span class="n">samples_done</span><span class="p">)]</span>
+                        <span class="p">)</span>
+                    <span class="p">)</span>
 
             <span class="n">all_x</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">samples_x</span><span class="p">)</span>
             <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">theta</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">thetas</span><span class="p">):</span>
                 <span class="n">all_thetas</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span>
             <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">this_samples_augmented_data</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">samples_augmented_data</span><span class="p">):</span>
                 <span class="n">all_augmented_data</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">this_samples_augmented_data</span><span class="p">)</span>
-            <span class="n">all_effective_n_samples</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mf">1.</span> <span class="o">/</span> <span class="nb">max</span><span class="p">(</span><span class="mf">1.e-12</span><span class="p">,</span> <span class="n">largest_weight</span><span class="p">))</span>
+            <span class="n">all_effective_n_samples</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">/</span> <span class="nb">max</span><span class="p">(</span><span class="mf">1.0e-12</span><span class="p">,</span> <span class="n">largest_weight</span><span class="p">))</span>
 
         <span class="c1"># Combine and return results</span>
         <span class="n">all_x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">(</span><span class="n">all_x</span><span class="p">)</span>
@@ -1310,12 +1313,15 @@
 
         <span class="c1"># Report effective number of samples</span>
         <span class="k">if</span> <span class="n">n_sets</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
-            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Effective number of samples: mean </span><span class="si">%s</span><span class="s1">, with individual thetas ranging from </span><span class="si">%s</span><span class="s1"> to </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span>
-                         <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">all_effective_n_samples</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">all_effective_n_samples</span><span class="p">),</span>
-                         <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">all_effective_n_samples</span><span class="p">))</span>
-            <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Effective number of samples for all thetas: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">all_effective_n_samples</span><span class="p">)</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                <span class="s2">&quot;Effective number of samples: mean </span><span class="si">%s</span><span class="s2">, with individual thetas ranging from </span><span class="si">%s</span><span class="s2"> to </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">all_effective_n_samples</span><span class="p">),</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">all_effective_n_samples</span><span class="p">),</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">all_effective_n_samples</span><span class="p">),</span>
+            <span class="p">)</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Effective number of samples for all thetas: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">all_effective_n_samples</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Effective number of samples: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">all_effective_n_samples</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Effective number of samples: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">all_effective_n_samples</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
 
         <span class="k">return</span> <span class="n">all_x</span><span class="p">,</span> <span class="n">all_augmented_data</span><span class="p">,</span> <span class="n">all_thetas</span>
 
@@ -1343,18 +1349,18 @@
         <span class="k">if</span> <span class="n">train</span><span class="p">:</span>
             <span class="n">start_event</span> <span class="o">=</span> <span class="mi">0</span>
 
-            <span class="k">if</span> <span class="n">test_split</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">test_split</span> <span class="o">&lt;=</span> <span class="mf">0.</span> <span class="ow">or</span> <span class="n">test_split</span> <span class="o">&gt;=</span> <span class="mf">1.</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">test_split</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">test_split</span> <span class="o">&lt;=</span> <span class="mf">0.0</span> <span class="ow">or</span> <span class="n">test_split</span> <span class="o">&gt;=</span> <span class="mf">1.0</span><span class="p">:</span>
                 <span class="n">end_event</span> <span class="o">=</span> <span class="kc">None</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="n">end_event</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">round</span><span class="p">((</span><span class="mf">1.</span> <span class="o">-</span> <span class="n">test_split</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_samples</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+                <span class="n">end_event</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">round</span><span class="p">((</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">test_split</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_samples</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
                 <span class="k">if</span> <span class="n">end_event</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">end_event</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_samples</span><span class="p">:</span>
                     <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Irregular train / test split: sample </span><span class="si">{}</span><span class="s2"> / </span><span class="si">{}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">end_event</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_samples</span><span class="p">)</span>
 
         <span class="k">else</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">test_split</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">test_split</span> <span class="o">&lt;=</span> <span class="mf">0.</span> <span class="ow">or</span> <span class="n">test_split</span> <span class="o">&gt;=</span> <span class="mf">1.</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">test_split</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">test_split</span> <span class="o">&lt;=</span> <span class="mf">0.0</span> <span class="ow">or</span> <span class="n">test_split</span> <span class="o">&gt;=</span> <span class="mf">1.0</span><span class="p">:</span>
                 <span class="n">start_event</span> <span class="o">=</span> <span class="mi">0</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="n">start_event</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">round</span><span class="p">((</span><span class="mf">1.</span> <span class="o">-</span> <span class="n">test_split</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_samples</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span> <span class="o">+</span> <span class="mi">1</span>
+                <span class="n">start_event</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">round</span><span class="p">((</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">test_split</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_samples</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span> <span class="o">+</span> <span class="mi">1</span>
                 <span class="k">if</span> <span class="n">start_event</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">start_event</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_samples</span><span class="p">:</span>
                     <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Irregular train / test split: sample </span><span class="si">{}</span><span class="s2"> / </span><span class="si">{}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">start_event</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_samples</span><span class="p">)</span>
 
