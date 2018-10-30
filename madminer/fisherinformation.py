@@ -469,7 +469,7 @@ class FisherInformation:
             bin_boundaries[0] -= 10.0
             bin_boundaries[-1] += 10.0
 
-            logging.debug('Automatic dynamic binning: bin boundaries %s', bin_boundaries)
+            logging.debug("Automatic dynamic binning: bin boundaries %s", bin_boundaries)
 
         # Manual binning
         else:
