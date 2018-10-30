@@ -42,16 +42,16 @@ class MadMinerParticle(LorentzVector):
             self.charge = 1.0 / 3.0
 
     def __iadd__(self, other):
-        vec = super(MadMinerParticle, self).__iadd__(other)
-        vec.charge = None if self.charge is None or other.charge is None else self.charge + other.charge
-        vec.pdgid = None
-        return vec
+        super(MadMinerParticle, self).__iadd__(other)
+        self.charge = None if self.charge is None or other.charge is None else self.charge + other.charge
+        self.pdgid = None
+        return self
 
     def __isub__(self, other):
-        vec = super(MadMinerParticle, self).__isub__(other)
-        vec.charge = None if self.charge is None or other.charge is None else self.charge - other.charge
-        vec.pdgid = None
-        return vec
+        super(MadMinerParticle, self).__isub__(other)
+        self.charge = None if self.charge is None or other.charge is None else self.charge - other.charge
+        self.pdgid = None
+        return self
 
     def __add__(self, other):
         vec = super(MadMinerParticle, self).__add__(other)
