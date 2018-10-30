@@ -528,7 +528,7 @@ class MLForge:
             raise ValueError("No model -- train or load model before evaluating it!")
 
         # Load training data
-        logging.info("Loading evaluation data")
+        logging.debug("Loading evaluation data")
 
         theta0s = load_and_check(theta0_filename)
         theta1s = load_and_check(theta1_filename)
@@ -540,7 +540,7 @@ class MLForge:
 
         # SALLY evaluation
         if self.method in ["sally", "sallino"]:
-            logging.info("Starting score evaluation")
+            logging.debug("Starting score evaluation")
 
             all_t_hat = evaluate_local_score_model(model=self.model, xs=xs)
 
@@ -561,7 +561,7 @@ class MLForge:
         all_t_hat1 = []
 
         if test_all_combinations:
-            logging.info("Starting ratio evaluation for all combinations")
+            logging.debug("Starting ratio evaluation for all combinations")
 
             for i, (theta0, theta1) in enumerate(zip(theta0s, theta1s)):
                 logging.debug(
@@ -593,7 +593,7 @@ class MLForge:
             all_t_hat1 = np.array(all_t_hat1)
 
         else:
-            logging.info("Starting ratio evaluation")
+            logging.debug("Starting ratio evaluation")
 
             if self.method in ["nde", "scandal"]:
                 _, all_log_r_hat, t_hat0 = evaluate_flow_model(
@@ -611,7 +611,7 @@ class MLForge:
                     evaluate_score=evaluate_score,
                 )
 
-        logging.info("Evaluation done")
+        logging.debug("Evaluation done")
 
         return all_log_r_hat, all_t_hat0, all_t_hat1
 
@@ -642,7 +642,7 @@ class MLForge:
             raise ValueError("No model -- train or load model before evaluating it!")
 
         # Load training data
-        logging.info("Loading evaluation data")
+        logging.debug("Loading evaluation data")
         xs = load_and_check(x_filename)
         n_samples = xs.shape[0]
 
@@ -652,7 +652,7 @@ class MLForge:
 
         # Estimate scores
         if self.method in ["sally", "sallino"]:
-            logging.info("Starting score evaluation")
+            logging.debug("Starting score evaluation")
 
             t_hats = evaluate_local_score_model(model=self.model, xs=xs)
         else:
@@ -695,7 +695,7 @@ class MLForge:
         create_missing_folders([os.path.dirname(filename)])
 
         # Save settings
-        logging.info("Saving settings to %s_settings.json", filename)
+        logging.debug("Saving settings to %s_settings.json", filename)
 
         settings = {
             "method": self.method,
@@ -711,7 +711,7 @@ class MLForge:
             json.dump(settings, f)
 
         # Save state dict
-        logging.info("Saving state dictionary to %s_state_dict.pt", filename)
+        logging.debug("Saving state dictionary to %s_state_dict.pt", filename)
         torch.save(self.model.state_dict(), filename + "_state_dict.pt")
 
     def load(self, filename):
@@ -731,7 +731,7 @@ class MLForge:
         """
 
         # Load settings
-        logging.info("Loading settings from %s_settings.json", filename)
+        logging.debug("Loading settings from %s_settings.json", filename)
 
         with open(filename + "_settings.json", "r") as f:
             settings = json.load(f)
@@ -748,7 +748,7 @@ class MLForge:
         if self.features is not None:
             self.features = list([int(item) for item in self.features])
 
-        logging.info(
+        logging.debug(
             "  Found method %s, %s observables, %s parameters, %s hidden layers, %s activation function, "
             "features %s",
             self.method,
@@ -788,7 +788,7 @@ class MLForge:
             raise NotImplementedError("Unknown method {}".format(self.method))
 
         # Load state dict
-        logging.info("Loading state dictionary from %s_state_dict.pt", filename)
+        logging.debug("Loading state dictionary from %s_state_dict.pt", filename)
         self.model.load_state_dict(torch.load(filename + "_state_dict.pt"))
 
 
@@ -1237,7 +1237,7 @@ class EnsembleForge:
         create_missing_folders([folder])
 
         # Save ensemble settings
-        logging.info("Saving ensemble setup to %s/ensemble.json", folder)
+        logging.debug("Saving ensemble setup to %s/ensemble.json", folder)
 
         if self.expectations is None:
             expectations = "None"
@@ -1269,7 +1269,7 @@ class EnsembleForge:
         """
 
         # Load ensemble settings
-        logging.info("Loading ensemble setup from %s/ensemble.json", folder)
+        logging.debug("Loading ensemble setup from %s/ensemble.json", folder)
 
         with open(folder + "/ensemble.json", "r") as f:
             settings = json.load(f)
@@ -1281,7 +1281,7 @@ class EnsembleForge:
         if self.expectations is not None:
             self.expectations = np.array(self.expectations)
 
-        logging.info("  Found ensemble with %s estimators and expectations %s", self.n_estimators, self.expectations)
+        logging.info("Found ensemble with %s estimators and expectations %s", self.n_estimators, self.expectations)
 
         # Load estimators
         self.estimators = []

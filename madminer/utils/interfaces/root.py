@@ -116,7 +116,7 @@ def extract_observables_from_delphes_file(
                             met_all_events[event][0]
                         )
                     )
-                except (SyntaxError, NameError, TypeError, ZeroDivisionError, IndexError, RuntimeError):
+                except RuntimeError: #(SyntaxError, NameError, TypeError, ZeroDivisionError, IndexError, RuntimeError):
                     default = observables_defaults[obs_name]
                     if default is None:
                         default = np.nan
