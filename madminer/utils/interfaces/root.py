@@ -113,10 +113,10 @@ def extract_observables_from_delphes_file(
                             leptons_all_events[event],
                             photons_all_events[event],
                             jets_all_events[event],
-                            met_all_events[event][0]
+                            met_all_events[event][0],
                         )
                     )
-                except RuntimeError: #(SyntaxError, NameError, TypeError, ZeroDivisionError, IndexError, RuntimeError):
+                except RuntimeError:  # (SyntaxError, NameError, TypeError, ZeroDivisionError, IndexError, RuntimeError):
                     default = observables_defaults[obs_name]
                     if default is None:
                         default = np.nan
@@ -125,7 +125,7 @@ def extract_observables_from_delphes_file(
         values_this_observable = np.array(values_this_observable, dtype=np.float)
         observable_values[obs_name] = values_this_observable
 
-        logging.debug('  First 100 values for observable %s:\n%s', obs_name, values_this_observable[:100])
+        logging.debug("  First 100 values for observable %s:\n%s", obs_name, values_this_observable[:100])
 
     # Cuts
     cut_values = []

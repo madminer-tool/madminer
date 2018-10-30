@@ -285,7 +285,9 @@ class DelphesProcessor:
         if required:
             logging.debug("Adding required observable %s defined through external function", name)
         else:
-            logging.debug("Adding optional observable %s defined through external function with default %s", name, default)
+            logging.debug(
+                "Adding optional observable %s defined through external function with default %s", name, default
+            )
 
         self.observables[name] = fn
         self.observables_required[name] = required

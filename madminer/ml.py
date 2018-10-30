@@ -1196,12 +1196,7 @@ class EnsembleForge:
 
             predictions_flat = predictions.reshape((predictions.shape[0], -1))
             covariance = np.cov(predictions_flat.T, aweights=these_weights)
-            covariance_shape = (
-                predictions.shape[1],
-                predictions.shape[2],
-                predictions.shape[1],
-                predictions.shape[2],
-            )
+            covariance_shape = (predictions.shape[1], predictions.shape[2], predictions.shape[1], predictions.shape[2])
             covariance = covariance.reshape(covariance_shape)
 
             covariance /= self.n_estimators
