@@ -1021,8 +1021,9 @@ class EnsembleForge:
             is given, this is a list with results for all entries in vote_expectation_weight.
 
         covariance : ndarray or list of ndarray
-            The covariance matrix of the (flattened) predictions. If more then one value vote_expectation_weight
-            is given, this is a list with results for all entries in vote_expectation_weight.
+            The covariance matrix of the (flattened) predictions, defined as the ensemble covariance divided by the
+            number of estimators. If more then one value vote_expectation_weight is given, this is a list with results
+            for all entries in vote_expectation_weight.
 
         weights : ndarray or list of ndarray
             Only returned if return_individual_predictions is True. The estimator weights `w_i`. If more then one value
@@ -1081,6 +1082,8 @@ class EnsembleForge:
 
             predictions_flat = predictions.reshape((predictions.shape[0], -1))
             covariance = np.cov(predictions_flat.T, aweights=these_weights)
+            covariance /= self.n_estimators
+
             covariances.append(covariance)
 
         # Returns
@@ -1135,8 +1138,8 @@ class EnsembleForge:
             is given, this is a list with results for all entries in vote_expectation_weight.
 
         covariance : ndarray or list of ndarray
-            The covariance matrix of the Fisher information estimate. This object has four indices,
-            `cov_(ij)(i'j')`, ordered as i j i' j'. It has shape
+            The covariance matrix of the Fisher information estimate, defined as the ensemble covariance divided by the
+            number of estimators. This object has four indices, `cov_(ij)(i'j')`, ordered as i j i' j'. It has shape
             `(n_parameters, n_parameters, n_parameters, n_parameters)`. If more then one value vote_expectation_weight
             is given, this is a list with results for all entries in vote_expectation_weight.
 
@@ -1193,6 +1196,16 @@ class EnsembleForge:
 
             predictions_flat = predictions.reshape((predictions.shape[0], -1))
             covariance = np.cov(predictions_flat.T, aweights=these_weights)
+            covariance_shape = (
+                predictions.shape[1],
+                predictions.shape[2],
+                predictions.shape[1],
+                predictions.shape[2],
+            )
+            covariance = covariance.reshape(covariance_shape)
+
+            covariance /= self.n_estimators
+
             covariances.append(covariance)
 
         # Returns

@@ -128,6 +128,7 @@ class FisherInformation:
     def __init__(self, filename, debug=False):
 
         general_init(debug=debug)
+        self.debug = debug
 
         self.madminer_filename = filename
 
@@ -301,7 +302,7 @@ class FisherInformation:
         # Kinematic part of Fisher information: either with MLForge or with EnsembleForge
         if os.path.isdir(model_file):
             # Ensemble method
-            model = EnsembleForge()
+            model = EnsembleForge(debug=self.debug)
             model.load(model_file)
 
             fisher_info_kin, fisher_info_uncertainty = model.calculate_fisher_information(
@@ -315,7 +316,7 @@ class FisherInformation:
 
         else:
             # One ML instance
-            model = MLForge()
+            model = MLForge(debug=self.debug)
             model.load(model_file)
 
             fisher_info_kin = model.calculate_fisher_information(
@@ -441,8 +442,6 @@ class FisherInformation:
         if dynamic_binning:
             # Quantile values
             quantile_values = np.linspace(0.0, 1.0, nbins + 1)
-            quantile_values[0] -= 10.0
-            quantile_values[-1] += 10.0
 
             # Get data
             x_pilot, weights_pilot = next(
@@ -467,8 +466,10 @@ class FisherInformation:
 
             # Bin boundaries
             bin_boundaries = weighted_quantile(histo_observables_pilot, quantile_values, weight_theta_pilot)
+            bin_boundaries[0] -= 10.0
+            bin_boundaries[-1] += 10.0
 
-            logging.debug('Automatic dybnamic binning: bin boundaries %s', bin_boundaries)
+            logging.debug('Automatic dynamic binning: bin boundaries %s', bin_boundaries)
 
         # Manual binning
         else:
