@@ -160,3 +160,6 @@ examples/diboson_parton
 
 # MG / Pythia / Delphes patch
 patches/
+
+# Black
+black.sh

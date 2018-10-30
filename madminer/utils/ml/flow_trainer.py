@@ -134,9 +134,7 @@ def train_flow_model(
 
     # Train / validation split
     if validation_split is not None:
-        assert 0.0 < validation_split < 1.0, "Wrong validation split: {}".format(
-            validation_split
-        )
+        assert 0.0 < validation_split < 1.0, "Wrong validation split: {}".format(validation_split)
 
         n_samples = len(dataset)
         indices = list(range(n_samples))
@@ -147,19 +145,12 @@ def train_flow_model(
         train_sampler = SubsetRandomSampler(train_idx)
         validation_sampler = SubsetRandomSampler(valid_idx)
 
-        train_loader = DataLoader(
-            dataset, sampler=train_sampler, batch_size=batch_size, pin_memory=run_on_gpu
-        )
+        train_loader = DataLoader(dataset, sampler=train_sampler, batch_size=batch_size, pin_memory=run_on_gpu)
         validation_loader = DataLoader(
-            dataset,
-            sampler=validation_sampler,
-            batch_size=batch_size,
-            pin_memory=run_on_gpu,
+            dataset, sampler=validation_sampler, batch_size=batch_size, pin_memory=run_on_gpu
         )
     else:
-        train_loader = DataLoader(
-            dataset, batch_size=batch_size, shuffle=True, pin_memory=run_on_gpu
-        )
+        train_loader = DataLoader(dataset, batch_size=batch_size, shuffle=True, pin_memory=run_on_gpu)
 
     # Optimizer
     if trainer == "adam":
@@ -170,9 +161,7 @@ def train_flow_model(
         raise ValueError("Unknown trainer {}".format(trainer))
 
     # Early stopping
-    early_stopping = (
-        early_stopping and (validation_split is not None) and (n_epochs > 1)
-    )
+    early_stopping = early_stopping and (validation_split is not None) and (n_epochs > 1)
     early_stopping_best_val_loss = None
     early_stopping_best_model = None
     early_stopping_epoch = None
@@ -207,9 +196,9 @@ def train_flow_model(
 
         # Learning rate decay
         if n_epochs > 1:
-            lr = initial_learning_rate * (
-                final_learning_rate / initial_learning_rate
-            ) ** float(epoch / (n_epochs - 1.0))
+            lr = initial_learning_rate * (final_learning_rate / initial_learning_rate) ** float(
+                epoch / (n_epochs - 1.0)
+            )
             for param_group in optimizer.param_groups:
                 param_group["lr"] = lr
 
@@ -264,11 +253,7 @@ def train_flow_model(
 
         # Validation
         if validation_split is None:
-            if (
-                n_epochs_verbose is not None
-                and n_epochs_verbose > 0
-                and (epoch + 1) % n_epochs_verbose == 0
-            ):
+            if n_epochs_verbose is not None and n_epochs_verbose > 0 and (epoch + 1) % n_epochs_verbose == 0:
                 logging.info(
                     "  Epoch %d: train loss %.2f (%s)"
                     % (epoch + 1, total_losses_train[-1], individual_losses_train[-1])
@@ -313,20 +298,13 @@ def train_flow_model(
 
         # Early stopping: best epoch so far?
         if early_stopping:
-            if (
-                early_stopping_best_val_loss is None
-                or total_val_loss < early_stopping_best_val_loss
-            ):
+            if early_stopping_best_val_loss is None or total_val_loss < early_stopping_best_val_loss:
                 early_stopping_best_val_loss = total_val_loss
                 early_stopping_best_model = model.state_dict()
                 early_stopping_epoch = epoch
 
         # Print out information
-        if (
-            n_epochs_verbose is not None
-            and n_epochs_verbose > 0
-            and (epoch + 1) % n_epochs_verbose == 0
-        ):
+        if n_epochs_verbose is not None and n_epochs_verbose > 0 and (epoch + 1) % n_epochs_verbose == 0:
             if early_stopping and epoch == early_stopping_epoch:
                 logging.info(
                     "  Epoch %d: train loss %.2f (%s), validation loss %.2f (%s) (*)"
@@ -353,10 +331,7 @@ def train_flow_model(
         # Early stopping: actually stop training
         if early_stopping and early_stopping_patience is not None:
             if epoch - early_stopping_epoch >= early_stopping_patience > 0:
-                logging.info(
-                    "No improvement for %s epochs, stopping training",
-                    epoch - early_stopping_epoch,
-                )
+                logging.info("No improvement for %s epochs, stopping training", epoch - early_stopping_epoch)
                 break
 
     # Early stopping: back to best state
@@ -375,15 +350,9 @@ def train_flow_model(
     # Save learning curve
     if learning_curve_folder is not None and learning_curve_filename is not None:
 
-        np.save(
-            learning_curve_folder + "/loss_train" + learning_curve_filename + ".npy",
-            total_losses_train,
-        )
+        np.save(learning_curve_folder + "/loss_train" + learning_curve_filename + ".npy", total_losses_train)
         if validation_split is not None:
-            np.save(
-                learning_curve_folder + "/loss_val" + learning_curve_filename + ".npy",
-                total_losses_val,
-            )
+            np.save(learning_curve_folder + "/loss_val" + learning_curve_filename + ".npy", total_losses_val)
 
         if loss_labels is not None:
             individual_losses_train = np.array(individual_losses_train)
@@ -391,22 +360,12 @@ def train_flow_model(
 
             for i, label in enumerate(loss_labels):
                 np.save(
-                    learning_curve_folder
-                    + "/loss_"
-                    + label
-                    + "_train"
-                    + learning_curve_filename
-                    + ".npy",
+                    learning_curve_folder + "/loss_" + label + "_train" + learning_curve_filename + ".npy",
                     individual_losses_train[:, i],
                 )
                 if validation_split is not None:
                     np.save(
-                        learning_curve_folder
-                        + "/loss_"
-                        + label
-                        + "_val"
-                        + learning_curve_filename
-                        + ".npy",
+                        learning_curve_folder + "/loss_" + label + "_val" + learning_curve_filename + ".npy",
                         individual_losses_val[:, i],
                     )
 
@@ -415,14 +374,7 @@ def train_flow_model(
     return total_losses_train, total_losses_val
 
 
-def evaluate_flow_model(
-    model,
-    theta0s=None,
-    xs=None,
-    evaluate_score=False,
-    run_on_gpu=True,
-    double_precision=False,
-):
+def evaluate_flow_model(model, theta0s=None, xs=None, evaluate_score=False, run_on_gpu=True, double_precision=False):
     """
 
     Parameters
@@ -454,9 +406,7 @@ def evaluate_flow_model(
 
     # Prepare data
     n_xs = len(xs)
-    theta0s = torch.stack(
-        [tensor(theta0s[i % n_thetas], requires_grad=True) for i in range(n_xs)]
-    )
+    theta0s = torch.stack([tensor(theta0s[i % n_thetas], requires_grad=True) for i in range(n_xs)])
     xs = torch.stack([tensor(i) for i in xs])
 
     model = model.to(device, dtype)

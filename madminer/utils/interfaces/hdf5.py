@@ -8,12 +8,7 @@ import logging
 
 
 def save_madminer_settings(
-    filename,
-    parameters,
-    benchmarks,
-    morphing_components=None,
-    morphing_matrix=None,
-    overwrite_existing_files=True,
+    filename, parameters, benchmarks, morphing_components=None, morphing_matrix=None, overwrite_existing_files=True
 ):
     """Saves all MadMiner settings into an HDF5 file.
 
@@ -44,22 +39,12 @@ def save_madminer_settings(
         # Prepare parameters
         parameter_names = [pname for pname in parameters]
         n_parameters = len(parameter_names)
-        parameter_names_ascii = [
-            pname.encode("ascii", "ignore") for pname in parameter_names
-        ]
-        parameter_lha_blocks = [
-            parameters[key][0].encode("ascii", "ignore") for key in parameter_names
-        ]
-        parameter_lha_ids = np.array(
-            [parameters[key][1] for key in parameter_names], dtype=np.int
-        )
-        parameter_max_power = np.array(
-            [parameters[key][2] for key in parameter_names], dtype=np.int
-        )
+        parameter_names_ascii = [pname.encode("ascii", "ignore") for pname in parameter_names]
+        parameter_lha_blocks = [parameters[key][0].encode("ascii", "ignore") for key in parameter_names]
+        parameter_lha_ids = np.array([parameters[key][1] for key in parameter_names], dtype=np.int)
+        parameter_max_power = np.array([parameters[key][2] for key in parameter_names], dtype=np.int)
 
-        parameter_ranges = np.array(
-            [parameters[key][3] for key in parameter_names], dtype=np.float
-        )
+        parameter_ranges = np.array([parameters[key][3] for key in parameter_names], dtype=np.float)
         parameter_transforms = []
         for key in parameter_names:
             parameter_transform = parameters[key][4]
@@ -68,59 +53,30 @@ def save_madminer_settings(
             parameter_transforms.append(parameter_transform.encode("ascii", "ignore"))
 
         # Store parameters
-        f.create_dataset(
-            "parameters/names",
-            (n_parameters,),
-            dtype="S256",
-            data=parameter_names_ascii,
-        )
-        f.create_dataset(
-            "parameters/lha_blocks",
-            (n_parameters,),
-            dtype="S256",
-            data=parameter_lha_blocks,
-        )
+        f.create_dataset("parameters/names", (n_parameters,), dtype="S256", data=parameter_names_ascii)
+        f.create_dataset("parameters/lha_blocks", (n_parameters,), dtype="S256", data=parameter_lha_blocks)
         f.create_dataset("parameters/lha_ids", data=parameter_lha_ids)
         f.create_dataset("parameters/max_power", data=parameter_max_power)
         f.create_dataset("parameters/ranges", data=parameter_ranges)
-        f.create_dataset(
-            "parameters/transforms",
-            (n_parameters,),
-            dtype="S256",
-            data=parameter_transforms,
-        )
+        f.create_dataset("parameters/transforms", (n_parameters,), dtype="S256", data=parameter_transforms)
 
         # Prepare benchmarks
         benchmark_names = [bname for bname in benchmarks]
         n_benchmarks = len(benchmark_names)
-        benchmark_names_ascii = [
-            bname.encode("ascii", "ignore") for bname in benchmark_names
-        ]
+        benchmark_names_ascii = [bname.encode("ascii", "ignore") for bname in benchmark_names]
         benchmark_values = np.array(
-            [
-                [benchmarks[bname][pname] for pname in parameter_names]
-                for bname in benchmark_names
-            ]
+            [[benchmarks[bname][pname] for pname in parameter_names] for bname in benchmark_names]
         )
 
         # Store benchmarks
-        f.create_dataset(
-            "benchmarks/names",
-            (n_benchmarks,),
-            dtype="S256",
-            data=benchmark_names_ascii,
-        )
+        f.create_dataset("benchmarks/names", (n_benchmarks,), dtype="S256", data=benchmark_names_ascii)
         f.create_dataset("benchmarks/values", data=benchmark_values)
 
         # Store morphing info
         if morphing_components is not None:
-            f.create_dataset(
-                "morphing/components", data=morphing_components.astype(np.int)
-            )
+            f.create_dataset("morphing/components", data=morphing_components.astype(np.int))
         if morphing_matrix is not None:
-            f.create_dataset(
-                "morphing/morphing_matrix", data=morphing_matrix.astype(np.float)
-            )
+            f.create_dataset("morphing/morphing_matrix", data=morphing_matrix.astype(np.float))
 
 
 def load_madminer_settings(filename):
@@ -148,15 +104,9 @@ def load_madminer_settings(filename):
             parameter_transforms = f["parameters/transforms"][()]
 
             parameter_names = [pname.decode("ascii") for pname in parameter_names]
-            parameter_lha_blocks = [
-                pblock.decode("ascii") for pblock in parameter_lha_blocks
-            ]
-            parameter_transforms = [
-                ptrf.decode("ascii") for ptrf in parameter_transforms
-            ]
-            parameter_transforms = [
-                None if ptrf == "" else ptrf for ptrf in parameter_transforms
-            ]
+            parameter_lha_blocks = [pblock.decode("ascii") for pblock in parameter_lha_blocks]
+            parameter_transforms = [ptrf.decode("ascii") for ptrf in parameter_transforms]
+            parameter_transforms = [None if ptrf == "" else ptrf for ptrf in parameter_transforms]
             parameter_max_power = np.array(parameter_max_power)
             if len(parameter_max_power.shape) < 2:
                 parameter_max_power = parameter_max_power.reshape((-1, 1))
@@ -172,13 +122,7 @@ def load_madminer_settings(filename):
                 parameter_transforms,
             ):
 
-                parameters[pname] = (
-                    pblock,
-                    int(pid),
-                    tuple(p_maxpower),
-                    tuple(prange),
-                    ptrf,
-                )
+                parameters[pname] = (pblock, int(pid), tuple(p_maxpower), tuple(prange), ptrf)
 
         except KeyError:
             raise IOError("Cannot read parameters from HDF5 file")
@@ -218,9 +162,7 @@ def load_madminer_settings(filename):
             observable_names = f["observables/names"][()]
             observable_names = [oname.decode("ascii") for oname in observable_names]
             observable_definitions = f["observables/definitions"][()]
-            observable_definitions = [
-                odef.decode("ascii") for odef in observable_definitions
-            ]
+            observable_definitions = [odef.decode("ascii") for odef in observable_definitions]
 
             for oname, odef in zip(observable_names, observable_definitions):
                 observables[oname] = odef
@@ -235,23 +177,12 @@ def load_madminer_settings(filename):
             n_samples = observations.shape[0]
 
             if weights.shape[0] != n_samples:
-                raise ValueError(
-                    "Number of weights and observations don't match: {}, {}",
-                    weights.shape[0],
-                    n_samples,
-                )
+                raise ValueError("Number of weights and observations don't match: {}, {}", weights.shape[0], n_samples)
 
         except KeyError:
             n_samples = 0
 
-        return (
-            parameters,
-            benchmarks,
-            morphing_components,
-            morphing_matrix,
-            observables,
-            n_samples,
-        )
+        return (parameters, benchmarks, morphing_components, morphing_matrix, observables, n_samples)
 
 
 def madminer_event_loader(filename, start=0, end=None, batch_size=100000):
@@ -281,11 +212,7 @@ def madminer_event_loader(filename, start=0, end=None, batch_size=100000):
         # Preparations
         n_samples = observations.shape[0]
         if weights.shape[0] != n_samples:
-            raise ValueError(
-                "Number of weights and observations don't match: {}, {}",
-                weights.shape[0],
-                n_samples,
-            )
+            raise ValueError("Number of weights and observations don't match: {}, {}", weights.shape[0], n_samples)
 
         if end is None:
             end = n_samples
@@ -300,10 +227,7 @@ def madminer_event_loader(filename, start=0, end=None, batch_size=100000):
         while current < end:
             this_end = min(current + batch_size, end)
 
-            yield (
-                np.array(observations[current:this_end]),
-                np.array(weights[current:this_end]),
-            )
+            yield (np.array(observations[current:this_end]), np.array(weights[current:this_end]))
 
             current += batch_size
 
@@ -383,12 +307,7 @@ def save_preformatted_events_to_madminer_file(
 
 
 def save_events_to_madminer_file(
-    filename,
-    observables,
-    observations,
-    weights,
-    copy_from=None,
-    overwrite_existing_samples=True,
+    filename, observables, observations, weights, copy_from=None, overwrite_existing_samples=True
 ):
     """
 
@@ -433,31 +352,15 @@ def save_events_to_madminer_file(
         # Prepare observable definitions
         observable_names = [oname for oname in observables]
         n_observables = len(observable_names)
-        observable_names_ascii = [
-            oname.encode("ascii", "ignore") for oname in observable_names
-        ]
-        observable_definitions = [
-            observables[key].encode("ascii", "ignore") for key in observable_names
-        ]
+        observable_names_ascii = [oname.encode("ascii", "ignore") for oname in observable_names]
+        observable_definitions = [observables[key].encode("ascii", "ignore") for key in observable_names]
 
         # Store observable definitions
-        f.create_dataset(
-            "observables/names",
-            (n_observables,),
-            dtype="S256",
-            data=observable_names_ascii,
-        )
-        f.create_dataset(
-            "observables/definitions",
-            (n_observables,),
-            dtype="S256",
-            data=observable_definitions,
-        )
+        f.create_dataset("observables/names", (n_observables,), dtype="S256", data=observable_names_ascii)
+        f.create_dataset("observables/definitions", (n_observables,), dtype="S256", data=observable_definitions)
 
         # Try to find benchmarks in file
-        logging.debug(
-            "Weight names found in Delphes files: %s", [key for key in weights]
-        )
+        logging.debug("Weight names found in Delphes files: %s", [key for key in weights])
         try:
             benchmark_names = f["benchmarks/names"][()]
             benchmark_names = [bname.decode("ascii") for bname in benchmark_names]
@@ -467,10 +370,7 @@ def save_events_to_madminer_file(
             weights_sorted = [weights[key] for key in benchmark_names]
 
         except Exception as e:
-            logging.warning(
-                "Issue matching weight names in HepMC file to benchmark names in MadMiner file:\n%s",
-                e,
-            )
+            logging.warning("Issue matching weight names in HepMC file to benchmark names in MadMiner file:\n%s", e)
 
             weights_sorted = [weights[key] for key in weights]
 
@@ -485,12 +385,7 @@ def save_events_to_madminer_file(
 
 
 def save_madminer_file_from_lhe(
-    filename,
-    observables,
-    observations,
-    weights,
-    copy_from=None,
-    overwrite_existing_samples=True,
+    filename, observables, observations, weights, copy_from=None, overwrite_existing_samples=True
 ):
     """
 
@@ -535,26 +430,12 @@ def save_madminer_file_from_lhe(
         # Prepare observable definitions
         observable_names = [oname for oname in observables]
         n_observables = len(observable_names)
-        observable_names_ascii = [
-            oname.encode("ascii", "ignore") for oname in observable_names
-        ]
-        observable_definitions = [
-            observables[key].encode("ascii", "ignore") for key in observable_names
-        ]
+        observable_names_ascii = [oname.encode("ascii", "ignore") for oname in observable_names]
+        observable_definitions = [observables[key].encode("ascii", "ignore") for key in observable_names]
 
         # Store observable definitions
-        f.create_dataset(
-            "observables/names",
-            (n_observables,),
-            dtype="S256",
-            data=observable_names_ascii,
-        )
-        f.create_dataset(
-            "observables/definitions",
-            (n_observables,),
-            dtype="S256",
-            data=observable_definitions,
-        )
+        f.create_dataset("observables/names", (n_observables,), dtype="S256", data=observable_names_ascii)
+        f.create_dataset("observables/definitions", (n_observables,), dtype="S256", data=observable_definitions)
 
         # Save weights
         weights_event_benchmark = weights.T

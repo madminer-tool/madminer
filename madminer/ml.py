@@ -11,17 +11,11 @@ import torch
 from madminer.utils.ml import ratio_losses, flow_losses
 from madminer.utils.ml.models.maf import ConditionalMaskedAutoregressiveFlow
 from madminer.utils.ml.models.maf_mog import ConditionalMixtureMaskedAutoregressiveFlow
-from madminer.utils.ml.models.ratio import (
-    ParameterizedRatioEstimator,
-    DoublyParameterizedRatioEstimator,
-)
+from madminer.utils.ml.models.ratio import ParameterizedRatioEstimator, DoublyParameterizedRatioEstimator
 from madminer.utils.ml.models.score import LocalScoreEstimator
 from madminer.utils.ml.flow_trainer import train_flow_model, evaluate_flow_model
 from madminer.utils.ml.ratio_trainer import train_ratio_model, evaluate_ratio_model
-from madminer.utils.ml.score_trainer import (
-    train_local_score_model,
-    evaluate_local_score_model,
-)
+from madminer.utils.ml.score_trainer import train_local_score_model, evaluate_local_score_model
 from madminer.utils.various import create_missing_folders, load_and_check, general_init
 
 
@@ -244,11 +238,7 @@ class MLForge:
             logging.info("  alpha:                  %s", alpha)
         logging.info("  Batch size:             %s", batch_size)
         logging.info("  Epochs:                 %s", n_epochs)
-        logging.info(
-            "  Learning rate:          %s initially, decaying to %s",
-            initial_lr,
-            final_lr,
-        )
+        logging.info("  Learning rate:          %s initially, decaying to %s", initial_lr, final_lr)
         logging.info("  Validation split:       %s", validation_split)
         logging.info("  Early stopping:         %s", early_stopping)
 
@@ -283,39 +273,11 @@ class MLForge:
             "alices2",
         ]:
             assert theta0 is not None
-        if method in [
-            "rolr",
-            "alice",
-            "rascal",
-            "alices",
-            "rolr2",
-            "alice2",
-            "rascal2",
-            "alices2",
-        ]:
+        if method in ["rolr", "alice", "rascal", "alices", "rolr2", "alice2", "rascal2", "alices2"]:
             assert r_xz is not None
-        if method in [
-            "carl",
-            "carl2",
-            "rolr",
-            "alice",
-            "rascal",
-            "alices",
-            "rolr2",
-            "alice2",
-            "rascal2",
-            "alices2",
-        ]:
+        if method in ["carl", "carl2", "rolr", "alice", "rascal", "alices", "rolr2", "alice2", "rascal2", "alices2"]:
             assert y is not None
-        if method in [
-            "scandal",
-            "rascal",
-            "alices",
-            "rascal2",
-            "alices2",
-            "sally",
-            "sallino",
-        ]:
+        if method in ["scandal", "rascal", "alices", "rascal2", "alices2", "sally", "sallino"]:
             assert t_xz0 is not None
         if method in ["carl2", "rolr2", "alice2", "rascal2", "alices2"]:
             assert theta1 is not None
@@ -333,12 +295,7 @@ class MLForge:
         else:
             n_parameters = t_xz0.shape[1]
 
-        logging.info(
-            "Found %s samples with %s parameters and %s observables",
-            n_samples,
-            n_parameters,
-            n_observables,
-        )
+        logging.info("Found %s samples with %s parameters and %s observables", n_samples, n_parameters, n_observables)
 
         # Features
         if features is not None:
@@ -362,26 +319,17 @@ class MLForge:
         if method in ["carl", "rolr", "rascal", "alice", "alices"]:
             self.method_type = "parameterized"
             self.model = ParameterizedRatioEstimator(
-                n_observables=n_observables,
-                n_parameters=n_parameters,
-                n_hidden=n_hidden,
-                activation=activation,
+                n_observables=n_observables, n_parameters=n_parameters, n_hidden=n_hidden, activation=activation
             )
         elif method in ["carl2", "rolr2", "rascal2", "alice2", "alices2"]:
             self.method_type = "doubly_parameterized"
             self.model = DoublyParameterizedRatioEstimator(
-                n_observables=n_observables,
-                n_parameters=n_parameters,
-                n_hidden=n_hidden,
-                activation=activation,
+                n_observables=n_observables, n_parameters=n_parameters, n_hidden=n_hidden, activation=activation
             )
         elif method in ["sally", "sallino"]:
             self.method_type = "local_score"
             self.model = LocalScoreEstimator(
-                n_observables=n_observables,
-                n_parameters=n_parameters,
-                n_hidden=n_hidden,
-                activation=activation,
+                n_observables=n_observables, n_parameters=n_parameters, n_hidden=n_hidden, activation=activation
             )
         elif method in ["nde", "scandal"]:
             self.method_type = "nde"
@@ -436,18 +384,12 @@ class MLForge:
             loss_labels = ["improved_xe"]
 
         elif method == "alices":
-            loss_functions = [
-                ratio_losses.augmented_cross_entropy,
-                ratio_losses.score_mse_num,
-            ]
+            loss_functions = [ratio_losses.augmented_cross_entropy, ratio_losses.score_mse_num]
             loss_weights = [1.0, alpha]
             loss_labels = ["improved_xe", "mse_score"]
 
         elif method == "alices2":
-            loss_functions = [
-                ratio_losses.augmented_cross_entropy,
-                ratio_losses.score_mse,
-            ]
+            loss_functions = [ratio_losses.augmented_cross_entropy, ratio_losses.score_mse]
             loss_weights = [1.0, alpha]
             loss_labels = ["improved_xe", "mse_score"]
 
@@ -462,10 +404,7 @@ class MLForge:
             loss_labels = ["nll"]
 
         elif method == "scandal":
-            loss_functions = [
-                flow_losses.negative_log_likelihood,
-                flow_losses.score_mse,
-            ]
+            loss_functions = [flow_losses.negative_log_likelihood, flow_losses.score_mse]
             loss_weights = [1.0, alpha]
             loss_labels = ["nll", "mse_score"]
 
@@ -528,12 +467,7 @@ class MLForge:
             )
 
     def evaluate(
-        self,
-        x_filename,
-        theta0_filename=None,
-        theta1_filename=None,
-        test_all_combinations=True,
-        evaluate_score=False,
+        self, x_filename, theta0_filename=None, theta1_filename=None, test_all_combinations=True, evaluate_score=False
     ):
 
         """
@@ -631,19 +565,12 @@ class MLForge:
 
             for i, (theta0, theta1) in enumerate(zip(theta0s, theta1s)):
                 logging.debug(
-                    "Starting ratio evaluation for thetas %s / %s: %s vs %s",
-                    i + 1,
-                    len(theta0s),
-                    theta0,
-                    theta1,
+                    "Starting ratio evaluation for thetas %s / %s: %s vs %s", i + 1, len(theta0s), theta0, theta1
                 )
 
                 if self.method in ["nde", "scandal"]:
                     _, log_r_hat, t_hat0 = evaluate_flow_model(
-                        model=self.model,
-                        theta0s=[theta0],
-                        xs=xs,
-                        evaluate_score=evaluate_score,
+                        model=self.model, theta0s=[theta0], xs=xs, evaluate_score=evaluate_score
                     )
                     t_hat1 = None
 
@@ -670,10 +597,7 @@ class MLForge:
 
             if self.method in ["nde", "scandal"]:
                 _, all_log_r_hat, t_hat0 = evaluate_flow_model(
-                    model=self.model,
-                    theta0s=theta0s,
-                    xs=xs,
-                    evaluate_score=evaluate_score,
+                    model=self.model, theta0s=theta0s, xs=xs, evaluate_score=evaluate_score
                 )
                 all_t_hat1 = None
 
@@ -732,9 +656,7 @@ class MLForge:
 
             t_hats = evaluate_local_score_model(model=self.model, xs=xs)
         else:
-            raise NotImplementedError(
-                "Fisher information calculation only implemented for SALLY estimators"
-            )
+            raise NotImplementedError("Fisher information calculation only implemented for SALLY estimators")
 
         # Calculate Fisher information
         n_parameters = t_hats.shape[1]
@@ -978,9 +900,7 @@ class EnsembleForge:
             if not isinstance(value, list):
                 kwargs[key] = [value for _ in range(self.n_estimators)]
 
-            assert (
-                len(kwargs[key]) == self.n_estimators
-            ), "Keyword {} has wrong length {}".format(key, len(value))
+            assert len(kwargs[key]) == self.n_estimators, "Keyword {} has wrong length {}".format(key, len(value))
 
         self._check_consistency(kwargs)
 
@@ -989,14 +909,10 @@ class EnsembleForge:
             for key, value in six.iteritems(kwargs):
                 kwargs_this_estimator[key] = value[i]
 
-            logging.info(
-                "Training estimator %s / %s in ensemble", i + 1, self.n_estimators
-            )
+            logging.info("Training estimator %s / %s in ensemble", i + 1, self.n_estimators)
             estimator.train(**kwargs_this_estimator)
 
-    def calculate_expectation(
-        self, x_filename, theta0_filename=None, theta1_filename=None
-    ):
+    def calculate_expectation(self, x_filename, theta0_filename=None, theta1_filename=None):
         """
         Calculates the expectation of the estimation likelihood ratio or the expected estimated score over a validation
         sample. Ideally (and assuming the correct sampling), these expectation values should be close to zero.
@@ -1025,29 +941,19 @@ class EnsembleForge:
 
         """
 
-        logging.info(
-            "Calculating expectation for %s estimators in ensemble", self.n_estimators
-        )
+        logging.info("Calculating expectation for %s estimators in ensemble", self.n_estimators)
 
         self.expectations = []
         method_type = self._check_consistency()
 
         for i, estimator in enumerate(self.estimators):
-            logging.info(
-                "Starting evaluation for estimator %s / %s in ensemble",
-                i + 1,
-                self.n_estimators,
-            )
+            logging.info("Starting evaluation for estimator %s / %s in ensemble", i + 1, self.n_estimators)
 
             # Calculate expected score / ratio
             if method_type == "local_score":
-                prediction = estimator.evaluate(
-                    x_filename, theta0_filename, theta1_filename
-                )
+                prediction = estimator.evaluate(x_filename, theta0_filename, theta1_filename)
             else:
-                raise NotImplementedError(
-                    "Expectation calculation currently only implemented for SALLY and SALLINO!"
-                )
+                raise NotImplementedError("Expectation calculation currently only implemented for SALLY and SALLINO!")
 
             self.expectations.append(np.mean(prediction, axis=0))
 
@@ -1137,9 +1043,7 @@ class EnsembleForge:
             elif len(self.expectations.shape) == 2:
                 expectations_norm = np.linalg.norm(self.expectations, axis=1)
             else:
-                expectations_norm = [
-                    np.linalg.norm(expectation) for expectation in self.expectations
-                ]
+                expectations_norm = [np.linalg.norm(expectation) for expectation in self.expectations]
 
             if not isinstance(vote_expectation_weight, list):
                 vote_expectation_weight = [vote_expectation_weight]
@@ -1158,19 +1062,11 @@ class EnsembleForge:
         # Calculate estimator predictions
         predictions = []
         for i, estimator in enumerate(self.estimators):
-            logging.info(
-                "Starting evaluation for estimator %s / %s in ensemble",
-                i + 1,
-                self.n_estimators,
-            )
+            logging.info("Starting evaluation for estimator %s / %s in ensemble", i + 1, self.n_estimators)
 
             predictions.append(
                 estimator.evaluate(
-                    x_filename,
-                    theta0_filename,
-                    theta1_filename,
-                    test_all_combinations,
-                    evaluate_score=False,
+                    x_filename, theta0_filename, theta1_filename, test_all_combinations, evaluate_score=False
                 )
             )
         predictions = np.array(predictions)
@@ -1198,11 +1094,7 @@ class EnsembleForge:
         return means, covariances
 
     def calculate_fisher_information(
-        self,
-        x_filename,
-        n_events=1,
-        vote_expectation_weight=None,
-        return_individual_predictions=False,
+        self, x_filename, n_events=1, vote_expectation_weight=None, return_individual_predictions=False
     ):
         """
         Calculates the expected Fisher information matrices for each estimator, and then returns the ensemble mean and
@@ -1256,10 +1148,7 @@ class EnsembleForge:
             Only returned if return_individual_predictions is True. The individual estimator predictions.
 
         """
-        logging.info(
-            "Evaluating Fisher information for %s estimators in ensemble",
-            self.n_estimators,
-        )
+        logging.info("Evaluating Fisher information for %s estimators in ensemble", self.n_estimators)
 
         # Calculate weights of each estimator in vote
         if self.expectations is None or vote_expectation_weight is None:
@@ -1270,9 +1159,7 @@ class EnsembleForge:
             elif len(self.expectations.shape) == 2:
                 expectations_norm = np.linalg.norm(self.expectations, axis=1)
             else:
-                expectations_norm = [
-                    np.linalg.norm(expectation) for expectation in self.expectations
-                ]
+                expectations_norm = [np.linalg.norm(expectation) for expectation in self.expectations]
 
             if not isinstance(vote_expectation_weight, list):
                 vote_expectation_weight = [vote_expectation_weight]
@@ -1291,17 +1178,9 @@ class EnsembleForge:
         # Calculate estimator predictions
         predictions = []
         for i, estimator in enumerate(self.estimators):
-            logging.info(
-                "Starting evaluation for estimator %s / %s in ensemble",
-                i + 1,
-                self.n_estimators,
-            )
+            logging.info("Starting evaluation for estimator %s / %s in ensemble", i + 1, self.n_estimators)
 
-            predictions.append(
-                estimator.calculate_fisher_information(
-                    x_filename=x_filename, n_events=n_events
-                )
-            )
+            predictions.append(estimator.calculate_fisher_information(x_filename=x_filename, n_events=n_events))
         predictions = np.array(predictions)
 
         # Calculate weighted means and covariance matrices
@@ -1389,11 +1268,7 @@ class EnsembleForge:
         if self.expectations is not None:
             self.expectations = np.array(self.expectations)
 
-        logging.info(
-            "  Found ensemble with %s estimators and expectations %s",
-            self.n_estimators,
-            self.expectations,
-        )
+        logging.info("  Found ensemble with %s estimators and expectations %s", self.n_estimators, self.expectations)
 
         # Load estimators
         self.estimators = []
@@ -1439,24 +1314,12 @@ class EnsembleForge:
         for method in methods:
             if method in ["sally", "sallino"]:
                 this_method_type = "local_score"
-            elif method in [
-                "carl",
-                "rolr",
-                "rascal",
-                "alice",
-                "alices",
-                "nde",
-                "scandal",
-            ]:
+            elif method in ["carl", "rolr", "rascal", "alice", "alices", "nde", "scandal"]:
                 # this_method_type = 'parameterized'
-                raise NotImplementedError(
-                    "For now, ensemble methods are only implemented for SALLY and SALLINO."
-                )
+                raise NotImplementedError("For now, ensemble methods are only implemented for SALLY and SALLINO.")
             elif method in ["carl2", "rolr2", "rascal2", "alice2", "alices2"]:
                 # this_method_type = 'doubly_parameterized'
-                raise NotImplementedError(
-                    "For now, ensemble methods are only implemented for SALLY and SALLINO."
-                )
+                raise NotImplementedError("For now, ensemble methods are only implemented for SALLY and SALLINO.")
             elif method is None:
                 continue
             else:
@@ -1469,9 +1332,7 @@ class EnsembleForge:
                 raise RuntimeError(
                     "Ensemble with inconsistent estimator methods! All methods have to be either"
                     " single-parameterized ratio estimators, doubly parameterized ratio estimators,"
-                    " or local score estimators. Found methods "
-                    + ", ".join(methods)
-                    + "."
+                    " or local score estimators. Found methods " + ", ".join(methods) + "."
                 )
 
         # Return method type of ensemble

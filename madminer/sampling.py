@@ -7,25 +7,13 @@ import six
 
 from madminer.utils.interfaces.hdf5 import load_madminer_settings, madminer_event_loader
 from madminer.utils.interfaces.hdf5 import save_preformatted_events_to_madminer_file
-from madminer.utils.analysis import (
-    get_theta_value,
-    get_theta_benchmark_matrix,
-    get_dtheta_benchmark_matrix,
-)
+from madminer.utils.analysis import get_theta_value, get_theta_benchmark_matrix, get_dtheta_benchmark_matrix
 from madminer.utils.analysis import extract_augmented_data, parse_theta
 from madminer.morphing import Morpher
-from madminer.utils.various import (
-    general_init,
-    format_benchmark,
-    create_missing_folders,
-    shuffle,
-    balance_thetas,
-)
+from madminer.utils.various import general_init, format_benchmark, create_missing_folders, shuffle, balance_thetas
 
 
-def combine_and_shuffle(
-    input_filenames, output_filename, overwrite_existing_file=True, debug=False
-):
+def combine_and_shuffle(input_filenames, output_filename, overwrite_existing_file=True, debug=False):
     """
     Combines multiple MadMiner files into one, and shuffles the order of the events.
 
@@ -72,12 +60,7 @@ def combine_and_shuffle(
     all_weights = None
 
     for i, filename in enumerate(input_filenames):
-        logging.info(
-            "Loading samples from file %s / %s at %s",
-            i + 1,
-            len(input_filenames),
-            filename,
-        )
+        logging.info("Loading samples from file %s / %s at %s", i + 1, len(input_filenames), filename)
 
         for observations, weights in madminer_event_loader(filename):
             if all_observations is None:
@@ -274,41 +257,23 @@ class SampleAugmenter:
         for key, values in six.iteritems(self.benchmarks):
             logging.info("   %s: %s", key, format_benchmark(values))
 
-        logging.info(
-            "Found %s observables: %s",
-            len(self.observables),
-            ", ".join(self.observables),
-        )
+        logging.info("Found %s observables: %s", len(self.observables), ", ".join(self.observables))
         logging.info("Found %s events", self.n_samples)
 
         # Morphing
         self.morpher = None
-        if (
-            self.morphing_matrix is not None
-            and self.morphing_components is not None
-            and not disable_morphing
-        ):
+        if self.morphing_matrix is not None and self.morphing_components is not None and not disable_morphing:
             self.morpher = Morpher(self.parameters)
             self.morpher.set_components(self.morphing_components)
-            self.morpher.set_basis(
-                self.benchmarks, morphing_matrix=self.morphing_matrix
-            )
+            self.morpher.set_basis(self.benchmarks, morphing_matrix=self.morphing_matrix)
 
-            logging.info(
-                "Found morphing setup with %s components", len(self.morphing_components)
-            )
+            logging.info("Found morphing setup with %s components", len(self.morphing_components))
 
         else:
             logging.info("Did not find morphing setup.")
 
     def extract_samples_train_plain(
-        self,
-        theta,
-        n_samples,
-        folder,
-        filename,
-        test_split=0.5,
-        switch_train_test_events=False,
+        self, theta, n_samples, folder, filename, test_split=0.5, switch_train_test_events=False
     ):
         """
         Extracts plain training samples `x ~ p(x|theta)` without any augmented data. This can be use for standard
@@ -352,9 +317,7 @@ class SampleAugmenter:
 
         """
 
-        logging.info(
-            "Extracting plain training sample. Sampling according to %s", theta
-        )
+        logging.info("Extracting plain training sample. Sampling according to %s", theta)
 
         create_missing_folders([folder])
 
@@ -362,9 +325,7 @@ class SampleAugmenter:
         theta_types, theta_values, n_samples_per_theta = parse_theta(theta, n_samples)
 
         # Train / test split
-        start_event, end_event = self._train_test_split(
-            not switch_train_test_events, test_split
-        )
+        start_event, end_event = self._train_test_split(not switch_train_test_events, test_split)
 
         # Start
         x, _, (theta,) = self._extract_sample(
@@ -383,13 +344,7 @@ class SampleAugmenter:
         return x, theta
 
     def extract_samples_train_local(
-        self,
-        theta,
-        n_samples,
-        folder,
-        filename,
-        test_split=0.5,
-        switch_train_test_events=False,
+        self, theta, n_samples, folder, filename, test_split=0.5, switch_train_test_events=False
     ):
         """
         Extracts training samples x ~ p(x|theta) as well as the joint score t(x, z|theta). This can be used for
@@ -436,8 +391,7 @@ class SampleAugmenter:
         """
 
         logging.info(
-            "Extracting training sample for local score regression. Sampling and score evaluation according to"
-            " %s",
+            "Extracting training sample for local score regression. Sampling and score evaluation according to" " %s",
             theta,
         )
 
@@ -453,9 +407,7 @@ class SampleAugmenter:
         augmented_data_definitions = [("score", 0)]
 
         # Train / test split
-        start_event, end_event = self._train_test_split(
-            not switch_train_test_events, test_split
-        )
+        start_event, end_event = self._train_test_split(not switch_train_test_events, test_split)
 
         # Start
         x, (t_xz,), (theta,) = self._extract_sample(
@@ -476,14 +428,7 @@ class SampleAugmenter:
         return x, theta, t_xz
 
     def extract_samples_train_ratio(
-        self,
-        theta0,
-        theta1,
-        n_samples,
-        folder,
-        filename,
-        test_split=0.5,
-        switch_train_test_events=False,
+        self, theta0, theta1, n_samples, folder, filename, test_split=0.5, switch_train_test_events=False
     ):
         """
         Extracts training samples `x ~ p(x|theta0)` and `x ~ p(x|theta1)` together with the class label `y`, the joint
@@ -564,17 +509,11 @@ class SampleAugmenter:
         augmented_data_definitions = [("ratio", 0, 1), ("score", 0)]
 
         # Train / test split
-        start_event, end_event = self._train_test_split(
-            not switch_train_test_events, test_split
-        )
+        start_event, end_event = self._train_test_split(not switch_train_test_events, test_split)
 
         # Thetas for theta0 sampling
-        theta0_types, theta0_values, n_samples_per_theta0 = parse_theta(
-            theta0, n_samples // 2
-        )
-        theta1_types, theta1_values, n_samples_per_theta1 = parse_theta(
-            theta1, n_samples // 2
-        )
+        theta0_types, theta0_values, n_samples_per_theta0 = parse_theta(theta0, n_samples // 2)
+        theta1_types, theta1_values, n_samples_per_theta1 = parse_theta(theta1, n_samples // 2)
 
         n_samples_per_theta = min(n_samples_per_theta0, n_samples_per_theta1)
 
@@ -590,12 +529,8 @@ class SampleAugmenter:
         )
 
         # Thetas for theta1 sampling (could be different if num or denom are random)
-        theta0_types, theta0_values, n_samples_per_theta0 = parse_theta(
-            theta0, n_samples // 2
-        )
-        theta1_types, theta1_values, n_samples_per_theta1 = parse_theta(
-            theta1, n_samples // 2
-        )
+        theta0_types, theta0_values, n_samples_per_theta0 = parse_theta(theta0, n_samples // 2)
+        theta1_types, theta1_values, n_samples_per_theta1 = parse_theta(theta1, n_samples // 2)
 
         n_samples_per_theta = min(n_samples_per_theta0, n_samples_per_theta1)
 
@@ -749,25 +684,19 @@ class SampleAugmenter:
             augmented_data_definitions_1.append(("score", i + 2))
 
         # Train / test split
-        start_event, end_event = self._train_test_split(
-            not switch_train_test_events, test_split
-        )
+        start_event, end_event = self._train_test_split(not switch_train_test_events, test_split)
 
         # Parse thetas for theta0 sampling
         theta_types = []
         theta_values = []
         n_samples_per_theta = 1000000
 
-        theta0_types, theta0_values, this_n_samples = parse_theta(
-            theta0, n_samples // 2
-        )
+        theta0_types, theta0_values, this_n_samples = parse_theta(theta0, n_samples // 2)
         theta_types.append(theta0_types)
         theta_values.append(theta0_values)
         n_samples_per_theta = min(this_n_samples, n_samples_per_theta)
 
-        theta1_types, theta1_values, this_n_samples = parse_theta(
-            theta1, n_samples // 2
-        )
+        theta1_types, theta1_values, this_n_samples = parse_theta(theta1, n_samples // 2)
         theta_types.append(theta1_types)
         theta_values.append(theta1_values)
         n_samples_per_theta = min(this_n_samples, n_samples_per_theta)
@@ -820,16 +749,12 @@ class SampleAugmenter:
         theta_values = []
         n_samples_per_theta = 1000000
 
-        theta0_types, theta0_values, this_n_samples = parse_theta(
-            theta0, n_samples // 2
-        )
+        theta0_types, theta0_values, this_n_samples = parse_theta(theta0, n_samples // 2)
         theta_types.append(theta0_types)
         theta_values.append(theta0_values)
         n_samples_per_theta = min(this_n_samples, n_samples_per_theta)
 
-        theta1_types, theta1_values, this_n_samples = parse_theta(
-            theta1, n_samples // 2
-        )
+        theta1_types, theta1_values, this_n_samples = parse_theta(theta1, n_samples // 2)
         theta_types.append(theta1_types)
         theta_values.append(theta1_values)
         n_samples_per_theta = min(this_n_samples, n_samples_per_theta)
@@ -895,9 +820,7 @@ class SampleAugmenter:
             )
 
         # Shuffle
-        x, r_xz, t_xz0, t_xz1, theta0, theta1, y = shuffle(
-            x, r_xz, t_xz0, t_xz1, theta0, theta1, y
-        )
+        x, r_xz, t_xz0, t_xz1, theta0, theta1, y = shuffle(x, r_xz, t_xz0, t_xz1, theta0, theta1, y)
 
         # y shape
         y = y.reshape((-1, 1))
@@ -914,15 +837,7 @@ class SampleAugmenter:
 
         return x, theta0, theta1, y, r_xz, t_xz0, t_xz1
 
-    def extract_samples_test(
-        self,
-        theta,
-        n_samples,
-        folder,
-        filename,
-        test_split=0.5,
-        switch_train_test_events=False,
-    ):
+    def extract_samples_test(self, theta, n_samples, folder, filename, test_split=0.5, switch_train_test_events=False):
         """
         Extracts evaluation samples `x ~ p(x|theta)` without any augmented data.
 
@@ -971,9 +886,7 @@ class SampleAugmenter:
         theta_types, theta_values, n_samples_per_theta = parse_theta(theta, n_samples)
 
         # Train / test split
-        start_event, end_event = self._train_test_split(
-            switch_train_test_events, test_split
-        )
+        start_event, end_event = self._train_test_split(switch_train_test_events, test_split)
 
         # Extract information
         x, _, (theta,) = self._extract_sample(
@@ -1042,28 +955,20 @@ class SampleAugmenter:
         for (theta_type, theta_value) in zip(theta_types, theta_values):
 
             if self.morpher is None and theta_type == "morphing":
-                raise RuntimeError(
-                    "Theta defined through morphing, but no morphing setup has been loaded."
-                )
+                raise RuntimeError("Theta defined through morphing, but no morphing setup has been loaded.")
 
             theta = get_theta_value(theta_type, theta_value, self.benchmarks)
-            theta_matrix = get_theta_benchmark_matrix(
-                theta_type, theta_value, self.benchmarks, self.morpher
-            )
+            theta_matrix = get_theta_benchmark_matrix(theta_type, theta_value, self.benchmarks, self.morpher)
 
             # Total xsec for this theta
             xsec_theta = theta_matrix.dot(xsecs_benchmarks)
-            rms_xsec_theta = (
-                (theta_matrix * theta_matrix).dot(squared_weight_sum_benchmarks)
-            ) ** 0.5
+            rms_xsec_theta = ((theta_matrix * theta_matrix).dot(squared_weight_sum_benchmarks)) ** 0.5
 
             all_thetas.append(theta)
             all_xsecs.append(xsec_theta)
             all_xsec_uncertainties.append(rms_xsec_theta)
 
-            logging.debug(
-                "theta %s: xsec = (%s +/- %s) pb", theta, xsec_theta, rms_xsec_theta
-            )
+            logging.debug("theta %s: xsec = (%s +/- %s) pb", theta, xsec_theta, rms_xsec_theta)
 
         # Return
         all_thetas = np.array(all_thetas)
@@ -1094,14 +999,10 @@ class SampleAugmenter:
 
         """
 
-        x, weights_benchmarks = next(
-            madminer_event_loader(self.madminer_filename, batch_size=None)
-        )
+        x, weights_benchmarks = next(madminer_event_loader(self.madminer_filename, batch_size=None))
 
         if theta is not None:
-            theta_matrix = get_theta_benchmark_matrix(
-                "morphing", theta, self.benchmarks, self.morpher
-            )
+            theta_matrix = get_theta_benchmark_matrix("morphing", theta, self.benchmarks, self.morpher)
 
             weights_theta = theta_matrix.dot(weights_benchmarks.T)
 
@@ -1166,9 +1067,7 @@ class SampleAugmenter:
 
         logging.debug("Starting sample extraction")
 
-        assert n_samples_per_theta > 0, "Requested %s samples per theta!".format(
-            n_samples_per_theta
-        )
+        assert n_samples_per_theta > 0, "Requested %s samples per theta!".format(n_samples_per_theta)
 
         if augmented_data_definitions is None:
             augmented_data_definitions = []
@@ -1182,9 +1081,7 @@ class SampleAugmenter:
         squared_weight_sum_benchmarks = None
         n_observables = 0
 
-        for obs, weights in madminer_event_loader(
-            self.madminer_filename, start=start_event, end=end_event
-        ):
+        for obs, weights in madminer_event_loader(self.madminer_filename, start=start_event, end=end_event):
             if xsecs_benchmarks is None:
                 xsecs_benchmarks = np.sum(weights, axis=0)
                 squared_weight_sum_benchmarks = np.sum(weights * weights, axis=0)
@@ -1197,9 +1094,7 @@ class SampleAugmenter:
         logging.debug("Benchmark cross sections [pb]: %s", xsecs_benchmarks)
 
         # Balance thetas
-        theta_sets_types, theta_sets_values = balance_thetas(
-            theta_sets_types, theta_sets_values
-        )
+        theta_sets_types, theta_sets_values = balance_thetas(theta_sets_types, theta_sets_values)
 
         # Consistency checks
         n_benchmarks = xsecs_benchmarks.shape[0]
@@ -1208,15 +1103,10 @@ class SampleAugmenter:
                 "Inconsistent numbers of benchmarks: {} in observations,"
                 "{} in benchmark list".format(n_benchmarks, len(self.benchmarks))
             )
-        elif (
-            n_benchmarks != len(self.benchmarks)
-            or n_benchmarks != self.morphing_matrix.shape[0]
-        ):
+        elif n_benchmarks != len(self.benchmarks) or n_benchmarks != self.morphing_matrix.shape[0]:
             raise ValueError(
                 "Inconsistent numbers of benchmarks: {} in observations, {} in benchmark list, "
-                "{} in morphing matrix".format(
-                    n_benchmarks, len(self.benchmarks), self.morphing_matrix.shape[0]
-                )
+                "{} in morphing matrix".format(n_benchmarks, len(self.benchmarks), self.morphing_matrix.shape[0])
             )
 
         if n_observables != len(self.observables):
@@ -1228,9 +1118,7 @@ class SampleAugmenter:
         n_thetas = len(theta_sets_types)
         assert n_thetas == len(theta_sets_values)
 
-        n_sets = len(
-            theta_sets_types[sampling_theta_index]
-        )  # Within each set, all thetas (sampling, numerator, ...)
+        n_sets = len(theta_sets_types[sampling_theta_index])  # Within each set, all thetas (sampling, numerator, ...)
         # have a constant value
         for theta_types, theta_values in zip(theta_sets_types, theta_sets_values):
             assert n_sets == len(theta_types) == len(theta_values)
@@ -1256,9 +1144,7 @@ class SampleAugmenter:
             theta_values = [t[i_set] for t in theta_sets_values]
 
             if self.morpher is None and "morphing" in theta_types:
-                raise RuntimeError(
-                    "Theta defined through morphing, but no morphing setup has been loaded."
-                )
+                raise RuntimeError("Theta defined through morphing, but no morphing setup has been loaded.")
 
             # Parse thetas and calculate the w_c(theta) for them
             thetas = []
@@ -1267,29 +1153,20 @@ class SampleAugmenter:
 
             logging.debug("Drawing %s events for the following thetas:", n_samples)
 
-            for i_theta, (theta_type, theta_value) in enumerate(
-                zip(theta_types, theta_values)
-            ):
+            for i_theta, (theta_type, theta_value) in enumerate(zip(theta_types, theta_values)):
                 theta = get_theta_value(theta_type, theta_value, self.benchmarks)
                 theta = np.broadcast_to(theta, (n_samples, theta.size))
                 thetas.append(theta)
 
                 theta_matrices.append(
-                    get_theta_benchmark_matrix(
-                        theta_type, theta_value, self.benchmarks, self.morpher
-                    )
+                    get_theta_benchmark_matrix(theta_type, theta_value, self.benchmarks, self.morpher)
                 )
                 theta_gradient_matrices.append(
-                    get_dtheta_benchmark_matrix(
-                        theta_type, theta_value, self.benchmarks, self.morpher
-                    )
+                    get_dtheta_benchmark_matrix(theta_type, theta_value, self.benchmarks, self.morpher)
                 )
 
                 logging.debug(
-                    "  theta %s = %s%s",
-                    i_theta,
-                    theta[0, :],
-                    " (sampling)" if i_theta == sampling_theta_index else "",
+                    "  theta %s = %s%s", i_theta, theta[0, :], " (sampling)" if i_theta == sampling_theta_index else ""
                 )
 
             sampling_theta_matrix = theta_matrices[sampling_theta_index]
@@ -1297,9 +1174,7 @@ class SampleAugmenter:
             # Total xsec for sampling theta
             xsec_sampling_theta = sampling_theta_matrix.dot(xsecs_benchmarks)
             rms_xsec_sampling_theta = (
-                (sampling_theta_matrix * sampling_theta_matrix).dot(
-                    squared_weight_sum_benchmarks
-                )
+                (sampling_theta_matrix * sampling_theta_matrix).dot(squared_weight_sum_benchmarks)
             ) ** 0.5
 
             if rms_xsec_sampling_theta > 0.1 * xsec_sampling_theta:
@@ -1319,9 +1194,7 @@ class SampleAugmenter:
                 if definition[0] == "ratio":
                     samples_augmented_data.append(np.zeros((n_samples, 1)))
                 elif definition[0] == "score":
-                    samples_augmented_data.append(
-                        np.zeros((n_samples, self.n_parameters))
-                    )
+                    samples_augmented_data.append(np.zeros((n_samples, self.n_parameters)))
 
             largest_weight = 0.0
 
@@ -1338,20 +1211,14 @@ class SampleAugmenter:
                     self.madminer_filename, start=start_event, end=end_event
                 ):
                     # Evaluate p(x | sampling theta)
-                    weights_theta = sampling_theta_matrix.dot(
-                        weights_benchmarks_batch.T
-                    )  # Shape (n_batch_size,)
-                    p_theta = (
-                        weights_theta / xsec_sampling_theta
-                    )  # Shape: (n_batch_size,)
+                    weights_theta = sampling_theta_matrix.dot(weights_benchmarks_batch.T)  # Shape (n_batch_size,)
+                    p_theta = weights_theta / xsec_sampling_theta  # Shape: (n_batch_size,)
 
                     # Handle negative weights (should be rare)
                     n_negative_weights = np.sum(p_theta < 0.0)
                     if n_negative_weights > 0:
                         logging.warning(
-                            "%s negative weights (%s)",
-                            n_negative_weights,
-                            n_negative_weights / p_theta.size,
+                            "%s negative weights (%s)", n_negative_weights, n_negative_weights / p_theta.size
                         )
                     p_theta[p_theta < 0.0] = 0.0
 
@@ -1359,17 +1226,13 @@ class SampleAugmenter:
                     largest_weight = max(largest_weight, np.max(p_theta))
 
                     # Calculate cumulative p (summing up all events until here)
-                    cumulative_p = cumulative_p.flatten()[-1] + np.cumsum(
-                        p_theta
-                    )  # Shape: (n_batch_size,)
+                    cumulative_p = cumulative_p.flatten()[-1] + np.cumsum(p_theta)  # Shape: (n_batch_size,)
 
                     # When cumulative_p hits u, we store the events
                     indices = np.searchsorted(cumulative_p, u, side="left").flatten()
                     # Shape: (n_samples,), values: [0, ..., n_batch_size]
 
-                    found_now = np.invert(samples_done) & (
-                        indices < len(cumulative_p)
-                    )  # Shape: (n_samples,)
+                    found_now = np.invert(samples_done) & (indices < len(cumulative_p))  # Shape: (n_samples,)
                     samples_x[found_now] = x_batch[indices[found_now]]
                     samples_done[found_now] = True
 
@@ -1381,29 +1244,20 @@ class SampleAugmenter:
                         theta_matrices,
                         theta_gradient_matrices,
                     )
-                    for i, this_relevant_augmented_data in enumerate(
-                        relevant_augmented_data
-                    ):
-                        samples_augmented_data[i][
-                            found_now
-                        ] = this_relevant_augmented_data
+                    for i, this_relevant_augmented_data in enumerate(relevant_augmented_data):
+                        samples_augmented_data[i][found_now] = this_relevant_augmented_data
 
                     if np.all(samples_done):
                         break
 
                 # Cross-check cumulative probabilities at end
-                logging.debug(
-                    "  Cumulative probability (should be close to 1): %s",
-                    cumulative_p[-1],
-                )
+                logging.debug("  Cumulative probability (should be close to 1): %s", cumulative_p[-1])
 
                 # Check that we got 'em all, otherwise repeat
                 if not np.all(samples_done):
                     logging.debug(
                         "  After full pass through event files, {} / {} samples not found, u = {}".format(
-                            np.sum(np.invert(samples_done)),
-                            samples_done.size,
-                            u[np.invert(samples_done)],
+                            np.sum(np.invert(samples_done)), samples_done.size, u[np.invert(samples_done)]
                         )
                     )
 
@@ -1430,10 +1284,7 @@ class SampleAugmenter:
                 np.min(all_effective_n_samples),
                 np.max(all_effective_n_samples),
             )
-            logging.debug(
-                "Effective number of samples for all thetas: %s",
-                all_effective_n_samples,
-            )
+            logging.debug("Effective number of samples for all thetas: %s", all_effective_n_samples)
         else:
             logging.info("Effective number of samples: %s", all_effective_n_samples[0])
 
@@ -1468,11 +1319,7 @@ class SampleAugmenter:
             else:
                 end_event = int(round((1.0 - test_split) * self.n_samples, 0))
                 if end_event < 0 or end_event > self.n_samples:
-                    raise ValueError(
-                        "Irregular train / test split: sample {} / {}",
-                        end_event,
-                        self.n_samples,
-                    )
+                    raise ValueError("Irregular train / test split: sample {} / {}", end_event, self.n_samples)
 
         else:
             if test_split is None or test_split <= 0.0 or test_split >= 1.0:
@@ -1480,11 +1327,7 @@ class SampleAugmenter:
             else:
                 start_event = int(round((1.0 - test_split) * self.n_samples, 0)) + 1
                 if start_event < 0 or start_event > self.n_samples:
-                    raise ValueError(
-                        "Irregular train / test split: sample {} / {}",
-                        start_event,
-                        self.n_samples,
-                    )
+                    raise ValueError("Irregular train / test split: sample {} / {}", start_event, self.n_samples)
 
             end_event = None
 
