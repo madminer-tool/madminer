@@ -385,7 +385,7 @@ class DelphesProcessor:
             None
 
         """
-        logging.info("Adding cut %s", definition)
+        logging.debug("Adding cut %s", definition)
         self.cuts.append(definition)
         self.cuts_default_pass.append(pass_if_not_parsed)
 
