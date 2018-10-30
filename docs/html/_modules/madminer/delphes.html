@@ -62,8 +62,9 @@
 <span class="sd">    * Adding one or multiple HepMC samples produced by Pythia in `DelphesProcessor.add_hepmc_sample()`</span>
 <span class="sd">    * Running Delphes on these samples through `DelphesProcessor.run_delphes()`</span>
 <span class="sd">    * Optionally, acceptance cuts for all visible particles can be defined with `DelphesProcessor.set_acceptance()`.</span>
-<span class="sd">    * Defining observables through `DelphesProcessor.add_observables()`. A simple set of default observables is provided</span>
-<span class="sd">      with `DelphesProcessor.add_default_observables()`</span>
+<span class="sd">    * Defining observables through `DelphesProcessor.add_observable()` or</span>
+<span class="sd">      `DelphesProcessor.add_observable_from_function()`. A simple set of default observables is provided in</span>
+<span class="sd">      `DelphesProcessor.add_default_observables()`</span>
 <span class="sd">    * Optionally, cuts can be set with `DelphesProcessor.add_cut()`</span>
 <span class="sd">    * Calculating the observables from the Delphes ROOT files with `DelphesProcessor.analyse_delphes_samples()`</span>
 <span class="sd">    * Saving the results with `DelphesProcessor.save()`</span>
@@ -99,14 +100,14 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">cuts_default_pass</span> <span class="o">=</span> <span class="p">[]</span>
 
         <span class="c1"># Initialize acceptance cuts</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">acceptance_pt_min_e</span> <span class="o">=</span> <span class="mf">10.</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">acceptance_pt_min_mu</span> <span class="o">=</span> <span class="mf">10.</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">acceptance_pt_min_a</span> <span class="o">=</span> <span class="mf">10.</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">acceptance_pt_min_j</span> <span class="o">=</span> <span class="mf">20.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">acceptance_pt_min_e</span> <span class="o">=</span> <span class="mf">10.0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">acceptance_pt_min_mu</span> <span class="o">=</span> <span class="mf">10.0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">acceptance_pt_min_a</span> <span class="o">=</span> <span class="mf">10.0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">acceptance_pt_min_j</span> <span class="o">=</span> <span class="mf">20.0</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">acceptance_eta_max_e</span> <span class="o">=</span> <span class="mf">2.5</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">acceptance_eta_max_mu</span> <span class="o">=</span> <span class="mf">2.5</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">acceptance_eta_max_a</span> <span class="o">=</span> <span class="mf">2.5</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">acceptance_eta_max_j</span> <span class="o">=</span> <span class="mf">5.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">acceptance_eta_max_j</span> <span class="o">=</span> <span class="mf">5.0</span>
 
         <span class="c1"># Initialize samples</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">observations</span> <span class="o">=</span> <span class="kc">None</span>
@@ -138,12 +139,10 @@
 
 <span class="sd">        &quot;&quot;&quot;</span>
 
-        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Adding HepMC sample at </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">filename</span><span class="p">)</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Adding HepMC sample at </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">filename</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">hepmc_sample_filenames</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">hepmc_sample_weight_labels</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-            <span class="n">extract_weight_order</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">sampled_from_benchmark</span><span class="p">)</span>
-        <span class="p">)</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hepmc_sample_weight_labels</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">extract_weight_order</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">sampled_from_benchmark</span><span class="p">))</span></div>
 
 <div class="viewcode-block" id="DelphesProcessor.run_delphes"><a class="viewcode-back" href="../../madminer.delphes.html#madminer.delphes.DelphesProcessor.run_delphes">[docs]</a>    <span class="k">def</span> <span class="nf">run_delphes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">delphes_directory</span><span class="p">,</span> <span class="n">delphes_card</span><span class="p">,</span> <span class="n">initial_command</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">log_directory</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
@@ -171,41 +170,31 @@
 <span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="k">if</span> <span class="n">log_directory</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">log_directory</span> <span class="o">=</span> <span class="s1">&#39;./logs&#39;</span>
-        <span class="n">log_file</span> <span class="o">=</span> <span class="n">log_directory</span> <span class="o">+</span> <span class="s1">&#39;/delphes.log&#39;</span>
+            <span class="n">log_directory</span> <span class="o">=</span> <span class="s2">&quot;./logs&quot;</span>
+        <span class="n">log_file</span> <span class="o">=</span> <span class="n">log_directory</span> <span class="o">+</span> <span class="s2">&quot;/delphes.log&quot;</span>
 
         <span class="k">for</span> <span class="n">hepmc_sample_filename</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">hepmc_sample_filenames</span><span class="p">:</span>
-            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Running Delphes (</span><span class="si">%s</span><span class="s1">) on event sample at </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">delphes_directory</span><span class="p">,</span> <span class="n">hepmc_sample_filename</span><span class="p">)</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Running Delphes (</span><span class="si">%s</span><span class="s2">) on event sample at </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">delphes_directory</span><span class="p">,</span> <span class="n">hepmc_sample_filename</span><span class="p">)</span>
             <span class="n">delphes_sample_filename</span> <span class="o">=</span> <span class="n">run_delphes</span><span class="p">(</span>
                 <span class="n">delphes_directory</span><span class="p">,</span>
                 <span class="n">delphes_card</span><span class="p">,</span>
                 <span class="n">hepmc_sample_filename</span><span class="p">,</span>
                 <span class="n">initial_command</span><span class="o">=</span><span class="n">initial_command</span><span class="p">,</span>
-                <span class="n">log_file</span><span class="o">=</span><span class="n">log_file</span>
+                <span class="n">log_file</span><span class="o">=</span><span class="n">log_file</span><span class="p">,</span>
             <span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">delphes_sample_filenames</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">delphes_sample_filename</span><span class="p">)</span></div>
 
-    <span class="c1"># def add_delphes_sample(self, filename):</span>
-    <span class="c1">#     &quot;&quot;&quot;</span>
-    <span class="c1">#</span>
-    <span class="c1">#     Parameters</span>
-    <span class="c1">#     ----------</span>
-    <span class="c1">#     filename :</span>
-    <span class="c1">#</span>
-    <span class="c1">#</span>
-    <span class="c1">#     Returns</span>
-    <span class="c1">#     -------</span>
-    <span class="c1">#</span>
-    <span class="c1">#     &quot;&quot;&quot;</span>
-    <span class="c1">#</span>
-    <span class="c1">#     raise NotImplementedError(&#39;Direct use of Delphes samples is currently disabled since the Delphes file alone &#39;</span>
-    <span class="c1">#                               &#39;does not contain any information linking the weights to the benchmarks &#39;)</span>
-    <span class="c1">#</span>
-    <span class="c1">#     logging.info(&#39;Adding Delphes sample at %s&#39;, filename)</span>
-    <span class="c1">#     self.delphes_sample_filenames.append(filename)</span>
-
-<div class="viewcode-block" id="DelphesProcessor.set_acceptance"><a class="viewcode-back" href="../../madminer.delphes.html#madminer.delphes.DelphesProcessor.set_acceptance">[docs]</a>    <span class="k">def</span> <span class="nf">set_acceptance</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pt_min_e</span><span class="o">=</span><span class="mf">10.</span><span class="p">,</span> <span class="n">pt_min_mu</span><span class="o">=</span><span class="mf">10.</span><span class="p">,</span> <span class="n">pt_min_a</span><span class="o">=</span><span class="mf">0.</span><span class="p">,</span> <span class="n">pt_min_j</span><span class="o">=</span><span class="mf">20.</span><span class="p">,</span>
-                       <span class="n">eta_max_e</span><span class="o">=</span><span class="mf">2.5</span><span class="p">,</span> <span class="n">eta_max_mu</span><span class="o">=</span><span class="mf">2.5</span><span class="p">,</span> <span class="n">eta_max_a</span><span class="o">=</span><span class="mf">2.5</span><span class="p">,</span> <span class="n">eta_max_j</span><span class="o">=</span><span class="mf">5.</span><span class="p">):</span>
+<div class="viewcode-block" id="DelphesProcessor.set_acceptance"><a class="viewcode-back" href="../../madminer.delphes.html#madminer.delphes.DelphesProcessor.set_acceptance">[docs]</a>    <span class="k">def</span> <span class="nf">set_acceptance</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">pt_min_e</span><span class="o">=</span><span class="mf">10.0</span><span class="p">,</span>
+        <span class="n">pt_min_mu</span><span class="o">=</span><span class="mf">10.0</span><span class="p">,</span>
+        <span class="n">pt_min_a</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">pt_min_j</span><span class="o">=</span><span class="mf">20.0</span><span class="p">,</span>
+        <span class="n">eta_max_e</span><span class="o">=</span><span class="mf">2.5</span><span class="p">,</span>
+        <span class="n">eta_max_mu</span><span class="o">=</span><span class="mf">2.5</span><span class="p">,</span>
+        <span class="n">eta_max_a</span><span class="o">=</span><span class="mf">2.5</span><span class="p">,</span>
+        <span class="n">eta_max_j</span><span class="o">=</span><span class="mf">5.0</span><span class="p">,</span>
+    <span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Sets acceptance cuts for all visible particles. These are taken into account before observables and cuts</span>
 <span class="sd">        are calculated.</span>
@@ -266,11 +255,13 @@
 <span class="sd">            An expression that can be parsed by Python&#39;s `eval()` function. As objects, the visible particles can be</span>
 <span class="sd">            used: `e`, `mu`, `j`, `a`, and `l` provide lists of electrons, muons, jets, photons, and leptons (electrons</span>
 <span class="sd">            and muons combined), in each case sorted by descending transverse momentum. `met` provides a missing ET</span>
-<span class="sd">            object. All these objects are instances of `MadMinerParticle`, which inherits from scikit-hep&#39;s</span>
-<span class="sd">            [LorentzVector](http://scikit-hep.org/api/math.html#vector-classes). See the link for a documentation of</span>
-<span class="sd">            their properties. In addition, `MadMinerParticle` have  properties `charge` and `pdg_id`, which return</span>
-<span class="sd">            the charge in units of elementary charged (i.e. an electron has `charge = -1.`), and the PDG particle ID.</span>
-<span class="sd">            For instance, `&quot;abs(j[0].phi() - j[1].phi())&quot;` defines the azimuthal angle between the two hardest jets.</span>
+<span class="sd">            object. `visible` and `all` provide access to the sum of all visible particles and the sum of all visible</span>
+<span class="sd">            particles plus MET, respectively. All these objects are instances of `MadMinerParticle`, which inherits from</span>
+<span class="sd">            scikit-hep&#39;s [LorentzVector](http://scikit-hep.org/api/math.html#vector-classes). See the link for a</span>
+<span class="sd">            documentation of their properties. In addition, `MadMinerParticle` have  properties `charge` and `pdg_id`,</span>
+<span class="sd">            which return the charge in units of elementary charges (i.e. an electron has `e[0].charge = -1.`), and the</span>
+<span class="sd">            PDG particle ID. For instance, `&quot;abs(j[0].phi() - j[1].phi())&quot;` defines the azimuthal angle between the two</span>
+<span class="sd">            hardest jets.</span>
 <span class="sd">            </span>
 <span class="sd">        required : bool, optional</span>
 <span class="sd">            Whether the observable is required. If True, an event will only be retained if this observable is</span>
@@ -288,20 +279,57 @@
 <span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="k">if</span> <span class="n">required</span><span class="p">:</span>
-            <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Adding required observable </span><span class="si">%s</span><span class="s1"> = </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">definition</span><span class="p">)</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Adding required observable </span><span class="si">%s</span><span class="s2"> = </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">definition</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Adding optional observable </span><span class="si">%s</span><span class="s1"> = </span><span class="si">%s</span><span class="s1"> with default </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">definition</span><span class="p">,</span> <span class="n">default</span><span class="p">)</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Adding optional observable </span><span class="si">%s</span><span class="s2"> = </span><span class="si">%s</span><span class="s2"> with default </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">definition</span><span class="p">,</span> <span class="n">default</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">observables</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">definition</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">observables_required</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">required</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">observables_defaults</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">default</span></div>
 
+<div class="viewcode-block" id="DelphesProcessor.add_observable_from_function"><a class="viewcode-back" href="../../madminer.delphes.html#madminer.delphes.DelphesProcessor.add_observable_from_function">[docs]</a>    <span class="k">def</span> <span class="nf">add_observable_from_function</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">fn</span><span class="p">,</span> <span class="n">required</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Adds an observable defined through a function.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        name : str</span>
+<span class="sd">            Name of the observable. Since this name will be used in `eval()` calls for cuts, this should not contain</span>
+<span class="sd">            spaces or special characters.</span>
+
+<span class="sd">        fn : function</span>
+<span class="sd">            A function with signature `observable(leptons, photons, jets, met)` where the input arguments are lists of</span>
+<span class="sd">            ndarrays and a float is returned. The function should raise a `RuntimeError` to signal</span>
+<span class="sd">            that it is not defined.</span>
+
+<span class="sd">        required : bool, optional</span>
+<span class="sd">            Whether the observable is required. If True, an event will only be retained if this observable is</span>
+<span class="sd">            successfully parsed. For instance, any observable involving `&quot;j[1]&quot;` will only be parsed if there are at</span>
+<span class="sd">            least two jets passing the acceptance cuts. Default value: False.</span>
+
+<span class="sd">        default : float or None, optional</span>
+<span class="sd">            If `required=False`, this is the placeholder value for observables that cannot be parsed. None is replaced</span>
+<span class="sd">            with `np.nan`. Default value: None.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">            None</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">required</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Adding required observable </span><span class="si">%s</span><span class="s2"> defined through external function&quot;</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
+                <span class="s2">&quot;Adding optional observable </span><span class="si">%s</span><span class="s2"> defined through external function with default </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">default</span>
+            <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">observables</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">fn</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">observables_required</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">required</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">observables_defaults</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">default</span></div>
+
 <div class="viewcode-block" id="DelphesProcessor.add_default_observables"><a class="viewcode-back" href="../../madminer.delphes.html#madminer.delphes.DelphesProcessor.add_default_observables">[docs]</a>    <span class="k">def</span> <span class="nf">add_default_observables</span><span class="p">(</span>
-            <span class="bp">self</span><span class="p">,</span>
-            <span class="n">n_leptons_max</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
-            <span class="n">n_photons_max</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
-            <span class="n">n_jets_max</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
-            <span class="n">include_met</span><span class="o">=</span><span class="kc">True</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">n_leptons_max</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">n_photons_max</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">n_jets_max</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">include_met</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">include_visible_sum</span><span class="o">=</span><span class="kc">True</span>
     <span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Adds a set of simple standard observables: the four-momenta (parameterized as E, pT, eta, phi) of the hardest</span>
@@ -321,6 +349,9 @@
 <span class="sd">        include_met : bool, optional</span>
 <span class="sd">            Whether the missing energy observables are stored. Default value: True.</span>
 
+<span class="sd">        include_visible_sum : bool, optional</span>
+<span class="sd">            Whether observables characterizing the sum of all particles are stored. Default value: True.</span>
+
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
 <span class="sd">            None</span>
@@ -328,50 +359,40 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="c1"># ETMiss</span>
         <span class="k">if</span> <span class="n">include_met</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">add_observable</span><span class="p">(</span>
-                <span class="s1">&#39;et_miss&#39;</span><span class="p">,</span>
-                <span class="s1">&#39;met.pt&#39;</span><span class="p">,</span>
-                <span class="n">required</span><span class="o">=</span><span class="kc">True</span>
-            <span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">add_observable</span><span class="p">(</span>
-                <span class="s1">&#39;phi_miss&#39;</span><span class="p">,</span>
-                <span class="s1">&#39;met.phi()&#39;</span><span class="p">,</span>
-                <span class="n">required</span><span class="o">=</span><span class="kc">True</span>
-            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_observable</span><span class="p">(</span><span class="s2">&quot;et_miss&quot;</span><span class="p">,</span> <span class="s2">&quot;met.pt&quot;</span><span class="p">,</span> <span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_observable</span><span class="p">(</span><span class="s2">&quot;phi_miss&quot;</span><span class="p">,</span> <span class="s2">&quot;met.phi()&quot;</span><span class="p">,</span> <span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
-        <span class="c1"># Observed particles</span>
-        <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="n">symbol</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">([</span><span class="n">n_leptons_max</span><span class="p">,</span> <span class="n">n_photons_max</span><span class="p">,</span> <span class="n">n_jets_max</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;l&#39;</span><span class="p">,</span> <span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;j&#39;</span><span class="p">]):</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">add_observable</span><span class="p">(</span>
-                <span class="s1">&#39;n_</span><span class="si">{}</span><span class="s1">s&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">symbol</span><span class="p">),</span>
-                <span class="s1">&#39;len(</span><span class="si">{}</span><span class="s1">)&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">symbol</span><span class="p">),</span>
-                <span class="n">required</span><span class="o">=</span><span class="kc">True</span>
-            <span class="p">)</span>
+        <span class="c1"># Sum of visible particles</span>
+        <span class="k">if</span> <span class="n">include_visible_sum</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_observable</span><span class="p">(</span><span class="s2">&quot;e_visible&quot;</span><span class="p">,</span> <span class="s2">&quot;visible.e&quot;</span><span class="p">,</span> <span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_observable</span><span class="p">(</span><span class="s2">&quot;eta_visible&quot;</span><span class="p">,</span> <span class="s2">&quot;visible.eta&quot;</span><span class="p">,</span> <span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="c1"># Individual observed particles</span>
+        <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="n">symbol</span><span class="p">,</span> <span class="n">include_charge</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">n_leptons_max</span><span class="p">,</span> <span class="n">n_photons_max</span><span class="p">,</span> <span class="n">n_jets_max</span><span class="p">],</span> <span class="p">[</span><span class="s2">&quot;l&quot;</span><span class="p">,</span> <span class="s2">&quot;a&quot;</span><span class="p">,</span> <span class="s2">&quot;j&quot;</span><span class="p">],</span> <span class="p">[</span><span class="kc">False</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">True</span><span class="p">]</span>
+        <span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_observable</span><span class="p">(</span><span class="s2">&quot;n_</span><span class="si">{}</span><span class="s2">s&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">symbol</span><span class="p">),</span> <span class="s2">&quot;len(</span><span class="si">{}</span><span class="s2">)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">symbol</span><span class="p">),</span> <span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
             <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">add_observable</span><span class="p">(</span>
-                    <span class="s1">&#39;e_</span><span class="si">{}{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">symbol</span><span class="p">,</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span>
-                    <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">[</span><span class="si">{}</span><span class="s1">].pt&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">symbol</span><span class="p">,</span> <span class="n">i</span><span class="p">),</span>
-                    <span class="n">required</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-                    <span class="n">default</span><span class="o">=</span><span class="mf">0.</span>
+                    <span class="s2">&quot;e_</span><span class="si">{}{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">symbol</span><span class="p">,</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">[</span><span class="si">{}</span><span class="s2">].pt&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">symbol</span><span class="p">,</span> <span class="n">i</span><span class="p">),</span> <span class="n">required</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mf">0.0</span>
                 <span class="p">)</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">add_observable</span><span class="p">(</span>
-                    <span class="s1">&#39;pt_</span><span class="si">{}{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">symbol</span><span class="p">,</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span>
-                    <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">[</span><span class="si">{}</span><span class="s1">].e&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">symbol</span><span class="p">,</span> <span class="n">i</span><span class="p">),</span>
-                    <span class="n">required</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-                    <span class="n">default</span><span class="o">=</span><span class="mf">0.</span>
+                    <span class="s2">&quot;pt_</span><span class="si">{}{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">symbol</span><span class="p">,</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">[</span><span class="si">{}</span><span class="s2">].e&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">symbol</span><span class="p">,</span> <span class="n">i</span><span class="p">),</span> <span class="n">required</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mf">0.0</span>
                 <span class="p">)</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">add_observable</span><span class="p">(</span>
-                    <span class="s1">&#39;eta_</span><span class="si">{}{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">symbol</span><span class="p">,</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span>
-                    <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">[</span><span class="si">{}</span><span class="s1">].eta&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">symbol</span><span class="p">,</span> <span class="n">i</span><span class="p">),</span>
-                    <span class="n">required</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-                    <span class="n">default</span><span class="o">=</span><span class="mf">0.</span>
+                    <span class="s2">&quot;eta_</span><span class="si">{}{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">symbol</span><span class="p">,</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">[</span><span class="si">{}</span><span class="s2">].eta&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">symbol</span><span class="p">,</span> <span class="n">i</span><span class="p">),</span> <span class="n">required</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mf">0.0</span>
                 <span class="p">)</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">add_observable</span><span class="p">(</span>
-                    <span class="s1">&#39;phi_</span><span class="si">{}{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">symbol</span><span class="p">,</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span>
-                    <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">[</span><span class="si">{}</span><span class="s1">].phi()&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">symbol</span><span class="p">,</span> <span class="n">i</span><span class="p">),</span>
-                    <span class="n">required</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-                    <span class="n">default</span><span class="o">=</span><span class="mf">0.</span>
-                <span class="p">)</span></div>
+                    <span class="s2">&quot;phi_</span><span class="si">{}{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">symbol</span><span class="p">,</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">[</span><span class="si">{}</span><span class="s2">].phi()&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">symbol</span><span class="p">,</span> <span class="n">i</span><span class="p">),</span> <span class="n">required</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mf">0.0</span>
+                <span class="p">)</span>
+                <span class="k">if</span> <span class="n">include_charge</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">add_observable</span><span class="p">(</span>
+                        <span class="s2">&quot;charge_</span><span class="si">{}{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">symbol</span><span class="p">,</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span>
+                        <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">[</span><span class="si">{}</span><span class="s2">].charge&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">symbol</span><span class="p">,</span> <span class="n">i</span><span class="p">),</span>
+                        <span class="n">required</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                        <span class="n">default</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+                    <span class="p">)</span></div>
 
 <div class="viewcode-block" id="DelphesProcessor.add_cut"><a class="viewcode-back" href="../../madminer.delphes.html#madminer.delphes.DelphesProcessor.add_cut">[docs]</a>    <span class="k">def</span> <span class="nf">add_cut</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">definition</span><span class="p">,</span> <span class="n">pass_if_not_parsed</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
 
@@ -385,11 +406,13 @@
 <span class="sd">            to pass this cut, False for it to be rejected. In the definition, all visible particles can be</span>
 <span class="sd">            used: `e`, `mu`, `j`, `a`, and `l` provide lists of electrons, muons, jets, photons, and leptons (electrons</span>
 <span class="sd">            and muons combined), in each case sorted by descending transverse momentum. `met` provides a missing ET</span>
-<span class="sd">            object. All these objects are instances of `MadMinerParticle`, which inherits from scikit-hep&#39;s</span>
-<span class="sd">            [LorentzVector](http://scikit-hep.org/api/math.html#vector-classes). See the link for a documentation of</span>
-<span class="sd">            their properties. In addition, `MadMinerParticle` have  properties `charge` and `pdg_id`, which return</span>
-<span class="sd">            the charge in units of elementary charged (i.e. an electron has `charge = -1.`), and the PDG particle ID.</span>
-<span class="sd">            For instance, `&quot;len(e) &gt;= 2&quot;` requires at least two electrons passing the acceptance cuts.</span>
+<span class="sd">            object. `visible` and `all` provide access to the sum of all visible particles and the sum of all visible</span>
+<span class="sd">            particles plus MET, respectively. All these objects are instances of `MadMinerParticle`, which inherits from</span>
+<span class="sd">            scikit-hep&#39;s [LorentzVector](http://scikit-hep.org/api/math.html#vector-classes). See the link for a</span>
+<span class="sd">            documentation of their properties. In addition, `MadMinerParticle` have  properties `charge` and `pdg_id`,</span>
+<span class="sd">            which return the charge in units of elementary charges (i.e. an electron has `e[0].charge = -1.`), and the</span>
+<span class="sd">            PDG particle ID. For instance, `&quot;len(e) &gt;= 2&quot;` requires at least two electrons passing the acceptance cuts,</span>
+<span class="sd">            while `&quot;mu[0].charge &gt; 0.&quot;` specifies that the hardest muon is positively charged.</span>
 
 <span class="sd">        pass_if_not_parsed : bool, optional</span>
 <span class="sd">            Whether the cut is passed if the observable cannot be parsed. Default value: False.</span>
@@ -399,14 +422,20 @@
 <span class="sd">            None</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Adding cut </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">definition</span><span class="p">)</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Adding cut </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">definition</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">cuts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">definition</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">cuts_default_pass</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">pass_if_not_parsed</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="DelphesProcessor.analyse_delphes_samples"><a class="viewcode-back" href="../../madminer.delphes.html#madminer.delphes.DelphesProcessor.analyse_delphes_samples">[docs]</a>    <span class="k">def</span> <span class="nf">analyse_delphes_samples</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="DelphesProcessor.analyse_delphes_samples"><a class="viewcode-back" href="../../madminer.delphes.html#madminer.delphes.DelphesProcessor.analyse_delphes_samples">[docs]</a>    <span class="k">def</span> <span class="nf">analyse_delphes_samples</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">delete_delphes_files</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Main function that parses the Delphes samples (ROOT files), checks acceptance and cuts, and extracts</span>
 <span class="sd">        the observables and weights.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        delete_delphes_files : bool, optional</span>
+<span class="sd">            If True, the Delphes ROOT files will be deleted after extracting the information from them. Default value:</span>
+<span class="sd">            False.</span>
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
@@ -418,7 +447,7 @@
 
         <span class="k">for</span> <span class="n">delphes_file</span><span class="p">,</span> <span class="n">weight_labels</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">delphes_sample_filenames</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">hepmc_sample_weight_labels</span><span class="p">):</span>
 
-            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Analysing Delphes sample </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">delphes_file</span><span class="p">)</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Analysing Delphes sample </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">delphes_file</span><span class="p">)</span>
 
             <span class="c1"># Calculate observables and weights in Delphes ROOT file</span>
             <span class="n">this_observations</span><span class="p">,</span> <span class="n">this_weights</span> <span class="o">=</span> <span class="n">extract_observables_from_delphes_file</span><span class="p">(</span>
@@ -429,7 +458,7 @@
                 <span class="bp">self</span><span class="o">.</span><span class="n">cuts</span><span class="p">,</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">cuts_default_pass</span><span class="p">,</span>
                 <span class="n">weight_labels</span><span class="p">,</span>
-
+                <span class="n">delete_delphes_sample_file</span><span class="o">=</span><span class="n">delete_delphes_files</span><span class="p">,</span>
             <span class="p">)</span>
 
             <span class="c1"># Number of benchmarks</span>
@@ -452,25 +481,25 @@
 
             <span class="c1"># Following results: check consistency with previous results</span>
             <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">weights</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">this_weights</span><span class="p">):</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Number of weights in different Delphes files incompatible: </span><span class="si">{}</span><span class="s2"> vs </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
-                    <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">weights</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">this_weights</span><span class="p">)</span>
-                <span class="p">))</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s2">&quot;Number of weights in different Delphes files incompatible: </span><span class="si">{}</span><span class="s2"> vs </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                        <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">weights</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">this_weights</span><span class="p">)</span>
+                    <span class="p">)</span>
+                <span class="p">)</span>
             <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">observations</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">this_observations</span><span class="p">):</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Number of observations in different Delphes files incompatible: </span><span class="si">{}</span><span class="s2"> vs </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
-                    <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">observations</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">this_observations</span><span class="p">)</span>
-                <span class="p">))</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s2">&quot;Number of observations in different Delphes files incompatible: </span><span class="si">{}</span><span class="s2"> vs </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                        <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">observations</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">this_observations</span><span class="p">)</span>
+                    <span class="p">)</span>
+                <span class="p">)</span>
 
             <span class="c1"># Merge results with previous</span>
             <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">weights</span><span class="p">:</span>
-                <span class="k">assert</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">this_weights</span><span class="p">,</span> <span class="s2">&quot;Weight label </span><span class="si">{}</span><span class="s2"> not found in Delphes sample!&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
-                    <span class="n">key</span>
-                <span class="p">)</span>
+                <span class="k">assert</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">this_weights</span><span class="p">,</span> <span class="s2">&quot;Weight label </span><span class="si">{}</span><span class="s2"> not found in Delphes sample!&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">weights</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">weights</span><span class="p">[</span><span class="n">key</span><span class="p">],</span> <span class="n">this_weights</span><span class="p">[</span><span class="n">key</span><span class="p">]])</span>
 
             <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">observations</span><span class="p">:</span>
-                <span class="k">assert</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">this_observations</span><span class="p">,</span> <span class="s2">&quot;Observable </span><span class="si">{}</span><span class="s2"> not found in Delphes sample!&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
-                    <span class="n">key</span>
-                <span class="p">)</span>
+                <span class="k">assert</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">this_observations</span><span class="p">,</span> <span class="s2">&quot;Observable </span><span class="si">{}</span><span class="s2"> not found in Delphes sample!&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">observations</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">observations</span><span class="p">[</span><span class="n">key</span><span class="p">],</span> <span class="n">this_observations</span><span class="p">[</span><span class="n">key</span><span class="p">]])</span></div>
 
 <div class="viewcode-block" id="DelphesProcessor.save"><a class="viewcode-back" href="../../madminer.delphes.html#madminer.delphes.DelphesProcessor.save">[docs]</a>    <span class="k">def</span> <span class="nf">save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename_out</span><span class="p">):</span>
@@ -490,19 +519,18 @@
 
 <span class="sd">        &quot;&quot;&quot;</span>
 
-        <span class="k">assert</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">observables</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">observations</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-                <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">weights</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">),</span> <span class="s1">&#39;Nothing to save!&#39;</span>
+        <span class="k">assert</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">observables</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">observations</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">weights</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="p">),</span> <span class="s2">&quot;Nothing to save!&quot;</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">filename</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Saving HDF5 file to </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">filename_out</span><span class="p">)</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Saving HDF5 file to </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">filename_out</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Loading HDF5 data from </span><span class="si">%s</span><span class="s1"> and saving file to </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">filename</span><span class="p">,</span> <span class="n">filename_out</span><span class="p">)</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Loading HDF5 data from </span><span class="si">%s</span><span class="s2"> and saving file to </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">filename</span><span class="p">,</span> <span class="n">filename_out</span><span class="p">)</span>
 
-        <span class="n">save_events_to_madminer_file</span><span class="p">(</span><span class="n">filename_out</span><span class="p">,</span>
-                                     <span class="bp">self</span><span class="o">.</span><span class="n">observables</span><span class="p">,</span>
-                                     <span class="bp">self</span><span class="o">.</span><span class="n">observations</span><span class="p">,</span>
-                                     <span class="bp">self</span><span class="o">.</span><span class="n">weights</span><span class="p">,</span>
-                                     <span class="n">copy_from</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">filename</span><span class="p">)</span></div></div>
+        <span class="n">save_events_to_madminer_file</span><span class="p">(</span>
+            <span class="n">filename_out</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">observables</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">observations</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">weights</span><span class="p">,</span> <span class="n">copy_from</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">filename</span>
+        <span class="p">)</span></div></div>
 </pre></div>
 
           </div>

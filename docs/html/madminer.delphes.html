@@ -51,8 +51,9 @@ analysis routine of your choice.</p>
 <li>Adding one or multiple HepMC samples produced by Pythia in <cite>DelphesProcessor.add_hepmc_sample()</cite></li>
 <li>Running Delphes on these samples through <cite>DelphesProcessor.run_delphes()</cite></li>
 <li>Optionally, acceptance cuts for all visible particles can be defined with <cite>DelphesProcessor.set_acceptance()</cite>.</li>
-<li>Defining observables through <cite>DelphesProcessor.add_observables()</cite>. A simple set of default observables is provided
-with <cite>DelphesProcessor.add_default_observables()</cite></li>
+<li>Defining observables through <cite>DelphesProcessor.add_observable()</cite> or
+<cite>DelphesProcessor.add_observable_from_function()</cite>. A simple set of default observables is provided in
+<cite>DelphesProcessor.add_default_observables()</cite></li>
 <li>Optionally, cuts can be set with <cite>DelphesProcessor.add_cut()</cite></li>
 <li>Calculating the observables from the Delphes ROOT files with <cite>DelphesProcessor.analyse_delphes_samples()</cite></li>
 <li>Saving the results with <cite>DelphesProcessor.save()</cite></li>
@@ -93,16 +94,19 @@ with <cite>DelphesProcessor.add_default_observables()</cite></li>
 <tr class="row-even"><td><a class="reference internal" href="#madminer.delphes.DelphesProcessor.add_observable" title="madminer.delphes.DelphesProcessor.add_observable"><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_observable</span></code></a>(name,&nbsp;definition[,&nbsp;required,&nbsp;…])</td>
 <td>Adds an observable as a string that can be parsed by Python’s <cite>eval()</cite> function.</td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="#madminer.delphes.DelphesProcessor.analyse_delphes_samples" title="madminer.delphes.DelphesProcessor.analyse_delphes_samples"><code class="xref py py-obj docutils literal notranslate"><span class="pre">analyse_delphes_samples</span></code></a>()</td>
+<tr class="row-odd"><td><a class="reference internal" href="#madminer.delphes.DelphesProcessor.add_observable_from_function" title="madminer.delphes.DelphesProcessor.add_observable_from_function"><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_observable_from_function</span></code></a>(name,&nbsp;fn[,&nbsp;…])</td>
+<td>Adds an observable defined through a function.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#madminer.delphes.DelphesProcessor.analyse_delphes_samples" title="madminer.delphes.DelphesProcessor.analyse_delphes_samples"><code class="xref py py-obj docutils literal notranslate"><span class="pre">analyse_delphes_samples</span></code></a>([delete_delphes_files])</td>
 <td>Main function that parses the Delphes samples (ROOT files), checks acceptance and cuts, and extracts the observables and weights.</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#madminer.delphes.DelphesProcessor.run_delphes" title="madminer.delphes.DelphesProcessor.run_delphes"><code class="xref py py-obj docutils literal notranslate"><span class="pre">run_delphes</span></code></a>(delphes_directory,&nbsp;delphes_card)</td>
+<tr class="row-odd"><td><a class="reference internal" href="#madminer.delphes.DelphesProcessor.run_delphes" title="madminer.delphes.DelphesProcessor.run_delphes"><code class="xref py py-obj docutils literal notranslate"><span class="pre">run_delphes</span></code></a>(delphes_directory,&nbsp;delphes_card)</td>
 <td>Runs the fast detector simulation on all HepMC samples added so far.</td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="#madminer.delphes.DelphesProcessor.save" title="madminer.delphes.DelphesProcessor.save"><code class="xref py py-obj docutils literal notranslate"><span class="pre">save</span></code></a>(filename_out)</td>
+<tr class="row-even"><td><a class="reference internal" href="#madminer.delphes.DelphesProcessor.save" title="madminer.delphes.DelphesProcessor.save"><code class="xref py py-obj docutils literal notranslate"><span class="pre">save</span></code></a>(filename_out)</td>
 <td>Saves the observable definitions, observable values, and event weights in a MadMiner file.</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#madminer.delphes.DelphesProcessor.set_acceptance" title="madminer.delphes.DelphesProcessor.set_acceptance"><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_acceptance</span></code></a>([pt_min_e,&nbsp;pt_min_mu,&nbsp;…])</td>
+<tr class="row-odd"><td><a class="reference internal" href="#madminer.delphes.DelphesProcessor.set_acceptance" title="madminer.delphes.DelphesProcessor.set_acceptance"><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_acceptance</span></code></a>([pt_min_e,&nbsp;pt_min_mu,&nbsp;…])</td>
 <td>Sets acceptance cuts for all visible particles.</td>
 </tr>
 </tbody>
@@ -121,11 +125,13 @@ with <cite>DelphesProcessor.add_default_observables()</cite></li>
 to pass this cut, False for it to be rejected. In the definition, all visible particles can be
 used: <cite>e</cite>, <cite>mu</cite>, <cite>j</cite>, <cite>a</cite>, and <cite>l</cite> provide lists of electrons, muons, jets, photons, and leptons (electrons
 and muons combined), in each case sorted by descending transverse momentum. <cite>met</cite> provides a missing ET
-object. All these objects are instances of <cite>MadMinerParticle</cite>, which inherits from scikit-hep’s
-[LorentzVector](<a class="reference external" href="http://scikit-hep.org/api/math.html#vector-classes">http://scikit-hep.org/api/math.html#vector-classes</a>). See the link for a documentation of
-their properties. In addition, <cite>MadMinerParticle</cite> have  properties <cite>charge</cite> and <cite>pdg_id</cite>, which return
-the charge in units of elementary charged (i.e. an electron has <cite>charge = -1.</cite>), and the PDG particle ID.
-For instance, <cite>“len(e) &gt;= 2”</cite> requires at least two electrons passing the acceptance cuts.</p>
+object. <cite>visible</cite> and <cite>all</cite> provide access to the sum of all visible particles and the sum of all visible
+particles plus MET, respectively. All these objects are instances of <cite>MadMinerParticle</cite>, which inherits from
+scikit-hep’s [LorentzVector](<a class="reference external" href="http://scikit-hep.org/api/math.html#vector-classes">http://scikit-hep.org/api/math.html#vector-classes</a>). See the link for a
+documentation of their properties. In addition, <cite>MadMinerParticle</cite> have  properties <cite>charge</cite> and <cite>pdg_id</cite>,
+which return the charge in units of elementary charges (i.e. an electron has <cite>e[0].charge = -1.</cite>), and the
+PDG particle ID. For instance, <cite>“len(e) &gt;= 2”</cite> requires at least two electrons passing the acceptance cuts,
+while <cite>“mu[0].charge &gt; 0.”</cite> specifies that the hardest muon is positively charged.</p>
 </dd>
 <dt><strong>pass_if_not_parsed</strong> <span class="classifier-delimiter">:</span> <span class="classifier">bool, optional</span></dt>
 <dd><p class="first last">Whether the cut is passed if the observable cannot be parsed. Default value: False.</p>
@@ -145,7 +151,7 @@ For instance, <cite>“len(e) &gt;= 2”</cite> requires at least two electrons 
 
 <dl class="method">
 <dt id="madminer.delphes.DelphesProcessor.add_default_observables">
-<code class="descname">add_default_observables</code><span class="sig-paren">(</span><em>n_leptons_max=2</em>, <em>n_photons_max=2</em>, <em>n_jets_max=2</em>, <em>include_met=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/delphes.html#DelphesProcessor.add_default_observables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.delphes.DelphesProcessor.add_default_observables" title="Permalink to this definition">¶</a></dt>
+<code class="descname">add_default_observables</code><span class="sig-paren">(</span><em>n_leptons_max=2</em>, <em>n_photons_max=2</em>, <em>n_jets_max=2</em>, <em>include_met=True</em>, <em>include_visible_sum=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/delphes.html#DelphesProcessor.add_default_observables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.delphes.DelphesProcessor.add_default_observables" title="Permalink to this definition">¶</a></dt>
 <dd><p>Adds a set of simple standard observables: the four-momenta (parameterized as E, pT, eta, phi) of the hardest
 visible particles, and the missing transverse energy.</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -164,6 +170,9 @@ visible particles, and the missing transverse energy.</p>
 </dd>
 <dt><strong>include_met</strong> <span class="classifier-delimiter">:</span> <span class="classifier">bool, optional</span></dt>
 <dd><p class="first last">Whether the missing energy observables are stored. Default value: True.</p>
+</dd>
+<dt><strong>include_visible_sum</strong> <span class="classifier-delimiter">:</span> <span class="classifier">bool, optional</span></dt>
+<dd><p class="first last">Whether observables characterizing the sum of all particles are stored. Default value: True.</p>
 </dd>
 </dl>
 </td>
@@ -224,11 +233,53 @@ spaces or special characters.</p>
 <dd><p class="first last">An expression that can be parsed by Python’s <cite>eval()</cite> function. As objects, the visible particles can be
 used: <cite>e</cite>, <cite>mu</cite>, <cite>j</cite>, <cite>a</cite>, and <cite>l</cite> provide lists of electrons, muons, jets, photons, and leptons (electrons
 and muons combined), in each case sorted by descending transverse momentum. <cite>met</cite> provides a missing ET
-object. All these objects are instances of <cite>MadMinerParticle</cite>, which inherits from scikit-hep’s
-[LorentzVector](<a class="reference external" href="http://scikit-hep.org/api/math.html#vector-classes">http://scikit-hep.org/api/math.html#vector-classes</a>). See the link for a documentation of
-their properties. In addition, <cite>MadMinerParticle</cite> have  properties <cite>charge</cite> and <cite>pdg_id</cite>, which return
-the charge in units of elementary charged (i.e. an electron has <cite>charge = -1.</cite>), and the PDG particle ID.
-For instance, <cite>“abs(j[0].phi() - j[1].phi())”</cite> defines the azimuthal angle between the two hardest jets.</p>
+object. <cite>visible</cite> and <cite>all</cite> provide access to the sum of all visible particles and the sum of all visible
+particles plus MET, respectively. All these objects are instances of <cite>MadMinerParticle</cite>, which inherits from
+scikit-hep’s [LorentzVector](<a class="reference external" href="http://scikit-hep.org/api/math.html#vector-classes">http://scikit-hep.org/api/math.html#vector-classes</a>). See the link for a
+documentation of their properties. In addition, <cite>MadMinerParticle</cite> have  properties <cite>charge</cite> and <cite>pdg_id</cite>,
+which return the charge in units of elementary charges (i.e. an electron has <cite>e[0].charge = -1.</cite>), and the
+PDG particle ID. For instance, <cite>“abs(j[0].phi() - j[1].phi())”</cite> defines the azimuthal angle between the two
+hardest jets.</p>
+</dd>
+<dt><strong>required</strong> <span class="classifier-delimiter">:</span> <span class="classifier">bool, optional</span></dt>
+<dd><p class="first last">Whether the observable is required. If True, an event will only be retained if this observable is
+successfully parsed. For instance, any observable involving <cite>“j[1]”</cite> will only be parsed if there are at
+least two jets passing the acceptance cuts. Default value: False.</p>
+</dd>
+<dt><strong>default</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float or None, optional</span></dt>
+<dd><p class="first last">If <cite>required=False</cite>, this is the placeholder value for observables that cannot be parsed. None is replaced
+with <cite>np.nan</cite>. Default value: None.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>None</strong></dt>
+<dd></dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="madminer.delphes.DelphesProcessor.add_observable_from_function">
+<code class="descname">add_observable_from_function</code><span class="sig-paren">(</span><em>name</em>, <em>fn</em>, <em>required=False</em>, <em>default=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/delphes.html#DelphesProcessor.add_observable_from_function"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.delphes.DelphesProcessor.add_observable_from_function" title="Permalink to this definition">¶</a></dt>
+<dd><p>Adds an observable defined through a function.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>name</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
+<dd><p class="first last">Name of the observable. Since this name will be used in <cite>eval()</cite> calls for cuts, this should not contain
+spaces or special characters.</p>
+</dd>
+<dt><strong>fn</strong> <span class="classifier-delimiter">:</span> <span class="classifier">function</span></dt>
+<dd><p class="first last">A function with signature <cite>observable(leptons, photons, jets, met)</cite> where the input arguments are lists of
+ndarrays and a float is returned. The function should raise a <cite>RuntimeError</cite> to signal
+that it is not defined.</p>
 </dd>
 <dt><strong>required</strong> <span class="classifier-delimiter">:</span> <span class="classifier">bool, optional</span></dt>
 <dd><p class="first last">Whether the observable is required. If True, an event will only be retained if this observable is
@@ -254,14 +305,22 @@ with <cite>np.nan</cite>. Default value: None.</p>
 
 <dl class="method">
 <dt id="madminer.delphes.DelphesProcessor.analyse_delphes_samples">
-<code class="descname">analyse_delphes_samples</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/delphes.html#DelphesProcessor.analyse_delphes_samples"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.delphes.DelphesProcessor.analyse_delphes_samples" title="Permalink to this definition">¶</a></dt>
+<code class="descname">analyse_delphes_samples</code><span class="sig-paren">(</span><em>delete_delphes_files=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/delphes.html#DelphesProcessor.analyse_delphes_samples"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.delphes.DelphesProcessor.analyse_delphes_samples" title="Permalink to this definition">¶</a></dt>
 <dd><p>Main function that parses the Delphes samples (ROOT files), checks acceptance and cuts, and extracts
 the observables and weights.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>delete_delphes_files</strong> <span class="classifier-delimiter">:</span> <span class="classifier">bool, optional</span></dt>
+<dd><p class="first last">If True, the Delphes ROOT files will be deleted after extracting the information from them. Default value:
+False.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
 <dt><strong>None</strong></dt>
 <dd></dd>
 </dl>

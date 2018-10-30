@@ -128,7 +128,7 @@ evaluation sample.</p>
 </dd>
 <dt><strong>unweighted_x_sample_file</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
 <dd><p class="first last">Filename of an unweighted x sample that is sampled according to theta and obeys the cuts
-(see <cite>madminer.sampling.SampleAugmenter.extract_samples_train_local()</cite>)</p>
+(see <cite>madminer.sampling.SampleAugmenter.extract_samples_train_local()</cite>).</p>
 </dd>
 <dt><strong>luminosity</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
 <dd><p class="first last">Luminosity in pb^-1.</p>
@@ -141,22 +141,26 @@ False otherwise). Default value: None.</p>
 <dd><p class="first last">Whether an uncertainty of the Fisher information is returned together with the prediction. If None, it is
 returned only if model_file points to the directory of an ensemble. Default value: None.</p>
 </dd>
-<dt><strong>ensemble_vote_expectation_weight</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float or None, optional</span></dt>
-<dd><p class="first last">For ensemble models, the factor that determines how much more weight is given to those estimators with
-small expectation value. If None, or if <cite>EnsembleForge.calculate_expectation()</cite> has not been called,
-all estimators are treated equal. Default value: None.</p>
+<dt><strong>ensemble_vote_expectation_weight</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float or list of float or None, optional</span></dt>
+<dd><p class="first last">For ensemble models, the factor that determines how much more weight is given to those estimators with small
+expectation value. If a list is given, results are returned for each element in the list. If None, or if
+<cite>EnsembleForge.calculate_expectation()</cite> has not been called, all estimators are treated equal. Default
+value: None.</p>
 </dd>
 </dl>
 </td>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
-<dt><strong>fisher_information</strong> <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
-<dd><p class="first last">Estimated expected full detector-level Fisher information matrix with shape <cite>(n_parameters, n_parameters)</cite>.</p>
+<dt><strong>fisher_information</strong> <span class="classifier-delimiter">:</span> <span class="classifier">ndarray or list of ndarray</span></dt>
+<dd><p class="first last">Estimated expected full detector-level Fisher information matrix with shape <cite>(n_parameters, n_parameters)</cite>.
+If more then one value ensemble_vote_expectation_weight is given, this is a list with results for all
+entries in ensemble_vote_expectation_weight.</p>
 </dd>
-<dt><strong>fisher_information_uncertainty</strong> <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
+<dt><strong>fisher_information_uncertainty</strong> <span class="classifier-delimiter">:</span> <span class="classifier">ndarray or list of ndarray</span></dt>
 <dd><p class="first last">Returned only if return_error is True, or if return_error is None and model_file is the directory of an
 ensemble. Uncertainty of the expected full detector-level Fisher information matrix with shape
-<cite>(n_parameters, n_parameters)</cite>.</p>
+<cite>(n_parameters, n_parameters)</cite>. If more then one value ensemble_vote_expectation_weight is given, this is a
+list with results for all entries in ensemble_vote_expectation_weight.</p>
 </dd>
 </dl>
 </td>
@@ -206,7 +210,7 @@ component. Default value: None.</p>
 
 <dl class="method">
 <dt id="madminer.fisherinformation.FisherInformation.calculate_fisher_information_hist1d">
-<code class="descname">calculate_fisher_information_hist1d</code><span class="sig-paren">(</span><em>theta</em>, <em>luminosity</em>, <em>observable</em>, <em>nbins</em>, <em>histrange</em>, <em>cuts=None</em>, <em>efficiency_functions=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/fisherinformation.html#FisherInformation.calculate_fisher_information_hist1d"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.fisherinformation.FisherInformation.calculate_fisher_information_hist1d" title="Permalink to this definition">¶</a></dt>
+<code class="descname">calculate_fisher_information_hist1d</code><span class="sig-paren">(</span><em>theta</em>, <em>luminosity</em>, <em>observable</em>, <em>nbins</em>, <em>histrange=None</em>, <em>cuts=None</em>, <em>efficiency_functions=None</em>, <em>n_events_dynamic_binning=100000</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/fisherinformation.html#FisherInformation.calculate_fisher_information_hist1d"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.fisherinformation.FisherInformation.calculate_fisher_information_hist1d" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculates the Fisher information in the one-dimensional histogram of an (parton-level or detector-level,
 depending on how the observations in the MadMiner file were calculated) observable.</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -227,8 +231,9 @@ and can use the names of the observables in the MadMiner files.</p>
 <dt><strong>nbins</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
 <dd><p class="first last">Number of bins in the histogram, excluding overflow bins.</p>
 </dd>
-<dt><strong>histrange</strong> <span class="classifier-delimiter">:</span> <span class="classifier">tuple of float</span></dt>
-<dd><p class="first last">Minimum and maximum value of the histogram in the form <cite>(min, max)</cite>. Overflow bins are always added.</p>
+<dt><strong>histrange</strong> <span class="classifier-delimiter">:</span> <span class="classifier">tuple of float or None</span></dt>
+<dd><p class="first last">Minimum and maximum value of the histogram in the form <cite>(min, max)</cite>. Overflow bins are always added. If
+None, variable-width bins with equal cross section are constructed automatically</p>
 </dd>
 <dt><strong>cuts</strong> <span class="classifier-delimiter">:</span> <span class="classifier">None or list of str, optional</span></dt>
 <dd><p class="first last">Cuts. Each entry is a parseable Python expression that returns a bool (True if the event should pass a cut,
