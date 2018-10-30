@@ -27,8 +27,9 @@ class DelphesProcessor:
     * Adding one or multiple HepMC samples produced by Pythia in `DelphesProcessor.add_hepmc_sample()`
     * Running Delphes on these samples through `DelphesProcessor.run_delphes()`
     * Optionally, acceptance cuts for all visible particles can be defined with `DelphesProcessor.set_acceptance()`.
-    * Defining observables through `DelphesProcessor.add_observables()`. A simple set of default observables is provided
-      with `DelphesProcessor.add_default_observables()`
+    * Defining observables through `DelphesProcessor.add_observable()` or
+      `DelphesProcessor.add_observable_from_function()`. A simple set of default observables is provided in
+      `DelphesProcessor.add_default_observables()`
     * Optionally, cuts can be set with `DelphesProcessor.add_cut()`
     * Calculating the observables from the Delphes ROOT files with `DelphesProcessor.analyse_delphes_samples()`
     * Saving the results with `DelphesProcessor.save()`
@@ -248,6 +249,45 @@ class DelphesProcessor:
             logging.debug("Adding optional observable %s = %s with default %s", name, definition, default)
 
         self.observables[name] = definition
+        self.observables_required[name] = required
+        self.observables_defaults[name] = default
+
+    def add_observable_from_function(self, name, fn, required=False, default=None):
+        """
+        Adds an observable defined through a function.
+
+        Parameters
+        ----------
+        name : str
+            Name of the observable. Since this name will be used in `eval()` calls for cuts, this should not contain
+            spaces or special characters.
+
+        fn : function
+            A function with signature `observable(leptons, photons, jets, met)` where the input arguments are lists of
+            ndarrays and a float is returned. The function should raise a `RuntimeError` to signal
+            that it is not defined.
+
+        required : bool, optional
+            Whether the observable is required. If True, an event will only be retained if this observable is
+            successfully parsed. For instance, any observable involving `"j[1]"` will only be parsed if there are at
+            least two jets passing the acceptance cuts. Default value: False.
+
+        default : float or None, optional
+            If `required=False`, this is the placeholder value for observables that cannot be parsed. None is replaced
+            with `np.nan`. Default value: None.
+
+        Returns
+        -------
+            None
+
+        """
+
+        if required:
+            logging.debug("Adding required observable %s defined through external function", name)
+        else:
+            logging.debug("Adding optional observable %s defined through external function with default %s", name, default)
+
+        self.observables[name] = fn
         self.observables_required[name] = required
         self.observables_defaults[name] = default
 

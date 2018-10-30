@@ -1,5 +1,6 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+import six
 import shutil
 import h5py
 import numpy as np
@@ -353,7 +354,13 @@ def save_events_to_madminer_file(
         observable_names = [oname for oname in observables]
         n_observables = len(observable_names)
         observable_names_ascii = [oname.encode("ascii", "ignore") for oname in observable_names]
-        observable_definitions = [observables[key].encode("ascii", "ignore") for key in observable_names]
+        observable_definitions = []
+        for key in observable_names:
+            definition = observables[key]
+            if isinstance(definition, six.string_types):
+                observable_definitions.append(definition.encode("ascii", "ignore"))
+            else:
+                observable_definitions.append('')
 
         # Store observable definitions
         f.create_dataset("observables/names", (n_observables,), dtype="S256", data=observable_names_ascii)

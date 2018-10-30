@@ -98,16 +98,34 @@ def extract_observables_from_delphes_file(
         for event in range(n_events):
             variables = get_objects(event)
 
-            try:
-                values_this_observable.append(eval(obs_definition, variables))
-            except (SyntaxError, NameError, TypeError, ZeroDivisionError, IndexError):
-                default = observables_defaults[obs_name]
-                if default is None:
-                    default = np.nan
-                values_this_observable.append(default)
+            if isinstance(obs_definition, six.string_types):
+                try:
+                    values_this_observable.append(eval(obs_definition, variables))
+                except (SyntaxError, NameError, TypeError, ZeroDivisionError, IndexError):
+                    default = observables_defaults[obs_name]
+                    if default is None:
+                        default = np.nan
+                    values_this_observable.append(default)
+            else:
+                try:
+                    values_this_observable.append(
+                        obs_definition(
+                            leptons_all_events[event],
+                            photons_all_events[event],
+                            jets_all_events[event],
+                            met_all_events[event][0]
+                        )
+                    )
+                except (SyntaxError, NameError, TypeError, ZeroDivisionError, IndexError, RuntimeError):
+                    default = observables_defaults[obs_name]
+                    if default is None:
+                        default = np.nan
+                    values_this_observable.append(default)
 
         values_this_observable = np.array(values_this_observable, dtype=np.float)
         observable_values[obs_name] = values_this_observable
+
+        logging.debug('  First 100 values for observable %s:\n%s', obs_name, values_this_observable[:100])
 
     # Cuts
     cut_values = []
@@ -140,7 +158,7 @@ def extract_observables_from_delphes_file(
             n_fail = np.sum(np.invert(this_filter))
 
             logging.info(
-                "Requiring existence of observable %s: %s events pass, %s events removed", obs_name, n_pass, n_fail
+                "  Requiring existence of observable %s: %s events pass, %s events removed", obs_name, n_pass, n_fail
             )
 
             if combined_filter is None:
@@ -153,7 +171,7 @@ def extract_observables_from_delphes_file(
         n_pass = np.sum(values_this_cut)
         n_fail = np.sum(np.invert(values_this_cut))
 
-        logging.info("Cut %s: %s events pass, %s events removed", cut, n_pass, n_fail)
+        logging.info("  Cut %s: %s events pass, %s events removed", cut, n_pass, n_fail)
 
         if combined_filter is None:
             combined_filter = values_this_cut
@@ -177,7 +195,7 @@ def extract_observables_from_delphes_file(
 
     # Delete Delphes file
     if delete_delphes_sample_file:
-        logging.debug("Deleting %s", delphes_sample_file)
+        logging.debug("  Deleting %s", delphes_sample_file)
         os.remove(delphes_sample_file)
 
     return observable_values, weights_dict
