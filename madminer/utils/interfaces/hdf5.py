@@ -11,27 +11,7 @@ import logging
 def save_madminer_settings(
     filename, parameters, benchmarks, morphing_components=None, morphing_matrix=None, overwrite_existing_files=True
 ):
-    """Saves all MadMiner settings into an HDF5 file.
-
-    Parameters
-    ----------
-    filename :
-        param parameters:
-    benchmarks :
-        param morphing_components:
-    morphing_matrix :
-        param overwrite_existing_files: (Default value = None)
-    parameters :
-        
-    morphing_components :
-         (Default value = None)
-    overwrite_existing_files :
-         (Default value = True)
-
-    Returns
-    -------
-
-    """
+    """Saves all MadMiner settings into an HDF5 file."""
 
     io_tag = "w" if overwrite_existing_files else "x"
 
@@ -81,17 +61,7 @@ def save_madminer_settings(
 
 
 def load_madminer_settings(filename):
-    """Loads MadMiner settings, observables, and weights from a HDF5 file.
-
-    Parameters
-    ----------
-    filename :
-        
-
-    Returns
-    -------
-
-    """
+    """ Loads MadMiner settings, observables, and weights from a HDF5 file. """
 
     with h5py.File(filename, "r") as f:
 
@@ -187,28 +157,14 @@ def load_madminer_settings(filename):
 
 
 def madminer_event_loader(filename, start=0, end=None, batch_size=100000):
-    """
-
-    Parameters
-    ----------
-    filename :
-        
-    start :
-         (Default value = 0)
-    end :
-         (Default value = None)
-    batch_size :
-         (Default value = 100000)
-
-    Returns
-    -------
-
-    """
     with h5py.File(filename, "r") as f:
 
         # Handles to data
-        observations = f["samples/observations"]
-        weights = f["samples/weights"]
+        try:
+            observations = f["samples/observations"]
+            weights = f["samples/weights"]
+        except KeyError:
+            return
 
         # Preparations
         n_samples = observations.shape[0]
@@ -234,17 +190,6 @@ def madminer_event_loader(filename, start=0, end=None, batch_size=100000):
 
 
 def load_benchmarks_from_madminer_file(filename):
-    """
-
-    Parameters
-    ----------
-    filename :
-        
-
-    Returns
-    -------
-
-    """
     with h5py.File(filename, "r") as f:
 
         # Benchmarks
