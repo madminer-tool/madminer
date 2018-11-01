@@ -793,7 +793,7 @@ class FisherInformation:
 
         return x, weights_thetas
 
-    def _calculate_fisher_information(self, theta, weights_benchmarks, luminosity=300000.0, sum_events=False):
+    def _calculate_fisher_information(self, theta, weights_benchmarks, luminosity=300000.0, sum_events=False, calculate_uncertainty=False, weights_benchmark_uncertainties=None):
         """
         Low-level function that calculates a list of full Fisher information matrices for a given parameter point and
         benchmark weights. Do not use this function directly, instead use the other `FisherInformation` functions.
@@ -823,8 +823,8 @@ class FisherInformation:
         """
 
         # Get morphing matrices
-        theta_matrix = get_theta_benchmark_matrix("morphing", theta, self.benchmarks, self.morpher)
-        dtheta_matrix = get_dtheta_benchmark_matrix("morphing", theta, self.benchmarks, self.morpher)
+        theta_matrix = get_theta_benchmark_matrix("morphing", theta, self.benchmarks, self.morpher)  # (n_benchmarks,)
+        dtheta_matrix = get_dtheta_benchmark_matrix("morphing", theta, self.benchmarks, self.morpher)  # (n_parameters, n_benchmarks)
 
         # Get differential xsec per event, and the derivative wrt to theta
         sigma = theta_matrix.dot(weights_benchmarks.T)  # Shape (n_events,)
@@ -842,6 +842,26 @@ class FisherInformation:
         #  fisher_info = np.array(fisher_info)
 
         fisher_info = np.nan_to_num(fisher_info)
+
+        if calculate_uncertainty:
+            if weights_benchmark_uncertainties is None:
+                weights_benchmark_uncertainties = weights_benchmarks  # Shape (n_events, n_benchmarks)
+            covariance_inputs = (weights_benchmark_uncertainties**2).reshape((-1))
+
+            temp1 = np.einsum("ib,jn,n->ijnb", dtheta_matrix, dsigma, inv_sigma)
+            temp2 = np.einsum("jb,in,n->ijnb", dtheta_matrix, dsigma, inv_sigma)
+            temp3 = np.einsum("b,in,jn,n,n->bn", theta_matrix, dsigma, dsigma, inv_sigma, inv_sigma)
+
+            jacobian = luminosity * (temp1 + temp2 + temp3)  # (n_parameters, n_parameters, n_events, n_benchmarks)
+            jacobian = jacobian.reshape((jacobian.shape[0] * jacobian.shape[1],-1))
+
+            covariance_information = np.einsum("IK,K,JK->IJ", jacobian, covariance_inputs, jacobian)
+            covariance_information = covariance_information.reshape((self.n_parameters, self.n_parameters,
+                                                                     self.n_parameters, self.n_parameters))
+
+            if sum_events:
+                return np.sum(fisher_info, axis=0), covariance_information
+            return fisher_info, covariance_information
 
         if sum_events:
             return np.sum(fisher_info, axis=0)
