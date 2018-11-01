@@ -310,27 +310,6 @@ def save_preformatted_events_to_madminer_file(
 def save_events_to_madminer_file(
     filename, observables, observations, weights, copy_from=None, overwrite_existing_samples=True
 ):
-    """
-
-    Parameters
-    ----------
-    filename :
-        
-    observables :
-        
-    observations :
-        
-    weights :
-        
-    copy_from :
-         (Default value = None)
-    overwrite_existing_samples :
-         (Default value = True)
-
-    Returns
-    -------
-
-    """
     if copy_from is not None:
         try:
             shutil.copyfile(copy_from, filename)
@@ -350,45 +329,47 @@ def save_events_to_madminer_file(
             except Exception:
                 pass
 
-        # Prepare observable definitions
-        observable_names = [oname for oname in observables]
-        n_observables = len(observable_names)
-        observable_names_ascii = [oname.encode("ascii", "ignore") for oname in observable_names]
-        observable_definitions = []
-        for key in observable_names:
-            definition = observables[key]
-            if isinstance(definition, six.string_types):
-                observable_definitions.append(definition.encode("ascii", "ignore"))
-            else:
-                observable_definitions.append("".encode("ascii", "ignore"))
+        if observables is not None:
+            # Prepare observable definitions
+            observable_names = [oname for oname in observables]
+            n_observables = len(observable_names)
+            observable_names_ascii = [oname.encode("ascii", "ignore") for oname in observable_names]
+            observable_definitions = []
+            for key in observable_names:
+                definition = observables[key]
+                if isinstance(definition, six.string_types):
+                    observable_definitions.append(definition.encode("ascii", "ignore"))
+                else:
+                    observable_definitions.append("".encode("ascii", "ignore"))
 
-        # Store observable definitions
-        f.create_dataset("observables/names", (n_observables,), dtype="S256", data=observable_names_ascii)
-        f.create_dataset("observables/definitions", (n_observables,), dtype="S256", data=observable_definitions)
+            # Store observable definitions
+            f.create_dataset("observables/names", (n_observables,), dtype="S256", data=observable_names_ascii)
+            f.create_dataset("observables/definitions", (n_observables,), dtype="S256", data=observable_definitions)
 
-        # Try to find benchmarks in file
-        logging.debug("Weight names found in Delphes files: %s", [key for key in weights])
-        try:
-            benchmark_names = f["benchmarks/names"][()]
-            benchmark_names = [bname.decode("ascii") for bname in benchmark_names]
+        if weights is not None and observations is not None:
+            # Try to find benchmarks in file
+            logging.debug("Weight names found in Delphes files: %s", [key for key in weights])
+            try:
+                benchmark_names = f["benchmarks/names"][()]
+                benchmark_names = [bname.decode("ascii") for bname in benchmark_names]
 
-            logging.debug("Benchmarks found in MadMiner file: %s", benchmark_names)
+                logging.debug("Benchmarks found in MadMiner file: %s", benchmark_names)
 
-            weights_sorted = [weights[key] for key in benchmark_names]
+                weights_sorted = [weights[key] for key in benchmark_names]
 
-        except Exception as e:
-            logging.warning("Issue matching weight names in HepMC file to benchmark names in MadMiner file:\n%s", e)
+            except Exception as e:
+                logging.warning("Issue matching weight names in HepMC file to benchmark names in MadMiner file:\n%s", e)
 
-            weights_sorted = [weights[key] for key in weights]
+                weights_sorted = [weights[key] for key in weights]
 
-        # Save weights
-        weights_sorted = np.array(weights_sorted)
-        weights_sorted = weights_sorted.T  # Shape (n_events, n_benchmarks)
-        f.create_dataset("samples/weights", data=weights_sorted)
+            # Save weights
+            weights_sorted = np.array(weights_sorted)
+            weights_sorted = weights_sorted.T  # Shape (n_events, n_benchmarks)
+            f.create_dataset("samples/weights", data=weights_sorted)
 
-        # Prepare observable values
-        observations = np.array([observations[oname] for oname in observable_names]).T
-        f.create_dataset("samples/observations", data=observations)
+            # Prepare observable values
+            observations = np.array([observations[oname] for oname in observable_names]).T
+            f.create_dataset("samples/observations", data=observations)
 
 
 def save_madminer_file_from_lhe(
