@@ -828,13 +828,18 @@ class FisherInformation:
 
         # Get differential xsec per event, and the derivative wrt to theta
         sigma = theta_matrix.dot(weights_benchmarks.T)  # Shape (n_events,)
+        inv_sigma = np.nan_to_num(1. / sigma)  # Shape (n_events,)
         dsigma = dtheta_matrix.dot(weights_benchmarks.T)  # Shape (n_parameters, n_events)
 
         # Calculate Fisher info for this event
-        fisher_info = []
-        for i_event in range(len(sigma)):
-            fisher_info.append(luminosity / sigma[i_event] * np.tensordot(dsigma.T[i_event], dsigma.T[i_event], axes=0))
-        fisher_info = np.array(fisher_info)
+        fisher_info = luminosity * np.einsum("n,in,jn->nij", inv_sigma, dsigma, dsigma)
+
+        # Old code:
+        # fisher_info = []
+        # for i_event in range(len(sigma)):
+        #     fisher_info.append(luminosity / sigma[i_event] * np.tensordot(dsigma.T[i_event], dsigma.T[i_event],
+        #                                                                   axes=0))
+        #  fisher_info = np.array(fisher_info)
 
         fisher_info = np.nan_to_num(fisher_info)
 
