@@ -408,6 +408,10 @@ class DelphesProcessor:
 
         """
 
+        # Reset observations
+        self.observations = None
+        self.weights = None
+
         n_benchmarks = None if self.benchmark_names is None else len(self.benchmark_names)
 
         for delphes_file, weight_labels in zip(self.delphes_sample_filenames, self.hepmc_sample_weight_labels):
@@ -425,6 +429,10 @@ class DelphesProcessor:
                 weight_labels,
                 delete_delphes_sample_file=delete_delphes_files,
             )
+
+            # No events found?
+            if this_observations is None or this_weights is None:
+                continue
 
             # Number of benchmarks
             if n_benchmarks is None:
@@ -484,14 +492,10 @@ class DelphesProcessor:
 
         """
 
-        assert (
-            self.observables is not None and self.observations is not None and self.weights is not None
-        ), "Nothing to save!"
-
         if self.filename is None:
-            logging.info("Saving HDF5 file to %s", filename_out)
+            logging.debug("Saving HDF5 file to %s", filename_out)
         else:
-            logging.info("Loading HDF5 data from %s and saving file to %s", self.filename, filename_out)
+            logging.debug("Loading HDF5 data from %s and saving file to %s", self.filename, filename_out)
 
         save_events_to_madminer_file(
             filename_out, self.observables, self.observations, self.weights, copy_from=self.filename

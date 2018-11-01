@@ -181,7 +181,9 @@ def extract_observables_from_delphes_file(
     # Apply filter
     if combined_filter is not None:
         if np.sum(combined_filter) == 0:
-            raise RuntimeError("No observations remainining!")
+            logging.warning("No observations remainining!")
+
+            return None, None
 
         for obs_name in observable_values:
             observable_values[obs_name] = observable_values[obs_name][combined_filter]

@@ -11,27 +11,7 @@ import logging
 def save_madminer_settings(
     filename, parameters, benchmarks, morphing_components=None, morphing_matrix=None, overwrite_existing_files=True
 ):
-    """Saves all MadMiner settings into an HDF5 file.
-
-    Parameters
-    ----------
-    filename :
-        param parameters:
-    benchmarks :
-        param morphing_components:
-    morphing_matrix :
-        param overwrite_existing_files: (Default value = None)
-    parameters :
-        
-    morphing_components :
-         (Default value = None)
-    overwrite_existing_files :
-         (Default value = True)
-
-    Returns
-    -------
-
-    """
+    """Saves all MadMiner settings into an HDF5 file."""
 
     io_tag = "w" if overwrite_existing_files else "x"
 
@@ -81,17 +61,7 @@ def save_madminer_settings(
 
 
 def load_madminer_settings(filename):
-    """Loads MadMiner settings, observables, and weights from a HDF5 file.
-
-    Parameters
-    ----------
-    filename :
-        
-
-    Returns
-    -------
-
-    """
+    """ Loads MadMiner settings, observables, and weights from a HDF5 file. """
 
     with h5py.File(filename, "r") as f:
 
@@ -187,28 +157,14 @@ def load_madminer_settings(filename):
 
 
 def madminer_event_loader(filename, start=0, end=None, batch_size=100000):
-    """
-
-    Parameters
-    ----------
-    filename :
-        
-    start :
-         (Default value = 0)
-    end :
-         (Default value = None)
-    batch_size :
-         (Default value = 100000)
-
-    Returns
-    -------
-
-    """
     with h5py.File(filename, "r") as f:
 
         # Handles to data
-        observations = f["samples/observations"]
-        weights = f["samples/weights"]
+        try:
+            observations = f["samples/observations"]
+            weights = f["samples/weights"]
+        except KeyError:
+            return
 
         # Preparations
         n_samples = observations.shape[0]
@@ -234,17 +190,6 @@ def madminer_event_loader(filename, start=0, end=None, batch_size=100000):
 
 
 def load_benchmarks_from_madminer_file(filename):
-    """
-
-    Parameters
-    ----------
-    filename :
-        
-
-    Returns
-    -------
-
-    """
     with h5py.File(filename, "r") as f:
 
         # Benchmarks
@@ -310,27 +255,6 @@ def save_preformatted_events_to_madminer_file(
 def save_events_to_madminer_file(
     filename, observables, observations, weights, copy_from=None, overwrite_existing_samples=True
 ):
-    """
-
-    Parameters
-    ----------
-    filename :
-        
-    observables :
-        
-    observations :
-        
-    weights :
-        
-    copy_from :
-         (Default value = None)
-    overwrite_existing_samples :
-         (Default value = True)
-
-    Returns
-    -------
-
-    """
     if copy_from is not None:
         try:
             shutil.copyfile(copy_from, filename)
@@ -350,45 +274,47 @@ def save_events_to_madminer_file(
             except Exception:
                 pass
 
-        # Prepare observable definitions
-        observable_names = [oname for oname in observables]
-        n_observables = len(observable_names)
-        observable_names_ascii = [oname.encode("ascii", "ignore") for oname in observable_names]
-        observable_definitions = []
-        for key in observable_names:
-            definition = observables[key]
-            if isinstance(definition, six.string_types):
-                observable_definitions.append(definition.encode("ascii", "ignore"))
-            else:
-                observable_definitions.append("".encode("ascii", "ignore"))
+        if observables is not None:
+            # Prepare observable definitions
+            observable_names = [oname for oname in observables]
+            n_observables = len(observable_names)
+            observable_names_ascii = [oname.encode("ascii", "ignore") for oname in observable_names]
+            observable_definitions = []
+            for key in observable_names:
+                definition = observables[key]
+                if isinstance(definition, six.string_types):
+                    observable_definitions.append(definition.encode("ascii", "ignore"))
+                else:
+                    observable_definitions.append("".encode("ascii", "ignore"))
 
-        # Store observable definitions
-        f.create_dataset("observables/names", (n_observables,), dtype="S256", data=observable_names_ascii)
-        f.create_dataset("observables/definitions", (n_observables,), dtype="S256", data=observable_definitions)
+            # Store observable definitions
+            f.create_dataset("observables/names", (n_observables,), dtype="S256", data=observable_names_ascii)
+            f.create_dataset("observables/definitions", (n_observables,), dtype="S256", data=observable_definitions)
 
-        # Try to find benchmarks in file
-        logging.debug("Weight names found in Delphes files: %s", [key for key in weights])
-        try:
-            benchmark_names = f["benchmarks/names"][()]
-            benchmark_names = [bname.decode("ascii") for bname in benchmark_names]
+        if weights is not None and observations is not None:
+            # Try to find benchmarks in file
+            logging.debug("Weight names found in Delphes files: %s", [key for key in weights])
+            try:
+                benchmark_names = f["benchmarks/names"][()]
+                benchmark_names = [bname.decode("ascii") for bname in benchmark_names]
 
-            logging.debug("Benchmarks found in MadMiner file: %s", benchmark_names)
+                logging.debug("Benchmarks found in MadMiner file: %s", benchmark_names)
 
-            weights_sorted = [weights[key] for key in benchmark_names]
+                weights_sorted = [weights[key] for key in benchmark_names]
 
-        except Exception as e:
-            logging.warning("Issue matching weight names in HepMC file to benchmark names in MadMiner file:\n%s", e)
+            except Exception as e:
+                logging.warning("Issue matching weight names in HepMC file to benchmark names in MadMiner file:\n%s", e)
 
-            weights_sorted = [weights[key] for key in weights]
+                weights_sorted = [weights[key] for key in weights]
 
-        # Save weights
-        weights_sorted = np.array(weights_sorted)
-        weights_sorted = weights_sorted.T  # Shape (n_events, n_benchmarks)
-        f.create_dataset("samples/weights", data=weights_sorted)
+            # Save weights
+            weights_sorted = np.array(weights_sorted)
+            weights_sorted = weights_sorted.T  # Shape (n_events, n_benchmarks)
+            f.create_dataset("samples/weights", data=weights_sorted)
 
-        # Prepare observable values
-        observations = np.array([observations[oname] for oname in observable_names]).T
-        f.create_dataset("samples/observations", data=observations)
+            # Prepare observable values
+            observations = np.array([observations[oname] for oname in observable_names]).T
+            f.create_dataset("samples/observations", data=observations)
 
 
 def save_madminer_file_from_lhe(
