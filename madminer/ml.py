@@ -939,7 +939,6 @@ class EnsembleForge:
 
                 self.estimators.append(estimator_object)
 
-        self.estimators = estimators
         self.n_estimators = len(self.estimators)
         self.expectations = None
 
