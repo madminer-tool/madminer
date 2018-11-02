@@ -7,15 +7,7 @@ from madminer.utils.ml.utils import get_activation_function
 
 class LocalScoreEstimator(nn.Module):
     """Module that implements local score estimators for methods like SALLY and SALLINO, or the calculation
-     of Fisher information matrices.
-
-    Parameters
-    ----------
-
-    Returns
-    -------
-
-    """
+     of Fisher information matrices."""
 
     def __init__(self, n_observables, n_parameters, n_hidden, activation='tanh'):
 
@@ -42,17 +34,6 @@ class LocalScoreEstimator(nn.Module):
         )
 
     def forward(self, x):
-        """
-
-        Parameters
-        ----------
-        x :
-            
-
-        Returns
-        -------
-
-        """
         t_hat = x
 
         for i, layer in enumerate(self.layers):
@@ -63,19 +44,6 @@ class LocalScoreEstimator(nn.Module):
         return t_hat
 
     def to(self, *args, **kwargs):
-        """
-
-        Parameters
-        ----------
-        *args :
-            
-        **kwargs :
-            
-
-        Returns
-        -------
-
-        """
         self = super(LocalScoreEstimator, self).to(*args, **kwargs)
 
         for i, layer in enumerate(self.layers):

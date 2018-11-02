@@ -125,7 +125,7 @@ def extract_observables_from_delphes_file(
         values_this_observable = np.array(values_this_observable, dtype=np.float)
         observable_values[obs_name] = values_this_observable
 
-        logging.debug("  First 100 values for observable %s:\n%s", obs_name, values_this_observable[:100])
+        logging.debug("  First 10 values for observable %s:\n%s", obs_name, values_this_observable[:10])
 
     # Cuts
     cut_values = []
@@ -157,9 +157,7 @@ def extract_observables_from_delphes_file(
             n_pass = np.sum(this_filter)
             n_fail = np.sum(np.invert(this_filter))
 
-            logging.info(
-                "  Requiring existence of observable %s: %s events pass, %s events removed", obs_name, n_pass, n_fail
-            )
+            logging.debug("  %s / %s events pass required observable %s", n_pass, n_pass + n_fail, obs_name)
 
             if combined_filter is None:
                 combined_filter = this_filter
@@ -171,7 +169,7 @@ def extract_observables_from_delphes_file(
         n_pass = np.sum(values_this_cut)
         n_fail = np.sum(np.invert(values_this_cut))
 
-        logging.info("  Cut %s: %s events pass, %s events removed", cut, n_pass, n_fail)
+        logging.debug("  %s / %s events pass cut %s", n_pass, n_pass + n_fail, cut)
 
         if combined_filter is None:
             combined_filter = values_this_cut
@@ -180,10 +178,15 @@ def extract_observables_from_delphes_file(
 
     # Apply filter
     if combined_filter is not None:
-        if np.sum(combined_filter) == 0:
-            logging.warning("No observations remainining!")
+        n_pass = np.sum(combined_filter)
+        n_fail = np.sum(np.invert(combined_filter))
+
+        if n_pass == 0:
+            logging.warning("  No observations remainining!")
 
             return None, None
+
+        logging.info("  %s / %s events pass everything", n_pass, n_pass + n_fail)
 
         for obs_name in observable_values:
             observable_values[obs_name] = observable_values[obs_name][combined_filter]
