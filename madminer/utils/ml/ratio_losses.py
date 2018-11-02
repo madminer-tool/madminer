@@ -7,33 +7,6 @@ from torch.nn import BCELoss, MSELoss
 
 
 def ratio_mse_num(s_hat, log_r_hat, t0_hat, t1_hat, y_true, r_true, t0_true, t1_true, log_r_clip=10.0):
-    """
-
-    Parameters
-    ----------
-    s_hat :
-        
-    log_r_hat :
-        
-    t0_hat :
-        
-    t1_hat :
-        
-    y_true :
-        
-    r_true :
-        
-    t0_true :
-        
-    t1_true :
-        
-    log_r_clip :
-         (Default value = 10.)
-
-    Returns
-    -------
-
-    """
     r_true = torch.clamp(r_true, np.exp(-log_r_clip), np.exp(log_r_clip))
     log_r_hat = torch.clamp(log_r_hat, -log_r_clip, log_r_clip)
 
@@ -42,33 +15,6 @@ def ratio_mse_num(s_hat, log_r_hat, t0_hat, t1_hat, y_true, r_true, t0_true, t1_
 
 
 def ratio_mse_den(s_hat, log_r_hat, t0_hat, t1_hat, y_true, r_true, t0_true, t1_true, log_r_clip=10.0):
-    """
-
-    Parameters
-    ----------
-    s_hat :
-        
-    log_r_hat :
-        
-    t0_hat :
-        
-    t1_hat :
-        
-    y_true :
-        
-    r_true :
-        
-    t0_true :
-        
-    t1_true :
-        
-    log_r_clip :
-         (Default value = 10.)
-
-    Returns
-    -------
-
-    """
     r_true = torch.clamp(r_true, np.exp(-log_r_clip), np.exp(log_r_clip))
     log_r_hat = torch.clamp(log_r_hat, -log_r_clip, log_r_clip)
 
@@ -77,184 +23,32 @@ def ratio_mse_den(s_hat, log_r_hat, t0_hat, t1_hat, y_true, r_true, t0_true, t1_
 
 
 def ratio_mse(s_hat, log_r_hat, t0_hat, t1_hat, y_true, r_true, t0_true, t1_true, log_r_clip=10.0):
-    """
-
-    Parameters
-    ----------
-    s_hat :
-        
-    log_r_hat :
-        
-    t0_hat :
-        
-    t1_hat :
-        
-    y_true :
-        
-    r_true :
-        
-    t0_true :
-        
-    t1_true :
-        
-    log_r_clip :
-         (Default value = 10.)
-
-    Returns
-    -------
-
-    """
     return ratio_mse_num(
         s_hat, log_r_hat, t0_hat, t1_hat, y_true, r_true, t0_true, t1_true, log_r_clip
     ) + ratio_mse_den(s_hat, log_r_hat, t0_hat, t1_hat, y_true, r_true, t0_true, t1_true, log_r_clip)
 
 
 def score_mse_num(s_hat, log_r_hat, t0_hat, t1_hat, y_true, r_true, t0_true, t1_true):
-    """
-
-    Parameters
-    ----------
-    s_hat :
-        
-    log_r_hat :
-        
-    t0_hat :
-        
-    t1_hat :
-        
-    y_true :
-        
-    r_true :
-        
-    t0_true :
-        
-    t1_true :
-        
-
-    Returns
-    -------
-
-    """
     return MSELoss()((1.0 - y_true) * t0_hat, (1.0 - y_true) * t0_true)
 
 
 def score_mse_den(s_hat, log_r_hat, t0_hat, t1_hat, y_true, r_true, t0_true, t1_true):
-    """
-
-    Parameters
-    ----------
-    s_hat :
-        
-    log_r_hat :
-        
-    t0_hat :
-        
-    t1_hat :
-        
-    y_true :
-        
-    r_true :
-        
-    t0_true :
-        
-    t1_true :
-        
-
-    Returns
-    -------
-
-    """
     return MSELoss()(y_true * t1_hat, y_true * t1_true)
 
 
 def score_mse(s_hat, log_r_hat, t0_hat, t1_hat, y_true, r_true, t0_true, t1_true):
-    """
-
-    Parameters
-    ----------
-    s_hat :
-        
-    log_r_hat :
-        
-    t0_hat :
-        
-    t1_hat :
-        
-    y_true :
-        
-    r_true :
-        
-    t0_true :
-        
-    t1_true :
-        
-
-    Returns
-    -------
-
-    """
     return score_mse_num(s_hat, log_r_hat, t0_hat, t1_hat, y_true, r_true, t0_true, t1_true) + score_mse_den(
         s_hat, log_r_hat, t0_hat, t1_hat, y_true, r_true, t0_true, t1_true
     )
 
 
 def standard_cross_entropy(s_hat, log_r_hat, t0_hat, t1_hat, y_true, r_true, t0_true, t1_true):
-    """
-
-    Parameters
-    ----------
-    s_hat :
-        
-    log_r_hat :
-        
-    t0_hat :
-        
-    t1_hat :
-        
-    y_true :
-        
-    r_true :
-        
-    t0_true :
-        
-    t1_true :
-        
-
-    Returns
-    -------
-
-    """
     s_hat = 1.0 / (1.0 + torch.exp(log_r_hat))
 
     return BCELoss()(s_hat, y_true)
 
 
 def augmented_cross_entropy(s_hat, log_r_hat, t0_hat, t1_hat, y_true, r_true, t0_true, t1_true):
-    """
-
-    Parameters
-    ----------
-    s_hat :
-        
-    log_r_hat :
-        
-    t0_hat :
-        
-    t1_hat :
-        
-    y_true :
-        
-    r_true :
-        
-    t0_true :
-        
-    t1_true :
-        
-
-    Returns
-    -------
-
-    """
     s_hat = 1.0 / (1.0 + torch.exp(log_r_hat))
     s_true = 1.0 / (1.0 + r_true)
 
@@ -262,17 +56,4 @@ def augmented_cross_entropy(s_hat, log_r_hat, t0_hat, t1_hat, y_true, r_true, t0
 
 
 def local_score_mse(t_hat, t_true):
-    """
-
-    Parameters
-    ----------
-    t_hat :
-        
-    t_true :
-        
-
-    Returns
-    -------
-
-    """
     return MSELoss()(t_hat, t_true)
