@@ -104,7 +104,7 @@ class DelphesProcessor:
 
         """
 
-        logging.info("Adding HepMC sample at %s", filename)
+        logging.debug("Adding HepMC sample at %s", filename)
 
         self.hepmc_sample_filenames.append(filename)
         self.hepmc_sample_weight_labels.append(extract_weight_order(filename, sampled_from_benchmark))
@@ -294,7 +294,14 @@ class DelphesProcessor:
         self.observables_defaults[name] = default
 
     def add_default_observables(
-        self, n_leptons_max=2, n_photons_max=2, n_jets_max=2, include_met=True, include_visible_sum=True, include_numbers=True
+        self,
+        n_leptons_max=2,
+        n_photons_max=2,
+        n_jets_max=2,
+        include_met=True,
+        include_visible_sum=True,
+        include_numbers=True,
+        include_charge=True,
     ):
         """
         Adds a set of simple standard observables: the four-momenta (parameterized as E, pT, eta, phi) of the hardest
@@ -319,6 +326,9 @@ class DelphesProcessor:
 
         include_numbers : bool, optional
             Whether the number of leptons, photons, and jets is saved as observable. Default value: True.
+
+        include_charge : bool, optional
+            Whether the lepton charge is saved as observable. Default value: True.
 
         Returns
         -------
@@ -355,7 +365,7 @@ class DelphesProcessor:
                 self.add_observable(
                     "phi_{}{}".format(symbol, i + 1), "{}[{}].phi()".format(symbol, i), required=False, default=0.0
                 )
-                if include_charge:
+                if include_charge and symbol == "l":
                     self.add_observable(
                         "charge_{}{}".format(symbol, i + 1),
                         "{}[{}].charge".format(symbol, i),
