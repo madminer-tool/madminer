@@ -156,7 +156,17 @@ examples/debug/py.py
 examples/debug/models
 
 examples/tests/datasave
-examples/diboson_parton
+
+examples/diboson_parton/temp
+examples/diboson_parton/nsqso_born.inc
+examples/diboson_parton/data
+examples/diboson_parton/datasave
+examples/diboson_parton/logs
+examples/diboson_parton/ME5_debug
+examples/diboson_parton/mg_processes
+examples/diboson_parton/py.py
+examples/diboson_parton/models
+examples/diboson_parton/figures
 
 # MG / Pythia / Delphes patch
 patches/
