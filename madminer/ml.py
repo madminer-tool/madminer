@@ -88,7 +88,7 @@ class MLForge:
         nesterov_momentum=None,
         validation_split=0.25,
         early_stopping=True,
-        scale_inputs=True
+        scale_inputs=True,
     ):
 
         """
@@ -318,14 +318,26 @@ class MLForge:
         logging.info("Found %s samples with %s parameters and %s observables", n_samples, n_parameters, n_observables)
 
         # Scale features
-        if self.scale_inputs:
+        logging.info("Rescaling inputs")
+        if scale_inputs:
             self.x_scaling_means = np.mean(x, axis=0)
-            self.x_scaling_stds = np.maximum(np.std(x, axis=0), 1.e-6)
-            x[:] -= self.x_scaling_mean
+            self.x_scaling_stds = np.maximum(np.std(x, axis=0), 1.0e-6)
+            x[:] -= self.x_scaling_means
             x[:] /= self.x_scaling_stds
         else:
             self.x_scaling_means = np.zeros(n_parameters)
             self.x_scaling_stds = np.ones(n_parameters)
+
+        logging.debug("Observable ranges:")
+        for i in range(n_observables):
+            logging.debug(
+                "  x_%s: mean %s, std %s, range %s ... %s",
+                i + 1,
+                np.mean(x[:, i]),
+                np.std(x[:, i]),
+                np.min(x[:, i]),
+                np.max(x[:, i]),
+            )
 
         # Features
         if features is not None:
@@ -765,11 +777,9 @@ class MLForge:
             np.save(filename + "_x_means.npy", self.x_scaling_means)
             np.save(filename + "_x_stds.npy", self.x_scaling_stds)
 
-
         # Save state dict
         logging.debug("Saving state dictionary to %s_state_dict.pt", filename)
         torch.save(self.model.state_dict(), filename + "_state_dict.pt")
-
 
     def load(self, filename):
 
@@ -820,7 +830,9 @@ class MLForge:
         try:
             self.x_scaling_means = np.load(filename + "_x_means.npy")
             self.x_scaling_stds = np.load(filename + "_x_stds.npy")
-            logging.debug("  Found input scaling information: means %s, stds %s", self.x_scaling_means, self.x_scaling_stds)
+            logging.debug(
+                "  Found input scaling information: means %s, stds %s", self.x_scaling_means, self.x_scaling_stds
+            )
         except FileNotFoundError:
             logging.warning("Scaling information not found in %s", filename)
             self.x_scaling_means = None
