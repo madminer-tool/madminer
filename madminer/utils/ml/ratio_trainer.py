@@ -69,8 +69,10 @@ def train_ratio_model(
     loss_weights=None,
     loss_labels=None,
     batch_size=64,
+    trainer="adam",
     initial_learning_rate=0.01,
     final_learning_rate=0.0001,
+    nesterov_momentum=None,
     n_epochs=50,
     clip_gradient=100.0,
     run_on_gpu=True,
@@ -82,65 +84,6 @@ def train_ratio_model(
     learning_curve_filename=None,
     verbose="some",
 ):
-    """
-
-    Parameters
-    ----------
-    model :
-        
-    loss_functions :
-        
-    method_type :
-         (Default value = 'parameterized')
-    theta0s :
-         (Default value = None)
-    theta1s :
-         (Default value = None)
-    xs :
-         (Default value = None)
-    ys :
-         (Default value = None)
-    r_xzs :
-         (Default value = None)
-    t_xz0s :
-         (Default value = None)
-    t_xz1s :
-         (Default value = None)
-    loss_weights :
-         (Default value = None)
-    loss_labels :
-         (Default value = None)
-    batch_size :
-         (Default value = 64)
-    initial_learning_rate :
-         (Default value = 0.001)
-    final_learning_rate :
-         (Default value = 0.0001)
-    n_epochs :
-         (Default value = 50)
-    clip_gradient :
-         (Default value = 1.)
-    run_on_gpu :
-         (Default value = True)
-    double_precision :
-         (Default value = False)
-    validation_split :
-         (Default value = 0.2)
-    early_stopping :
-         (Default value = True)
-    early_stopping_patience :
-         (Default value = 20)
-    learning_curve_folder :
-         (Default value = None)
-    learning_curve_filename :
-         (Default value = None)
-    verbose :
-         (Default value = 'some')
-
-    Returns
-    -------
-
-    """
     # CPU or GPU?
     run_on_gpu = run_on_gpu and torch.cuda.is_available()
     device = torch.device("cuda" if run_on_gpu else "cpu")
@@ -189,7 +132,19 @@ def train_ratio_model(
         train_loader = DataLoader(dataset, batch_size=batch_size, shuffle=True, pin_memory=run_on_gpu)
 
     # Optimizer
-    optimizer = optim.Adam(model.parameters(), lr=initial_learning_rate)
+    if trainer == "adam":
+        optimizer = optim.Adam(model.parameters(), lr=initial_learning_rate)
+    elif trainer == "amsgrad":
+        optimizer = optim.Adam(model.parameters(), lr=initial_learning_rate, amsgrad=True)
+    elif trainer == "sgd":
+        if nesterov_momentum is None:
+            optimizer = optim.SGD(model.parameters(), lr=initial_learning_rate)
+        else:
+            optimizer = optim.SGD(
+                model.parameters(), lr=initial_learning_rate, nesterov=True, momentum=nesterov_momentum
+            )
+    else:
+        raise ValueError("Unknown trainer {}".format(trainer))
 
     # Early stopping
     early_stopping = early_stopping and (validation_split is not None) and (n_epochs > 1)

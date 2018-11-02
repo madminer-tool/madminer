@@ -151,7 +151,7 @@ while <cite>“mu[0].charge &gt; 0.”</cite> specifies that the hardest muon is
 
 <dl class="method">
 <dt id="madminer.delphes.DelphesProcessor.add_default_observables">
-<code class="descname">add_default_observables</code><span class="sig-paren">(</span><em>n_leptons_max=2</em>, <em>n_photons_max=2</em>, <em>n_jets_max=2</em>, <em>include_met=True</em>, <em>include_visible_sum=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/delphes.html#DelphesProcessor.add_default_observables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.delphes.DelphesProcessor.add_default_observables" title="Permalink to this definition">¶</a></dt>
+<code class="descname">add_default_observables</code><span class="sig-paren">(</span><em>n_leptons_max=2</em>, <em>n_photons_max=2</em>, <em>n_jets_max=2</em>, <em>include_met=True</em>, <em>include_visible_sum=True</em>, <em>include_numbers=True</em>, <em>include_charge=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/delphes.html#DelphesProcessor.add_default_observables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.delphes.DelphesProcessor.add_default_observables" title="Permalink to this definition">¶</a></dt>
 <dd><p>Adds a set of simple standard observables: the four-momenta (parameterized as E, pT, eta, phi) of the hardest
 visible particles, and the missing transverse energy.</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -173,6 +173,12 @@ visible particles, and the missing transverse energy.</p>
 </dd>
 <dt><strong>include_visible_sum</strong> <span class="classifier-delimiter">:</span> <span class="classifier">bool, optional</span></dt>
 <dd><p class="first last">Whether observables characterizing the sum of all particles are stored. Default value: True.</p>
+</dd>
+<dt><strong>include_numbers</strong> <span class="classifier-delimiter">:</span> <span class="classifier">bool, optional</span></dt>
+<dd><p class="first last">Whether the number of leptons, photons, and jets is saved as observable. Default value: True.</p>
+</dd>
+<dt><strong>include_charge</strong> <span class="classifier-delimiter">:</span> <span class="classifier">bool, optional</span></dt>
+<dd><p class="first last">Whether the lepton charge is saved as observable. Default value: True.</p>
 </dd>
 </dl>
 </td>

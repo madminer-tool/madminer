@@ -56,6 +56,7 @@ class MLForge:
         self.maf_batch_norm = None
         self.maf_batch_norm_alpha = None
         self.features = None
+        self.debug = debug
 
     def train(
         self,
@@ -69,18 +70,20 @@ class MLForge:
         t_xz1_filename=None,
         features=None,
         nde_type="maf",
-        n_hidden=(100, 100, 100),
+        n_hidden=(100, 100),
         activation="tanh",
         maf_n_mades=3,
         maf_batch_norm=True,
         maf_batch_norm_alpha=0.1,
         maf_mog_n_components=10,
         alpha=1.0,
-        n_epochs=20,
+        trainer="amsgrad",
+        n_epochs=50,
         batch_size=128,
-        initial_lr=0.002,
+        initial_lr=0.001,
         final_lr=0.0001,
-        validation_split=0.2,
+        nesterov_momentum=None,
+        validation_split=0.25,
         early_stopping=True,
     ):
 
@@ -152,9 +155,9 @@ class MLForge:
             estimator. Currently supported are 'maf' for a Masked Autoregressive Flow with a Gaussian base density, or
             'mafmog' for a Masked Autoregressive Flow with a mixture of Gaussian base densities. Default value: 'maf'.
 
-        n_hidden : int, optional
-            Number of hidden layers in the neural networks. If method is 'nde' or 'scandal', this refers to the number
-            of hidden layers in each individual MADE layer. Default value: 100.
+        n_hidden : tuple of int, optional
+            Units in each hidden layer in the neural networks. If method is 'nde' or 'scandal', this refers to the
+            setup of each individual MADE layer. Default value: (100, 100).
             
         activation : {'tanh', 'sigmoid', 'relu'}, optional
             Activation function. Default value: 'tanh'
@@ -178,18 +181,24 @@ class MLForge:
             Hyperparameter weighting the score error in the loss function of the 'alices', 'alices2', 'rascal',
             'rascal2', and 'scandal' methods.
 
+        trainer : {"adam", "amsgrad", "sgd"}, optional
+            Optimization algorithm. Default value: "amsgrad".
+
         n_epochs : int, optional
-            Number of epochs. Default value: 20.
+            Number of epochs. Default value: 50.
 
         batch_size : int, optional
             Batch size. Default value: 128.
 
         initial_lr : float, optional
             Learning rate during the first epoch, after which it exponentially decays to final_lr. Default value:
-            0.002.
+            0.001.
 
         final_lr : float, optional
             Learning rate during the last epoch. Default value: 0.0001.
+
+        nesterov_momentum : float or None, optional
+            If trainer is "sgd", sets the Nesterov momentum. Default value: None.
 
         validation_split : float or None, optional
             Fraction of samples used  for validation and early stopping (if early_stopping is True). If None, the entire
@@ -237,8 +246,11 @@ class MLForge:
         if method in ["cascal", "cascal2", "rascal", "rascal2", "scandal"]:
             logging.info("  alpha:                  %s", alpha)
         logging.info("  Batch size:             %s", batch_size)
+        logging.info("  Trainer:                %s", trainer)
         logging.info("  Epochs:                 %s", n_epochs)
         logging.info("  Learning rate:          %s initially, decaying to %s", initial_lr, final_lr)
+        if trainer == "sgd":
+            logging.info("  Nesterov momentum:      %s", nesterov_momentum)
         logging.info("  Validation split:       %s", validation_split)
         logging.info("  Early stopping:         %s", early_stopping)
 
@@ -428,6 +440,9 @@ class MLForge:
                 final_learning_rate=final_lr,
                 validation_split=validation_split,
                 early_stopping=early_stopping,
+                trainer=trainer,
+                nesterov_momentum=nesterov_momentum,
+                verbose="all" if self.debug else "some",
             )
         elif method in ["nde", "scandal"]:
             train_flow_model(
@@ -443,6 +458,9 @@ class MLForge:
                 final_learning_rate=final_lr,
                 validation_split=validation_split,
                 early_stopping=early_stopping,
+                trainer=trainer,
+                nesterov_momentum=nesterov_momentum,
+                verbose="all" if self.debug else "some",
             )
         else:
             train_ratio_model(
@@ -464,6 +482,9 @@ class MLForge:
                 final_learning_rate=final_lr,
                 validation_split=validation_split,
                 early_stopping=early_stopping,
+                trainer=trainer,
+                nesterov_momentum=nesterov_momentum,
+                verbose="all" if self.debug else "some",
             )
 
     def evaluate(

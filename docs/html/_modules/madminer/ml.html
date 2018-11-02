@@ -104,18 +104,20 @@
         <span class="n">t_xz1_filename</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">features</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">nde_type</span><span class="o">=</span><span class="s2">&quot;maf&quot;</span><span class="p">,</span>
-        <span class="n">n_hidden</span><span class="o">=</span><span class="p">(</span><span class="mi">100</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span> <span class="mi">100</span><span class="p">),</span>
+        <span class="n">n_hidden</span><span class="o">=</span><span class="p">(</span><span class="mi">100</span><span class="p">,</span> <span class="mi">100</span><span class="p">,),</span>
         <span class="n">activation</span><span class="o">=</span><span class="s2">&quot;tanh&quot;</span><span class="p">,</span>
         <span class="n">maf_n_mades</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
         <span class="n">maf_batch_norm</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
         <span class="n">maf_batch_norm_alpha</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
         <span class="n">maf_mog_n_components</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
         <span class="n">alpha</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
-        <span class="n">n_epochs</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>
+        <span class="n">trainer</span><span class="o">=</span><span class="s2">&quot;amsgrad&quot;</span><span class="p">,</span>
+        <span class="n">n_epochs</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span>
         <span class="n">batch_size</span><span class="o">=</span><span class="mi">128</span><span class="p">,</span>
-        <span class="n">initial_lr</span><span class="o">=</span><span class="mf">0.002</span><span class="p">,</span>
+        <span class="n">initial_lr</span><span class="o">=</span><span class="mf">0.001</span><span class="p">,</span>
         <span class="n">final_lr</span><span class="o">=</span><span class="mf">0.0001</span><span class="p">,</span>
-        <span class="n">validation_split</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span>
+        <span class="n">nesterov_momentum</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">validation_split</span><span class="o">=</span><span class="mf">0.25</span><span class="p">,</span>
         <span class="n">early_stopping</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
     <span class="p">):</span>
 
@@ -187,9 +189,9 @@
 <span class="sd">            estimator. Currently supported are &#39;maf&#39; for a Masked Autoregressive Flow with a Gaussian base density, or</span>
 <span class="sd">            &#39;mafmog&#39; for a Masked Autoregressive Flow with a mixture of Gaussian base densities. Default value: &#39;maf&#39;.</span>
 
-<span class="sd">        n_hidden : int, optional</span>
-<span class="sd">            Number of hidden layers in the neural networks. If method is &#39;nde&#39; or &#39;scandal&#39;, this refers to the number</span>
-<span class="sd">            of hidden layers in each individual MADE layer. Default value: 100.</span>
+<span class="sd">        n_hidden : tuple of int, optional</span>
+<span class="sd">            Units in each hidden layer in the neural networks. If method is &#39;nde&#39; or &#39;scandal&#39;, this refers to the</span>
+<span class="sd">            setup of each individual MADE layer. Default value: (100, 100).</span>
 <span class="sd">            </span>
 <span class="sd">        activation : {&#39;tanh&#39;, &#39;sigmoid&#39;, &#39;relu&#39;}, optional</span>
 <span class="sd">            Activation function. Default value: &#39;tanh&#39;</span>
@@ -213,18 +215,24 @@
 <span class="sd">            Hyperparameter weighting the score error in the loss function of the &#39;alices&#39;, &#39;alices2&#39;, &#39;rascal&#39;,</span>
 <span class="sd">            &#39;rascal2&#39;, and &#39;scandal&#39; methods.</span>
 
+<span class="sd">        trainer : {&quot;adam&quot;, &quot;amsgrad&quot;, &quot;sgd&quot;}, optional</span>
+<span class="sd">            Optimization algorithm. Default value: &quot;amsgrad&quot;.</span>
+
 <span class="sd">        n_epochs : int, optional</span>
-<span class="sd">            Number of epochs. Default value: 20.</span>
+<span class="sd">            Number of epochs. Default value: 50.</span>
 
 <span class="sd">        batch_size : int, optional</span>
 <span class="sd">            Batch size. Default value: 128.</span>
 
 <span class="sd">        initial_lr : float, optional</span>
 <span class="sd">            Learning rate during the first epoch, after which it exponentially decays to final_lr. Default value:</span>
-<span class="sd">            0.002.</span>
+<span class="sd">            0.001.</span>
 
 <span class="sd">        final_lr : float, optional</span>
 <span class="sd">            Learning rate during the last epoch. Default value: 0.0001.</span>
+
+<span class="sd">        nesterov_momentum : float or None, optional</span>
+<span class="sd">            If trainer is &quot;sgd&quot;, sets the Nesterov momentum. Default value: None.</span>
 
 <span class="sd">        validation_split : float or None, optional</span>
 <span class="sd">            Fraction of samples used  for validation and early stopping (if early_stopping is True). If None, the entire</span>
@@ -272,8 +280,11 @@
         <span class="k">if</span> <span class="n">method</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;cascal&quot;</span><span class="p">,</span> <span class="s2">&quot;cascal2&quot;</span><span class="p">,</span> <span class="s2">&quot;rascal&quot;</span><span class="p">,</span> <span class="s2">&quot;rascal2&quot;</span><span class="p">,</span> <span class="s2">&quot;scandal&quot;</span><span class="p">]:</span>
             <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;  alpha:                  </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">alpha</span><span class="p">)</span>
         <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;  Batch size:             </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">)</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;  Trainer:                </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">trainer</span><span class="p">)</span>
         <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;  Epochs:                 </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">n_epochs</span><span class="p">)</span>
         <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;  Learning rate:          </span><span class="si">%s</span><span class="s2"> initially, decaying to </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">initial_lr</span><span class="p">,</span> <span class="n">final_lr</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">trainer</span> <span class="o">==</span> <span class="s1">&#39;sgd&#39;</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;  Nesterov momentum:      </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">nesterov_momentum</span><span class="p">)</span>
         <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;  Validation split:       </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">validation_split</span><span class="p">)</span>
         <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;  Early stopping:         </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">early_stopping</span><span class="p">)</span>
 
@@ -376,7 +387,7 @@
                     <span class="n">n_mades</span><span class="o">=</span><span class="n">maf_n_mades</span><span class="p">,</span>
                     <span class="n">activation</span><span class="o">=</span><span class="n">activation</span><span class="p">,</span>
                     <span class="n">batch_norm</span><span class="o">=</span><span class="n">maf_batch_norm</span><span class="p">,</span>
-                    <span class="n">alpha</span><span class="o">=</span><span class="n">maf_batch_norm_alpha</span><span class="p">,</span>
+                    <span class="n">alpha</span><span class="o">=</span><span class="n">maf_batch_norm_alpha</span>
                 <span class="p">)</span>
             <span class="k">elif</span> <span class="n">nde_type</span> <span class="o">==</span> <span class="s2">&quot;maf_mog&quot;</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">ConditionalMixtureMaskedAutoregressiveFlow</span><span class="p">(</span>
@@ -463,6 +474,8 @@
                 <span class="n">final_learning_rate</span><span class="o">=</span><span class="n">final_lr</span><span class="p">,</span>
                 <span class="n">validation_split</span><span class="o">=</span><span class="n">validation_split</span><span class="p">,</span>
                 <span class="n">early_stopping</span><span class="o">=</span><span class="n">early_stopping</span><span class="p">,</span>
+                <span class="n">trainer</span><span class="o">=</span><span class="n">trainer</span><span class="p">,</span>
+                <span class="n">nesterov_momentum</span><span class="o">=</span><span class="n">nesterov_momentum</span>
             <span class="p">)</span>
         <span class="k">elif</span> <span class="n">method</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;nde&quot;</span><span class="p">,</span> <span class="s2">&quot;scandal&quot;</span><span class="p">]:</span>
             <span class="n">train_flow_model</span><span class="p">(</span>
@@ -478,6 +491,8 @@
                 <span class="n">final_learning_rate</span><span class="o">=</span><span class="n">final_lr</span><span class="p">,</span>
                 <span class="n">validation_split</span><span class="o">=</span><span class="n">validation_split</span><span class="p">,</span>
                 <span class="n">early_stopping</span><span class="o">=</span><span class="n">early_stopping</span><span class="p">,</span>
+                <span class="n">trainer</span><span class="o">=</span><span class="n">trainer</span><span class="p">,</span>
+                <span class="n">nesterov_momentum</span><span class="o">=</span><span class="n">nesterov_momentum</span>
             <span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">train_ratio_model</span><span class="p">(</span>
@@ -499,6 +514,8 @@
                 <span class="n">final_learning_rate</span><span class="o">=</span><span class="n">final_lr</span><span class="p">,</span>
                 <span class="n">validation_split</span><span class="o">=</span><span class="n">validation_split</span><span class="p">,</span>
                 <span class="n">early_stopping</span><span class="o">=</span><span class="n">early_stopping</span><span class="p">,</span>
+                <span class="n">trainer</span><span class="o">=</span><span class="n">trainer</span><span class="p">,</span>
+                <span class="n">nesterov_momentum</span><span class="o">=</span><span class="n">nesterov_momentum</span>
             <span class="p">)</span></div>
 
 <div class="viewcode-block" id="MLForge.evaluate"><a class="viewcode-back" href="../../madminer.ml.html#madminer.ml.MLForge.evaluate">[docs]</a>    <span class="k">def</span> <span class="nf">evaluate</span><span class="p">(</span>
