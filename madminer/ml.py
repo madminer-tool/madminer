@@ -202,7 +202,7 @@ class MLForge:
 
         validation_split : float or None, optional
             Fraction of samples used  for validation and early stopping (if early_stopping is True). If None, the entire
-            sample is used for training and early stopping is deactivated. Default value: 0.2.
+            sample is used for training and early stopping is deactivated. Default value: 0.25.
 
         early_stopping : bool, optional
             Activates early stopping based on the validation loss (only if validation_split is not None).

@@ -70,7 +70,7 @@ def train_ratio_model(
     loss_labels=None,
     batch_size=64,
     trainer="adam",
-    initial_learning_rate=0.01,
+    initial_learning_rate=0.001,
     final_learning_rate=0.0001,
     nesterov_momentum=None,
     n_epochs=50,
