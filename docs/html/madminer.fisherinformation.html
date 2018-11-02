@@ -158,9 +158,10 @@ entries in ensemble_vote_expectation_weight.</p>
 </dd>
 <dt><strong>fisher_information_uncertainty</strong> <span class="classifier-delimiter">:</span> <span class="classifier">ndarray or list of ndarray</span></dt>
 <dd><p class="first last">Returned only if return_error is True, or if return_error is None and model_file is the directory of an
-ensemble. Uncertainty of the expected full detector-level Fisher information matrix with shape
-<cite>(n_parameters, n_parameters)</cite>. If more then one value ensemble_vote_expectation_weight is given, this is a
-list with results for all entries in ensemble_vote_expectation_weight.</p>
+ensemble. Covariance matrix of the Fisher information matrix with shape
+<cite>(n_parameters, n_parameters, n_parameters, n_parameters)</cite>. If more then one value
+ensemble_vote_expectation_weight is given, this is a list with results for all entries in
+ensemble_vote_expectation_weight.</p>
 </dd>
 </dl>
 </td>
@@ -200,6 +201,11 @@ component. Default value: None.</p>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
 <dt><strong>fisher_information</strong> <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
 <dd><p class="first last">Expected full truth-level Fisher information matrix with shape <cite>(n_parameters, n_parameters)</cite>.</p>
+</dd>
+<dt><strong>fisher_information_uncertainty</strong> <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
+<dd><p class="first last">Covariance matrix of the Fisher information matrix with shape
+<cite>(n_parameters, n_parameters, n_parameters, n_parameters)</cite>, calculated with plain Gaussian error
+propagation.</p>
 </dd>
 </dl>
 </td>
@@ -249,6 +255,11 @@ component. Default value: None.</p>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
 <dt><strong>fisher_information</strong> <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
 <dd><p class="first last">Expected Fisher information in the histogram with shape <cite>(n_parameters, n_parameters)</cite>.</p>
+</dd>
+<dt><strong>fisher_information_uncertainty</strong> <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
+<dd><p class="first last">Covariance matrix of the Fisher information matrix with shape
+<cite>(n_parameters, n_parameters, n_parameters, n_parameters)</cite>, calculated with plain Gaussian error
+propagation.</p>
 </dd>
 </dl>
 </td>
@@ -347,6 +358,11 @@ component. Default value: None.</p>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
 <dt><strong>fisher_information</strong> <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
 <dd><p class="first last">Expected Fisher information in the total cross section with shape <cite>(n_parameters, n_parameters)</cite>.</p>
+</dd>
+<dt><strong>fisher_information_uncertainty</strong> <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
+<dd><p class="first last">Covariance matrix of the Fisher information matrix with shape
+<cite>(n_parameters, n_parameters, n_parameters, n_parameters)</cite>, calculated with plain Gaussian error
+propagation.</p>
 </dd>
 </dl>
 </td>
