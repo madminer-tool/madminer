@@ -43,7 +43,7 @@
 <span class="kn">from</span> <span class="nn">madminer.utils.interfaces.hdf5</span> <span class="k">import</span> <span class="n">load_madminer_settings</span><span class="p">,</span> <span class="n">madminer_event_loader</span>
 <span class="kn">from</span> <span class="nn">madminer.utils.analysis</span> <span class="k">import</span> <span class="n">get_theta_benchmark_matrix</span><span class="p">,</span> <span class="n">get_dtheta_benchmark_matrix</span>
 <span class="kn">from</span> <span class="nn">madminer.morphing</span> <span class="k">import</span> <span class="n">Morpher</span>
-<span class="kn">from</span> <span class="nn">madminer.utils.various</span> <span class="k">import</span> <span class="n">general_init</span><span class="p">,</span> <span class="n">format_benchmark</span><span class="p">,</span> <span class="n">math_commands</span><span class="p">,</span> <span class="n">weighted_quantile</span>
+<span class="kn">from</span> <span class="nn">madminer.utils.various</span> <span class="k">import</span> <span class="n">general_init</span><span class="p">,</span> <span class="n">format_benchmark</span><span class="p">,</span> <span class="n">math_commands</span><span class="p">,</span> <span class="n">weighted_quantile</span><span class="p">,</span> <span class="n">sanitize_array</span>
 <span class="kn">from</span> <span class="nn">madminer.ml</span> <span class="k">import</span> <span class="n">MLForge</span><span class="p">,</span> <span class="n">EnsembleForge</span>
 
 
@@ -238,6 +238,11 @@
 <span class="sd">        fisher_information : ndarray</span>
 <span class="sd">            Expected full truth-level Fisher information matrix with shape `(n_parameters, n_parameters)`.</span>
 
+<span class="sd">        fisher_information_uncertainty : ndarray</span>
+<span class="sd">            Covariance matrix of the Fisher information matrix with shape</span>
+<span class="sd">            `(n_parameters, n_parameters, n_parameters, n_parameters)`, calculated with plain Gaussian error</span>
+<span class="sd">            propagation.</span>
+
 <span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="c1"># Input</span>
@@ -248,6 +253,7 @@
 
         <span class="c1"># Loop over batches</span>
         <span class="n">fisher_info</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">n_parameters</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_parameters</span><span class="p">))</span>
+        <span class="n">covariance</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">n_parameters</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_parameters</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_parameters</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_parameters</span><span class="p">))</span>
 
         <span class="k">for</span> <span class="n">observations</span><span class="p">,</span> <span class="n">weights</span> <span class="ow">in</span> <span class="n">madminer_event_loader</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">madminer_filename</span><span class="p">):</span>
             <span class="c1"># Cuts</span>
@@ -262,9 +268,13 @@
             <span class="n">weights</span> <span class="o">*=</span> <span class="n">efficiencies</span><span class="p">[:,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span>
 
             <span class="c1"># Fisher information</span>
-            <span class="n">fisher_info</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calculate_fisher_information</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">weights</span><span class="p">,</span> <span class="n">luminosity</span><span class="p">,</span> <span class="n">sum_events</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">this_fisher_info</span><span class="p">,</span> <span class="n">this_covariance</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calculate_fisher_information</span><span class="p">(</span>
+                <span class="n">theta</span><span class="p">,</span> <span class="n">weights</span><span class="p">,</span> <span class="n">luminosity</span><span class="p">,</span> <span class="n">sum_events</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">calculate_uncertainty</span><span class="o">=</span><span class="kc">True</span>
+            <span class="p">)</span>
+            <span class="n">fisher_info</span> <span class="o">+=</span> <span class="n">this_fisher_info</span>
+            <span class="n">covariance</span> <span class="o">+=</span> <span class="n">this_covariance</span>
 
-        <span class="k">return</span> <span class="n">fisher_info</span></div>
+        <span class="k">return</span> <span class="n">fisher_info</span><span class="p">,</span> <span class="n">covariance</span></div>
 
 <div class="viewcode-block" id="FisherInformation.calculate_fisher_information_full_detector"><a class="viewcode-back" href="../../madminer.fisherinformation.html#madminer.fisherinformation.FisherInformation.calculate_fisher_information_full_detector">[docs]</a>    <span class="k">def</span> <span class="nf">calculate_fisher_information_full_detector</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -320,9 +330,10 @@
 
 <span class="sd">        fisher_information_uncertainty : ndarray or list of ndarray</span>
 <span class="sd">            Returned only if return_error is True, or if return_error is None and model_file is the directory of an</span>
-<span class="sd">            ensemble. Uncertainty of the expected full detector-level Fisher information matrix with shape</span>
-<span class="sd">            `(n_parameters, n_parameters)`. If more then one value ensemble_vote_expectation_weight is given, this is a</span>
-<span class="sd">            list with results for all entries in ensemble_vote_expectation_weight.</span>
+<span class="sd">            ensemble. Covariance matrix of the Fisher information matrix with shape</span>
+<span class="sd">            `(n_parameters, n_parameters, n_parameters, n_parameters)`. If more then one value</span>
+<span class="sd">            ensemble_vote_expectation_weight is given, this is a list with results for all entries in</span>
+<span class="sd">            ensemble_vote_expectation_weight.</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
 
@@ -331,7 +342,9 @@
             <span class="n">cuts</span> <span class="o">=</span> <span class="p">[]</span>
 
         <span class="c1"># Rate part of Fisher information</span>
-        <span class="n">fisher_info_rate</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">calculate_fisher_information_rate</span><span class="p">(</span><span class="n">theta</span><span class="o">=</span><span class="n">theta</span><span class="p">,</span> <span class="n">luminosity</span><span class="o">=</span><span class="n">luminosity</span><span class="p">,</span> <span class="n">cuts</span><span class="o">=</span><span class="n">cuts</span><span class="p">)</span>
+        <span class="n">fisher_info_rate</span><span class="p">,</span> <span class="n">rate_covariance</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">calculate_fisher_information_rate</span><span class="p">(</span>
+            <span class="n">theta</span><span class="o">=</span><span class="n">theta</span><span class="p">,</span> <span class="n">luminosity</span><span class="o">=</span><span class="n">luminosity</span><span class="p">,</span> <span class="n">cuts</span><span class="o">=</span><span class="n">cuts</span>
+        <span class="p">)</span>
         <span class="n">total_xsec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calculate_xsec</span><span class="p">(</span><span class="n">theta</span><span class="o">=</span><span class="n">theta</span><span class="p">,</span> <span class="n">cuts</span><span class="o">=</span><span class="n">cuts</span><span class="p">)</span>
 
         <span class="c1"># Kinematic part of Fisher information: either with MLForge or with EnsembleForge</span>
@@ -340,7 +353,7 @@
             <span class="n">model</span> <span class="o">=</span> <span class="n">EnsembleForge</span><span class="p">(</span><span class="n">debug</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">debug</span><span class="p">)</span>
             <span class="n">model</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">model_file</span><span class="p">)</span>
 
-            <span class="n">fisher_info_kin</span><span class="p">,</span> <span class="n">fisher_info_uncertainty</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">calculate_fisher_information</span><span class="p">(</span>
+            <span class="n">fisher_info_kin</span><span class="p">,</span> <span class="n">covariance</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">calculate_fisher_information</span><span class="p">(</span>
                 <span class="n">unweighted_x_sample_file</span><span class="p">,</span>
                 <span class="n">n_events</span><span class="o">=</span><span class="n">luminosity</span> <span class="o">*</span> <span class="n">total_xsec</span><span class="p">,</span>
                 <span class="n">vote_expectation_weight</span><span class="o">=</span><span class="n">ensemble_vote_expectation_weight</span><span class="p">,</span>
@@ -358,7 +371,7 @@
                 <span class="n">unweighted_x_sample_file</span><span class="p">,</span> <span class="n">n_events</span><span class="o">=</span><span class="n">luminosity</span> <span class="o">*</span> <span class="n">total_xsec</span>
             <span class="p">)</span>
 
-            <span class="n">fisher_info_uncertainty</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="n">covariance</span> <span class="o">=</span> <span class="kc">None</span>
 
             <span class="k">if</span> <span class="n">return_error</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="n">return_error</span> <span class="o">=</span> <span class="kc">False</span>
@@ -366,12 +379,17 @@
         <span class="c1"># Returns</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ensemble_vote_expectation_weight</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">ensemble_vote_expectation_weight</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
             <span class="n">fisher_info_results</span> <span class="o">=</span> <span class="p">[</span><span class="n">fisher_info_rate</span> <span class="o">+</span> <span class="n">this_fisher_info_kin</span> <span class="k">for</span> <span class="n">this_fisher_info_kin</span> <span class="ow">in</span> <span class="n">fisher_info_kin</span><span class="p">]</span>
+            <span class="n">covariance_results</span> <span class="o">=</span> <span class="p">[</span><span class="n">rate_covariance</span> <span class="o">+</span> <span class="n">this_covariance</span> <span class="k">for</span> <span class="n">this_covariance</span> <span class="ow">in</span> <span class="n">covariance</span><span class="p">]</span>
             <span class="k">if</span> <span class="n">return_error</span><span class="p">:</span>
-                <span class="k">return</span> <span class="n">fisher_info_results</span><span class="p">,</span> <span class="n">fisher_info_uncertainty</span>
+                <span class="k">return</span> <span class="n">fisher_info_results</span><span class="p">,</span> <span class="n">covariance_results</span>
             <span class="k">return</span> <span class="n">fisher_info_results</span>
 
         <span class="k">if</span> <span class="n">return_error</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">fisher_info_rate</span> <span class="o">+</span> <span class="n">fisher_info_kin</span><span class="p">,</span> <span class="n">fisher_info_uncertainty</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                <span class="s2">&quot;Uncertainty on Fisher information with single SALLY instance only reflects the covariance from the &quot;</span>
+                <span class="s2">&quot;rate, not the kinematic part!&quot;</span>
+            <span class="p">)</span>
+            <span class="k">return</span> <span class="n">fisher_info_rate</span> <span class="o">+</span> <span class="n">fisher_info_kin</span><span class="p">,</span> <span class="n">rate_covariance</span>
         <span class="k">return</span> <span class="n">fisher_info_rate</span> <span class="o">+</span> <span class="n">fisher_info_kin</span></div>
 
 <div class="viewcode-block" id="FisherInformation.calculate_fisher_information_rate"><a class="viewcode-back" href="../../madminer.fisherinformation.html#madminer.fisherinformation.FisherInformation.calculate_fisher_information_rate">[docs]</a>    <span class="k">def</span> <span class="nf">calculate_fisher_information_rate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">luminosity</span><span class="p">,</span> <span class="n">cuts</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">efficiency_functions</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
@@ -400,19 +418,32 @@
 <span class="sd">        fisher_information : ndarray</span>
 <span class="sd">            Expected Fisher information in the total cross section with shape `(n_parameters, n_parameters)`.</span>
 
+<span class="sd">        fisher_information_uncertainty : ndarray</span>
+<span class="sd">            Covariance matrix of the Fisher information matrix with shape</span>
+<span class="sd">            `(n_parameters, n_parameters, n_parameters, n_parameters)`, calculated with plain Gaussian error</span>
+<span class="sd">            propagation.</span>
+
 <span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="c1"># Get weights at benchmarks</span>
-        <span class="n">weights_benchmarks</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calculate_xsec</span><span class="p">(</span>
-            <span class="n">cuts</span><span class="o">=</span><span class="n">cuts</span><span class="p">,</span> <span class="n">efficiency_functions</span><span class="o">=</span><span class="n">efficiency_functions</span><span class="p">,</span> <span class="n">return_benchmark_xsecs</span><span class="o">=</span><span class="kc">True</span>
+        <span class="n">weights_benchmarks</span><span class="p">,</span> <span class="n">weights_benchmark_uncertainties</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calculate_xsec</span><span class="p">(</span>
+            <span class="n">cuts</span><span class="o">=</span><span class="n">cuts</span><span class="p">,</span> <span class="n">efficiency_functions</span><span class="o">=</span><span class="n">efficiency_functions</span><span class="p">,</span> <span class="n">return_benchmark_xsecs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">return_error</span><span class="o">=</span><span class="kc">True</span>
         <span class="p">)</span>
+
+        <span class="n">weights_benchmarks</span> <span class="o">=</span> <span class="n">weights_benchmarks</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+        <span class="n">weights_benchmark_uncertainties</span> <span class="o">=</span> <span class="n">weights_benchmark_uncertainties</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
 
         <span class="c1"># Get Fisher information</span>
-        <span class="n">fisher_info</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calculate_fisher_information</span><span class="p">(</span>
-            <span class="n">theta</span><span class="o">=</span><span class="n">theta</span><span class="p">,</span> <span class="n">weights_benchmarks</span><span class="o">=</span><span class="n">weights_benchmarks</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span> <span class="p">:],</span> <span class="n">luminosity</span><span class="o">=</span><span class="n">luminosity</span><span class="p">,</span> <span class="n">sum_events</span><span class="o">=</span><span class="kc">True</span>
+        <span class="n">fisher_info</span><span class="p">,</span> <span class="n">covariance</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calculate_fisher_information</span><span class="p">(</span>
+            <span class="n">theta</span><span class="o">=</span><span class="n">theta</span><span class="p">,</span>
+            <span class="n">weights_benchmarks</span><span class="o">=</span><span class="n">weights_benchmarks</span><span class="p">,</span>
+            <span class="n">luminosity</span><span class="o">=</span><span class="n">luminosity</span><span class="p">,</span>
+            <span class="n">sum_events</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">calculate_uncertainty</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">weights_benchmark_uncertainties</span><span class="o">=</span><span class="n">weights_benchmark_uncertainties</span><span class="p">,</span>
         <span class="p">)</span>
 
-        <span class="k">return</span> <span class="n">fisher_info</span></div>
+        <span class="k">return</span> <span class="n">fisher_info</span><span class="p">,</span> <span class="n">covariance</span></div>
 
 <div class="viewcode-block" id="FisherInformation.calculate_fisher_information_hist1d"><a class="viewcode-back" href="../../madminer.fisherinformation.html#madminer.fisherinformation.FisherInformation.calculate_fisher_information_hist1d">[docs]</a>    <span class="k">def</span> <span class="nf">calculate_fisher_information_hist1d</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -460,6 +491,11 @@
 <span class="sd">        -------</span>
 <span class="sd">        fisher_information : ndarray</span>
 <span class="sd">            Expected Fisher information in the histogram with shape `(n_parameters, n_parameters)`.</span>
+
+<span class="sd">        fisher_information_uncertainty : ndarray</span>
+<span class="sd">            Covariance matrix of the Fisher information matrix with shape</span>
+<span class="sd">            `(n_parameters, n_parameters, n_parameters, n_parameters)`, calculated with plain Gaussian error</span>
+<span class="sd">            propagation.</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
 
@@ -512,10 +548,7 @@
 
         <span class="c1"># Loop over batches</span>
         <span class="n">weights_benchmarks</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n_bins_total</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_benchmarks</span><span class="p">))</span>
-
-        <span class="c1"># Prepare for dynamic binning</span>
-        <span class="n">all_weights</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="n">all_histo_observables</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">weights_squared_benchmarks</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n_bins_total</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_benchmarks</span><span class="p">))</span>
 
         <span class="k">for</span> <span class="n">observations</span><span class="p">,</span> <span class="n">weights</span> <span class="ow">in</span> <span class="n">madminer_event_loader</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">madminer_filename</span><span class="p">):</span>
             <span class="c1"># Cuts</span>
@@ -540,11 +573,20 @@
             <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_bins_total</span><span class="p">):</span>
                 <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">weights</span><span class="p">[</span><span class="n">bins</span> <span class="o">==</span> <span class="n">i</span><span class="p">])</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
                     <span class="n">weights_benchmarks</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">weights</span><span class="p">[</span><span class="n">bins</span> <span class="o">==</span> <span class="n">i</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+                    <span class="n">weights_squared_benchmarks</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">weights</span><span class="p">[</span><span class="n">bins</span> <span class="o">==</span> <span class="n">i</span><span class="p">]</span> <span class="o">**</span> <span class="mi">2</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+        <span class="n">weights_benchmark_uncertainties</span> <span class="o">=</span> <span class="n">weights_squared_benchmarks</span> <span class="o">**</span> <span class="mf">0.5</span>
 
         <span class="c1"># Calculate Fisher information in histogram</span>
-        <span class="n">fisher_info</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calculate_fisher_information</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">weights_benchmarks</span><span class="p">,</span> <span class="n">luminosity</span><span class="p">,</span> <span class="n">sum_events</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-
-        <span class="k">return</span> <span class="n">fisher_info</span></div>
+        <span class="n">fisher_info</span><span class="p">,</span> <span class="n">covariance</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calculate_fisher_information</span><span class="p">(</span>
+            <span class="n">theta</span><span class="p">,</span>
+            <span class="n">weights_benchmarks</span><span class="p">,</span>
+            <span class="n">luminosity</span><span class="p">,</span>
+            <span class="n">sum_events</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">weights_benchmark_uncertainties</span><span class="o">=</span><span class="n">weights_benchmark_uncertainties</span><span class="p">,</span>
+            <span class="n">calculate_uncertainty</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">fisher_info</span><span class="p">,</span> <span class="n">covariance</span></div>
 
 <div class="viewcode-block" id="FisherInformation.calculate_fisher_information_hist2d"><a class="viewcode-back" href="../../madminer.fisherinformation.html#madminer.fisherinformation.FisherInformation.calculate_fisher_information_hist2d">[docs]</a>    <span class="k">def</span> <span class="nf">calculate_fisher_information_hist2d</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -828,7 +870,15 @@
 
         <span class="k">return</span> <span class="n">x</span><span class="p">,</span> <span class="n">weights_thetas</span></div>
 
-    <span class="k">def</span> <span class="nf">_calculate_fisher_information</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">weights_benchmarks</span><span class="p">,</span> <span class="n">luminosity</span><span class="o">=</span><span class="mf">300000.0</span><span class="p">,</span> <span class="n">sum_events</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_calculate_fisher_information</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">theta</span><span class="p">,</span>
+        <span class="n">weights_benchmarks</span><span class="p">,</span>
+        <span class="n">luminosity</span><span class="o">=</span><span class="mf">300000.0</span><span class="p">,</span>
+        <span class="n">sum_events</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">calculate_uncertainty</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">weights_benchmark_uncertainties</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Low-level function that calculates a list of full Fisher information matrices for a given parameter point and</span>
 <span class="sd">        benchmark weights. Do not use this function directly, instead use the other `FisherInformation` functions.</span>
@@ -858,20 +908,85 @@
 <span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="c1"># Get morphing matrices</span>
-        <span class="n">theta_matrix</span> <span class="o">=</span> <span class="n">get_theta_benchmark_matrix</span><span class="p">(</span><span class="s2">&quot;morphing&quot;</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">benchmarks</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">morpher</span><span class="p">)</span>
-        <span class="n">dtheta_matrix</span> <span class="o">=</span> <span class="n">get_dtheta_benchmark_matrix</span><span class="p">(</span><span class="s2">&quot;morphing&quot;</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">benchmarks</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">morpher</span><span class="p">)</span>
+        <span class="n">theta_matrix</span> <span class="o">=</span> <span class="n">get_theta_benchmark_matrix</span><span class="p">(</span><span class="s2">&quot;morphing&quot;</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">benchmarks</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">morpher</span><span class="p">)</span>  <span class="c1"># (n_benchmarks,)</span>
+        <span class="n">dtheta_matrix</span> <span class="o">=</span> <span class="n">get_dtheta_benchmark_matrix</span><span class="p">(</span>
+            <span class="s2">&quot;morphing&quot;</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">benchmarks</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">morpher</span>
+        <span class="p">)</span>  <span class="c1"># (n_parameters, n_benchmarks)</span>
 
         <span class="c1"># Get differential xsec per event, and the derivative wrt to theta</span>
         <span class="n">sigma</span> <span class="o">=</span> <span class="n">theta_matrix</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">weights_benchmarks</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>  <span class="c1"># Shape (n_events,)</span>
+        <span class="n">inv_sigma</span> <span class="o">=</span> <span class="n">sanitize_array</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">/</span> <span class="n">sigma</span><span class="p">)</span>  <span class="c1"># Shape (n_events,)</span>
         <span class="n">dsigma</span> <span class="o">=</span> <span class="n">dtheta_matrix</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">weights_benchmarks</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>  <span class="c1"># Shape (n_parameters, n_events)</span>
 
         <span class="c1"># Calculate Fisher info for this event</span>
-        <span class="n">fisher_info</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="k">for</span> <span class="n">i_event</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">sigma</span><span class="p">)):</span>
-            <span class="n">fisher_info</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">luminosity</span> <span class="o">/</span> <span class="n">sigma</span><span class="p">[</span><span class="n">i_event</span><span class="p">]</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">dsigma</span><span class="o">.</span><span class="n">T</span><span class="p">[</span><span class="n">i_event</span><span class="p">],</span> <span class="n">dsigma</span><span class="o">.</span><span class="n">T</span><span class="p">[</span><span class="n">i_event</span><span class="p">],</span> <span class="n">axes</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span>
-        <span class="n">fisher_info</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">fisher_info</span><span class="p">)</span>
+        <span class="n">fisher_info</span> <span class="o">=</span> <span class="n">luminosity</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;n,in,jn-&gt;nij&quot;</span><span class="p">,</span> <span class="n">inv_sigma</span><span class="p">,</span> <span class="n">dsigma</span><span class="p">,</span> <span class="n">dsigma</span><span class="p">)</span>
 
-        <span class="n">fisher_info</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan_to_num</span><span class="p">(</span><span class="n">fisher_info</span><span class="p">)</span>
+        <span class="c1"># # Old code:</span>
+        <span class="c1"># fisher_info_debug = []</span>
+        <span class="c1"># for i_event in range(len(sigma)):</span>
+        <span class="c1">#     fisher_info_debug.append(luminosity / sigma[i_event] * np.tensordot(dsigma.T[i_event], dsigma.T[i_event],</span>
+        <span class="c1">#                                                                         axes=0))</span>
+        <span class="c1"># fisher_info_debug = np.array(fisher_info_debug)</span>
+        <span class="c1"># fisher_info_debug = sanitize_array(fisher_info_debug)</span>
+        <span class="c1"># logging.debug(&#39;Old vs new Fisher info calculation:\n%s\n%s\n%s&#39;, fisher_info - fisher_info_debug, fisher_info,</span>
+        <span class="c1">#               fisher_info_debug)</span>
+
+        <span class="k">if</span> <span class="n">calculate_uncertainty</span><span class="p">:</span>
+            <span class="n">n_events</span> <span class="o">=</span> <span class="n">weights_benchmarks</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">n_benchmarks</span> <span class="o">=</span> <span class="n">weights_benchmarks</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+            <span class="c1"># Input uncertainties</span>
+            <span class="k">if</span> <span class="n">weights_benchmark_uncertainties</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">weights_benchmark_uncertainties</span> <span class="o">=</span> <span class="n">weights_benchmarks</span>  <span class="c1"># Shape (n_events, n_benchmarks)</span>
+
+            <span class="c1"># Build covariance matrix of inputs</span>
+            <span class="c1"># We assume full correlation between weights_benchmarks[i, b1] and weights_benchmarks[i, b2]</span>
+            <span class="n">covariance_inputs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n_events</span><span class="p">,</span> <span class="n">n_benchmarks</span><span class="p">,</span> <span class="n">n_benchmarks</span><span class="p">))</span>
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">b1</span><span class="p">,</span> <span class="n">b2</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">n_events</span><span class="p">),</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_benchmarks</span><span class="p">),</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_benchmarks</span><span class="p">)):</span>
+
+                <span class="k">if</span> <span class="n">b1</span> <span class="o">==</span> <span class="n">b2</span><span class="p">:</span>  <span class="c1"># Diagonal</span>
+                    <span class="n">covariance_inputs</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">b1</span><span class="p">,</span> <span class="n">b2</span><span class="p">]</span> <span class="o">=</span> <span class="n">weights_benchmark_uncertainties</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">b1</span><span class="p">]</span> <span class="o">**</span> <span class="mi">2</span>
+
+                <span class="k">else</span><span class="p">:</span>  <span class="c1"># Off-diagonal, same event</span>
+                    <span class="n">covariance_inputs</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">b1</span><span class="p">,</span> <span class="n">b2</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+                        <span class="n">weights_benchmark_uncertainties</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">b1</span><span class="p">]</span> <span class="o">*</span> <span class="n">weights_benchmark_uncertainties</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">b2</span><span class="p">]</span>
+                    <span class="p">)</span>
+
+            <span class="c1"># Jacobian</span>
+            <span class="n">temp1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;ib,jn,n-&gt;ijnb&quot;</span><span class="p">,</span> <span class="n">dtheta_matrix</span><span class="p">,</span> <span class="n">dsigma</span><span class="p">,</span> <span class="n">inv_sigma</span><span class="p">)</span>
+            <span class="n">temp2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;jb,in,n-&gt;ijnb&quot;</span><span class="p">,</span> <span class="n">dtheta_matrix</span><span class="p">,</span> <span class="n">dsigma</span><span class="p">,</span> <span class="n">inv_sigma</span><span class="p">)</span>
+            <span class="n">temp3</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;b,in,jn,n,n-&gt;ijnb&quot;</span><span class="p">,</span> <span class="n">theta_matrix</span><span class="p">,</span> <span class="n">dsigma</span><span class="p">,</span> <span class="n">dsigma</span><span class="p">,</span> <span class="n">inv_sigma</span><span class="p">,</span> <span class="n">inv_sigma</span><span class="p">)</span>
+
+            <span class="n">temp1</span><span class="p">,</span> <span class="n">temp2</span><span class="p">,</span> <span class="n">temp3</span> <span class="o">=</span> <span class="n">sanitize_array</span><span class="p">(</span><span class="n">temp1</span><span class="p">),</span> <span class="n">sanitize_array</span><span class="p">(</span><span class="n">temp2</span><span class="p">),</span> <span class="n">sanitize_array</span><span class="p">(</span><span class="n">temp3</span><span class="p">)</span>
+
+            <span class="n">jacobian</span> <span class="o">=</span> <span class="n">luminosity</span> <span class="o">*</span> <span class="p">(</span><span class="n">temp1</span> <span class="o">+</span> <span class="n">temp2</span> <span class="o">+</span> <span class="n">temp3</span><span class="p">)</span>  <span class="c1"># (n_parameters, n_parameters, n_events, n_benchmarks)</span>
+
+            <span class="c1"># Covariance of information</span>
+            <span class="n">covariance_information</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;ijnb,nbc,klnc-&gt;ijkl&quot;</span><span class="p">,</span> <span class="n">jacobian</span><span class="p">,</span> <span class="n">covariance_inputs</span><span class="p">,</span> <span class="n">jacobian</span><span class="p">)</span>
+
+            <span class="c1"># Old code:</span>
+            <span class="c1"># covariance_inputs = covariance_inputs.reshape((-1))</span>
+            <span class="c1"># jacobian = jacobian.reshape((jacobian.shape[0] * jacobian.shape[1], -1))</span>
+            <span class="c1"># covariance_information = np.einsum(&quot;IK,K,JK-&gt;IJ&quot;, jacobian, covariance_inputs, jacobian)</span>
+            <span class="c1"># covariance_information = covariance_information.reshape(</span>
+            <span class="c1">#     (self.n_parameters, self.n_parameters, self.n_parameters, self.n_parameters)</span>
+            <span class="c1"># )</span>
+
+            <span class="c1"># logging.debug(&#39;Terms in uncertainty calculation:&#39;)</span>
+            <span class="c1"># logging.debug(&#39;  theta_matrix = %s&#39;, theta_matrix)</span>
+            <span class="c1"># logging.debug(&#39;  dtheta_matrix = %s&#39;, dtheta_matrix)</span>
+            <span class="c1"># logging.debug(&#39;  sigma = %s&#39;, sigma)</span>
+            <span class="c1"># logging.debug(&#39;  inv_sigma = %s&#39;, inv_sigma)</span>
+            <span class="c1"># logging.debug(&#39;  covariance_inputs = %s&#39;, covariance_inputs)</span>
+            <span class="c1"># logging.debug(&#39;  temp1 = %s&#39;, temp1)</span>
+            <span class="c1"># logging.debug(&#39;  temp2 = %s&#39;, temp2)</span>
+            <span class="c1"># logging.debug(&#39;  temp3 = %s&#39;, temp3)</span>
+            <span class="c1"># logging.debug(&#39;  jacobian = %s&#39;, jacobian)</span>
+            <span class="c1"># logging.debug(&#39;  covariance_information = %s&#39;, covariance_information)</span>
+
+            <span class="k">if</span> <span class="n">sum_events</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">fisher_info</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span> <span class="n">covariance_information</span>
+            <span class="k">return</span> <span class="n">fisher_info</span><span class="p">,</span> <span class="n">covariance_information</span>
 
         <span class="k">if</span> <span class="n">sum_events</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">fisher_info</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
@@ -986,7 +1101,9 @@
         <span class="c1"># Check cuts</span>
         <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="nb">eval</span><span class="p">(</span><span class="n">observable_definition</span><span class="p">,</span> <span class="n">variables</span><span class="p">))</span>
 
-    <span class="k">def</span> <span class="nf">_calculate_xsec</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">cuts</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">efficiency_functions</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">return_benchmark_xsecs</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_calculate_xsec</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">cuts</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">efficiency_functions</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">return_benchmark_xsecs</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">return_error</span><span class="o">=</span><span class="kc">False</span>
+    <span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Calculates the total cross section for a parameter point.</span>
 
@@ -1007,11 +1124,17 @@
 <span class="sd">            If True, this function returns the benchmark xsecs. Otherwise, it returns the xsec at theta. Default value:</span>
 <span class="sd">            False.</span>
 
+<span class="sd">        return_error : bool</span>
+<span class="sd">            If True, this function also returns the square root of the summed squared weights.</span>
+
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
 <span class="sd">        xsec : ndarray or float</span>
 <span class="sd">            If return_benchmark_xsecs is True, an ndarray of benchmark xsecs in pb is returned. Otherwise, the cross</span>
 <span class="sd">            section at theta in pb is returned.</span>
+
+<span class="sd">        xsec_uncertainty : ndarray or float</span>
+<span class="sd">            Only returned if return_error is True. Uncertainty (square root of the summed squared weights) on xsec.</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
 
@@ -1025,6 +1148,7 @@
 
         <span class="c1"># Total xsecs for benchmarks</span>
         <span class="n">xsecs_benchmarks</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">xsecs_uncertainty_benchmarks</span> <span class="o">=</span> <span class="kc">None</span>
 
         <span class="k">for</span> <span class="n">observations</span><span class="p">,</span> <span class="n">weights</span> <span class="ow">in</span> <span class="n">madminer_event_loader</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">madminer_filename</span><span class="p">):</span>
             <span class="c1"># Cuts</span>
@@ -1041,18 +1165,27 @@
             <span class="c1"># xsecs</span>
             <span class="k">if</span> <span class="n">xsecs_benchmarks</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="n">xsecs_benchmarks</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">weights</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+                <span class="n">xsecs_uncertainty_benchmarks</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">weights</span> <span class="o">**</span> <span class="mi">2</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">xsecs_benchmarks</span> <span class="o">+=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">weights</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+                <span class="n">xsecs_uncertainty_benchmarks</span> <span class="o">+=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">weights</span> <span class="o">**</span> <span class="mi">2</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
 
         <span class="k">assert</span> <span class="n">xsecs_benchmarks</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;No events passed cuts&quot;</span>
 
+        <span class="n">xsecs_uncertainty_benchmarks</span> <span class="o">=</span> <span class="n">xsecs_uncertainty_benchmarks</span> <span class="o">**</span> <span class="mf">0.5</span>
+
         <span class="k">if</span> <span class="n">return_benchmark_xsecs</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">return_error</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">xsecs_benchmarks</span><span class="p">,</span> <span class="n">xsecs_uncertainty_benchmarks</span>
             <span class="k">return</span> <span class="n">xsecs_benchmarks</span>
 
         <span class="c1"># Translate to xsec for theta</span>
         <span class="n">theta_matrix</span> <span class="o">=</span> <span class="n">get_theta_benchmark_matrix</span><span class="p">(</span><span class="s2">&quot;morphing&quot;</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">benchmarks</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">morpher</span><span class="p">)</span>
         <span class="n">xsec</span> <span class="o">=</span> <span class="n">theta_matrix</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">xsecs_benchmarks</span><span class="p">)</span>
+        <span class="n">xsec_error</span> <span class="o">=</span> <span class="n">theta_matrix</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">xsecs_uncertainty_benchmarks</span><span class="p">)</span>
 
+        <span class="k">if</span> <span class="n">return_error</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">xsec</span><span class="p">,</span> <span class="n">xsec_error</span>
         <span class="k">return</span> <span class="n">xsec</span></div>
 </pre></div>
 
