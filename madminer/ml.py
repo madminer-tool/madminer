@@ -920,6 +920,7 @@ class EnsembleForge:
 
     def __init__(self, estimators=None, debug=False):
         general_init(debug=debug)
+        self.debug = debug
 
         # Initialize estimators
         if estimators is None:
@@ -963,7 +964,7 @@ class EnsembleForge:
 
         """
         if isinstance(estimator, six.string_types):
-            estimator_object = MLForge(debug=debug)
+            estimator_object = MLForge(debug=self.debug)
             estimator_object.load(estimator)
         elif isinstance(estimator, MLForge):
             estimator_object = estimator
