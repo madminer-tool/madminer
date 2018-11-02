@@ -8,7 +8,7 @@ import os
 from madminer.utils.interfaces.hdf5 import load_madminer_settings, madminer_event_loader
 from madminer.utils.analysis import get_theta_benchmark_matrix, get_dtheta_benchmark_matrix
 from madminer.morphing import Morpher
-from madminer.utils.various import general_init, format_benchmark, math_commands, weighted_quantile
+from madminer.utils.various import general_init, format_benchmark, math_commands, weighted_quantile, sanitize_array
 from madminer.ml import MLForge, EnsembleForge
 
 
@@ -203,6 +203,11 @@ class FisherInformation:
         fisher_information : ndarray
             Expected full truth-level Fisher information matrix with shape `(n_parameters, n_parameters)`.
 
+        fisher_information_uncertainty : ndarray
+            Covariance matrix of the Fisher information matrix with shape
+            `(n_parameters, n_parameters, n_parameters, n_parameters)`, calculated with plain Gaussian error
+            propagation.
+
         """
 
         # Input
@@ -213,6 +218,7 @@ class FisherInformation:
 
         # Loop over batches
         fisher_info = np.zeros((self.n_parameters, self.n_parameters))
+        covariance = np.zeros((self.n_parameters, self.n_parameters, self.n_parameters, self.n_parameters))
 
         for observations, weights in madminer_event_loader(self.madminer_filename):
             # Cuts
@@ -227,9 +233,13 @@ class FisherInformation:
             weights *= efficiencies[:, np.newaxis]
 
             # Fisher information
-            fisher_info += self._calculate_fisher_information(theta, weights, luminosity, sum_events=True)
+            this_fisher_info, this_covariance = self._calculate_fisher_information(
+                theta, weights, luminosity, sum_events=True, calculate_uncertainty=True
+            )
+            fisher_info += this_fisher_info
+            covariance += this_covariance
 
-        return fisher_info
+        return fisher_info, covariance
 
     def calculate_fisher_information_full_detector(
         self,
@@ -285,9 +295,10 @@ class FisherInformation:
 
         fisher_information_uncertainty : ndarray or list of ndarray
             Returned only if return_error is True, or if return_error is None and model_file is the directory of an
-            ensemble. Uncertainty of the expected full detector-level Fisher information matrix with shape
-            `(n_parameters, n_parameters)`. If more then one value ensemble_vote_expectation_weight is given, this is a
-            list with results for all entries in ensemble_vote_expectation_weight.
+            ensemble. Covariance matrix of the Fisher information matrix with shape
+            `(n_parameters, n_parameters, n_parameters, n_parameters)`. If more then one value
+            ensemble_vote_expectation_weight is given, this is a list with results for all entries in
+            ensemble_vote_expectation_weight.
 
         """
 
@@ -296,7 +307,9 @@ class FisherInformation:
             cuts = []
 
         # Rate part of Fisher information
-        fisher_info_rate = self.calculate_fisher_information_rate(theta=theta, luminosity=luminosity, cuts=cuts)
+        fisher_info_rate, rate_covariance = self.calculate_fisher_information_rate(
+            theta=theta, luminosity=luminosity, cuts=cuts
+        )
         total_xsec = self._calculate_xsec(theta=theta, cuts=cuts)
 
         # Kinematic part of Fisher information: either with MLForge or with EnsembleForge
@@ -305,7 +318,7 @@ class FisherInformation:
             model = EnsembleForge(debug=self.debug)
             model.load(model_file)
 
-            fisher_info_kin, fisher_info_uncertainty = model.calculate_fisher_information(
+            fisher_info_kin, covariance = model.calculate_fisher_information(
                 unweighted_x_sample_file,
                 n_events=luminosity * total_xsec,
                 vote_expectation_weight=ensemble_vote_expectation_weight,
@@ -323,7 +336,7 @@ class FisherInformation:
                 unweighted_x_sample_file, n_events=luminosity * total_xsec
             )
 
-            fisher_info_uncertainty = None
+            covariance = None
 
             if return_error is None:
                 return_error = False
@@ -331,12 +344,17 @@ class FisherInformation:
         # Returns
         if isinstance(ensemble_vote_expectation_weight, list) and len(ensemble_vote_expectation_weight) > 1:
             fisher_info_results = [fisher_info_rate + this_fisher_info_kin for this_fisher_info_kin in fisher_info_kin]
+            covariance_results = [rate_covariance + this_covariance for this_covariance in covariance]
             if return_error:
-                return fisher_info_results, fisher_info_uncertainty
+                return fisher_info_results, covariance_results
             return fisher_info_results
 
         if return_error:
-            return fisher_info_rate + fisher_info_kin, fisher_info_uncertainty
+            logging.warning(
+                "Uncertainty on Fisher information with single SALLY instance only reflects the covariance from the "
+                "rate, not the kinematic part!"
+            )
+            return fisher_info_rate + fisher_info_kin, rate_covariance
         return fisher_info_rate + fisher_info_kin
 
     def calculate_fisher_information_rate(self, theta, luminosity, cuts=None, efficiency_functions=None):
@@ -365,19 +383,32 @@ class FisherInformation:
         fisher_information : ndarray
             Expected Fisher information in the total cross section with shape `(n_parameters, n_parameters)`.
 
+        fisher_information_uncertainty : ndarray
+            Covariance matrix of the Fisher information matrix with shape
+            `(n_parameters, n_parameters, n_parameters, n_parameters)`, calculated with plain Gaussian error
+            propagation.
+
         """
 
         # Get weights at benchmarks
-        weights_benchmarks = self._calculate_xsec(
-            cuts=cuts, efficiency_functions=efficiency_functions, return_benchmark_xsecs=True
+        weights_benchmarks, weights_benchmark_uncertainties = self._calculate_xsec(
+            cuts=cuts, efficiency_functions=efficiency_functions, return_benchmark_xsecs=True, return_error=True
         )
+
+        weights_benchmarks = weights_benchmarks.reshape((1, -1))
+        weights_benchmark_uncertainties = weights_benchmark_uncertainties.reshape((1, -1))
 
         # Get Fisher information
-        fisher_info = self._calculate_fisher_information(
-            theta=theta, weights_benchmarks=weights_benchmarks[np.newaxis, :], luminosity=luminosity, sum_events=True
+        fisher_info, covariance = self._calculate_fisher_information(
+            theta=theta,
+            weights_benchmarks=weights_benchmarks,
+            luminosity=luminosity,
+            sum_events=True,
+            calculate_uncertainty=True,
+            weights_benchmark_uncertainties=weights_benchmark_uncertainties,
         )
 
-        return fisher_info
+        return fisher_info, covariance
 
     def calculate_fisher_information_hist1d(
         self,
@@ -425,6 +456,11 @@ class FisherInformation:
         -------
         fisher_information : ndarray
             Expected Fisher information in the histogram with shape `(n_parameters, n_parameters)`.
+
+        fisher_information_uncertainty : ndarray
+            Covariance matrix of the Fisher information matrix with shape
+            `(n_parameters, n_parameters, n_parameters, n_parameters)`, calculated with plain Gaussian error
+            propagation.
 
         """
 
@@ -477,10 +513,7 @@ class FisherInformation:
 
         # Loop over batches
         weights_benchmarks = np.zeros((n_bins_total, self.n_benchmarks))
-
-        # Prepare for dynamic binning
-        all_weights = []
-        all_histo_observables = []
+        weights_squared_benchmarks = np.zeros((n_bins_total, self.n_benchmarks))
 
         for observations, weights in madminer_event_loader(self.madminer_filename):
             # Cuts
@@ -505,11 +538,20 @@ class FisherInformation:
             for i in range(n_bins_total):
                 if len(weights[bins == i]) > 0:
                     weights_benchmarks[i] += np.sum(weights[bins == i], axis=0)
+                    weights_squared_benchmarks[i] += np.sum(weights[bins == i] ** 2, axis=0)
+
+        weights_benchmark_uncertainties = weights_squared_benchmarks ** 0.5
 
         # Calculate Fisher information in histogram
-        fisher_info = self._calculate_fisher_information(theta, weights_benchmarks, luminosity, sum_events=True)
-
-        return fisher_info
+        fisher_info, covariance = self._calculate_fisher_information(
+            theta,
+            weights_benchmarks,
+            luminosity,
+            sum_events=True,
+            weights_benchmark_uncertainties=weights_benchmark_uncertainties,
+            calculate_uncertainty=True,
+        )
+        return fisher_info, covariance
 
     def calculate_fisher_information_hist2d(
         self,
@@ -793,7 +835,15 @@ class FisherInformation:
 
         return x, weights_thetas
 
-    def _calculate_fisher_information(self, theta, weights_benchmarks, luminosity=300000.0, sum_events=False):
+    def _calculate_fisher_information(
+        self,
+        theta,
+        weights_benchmarks,
+        luminosity=300000.0,
+        sum_events=False,
+        calculate_uncertainty=False,
+        weights_benchmark_uncertainties=None,
+    ):
         """
         Low-level function that calculates a list of full Fisher information matrices for a given parameter point and
         benchmark weights. Do not use this function directly, instead use the other `FisherInformation` functions.
@@ -823,20 +873,85 @@ class FisherInformation:
         """
 
         # Get morphing matrices
-        theta_matrix = get_theta_benchmark_matrix("morphing", theta, self.benchmarks, self.morpher)
-        dtheta_matrix = get_dtheta_benchmark_matrix("morphing", theta, self.benchmarks, self.morpher)
+        theta_matrix = get_theta_benchmark_matrix("morphing", theta, self.benchmarks, self.morpher)  # (n_benchmarks,)
+        dtheta_matrix = get_dtheta_benchmark_matrix(
+            "morphing", theta, self.benchmarks, self.morpher
+        )  # (n_parameters, n_benchmarks)
 
         # Get differential xsec per event, and the derivative wrt to theta
         sigma = theta_matrix.dot(weights_benchmarks.T)  # Shape (n_events,)
+        inv_sigma = sanitize_array(1.0 / sigma)  # Shape (n_events,)
         dsigma = dtheta_matrix.dot(weights_benchmarks.T)  # Shape (n_parameters, n_events)
 
         # Calculate Fisher info for this event
-        fisher_info = []
-        for i_event in range(len(sigma)):
-            fisher_info.append(luminosity / sigma[i_event] * np.tensordot(dsigma.T[i_event], dsigma.T[i_event], axes=0))
-        fisher_info = np.array(fisher_info)
+        fisher_info = luminosity * np.einsum("n,in,jn->nij", inv_sigma, dsigma, dsigma)
 
-        fisher_info = np.nan_to_num(fisher_info)
+        # # Old code:
+        # fisher_info_debug = []
+        # for i_event in range(len(sigma)):
+        #     fisher_info_debug.append(luminosity / sigma[i_event] * np.tensordot(dsigma.T[i_event], dsigma.T[i_event],
+        #                                                                         axes=0))
+        # fisher_info_debug = np.array(fisher_info_debug)
+        # fisher_info_debug = sanitize_array(fisher_info_debug)
+        # logging.debug('Old vs new Fisher info calculation:\n%s\n%s\n%s', fisher_info - fisher_info_debug, fisher_info,
+        #               fisher_info_debug)
+
+        if calculate_uncertainty:
+            n_events = weights_benchmarks.shape[0]
+            n_benchmarks = weights_benchmarks.shape[1]
+
+            # Input uncertainties
+            if weights_benchmark_uncertainties is None:
+                weights_benchmark_uncertainties = weights_benchmarks  # Shape (n_events, n_benchmarks)
+
+            # Build covariance matrix of inputs
+            # We assume full correlation between weights_benchmarks[i, b1] and weights_benchmarks[i, b2]
+            covariance_inputs = np.zeros((n_events, n_benchmarks, n_benchmarks))
+            for i, b1, b2 in zip(range(n_events), range(n_benchmarks), range(n_benchmarks)):
+
+                if b1 == b2:  # Diagonal
+                    covariance_inputs[i, b1, b2] = weights_benchmark_uncertainties[i, b1] ** 2
+
+                else:  # Off-diagonal, same event
+                    covariance_inputs[i, b1, b2] = (
+                        weights_benchmark_uncertainties[i, b1] * weights_benchmark_uncertainties[i, b2]
+                    )
+
+            # Jacobian
+            temp1 = np.einsum("ib,jn,n->ijnb", dtheta_matrix, dsigma, inv_sigma)
+            temp2 = np.einsum("jb,in,n->ijnb", dtheta_matrix, dsigma, inv_sigma)
+            temp3 = np.einsum("b,in,jn,n,n->ijnb", theta_matrix, dsigma, dsigma, inv_sigma, inv_sigma)
+
+            temp1, temp2, temp3 = sanitize_array(temp1), sanitize_array(temp2), sanitize_array(temp3)
+
+            jacobian = luminosity * (temp1 + temp2 + temp3)  # (n_parameters, n_parameters, n_events, n_benchmarks)
+
+            # Covariance of information
+            covariance_information = np.einsum("ijnb,nbc,klnc->ijkl", jacobian, covariance_inputs, jacobian)
+
+            # Old code:
+            # covariance_inputs = covariance_inputs.reshape((-1))
+            # jacobian = jacobian.reshape((jacobian.shape[0] * jacobian.shape[1], -1))
+            # covariance_information = np.einsum("IK,K,JK->IJ", jacobian, covariance_inputs, jacobian)
+            # covariance_information = covariance_information.reshape(
+            #     (self.n_parameters, self.n_parameters, self.n_parameters, self.n_parameters)
+            # )
+
+            # logging.debug('Terms in uncertainty calculation:')
+            # logging.debug('  theta_matrix = %s', theta_matrix)
+            # logging.debug('  dtheta_matrix = %s', dtheta_matrix)
+            # logging.debug('  sigma = %s', sigma)
+            # logging.debug('  inv_sigma = %s', inv_sigma)
+            # logging.debug('  covariance_inputs = %s', covariance_inputs)
+            # logging.debug('  temp1 = %s', temp1)
+            # logging.debug('  temp2 = %s', temp2)
+            # logging.debug('  temp3 = %s', temp3)
+            # logging.debug('  jacobian = %s', jacobian)
+            # logging.debug('  covariance_information = %s', covariance_information)
+
+            if sum_events:
+                return np.sum(fisher_info, axis=0), covariance_information
+            return fisher_info, covariance_information
 
         if sum_events:
             return np.sum(fisher_info, axis=0)
@@ -951,7 +1066,9 @@ class FisherInformation:
         # Check cuts
         return float(eval(observable_definition, variables))
 
-    def _calculate_xsec(self, theta=None, cuts=None, efficiency_functions=None, return_benchmark_xsecs=False):
+    def _calculate_xsec(
+        self, theta=None, cuts=None, efficiency_functions=None, return_benchmark_xsecs=False, return_error=False
+    ):
         """
         Calculates the total cross section for a parameter point.
 
@@ -972,11 +1089,17 @@ class FisherInformation:
             If True, this function returns the benchmark xsecs. Otherwise, it returns the xsec at theta. Default value:
             False.
 
+        return_error : bool
+            If True, this function also returns the square root of the summed squared weights.
+
         Returns
         -------
         xsec : ndarray or float
             If return_benchmark_xsecs is True, an ndarray of benchmark xsecs in pb is returned. Otherwise, the cross
             section at theta in pb is returned.
+
+        xsec_uncertainty : ndarray or float
+            Only returned if return_error is True. Uncertainty (square root of the summed squared weights) on xsec.
 
         """
 
@@ -990,6 +1113,7 @@ class FisherInformation:
 
         # Total xsecs for benchmarks
         xsecs_benchmarks = None
+        xsecs_uncertainty_benchmarks = None
 
         for observations, weights in madminer_event_loader(self.madminer_filename):
             # Cuts
@@ -1006,16 +1130,25 @@ class FisherInformation:
             # xsecs
             if xsecs_benchmarks is None:
                 xsecs_benchmarks = np.sum(weights, axis=0)
+                xsecs_uncertainty_benchmarks = np.sum(weights ** 2, axis=0)
             else:
                 xsecs_benchmarks += np.sum(weights, axis=0)
+                xsecs_uncertainty_benchmarks += np.sum(weights ** 2, axis=0)
 
         assert xsecs_benchmarks is not None, "No events passed cuts"
 
+        xsecs_uncertainty_benchmarks = xsecs_uncertainty_benchmarks ** 0.5
+
         if return_benchmark_xsecs:
+            if return_error:
+                return xsecs_benchmarks, xsecs_uncertainty_benchmarks
             return xsecs_benchmarks
 
         # Translate to xsec for theta
         theta_matrix = get_theta_benchmark_matrix("morphing", theta, self.benchmarks, self.morpher)
         xsec = theta_matrix.dot(xsecs_benchmarks)
+        xsec_error = theta_matrix.dot(xsecs_uncertainty_benchmarks)
 
+        if return_error:
+            return xsec, xsec_error
         return xsec
