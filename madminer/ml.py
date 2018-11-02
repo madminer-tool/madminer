@@ -56,6 +56,7 @@ class MLForge:
         self.maf_batch_norm = None
         self.maf_batch_norm_alpha = None
         self.features = None
+        self.debug = debug
 
     def train(
         self,
@@ -69,7 +70,7 @@ class MLForge:
         t_xz1_filename=None,
         features=None,
         nde_type="maf",
-        n_hidden=(100, 100,),
+        n_hidden=(100, 100),
         activation="tanh",
         maf_n_mades=3,
         maf_batch_norm=True,
@@ -248,7 +249,7 @@ class MLForge:
         logging.info("  Trainer:                %s", trainer)
         logging.info("  Epochs:                 %s", n_epochs)
         logging.info("  Learning rate:          %s initially, decaying to %s", initial_lr, final_lr)
-        if trainer == 'sgd':
+        if trainer == "sgd":
             logging.info("  Nesterov momentum:      %s", nesterov_momentum)
         logging.info("  Validation split:       %s", validation_split)
         logging.info("  Early stopping:         %s", early_stopping)
@@ -352,7 +353,7 @@ class MLForge:
                     n_mades=maf_n_mades,
                     activation=activation,
                     batch_norm=maf_batch_norm,
-                    alpha=maf_batch_norm_alpha
+                    alpha=maf_batch_norm_alpha,
                 )
             elif nde_type == "maf_mog":
                 self.model = ConditionalMixtureMaskedAutoregressiveFlow(
@@ -441,7 +442,7 @@ class MLForge:
                 early_stopping=early_stopping,
                 trainer=trainer,
                 nesterov_momentum=nesterov_momentum,
-                verbose="all" if self.debug else "some"
+                verbose="all" if self.debug else "some",
             )
         elif method in ["nde", "scandal"]:
             train_flow_model(
@@ -459,7 +460,7 @@ class MLForge:
                 early_stopping=early_stopping,
                 trainer=trainer,
                 nesterov_momentum=nesterov_momentum,
-                verbose="all" if self.debug else "some"
+                verbose="all" if self.debug else "some",
             )
         else:
             train_ratio_model(
@@ -483,7 +484,7 @@ class MLForge:
                 early_stopping=early_stopping,
                 trainer=trainer,
                 nesterov_momentum=nesterov_momentum,
-                verbose="all" if self.debug else "some" 
+                verbose="all" if self.debug else "some",
             )
 
     def evaluate(

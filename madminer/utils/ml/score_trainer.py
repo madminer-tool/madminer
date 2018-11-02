@@ -96,7 +96,9 @@ def train_local_score_model(
         if nesterov_momentum is None:
             optimizer = optim.SGD(model.parameters(), lr=initial_learning_rate)
         else:
-            optimizer = optim.SGD(model.parameters(), lr=initial_learning_rate, nesterov=True, momentum=nesterov_momentum)
+            optimizer = optim.SGD(
+                model.parameters(), lr=initial_learning_rate, nesterov=True, momentum=nesterov_momentum
+            )
     else:
         raise ValueError("Unknown trainer {}".format(trainer))
 
