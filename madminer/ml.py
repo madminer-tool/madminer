@@ -44,6 +44,8 @@ class MLForge:
     def __init__(self, debug=False):
         general_init(debug=debug)
 
+        self.debug = debug
+
         self.method_type = None
         self.model = None
         self.method = None
@@ -56,7 +58,8 @@ class MLForge:
         self.maf_batch_norm = None
         self.maf_batch_norm_alpha = None
         self.features = None
-        self.debug = debug
+        self.x_scaling_means = None
+        self.x_scaling_stds = None
 
     def train(
         self,
@@ -85,6 +88,7 @@ class MLForge:
         nesterov_momentum=None,
         validation_split=0.25,
         early_stopping=True,
+        scale_inputs=True,
     ):
 
         """
@@ -202,10 +206,13 @@ class MLForge:
 
         validation_split : float or None, optional
             Fraction of samples used  for validation and early stopping (if early_stopping is True). If None, the entire
-            sample is used for training and early stopping is deactivated. Default value: 0.2.
+            sample is used for training and early stopping is deactivated. Default value: 0.25.
 
         early_stopping : bool, optional
             Activates early stopping based on the validation loss (only if validation_split is not None).
+
+        scale_inputs : bool, optional
+            Scale the observables to zero mean and unit variance. Default value: True.
 
         Returns
         -------
@@ -253,6 +260,7 @@ class MLForge:
             logging.info("  Nesterov momentum:      %s", nesterov_momentum)
         logging.info("  Validation split:       %s", validation_split)
         logging.info("  Early stopping:         %s", early_stopping)
+        logging.info("  Scale inputs:           %s", scale_inputs)
 
         # Load training data
         logging.info("Loading training data")
@@ -308,6 +316,28 @@ class MLForge:
             n_parameters = t_xz0.shape[1]
 
         logging.info("Found %s samples with %s parameters and %s observables", n_samples, n_parameters, n_observables)
+
+        # Scale features
+        logging.info("Rescaling inputs")
+        if scale_inputs:
+            self.x_scaling_means = np.mean(x, axis=0)
+            self.x_scaling_stds = np.maximum(np.std(x, axis=0), 1.0e-6)
+            x[:] -= self.x_scaling_means
+            x[:] /= self.x_scaling_stds
+        else:
+            self.x_scaling_means = np.zeros(n_parameters)
+            self.x_scaling_stds = np.ones(n_parameters)
+
+        logging.debug("Observable ranges:")
+        for i in range(n_observables):
+            logging.debug(
+                "  x_%s: mean %s, std %s, range %s ... %s",
+                i + 1,
+                np.mean(x[:, i]),
+                np.std(x[:, i]),
+                np.min(x[:, i]),
+                np.max(x[:, i]),
+            )
 
         # Features
         if features is not None:
@@ -555,6 +585,11 @@ class MLForge:
         theta1s = load_and_check(theta1_filename)
         xs = load_and_check(x_filename)
 
+        # Scale observables
+        if self.x_scaling_mean is not None and self.x_scaling_stds is not None:
+            xs[:] -= self.x_scaling_mean
+            xs[:] /= self.x_scaling_stds
+
         # Restrict featuers
         if self.features is not None:
             xs = xs[:, self.features]
@@ -667,6 +702,11 @@ class MLForge:
         xs = load_and_check(x_filename)
         n_samples = xs.shape[0]
 
+        # Scale observables
+        if self.x_scaling_mean is not None and self.x_scaling_stds is not None:
+            xs[:] -= self.x_scaling_mean
+            xs[:] /= self.x_scaling_stds
+
         # Restrict featuers
         if self.features is not None:
             xs = xs[:, self.features]
@@ -695,8 +735,8 @@ class MLForge:
     def save(self, filename):
 
         """
-        Saves the trained model to two files: a JSON file with the settings, as well as a pickled pyTorch state dict
-        file.
+        Saves the trained model to four files: a JSON file with the settings, a pickled pyTorch state dict
+        file, and numpy files for the mean and variance of the inputs (used for input scaling).
 
         Parameters
         ----------
@@ -730,6 +770,12 @@ class MLForge:
 
         with open(filename + "_settings.json", "w") as f:
             json.dump(settings, f)
+
+        # Save scaling
+        if self.x_scaling_stds is not None and self.x_scaling_means is not None:
+            logging.debug("Saving input scaling information to %s_x_means.npy and %s_x_stds.npy", filename, filename)
+            np.save(filename + "_x_means.npy", self.x_scaling_means)
+            np.save(filename + "_x_stds.npy", self.x_scaling_stds)
 
         # Save state dict
         logging.debug("Saving state dictionary to %s_state_dict.pt", filename)
@@ -779,6 +825,18 @@ class MLForge:
             self.activation,
             self.features,
         )
+
+        # Load scaling
+        try:
+            self.x_scaling_means = np.load(filename + "_x_means.npy")
+            self.x_scaling_stds = np.load(filename + "_x_stds.npy")
+            logging.debug(
+                "  Found input scaling information: means %s, stds %s", self.x_scaling_means, self.x_scaling_stds
+            )
+        except FileNotFoundError:
+            logging.warning("Scaling information not found in %s", filename)
+            self.x_scaling_means = None
+            self.x_scaling_stds = None
 
         # Create model
         if self.method in ["carl", "rolr", "rascal", "alice", "alices"]:
