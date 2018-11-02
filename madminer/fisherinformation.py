@@ -233,7 +233,9 @@ class FisherInformation:
             weights *= efficiencies[:, np.newaxis]
 
             # Fisher information
-            this_fisher_info, this_covariance = self._calculate_fisher_information(theta, weights, luminosity, sum_events=True, calculate_uncertainty=True)
+            this_fisher_info, this_covariance = self._calculate_fisher_information(
+                theta, weights, luminosity, sum_events=True, calculate_uncertainty=True
+            )
             fisher_info += this_fisher_info
             covariance += this_covariance
 
@@ -386,9 +388,17 @@ class FisherInformation:
             cuts=cuts, efficiency_functions=efficiency_functions, return_benchmark_xsecs=True, return_error=True
         )
 
+        weights_benchmarks = weights_benchmarks.reshape((1, -1))
+        weights_benchmark_uncertainties = weights_benchmark_uncertainties.reshape((1, -1))
+
         # Get Fisher information
         fisher_info, covariance = self._calculate_fisher_information(
-            theta=theta, weights_benchmarks=weights_benchmarks[np.newaxis, :], luminosity=luminosity, sum_events=True, calculate_uncertainty=True, weights_benchmark_uncertainties=weights_benchmark_uncertainties
+            theta=theta,
+            weights_benchmarks=weights_benchmarks[np.newaxis, :],
+            luminosity=luminosity,
+            sum_events=True,
+            calculate_uncertainty=True,
+            weights_benchmark_uncertainties=weights_benchmark_uncertainties,
         )
 
         return fisher_info, covariance
@@ -402,7 +412,7 @@ class FisherInformation:
         histrange=None,
         cuts=None,
         efficiency_functions=None,
-        n_events_dynamic_binning=100000
+        n_events_dynamic_binning=100000,
     ):
         """
         Calculates the Fisher information in the one-dimensional histogram of an (parton-level or detector-level,
@@ -880,10 +890,27 @@ class FisherInformation:
         #               fisher_info_debug)
 
         if calculate_uncertainty:
+            n_events = weights_benchmarks.shape[0]
+            n_benchmarks = weights_benchmarks.shape[1]
+
+            # Input uncertainties
             if weights_benchmark_uncertainties is None:
                 weights_benchmark_uncertainties = weights_benchmarks  # Shape (n_events, n_benchmarks)
-            covariance_inputs = (weights_benchmark_uncertainties ** 2)
 
+            # Build covariance matrix of inputs
+            # We assume full correlation between weights_benchmarks[i, b1] and weights_benchmarks[i, b2]
+            covariance_inputs = np.zeros((n_events, n_benchmarks, n_benchmarks))
+            for i, b1, b2 in zip(range(n_events), range(n_benchmarks), range(n_benchmarks)):
+
+                if b1 == b2:  # Diagonal
+                    covariance_inputs[i, b1, b2] = weights_benchmark_uncertainties[i, b1] ** 2
+
+                else:  # Off-diagonal, same event
+                    covariance_inputs[i, b1, b2] = (
+                        weights_benchmark_uncertainties[i, b1] * weights_benchmark_uncertainties[i, b2]
+                    )
+
+            # Jacobian
             temp1 = np.einsum("ib,jn,n->ijnb", dtheta_matrix, dsigma, inv_sigma)
             temp2 = np.einsum("jb,in,n->ijnb", dtheta_matrix, dsigma, inv_sigma)
             temp3 = np.einsum("b,in,jn,n,n->ijnb", theta_matrix, dsigma, dsigma, inv_sigma, inv_sigma)
@@ -891,7 +918,9 @@ class FisherInformation:
             temp1, temp2, temp3 = sanitize_array(temp1), sanitize_array(temp2), sanitize_array(temp3)
 
             jacobian = luminosity * (temp1 + temp2 + temp3)  # (n_parameters, n_parameters, n_events, n_benchmarks)
-            covariance_information = np.einsum("ijnb,nb,klnb->ijkl", jacobian, covariance_inputs, jacobian)
+
+            # Covariance of information
+            covariance_information = np.einsum("ijnb,nbc,klnc->ijkl", jacobian, covariance_inputs, jacobian)
 
             # Old code:
             # covariance_inputs = covariance_inputs.reshape((-1))
@@ -1030,7 +1059,9 @@ class FisherInformation:
         # Check cuts
         return float(eval(observable_definition, variables))
 
-    def _calculate_xsec(self, theta=None, cuts=None, efficiency_functions=None, return_benchmark_xsecs=False, return_error=False):
+    def _calculate_xsec(
+        self, theta=None, cuts=None, efficiency_functions=None, return_benchmark_xsecs=False, return_error=False
+    ):
         """
         Calculates the total cross section for a parameter point.
 
@@ -1092,14 +1123,14 @@ class FisherInformation:
             # xsecs
             if xsecs_benchmarks is None:
                 xsecs_benchmarks = np.sum(weights, axis=0)
-                xsecs_uncertainty_benchmarks = np.sum(weights**2, axis=0)
+                xsecs_uncertainty_benchmarks = np.sum(weights ** 2, axis=0)
             else:
                 xsecs_benchmarks += np.sum(weights, axis=0)
-                xsecs_uncertainty_benchmarks += np.sum(weights**2, axis=0)
+                xsecs_uncertainty_benchmarks += np.sum(weights ** 2, axis=0)
 
         assert xsecs_benchmarks is not None, "No events passed cuts"
 
-        xsecs_uncertainty_benchmarks = xsecs_uncertainty_benchmarks**0.5
+        xsecs_uncertainty_benchmarks = xsecs_uncertainty_benchmarks ** 0.5
 
         if return_benchmark_xsecs:
             if return_error:

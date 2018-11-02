@@ -133,7 +133,7 @@ def balance_thetas(theta_sets_types, theta_sets_values):
     return theta_sets_types, theta_sets_values
 
 
-def sanitize_array(array, replace_nan=0., replace_inf=0., replace_neg_inf=0.):
+def sanitize_array(array, replace_nan=0.0, replace_inf=0.0, replace_neg_inf=0.0):
     array[np.isneginf(array)] = replace_neg_inf
     array[np.isinf(array)] = replace_inf
     array[np.isnan(array)] = replace_nan
@@ -287,5 +287,3 @@ def weighted_quantile(values, quantiles, sample_weight=None, values_sorted=False
         weighted_quantiles /= np.sum(sample_weight)
 
     return np.interp(quantiles, weighted_quantiles, values)
-
-
