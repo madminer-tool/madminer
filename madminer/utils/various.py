@@ -135,7 +135,7 @@ def balance_thetas(theta_sets_types, theta_sets_values):
 
 def sanitize_array(array, replace_nan=0., replace_inf=0., replace_neg_inf=0.):
     array[np.isneginf(array)] = replace_neg_inf
-    array[np.inf(array)] = replace_inf
+    array[np.isinf(array)] = replace_inf
     array[np.isnan(array)] = replace_nan
     return array
 
