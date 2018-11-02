@@ -294,7 +294,7 @@ class DelphesProcessor:
         self.observables_defaults[name] = default
 
     def add_default_observables(
-        self, n_leptons_max=2, n_photons_max=2, n_jets_max=2, include_met=True, include_visible_sum=True
+        self, n_leptons_max=2, n_photons_max=2, n_jets_max=2, include_met=True, include_visible_sum=True, include_numbers=True
     ):
         """
         Adds a set of simple standard observables: the four-momenta (parameterized as E, pT, eta, phi) of the hardest
@@ -317,6 +317,9 @@ class DelphesProcessor:
         include_visible_sum : bool, optional
             Whether observables characterizing the sum of all particles are stored. Default value: True.
 
+        include_numbers : bool, optional
+            Whether the number of leptons, photons, and jets is saved as observable. Default value: True.
+
         Returns
         -------
             None
@@ -336,7 +339,8 @@ class DelphesProcessor:
         for n, symbol, include_charge in zip(
             [n_leptons_max, n_photons_max, n_jets_max], ["l", "a", "j"], [False, False, True]
         ):
-            self.add_observable("n_{}s".format(symbol), "len({})".format(symbol), required=True)
+            if include_numbers:
+                self.add_observable("n_{}s".format(symbol), "len({})".format(symbol), required=True)
 
             for i in range(n):
                 self.add_observable(
