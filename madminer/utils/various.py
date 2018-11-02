@@ -15,17 +15,6 @@ printed_splash = False
 
 
 def general_init(debug=False):
-    """
-
-    Parameters
-    ----------
-    debug :
-         (Default value = False)
-
-    Returns
-    -------
-
-    """
     global printed_splash
 
     logging.basicConfig(format="%(asctime)s  %(message)s", datefmt="%H:%M")
@@ -46,19 +35,6 @@ def general_init(debug=False):
 
 
 def call_command(cmd, log_file=None):
-    """
-
-    Parameters
-    ----------
-    cmd :
-        
-    log_file :
-         (Default value = None)
-
-    Returns
-    -------
-
-    """
     logging.debug("Calling %s > %s", cmd, log_file)
 
     if log_file is not None:
@@ -87,17 +63,6 @@ def call_command(cmd, log_file=None):
 
 
 def create_missing_folders(folders):
-    """
-
-    Parameters
-    ----------
-    folders :
-        
-
-    Returns
-    -------
-
-    """
     if folders is None:
         return
 
@@ -113,19 +78,6 @@ def create_missing_folders(folders):
 
 
 def format_benchmark(parameters, precision=2):
-    """
-
-    Parameters
-    ----------
-    parameters :
-        
-    precision :
-         (Default value = 2)
-
-    Returns
-    -------
-
-    """
     output = ""
 
     for i, (key, value) in enumerate(six.iteritems(parameters)):
@@ -143,17 +95,7 @@ def format_benchmark(parameters, precision=2):
 
 
 def shuffle(*arrays):
-    """Shuffles multiple arrays simultaneously
-
-    Parameters
-    ----------
-    *arrays :
-        
-
-    Returns
-    -------
-
-    """
+    """ Shuffles multiple arrays simultaneously """
 
     permutation = None
     n_samples = None
@@ -176,19 +118,7 @@ def shuffle(*arrays):
 
 
 def balance_thetas(theta_sets_types, theta_sets_values):
-    """Repeats theta values such that all thetas lists have the same length
-
-    Parameters
-    ----------
-    theta_sets_types :
-        
-    theta_sets_values :
-        
-
-    Returns
-    -------
-
-    """
+    """Repeats theta values such that all thetas lists have the same length """
 
     n_sets = max([len(thetas) for thetas in theta_sets_types])
 
@@ -203,20 +133,14 @@ def balance_thetas(theta_sets_types, theta_sets_values):
     return theta_sets_types, theta_sets_values
 
 
+def sanitize_array(array, replace_nan=0., replace_inf=0., replace_neg_inf=0.):
+    array[np.isneginf(array)] = replace_neg_inf
+    array[np.inf(array)] = replace_inf
+    array[np.isnan(array)] = replace_nan
+    return array
+
+
 def load_and_check(filename, warning_threshold=1.0e9):
-    """
-
-    Parameters
-    ----------
-    filename :
-        
-    warning_threshold :
-         (Default value = 1.e9)
-
-    Returns
-    -------
-
-    """
     if filename is None:
         return None
 
@@ -363,3 +287,5 @@ def weighted_quantile(values, quantiles, sample_weight=None, values_sorted=False
         weighted_quantiles /= np.sum(sample_weight)
 
     return np.interp(quantiles, weighted_quantiles, values)
+
+

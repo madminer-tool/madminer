@@ -8,7 +8,7 @@ import os
 from madminer.utils.interfaces.hdf5 import load_madminer_settings, madminer_event_loader
 from madminer.utils.analysis import get_theta_benchmark_matrix, get_dtheta_benchmark_matrix
 from madminer.morphing import Morpher
-from madminer.utils.various import general_init, format_benchmark, math_commands, weighted_quantile
+from madminer.utils.various import general_init, format_benchmark, math_commands, weighted_quantile, sanitize_array
 from madminer.ml import MLForge, EnsembleForge
 
 
@@ -851,7 +851,7 @@ class FisherInformation:
 
         # Get differential xsec per event, and the derivative wrt to theta
         sigma = theta_matrix.dot(weights_benchmarks.T)  # Shape (n_events,)
-        inv_sigma = np.nan_to_num(1.0 / sigma)  # Shape (n_events,)
+        inv_sigma = sanitize_array(1.0 / sigma)  # Shape (n_events,)
         dsigma = dtheta_matrix.dot(weights_benchmarks.T)  # Shape (n_parameters, n_events)
 
         # Calculate Fisher info for this event
@@ -863,7 +863,7 @@ class FisherInformation:
         #     fisher_info_debug.append(luminosity / sigma[i_event] * np.tensordot(dsigma.T[i_event], dsigma.T[i_event],
         #                                                                         axes=0))
         # fisher_info_debug = np.array(fisher_info_debug)
-        # fisher_info_debug = np.nan_to_num(fisher_info_debug)
+        # fisher_info_debug = sanitize_array(fisher_info_debug)
         # logging.debug('Old vs new Fisher info calculation:\n%s\n%s\n%s', fisher_info - fisher_info_debug, fisher_info,
         #               fisher_info_debug)
 
@@ -876,27 +876,29 @@ class FisherInformation:
             temp2 = np.einsum("jb,in,n->ijnb", dtheta_matrix, dsigma, inv_sigma)
             temp3 = np.einsum("b,in,jn,n,n->ijnb", theta_matrix, dsigma, dsigma, inv_sigma, inv_sigma)
 
-            temp1, temp2, temp3 = np.nan_to_num(temp1), np.nan_to_num(temp2), np.nan_to_num(temp3)
+            temp1, temp2, temp3 = sanitize_array(temp1), sanitize_array(temp2), sanitize_array(temp3)
 
             jacobian = luminosity * (temp1 + temp2 + temp3)  # (n_parameters, n_parameters, n_events, n_benchmarks)
-            jacobian = jacobian.reshape((jacobian.shape[0] * jacobian.shape[1], -1))
+            covariance_information = np.einsum("ijnb,nb,klnb->ijkl", jacobian, covariance_inputs, jacobian)
 
-            covariance_information = np.einsum("IK,K,JK->IJ", jacobian, covariance_inputs, jacobian)
-            covariance_information = covariance_information.reshape(
-                (self.n_parameters, self.n_parameters, self.n_parameters, self.n_parameters)
-            )
+            # Old code:
+            # jacobian = jacobian.reshape((jacobian.shape[0] * jacobian.shape[1], -1))
+            # covariance_information = np.einsum("IK,K,JK->IJ", jacobian, covariance_inputs, jacobian)
+            # covariance_information = covariance_information.reshape(
+            #     (self.n_parameters, self.n_parameters, self.n_parameters, self.n_parameters)
+            # )
 
-            logging.debug('Terms in uncertainty calculation:')
-            logging.debug('  theta_matrix = %s', theta_matrix)
-            logging.debug('  dtheta_matrix = %s', dtheta_matrix)
-            logging.debug('  sigma = %s', sigma)
-            logging.debug('  inv_sigma = %s', inv_sigma)
-            logging.debug('  covariance_inputs = %s', covariance_inputs)
-            logging.debug('  temp1 = %s', temp1)
-            logging.debug('  temp2 = %s', temp2)
-            logging.debug('  temp3 = %s', temp3)
-            logging.debug('  jacobian = %s', jacobian)
-            logging.debug('  covariance_information = %s', covariance_information)
+            # logging.debug('Terms in uncertainty calculation:')
+            # logging.debug('  theta_matrix = %s', theta_matrix)
+            # logging.debug('  dtheta_matrix = %s', dtheta_matrix)
+            # logging.debug('  sigma = %s', sigma)
+            # logging.debug('  inv_sigma = %s', inv_sigma)
+            # logging.debug('  covariance_inputs = %s', covariance_inputs)
+            # logging.debug('  temp1 = %s', temp1)
+            # logging.debug('  temp2 = %s', temp2)
+            # logging.debug('  temp3 = %s', temp3)
+            # logging.debug('  jacobian = %s', jacobian)
+            # logging.debug('  covariance_information = %s', covariance_information)
 
             if sum_events:
                 return np.sum(fisher_info, axis=0), covariance_information
