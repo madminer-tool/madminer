@@ -134,6 +134,8 @@ def train_ratio_model(
     # Optimizer
     if trainer == "adam":
         optimizer = optim.Adam(model.parameters(), lr=initial_learning_rate)
+    elif trainer == "amsgrad":
+        optimizer = optim.Adam(model.parameters(), lr=initial_learning_rate, amsgrad=True)
     elif trainer == "sgd":
         if nesterov_momentum is None:
             optimizer = optim.SGD(model.parameters(), lr=initial_learning_rate)

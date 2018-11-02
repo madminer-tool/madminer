@@ -76,7 +76,7 @@ class MLForge:
         maf_batch_norm_alpha=0.1,
         maf_mog_n_components=10,
         alpha=1.0,
-        trainer="adam",
+        trainer="amsgrad",
         n_epochs=50,
         batch_size=128,
         initial_lr=0.001,
@@ -180,8 +180,8 @@ class MLForge:
             Hyperparameter weighting the score error in the loss function of the 'alices', 'alices2', 'rascal',
             'rascal2', and 'scandal' methods.
 
-        trainer : {"adam", "sgd"}, optional
-            Optimization algorithm. Default value: "adam".
+        trainer : {"adam", "amsgrad", "sgd"}, optional
+            Optimization algorithm. Default value: "amsgrad".
 
         n_epochs : int, optional
             Number of epochs. Default value: 50.
