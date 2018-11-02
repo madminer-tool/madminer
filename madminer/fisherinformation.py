@@ -874,7 +874,9 @@ class FisherInformation:
 
             temp1 = np.einsum("ib,jn,n->ijnb", dtheta_matrix, dsigma, inv_sigma)
             temp2 = np.einsum("jb,in,n->ijnb", dtheta_matrix, dsigma, inv_sigma)
-            temp3 = np.einsum("b,in,jn,n,n->bn", theta_matrix, dsigma, dsigma, inv_sigma, inv_sigma)
+            temp3 = np.einsum("b,in,jn,n,n->ijnb", theta_matrix, dsigma, dsigma, inv_sigma, inv_sigma)
+
+            temp1, temp2, temp3 = np.nan_to_num(temp1), np.nan_to_num(temp2), np.nan_to_num(temp3)
 
             jacobian = luminosity * (temp1 + temp2 + temp3)  # (n_parameters, n_parameters, n_events, n_benchmarks)
             jacobian = jacobian.reshape((jacobian.shape[0] * jacobian.shape[1], -1))
@@ -883,6 +885,18 @@ class FisherInformation:
             covariance_information = covariance_information.reshape(
                 (self.n_parameters, self.n_parameters, self.n_parameters, self.n_parameters)
             )
+
+            logging.debug('Terms in uncertainty calculation:')
+            logging.debug('  theta_matrix = %s', theta_matrix)
+            logging.debug('  dtheta_matrix = %s', dtheta_matrix)
+            logging.debug('  sigma = %s', sigma)
+            logging.debug('  inv_sigma = %s', inv_sigma)
+            logging.debug('  covariance_inputs = %s', covariance_inputs)
+            logging.debug('  temp1 = %s', temp1)
+            logging.debug('  temp2 = %s', temp2)
+            logging.debug('  temp3 = %s', temp3)
+            logging.debug('  jacobian = %s', jacobian)
+            logging.debug('  covariance_information = %s', covariance_information)
 
             if sum_events:
                 return np.sum(fisher_info, axis=0), covariance_information
