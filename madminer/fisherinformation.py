@@ -307,7 +307,9 @@ class FisherInformation:
             cuts = []
 
         # Rate part of Fisher information
-        fisher_info_rate = self.calculate_fisher_information_rate(theta=theta, luminosity=luminosity, cuts=cuts)
+        fisher_info_rate, rate_covariance = self.calculate_fisher_information_rate(
+            theta=theta, luminosity=luminosity, cuts=cuts
+        )
         total_xsec = self._calculate_xsec(theta=theta, cuts=cuts)
 
         # Kinematic part of Fisher information: either with MLForge or with EnsembleForge
@@ -316,7 +318,7 @@ class FisherInformation:
             model = EnsembleForge(debug=self.debug)
             model.load(model_file)
 
-            fisher_info_kin, fisher_info_uncertainty = model.calculate_fisher_information(
+            fisher_info_kin, covariance = model.calculate_fisher_information(
                 unweighted_x_sample_file,
                 n_events=luminosity * total_xsec,
                 vote_expectation_weight=ensemble_vote_expectation_weight,
@@ -334,7 +336,7 @@ class FisherInformation:
                 unweighted_x_sample_file, n_events=luminosity * total_xsec
             )
 
-            fisher_info_uncertainty = None
+            covariance = None
 
             if return_error is None:
                 return_error = False
@@ -342,12 +344,17 @@ class FisherInformation:
         # Returns
         if isinstance(ensemble_vote_expectation_weight, list) and len(ensemble_vote_expectation_weight) > 1:
             fisher_info_results = [fisher_info_rate + this_fisher_info_kin for this_fisher_info_kin in fisher_info_kin]
+            covariance_results = [rate_covariance + this_covariance for this_covariance in covariance]
             if return_error:
-                return fisher_info_results, fisher_info_uncertainty
+                return fisher_info_results, covariance_results
             return fisher_info_results
 
         if return_error:
-            return fisher_info_rate + fisher_info_kin, fisher_info_uncertainty
+            logging.warning(
+                "Uncertainty on Fisher information with single SALLY instance only reflects the covariance from the "
+                "rate, not the kinematic part!"
+            )
+            return fisher_info_rate + fisher_info_kin, rate_covariance
         return fisher_info_rate + fisher_info_kin
 
     def calculate_fisher_information_rate(self, theta, luminosity, cuts=None, efficiency_functions=None):
