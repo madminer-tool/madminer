@@ -401,7 +401,7 @@ class FisherInformation:
         # Get Fisher information
         fisher_info, covariance = self._calculate_fisher_information(
             theta=theta,
-            weights_benchmarks=weights_benchmarks[np.newaxis, :],
+            weights_benchmarks=weights_benchmarks,
             luminosity=luminosity,
             sum_events=True,
             calculate_uncertainty=True,
