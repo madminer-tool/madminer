@@ -389,6 +389,7 @@ class FisherInformation:
         cuts=None,
         efficiency_functions=None,
         n_events_dynamic_binning=100000,
+        calculate_uncertainty=False
     ):
         """
         Calculates the Fisher information in the one-dimensional histogram of an (parton-level or detector-level,
@@ -477,10 +478,7 @@ class FisherInformation:
 
         # Loop over batches
         weights_benchmarks = np.zeros((n_bins_total, self.n_benchmarks))
-
-        # Prepare for dynamic binning
-        all_weights = []
-        all_histo_observables = []
+        weights_squared_benchmarks = np.zeros((n_bins_total, self.n_benchmarks))
 
         for observations, weights in madminer_event_loader(self.madminer_filename):
             # Cuts
@@ -505,10 +503,16 @@ class FisherInformation:
             for i in range(n_bins_total):
                 if len(weights[bins == i]) > 0:
                     weights_benchmarks[i] += np.sum(weights[bins == i], axis=0)
+                    weights_squared_benchmarks[i] += np.sum(weights[bins == i]**2, axis=0)
 
+        weights_benchmark_uncertainties = weights_squared_benchmarks**0.5
+        
         # Calculate Fisher information in histogram
-        fisher_info = self._calculate_fisher_information(theta, weights_benchmarks, luminosity, sum_events=True)
+        if calculate_uncertainty:
+            fisher_info, covariance = self._calculate_fisher_information(theta, weights_benchmarks, luminosity, sum_events=True, weights_benchmark_uncertainties=weights_benchmark_uncertainties)
+            return fisher_info, covariance
 
+        fisher_info = self._calculate_fisher_information(theta, weights_benchmarks, luminosity, sum_events=True)
         return fisher_info
 
     def calculate_fisher_information_hist2d(
@@ -834,14 +838,15 @@ class FisherInformation:
         # Calculate Fisher info for this event
         fisher_info = luminosity * np.einsum("n,in,jn->nij", inv_sigma, dsigma, dsigma)
 
-        # Old code:
-        # fisher_info = []
+        # # Old code:
+        # fisher_info_debug = []
         # for i_event in range(len(sigma)):
-        #     fisher_info.append(luminosity / sigma[i_event] * np.tensordot(dsigma.T[i_event], dsigma.T[i_event],
-        #                                                                   axes=0))
-        #  fisher_info = np.array(fisher_info)
-
-        fisher_info = np.nan_to_num(fisher_info)
+        #     fisher_info_debug.append(luminosity / sigma[i_event] * np.tensordot(dsigma.T[i_event], dsigma.T[i_event],
+        #                                                                         axes=0))
+        # fisher_info_debug = np.array(fisher_info_debug)
+        # fisher_info_debug = np.nan_to_num(fisher_info_debug)
+        # logging.debug('Old vs new Fisher info calculation:\n%s\n%s\n%s', fisher_info - fisher_info_debug, fisher_info,
+        #               fisher_info_debug)
 
         if calculate_uncertainty:
             if weights_benchmark_uncertainties is None:
