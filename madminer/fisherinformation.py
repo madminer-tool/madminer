@@ -506,13 +506,13 @@ class FisherInformation:
                     weights_squared_benchmarks[i] += np.sum(weights[bins == i]**2, axis=0)
 
         weights_benchmark_uncertainties = weights_squared_benchmarks**0.5
-        
+
         # Calculate Fisher information in histogram
         if calculate_uncertainty:
-            fisher_info, covariance = self._calculate_fisher_information(theta, weights_benchmarks, luminosity, sum_events=True, weights_benchmark_uncertainties=weights_benchmark_uncertainties)
+            fisher_info, covariance = self._calculate_fisher_information(theta, weights_benchmarks, luminosity, sum_events=True, weights_benchmark_uncertainties=weights_benchmark_uncertainties, calculate_uncertainty=True)
             return fisher_info, covariance
 
-        fisher_info = self._calculate_fisher_information(theta, weights_benchmarks, luminosity, sum_events=True)
+        fisher_info = self._calculate_fisher_information(theta, weights_benchmarks, luminosity, sum_events=True, calculate_uncertainty=False)
         return fisher_info
 
     def calculate_fisher_information_hist2d(
