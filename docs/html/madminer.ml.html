@@ -602,7 +602,7 @@ file.</p>
 
 <dl class="method">
 <dt id="madminer.ml.MLForge.train">
-<code class="descname">train</code><span class="sig-paren">(</span><em>method</em>, <em>x_filename</em>, <em>y_filename=None</em>, <em>theta0_filename=None</em>, <em>theta1_filename=None</em>, <em>r_xz_filename=None</em>, <em>t_xz0_filename=None</em>, <em>t_xz1_filename=None</em>, <em>features=None</em>, <em>nde_type='maf'</em>, <em>n_hidden=(100</em>, <em>100</em>, <em>100)</em>, <em>activation='tanh'</em>, <em>maf_n_mades=3</em>, <em>maf_batch_norm=True</em>, <em>maf_batch_norm_alpha=0.1</em>, <em>maf_mog_n_components=10</em>, <em>alpha=1.0</em>, <em>n_epochs=20</em>, <em>batch_size=128</em>, <em>initial_lr=0.002</em>, <em>final_lr=0.0001</em>, <em>validation_split=0.2</em>, <em>early_stopping=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/ml.html#MLForge.train"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.ml.MLForge.train" title="Permalink to this definition">¶</a></dt>
+<code class="descname">train</code><span class="sig-paren">(</span><em>method</em>, <em>x_filename</em>, <em>y_filename=None</em>, <em>theta0_filename=None</em>, <em>theta1_filename=None</em>, <em>r_xz_filename=None</em>, <em>t_xz0_filename=None</em>, <em>t_xz1_filename=None</em>, <em>features=None</em>, <em>nde_type='maf'</em>, <em>n_hidden=(100</em>, <em>100)</em>, <em>activation='tanh'</em>, <em>maf_n_mades=3</em>, <em>maf_batch_norm=True</em>, <em>maf_batch_norm_alpha=0.1</em>, <em>maf_mog_n_components=10</em>, <em>alpha=1.0</em>, <em>trainer='amsgrad'</em>, <em>n_epochs=50</em>, <em>batch_size=128</em>, <em>initial_lr=0.001</em>, <em>final_lr=0.0001</em>, <em>nesterov_momentum=None</em>, <em>validation_split=0.25</em>, <em>early_stopping=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/ml.html#MLForge.train"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.ml.MLForge.train" title="Permalink to this definition">¶</a></dt>
 <dd><p>Trains a neural network to estimate either the likelihood ratio or, if method is ‘sally’ or ‘sallino’, the
 score.</p>
 <p>The keyword method determines the structure of the estimator that an instance of this class represents:</p>
@@ -672,9 +672,9 @@ are used. Default value: None.</p>
 estimator. Currently supported are ‘maf’ for a Masked Autoregressive Flow with a Gaussian base density, or
 ‘mafmog’ for a Masked Autoregressive Flow with a mixture of Gaussian base densities. Default value: ‘maf’.</p>
 </dd>
-<dt><strong>n_hidden</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int, optional</span></dt>
-<dd><p class="first last">Number of hidden layers in the neural networks. If method is ‘nde’ or ‘scandal’, this refers to the number
-of hidden layers in each individual MADE layer. Default value: 100.</p>
+<dt><strong>n_hidden</strong> <span class="classifier-delimiter">:</span> <span class="classifier">tuple of int, optional</span></dt>
+<dd><p class="first last">Units in each hidden layer in the neural networks. If method is ‘nde’ or ‘scandal’, this refers to the
+setup of each individual MADE layer. Default value: (100, 100).</p>
 </dd>
 <dt><strong>activation</strong> <span class="classifier-delimiter">:</span> <span class="classifier">{‘tanh’, ‘sigmoid’, ‘relu’}, optional</span></dt>
 <dd><p class="first last">Activation function. Default value: ‘tanh’</p>
@@ -698,18 +698,24 @@ Default value: 10.</p>
 <dd><p class="first last">Hyperparameter weighting the score error in the loss function of the ‘alices’, ‘alices2’, ‘rascal’,
 ‘rascal2’, and ‘scandal’ methods.</p>
 </dd>
+<dt><strong>trainer</strong> <span class="classifier-delimiter">:</span> <span class="classifier">{“adam”, “amsgrad”, “sgd”}, optional</span></dt>
+<dd><p class="first last">Optimization algorithm. Default value: “amsgrad”.</p>
+</dd>
 <dt><strong>n_epochs</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int, optional</span></dt>
-<dd><p class="first last">Number of epochs. Default value: 20.</p>
+<dd><p class="first last">Number of epochs. Default value: 50.</p>
 </dd>
 <dt><strong>batch_size</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int, optional</span></dt>
 <dd><p class="first last">Batch size. Default value: 128.</p>
 </dd>
 <dt><strong>initial_lr</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float, optional</span></dt>
 <dd><p class="first last">Learning rate during the first epoch, after which it exponentially decays to final_lr. Default value:
-0.002.</p>
+0.001.</p>
 </dd>
 <dt><strong>final_lr</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float, optional</span></dt>
 <dd><p class="first last">Learning rate during the last epoch. Default value: 0.0001.</p>
+</dd>
+<dt><strong>nesterov_momentum</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float or None, optional</span></dt>
+<dd><p class="first last">If trainer is “sgd”, sets the Nesterov momentum. Default value: None.</p>
 </dd>
 <dt><strong>validation_split</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float or None, optional</span></dt>
 <dd><p class="first last">Fraction of samples used  for validation and early stopping (if early_stopping is True). If None, the entire

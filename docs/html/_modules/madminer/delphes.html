@@ -139,7 +139,7 @@
 
 <span class="sd">        &quot;&quot;&quot;</span>
 
-        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Adding HepMC sample at </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">filename</span><span class="p">)</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Adding HepMC sample at </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">filename</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">hepmc_sample_filenames</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">hepmc_sample_weight_labels</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">extract_weight_order</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">sampled_from_benchmark</span><span class="p">))</span></div>
@@ -329,7 +329,14 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">observables_defaults</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">default</span></div>
 
 <div class="viewcode-block" id="DelphesProcessor.add_default_observables"><a class="viewcode-back" href="../../madminer.delphes.html#madminer.delphes.DelphesProcessor.add_default_observables">[docs]</a>    <span class="k">def</span> <span class="nf">add_default_observables</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span> <span class="n">n_leptons_max</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">n_photons_max</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">n_jets_max</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">include_met</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">include_visible_sum</span><span class="o">=</span><span class="kc">True</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">n_leptons_max</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+        <span class="n">n_photons_max</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+        <span class="n">n_jets_max</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+        <span class="n">include_met</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">include_visible_sum</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">include_numbers</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">include_charge</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Adds a set of simple standard observables: the four-momenta (parameterized as E, pT, eta, phi) of the hardest</span>
@@ -352,6 +359,12 @@
 <span class="sd">        include_visible_sum : bool, optional</span>
 <span class="sd">            Whether observables characterizing the sum of all particles are stored. Default value: True.</span>
 
+<span class="sd">        include_numbers : bool, optional</span>
+<span class="sd">            Whether the number of leptons, photons, and jets is saved as observable. Default value: True.</span>
+
+<span class="sd">        include_charge : bool, optional</span>
+<span class="sd">            Whether the lepton charge is saved as observable. Default value: True.</span>
+
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
 <span class="sd">            None</span>
@@ -371,7 +384,8 @@
         <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="n">symbol</span><span class="p">,</span> <span class="n">include_charge</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span>
             <span class="p">[</span><span class="n">n_leptons_max</span><span class="p">,</span> <span class="n">n_photons_max</span><span class="p">,</span> <span class="n">n_jets_max</span><span class="p">],</span> <span class="p">[</span><span class="s2">&quot;l&quot;</span><span class="p">,</span> <span class="s2">&quot;a&quot;</span><span class="p">,</span> <span class="s2">&quot;j&quot;</span><span class="p">],</span> <span class="p">[</span><span class="kc">False</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">True</span><span class="p">]</span>
         <span class="p">):</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">add_observable</span><span class="p">(</span><span class="s2">&quot;n_</span><span class="si">{}</span><span class="s2">s&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">symbol</span><span class="p">),</span> <span class="s2">&quot;len(</span><span class="si">{}</span><span class="s2">)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">symbol</span><span class="p">),</span> <span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">include_numbers</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">add_observable</span><span class="p">(</span><span class="s2">&quot;n_</span><span class="si">{}</span><span class="s2">s&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">symbol</span><span class="p">),</span> <span class="s2">&quot;len(</span><span class="si">{}</span><span class="s2">)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">symbol</span><span class="p">),</span> <span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
             <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">add_observable</span><span class="p">(</span>
@@ -386,7 +400,7 @@
                 <span class="bp">self</span><span class="o">.</span><span class="n">add_observable</span><span class="p">(</span>
                     <span class="s2">&quot;phi_</span><span class="si">{}{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">symbol</span><span class="p">,</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">[</span><span class="si">{}</span><span class="s2">].phi()&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">symbol</span><span class="p">,</span> <span class="n">i</span><span class="p">),</span> <span class="n">required</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mf">0.0</span>
                 <span class="p">)</span>
-                <span class="k">if</span> <span class="n">include_charge</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">include_charge</span> <span class="ow">and</span> <span class="n">symbol</span> <span class="o">==</span> <span class="s2">&quot;l&quot;</span><span class="p">:</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">add_observable</span><span class="p">(</span>
                         <span class="s2">&quot;charge_</span><span class="si">{}{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">symbol</span><span class="p">,</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span>
                         <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">[</span><span class="si">{}</span><span class="s2">].charge&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">symbol</span><span class="p">,</span> <span class="n">i</span><span class="p">),</span>

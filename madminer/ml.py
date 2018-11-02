@@ -440,7 +440,8 @@ class MLForge:
                 validation_split=validation_split,
                 early_stopping=early_stopping,
                 trainer=trainer,
-                nesterov_momentum=nesterov_momentum
+                nesterov_momentum=nesterov_momentum,
+                verbose="all" if self.debug else "some"
             )
         elif method in ["nde", "scandal"]:
             train_flow_model(
@@ -457,7 +458,8 @@ class MLForge:
                 validation_split=validation_split,
                 early_stopping=early_stopping,
                 trainer=trainer,
-                nesterov_momentum=nesterov_momentum
+                nesterov_momentum=nesterov_momentum,
+                verbose="all" if self.debug else "some"
             )
         else:
             train_ratio_model(
@@ -480,7 +482,8 @@ class MLForge:
                 validation_split=validation_split,
                 early_stopping=early_stopping,
                 trainer=trainer,
-                nesterov_momentum=nesterov_momentum
+                nesterov_momentum=nesterov_momentum,
+                verbose="all" if self.debug else "some" 
             )
 
     def evaluate(
