@@ -5,6 +5,7 @@ import logging
 import os
 import json
 import numpy as np
+import six
 
 import torch
 
@@ -897,9 +898,10 @@ class EnsembleForge:
 
     Parameters
     ----------
-    estimators : None or int or list of MLForge, optional
-        If int, sets the number of estimators that will be created as new MLForge instances. If list of MLForge, sets
-        the estimators directly. If None, the ensemble is initialized without estimators. Note that the estimators have
+    estimators : None or int or list of (MLForge or str), optional
+        If int, sets the number of estimators that will be created as new MLForge instances. If list, sets
+        the estimators directly, either from MLForge instances or filenames (that are then loaded with
+        `MLForge.load()`). If None, the ensemble is initialized without estimators. Note that the estimators have
         to be consistent: either all of them are trained with a local score method ('sally' or 'sallino'); or all of
         them are trained with a single-parameterized method ('carl', 'rolr', 'rascal', 'scandal', 'alice', or 'alices');
         or all of them are trained with a doubly parameterized method ('carl2', 'rolr2', 'rascal2', 'alice2', or
@@ -921,9 +923,21 @@ class EnsembleForge:
 
         # Initialize estimators
         if estimators is None:
-            estimators = []
+            self.estimators = []
         elif isinstance(estimators, int):
-            estimators = [MLForge(debug=debug) for _ in range(estimators)]
+            self.estimators = [MLForge(debug=debug) for _ in range(estimators)]
+        else:
+            self.estimators = []
+            for estimator in estimators:
+                if isinstance(estimator, six.string_types):
+                    estimator_object = MLForge(debug=debug)
+                    estimator_object.load(estimator)
+                elif isinstance(estimator, MLForge):
+                    estimator_object = estimator
+                else:
+                    raise ValueError("Entry {} in estimators is neither str nor MLForge instance")
+
+                self.estimators.append(estimator_object)
 
         self.estimators = estimators
         self.n_estimators = len(self.estimators)
@@ -934,6 +948,30 @@ class EnsembleForge:
             assert isinstance(estimator, MLForge), "Estimator is no MLForge instance!"
 
         self._check_consistency()
+
+    def add_estimator(self, estimator):
+        """
+        Adds an estimator to the ensemble.
+
+        Parameters
+        ----------
+        estimator : MLForge or str
+            The estimator, either as MLForge instance or filename (which is then loaded with `MLForge.load()`).
+
+        Returns
+        -------
+            None
+
+        """
+        if isinstance(estimator, six.string_types):
+            estimator_object = MLForge(debug=debug)
+            estimator_object.load(estimator)
+        elif isinstance(estimator, MLForge):
+            estimator_object = estimator
+        else:
+            raise ValueError("Entry {} in estimators is neither str nor MLForge instance")
+
+        self.estimators.append(estimator_object)
 
     def train_one(self, i, **kwargs):
         """

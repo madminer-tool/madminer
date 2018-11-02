@@ -40,6 +40,7 @@
 <span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">import</span> <span class="nn">json</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">six</span>
 
 <span class="kn">import</span> <span class="nn">torch</span>
 
@@ -79,6 +80,8 @@
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">debug</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
         <span class="n">general_init</span><span class="p">(</span><span class="n">debug</span><span class="o">=</span><span class="n">debug</span><span class="p">)</span>
 
+        <span class="bp">self</span><span class="o">.</span><span class="n">debug</span> <span class="o">=</span> <span class="n">debug</span>
+
         <span class="bp">self</span><span class="o">.</span><span class="n">method_type</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">method</span> <span class="o">=</span> <span class="kc">None</span>
@@ -91,6 +94,8 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">maf_batch_norm</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">maf_batch_norm_alpha</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">features</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">x_scaling_means</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">x_scaling_stds</span> <span class="o">=</span> <span class="kc">None</span>
 
 <div class="viewcode-block" id="MLForge.train"><a class="viewcode-back" href="../../madminer.ml.html#madminer.ml.MLForge.train">[docs]</a>    <span class="k">def</span> <span class="nf">train</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -104,7 +109,7 @@
         <span class="n">t_xz1_filename</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">features</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">nde_type</span><span class="o">=</span><span class="s2">&quot;maf&quot;</span><span class="p">,</span>
-        <span class="n">n_hidden</span><span class="o">=</span><span class="p">(</span><span class="mi">100</span><span class="p">,</span> <span class="mi">100</span><span class="p">,),</span>
+        <span class="n">n_hidden</span><span class="o">=</span><span class="p">(</span><span class="mi">100</span><span class="p">,</span> <span class="mi">100</span><span class="p">),</span>
         <span class="n">activation</span><span class="o">=</span><span class="s2">&quot;tanh&quot;</span><span class="p">,</span>
         <span class="n">maf_n_mades</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
         <span class="n">maf_batch_norm</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
@@ -119,6 +124,7 @@
         <span class="n">nesterov_momentum</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">validation_split</span><span class="o">=</span><span class="mf">0.25</span><span class="p">,</span>
         <span class="n">early_stopping</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">scale_inputs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
     <span class="p">):</span>
 
         <span class="sd">&quot;&quot;&quot;</span>
@@ -236,10 +242,13 @@
 
 <span class="sd">        validation_split : float or None, optional</span>
 <span class="sd">            Fraction of samples used  for validation and early stopping (if early_stopping is True). If None, the entire</span>
-<span class="sd">            sample is used for training and early stopping is deactivated. Default value: 0.2.</span>
+<span class="sd">            sample is used for training and early stopping is deactivated. Default value: 0.25.</span>
 
 <span class="sd">        early_stopping : bool, optional</span>
 <span class="sd">            Activates early stopping based on the validation loss (only if validation_split is not None).</span>
+
+<span class="sd">        scale_inputs : bool, optional</span>
+<span class="sd">            Scale the observables to zero mean and unit variance. Default value: True.</span>
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
@@ -283,10 +292,11 @@
         <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;  Trainer:                </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">trainer</span><span class="p">)</span>
         <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;  Epochs:                 </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">n_epochs</span><span class="p">)</span>
         <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;  Learning rate:          </span><span class="si">%s</span><span class="s2"> initially, decaying to </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">initial_lr</span><span class="p">,</span> <span class="n">final_lr</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">trainer</span> <span class="o">==</span> <span class="s1">&#39;sgd&#39;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">trainer</span> <span class="o">==</span> <span class="s2">&quot;sgd&quot;</span><span class="p">:</span>
             <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;  Nesterov momentum:      </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">nesterov_momentum</span><span class="p">)</span>
         <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;  Validation split:       </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">validation_split</span><span class="p">)</span>
         <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;  Early stopping:         </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">early_stopping</span><span class="p">)</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;  Scale inputs:           </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">scale_inputs</span><span class="p">)</span>
 
         <span class="c1"># Load training data</span>
         <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Loading training data&quot;</span><span class="p">)</span>
@@ -343,6 +353,28 @@
 
         <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Found </span><span class="si">%s</span><span class="s2"> samples with </span><span class="si">%s</span><span class="s2"> parameters and </span><span class="si">%s</span><span class="s2"> observables&quot;</span><span class="p">,</span> <span class="n">n_samples</span><span class="p">,</span> <span class="n">n_parameters</span><span class="p">,</span> <span class="n">n_observables</span><span class="p">)</span>
 
+        <span class="c1"># Scale features</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Rescaling inputs&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">scale_inputs</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">x_scaling_means</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">x_scaling_stds</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span> <span class="mf">1.0e-6</span><span class="p">)</span>
+            <span class="n">x</span><span class="p">[:]</span> <span class="o">-=</span> <span class="bp">self</span><span class="o">.</span><span class="n">x_scaling_means</span>
+            <span class="n">x</span><span class="p">[:]</span> <span class="o">/=</span> <span class="bp">self</span><span class="o">.</span><span class="n">x_scaling_stds</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">x_scaling_means</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n_parameters</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">x_scaling_stds</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">n_parameters</span><span class="p">)</span>
+
+        <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Observable ranges:&quot;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_observables</span><span class="p">):</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
+                <span class="s2">&quot;  x_</span><span class="si">%s</span><span class="s2">: mean </span><span class="si">%s</span><span class="s2">, std </span><span class="si">%s</span><span class="s2">, range </span><span class="si">%s</span><span class="s2"> ... </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span>
+                <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">x</span><span class="p">[:,</span> <span class="n">i</span><span class="p">]),</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">x</span><span class="p">[:,</span> <span class="n">i</span><span class="p">]),</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">x</span><span class="p">[:,</span> <span class="n">i</span><span class="p">]),</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">x</span><span class="p">[:,</span> <span class="n">i</span><span class="p">]),</span>
+            <span class="p">)</span>
+
         <span class="c1"># Features</span>
         <span class="k">if</span> <span class="n">features</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="p">[:,</span> <span class="n">features</span><span class="p">]</span>
@@ -387,7 +419,7 @@
                     <span class="n">n_mades</span><span class="o">=</span><span class="n">maf_n_mades</span><span class="p">,</span>
                     <span class="n">activation</span><span class="o">=</span><span class="n">activation</span><span class="p">,</span>
                     <span class="n">batch_norm</span><span class="o">=</span><span class="n">maf_batch_norm</span><span class="p">,</span>
-                    <span class="n">alpha</span><span class="o">=</span><span class="n">maf_batch_norm_alpha</span>
+                    <span class="n">alpha</span><span class="o">=</span><span class="n">maf_batch_norm_alpha</span><span class="p">,</span>
                 <span class="p">)</span>
             <span class="k">elif</span> <span class="n">nde_type</span> <span class="o">==</span> <span class="s2">&quot;maf_mog&quot;</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">ConditionalMixtureMaskedAutoregressiveFlow</span><span class="p">(</span>
@@ -475,7 +507,8 @@
                 <span class="n">validation_split</span><span class="o">=</span><span class="n">validation_split</span><span class="p">,</span>
                 <span class="n">early_stopping</span><span class="o">=</span><span class="n">early_stopping</span><span class="p">,</span>
                 <span class="n">trainer</span><span class="o">=</span><span class="n">trainer</span><span class="p">,</span>
-                <span class="n">nesterov_momentum</span><span class="o">=</span><span class="n">nesterov_momentum</span>
+                <span class="n">nesterov_momentum</span><span class="o">=</span><span class="n">nesterov_momentum</span><span class="p">,</span>
+                <span class="n">verbose</span><span class="o">=</span><span class="s2">&quot;all&quot;</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">debug</span> <span class="k">else</span> <span class="s2">&quot;some&quot;</span><span class="p">,</span>
             <span class="p">)</span>
         <span class="k">elif</span> <span class="n">method</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;nde&quot;</span><span class="p">,</span> <span class="s2">&quot;scandal&quot;</span><span class="p">]:</span>
             <span class="n">train_flow_model</span><span class="p">(</span>
@@ -492,7 +525,8 @@
                 <span class="n">validation_split</span><span class="o">=</span><span class="n">validation_split</span><span class="p">,</span>
                 <span class="n">early_stopping</span><span class="o">=</span><span class="n">early_stopping</span><span class="p">,</span>
                 <span class="n">trainer</span><span class="o">=</span><span class="n">trainer</span><span class="p">,</span>
-                <span class="n">nesterov_momentum</span><span class="o">=</span><span class="n">nesterov_momentum</span>
+                <span class="n">nesterov_momentum</span><span class="o">=</span><span class="n">nesterov_momentum</span><span class="p">,</span>
+                <span class="n">verbose</span><span class="o">=</span><span class="s2">&quot;all&quot;</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">debug</span> <span class="k">else</span> <span class="s2">&quot;some&quot;</span><span class="p">,</span>
             <span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">train_ratio_model</span><span class="p">(</span>
@@ -515,7 +549,8 @@
                 <span class="n">validation_split</span><span class="o">=</span><span class="n">validation_split</span><span class="p">,</span>
                 <span class="n">early_stopping</span><span class="o">=</span><span class="n">early_stopping</span><span class="p">,</span>
                 <span class="n">trainer</span><span class="o">=</span><span class="n">trainer</span><span class="p">,</span>
-                <span class="n">nesterov_momentum</span><span class="o">=</span><span class="n">nesterov_momentum</span>
+                <span class="n">nesterov_momentum</span><span class="o">=</span><span class="n">nesterov_momentum</span><span class="p">,</span>
+                <span class="n">verbose</span><span class="o">=</span><span class="s2">&quot;all&quot;</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">debug</span> <span class="k">else</span> <span class="s2">&quot;some&quot;</span><span class="p">,</span>
             <span class="p">)</span></div>
 
 <div class="viewcode-block" id="MLForge.evaluate"><a class="viewcode-back" href="../../madminer.ml.html#madminer.ml.MLForge.evaluate">[docs]</a>    <span class="k">def</span> <span class="nf">evaluate</span><span class="p">(</span>
@@ -585,6 +620,11 @@
         <span class="n">theta0s</span> <span class="o">=</span> <span class="n">load_and_check</span><span class="p">(</span><span class="n">theta0_filename</span><span class="p">)</span>
         <span class="n">theta1s</span> <span class="o">=</span> <span class="n">load_and_check</span><span class="p">(</span><span class="n">theta1_filename</span><span class="p">)</span>
         <span class="n">xs</span> <span class="o">=</span> <span class="n">load_and_check</span><span class="p">(</span><span class="n">x_filename</span><span class="p">)</span>
+
+        <span class="c1"># Scale observables</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">x_scaling_mean</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">x_scaling_stds</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">xs</span><span class="p">[:]</span> <span class="o">-=</span> <span class="bp">self</span><span class="o">.</span><span class="n">x_scaling_mean</span>
+            <span class="n">xs</span><span class="p">[:]</span> <span class="o">/=</span> <span class="bp">self</span><span class="o">.</span><span class="n">x_scaling_stds</span>
 
         <span class="c1"># Restrict featuers</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">features</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -698,6 +738,11 @@
         <span class="n">xs</span> <span class="o">=</span> <span class="n">load_and_check</span><span class="p">(</span><span class="n">x_filename</span><span class="p">)</span>
         <span class="n">n_samples</span> <span class="o">=</span> <span class="n">xs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 
+        <span class="c1"># Scale observables</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">x_scaling_mean</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">x_scaling_stds</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">xs</span><span class="p">[:]</span> <span class="o">-=</span> <span class="bp">self</span><span class="o">.</span><span class="n">x_scaling_mean</span>
+            <span class="n">xs</span><span class="p">[:]</span> <span class="o">/=</span> <span class="bp">self</span><span class="o">.</span><span class="n">x_scaling_stds</span>
+
         <span class="c1"># Restrict featuers</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">features</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">xs</span> <span class="o">=</span> <span class="n">xs</span><span class="p">[:,</span> <span class="bp">self</span><span class="o">.</span><span class="n">features</span><span class="p">]</span>
@@ -726,8 +771,8 @@
 <div class="viewcode-block" id="MLForge.save"><a class="viewcode-back" href="../../madminer.ml.html#madminer.ml.MLForge.save">[docs]</a>    <span class="k">def</span> <span class="nf">save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">):</span>
 
         <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Saves the trained model to two files: a JSON file with the settings, as well as a pickled pyTorch state dict</span>
-<span class="sd">        file.</span>
+<span class="sd">        Saves the trained model to four files: a JSON file with the settings, a pickled pyTorch state dict</span>
+<span class="sd">        file, and numpy files for the mean and variance of the inputs (used for input scaling).</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
@@ -761,6 +806,12 @@
 
         <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span> <span class="o">+</span> <span class="s2">&quot;_settings.json&quot;</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
             <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">settings</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span>
+
+        <span class="c1"># Save scaling</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">x_scaling_stds</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">x_scaling_means</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Saving input scaling information to </span><span class="si">%s</span><span class="s2">_x_means.npy and </span><span class="si">%s</span><span class="s2">_x_stds.npy&quot;</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">filename</span><span class="p">)</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">filename</span> <span class="o">+</span> <span class="s2">&quot;_x_means.npy&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">x_scaling_means</span><span class="p">)</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">filename</span> <span class="o">+</span> <span class="s2">&quot;_x_stds.npy&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">x_scaling_stds</span><span class="p">)</span>
 
         <span class="c1"># Save state dict</span>
         <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Saving state dictionary to </span><span class="si">%s</span><span class="s2">_state_dict.pt&quot;</span><span class="p">,</span> <span class="n">filename</span><span class="p">)</span>
@@ -810,6 +861,18 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">activation</span><span class="p">,</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">features</span><span class="p">,</span>
         <span class="p">)</span>
+
+        <span class="c1"># Load scaling</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">x_scaling_means</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">filename</span> <span class="o">+</span> <span class="s2">&quot;_x_means.npy&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">x_scaling_stds</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">filename</span> <span class="o">+</span> <span class="s2">&quot;_x_stds.npy&quot;</span><span class="p">)</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
+                <span class="s2">&quot;  Found input scaling information: means </span><span class="si">%s</span><span class="s2">, stds </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">x_scaling_means</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">x_scaling_stds</span>
+            <span class="p">)</span>
+        <span class="k">except</span> <span class="ne">FileNotFoundError</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Scaling information not found in </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">filename</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">x_scaling_means</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">x_scaling_stds</span> <span class="o">=</span> <span class="kc">None</span>
 
         <span class="c1"># Create model</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">method</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;carl&quot;</span><span class="p">,</span> <span class="s2">&quot;rolr&quot;</span><span class="p">,</span> <span class="s2">&quot;rascal&quot;</span><span class="p">,</span> <span class="s2">&quot;alice&quot;</span><span class="p">,</span> <span class="s2">&quot;alices&quot;</span><span class="p">]:</span>
@@ -870,9 +933,10 @@
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
-<span class="sd">    estimators : None or int or list of MLForge, optional</span>
-<span class="sd">        If int, sets the number of estimators that will be created as new MLForge instances. If list of MLForge, sets</span>
-<span class="sd">        the estimators directly. If None, the ensemble is initialized without estimators. Note that the estimators have</span>
+<span class="sd">    estimators : None or int or list of (MLForge or str), optional</span>
+<span class="sd">        If int, sets the number of estimators that will be created as new MLForge instances. If list, sets</span>
+<span class="sd">        the estimators directly, either from MLForge instances or filenames (that are then loaded with</span>
+<span class="sd">        `MLForge.load()`). If None, the ensemble is initialized without estimators. Note that the estimators have</span>
 <span class="sd">        to be consistent: either all of them are trained with a local score method (&#39;sally&#39; or &#39;sallino&#39;); or all of</span>
 <span class="sd">        them are trained with a single-parameterized method (&#39;carl&#39;, &#39;rolr&#39;, &#39;rascal&#39;, &#39;scandal&#39;, &#39;alice&#39;, or &#39;alices&#39;);</span>
 <span class="sd">        or all of them are trained with a doubly parameterized method (&#39;carl2&#39;, &#39;rolr2&#39;, &#39;rascal2&#39;, &#39;alice2&#39;, or</span>
@@ -894,9 +958,21 @@
 
         <span class="c1"># Initialize estimators</span>
         <span class="k">if</span> <span class="n">estimators</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">estimators</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">estimators</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">estimators</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
-            <span class="n">estimators</span> <span class="o">=</span> <span class="p">[</span><span class="n">MLForge</span><span class="p">(</span><span class="n">debug</span><span class="o">=</span><span class="n">debug</span><span class="p">)</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">estimators</span><span class="p">)]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">estimators</span> <span class="o">=</span> <span class="p">[</span><span class="n">MLForge</span><span class="p">(</span><span class="n">debug</span><span class="o">=</span><span class="n">debug</span><span class="p">)</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">estimators</span><span class="p">)]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">estimators</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">estimator</span> <span class="ow">in</span> <span class="n">estimators</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">estimator</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">string_types</span><span class="p">):</span>
+                    <span class="n">estimator_object</span> <span class="o">=</span> <span class="n">MLForge</span><span class="p">(</span><span class="n">debug</span><span class="o">=</span><span class="n">debug</span><span class="p">)</span>
+                    <span class="n">estimator_object</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">estimator</span><span class="p">)</span>
+                <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">estimator</span><span class="p">,</span> <span class="n">MLForge</span><span class="p">):</span>
+                    <span class="n">estimator_object</span> <span class="o">=</span> <span class="n">estimator</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Entry </span><span class="si">{}</span><span class="s2"> in estimators is neither str nor MLForge instance&quot;</span><span class="p">)</span>
+
+                <span class="bp">self</span><span class="o">.</span><span class="n">estimators</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">estimator_object</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">estimators</span> <span class="o">=</span> <span class="n">estimators</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">n_estimators</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">estimators</span><span class="p">)</span>
@@ -907,6 +983,30 @@
             <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">estimator</span><span class="p">,</span> <span class="n">MLForge</span><span class="p">),</span> <span class="s2">&quot;Estimator is no MLForge instance!&quot;</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_check_consistency</span><span class="p">()</span>
+
+<div class="viewcode-block" id="EnsembleForge.add_estimator"><a class="viewcode-back" href="../../madminer.ml.html#madminer.ml.EnsembleForge.add_estimator">[docs]</a>    <span class="k">def</span> <span class="nf">add_estimator</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">estimator</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Adds an estimator to the ensemble.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        estimator : MLForge or str</span>
+<span class="sd">            The estimator, either as MLForge instance or filename (which is then loaded with `MLForge.load()`).</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">            None</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">estimator</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">string_types</span><span class="p">):</span>
+            <span class="n">estimator_object</span> <span class="o">=</span> <span class="n">MLForge</span><span class="p">(</span><span class="n">debug</span><span class="o">=</span><span class="n">debug</span><span class="p">)</span>
+            <span class="n">estimator_object</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">estimator</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">estimator</span><span class="p">,</span> <span class="n">MLForge</span><span class="p">):</span>
+            <span class="n">estimator_object</span> <span class="o">=</span> <span class="n">estimator</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Entry </span><span class="si">{}</span><span class="s2"> in estimators is neither str nor MLForge instance&quot;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">estimators</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">estimator_object</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="EnsembleForge.train_one"><a class="viewcode-back" href="../../madminer.ml.html#madminer.ml.EnsembleForge.train_one">[docs]</a>    <span class="k">def</span> <span class="nf">train_one</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
