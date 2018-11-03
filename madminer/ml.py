@@ -587,8 +587,8 @@ class MLForge:
         xs = load_and_check(x_filename)
 
         # Scale observables
-        if self.x_scaling_mean is not None and self.x_scaling_stds is not None:
-            xs[:] -= self.x_scaling_mean
+        if self.x_scaling_means is not None and self.x_scaling_stds is not None:
+            xs[:] -= self.x_scaling_means
             xs[:] /= self.x_scaling_stds
 
         # Restrict featuers
@@ -704,8 +704,8 @@ class MLForge:
         n_samples = xs.shape[0]
 
         # Scale observables
-        if self.x_scaling_mean is not None and self.x_scaling_stds is not None:
-            xs[:] -= self.x_scaling_mean
+        if self.x_scaling_means is not None and self.x_scaling_stds is not None:
+            xs[:] -= self.x_scaling_means
             xs[:] /= self.x_scaling_stds
 
         # Restrict featuers
