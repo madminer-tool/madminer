@@ -196,7 +196,7 @@ def train_local_score_model(
                 for i, (label, value) in enumerate(zip(loss_labels, individual_losses_train[-1])):
                     if i > 0:
                         individual_loss_string += ", "
-                    individual_loss_string += "{}: {:4f}".format(label, value)
+                    individual_loss_string += "{}: {:.4f}".format(label, value)
 
                 logging.info(
                     "  Epoch %d: train loss %.4f (%s)" % (epoch + 1, total_losses_train[-1], individual_loss_string)
@@ -239,20 +239,20 @@ def train_local_score_model(
 
         # Print out information
         if n_epochs_verbose is not None and n_epochs_verbose > 0 and (epoch + 1) % n_epochs_verbose == 0:
-            if early_stopping and epoch == early_stopping_epoch:
-                individual_loss_string_train = ""
-                individual_loss_string_val = ""
-                for i, (label, value_train, value_val) in enumerate(
-                    zip(loss_labels, individual_losses_train[-1], individual_losses_val[-1])
-                ):
-                    if i > 0:
-                        individual_loss_string_train += ", "
-                        individual_loss_string_val += ", "
-                    individual_loss_string_train += "{}: {:4f}".format(label, value_train)
-                    individual_loss_string_val += "{}: {:4f}".format(label, value_val)
+            individual_loss_string_train = ""
+            individual_loss_string_val = ""
+            for i, (label, value_train, value_val) in enumerate(
+                zip(loss_labels, individual_losses_train[-1], individual_losses_val[-1])
+            ):
+                if i > 0:
+                    individual_loss_string_train += ", "
+                    individual_loss_string_val += ", "
+                individual_loss_string_train += "{}: {:.4f}".format(label, value_train)
+                individual_loss_string_val += "{}: {:.4f}".format(label, value_val)
 
+            if early_stopping and epoch == early_stopping_epoch:
                 logging.info(
-                    "  Epoch %d: train loss %.4f (%s), validation loss %.4f (%s) (*)"
+                    "  Epoch %d: train loss %.4f (%s)\n            val. loss  %.4f (%s) (*)"
                     % (
                         epoch + 1,
                         total_losses_train[-1],
@@ -263,13 +263,13 @@ def train_local_score_model(
                 )
             else:
                 logging.info(
-                    "  Epoch %d: train loss %.2f (%s), validation loss %.2f (%s)"
+                    "  Epoch %d: train loss %.4f (%s)\n            val. loss  %.4f (%s)"
                     % (
                         epoch + 1,
                         total_losses_train[-1],
-                        individual_losses_train[-1],
+                        individual_loss_string_train,
                         total_losses_val[-1],
-                        individual_losses_val[-1],
+                        individual_loss_string_val,
                     )
                 )
 
