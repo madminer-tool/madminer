@@ -416,33 +416,8 @@ def evaluate_ratio_model(
     evaluate_score=False,
     run_on_gpu=True,
     double_precision=False,
+    return_grad_x=False,
 ):
-    """
-
-    Parameters
-    ----------
-    model :
-        param method_type:
-    theta0s :
-        param theta1s: (Default value = None)
-    xs :
-        param run_on_gpu: (Default value = None)
-    double_precision :
-        return: (Default value = False)
-    method_type :
-         (Default value = None)
-    theta1s :
-         (Default value = None)
-    evaluate_score :
-         (Default value = False)
-    run_on_gpu :
-         (Default value = True)
-
-    Returns
-    -------
-
-    """
-
     # CPU or GPU?
     run_on_gpu = run_on_gpu and torch.cuda.is_available()
     device = torch.device("cuda" if run_on_gpu else "cpu")
@@ -480,16 +455,23 @@ def evaluate_ratio_model(
         theta1s = theta1s.to(device, dtype)
     xs = xs.to(device, dtype)
 
-    # Evaluate ratio estimator with score:
-    if evaluate_score:
-        # with torch.no_grad(): # doesn't work with score
+    # Evaluate ratio estimator with score or x gradients:
+    if evaluate_score or return_grad_x:
         model.eval()
 
         if method_type == "parameterized":
-            s_hat, log_r_hat, t_hat0 = model(theta0s, xs)
+            if return_grad_x:
+                s_hat, log_r_hat, t_hat0, x_gradients = model(theta0s, xs, return_grad_x=True)
+            else:
+                s_hat, log_r_hat, t_hat0 = model(theta0s, xs)
+                x_gradients = None
             t_hat1 = None
         elif method_type == "doubly_parameterized":
-            s_hat, log_r_hat, t_hat0, t_hat1 = model(theta0s, theta1s, xs)
+            if return_grad_x:
+                s_hat, log_r_hat, t_hat0, t_hat1, x_gradients = model(theta0s, theta1s, xs, return_grad_x=True)
+            else:
+                s_hat, log_r_hat, t_hat0, t_hat1 = model(theta0s, theta1s, xs)
+                x_gradients = None
         else:
             raise ValueError("Unknown method type %s", method_type)
 
@@ -517,4 +499,6 @@ def evaluate_ratio_model(
             log_r_hat = log_r_hat.detach().numpy().flatten()
             t_hat0, t_hat1 = None, None
 
+    if return_grad_x:
+        return s_hat, log_r_hat, t_hat0, t_hat1, x_gradients
     return s_hat, log_r_hat, t_hat0, t_hat1

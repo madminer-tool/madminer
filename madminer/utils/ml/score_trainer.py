@@ -321,24 +321,7 @@ def train_local_score_model(
     return total_losses_train, total_losses_val
 
 
-def evaluate_local_score_model(model, xs=None, run_on_gpu=True, double_precision=False):
-    """
-
-    Parameters
-    ----------
-    model :
-        
-    xs :
-         (Default value = None)
-    run_on_gpu :
-         (Default value = True)
-    double_precision :
-         (Default value = False)
-
-    Returns
-    -------
-
-    """
+def evaluate_local_score_model(model, xs=None, run_on_gpu=True, double_precision=False, return_grad_x=False):
     # CPU or GPU?
     run_on_gpu = run_on_gpu and torch.cuda.is_available()
     device = torch.device("cuda" if run_on_gpu else "cpu")
@@ -351,10 +334,20 @@ def evaluate_local_score_model(model, xs=None, run_on_gpu=True, double_precision
     xs = xs.to(device, dtype)
 
     # Evaluate networks
-    with torch.no_grad():
+    if return_grad_x:
         model.eval()
-        t_hat = model(xs)
+        t_hat, x_gradients = model(xs, return_grad_x=True)
+    else:
+        with torch.no_grad():
+            model.eval()
+            t_hat = model(xs)
+        x_gradients = None
 
     # Get data and return
     t_hat = t_hat.detach().numpy()
+
+    if return_grad_x:
+        x_gradients = x_gradients.detach().numpy()
+        return t_hat, x_gradients
+
     return t_hat
