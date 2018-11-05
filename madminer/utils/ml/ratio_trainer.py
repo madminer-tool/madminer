@@ -80,6 +80,7 @@ def train_ratio_model(
     validation_split=0.2,
     early_stopping=True,
     early_stopping_patience=20,
+    grad_x_regularization=None,
     learning_curve_folder=None,
     learning_curve_filename=None,
     verbose="some",
@@ -158,6 +159,12 @@ def train_ratio_model(
     if loss_weights is None:
         loss_weights = [1.0] * n_losses
 
+    # Regularization
+    if grad_x_regularization is not None:
+        n_losses += 1
+        loss_weights.append(grad_x_regularization)
+        loss_labels.append("l2_grad_x")
+
     # Losses over training
     individual_losses_train = []
     individual_losses_val = []
@@ -211,19 +218,33 @@ def train_ratio_model(
 
             optimizer.zero_grad()
 
-            # Evaluate loss
-            if method_type == "parameterized":
-                s_hat, log_r_hat, t_hat0 = model(theta0, x)
-                t_hat1 = None
-            elif method_type == "doubly_parameterized":
-                s_hat, log_r_hat, t_hat0, t_hat1 = model(theta0, theta1, x)
+            # Forward pass
+            if grad_x_regularization is None:
+                x_gradient = None
+                if method_type == "parameterized":
+                    s_hat, log_r_hat, t_hat0 = model(theta0, x)
+                    t_hat1 = None
+                elif method_type == "doubly_parameterized":
+                    s_hat, log_r_hat, t_hat0, t_hat1 = model(theta0, theta1, x)
+                else:
+                    raise ValueError("Unknown method type {}".format(method_type))
             else:
-                raise ValueError("Unknown method type {}".format(method_type))
+                if method_type == "parameterized":
+                    s_hat, log_r_hat, t_hat0, x_gradient = model(theta0, x, return_grad_x=True)
+                    t_hat1 = None
+                elif method_type == "doubly_parameterized":
+                    s_hat, log_r_hat, t_hat0, t_hat1, x_gradient = model(theta0, theta1, x, return_grad_x=True)
+                else:
+                    raise ValueError("Unknown method type {}".format(method_type))
 
+            # Evaluate loss
             losses = [
                 loss_function(s_hat, log_r_hat, t_hat0, t_hat1, y, r_xz, t_xz0, t_xz1)
                 for loss_function in loss_functions
             ]
+            if grad_x_regularization is not None:
+                losses.append(torch.mean(x_gradient ** 2))
+
             loss = loss_weights[0] * losses[0]
             for _w, _l in zip(loss_weights[1:], losses[1:]):
                 loss += _w * _l

@@ -48,6 +48,7 @@ def train_local_score_model(
     validation_split=0.2,
     early_stopping=True,
     early_stopping_patience=20,
+    grad_x_regularization=None,
     learning_curve_folder=None,
     learning_curve_filename=None,
     verbose="some",
@@ -114,6 +115,12 @@ def train_local_score_model(
     if loss_weights is None:
         loss_weights = [1.0] * n_losses
 
+    # Regularization
+    if grad_x_regularization is not None:
+        n_losses += 1
+        loss_weights.append(grad_x_regularization)
+        loss_labels.append("l2_grad_x")
+
     # Losses over training
     individual_losses_train = []
     individual_losses_val = []
@@ -150,10 +157,18 @@ def train_local_score_model(
 
             optimizer.zero_grad()
 
-            # Evaluate loss
-            t_hat = model(x)
+            # Forward pass
+            if grad_x_regularization is None:
+                t_hat = model(x)
+                x_gradient = None
+            else:
+                t_hat, x_gradient = model(x, return_grad_x=True)
 
+            # Evaluate loss
             losses = [loss_function(t_hat, t_xz) for loss_function in loss_functions]
+            if grad_x_regularization is not None:
+                losses.append(torch.mean(torch.sum(x_gradient ** 2, dim=1)))
+
             loss = loss_weights[0] * losses[0]
             for _w, _l in zip(loss_weights[1:], losses[1:]):
                 loss += _w * _l
@@ -179,9 +194,14 @@ def train_local_score_model(
         # Validation
         if validation_split is None:
             if n_epochs_verbose is not None and n_epochs_verbose > 0 and (epoch + 1) % n_epochs_verbose == 0:
+                individual_loss_string = ""
+                for i, (label, value) in enumerate(zip(loss_labels, individual_losses_train[-1])):
+                    if i > 0:
+                        individual_loss_string += ", "
+                    individual_loss_string += "{}: {:.4f}".format(label, value)
+
                 logging.info(
-                    "  Epoch %d: train loss %.2f (%s)"
-                    % (epoch + 1, total_losses_train[-1], individual_losses_train[-1])
+                    "  Epoch %d: train loss %.4f (%s)" % (epoch + 1, total_losses_train[-1], individual_loss_string)
                 )
             continue
 
@@ -221,26 +241,37 @@ def train_local_score_model(
 
         # Print out information
         if n_epochs_verbose is not None and n_epochs_verbose > 0 and (epoch + 1) % n_epochs_verbose == 0:
+            individual_loss_string_train = ""
+            individual_loss_string_val = ""
+            for i, (label, value_train, value_val) in enumerate(
+                zip(loss_labels, individual_losses_train[-1], individual_losses_val[-1])
+            ):
+                if i > 0:
+                    individual_loss_string_train += ", "
+                    individual_loss_string_val += ", "
+                individual_loss_string_train += "{}: {:.4f}".format(label, value_train)
+                individual_loss_string_val += "{}: {:.4f}".format(label, value_val)
+
             if early_stopping and epoch == early_stopping_epoch:
                 logging.info(
-                    "  Epoch %d: train loss %.2f (%s), validation loss %.2f (%s) (*)"
+                    "  Epoch %d: train loss %.4f (%s)\n            val. loss  %.4f (%s) (*)"
                     % (
                         epoch + 1,
                         total_losses_train[-1],
-                        individual_losses_train[-1],
+                        individual_loss_string_train,
                         total_losses_val[-1],
-                        individual_losses_val[-1],
+                        individual_loss_string_val,
                     )
                 )
             else:
                 logging.info(
-                    "  Epoch %d: train loss %.2f (%s), validation loss %.2f (%s)"
+                    "  Epoch %d: train loss %.4f (%s)\n            val. loss  %.4f (%s)"
                     % (
                         epoch + 1,
                         total_losses_train[-1],
-                        individual_losses_train[-1],
+                        individual_loss_string_train,
                         total_losses_val[-1],
-                        individual_losses_val[-1],
+                        individual_loss_string_val,
                     )
                 )
 

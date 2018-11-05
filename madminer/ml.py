@@ -90,6 +90,7 @@ class MLForge:
         validation_split=0.25,
         early_stopping=True,
         scale_inputs=True,
+        grad_x_regularization=None,
     ):
 
         """
@@ -215,6 +216,10 @@ class MLForge:
         scale_inputs : bool, optional
             Scale the observables to zero mean and unit variance. Default value: True.
 
+        grad_x_regularization : float or None, optional
+            If not None, a term of the form `grad_x_regularization * |grad_x f(x)|^2` is added to the loss, where `f(x)`
+            is the neural network output (the estimated log likelihood ratio or score).
+
         Returns
         -------
             None
@@ -262,6 +267,10 @@ class MLForge:
         logging.info("  Validation split:       %s", validation_split)
         logging.info("  Early stopping:         %s", early_stopping)
         logging.info("  Scale inputs:           %s", scale_inputs)
+        if grad_x_regularization is None:
+            logging.info("  Regularization:         None")
+        else:
+            logging.info("  Regularization:         %s * |grad_x f(x)|^2", grad_x_regularization)
 
         # Load training data
         logging.info("Loading training data")
@@ -474,6 +483,7 @@ class MLForge:
                 trainer=trainer,
                 nesterov_momentum=nesterov_momentum,
                 verbose="all" if self.debug else "some",
+                grad_x_regularization=grad_x_regularization,
             )
         elif method in ["nde", "scandal"]:
             train_flow_model(
@@ -492,6 +502,7 @@ class MLForge:
                 trainer=trainer,
                 nesterov_momentum=nesterov_momentum,
                 verbose="all" if self.debug else "some",
+                grad_x_regularization=grad_x_regularization,
             )
         else:
             train_ratio_model(
@@ -516,6 +527,7 @@ class MLForge:
                 trainer=trainer,
                 nesterov_momentum=nesterov_momentum,
                 verbose="all" if self.debug else "some",
+                grad_x_regularization=grad_x_regularization,
             )
 
     def evaluate(
