@@ -157,14 +157,16 @@ def train_local_score_model(
 
             optimizer.zero_grad()
 
-            # Evaluate loss
+            # Forward pass
             if grad_x_regularization is None:
                 t_hat = model(x)
+                x_gradient = None
             else:
                 t_hat, x_gradient = model(x, return_grad_x=True)
 
+            # Evaluate loss
             losses = [loss_function(t_hat, t_xz) for loss_function in loss_functions]
-            if grad_x_regularization:
+            if grad_x_regularization is not None:
                 losses.append(torch.mean(torch.sum(x_gradient ** 2, dim=1)))
 
             loss = loss_weights[0] * losses[0]
