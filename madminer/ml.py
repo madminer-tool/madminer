@@ -90,7 +90,7 @@ class MLForge:
         validation_split=0.25,
         early_stopping=True,
         scale_inputs=True,
-        grad_x_regularization=None
+        grad_x_regularization=None,
     ):
 
         """
@@ -483,7 +483,7 @@ class MLForge:
                 trainer=trainer,
                 nesterov_momentum=nesterov_momentum,
                 verbose="all" if self.debug else "some",
-                grad_x_regularization = grad_x_regularization,
+                grad_x_regularization=grad_x_regularization,
             )
         elif method in ["nde", "scandal"]:
             train_flow_model(
@@ -502,7 +502,7 @@ class MLForge:
                 trainer=trainer,
                 nesterov_momentum=nesterov_momentum,
                 verbose="all" if self.debug else "some",
-                grad_x_regularization = grad_x_regularization,
+                grad_x_regularization=grad_x_regularization,
             )
         else:
             train_ratio_model(
@@ -527,7 +527,7 @@ class MLForge:
                 trainer=trainer,
                 nesterov_momentum=nesterov_momentum,
                 verbose="all" if self.debug else "some",
-                grad_x_regularization = grad_x_regularization,
+                grad_x_regularization=grad_x_regularization,
             )
 
     def evaluate(
