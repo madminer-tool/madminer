@@ -48,6 +48,7 @@ def train_local_score_model(
     validation_split=0.2,
     early_stopping=True,
     early_stopping_patience=20,
+    grad_x_regularization=None,
     learning_curve_folder=None,
     learning_curve_filename=None,
     verbose="some",
@@ -114,6 +115,11 @@ def train_local_score_model(
     if loss_weights is None:
         loss_weights = [1.0] * n_losses
 
+    # Regularization
+    if grad_x_regularization is not None:
+        loss_weights.append(grad_x_regularization)
+        loss_labels.append('l2_grad_x')
+
     # Losses over training
     individual_losses_train = []
     individual_losses_val = []
@@ -151,9 +157,15 @@ def train_local_score_model(
             optimizer.zero_grad()
 
             # Evaluate loss
-            t_hat = model(x)
+            if grad_x_regularization is None:
+                t_hat = model(x)
+            else:
+                t_hat, x_gradient = model(x, return_grad_x=True)
 
             losses = [loss_function(t_hat, t_xz) for loss_function in loss_functions]
+            if grad_x_regularization:
+                losses.append(torch.mean(torch.sum(x_gradient**2, dim=1)))
+
             loss = loss_weights[0] * losses[0]
             for _w, _l in zip(loss_weights[1:], losses[1:]):
                 loss += _w * _l

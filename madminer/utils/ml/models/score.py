@@ -1,6 +1,8 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+import torch
 import torch.nn as nn
+from torch.autograd import grad
 
 from madminer.utils.ml.utils import get_activation_function
 
@@ -33,13 +35,26 @@ class LocalScoreEstimator(nn.Module):
             nn.Linear(n_last, n_parameters)
         )
 
-    def forward(self, x):
+    def forward(self, x, return_grad_x=False):
+        # Track gradient wrt x
+        if return_grad_x and not x.requires_grad:
+            x.requires_grad = True
+
+        # Forward pass
         t_hat = x
 
         for i, layer in enumerate(self.layers):
             if i > 0:
                 t_hat = self.activation(t_hat)
             t_hat = layer(t_hat)
+
+        # Calculate gradient
+        if return_grad_x:
+            x_gradient = grad(t_hat, x,
+                          grad_outputs=torch.ones_like(t_hat.data),
+                          only_inputs=True, create_graph=True)[0]
+
+            return t_hat, x_gradient
 
         return t_hat
 
