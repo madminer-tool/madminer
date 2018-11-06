@@ -110,10 +110,9 @@ different slices of one observable (the “distribution of the Fisher informatio
 </table>
 <dl class="method">
 <dt id="madminer.fisherinformation.FisherInformation.calculate_fisher_information_full_detector">
-<code class="descname">calculate_fisher_information_full_detector</code><span class="sig-paren">(</span><em>theta</em>, <em>model_file</em>, <em>unweighted_x_sample_file</em>, <em>luminosity=300000.0</em>, <em>cuts=None</em>, <em>return_error=None</em>, <em>ensemble_vote_expectation_weight=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/fisherinformation.html#FisherInformation.calculate_fisher_information_full_detector"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.fisherinformation.FisherInformation.calculate_fisher_information_full_detector" title="Permalink to this definition">¶</a></dt>
+<code class="descname">calculate_fisher_information_full_detector</code><span class="sig-paren">(</span><em>theta</em>, <em>model_file</em>, <em>unweighted_x_sample_file=None</em>, <em>luminosity=300000.0</em>, <em>return_error=None</em>, <em>ensemble_vote_expectation_weight=None</em>, <em>batch_size=100000</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/fisherinformation.html#FisherInformation.calculate_fisher_information_full_detector"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.fisherinformation.FisherInformation.calculate_fisher_information_full_detector" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculates the full Fisher information in realistic detector-level observations, estimated with neural networks.
-In addition to the MadMiner file, this requires a trained SALLY or SALLINO estimator as well as an unweighted
-evaluation sample.</p>
+In addition to the MadMiner file, this requires a trained SALLY or SALLINO estimator.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -126,16 +125,13 @@ evaluation sample.</p>
 <dd><p class="first last">Filename of a trained local score regression model that was trained on samples from <cite>theta</cite> (see
 <cite>madminer.ml.MLForge</cite>).</p>
 </dd>
-<dt><strong>unweighted_x_sample_file</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
+<dt><strong>unweighted_x_sample_file</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str or None</span></dt>
 <dd><p class="first last">Filename of an unweighted x sample that is sampled according to theta and obeys the cuts
-(see <cite>madminer.sampling.SampleAugmenter.extract_samples_train_local()</cite>).</p>
+(see <cite>madminer.sampling.SampleAugmenter.extract_samples_train_local()</cite>). If None, the Fisher information
+is instead calculated on the full, weighted samples (the data in the MadMiner file).</p>
 </dd>
 <dt><strong>luminosity</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
 <dd><p class="first last">Luminosity in pb^-1.</p>
-</dd>
-<dt><strong>cuts</strong> <span class="classifier-delimiter">:</span> <span class="classifier">None or list of str, optional</span></dt>
-<dd><p class="first last">Cuts. Each entry is a parseable Python expression that returns a bool (True if the event should pass a cut,
-False otherwise). Default value: None.</p>
 </dd>
 <dt><strong>return_error</strong> <span class="classifier-delimiter">:</span> <span class="classifier">None or bool, optional</span></dt>
 <dd><p class="first last">Whether an uncertainty of the Fisher information is returned together with the prediction. If None, it is
@@ -146,6 +142,9 @@ returned only if model_file points to the directory of an ensemble. Default valu
 expectation value. If a list is given, results are returned for each element in the list. If None, or if
 <cite>EnsembleForge.calculate_expectation()</cite> has not been called, all estimators are treated equal. Default
 value: None.</p>
+</dd>
+<dt><strong>batch_size</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int, optional</span></dt>
+<dd><p class="first last">Batch size. Default value: 100000.</p>
 </dd>
 </dl>
 </td>
