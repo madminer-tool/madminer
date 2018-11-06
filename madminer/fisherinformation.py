@@ -350,7 +350,7 @@ class FisherInformation:
             fisher_info_kin = None
             covariance = None
 
-            n_batches = int(np.ceil(self.n_samples / batch_size))
+            n_batches = int(np.ceil((self.n_samples - start_event) / batch_size))
 
             for i_batch, (observations, weights_benchmarks) in enumerate(
                 madminer_event_loader(self.madminer_filename, batch_size=batch_size, start=start_event)
@@ -1135,7 +1135,13 @@ class FisherInformation:
         return float(eval(observable_definition, variables))
 
     def _calculate_xsec(
-        self, theta=None, cuts=None, efficiency_functions=None, return_benchmark_xsecs=False, return_error=False, start_event=0
+        self,
+        theta=None,
+        cuts=None,
+        efficiency_functions=None,
+        return_benchmark_xsecs=False,
+        return_error=False,
+        start_event=0,
     ):
         """
         Calculates the total cross section for a parameter point.

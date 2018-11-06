@@ -119,21 +119,7 @@ class ConditionalMixtureMADE(BaseConditionalFlow):
         return u, logdet_dudx, self.loga
 
     def log_likelihood(self, theta, x, **kwargs):
-        """Calculates u(x) and log p(x) with a Gaussian base density
-
-        Parameters
-        ----------
-        theta :
-            
-        x :
-            
-        **kwargs :
-            
-
-        Returns
-        -------
-
-        """
+        """Calculates u(x) and log p(x) with a Gaussian base density"""
 
         u, logdet_dudx, log_a = self.forward(theta, x, **kwargs)
 
@@ -145,22 +131,6 @@ class ConditionalMixtureMADE(BaseConditionalFlow):
         return u, log_likelihood
 
     def generate_samples(self, theta, u=None, **kwargs):
-        """
-
-        Parameters
-        ----------
-        theta :
-            
-        u :
-             (Default value = None)
-        **kwargs :
-            
-
-        Returns
-        -------
-
-        """
-
         n_samples = theta.shape[0]
 
         x = torch.zeros([n_samples, self.n_inputs])
@@ -195,19 +165,6 @@ class ConditionalMixtureMADE(BaseConditionalFlow):
         return x
 
     def to(self, *args, **kwargs):
-        """
-
-        Parameters
-        ----------
-        *args :
-            
-        **kwargs :
-            
-
-        Returns
-        -------
-
-        """
         self.to_args = args
         self.to_kwargs = kwargs
 

@@ -10,23 +10,6 @@ from madminer.utils.various import call_command
 
 
 def extract_observables_from_lhe_file(filename, sampling_benchmark, observables, benchmark_names):
-    """
-
-    Parameters
-    ----------
-    filename :
-        
-    sampling_benchmark :
-        
-    observables :
-        
-    benchmark_names :
-        
-
-    Returns
-    -------
-
-    """
     # Untar Event file
     new_filename, extension = os.path.splitext(filename)
     if extension == ".gz":
@@ -82,19 +65,6 @@ def extract_observables_from_lhe_file(filename, sampling_benchmark, observables,
 
 
 def _read_lhe_event(file, sampling_benchmark):
-    """
-
-    Parameters
-    ----------
-    file :
-        
-    sampling_benchmark :
-        
-
-    Returns
-    -------
-
-    """
     # Initialize Weights and Momenta
     event_weights = OrderedDict()
     event_momenta = []
