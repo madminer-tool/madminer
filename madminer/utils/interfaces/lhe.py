@@ -5,6 +5,7 @@ import numpy as np
 from collections import OrderedDict
 import skhep.math
 import os
+import logging
 
 from madminer.utils.various import call_command
 
@@ -73,10 +74,10 @@ def _read_lhe_event(file, sampling_benchmark):
     do_tag = False
     do_momenta = False
     do_reweight = False
+    do_wait_for_reweight = False
 
     # Loop through lines in Event
     for line in file:
-
         # Skip empty/commented out lines
         if len(line) == 0:
             continue
@@ -97,6 +98,10 @@ def _read_lhe_event(file, sampling_benchmark):
 
         # Read Momenta and store as 4-vector
         if do_momenta:
+            if line.strip() == "<mgrwt>":
+                do_momenta = False
+                do_wait_for_reweight = True
+                continue
             if line.strip() == "<rwgt>":
                 do_momenta = False
                 do_reweight = True
@@ -112,9 +117,16 @@ def _read_lhe_event(file, sampling_benchmark):
                 event_momenta.append(vec)
             continue
 
+        # Wait for reweight block
+        if do_wait_for_reweight:
+            if line.strip() == "<rwgt>":
+                do_wait_for_reweight = False
+                do_reweight = True
+                continue
+
         # Read Reweighted weights
         if do_reweight:
-            if line.strip() == "</rwgt>":
+            if line.strip() == "</rwgt>" or line.strip() == "</mgrwt>":
                 do_reweight = False
                 continue
             rwgtid = line[line.find("<") + 1 : line.find(">")].split("=")[1][1:-1]
