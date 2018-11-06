@@ -27,19 +27,7 @@ class BatchNorm(BaseFlow):
 
     def forward(self, x, fixed_params=False):
 
-        """Calculates x -> u(x) (batch norming)
-
-        Parameters
-        ----------
-        x :
-            
-        fixed_params :
-             (Default value = False)
-
-        Returns
-        -------
-
-        """
+        """Calculates x -> u(x) (batch norming)"""
 
         # batch statistics
         if fixed_params:
@@ -68,39 +56,13 @@ class BatchNorm(BaseFlow):
 
     def inverse(self, u):
 
-        """Calculates u -> x(u) (the approximate inverse transformation based on running mean and variance)
-
-        Parameters
-        ----------
-        u :
-            
-
-        Returns
-        -------
-
-        """
+        """Calculates u -> x(u) (the approximate inverse transformation based on running mean and variance)"""
 
         x = torch.sqrt(self.running_var) * u + self.running_mean
 
         return x
 
     def generate_samples(self, n_samples=1, u=None, **kwargs):
-        """
-
-        Parameters
-        ----------
-        n_samples :
-             (Default value = 1)
-        u :
-             (Default value = None)
-        **kwargs :
-            
-
-        Returns
-        -------
-
-        """
-
         if u is None:
             u = tensor(rng.randn(n_samples, self.n_inputs))
 
@@ -109,20 +71,6 @@ class BatchNorm(BaseFlow):
         return x
 
     def to(self, *args, **kwargs):
-        """
-
-        Parameters
-        ----------
-        *args :
-            
-        **kwargs :
-            
-
-        Returns
-        -------
-
-        """
-
         logging.debug('Transforming BatchNorm to %s', args)
 
         self = super().to(*args, **kwargs)

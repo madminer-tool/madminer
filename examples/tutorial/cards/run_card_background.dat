@@ -63,7 +63,7 @@
   -1.0 = time_of_flight ! threshold (in mm) below which the invariant livetime is not written (-1 means not written)
   3.0 = lhe_version       ! Change the way clustering information pass to shower.        
   True = clusinfo         ! include clustering tag in output
-  average =  event_norm       ! average/sum. Normalization of the weight in the LHEF
+  sum =  event_norm       ! average/sum. Normalization of the weight in the LHEF
 
 #*********************************************************************
 # Matching parameter (MLM only)
