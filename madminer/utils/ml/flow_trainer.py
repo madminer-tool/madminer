@@ -59,6 +59,7 @@ def train_flow_model(
     validation_split=0.2,
     early_stopping=True,
     early_stopping_patience=20,
+    grad_x_regularization=None,
     learning_curve_folder=None,
     learning_curve_filename=None,
     verbose="some",
@@ -128,6 +129,10 @@ def train_flow_model(
 
     if loss_weights is None:
         loss_weights = [1.0] * n_losses
+
+    # Regularization
+    if grad_x_regularization is not None:
+        raise NotImplementedError("Flow training does not support grad_x regularization yet!")
 
     # Losses over training
     individual_losses_train = []

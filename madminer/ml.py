@@ -90,6 +90,7 @@ class MLForge:
         validation_split=0.25,
         early_stopping=True,
         scale_inputs=True,
+        grad_x_regularization=None,
     ):
 
         """
@@ -215,6 +216,10 @@ class MLForge:
         scale_inputs : bool, optional
             Scale the observables to zero mean and unit variance. Default value: True.
 
+        grad_x_regularization : float or None, optional
+            If not None, a term of the form `grad_x_regularization * |grad_x f(x)|^2` is added to the loss, where `f(x)`
+            is the neural network output (the estimated log likelihood ratio or score).
+
         Returns
         -------
             None
@@ -262,6 +267,10 @@ class MLForge:
         logging.info("  Validation split:       %s", validation_split)
         logging.info("  Early stopping:         %s", early_stopping)
         logging.info("  Scale inputs:           %s", scale_inputs)
+        if grad_x_regularization is None:
+            logging.info("  Regularization:         None")
+        else:
+            logging.info("  Regularization:         %s * |grad_x f(x)|^2", grad_x_regularization)
 
         # Load training data
         logging.info("Loading training data")
@@ -474,6 +483,7 @@ class MLForge:
                 trainer=trainer,
                 nesterov_momentum=nesterov_momentum,
                 verbose="all" if self.debug else "some",
+                grad_x_regularization=grad_x_regularization,
             )
         elif method in ["nde", "scandal"]:
             train_flow_model(
@@ -492,6 +502,7 @@ class MLForge:
                 trainer=trainer,
                 nesterov_momentum=nesterov_momentum,
                 verbose="all" if self.debug else "some",
+                grad_x_regularization=grad_x_regularization,
             )
         else:
             train_ratio_model(
@@ -516,10 +527,17 @@ class MLForge:
                 trainer=trainer,
                 nesterov_momentum=nesterov_momentum,
                 verbose="all" if self.debug else "some",
+                grad_x_regularization=grad_x_regularization,
             )
 
     def evaluate(
-        self, x_filename, theta0_filename=None, theta1_filename=None, test_all_combinations=True, evaluate_score=False
+        self,
+        x_filename,
+        theta0_filename=None,
+        theta1_filename=None,
+        test_all_combinations=True,
+        evaluate_score=False,
+        return_grad_x=False,
     ):
 
         """
@@ -550,6 +568,10 @@ class MLForge:
             If method is not 'sally' and not 'sallino', this sets whether in addition to the likelihood ratio the score
             is evaluated. Default value: False.
 
+        return_grad_x : bool, optional
+            If True, `grad_x log r(x)` or `grad_x t(x)` (for 'sally' or 'sallino' estimators) are returned in addition
+            to the other outputs. Default value: False.
+
         Returns
         -------
         sally_estimated_score : ndarray
@@ -573,6 +595,9 @@ class MLForge:
             'rascal2', or 'rolr2'. Otherwise the derived estimated score at `theta1`. If test_all_combinations is
             True, the result has shape `(n_thetas, n_x, n_parameters)`. Otherwise, it has shape
             `(n_samples, n_parameters)`.
+
+        grad_x : ndarray
+            Only returned if return_grad_x is True.
 
         """
 
@@ -599,6 +624,11 @@ class MLForge:
         if self.method in ["sally", "sallino"]:
             logging.debug("Starting score evaluation")
 
+            if return_grad_x:
+                all_t_hat, all_x_gradients = evaluate_local_score_model(model=self.model, xs=xs, return_grad_x=True)
+
+                return all_t_hat, all_x_gradients
+
             all_t_hat = evaluate_local_score_model(model=self.model, xs=xs)
 
             return all_t_hat
@@ -616,6 +646,7 @@ class MLForge:
         all_log_r_hat = []
         all_t_hat0 = []
         all_t_hat1 = []
+        all_x_gradients = []
 
         if test_all_combinations:
             logging.debug("Starting ratio evaluation for all combinations")
@@ -632,22 +663,38 @@ class MLForge:
                     t_hat1 = None
 
                 else:
-                    _, log_r_hat, t_hat0, t_hat1 = evaluate_ratio_model(
-                        model=self.model,
-                        method_type=self.method_type,
-                        theta0s=[theta0],
-                        theta1s=[theta1] if theta1 is not None else None,
-                        xs=xs,
-                        evaluate_score=evaluate_score,
-                    )
+                    if return_grad_x:
+                        _, log_r_hat, t_hat0, t_hat1, x_gradient = evaluate_ratio_model(
+                            model=self.model,
+                            method_type=self.method_type,
+                            theta0s=[theta0],
+                            theta1s=[theta1] if theta1 is not None else None,
+                            xs=xs,
+                            evaluate_score=evaluate_score,
+                            return_grad_x=True,
+                        )
+                    else:
+                        _, log_r_hat, t_hat0, t_hat1 = evaluate_ratio_model(
+                            model=self.model,
+                            method_type=self.method_type,
+                            theta0s=[theta0],
+                            theta1s=[theta1] if theta1 is not None else None,
+                            xs=xs,
+                            evaluate_score=evaluate_score,
+                        )
+                        x_gradient = None
 
                 all_log_r_hat.append(log_r_hat)
                 all_t_hat0.append(t_hat0)
                 all_t_hat1.append(t_hat1)
+                all_x_gradients.append(x_gradient)
 
             all_log_r_hat = np.array(all_log_r_hat)
             all_t_hat0 = np.array(all_t_hat0)
             all_t_hat1 = np.array(all_t_hat1)
+            all_t_hat1 = np.array(all_t_hat1)
+            if return_grad_x:
+                all_x_gradients = np.array(all_x_gradients)
 
         else:
             logging.debug("Starting ratio evaluation")
@@ -659,17 +706,31 @@ class MLForge:
                 all_t_hat1 = None
 
             else:
-                _, all_log_r_hat, all_t_hat0, all_t_hat1 = evaluate_ratio_model(
-                    model=self.model,
-                    method_type=self.method_type,
-                    theta0s=theta0s,
-                    theta1s=None if None in theta1s else theta1s,
-                    xs=xs,
-                    evaluate_score=evaluate_score,
-                )
+                if return_grad_x:
+                    _, all_log_r_hat, all_t_hat0, all_t_hat1, all_x_gradients = evaluate_ratio_model(
+                        model=self.model,
+                        method_type=self.method_type,
+                        theta0s=theta0s,
+                        theta1s=None if None in theta1s else theta1s,
+                        xs=xs,
+                        evaluate_score=evaluate_score,
+                        return_grad_x=True,
+                    )
+                else:
+                    _, all_log_r_hat, all_t_hat0, all_t_hat1 = evaluate_ratio_model(
+                        model=self.model,
+                        method_type=self.method_type,
+                        theta0s=theta0s,
+                        theta1s=None if None in theta1s else theta1s,
+                        xs=xs,
+                        evaluate_score=evaluate_score,
+                    )
+                    all_x_gradients = None
 
         logging.debug("Evaluation done")
 
+        if return_grad_x:
+            return all_log_r_hat, all_t_hat0, all_t_hat1, all_x_gradients
         return all_log_r_hat, all_t_hat0, all_t_hat1
 
     def calculate_fisher_information(self, x_filename, n_events=1):

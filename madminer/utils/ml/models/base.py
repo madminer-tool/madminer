@@ -15,53 +15,13 @@ class BaseFlow(nn.Module):
         self.n_inputs = n_inputs
 
     def forward(self, x, **kwargs):
-        """
-
-        Parameters
-        ----------
-        x :
-            
-        **kwargs :
-            
-
-        Returns
-        -------
-
-        """
         raise NotImplementedError
 
     def generate_samples(self, n_samples=1, u=None, **kwargs):
-        """
-
-        Parameters
-        ----------
-        n_samples :
-             (Default value = 1)
-        u :
-             (Default value = None)
-        **kwargs :
-            
-
-        Returns
-        -------
-
-        """
         raise NotImplementedError
 
     def log_likelihood(self, x, **kwargs):
-        """Calculates log p(x) with a Gaussian base density
-
-        Parameters
-        ----------
-        x :
-            
-        **kwargs :
-            
-
-        Returns
-        -------
-
-        """
+        """ Calculates log p(x) with a Gaussian base density """
 
         u, logdet_dudx = self.forward(x, **kwargs)
 
@@ -71,19 +31,7 @@ class BaseFlow(nn.Module):
         return u, log_likelihood
 
     def log_likelihood_and_score(self, x, **kwargs):
-        """Calculates log p(x) with a Gaussian base density
-
-        Parameters
-        ----------
-        x :
-            
-        **kwargs :
-            
-
-        Returns
-        -------
-
-        """
+        """ Calculates log p(x) and t(x) with a Gaussian base density """
 
         u, log_likelihood = self.log_likelihood(x, **kwargs)
 
@@ -91,8 +39,6 @@ class BaseFlow(nn.Module):
 
 
 class BaseConditionalFlow(nn.Module):
-    """ """
-
     def __init__(self, n_conditionals, n_inputs, **kwargs):
         super(BaseConditionalFlow, self).__init__()
 
@@ -100,57 +46,13 @@ class BaseConditionalFlow(nn.Module):
         self.n_inputs = n_inputs
 
     def forward(self, theta, x, **kwargs):
-        """
-
-        Parameters
-        ----------
-        theta :
-            
-        x :
-            
-        **kwargs :
-            
-
-        Returns
-        -------
-
-        """
         raise NotImplementedError
 
     def generate_samples(self, theta, u=None, **kwargs):
-        """
-
-        Parameters
-        ----------
-        theta :
-            
-        u :
-             (Default value = None)
-        **kwargs :
-            
-
-        Returns
-        -------
-
-        """
         raise NotImplementedError
 
     def log_likelihood(self, theta, x, **kwargs):
-        """Calculates u(x) and log p(x) with a Gaussian base density
-
-        Parameters
-        ----------
-        theta :
-            
-        x :
-            
-        **kwargs :
-            
-
-        Returns
-        -------
-
-        """
+        """ Calculates u(x) and log p(x) with a Gaussian base density """
 
         u, logdet_dudx = self.forward(theta, x, **kwargs)
 
@@ -160,21 +62,7 @@ class BaseConditionalFlow(nn.Module):
         return u, log_likelihood
 
     def log_likelihood_and_score(self, theta, x, **kwargs):
-        """Calculates u(x), log p(x), and the score t(x)with a Gaussian base density
-
-        Parameters
-        ----------
-        theta :
-            
-        x :
-            
-        **kwargs :
-            
-
-        Returns
-        -------
-
-        """
+        """ Calculates u(x), log p(x), and the score t(x) with a Gaussian base density """
 
         if theta.shape[0] == 1:
             theta = theta.expand(x.shape[0], -1)
