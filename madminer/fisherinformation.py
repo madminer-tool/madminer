@@ -249,6 +249,7 @@ class FisherInformation:
         luminosity=300000.0,
         return_error=None,
         ensemble_vote_expectation_weight=None,
+        batch_size=100000,
     ):
         """
         Calculates the full Fisher information in realistic detector-level observations, estimated with neural networks.
@@ -281,6 +282,9 @@ class FisherInformation:
             `EnsembleForge.calculate_expectation()` has not been called, all estimators are treated equal. Default
             value: None.
 
+        batch_size : int, optional
+            Batch size. Default value: 100000.
+
         Returns
         -------
         fisher_information : ndarray or list of ndarray
@@ -298,6 +302,7 @@ class FisherInformation:
         """
 
         # Rate part of Fisher information
+        logging.info("Evaluating rate Fisher information")
         fisher_info_rate, rate_covariance = self.calculate_fisher_information_rate(theta=theta, luminosity=luminosity)
 
         # Load SALLY model
@@ -323,8 +328,12 @@ class FisherInformation:
 
             theta_matrix = get_theta_benchmark_matrix("morphing", theta, self.benchmarks, self.morpher)
 
-            for i_batch, (observations, weights_benchmarks) in enumerate(madminer_event_loader(self.madminer_filename)):
-                logging.info('Evaluating Fisher information on batch %s', i_batch + 1)
+            n_batches = np.ceil(self.n_samples / 100000)
+
+            for i_batch, (observations, weights_benchmarks) in enumerate(
+                madminer_event_loader(self.madminer_filename, batch_size=batch_size)
+            ):
+                logging.info("Evaluating kinematic Fisher information on batch %s", i_batch + 1)
 
                 weights_theta = theta_matrix.dot(weights_benchmarks.T)
 

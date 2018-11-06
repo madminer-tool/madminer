@@ -795,7 +795,7 @@ class MLForge:
 
         # Calculate expected score
         expected_score = np.mean(t_hats, axis=0)
-        logging.info("Expected per-event score (should be close to zero): %s", expected_score)
+        logging.debug("Expected per-event score (should be close to zero): %s", expected_score)
 
         return fisher_information
 
@@ -1336,7 +1336,7 @@ class EnsembleForge:
             Only returned if return_individual_predictions is True. The individual estimator predictions.
 
         """
-        logging.info("Evaluating Fisher information for %s estimators in ensemble", self.n_estimators)
+        logging.debug("Evaluating Fisher information for %s estimators in ensemble", self.n_estimators)
 
         # Calculate estimator_weights of each estimator in vote
         if self.expectations is None or vote_expectation_weight is None:
@@ -1366,7 +1366,7 @@ class EnsembleForge:
         # Calculate estimator predictions
         predictions = []
         for i, estimator in enumerate(self.estimators):
-            logging.info("Starting evaluation for estimator %s / %s in ensemble", i + 1, self.n_estimators)
+            logging.debug("Starting evaluation for estimator %s / %s in ensemble", i + 1, self.n_estimators)
 
             predictions.append(estimator.calculate_fisher_information(x=x, weights=obs_weights, n_events=n_events))
         predictions = np.array(predictions)
