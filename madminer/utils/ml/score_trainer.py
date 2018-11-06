@@ -47,7 +47,7 @@ def train_local_score_model(
     double_precision=False,
     validation_split=0.2,
     early_stopping=True,
-    early_stopping_patience=20,
+    early_stopping_patience=None,
     grad_x_regularization=None,
     learning_curve_folder=None,
     learning_curve_filename=None,
@@ -254,26 +254,14 @@ def train_local_score_model(
 
             if early_stopping and epoch == early_stopping_epoch:
                 logging.info(
-                    "  Epoch %d: train loss %.4f (%s)\n            val. loss  %.4f (%s) (*)"
-                    % (
-                        epoch + 1,
-                        total_losses_train[-1],
-                        individual_loss_string_train,
-                        total_losses_val[-1],
-                        individual_loss_string_val,
-                    )
+                    "  Epoch %d: train loss %.4f (%s)", epoch + 1, total_losses_train[-1], individual_loss_string_train
                 )
+                logging.info("            val. loss  %.4f (%s) (*)", total_losses_val[-1], individual_loss_string_val)
             else:
                 logging.info(
-                    "  Epoch %d: train loss %.4f (%s)\n            val. loss  %.4f (%s)"
-                    % (
-                        epoch + 1,
-                        total_losses_train[-1],
-                        individual_loss_string_train,
-                        total_losses_val[-1],
-                        individual_loss_string_val,
-                    )
+                    "  Epoch %d: train loss %.4f (%s)", epoch + 1, total_losses_train[-1], individual_loss_string_train
                 )
+                logging.info("            val. loss  %.4f (%s)", total_losses_val[-1], individual_loss_string_val)
 
         # Early stopping: actually stop training
         if early_stopping and early_stopping_patience is not None:

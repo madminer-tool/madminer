@@ -245,16 +245,15 @@ class FisherInformation:
         self,
         theta,
         model_file,
-        unweighted_x_sample_file,
+        unweighted_x_sample_file=None,
         luminosity=300000.0,
-        cuts=None,
         return_error=None,
         ensemble_vote_expectation_weight=None,
+        batch_size=100000,
     ):
         """
         Calculates the full Fisher information in realistic detector-level observations, estimated with neural networks.
-        In addition to the MadMiner file, this requires a trained SALLY or SALLINO estimator as well as an unweighted
-        evaluation sample.
+        In addition to the MadMiner file, this requires a trained SALLY or SALLINO estimator.
 
         Parameters
         ----------
@@ -265,16 +264,13 @@ class FisherInformation:
             Filename of a trained local score regression model that was trained on samples from `theta` (see
             `madminer.ml.MLForge`).
 
-        unweighted_x_sample_file : str
+        unweighted_x_sample_file : str or None
             Filename of an unweighted x sample that is sampled according to theta and obeys the cuts
-            (see `madminer.sampling.SampleAugmenter.extract_samples_train_local()`).
+            (see `madminer.sampling.SampleAugmenter.extract_samples_train_local()`). If None, the Fisher information
+            is instead calculated on the full, weighted samples (the data in the MadMiner file).
 
         luminosity : float
             Luminosity in pb^-1.
-
-        cuts : None or list of str, optional
-            Cuts. Each entry is a parseable Python expression that returns a bool (True if the event should pass a cut,
-            False otherwise). Default value: None.
 
         return_error : None or bool, optional
             Whether an uncertainty of the Fisher information is returned together with the prediction. If None, it is
@@ -285,6 +281,9 @@ class FisherInformation:
             expectation value. If a list is given, results are returned for each element in the list. If None, or if
             `EnsembleForge.calculate_expectation()` has not been called, all estimators are treated equal. Default
             value: None.
+
+        batch_size : int, optional
+            Batch size. Default value: 100000.
 
         Returns
         -------
@@ -302,47 +301,96 @@ class FisherInformation:
 
         """
 
-        # Input
-        if cuts is None:
-            cuts = []
-
         # Rate part of Fisher information
-        fisher_info_rate, rate_covariance = self.calculate_fisher_information_rate(
-            theta=theta, luminosity=luminosity, cuts=cuts
-        )
-        total_xsec = self._calculate_xsec(theta=theta, cuts=cuts)
+        logging.info("Evaluating rate Fisher information")
+        fisher_info_rate, rate_covariance = self.calculate_fisher_information_rate(theta=theta, luminosity=luminosity)
 
-        # Kinematic part of Fisher information: either with MLForge or with EnsembleForge
+        # Load SALLY model
         if os.path.isdir(model_file):
-            # Ensemble method
-            model = EnsembleForge(debug=self.debug)
-            model.load(model_file)
-
-            fisher_info_kin, covariance = model.calculate_fisher_information(
-                unweighted_x_sample_file,
-                n_events=luminosity * total_xsec,
-                vote_expectation_weight=ensemble_vote_expectation_weight,
-            )
-
+            model_is_ensemble = True
             if return_error is None:
                 return_error = True
 
-        else:
-            # One ML instance
-            model = MLForge(debug=self.debug)
+            model = EnsembleForge(debug=self.debug)
             model.load(model_file)
-
-            fisher_info_kin = model.calculate_fisher_information(
-                unweighted_x_sample_file, n_events=luminosity * total_xsec
-            )
-
-            covariance = None
-
+        else:
+            model_is_ensemble = False
             if return_error is None:
                 return_error = False
 
+            model = MLForge(debug=self.debug)
+            model.load(model_file)
+
+        # Evaluation from weighted events
+        if unweighted_x_sample_file is None:
+            fisher_info_kin = None
+            covariance = None
+
+            theta_matrix = get_theta_benchmark_matrix("morphing", theta, self.benchmarks, self.morpher)
+
+            n_batches = np.ceil(self.n_samples / 100000)
+
+            for i_batch, (observations, weights_benchmarks) in enumerate(
+                madminer_event_loader(self.madminer_filename, batch_size=batch_size)
+            ):
+                logging.info("Evaluating kinematic Fisher information on batch %s", i_batch + 1)
+
+                weights_theta = theta_matrix.dot(weights_benchmarks.T)
+
+                # Calculate Fisher info on this batch
+                if model_is_ensemble:
+                    this_fisher_info, this_covariance = model.calculate_fisher_information(
+                        x=observations,
+                        obs_weights=weights_theta,
+                        n_events=luminosity * np.sum(weights_theta),
+                        vote_expectation_weight=ensemble_vote_expectation_weight,
+                    )
+                else:
+                    this_fisher_info = model.calculate_fisher_information(
+                        x=observations, weights=weights_theta, n_events=luminosity * np.sum(weights_theta)
+                    )
+                    this_covariance = None
+
+                # Sum up results
+                if fisher_info_kin is None:
+                    fisher_info_kin = this_fisher_info
+                elif isinstance(fisher_info_kin, list):
+                    for i in range(len(fisher_info_kin)):
+                        fisher_info_kin[i] += this_fisher_info[i]
+                else:
+                    fisher_info_kin += this_fisher_info
+
+                if this_covariance is not None:
+                    if covariance is None:
+                        covariance = this_covariance
+                    elif isinstance(covariance, list):
+                        for i in range(len(covariance)):
+                            covariance[i] += this_covariance[i]
+                    else:
+                        covariance += this_covariance
+
+        # Evaluation from unweighted event sample
+        else:
+            total_xsec = self._calculate_xsec(theta=theta)
+
+            if model_is_ensemble:
+                fisher_info_kin, covariance = model.calculate_fisher_information(
+                    unweighted_x_sample_file,
+                    n_events=luminosity * total_xsec,
+                    vote_expectation_weight=ensemble_vote_expectation_weight,
+                )
+            else:
+                fisher_info_kin = model.calculate_fisher_information(
+                    unweighted_x_sample_file, n_events=luminosity * total_xsec
+                )
+                covariance = None
+
         # Returns
-        if isinstance(ensemble_vote_expectation_weight, list) and len(ensemble_vote_expectation_weight) > 1:
+        if (
+            model_is_ensemble
+            and isinstance(ensemble_vote_expectation_weight, list)
+            and len(ensemble_vote_expectation_weight) > 1
+        ):
             fisher_info_results = [fisher_info_rate + this_fisher_info_kin for this_fisher_info_kin in fisher_info_kin]
             covariance_results = [rate_covariance + this_covariance for this_covariance in covariance]
             if return_error:

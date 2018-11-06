@@ -733,7 +733,7 @@ class MLForge:
             return all_log_r_hat, all_t_hat0, all_t_hat1, all_x_gradients
         return all_log_r_hat, all_t_hat0, all_t_hat1
 
-    def calculate_fisher_information(self, x_filename, n_events=1):
+    def calculate_fisher_information(self, x, weights=None, n_events=1):
 
         """
         Calculates the expected Fisher information matrix based on the kinematic information in a given number of
@@ -741,13 +741,16 @@ class MLForge:
 
         Parameters
         ----------
-        x_filename : str
-            Path to an unweighted sample of observations, as saved by the `madminer.sampling.SampleAugmenter` functions.
-            Note that this sample has to be sample from the reference parameter where the score is estimated with the
-            SALLY / SALLINO estimator!
+        x : str or ndarray
+            Sample of observations, or path to numpy file with observations, as saved by the
+            `madminer.sampling.SampleAugmenter` functions. Note that this sample has to be sampled from the reference
+            parameter where the score is estimated with the SALLY / SALLINO estimator!
+
+        weights : None or ndarray, optional
+            Weights for the observations. If None, all events are taken to have equal weight. Default value: None.
             
-        n_events : int, optional
-            Number of events for which the kinematic Fisher information should be calculated. Default value: 1.
+        n_events : float, optional
+            Expected number of events for which the kinematic Fisher information should be calculated. Default value: 1.
 
         Returns
         -------
@@ -761,36 +764,38 @@ class MLForge:
 
         # Load training data
         logging.debug("Loading evaluation data")
-        xs = load_and_check(x_filename)
-        n_samples = xs.shape[0]
+        if isinstance(x, str):
+            x = load_and_check(x)
+        n_samples = x.shape[0]
 
         # Scale observables
         if self.x_scaling_means is not None and self.x_scaling_stds is not None:
-            xs[:] -= self.x_scaling_means
-            xs[:] /= self.x_scaling_stds
+            x[:] -= self.x_scaling_means
+            x[:] /= self.x_scaling_stds
 
         # Restrict featuers
         if self.features is not None:
-            xs = xs[:, self.features]
+            x = x[:, self.features]
 
         # Estimate scores
         if self.method in ["sally", "sallino"]:
             logging.debug("Starting score evaluation")
 
-            t_hats = evaluate_local_score_model(model=self.model, xs=xs)
+            t_hats = evaluate_local_score_model(model=self.model, xs=x)
         else:
             raise NotImplementedError("Fisher information calculation only implemented for SALLY estimators")
 
+        # Weights
+        if weights is None:
+            weights = np.ones(n_samples)
+        weights /= np.sum(weights)
+
         # Calculate Fisher information
-        n_parameters = t_hats.shape[1]
-        fisher_information = np.zeros((n_parameters, n_parameters))
-        for t_hat in t_hats:
-            fisher_information += np.outer(t_hat, t_hat)
-        fisher_information = float(n_events) / float(n_samples) * fisher_information
+        fisher_information = float(n_events) * np.einsum("n,ni,nj->ij", weights, t_hats, t_hats)
 
         # Calculate expected score
         expected_score = np.mean(t_hats, axis=0)
-        logging.info("Expected score (should be close to zero): %s", expected_score)
+        logging.debug("Expected per-event score (should be close to zero): %s", expected_score)
 
         return fisher_information
 
@@ -1199,8 +1204,8 @@ class EnsembleForge:
             is given, this is a list with results for all entries in vote_expectation_weight.
 
         covariance : ndarray or list of ndarray
-            The covariance matrix of the (flattened) predictions, defined as the ensemble covariance divided by the
-            number of estimators. If more then one value vote_expectation_weight is given, this is a list with results
+            The covariance matrix of the (flattened) predictions, defined as the ensemble covariance. If more then one
+            value vote_expectation_weight is given, this is a list with results
             for all entries in vote_expectation_weight.
 
         weights : ndarray or list of ndarray
@@ -1260,7 +1265,6 @@ class EnsembleForge:
 
             predictions_flat = predictions.reshape((predictions.shape[0], -1))
             covariance = np.cov(predictions_flat.T, aweights=these_weights)
-            covariance /= self.n_estimators
 
             covariances.append(covariance)
 
@@ -1275,7 +1279,7 @@ class EnsembleForge:
         return means, covariances
 
     def calculate_fisher_information(
-        self, x_filename, n_events=1, vote_expectation_weight=None, return_individual_predictions=False
+        self, x, obs_weights=None, n_events=1, vote_expectation_weight=None, return_individual_predictions=False
     ):
         """
         Calculates the expected Fisher information matrices for each estimator, and then returns the ensemble mean and
@@ -1289,13 +1293,16 @@ class EnsembleForge:
 
         Parameters
         ----------
-        x_filename : str
-            Path to an unweighted sample of observations, as saved by the `madminer.sampling.SampleAugmenter` functions.
-            Note that this sample has to be sample from the reference parameter where the score is estimated with the
-            SALLY / SALLINO estimator!
+        x : str
+            Sample of observations, or path to numpy file with observations, as saved by the
+            `madminer.sampling.SampleAugmenter` functions. Note that this sample has to be sampled from the reference
+            parameter where the score is estimated with the SALLY / SALLINO estimator!
 
-        n_events : int, optional
-            Number of events for which the kinematic Fisher information should be calculated. Default value: 1.
+        obs_weights : None or ndarray, optional
+            Weights for the observations. If None, all events are taken to have equal weight. Default value: None.
+
+        n_events : float, optional
+            Expected number of events for which the kinematic Fisher information should be calculated. Default value: 1.
 
         vote_expectation_weight : float or list of float or None, optional
             Factor that determines how much more weight is given to those estimators with small expectation value (as
@@ -1316,8 +1323,8 @@ class EnsembleForge:
             is given, this is a list with results for all entries in vote_expectation_weight.
 
         covariance : ndarray or list of ndarray
-            The covariance matrix of the Fisher information estimate, defined as the ensemble covariance divided by the
-            number of estimators. This object has four indices, `cov_(ij)(i'j')`, ordered as i j i' j'. It has shape
+            The covariance matrix of the Fisher information estimate, defined as the ensemble covariance. This object
+            has four indices, `cov_(ij)(i'j')`, ordered as i j i' j'. It has shape
             `(n_parameters, n_parameters, n_parameters, n_parameters)`. If more then one value vote_expectation_weight
             is given, this is a list with results for all entries in vote_expectation_weight.
 
@@ -1329,11 +1336,11 @@ class EnsembleForge:
             Only returned if return_individual_predictions is True. The individual estimator predictions.
 
         """
-        logging.info("Evaluating Fisher information for %s estimators in ensemble", self.n_estimators)
+        logging.debug("Evaluating Fisher information for %s estimators in ensemble", self.n_estimators)
 
-        # Calculate weights of each estimator in vote
+        # Calculate estimator_weights of each estimator in vote
         if self.expectations is None or vote_expectation_weight is None:
-            weights = [np.ones(self.n_estimators)]
+            estimator_weights = [np.ones(self.n_estimators)]
         else:
             if len(self.expectations.shape) == 1:
                 expectations_norm = self.expectations
@@ -1345,30 +1352,30 @@ class EnsembleForge:
             if not isinstance(vote_expectation_weight, list):
                 vote_expectation_weight = [vote_expectation_weight]
 
-            weights = []
+            estimator_weights = []
             for vote_weight in vote_expectation_weight:
                 if vote_weight is None:
                     these_weights = np.ones(self.n_estimators)
                 else:
                     these_weights = np.exp(-vote_weight * expectations_norm)
                 these_weights /= np.sum(these_weights)
-                weights.append(these_weights)
+                estimator_weights.append(these_weights)
 
-        logging.debug("  Estimator weights: %s", weights)
+        logging.debug("  Estimator estimator_weights: %s", estimator_weights)
 
         # Calculate estimator predictions
         predictions = []
         for i, estimator in enumerate(self.estimators):
-            logging.info("Starting evaluation for estimator %s / %s in ensemble", i + 1, self.n_estimators)
+            logging.debug("Starting evaluation for estimator %s / %s in ensemble", i + 1, self.n_estimators)
 
-            predictions.append(estimator.calculate_fisher_information(x_filename=x_filename, n_events=n_events))
+            predictions.append(estimator.calculate_fisher_information(x=x, weights=obs_weights, n_events=n_events))
         predictions = np.array(predictions)
 
         # Calculate weighted means and covariance matrices
         means = []
         covariances = []
 
-        for these_weights in weights:
+        for these_weights in estimator_weights:
             mean = np.average(predictions, axis=0, weights=these_weights)
             means.append(mean)
 
@@ -1377,18 +1384,16 @@ class EnsembleForge:
             covariance_shape = (predictions.shape[1], predictions.shape[2], predictions.shape[1], predictions.shape[2])
             covariance = covariance.reshape(covariance_shape)
 
-            covariance /= self.n_estimators
-
             covariances.append(covariance)
 
         # Returns
-        if len(weights) == 1:
+        if len(estimator_weights) == 1:
             if return_individual_predictions:
-                return means[0], covariances[0], weights[0], predictions
+                return means[0], covariances[0], estimator_weights[0], predictions
             return means[0], covariances[0]
 
         if return_individual_predictions:
-            return means, covariances, weights, predictions
+            return means, covariances, estimator_weights, predictions
         return means, covariances
 
     def save(self, folder):
