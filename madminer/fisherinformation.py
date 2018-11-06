@@ -250,6 +250,7 @@ class FisherInformation:
         return_error=None,
         ensemble_vote_expectation_weight=None,
         batch_size=100000,
+        test_split=None,
     ):
         """
         Calculates the full Fisher information in realistic detector-level observations, estimated with neural networks.
@@ -301,6 +302,9 @@ class FisherInformation:
 
         """
 
+        # Total xsec
+        total_xsec = self._calculate_xsec(theta=theta)
+
         # Rate part of Fisher information
         logging.info("Evaluating rate Fisher information")
         fisher_info_rate, rate_covariance = self.calculate_fisher_information_rate(theta=theta, luminosity=luminosity)
@@ -323,17 +327,31 @@ class FisherInformation:
 
         # Evaluation from weighted events
         if unweighted_x_sample_file is None:
+
+            # Which events to sum over
+            if test_split is None or test_split <= 0.0 or test_split >= 1.0:
+                start_event = 0
+            else:
+                start_event = int(round((1.0 - test_split) * self.n_samples, 0)) + 1
+
+            if start_event > 0:
+                total_sum_weights_theta = self._calculate_xsec(theta=theta, start_event=start_event)
+            else:
+                total_sum_weights_theta = total_xsec
+
+            # Theta morphing matrix
+            theta_matrix = get_theta_benchmark_matrix("morphing", theta, self.benchmarks, self.morpher)
+
+            # Prepare output
             fisher_info_kin = None
             covariance = None
 
-            theta_matrix = get_theta_benchmark_matrix("morphing", theta, self.benchmarks, self.morpher)
-
-            n_batches = np.ceil(self.n_samples / 100000)
+            n_batches = np.ceil(self.n_samples / batch_size)
 
             for i_batch, (observations, weights_benchmarks) in enumerate(
-                madminer_event_loader(self.madminer_filename, batch_size=batch_size)
+                madminer_event_loader(self.madminer_filename, batch_size=batch_size, start=start_event)
             ):
-                logging.info("Evaluating kinematic Fisher information on batch %s", i_batch + 1)
+                logging.info("Evaluating kinematic Fisher information on batch %s / %s", i_batch + 1, n_batches)
 
                 weights_theta = theta_matrix.dot(weights_benchmarks.T)
 
@@ -342,7 +360,7 @@ class FisherInformation:
                     this_fisher_info, this_covariance = model.calculate_fisher_information(
                         x=observations,
                         obs_weights=weights_theta,
-                        n_events=luminosity * np.sum(weights_theta),
+                        n_events=luminosity * total_xsec * np.sum(weights_theta) / total_sum_weights_theta,
                         vote_expectation_weight=ensemble_vote_expectation_weight,
                     )
                 else:
@@ -371,8 +389,6 @@ class FisherInformation:
 
         # Evaluation from unweighted event sample
         else:
-            total_xsec = self._calculate_xsec(theta=theta)
-
             if model_is_ensemble:
                 fisher_info_kin, covariance = model.calculate_fisher_information(
                     unweighted_x_sample_file,
@@ -1115,17 +1131,17 @@ class FisherInformation:
         return float(eval(observable_definition, variables))
 
     def _calculate_xsec(
-        self, theta=None, cuts=None, efficiency_functions=None, return_benchmark_xsecs=False, return_error=False
+        self, theta=None, cuts=None, efficiency_functions=None, return_benchmark_xsecs=False, return_error=False, start_event=0
     ):
         """
         Calculates the total cross section for a parameter point.
 
         Parameters
         ----------
-        theta : ndarray or None
+        theta : ndarray or None, optional
             The parameter point. If None, return_benchmark_xsecs should be True. Default value: None.
 
-        cuts : list of str or None
+        cuts : list of str or None, optional
             Cuts. Each entry is a parseable Python expression that returns a bool (True if the event should pass a cut,
             False otherwise). Default value: None.
 
@@ -1133,12 +1149,15 @@ class FisherInformation:
             Efficiencies. Each entry is a parseable Python expression that returns a float for the efficiency of one
             component. Default value: None.
 
-        return_benchmark_xsecs : bool
+        return_benchmark_xsecs : bool, optional
             If True, this function returns the benchmark xsecs. Otherwise, it returns the xsec at theta. Default value:
             False.
 
-        return_error : bool
+        return_error : bool, optional
             If True, this function also returns the square root of the summed squared weights.
+
+        start_event : int, optional
+            Index of first event in MadMiner file to consider. Default value: 0.
 
         Returns
         -------
@@ -1163,7 +1182,7 @@ class FisherInformation:
         xsecs_benchmarks = None
         xsecs_uncertainty_benchmarks = None
 
-        for observations, weights in madminer_event_loader(self.madminer_filename):
+        for observations, weights in madminer_event_loader(self.madminer_filename, start=start_event):
             # Cuts
             cut_filter = [self._pass_cuts(obs_event, cuts) for obs_event in observations]
             observations = observations[cut_filter]
