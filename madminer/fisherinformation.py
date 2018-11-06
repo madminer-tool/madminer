@@ -245,7 +245,7 @@ class FisherInformation:
         self,
         theta,
         model_file,
-        unweighted_x_sample_file,
+        unweighted_x_sample_file=None,
         luminosity=300000.0,
         cuts=None,
         return_error=None,
@@ -253,8 +253,7 @@ class FisherInformation:
     ):
         """
         Calculates the full Fisher information in realistic detector-level observations, estimated with neural networks.
-        In addition to the MadMiner file, this requires a trained SALLY or SALLINO estimator as well as an unweighted
-        evaluation sample.
+        In addition to the MadMiner file, this requires a trained SALLY or SALLINO estimator.
 
         Parameters
         ----------
@@ -265,9 +264,10 @@ class FisherInformation:
             Filename of a trained local score regression model that was trained on samples from `theta` (see
             `madminer.ml.MLForge`).
 
-        unweighted_x_sample_file : str
+        unweighted_x_sample_file : str or None
             Filename of an unweighted x sample that is sampled according to theta and obeys the cuts
-            (see `madminer.sampling.SampleAugmenter.extract_samples_train_local()`).
+            (see `madminer.sampling.SampleAugmenter.extract_samples_train_local()`). If None, the Fisher information
+            is instead calculated on the full, weighted samples (the data in the MadMiner file).
 
         luminosity : float
             Luminosity in pb^-1.

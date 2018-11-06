@@ -733,7 +733,7 @@ class MLForge:
             return all_log_r_hat, all_t_hat0, all_t_hat1, all_x_gradients
         return all_log_r_hat, all_t_hat0, all_t_hat1
 
-    def calculate_fisher_information(self, x_filename, n_events=1):
+    def calculate_fisher_information(self, x, weights=None, n_events=1):
 
         """
         Calculates the expected Fisher information matrix based on the kinematic information in a given number of
@@ -741,10 +741,13 @@ class MLForge:
 
         Parameters
         ----------
-        x_filename : str
-            Path to an unweighted sample of observations, as saved by the `madminer.sampling.SampleAugmenter` functions.
-            Note that this sample has to be sample from the reference parameter where the score is estimated with the
-            SALLY / SALLINO estimator!
+        x : str or ndarray
+            Sample of observations, or path to numpy file with observations, as saved by the
+            `madminer.sampling.SampleAugmenter` functions. Note that this sample has to be sampled from the reference
+            parameter where the score is estimated with the SALLY / SALLINO estimator!
+
+        weights : None or ndarray, optional
+            Weights for the observations. If None, all events are taken to have equal weight. Default value: None.
             
         n_events : int, optional
             Number of events for which the kinematic Fisher information should be calculated. Default value: 1.
@@ -761,36 +764,38 @@ class MLForge:
 
         # Load training data
         logging.debug("Loading evaluation data")
-        xs = load_and_check(x_filename)
-        n_samples = xs.shape[0]
+        if isinstance(x, str):
+            x = load_and_check(x)
+        n_samples = x.shape[0]
 
         # Scale observables
         if self.x_scaling_means is not None and self.x_scaling_stds is not None:
-            xs[:] -= self.x_scaling_means
-            xs[:] /= self.x_scaling_stds
+            x[:] -= self.x_scaling_means
+            x[:] /= self.x_scaling_stds
 
         # Restrict featuers
         if self.features is not None:
-            xs = xs[:, self.features]
+            x = x[:, self.features]
 
         # Estimate scores
         if self.method in ["sally", "sallino"]:
             logging.debug("Starting score evaluation")
 
-            t_hats = evaluate_local_score_model(model=self.model, xs=xs)
+            t_hats = evaluate_local_score_model(model=self.model, xs=x)
         else:
             raise NotImplementedError("Fisher information calculation only implemented for SALLY estimators")
 
+        # Weights
+        if weights is None:
+            weights = np.ones(n_samples)
+        weights /= np.sum(weights)
+
         # Calculate Fisher information
-        n_parameters = t_hats.shape[1]
-        fisher_information = np.zeros((n_parameters, n_parameters))
-        for t_hat in t_hats:
-            fisher_information += np.outer(t_hat, t_hat)
-        fisher_information = float(n_events) / float(n_samples) * fisher_information
+        fisher_information = float(n_events) * np.einsum("n,ni,nj->ij", weights, t_hats, t_hats)
 
         # Calculate expected score
         expected_score = np.mean(t_hats, axis=0)
-        logging.info("Expected score (should be close to zero): %s", expected_score)
+        logging.info("Expected per-event score (should be close to zero): %s", expected_score)
 
         return fisher_information
 
@@ -1360,7 +1365,7 @@ class EnsembleForge:
         for i, estimator in enumerate(self.estimators):
             logging.info("Starting evaluation for estimator %s / %s in ensemble", i + 1, self.n_estimators)
 
-            predictions.append(estimator.calculate_fisher_information(x_filename=x_filename, n_events=n_events))
+            predictions.append(estimator.calculate_fisher_information(x=x_filename, n_events=n_events))
         predictions = np.array(predictions)
 
         # Calculate weighted means and covariance matrices
