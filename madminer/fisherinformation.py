@@ -298,9 +298,7 @@ class FisherInformation:
         """
 
         # Rate part of Fisher information
-        fisher_info_rate, rate_covariance = self.calculate_fisher_information_rate(
-            theta=theta, luminosity=luminosity, cuts=cuts
-        )
+        fisher_info_rate, rate_covariance = self.calculate_fisher_information_rate(theta=theta, luminosity=luminosity)
 
         # Load SALLY model
         if os.path.isdir(model_file):
@@ -325,7 +323,9 @@ class FisherInformation:
 
             theta_matrix = get_theta_benchmark_matrix("morphing", theta, self.benchmarks, self.morpher)
 
-            for observations, weights_benchmarks in madminer_event_loader(self.madminer_filename):
+            for i_batch, (observations, weights_benchmarks) in enumerate(madminer_event_loader(self.madminer_filename)):
+                logging.info('Evaluating Fisher information on batch %s', i_batch + 1)
+
                 weights_theta = theta_matrix.dot(weights_benchmarks.T)
 
                 # Calculate Fisher info on this batch
