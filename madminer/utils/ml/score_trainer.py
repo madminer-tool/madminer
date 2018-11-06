@@ -47,7 +47,7 @@ def train_local_score_model(
     double_precision=False,
     validation_split=0.2,
     early_stopping=True,
-    early_stopping_patience=20,
+    early_stopping_patience=None,
     grad_x_regularization=None,
     learning_curve_folder=None,
     learning_curve_filename=None,
