@@ -250,7 +250,7 @@ class FisherInformation:
         return_error=None,
         ensemble_vote_expectation_weight=None,
         batch_size=100000,
-        test_split=None,
+        test_split=0.5,
     ):
         """
         Calculates the full Fisher information in realistic detector-level observations, estimated with neural networks.
@@ -285,6 +285,10 @@ class FisherInformation:
 
         batch_size : int, optional
             Batch size. Default value: 100000.
+
+        test_split : float or None, optional
+            If unweighted_x_sample_file is None, this determines the fraction of weighted events used for evaluation.
+            If None, all events are used (this will probably include events used during training!). Default value: 0.5.
 
         Returns
         -------
@@ -346,7 +350,7 @@ class FisherInformation:
             fisher_info_kin = None
             covariance = None
 
-            n_batches = np.ceil(self.n_samples / batch_size)
+            n_batches = int(np.ceil(self.n_samples / batch_size))
 
             for i_batch, (observations, weights_benchmarks) in enumerate(
                 madminer_event_loader(self.madminer_filename, batch_size=batch_size, start=start_event)
