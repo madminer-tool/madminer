@@ -48,19 +48,6 @@ class MaskedAutoregressiveFlow(BaseFlow):
                 self.bns.append(bn)
 
     def forward(self, x, fix_batch_norm=False):
-        """
-
-        Parameters
-        ----------
-        x :
-            
-        fix_batch_norm :
-             (Default value = False)
-
-        Returns
-        -------
-
-        """
         # Change batch norm means only while training
         if not self.training:
             fix_batch_norm = True
@@ -83,21 +70,6 @@ class MaskedAutoregressiveFlow(BaseFlow):
         return u, logdet_dudx
 
     def generate_samples(self, n_samples=1, u=None, **kwargs):
-        """
-
-        Parameters
-        ----------
-        n_samples :
-             (Default value = 1)
-        u :
-             (Default value = None)
-        **kwargs :
-            
-
-        Returns
-        -------
-
-        """
         x = tensor(rng.randn(n_samples, self.n_inputs)) if u is None else u
 
         if self.to_args is not None or self.to_kwargs is not None:
@@ -118,19 +90,6 @@ class MaskedAutoregressiveFlow(BaseFlow):
         return x
 
     def to(self, *args, **kwargs):
-        """
-
-        Parameters
-        ----------
-        *args :
-            
-        **kwargs :
-            
-
-        Returns
-        -------
-
-        """
         self.to_args = args
         self.to_kwargs = kwargs
 

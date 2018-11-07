@@ -153,7 +153,7 @@ class DelphesProcessor:
         self,
         pt_min_e=10.0,
         pt_min_mu=10.0,
-        pt_min_a=0.0,
+        pt_min_a=10.0,
         pt_min_j=20.0,
         eta_max_e=2.5,
         eta_max_mu=2.5,
@@ -346,8 +346,8 @@ class DelphesProcessor:
             self.add_observable("eta_visible", "visible.eta", required=True)
 
         # Individual observed particles
-        for n, symbol, include_charge in zip(
-            [n_leptons_max, n_photons_max, n_jets_max], ["l", "a", "j"], [False, False, True]
+        for n, symbol, include_this_charge in zip(
+            [n_leptons_max, n_photons_max, n_jets_max], ["l", "a", "j"], [False, False, include_charge]
         ):
             if include_numbers:
                 self.add_observable("n_{}s".format(symbol), "len({})".format(symbol), required=True)
@@ -365,7 +365,7 @@ class DelphesProcessor:
                 self.add_observable(
                     "phi_{}{}".format(symbol, i + 1), "{}[{}].phi()".format(symbol, i), required=False, default=0.0
                 )
-                if include_charge and symbol == "l":
+                if include_this_charge and symbol == "l":
                     self.add_observable(
                         "charge_{}{}".format(symbol, i + 1),
                         "{}[{}].charge".format(symbol, i),

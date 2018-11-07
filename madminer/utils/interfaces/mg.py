@@ -10,27 +10,6 @@ from madminer.utils.various import call_command, make_file_executable
 def generate_mg_process(
     mg_directory, temp_directory, proc_card_file, mg_process_directory, initial_command=None, log_file=None
 ):
-    """
-
-    Parameters
-    ----------
-    mg_directory :
-        
-    temp_directory :
-        
-    proc_card_file :
-        
-    mg_process_directory :
-        
-    initial_command :
-         (Default value = None)
-    log_file :
-         (Default value = None)
-
-    Returns
-    -------
-
-    """
     # MG commands
     temp_proc_card_file = temp_directory + "/generate.mg5"
     shutil.copyfile(proc_card_file, temp_proc_card_file)
@@ -60,37 +39,6 @@ def prepare_run_mg_pythia(
     initial_command=None,
     log_file=None,
 ):
-    """
-
-    Parameters
-    ----------
-    mg_directory :
-        
-    mg_process_directory :
-        
-    proc_card_filename :
-         (Default value = None)
-    run_card_file :
-         (Default value = None)
-    param_card_file :
-         (Default value = None)
-    reweight_card_file :
-         (Default value = None)
-    pythia8_card_file :
-         (Default value = None)
-    is_background :
-         (Default value = False)
-    script_file :
-         (Default value = None)
-    initial_command :
-         (Default value = None)
-    log_file :
-         (Default value = None)
-
-    Returns
-    -------
-
-    """
     # Find filenames for process card and script
     if proc_card_filename is None:
         for i in range(1000):
@@ -164,66 +112,6 @@ def run_mg_pythia(
     initial_command=None,
     log_file=None,
 ):
-    """
-
-    Parameters
-    ----------
-    mg_directory :
-        
-    mg_process_directory :
-        
-    proc_card_filename :
-         (Default value = None)
-    run_card_file :
-         (Default value = None)
-    param_card_file :
-         (Default value = None)
-    reweight_card_file :
-         (Default value = None)
-    pythia8_card_file :
-         (Default value = None)
-    is_background :
-         (Default value = False)
-    initial_command :
-         (Default value = None)
-    log_file :
-         (Default value = None)
-
-    Returns
-    -------
-
-    """
-    # # Remove unneeded cards
-    # if os.path.isfile(mg_process_directory + '/Cards/delphes_card.dat'):
-    #     os.remove(mg_process_directory + '/Cards/delphes_card.dat')
-    # if os.path.isfile(mg_process_directory + '/Cards/pythia_card.dat'):
-    #     os.remove(mg_process_directory + '/Cards/pythia_card.dat')
-    # if os.path.isfile(mg_process_directory + '/Cards/pythia_card.dat'):
-    #     os.remove(mg_process_directory + '/Cards/pythia8_card.dat')
-    # if os.path.isfile(mg_process_directory + '/Cards/madanalysis5_hadron_card.dat'):
-    #     os.remove(mg_process_directory + '/Cards/madanalysis5_hadron_card.dat')
-    # if os.path.isfile(mg_process_directory + '/Cards/madanalysis5_parton_card.dat'):
-    #     os.remove(mg_process_directory + '/Cards/madanalysis5_parton_card.dat')
-    #
-    # if os.path.isfile(mg_process_directory + '/RunWeb'):
-    #     os.remove(mg_process_directory + '/RunWeb')
-    # if os.path.isfile(mg_process_directory + '/index.html'):
-    #     os.remove(mg_process_directory + '/index.html')
-    # if os.path.isfile(mg_process_directory + '/crossx.html'):
-    #     os.remove(mg_process_directory + '/crossx.html')
-    #
-    # if os.path.isdir(mg_process_directory + '/HTML'):
-    #     shutil.rmtree(mg_process_directory + '/HTML')
-    # if os.path.isdir(mg_process_directory + '/Events'):
-    #     shutil.rmtree(mg_process_directory + '/Events')
-    # if os.path.isdir(mg_process_directory + '/rw_me'):
-    #     shutil.rmtree(mg_process_directory + '/rw_me')
-    # if os.path.isdir(mg_process_directory + '/rw_me_second'):
-    #     shutil.rmtree(mg_process_directory + '/rw_me_second')
-    #
-    # os.mkdir(mg_process_directory + '/HTML')
-    # os.mkdir(mg_process_directory + '/Events')
-
     # Copy cards
     if run_card_file is not None:
         shutil.copyfile(run_card_file, mg_process_directory + "/Cards/run_card.dat")
@@ -270,19 +158,6 @@ def run_mg_pythia(
 
 
 def copy_ufo_model(ufo_directory, mg_directory):
-    """
-
-    Parameters
-    ----------
-    ufo_directory :
-        
-    mg_directory :
-        
-
-    Returns
-    -------
-
-    """
     _, model_name = os.path.split(ufo_directory)
     destination = mg_directory + "/models/" + model_name
 

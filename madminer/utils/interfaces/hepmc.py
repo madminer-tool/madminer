@@ -8,19 +8,6 @@ from madminer.utils.various import call_command
 
 
 def extract_weight_order(filename, default_weight_label=None):
-    """
-
-    Parameters
-    ----------
-    filename :
-        
-    default_weight_label :
-         (Default value = None)
-
-    Returns
-    -------
-
-    """
     # Untar event file
     new_filename, extension = os.path.splitext(filename)
     if extension == ".gz":

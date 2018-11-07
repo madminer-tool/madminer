@@ -280,16 +280,15 @@
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">theta</span><span class="p">,</span>
         <span class="n">model_file</span><span class="p">,</span>
-        <span class="n">unweighted_x_sample_file</span><span class="p">,</span>
+        <span class="n">unweighted_x_sample_file</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">luminosity</span><span class="o">=</span><span class="mf">300000.0</span><span class="p">,</span>
-        <span class="n">cuts</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">return_error</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">ensemble_vote_expectation_weight</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">batch_size</span><span class="o">=</span><span class="mi">100000</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Calculates the full Fisher information in realistic detector-level observations, estimated with neural networks.</span>
-<span class="sd">        In addition to the MadMiner file, this requires a trained SALLY or SALLINO estimator as well as an unweighted</span>
-<span class="sd">        evaluation sample.</span>
+<span class="sd">        In addition to the MadMiner file, this requires a trained SALLY or SALLINO estimator.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
@@ -300,16 +299,13 @@
 <span class="sd">            Filename of a trained local score regression model that was trained on samples from `theta` (see</span>
 <span class="sd">            `madminer.ml.MLForge`).</span>
 
-<span class="sd">        unweighted_x_sample_file : str</span>
+<span class="sd">        unweighted_x_sample_file : str or None</span>
 <span class="sd">            Filename of an unweighted x sample that is sampled according to theta and obeys the cuts</span>
-<span class="sd">            (see `madminer.sampling.SampleAugmenter.extract_samples_train_local()`).</span>
+<span class="sd">            (see `madminer.sampling.SampleAugmenter.extract_samples_train_local()`). If None, the Fisher information</span>
+<span class="sd">            is instead calculated on the full, weighted samples (the data in the MadMiner file).</span>
 
 <span class="sd">        luminosity : float</span>
 <span class="sd">            Luminosity in pb^-1.</span>
-
-<span class="sd">        cuts : None or list of str, optional</span>
-<span class="sd">            Cuts. Each entry is a parseable Python expression that returns a bool (True if the event should pass a cut,</span>
-<span class="sd">            False otherwise). Default value: None.</span>
 
 <span class="sd">        return_error : None or bool, optional</span>
 <span class="sd">            Whether an uncertainty of the Fisher information is returned together with the prediction. If None, it is</span>
@@ -320,6 +316,9 @@
 <span class="sd">            expectation value. If a list is given, results are returned for each element in the list. If None, or if</span>
 <span class="sd">            `EnsembleForge.calculate_expectation()` has not been called, all estimators are treated equal. Default</span>
 <span class="sd">            value: None.</span>
+
+<span class="sd">        batch_size : int, optional</span>
+<span class="sd">            Batch size. Default value: 100000.</span>
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
@@ -337,47 +336,96 @@
 
 <span class="sd">        &quot;&quot;&quot;</span>
 
-        <span class="c1"># Input</span>
-        <span class="k">if</span> <span class="n">cuts</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">cuts</span> <span class="o">=</span> <span class="p">[]</span>
-
         <span class="c1"># Rate part of Fisher information</span>
-        <span class="n">fisher_info_rate</span><span class="p">,</span> <span class="n">rate_covariance</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">calculate_fisher_information_rate</span><span class="p">(</span>
-            <span class="n">theta</span><span class="o">=</span><span class="n">theta</span><span class="p">,</span> <span class="n">luminosity</span><span class="o">=</span><span class="n">luminosity</span><span class="p">,</span> <span class="n">cuts</span><span class="o">=</span><span class="n">cuts</span>
-        <span class="p">)</span>
-        <span class="n">total_xsec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calculate_xsec</span><span class="p">(</span><span class="n">theta</span><span class="o">=</span><span class="n">theta</span><span class="p">,</span> <span class="n">cuts</span><span class="o">=</span><span class="n">cuts</span><span class="p">)</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Evaluating rate Fisher information&quot;</span><span class="p">)</span>
+        <span class="n">fisher_info_rate</span><span class="p">,</span> <span class="n">rate_covariance</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">calculate_fisher_information_rate</span><span class="p">(</span><span class="n">theta</span><span class="o">=</span><span class="n">theta</span><span class="p">,</span> <span class="n">luminosity</span><span class="o">=</span><span class="n">luminosity</span><span class="p">)</span>
 
-        <span class="c1"># Kinematic part of Fisher information: either with MLForge or with EnsembleForge</span>
+        <span class="c1"># Load SALLY model</span>
         <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">model_file</span><span class="p">):</span>
-            <span class="c1"># Ensemble method</span>
-            <span class="n">model</span> <span class="o">=</span> <span class="n">EnsembleForge</span><span class="p">(</span><span class="n">debug</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">debug</span><span class="p">)</span>
-            <span class="n">model</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">model_file</span><span class="p">)</span>
-
-            <span class="n">fisher_info_kin</span><span class="p">,</span> <span class="n">covariance</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">calculate_fisher_information</span><span class="p">(</span>
-                <span class="n">unweighted_x_sample_file</span><span class="p">,</span>
-                <span class="n">n_events</span><span class="o">=</span><span class="n">luminosity</span> <span class="o">*</span> <span class="n">total_xsec</span><span class="p">,</span>
-                <span class="n">vote_expectation_weight</span><span class="o">=</span><span class="n">ensemble_vote_expectation_weight</span><span class="p">,</span>
-            <span class="p">)</span>
-
+            <span class="n">model_is_ensemble</span> <span class="o">=</span> <span class="kc">True</span>
             <span class="k">if</span> <span class="n">return_error</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="n">return_error</span> <span class="o">=</span> <span class="kc">True</span>
 
-        <span class="k">else</span><span class="p">:</span>
-            <span class="c1"># One ML instance</span>
-            <span class="n">model</span> <span class="o">=</span> <span class="n">MLForge</span><span class="p">(</span><span class="n">debug</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">debug</span><span class="p">)</span>
+            <span class="n">model</span> <span class="o">=</span> <span class="n">EnsembleForge</span><span class="p">(</span><span class="n">debug</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">debug</span><span class="p">)</span>
             <span class="n">model</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">model_file</span><span class="p">)</span>
-
-            <span class="n">fisher_info_kin</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">calculate_fisher_information</span><span class="p">(</span>
-                <span class="n">unweighted_x_sample_file</span><span class="p">,</span> <span class="n">n_events</span><span class="o">=</span><span class="n">luminosity</span> <span class="o">*</span> <span class="n">total_xsec</span>
-            <span class="p">)</span>
-
-            <span class="n">covariance</span> <span class="o">=</span> <span class="kc">None</span>
-
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">model_is_ensemble</span> <span class="o">=</span> <span class="kc">False</span>
             <span class="k">if</span> <span class="n">return_error</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="n">return_error</span> <span class="o">=</span> <span class="kc">False</span>
 
+            <span class="n">model</span> <span class="o">=</span> <span class="n">MLForge</span><span class="p">(</span><span class="n">debug</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">debug</span><span class="p">)</span>
+            <span class="n">model</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">model_file</span><span class="p">)</span>
+
+        <span class="c1"># Evaluation from weighted events</span>
+        <span class="k">if</span> <span class="n">unweighted_x_sample_file</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">fisher_info_kin</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="n">covariance</span> <span class="o">=</span> <span class="kc">None</span>
+
+            <span class="n">theta_matrix</span> <span class="o">=</span> <span class="n">get_theta_benchmark_matrix</span><span class="p">(</span><span class="s2">&quot;morphing&quot;</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">benchmarks</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">morpher</span><span class="p">)</span>
+
+            <span class="n">n_batches</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_samples</span> <span class="o">/</span> <span class="mi">100000</span><span class="p">)</span>
+
+            <span class="k">for</span> <span class="n">i_batch</span><span class="p">,</span> <span class="p">(</span><span class="n">observations</span><span class="p">,</span> <span class="n">weights_benchmarks</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span>
+                <span class="n">madminer_event_loader</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">madminer_filename</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">)</span>
+            <span class="p">):</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Evaluating kinematic Fisher information on batch </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">i_batch</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+
+                <span class="n">weights_theta</span> <span class="o">=</span> <span class="n">theta_matrix</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">weights_benchmarks</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+
+                <span class="c1"># Calculate Fisher info on this batch</span>
+                <span class="k">if</span> <span class="n">model_is_ensemble</span><span class="p">:</span>
+                    <span class="n">this_fisher_info</span><span class="p">,</span> <span class="n">this_covariance</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">calculate_fisher_information</span><span class="p">(</span>
+                        <span class="n">x</span><span class="o">=</span><span class="n">observations</span><span class="p">,</span>
+                        <span class="n">obs_weights</span><span class="o">=</span><span class="n">weights_theta</span><span class="p">,</span>
+                        <span class="n">n_events</span><span class="o">=</span><span class="n">luminosity</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">weights_theta</span><span class="p">),</span>
+                        <span class="n">vote_expectation_weight</span><span class="o">=</span><span class="n">ensemble_vote_expectation_weight</span><span class="p">,</span>
+                    <span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">this_fisher_info</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">calculate_fisher_information</span><span class="p">(</span>
+                        <span class="n">x</span><span class="o">=</span><span class="n">observations</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="n">weights_theta</span><span class="p">,</span> <span class="n">n_events</span><span class="o">=</span><span class="n">luminosity</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">weights_theta</span><span class="p">)</span>
+                    <span class="p">)</span>
+                    <span class="n">this_covariance</span> <span class="o">=</span> <span class="kc">None</span>
+
+                <span class="c1"># Sum up results</span>
+                <span class="k">if</span> <span class="n">fisher_info_kin</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">fisher_info_kin</span> <span class="o">=</span> <span class="n">this_fisher_info</span>
+                <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">fisher_info_kin</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+                    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">fisher_info_kin</span><span class="p">)):</span>
+                        <span class="n">fisher_info_kin</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="n">this_fisher_info</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">fisher_info_kin</span> <span class="o">+=</span> <span class="n">this_fisher_info</span>
+
+                <span class="k">if</span> <span class="n">this_covariance</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">covariance</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                        <span class="n">covariance</span> <span class="o">=</span> <span class="n">this_covariance</span>
+                    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">covariance</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+                        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">covariance</span><span class="p">)):</span>
+                            <span class="n">covariance</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="n">this_covariance</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">covariance</span> <span class="o">+=</span> <span class="n">this_covariance</span>
+
+        <span class="c1"># Evaluation from unweighted event sample</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">total_xsec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calculate_xsec</span><span class="p">(</span><span class="n">theta</span><span class="o">=</span><span class="n">theta</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">model_is_ensemble</span><span class="p">:</span>
+                <span class="n">fisher_info_kin</span><span class="p">,</span> <span class="n">covariance</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">calculate_fisher_information</span><span class="p">(</span>
+                    <span class="n">unweighted_x_sample_file</span><span class="p">,</span>
+                    <span class="n">n_events</span><span class="o">=</span><span class="n">luminosity</span> <span class="o">*</span> <span class="n">total_xsec</span><span class="p">,</span>
+                    <span class="n">vote_expectation_weight</span><span class="o">=</span><span class="n">ensemble_vote_expectation_weight</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">fisher_info_kin</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">calculate_fisher_information</span><span class="p">(</span>
+                    <span class="n">unweighted_x_sample_file</span><span class="p">,</span> <span class="n">n_events</span><span class="o">=</span><span class="n">luminosity</span> <span class="o">*</span> <span class="n">total_xsec</span>
+                <span class="p">)</span>
+                <span class="n">covariance</span> <span class="o">=</span> <span class="kc">None</span>
+
         <span class="c1"># Returns</span>
-        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ensemble_vote_expectation_weight</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">ensemble_vote_expectation_weight</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="n">model_is_ensemble</span>
+            <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ensemble_vote_expectation_weight</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span>
+            <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">ensemble_vote_expectation_weight</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span>
+        <span class="p">):</span>
             <span class="n">fisher_info_results</span> <span class="o">=</span> <span class="p">[</span><span class="n">fisher_info_rate</span> <span class="o">+</span> <span class="n">this_fisher_info_kin</span> <span class="k">for</span> <span class="n">this_fisher_info_kin</span> <span class="ow">in</span> <span class="n">fisher_info_kin</span><span class="p">]</span>
             <span class="n">covariance_results</span> <span class="o">=</span> <span class="p">[</span><span class="n">rate_covariance</span> <span class="o">+</span> <span class="n">this_covariance</span> <span class="k">for</span> <span class="n">this_covariance</span> <span class="ow">in</span> <span class="n">covariance</span><span class="p">]</span>
             <span class="k">if</span> <span class="n">return_error</span><span class="p">:</span>
