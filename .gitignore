@@ -168,6 +168,8 @@ examples/diboson_parton/py.py
 examples/diboson_parton/models
 examples/diboson_parton/figures
 
+examples/reproduce_wbf_4l/data
+
 # MG / Pythia / Delphes patch
 patches/
 

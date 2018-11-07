@@ -345,7 +345,7 @@ def plot_fisher_information_contours_2d(
     # Grid
     xi = np.linspace(xrange[0], xrange[1], resolution)
     yi = np.linspace(yrange[0], yrange[1], resolution)
-    xx, yy = np.meshgrid(xi, yi, indexing='xy')
+    xx, yy = np.meshgrid(xi, yi, indexing="xy")
     xx, yy = xx.flatten(), yy.flatten()
     thetas = np.vstack((xx, yy)).T
 
@@ -407,7 +407,7 @@ def plot_fisher_information_contours_2d(
         cs = plt.contour(
             xi,
             yi,
-            fisher_distances_squared[i].T,
+            fisher_distances_squared[i],
             np.array([d2_threshold]),
             colors=colors[i],
             linestyles=linestyles[i],
