@@ -342,26 +342,25 @@ def plot_fisher_information_contours_2d(
     # Grid
     xi = np.linspace(xrange[0], xrange[1], resolution)
     yi = np.linspace(yrange[0], yrange[1], resolution)
-    xx, yy = np.meshgrid(xi, yi)
+    xx, yy = np.meshgrid(xi, yi, indexing='xy')
     xx, yy = xx.flatten(), yy.flatten()
     thetas = np.vstack((xx, yy)).T
 
+    # fisher_distances_squared = np.matmul(
+    #     fisher_information_matrices[:, np.newaxis, :, :],  # (n_matrices, 1, m, n)
+    #     thetas[np.newaxis, :, :, np.newaxis],  # (1, n_grid, n, 1)
+    # )
+    # fisher_distances_squared = np.matmul(
+    #     thetas[np.newaxis, :, np.newaxis, :],  # (1, n_grid, 1, m)
+    #     fisher_distances_squared,  # (n_matrices, n_grid, m, 1)
+    # )
+    # fisher_distances_squared = fisher_distances_squared.reshape((n_matrices, resolution, resolution))
+    #
+    # logging.debug("Fisher distances: \n %s", fisher_distances_squared)
+
     # Calculate Fisher distances
-    fisher_distances_squared = np.matmul(
-        fisher_information_matrices[:, np.newaxis, :, :],  # (n_matrices, 1, m, n)
-        thetas[np.newaxis, :, :, np.newaxis],  # (1, n_grid, n, 1)
-    )
-    fisher_distances_squared = np.matmul(
-        thetas[np.newaxis, :, np.newaxis, :],  # (1, n_grid, 1, m)
-        fisher_distances_squared,  # (n_matrices, n_grid, m, 1)
-    )
-    fisher_distances_squared = fisher_distances_squared.reshape((n_matrices, resolution, resolution))
-
-    logging.debug("Fisher distances: \n %s", fisher_distances_squared)
-
-    fisher_distances_alt = np.einsum("ni,mij,nj->mn", thetas, fisher_information_matrices, thetas)
-    fisher_distances_alt_squared = fisher_distances_alt.reshape((n_matrices, resolution, resolution))
-    logging.debug("Diff: %s", fisher_distances_squared - fisher_distances_alt_squared)
+    fisher_distances = np.einsum("ni,mij,nj->mn", thetas, fisher_information_matrices, thetas)
+    fisher_distances_squared = fisher_distances.reshape((n_matrices, resolution, resolution))
 
     # Calculate uncertainties of Fisher distances
     fisher_distances_squared_uncertainties = []
@@ -373,10 +372,9 @@ def plot_fisher_information_contours_2d(
         var = np.einsum("ni,nj,ijkl,nk,nl->n", thetas, thetas, inf_cov, thetas, thetas)
 
         uncertainties = (var ** 0.5).reshape((resolution, resolution))
+        fisher_distances_squared_uncertainties.append(uncertainties)
 
         logging.debug("Std: %s", uncertainties)
-
-        fisher_distances_squared_uncertainties.append(uncertainties)
 
     # Plot results
     fig = plt.figure(figsize=(5.0, 5.0))
@@ -395,7 +393,7 @@ def plot_fisher_information_contours_2d(
         cs = plt.contour(
             xi,
             yi,
-            fisher_distances_squared[i],
+            fisher_distances_squared[i].T,
             np.array([d2_threshold]),
             colors=colors[i],
             linestyles=linestyles[i],

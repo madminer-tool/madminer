@@ -538,12 +538,11 @@ class FisherInformation:
         if efficiency_functions is None:
             efficiency_functions = []
 
-        # Number of bins
-        n_bins_total = nbins + 2
-
         # Automatic dynamic binning
         dynamic_binning = histrange is None
         if dynamic_binning:
+            n_bins_total = nbins
+
             # Quantile values
             quantile_values = np.linspace(0.0, 1.0, nbins + 1)
 
@@ -570,13 +569,13 @@ class FisherInformation:
 
             # Bin boundaries
             bin_boundaries = weighted_quantile(histo_observables_pilot, quantile_values, weight_theta_pilot)
-            bin_boundaries[0] -= 10.0
-            bin_boundaries[-1] += 10.0
+            bin_boundaries = bin_boundaries[1:-1]
 
             logging.debug("Automatic dynamic binning: bin boundaries %s", bin_boundaries)
 
         # Manual binning
         else:
+            n_bins_total = nbins + 2
             bin_boundaries = np.linspace(histrange[0], histrange[1], num=nbins + 1)
 
         # Loop over batches

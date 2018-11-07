@@ -1151,6 +1151,7 @@ class EnsembleForge:
         theta1_filename=None,
         test_all_combinations=True,
         vote_expectation_weight=None,
+        calculate_covariance=True,
         return_individual_predictions=False,
     ):
 
@@ -1191,6 +1192,9 @@ class EnsembleForge:
             list. If None, or if `calculate_expectation()` has not been called, all estimators are treated equal.
             Default value: None.
 
+        calculate_covariance : bool, optional
+            Whether the covariance matrix is calculated. Default value: True.
+
         return_individual_predictions : bool, optional
             Whether the individual estimator predictions are returned. Default value: False.
 
@@ -1203,10 +1207,10 @@ class EnsembleForge:
             `(n_thetas, n_x)`, otherwise, it has shape `(n_samples,)`). If more then one value vote_expectation_weight
             is given, this is a list with results for all entries in vote_expectation_weight.
 
-        covariance : ndarray or list of ndarray
+        covariance : None or ndarray or list of ndarray
             The covariance matrix of the (flattened) predictions, defined as the ensemble covariance. If more then one
             value vote_expectation_weight is given, this is a list with results
-            for all entries in vote_expectation_weight.
+            for all entries in vote_expectation_weight. If calculate_covariance is False, None is returned.
 
         weights : ndarray or list of ndarray
             Only returned if return_individual_predictions is True. The estimator weights `w_i`. If more then one value
@@ -1263,8 +1267,12 @@ class EnsembleForge:
             mean = np.average(predictions, axis=0, weights=these_weights)
             means.append(mean)
 
-            predictions_flat = predictions.reshape((predictions.shape[0], -1))
-            covariance = np.cov(predictions_flat.T, aweights=these_weights)
+            if calculate_covariance:
+                predictions_flat = predictions.reshape((predictions.shape[0], -1))
+
+                covariance = np.cov(predictions_flat.T, aweights=these_weights)
+            else:
+                covariance = None
 
             covariances.append(covariance)
 
