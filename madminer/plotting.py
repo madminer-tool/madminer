@@ -317,6 +317,9 @@ def plot_fisher_information_contours_2d(
     if fisher_information_covariances is None:
         fisher_information_covariances = [None for _ in range(n_matrices)]
 
+    if reference_thetas is None:
+        reference_thetas = [None for _ in range(n_matrices)]
+
     d2_threshold = contour_distance ** 2.0
 
     # Line formatting
@@ -346,6 +349,17 @@ def plot_fisher_information_contours_2d(
     xx, yy = xx.flatten(), yy.flatten()
     thetas = np.vstack((xx, yy)).T
 
+    # Theta from reference thetas
+    d_thetas = []
+    for reference_theta in reference_thetas:
+        if reference_theta is None:
+            d_thetas.append(thetas)
+        else:
+            d_thetas.append(thetas - reference_theta)
+    d_thetas = np.array(d_thetas)  # Shape (n_matrices, n_thetas, n_parameters)
+
+    # Old code:
+    #
     # fisher_distances_squared = np.matmul(
     #     fisher_information_matrices[:, np.newaxis, :, :],  # (n_matrices, 1, m, n)
     #     thetas[np.newaxis, :, :, np.newaxis],  # (1, n_grid, n, 1)
@@ -359,17 +373,17 @@ def plot_fisher_information_contours_2d(
     # logging.debug("Fisher distances: \n %s", fisher_distances_squared)
 
     # Calculate Fisher distances
-    fisher_distances = np.einsum("ni,mij,nj->mn", thetas, fisher_information_matrices, thetas)
-    fisher_distances_squared = fisher_distances.reshape((n_matrices, resolution, resolution))
+    fisher_distances_squared = np.einsum("mni,mij,mnj->mn", d_thetas, fisher_information_matrices, d_thetas)
+    fisher_distances_squared = fisher_distances_squared.reshape((n_matrices, resolution, resolution))
 
     # Calculate uncertainties of Fisher distances
     fisher_distances_squared_uncertainties = []
-    for inf_cov in fisher_information_covariances:
+    for d_theta, inf_cov in zip(d_thetas, fisher_information_covariances):
         if inf_cov is None:
             fisher_distances_squared_uncertainties.append(None)
             continue
 
-        var = np.einsum("ni,nj,ijkl,nk,nl->n", thetas, thetas, inf_cov, thetas, thetas)
+        var = np.einsum("ni,nj,ijkl,nk,nl->n", d_theta, d_theta, inf_cov, d_theta, d_theta)
 
         uncertainties = (var ** 0.5).reshape((resolution, resolution))
         fisher_distances_squared_uncertainties.append(uncertainties)
