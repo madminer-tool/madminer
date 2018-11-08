@@ -5,7 +5,6 @@ import logging
 import os
 import json
 import numpy as np
-import six
 
 import torch
 
