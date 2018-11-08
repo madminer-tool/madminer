@@ -1011,7 +1011,7 @@ class SampleAugmenter:
             dtheta_matrix = get_dtheta_benchmark_matrix("morphing", theta, self.benchmarks, self.morpher)
 
             gradients_theta = dtheta_matrix.dot(weights_benchmarks.T)  # (n_gradients, n_samples)
-            gradients_theta = gradient_theta.T
+            gradients_theta = gradients_theta.T
 
             return x, gradients_theta
 
