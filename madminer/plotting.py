@@ -358,20 +358,6 @@ def plot_fisher_information_contours_2d(
             d_thetas.append(thetas - reference_theta)
     d_thetas = np.array(d_thetas)  # Shape (n_matrices, n_thetas, n_parameters)
 
-    # Old code:
-    #
-    # fisher_distances_squared = np.matmul(
-    #     fisher_information_matrices[:, np.newaxis, :, :],  # (n_matrices, 1, m, n)
-    #     thetas[np.newaxis, :, :, np.newaxis],  # (1, n_grid, n, 1)
-    # )
-    # fisher_distances_squared = np.matmul(
-    #     thetas[np.newaxis, :, np.newaxis, :],  # (1, n_grid, 1, m)
-    #     fisher_distances_squared,  # (n_matrices, n_grid, m, 1)
-    # )
-    # fisher_distances_squared = fisher_distances_squared.reshape((n_matrices, resolution, resolution))
-    #
-    # logging.debug("Fisher distances: \n %s", fisher_distances_squared)
-
     # Calculate Fisher distances
     fisher_distances_squared = np.einsum("mni,mij,mnj->mn", d_thetas, fisher_information_matrices, d_thetas)
     fisher_distances_squared = fisher_distances_squared.reshape((n_matrices, resolution, resolution))
@@ -433,68 +419,56 @@ def plot_fisher_information_contours_2d(
     return fig
 
 
-# TODO: Clean up below here
-
-
 def plot_fisherinfo_barplot(
-    matrices,
-    matrices_for_determinants,
-    labels,
-    categories,
-    operatorlabels,
-    filename,
-    additional_label="",
-    top_label="",
-    normalise_determinants=False,
-    use_bar_colors=False,
-    eigenvalue_operator_legend=True,
+    fisher_information_matrices, labels, determinant_indices=None, eigenvalue_colors=None, bar_colors=None
 ):
-    # """
-    # :matrices: list (length N) of fisher infos (n x n tensors) for eigenvalue decomposition
-    # :matrices_for_determinants: list (length N) of fisher infos (n x n tensors) for determinant evaluation
-    # :labels: list (length N) of analysis label (string)
-    # :categories: group into categories (integer) - there will be extra space between categories
-    # :operatorlabels: list (length M) of operator names (string)
-    # :filename: save files under path (string)
-    # :additional_label: label (string) in lower panel
-    # :top_label: label (string) above top panel
-    # :normalise_determinants: are determinants normalized to unity (bool)
-    # :use_bar_colors: are bars in lower panel colored (bool)
-    # :eigenvalue_operator_legend: plot legend for operators (bool)
-    # """
+    """
 
-    #################################################################################
-    # Data
-    #################################################################################
+    Parameters
+    ----------
+    fisher_information_matrices : list of ndarray
+        Fisher information matrices
 
-    # dimensionality of matrices
-    size_upper = len(matrices[1])
+    labels : list of str
+        Labels for the x axis
+
+    determinant_indices : list of int or None, optional
+        If not None, the determinants will be based only on the indices given here. Default value: None.
+
+    eigenvalue_colors : None or list of str
+        Colors for the eigenvalue decomposition. If None, default colors are used. Default value: None.
+
+    bar_colors : None or list of str
+        Colors for the determinant bars. If None, default colors are used. Default value: None.
+
+    Returns
+    -------
+    figure : Figure
+        Plot as Matplotlib Figure instance.
+
+    """
+
+    # Prepare data
+    if determinant_indices is None:
+        matrices_for_determinants = fisher_information_matrices
+    else:
+        matrices_for_determinants = [m[determinant_indices, determinant_indices] for m in fisher_information_matrices]
+
+    size_upper = len(fisher_information_matrices[1])
     size_lower = len(matrices_for_determinants[1])
-    exponent_upper = 1.0 / float(size_upper)
     exponent_lower = 1.0 / float(size_lower)
 
-    # calculate + normalize determinants
     determinants = [np.linalg.det(m) ** exponent_lower for m in matrices_for_determinants]
-
-    if normalise_determinants:
-        max_information = max(determinants)
-        determinants = determinants / max_information
-    else:
-        max_information = 1.0
 
     assert len(determinants) == len(labels)
     n_entries = len(determinants)
 
-    print("")
-    for l, d in zip(labels, determinants):
-        print(l + ": det I_{ij} =", d)
-
-    # calculate eigenvalues + eigenvalue composition
+    # Calculate eigenvalues + eigenvalue composition
     eigenvalues = []
     eigenvalues_dominant_components = []
     eigenvalues_composition = []
 
-    for m in matrices:
+    for m in fisher_information_matrices:
         v, w = np.linalg.eig(m)
         w = np.transpose(w)
         v, w = zip(*sorted(zip(v, w), key=lambda x: x[0], reverse=True))
@@ -510,58 +484,36 @@ def plot_fisherinfo_barplot(
         eigenvalues_dominant_components.append(temp_dominant_components)
         eigenvalues_composition.append(temp_composition)
 
-    # assign categories, if they are not defined yet
-    if len(categories) == 0:
-        categories = [0 for i in range(n_entries)]
-
-    #################################################################################
-    # Plotting options
-    #################################################################################
-
-    # Base x values
+    # x positioning
     base_xvalues = np.linspace(0.0, float(n_entries) - 1.0, n_entries)
-    for i in range(n_entries):
-        base_xvalues[i] += float(categories[i]) * 1.0
-
     base_xmin = base_xvalues[0]
     base_xmax = base_xvalues[n_entries - 1] + 1.0
-
-    xpos = base_xvalues + 0.2
-    width = 0.6
     xmin_eigenvalues = base_xvalues + 0.08
     xmax_eigenvalues = base_xvalues + 0.92
     xpos_ticks = base_xvalues + 0.5
-
     xpos_lower = base_xvalues + 0.5
     width_lower = 0.8
 
-    # barcolored - either colored or gray
-    if use_bar_colors:
-        bar_colors = ["red", "blue", "green", "darkorange", "fuchsia", "turquoise"] * 5
-        bar_colors_light = ["red", "blue", "green", "darkorange", "fuchsia", "turquoise"] * 5
+    # Colors
+    if bar_colors is None:
+        bar_colors = ["0.5" for _ in range(n_entries)]
+        bar_colors_light = ["0.9" for _ in range(n_entries)]
     else:
-        bar_colors = ["0.5"] * 30
-        bar_colors_light = ["0.9"] * 30
+        bar_colors_light = bar_colors
 
-    eigenvalue_colors = ["red", "blue", "green", "darkorange", "fuchsia", "turquoise"] * 5
+    if eigenvalue_colors is None:
+        eigenvalue_colors = ["C{}".str(i) for i in range(10)]
     operator_order = [i for i in range(0, size_upper)]
     eigenvalue_linewidth = 1.5
 
-    #################################################################################
     # Upper plot
-    #################################################################################
-
-    # Plot bars!
-    fig = plt.figure(figsize=(9.0, 6.0))
+    fig = plt.figure(figsize=(10.0, 7.0))
     ax1 = plt.subplot(211)
-    ax1.set_yscale("log")
-    fig.subplots_adjust(left=0.075, right=0.925, bottom=0.15, top=0.95, wspace=0, hspace=0)
 
     # Plot eigenvalues
     for i in range(n_entries):
-
         for eigenvalue, composition in zip(eigenvalues[i], eigenvalues_composition[i]):
-            # gap sizing
+            # Gap sizing
             n_gaps = -1
             minimal_fraction_for_plot = 0.01
             for fraction in composition:
@@ -572,8 +524,7 @@ def plot_fisherinfo_barplot(
 
             fraction_finished = 0.0
 
-            for j in range(len(composition)):
-                component = operator_order[j]
+            for component in range(len(composition)):
                 fraction = composition[component]
 
                 if fraction >= minimal_fraction_for_plot:
@@ -589,166 +540,33 @@ def plot_fisherinfo_barplot(
                     )
                     fraction_finished += gap_correction_factor * fraction + gap_fraction
 
+    ax1.set_yscale("log")
     ax1.set_xlim([base_xmin - 0.2, base_xmax + 0.2])
-
-    if size_upper > 2:
-        orderofmagnitudes = 1.0e6
-        topfactor = 10.0
-    else:
-        orderofmagnitudes = 1.0e3
-        topfactor = 5.0
-
-    ax1.set_ylim(
-        [max([max(ev) for ev in eigenvalues]) / orderofmagnitudes, max([max(ev) for ev in eigenvalues]) * topfactor]
-    )
-    legend_position = max([max(ev) for ev in eigenvalues]) * topfactor / (topfactor * orderofmagnitudes) ** 0.1
+    y_max = max([max(ev) for ev in eigenvalues])
+    ax1.set_ylim(0.0001 * y_max, 2.0 * y_max)
 
     ax1.set_xticks(xpos_ticks)
     ax1.set_xticklabels(["" for l in labels], rotation=40, ha="right")
     ax1.set_ylabel(r"$I_{ij}$ eigenvalues")
-    ax1.yaxis.set_label_coords(-0.055, 0.5)
 
-    plt.title(top_label, fontdict={"fontsize": 12.0}, loc="right")
-
-    # Second axis with typical precision
-    ax2 = ax1.twinx()
-    ax2.set_yscale("log")
-
-    epsilon = 1.0e-9
-
-    def precision_to_information(precision):
-        return (np.maximum(precision, epsilon) / 0.246) ** 4.0
-
-    def information_to_precision(fisher_inf):
-        return 0.246 * np.maximum(fisher_inf, epsilon) ** 0.25
-
-    def tick_function_information(fisher_inf):
-        precision = 0.246 * np.maximum(fisher_inf, epsilon) ** 0.25
-        return [str(z) for z in precision]
-
-    def tick_function_precision(precision):
-        return [str(z) for z in precision]
-
-    ax2_limits = ax1.get_ylim()
-    precision_limits = information_to_precision(ax2_limits)
-
-    precision_ticks = np.array([0.1, 0.2, 0.5, 1.0, 1.5, 2.0, 3.0, 4.0, 5.0])
-    ax2_ticks = precision_to_information(precision_ticks)
-
-    precision_minor_ticks = np.linspace(0.0, 5.0, 51)
-    ax2_minor_ticks = precision_to_information(precision_minor_ticks)
-    ax2.set_yticks(ax2_ticks, minor=False)
-    ax2.set_yticklabels(tick_function_precision(precision_ticks))
-    ax2.set_yticks(ax2_minor_ticks, minor=True)
-    ax2.set_ylim(ax2_limits)
-
-    ax2.set_ylabel(r"Reach $\Lambda / \sqrt{f}$ [TeV]")
-    ax2.yaxis.set_label_coords(1.058, 0.5)
-
-    # legend
-    if eigenvalue_operator_legend:
-
-        if size_upper == 2:
-            legend_labels = [r"Eigenvector composition:"] + operatorlabels
-            legend_labels_x = [0.58, 0.88, 0.94]
-            legend_labels_color = ["black"] + eigenvalue_colors
-        else:
-            legend_labels = [r"Eigenvector composition:"] + operatorlabels
-            legend_labels_x = [0.94 - (len(operatorlabels) - 1) * 0.1 - 0.4] + np.linspace(
-                0.94 - (len(operatorlabels) - 1) * 0.1, 0.94, num=2
-            )
-            legend_labels_color = ["black"] + eigenvalue_colors
-
-        for legend_label, x, col in zip(legend_labels, legend_labels_x, legend_labels_color):
-            ax1.text(
-                x * base_xmax,
-                legend_position,
-                legend_label,
-                fontsize=12,
-                color=col,
-                horizontalalignment="left",
-                verticalalignment="center",
-            )
-
-    #################################################################################
     # Lower plot
-    #################################################################################
-
-    # Plot bars!
     ax3 = plt.subplot(212)
 
     bar_plot = ax3.bar(xpos_lower, determinants, width=width_lower, log=False)
 
     for i in range(n_entries):
-        bar_plot[i].set_color(bar_colors_light[categories[i]])
-        bar_plot[i].set_edgecolor(bar_colors[categories[i]])
+        bar_plot[i].set_color(bar_colors_light[i])
+        bar_plot[i].set_edgecolor(bar_colors[i])
 
     ax3.set_xlim([base_xmin - 0.2, base_xmax + 0.2])
     ax3.set_ylim([0.0, max(determinants) * 1.05])
 
     ax3.set_xticks(xpos_ticks)
     ax3.set_xticklabels(labels, rotation=40, ha="right")
-    if normalise_determinants:
-        ax3.set_ylabel(r"$(\det \ I_{ij} / \det \ I_{ij}^{\mathrm{full}})^{1/" + str(size_lower) + r"}$")
-    else:
-        ax3.set_ylabel(r"$(\det \ I_{ij})^{1/" + str(size_lower) + r"}$")
-    ax3.yaxis.set_label_coords(-0.052, 0.5)
+    ax3.set_ylabel(r"$(\det \ I_{ij})^{1/" + str(size_lower) + r"}$")
 
-    if len(additional_label) > 0:
-        ax3.text(
-            0.99 * base_xmax,
-            max(determinants) * 0.93,
-            additional_label,
-            fontsize=12,
-            color="black",
-            horizontalalignment="right",
-            verticalalignment="center",
-        )
-
-    def precision_to_norm_information(precision):
-        return (np.maximum(precision, epsilon) / 0.246) ** 4.0 / max_information
-
-    def norm_information_to_precision(fisher_inf):
-        return 0.246 * np.maximum(fisher_inf * max_information, epsilon) ** 0.25
-
-    def tick_function_precision(precision):
-        return [str(z) for z in precision]
-
-    # Second axis with typical precision
-    ax4 = ax3.twinx()
-    ax4_limits = ax3.get_ylim()
-    precision_limits = norm_information_to_precision(np.array(ax4_limits))
-
-    # precision_ticks = np.array([1.e-3,1.e-2,1.e-1,1.,1.e1,1.e2,1.e3])
-    precision_ticks = np.array([0.1, 0.2, 0.3, 0.4, 0.5, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5])
-    ax4_ticks = precision_to_norm_information(precision_ticks)
-
-    ## precision_minor_ticks = []
-    ## for i in [0.01,0.1,1.]:
-    ##     for j in range(10):
-    ##         precision_minor_ticks.append(i * j)
-    ## precision_minor_ticks.append(precision_ticks[-1])
-    ## precision_minor_ticks = np.array(precision_minor_ticks)
-    precision_minor_ticks = np.linspace(0.1, 5.0, 50)
-    ax4_minor_ticks = precision_to_norm_information(precision_minor_ticks)
-
-    ax4.set_yticks(ax4_ticks, minor=False)
-    ax4.set_yticklabels(tick_function_precision(precision_ticks))
-    ax4.set_yticks(ax4_minor_ticks, minor=True)
-
-    ax4.set_ylim(ax4_limits)
-
-    ax4.set_ylabel(r"Reach $\Lambda / \sqrt{f}$ [TeV]")
-    ax4.yaxis.set_label_coords(1.058, 0.5)
-
-    #################################################################################
-    # Show and Save
-    #################################################################################
-
-    plt.show()
-    create_missing_folders([os.path.dirname(filename)])
-    fig.savefig(filename, dpi=300)
-    plt.close()
+    plt.tight_layout()
+    return fig
 
 
 def kinematic_distribution_of_information(
