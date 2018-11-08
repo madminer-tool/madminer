@@ -569,45 +569,78 @@ def plot_fisherinfo_barplot(
     return fig
 
 
-def kinematic_distribution_of_information(
+def plot_distribution_of_information(
     xbins,
-    xlabel,
-    xmin,
-    xmax,
     xsecs,
-    matrices,
-    matrices_aux,
-    filename,
-    ylabel_addition="",
+    fisher_information_matrices,
+    fisher_information_matrices_aux=None,
+    xlabel=None,
+    xmin=None,
+    xmax=None,
     log_xsec=False,
     norm_xsec=True,
-    show_aux=False,
-    show_labels=False,
-    label_pos_information=(0.0, 0.0),
-    label_pos_sm=(0.0, 0.0),
-    label_pos_bsm=(0.0, 0.0),
-    label_pos_bkg=(0.0, 0.0),
-    label_bsm=r"",
+    epsilon=1.0e-9,
 ):
-    epsilon = 1.0e-9
+    """
+    Plots the distribution of the cross section together with the distribution of the Fisher information.
 
-    # Calculate data
-    size = len(matrices[1])
+    Parameters
+    ----------
+    xbins : list of float
+        Bin boundaries.
+
+    xsecs : list of float
+        Cross sections (in pb) per bin.
+
+    fisher_information_matrices : list of ndarray
+        Fisher information matrices for each bin.
+
+    fisher_information_matrices_aux : list of ndarray or None, optional
+        Additional Fisher information matrices for each bin (will be plotted with a dashed line).
+
+    xlabel : str or None, optional
+        Label for the x axis.
+
+    xmin : float or None, optional
+        Minimum value for the x axis.
+
+    xmax : float or None, optional
+        Maximum value for the x axis.
+
+    log_xsec : bool, optional
+        Whether to plot the cross section on a logarithmic y axis.
+
+    norm_xsec : bool, optional
+        Whether the cross sections are normalized to 1.
+
+    epsilon : float, optional
+        Numerical factor.
+
+    Returns
+    -------
+    figure : Figure
+        Plot as Matplotlib Figure instance.
+
+    """
+    # Prepare data
+    n_entries = len(fisher_information_matrices)
+    size = len(fisher_information_matrices[1])
     exponent = 1.0 / float(size)
-    determinants = [np.linalg.det(m) ** exponent for m in matrices]
-    determinants_aux = [np.linalg.det(m) ** exponent for m in matrices_aux]
 
-    determinants = np.nan_to_num(determinants)
-    determinants_aux = np.nan_to_num(determinants_aux)
+    determinants = [np.nan_to_num(np.linalg.det(m) ** exponent) for m in fisher_information_matrices]
 
-    # extract normalized xsec information
+    if fisher_information_matrices_aux is not None:
+        determinants_aux = [np.nan_to_num(np.linalg.det(m) ** exponent) for m in fisher_information_matrices_aux]
+
+    if xlabel is None:
+        xlabel = ""
+
+    # Normalize xsecs
     if norm_xsec:
         norm = 1.0 / max(sum([xs for xs in xsecs]), epsilon)
     else:
         norm = 1.0
     xsec_norm = [norm * xs for xs in xsecs]
-
-    n_entries = len(determinants)
 
     # Get xvals from xbins
     xvals = [(xbins[i] + xbins[i + 1]) / 2 for i in range(0, len(xbins) - 1)]
@@ -616,22 +649,19 @@ def kinematic_distribution_of_information(
 
     # Plotting options
     xs_color = "black"
-    xs_linestyle = "solid"
+    xs_linestyle = "-"
     xs_linewidth = 1.5
 
     det_color = "red"
-    det_linestyle = "solid"
+    det_linestyle = "-"
     det_linewidth = 1.5
-    det_alpha = 0.04
+    det_fill_alpha = 0.1
 
     det_aux_color = "red"
-    det_aux_linestyle = "dashed"
+    det_aux_linestyle = "--"
     det_aux_linewidth = 1.5
 
-    #################################################################################
-    # Full plot
-    #################################################################################
-
+    # xsec plot
     fig = plt.figure(figsize=(5.4, 4.5))
     ax1 = plt.subplot(111)
     fig.subplots_adjust(left=0.1667, right=0.8333, bottom=0.17, top=0.97)
@@ -639,7 +669,6 @@ def kinematic_distribution_of_information(
     if log_xsec:
         ax1.set_yscale("log")
 
-    # SM signal
     ax1.hist(
         xvals,
         weights=xsec_norm,
@@ -651,7 +680,6 @@ def kinematic_distribution_of_information(
         linestyle=xs_linestyle,
     )
 
-    # axis
     if norm_xsec:
         ax1.set_ylabel(r"Normalized distribution", color=xs_color)
     else:
@@ -662,10 +690,10 @@ def kinematic_distribution_of_information(
     for tl in ax1.get_yticklabels():
         tl.set_color(xs_color)
 
-    # plot: determinant
+    # det plot
     ax2 = ax1.twinx()
 
-    if show_aux:
+    if fisher_information_matrices_aux is not None:
         ax2.hist(
             xvals,
             weights=determinants_aux,
@@ -683,7 +711,7 @@ def kinematic_distribution_of_information(
         bins=xbins,
         range=(xmin, xmax),
         histtype="stepfilled",
-        alpha=det_alpha,
+        alpha=det_fill_alpha,
         color=det_color,
         linewidth=0.0,
     )
@@ -701,16 +729,8 @@ def kinematic_distribution_of_information(
 
     ax2.set_xlim([xmin, xmax])
     ax2.set_ylim([0.0, max(determinants) * 1.1])
-    ax2.set_ylabel(r"$(\det \; I_{ij})^{1/" + str(size) + "}$" + ylabel_addition, color=det_color)
+    ax2.set_ylabel(r"$(\det \; I_{ij})^{1/" + str(size) + "}$", color=det_color)
     for tl in ax2.get_yticklabels():
         tl.set_color(det_color)
 
-    #################################################################################
-    # Show and Save
-    #################################################################################
-
-    plt.show()
-
-    create_missing_folders([os.path.dirname(filename)])
-    fig.savefig(filename, dpi=300)
-    plt.close()
+    return fig
