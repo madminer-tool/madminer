@@ -168,11 +168,8 @@ examples/diboson_parton/py.py
 examples/diboson_parton/models
 examples/diboson_parton/figures
 
-<<<<<<< HEAD
 examples/simpleprocess
-=======
 examples/reproduce_wbf_4l/data
->>>>>>> upstream/master
 
 # MG / Pythia / Delphes patch
 patches/
