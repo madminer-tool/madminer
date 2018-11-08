@@ -1012,16 +1012,20 @@
 
         <span class="k">return</span> <span class="n">all_thetas</span><span class="p">,</span> <span class="n">all_xsecs</span><span class="p">,</span> <span class="n">all_xsec_uncertainties</span></div>
 
-<div class="viewcode-block" id="SampleAugmenter.extract_raw_data"><a class="viewcode-back" href="../../madminer.sampling.html#madminer.sampling.SampleAugmenter.extract_raw_data">[docs]</a>    <span class="k">def</span> <span class="nf">extract_raw_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="SampleAugmenter.extract_raw_data"><a class="viewcode-back" href="../../madminer.sampling.html#madminer.sampling.SampleAugmenter.extract_raw_data">[docs]</a>    <span class="k">def</span> <span class="nf">extract_raw_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">derivative</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
 
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Returns all events together with the benchmark weights (if theta is None) or weights for a given theta.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
-<span class="sd">        theta : None or ndarray</span>
+<span class="sd">        theta : None or ndarray, optional</span>
 <span class="sd">            If None, the function returns the benchmark weights. Otherwise it uses morphing to calculate the weights for</span>
 <span class="sd">            this value of theta. Default value: None.</span>
+
+<span class="sd">        derivative : bool, optional</span>
+<span class="sd">            If True and if theta is not None, the derivative of the weights with respect to theta are returned. Default</span>
+<span class="sd">            value: False.</span>
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
@@ -1029,14 +1033,24 @@
 <span class="sd">            Observables with shape `(n_unweighted_samples, n_observables)`.</span>
 
 <span class="sd">        weights : ndarray</span>
-<span class="sd">            If theta is None, benchmark weights with shape  `(n_unweighted_samples, n_benchmarks)` in pb. Otherwise,</span>
-<span class="sd">            weights for the given parameter theta with shape `(n_unweighted_samples,)` in pb.</span>
+<span class="sd">            If theta is None and derivative is False, benchmark weights with shape</span>
+<span class="sd">            `(n_unweighted_samples, n_benchmarks)` in pb. If theta is not None and derivative is True, the gradient of</span>
+<span class="sd">            the weight for the given parameter with respect to theta with shape `(n_unweighted_samples, n_gradients)`</span>
+<span class="sd">            in pb. Otherwise, weights for the given parameter theta with shape `(n_unweighted_samples,)` in pb.</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="n">x</span><span class="p">,</span> <span class="n">weights_benchmarks</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">madminer_event_loader</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">madminer_filename</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="kc">None</span><span class="p">))</span>
 
-        <span class="k">if</span> <span class="n">theta</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">theta</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">derivative</span><span class="p">:</span>
+            <span class="n">dtheta_matrix</span> <span class="o">=</span> <span class="n">get_dtheta_benchmark_matrix</span><span class="p">(</span><span class="s2">&quot;morphing&quot;</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">benchmarks</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">morpher</span><span class="p">)</span>
+
+            <span class="n">gradients_theta</span> <span class="o">=</span> <span class="n">dtheta_matrix</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">weights_benchmarks</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>  <span class="c1"># (n_gradients, n_samples)</span>
+            <span class="n">gradients_theta</span> <span class="o">=</span> <span class="n">gradients_theta</span><span class="o">.</span><span class="n">T</span>
+
+            <span class="k">return</span> <span class="n">x</span><span class="p">,</span> <span class="n">gradients_theta</span>
+
+        <span class="k">elif</span> <span class="n">theta</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">theta_matrix</span> <span class="o">=</span> <span class="n">get_theta_benchmark_matrix</span><span class="p">(</span><span class="s2">&quot;morphing&quot;</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">benchmarks</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">morpher</span><span class="p">)</span>
 
             <span class="n">weights_theta</span> <span class="o">=</span> <span class="n">theta_matrix</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">weights_benchmarks</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
@@ -1152,9 +1166,8 @@
 
         <span class="n">n_thetas</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">theta_sets_types</span><span class="p">)</span>
         <span class="k">assert</span> <span class="n">n_thetas</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">theta_sets_values</span><span class="p">)</span>
-
-        <span class="n">n_sets</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">theta_sets_types</span><span class="p">[</span><span class="n">sampling_theta_index</span><span class="p">])</span>  <span class="c1"># Within each set, all thetas (sampling, numerator, ...)</span>
-        <span class="c1"># have a constant value</span>
+        <span class="c1"># Sets (within each set, all thetas (sampling, numerator, ...) have a constant value)</span>
+        <span class="n">n_sets</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">theta_sets_types</span><span class="p">[</span><span class="n">sampling_theta_index</span><span class="p">])</span>
         <span class="k">for</span> <span class="n">theta_types</span><span class="p">,</span> <span class="n">theta_values</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">theta_sets_types</span><span class="p">,</span> <span class="n">theta_sets_values</span><span class="p">):</span>
             <span class="k">assert</span> <span class="n">n_sets</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">theta_types</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">theta_values</span><span class="p">)</span>
 

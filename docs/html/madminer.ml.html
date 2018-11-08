@@ -254,7 +254,7 @@ vote_expectation_weight is given, this is a list with results for all entries in
 
 <dl class="method">
 <dt id="madminer.ml.EnsembleForge.evaluate">
-<code class="descname">evaluate</code><span class="sig-paren">(</span><em>x_filename</em>, <em>theta0_filename=None</em>, <em>theta1_filename=None</em>, <em>test_all_combinations=True</em>, <em>vote_expectation_weight=None</em>, <em>return_individual_predictions=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/ml.html#EnsembleForge.evaluate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.ml.EnsembleForge.evaluate" title="Permalink to this definition">¶</a></dt>
+<code class="descname">evaluate</code><span class="sig-paren">(</span><em>x_filename</em>, <em>theta0_filename=None</em>, <em>theta1_filename=None</em>, <em>test_all_combinations=True</em>, <em>vote_expectation_weight=None</em>, <em>calculate_covariance=True</em>, <em>return_individual_predictions=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/ml.html#EnsembleForge.evaluate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.ml.EnsembleForge.evaluate" title="Permalink to this definition">¶</a></dt>
 <dd><p>Evaluates the estimators of the likelihood ratio (or, if method is ‘sally’ or ‘sallino’, the score), and
 calculates the ensemble mean or variance.</p>
 <p>The user has the option to treat all estimators equally (‘committee method’) or to give those with expected
@@ -292,6 +292,9 @@ calculated by <cite>calculate_expectation()</cite>). If a list is given, results
 list. If None, or if <cite>calculate_expectation()</cite> has not been called, all estimators are treated equal.
 Default value: None.</p>
 </dd>
+<dt><strong>calculate_covariance</strong> <span class="classifier-delimiter">:</span> <span class="classifier">bool, optional</span></dt>
+<dd><p class="first last">Whether the covariance matrix is calculated. Default value: True.</p>
+</dd>
 <dt><strong>return_individual_predictions</strong> <span class="classifier-delimiter">:</span> <span class="classifier">bool, optional</span></dt>
 <dd><p class="first last">Whether the individual estimator predictions are returned. Default value: False.</p>
 </dd>
@@ -306,10 +309,10 @@ Otherwise, the estimated likelihood ratio (if test_all_combinations is True, the
 <cite>(n_thetas, n_x)</cite>, otherwise, it has shape <cite>(n_samples,)</cite>). If more then one value vote_expectation_weight
 is given, this is a list with results for all entries in vote_expectation_weight.</p>
 </dd>
-<dt><strong>covariance</strong> <span class="classifier-delimiter">:</span> <span class="classifier">ndarray or list of ndarray</span></dt>
+<dt><strong>covariance</strong> <span class="classifier-delimiter">:</span> <span class="classifier">None or ndarray or list of ndarray</span></dt>
 <dd><p class="first last">The covariance matrix of the (flattened) predictions, defined as the ensemble covariance. If more then one
 value vote_expectation_weight is given, this is a list with results
-for all entries in vote_expectation_weight.</p>
+for all entries in vote_expectation_weight. If calculate_covariance is False, None is returned.</p>
 </dd>
 <dt><strong>weights</strong> <span class="classifier-delimiter">:</span> <span class="classifier">ndarray or list of ndarray</span></dt>
 <dd><p class="first last">Only returned if return_individual_predictions is True. The estimator weights <cite>w_i</cite>. If more then one value
