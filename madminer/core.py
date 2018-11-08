@@ -497,7 +497,6 @@ class MadMiner:
     def _export_cards(
         self,
         param_card_template_file,
-        reweight_card_template_file,
         mg_process_directory,
         sample_benchmark=None,
         param_card_filename=None,
@@ -512,9 +511,6 @@ class MadMiner:
         ----------
         param_card_template_file : str
             Path to a param_card.dat of the used model.
-
-        reweight_card_template_file : str
-            Path to an empty reweight_card.dat (no commands, the default 'launch' should be commented out or removed).
 
         mg_process_directory : str
             Path to the directory of the MG process.
@@ -564,7 +560,6 @@ class MadMiner:
             sample_benchmark=sample_benchmark,
             benchmarks=self.benchmarks,
             parameters=self.parameters,
-            reweight_card_template_file=reweight_card_template_file,
             mg_process_directory=mg_process_directory,
             reweight_card_filename=reweight_card_filename,
         )
@@ -691,7 +686,6 @@ class MadMiner:
         mg_directory,
         proc_card_file,
         param_card_template_file,
-        reweight_card_template_file,
         run_card_file=None,
         mg_process_directory=None,
         pythia8_card_file=None,
@@ -730,10 +724,6 @@ class MadMiner:
         param_card_template_file : str
             Path to a param card that will be used as template to create the
             appropriate param cards for these runs.
-
-        reweight_card_template_file : str
-            Path to an empty reweight card that will be used as template to create
-            the appropriate reweight cards for these runs.
 
         run_card_file : str
             Paths to the MadGraph run card. If None, the default run_card is used.
@@ -792,7 +782,6 @@ class MadMiner:
             mg_directory=mg_directory,
             proc_card_file=proc_card_file,
             param_card_template_file=param_card_template_file,
-            reweight_card_template_file=reweight_card_template_file,
             run_card_files=[run_card_file],
             mg_process_directory=mg_process_directory,
             pythia8_card_file=pythia8_card_file,
@@ -810,7 +799,6 @@ class MadMiner:
         mg_directory,
         proc_card_file,
         param_card_template_file,
-        reweight_card_template_file,
         run_card_files,
         mg_process_directory=None,
         pythia8_card_file=None,
@@ -841,10 +829,6 @@ class MadMiner:
 
         param_card_template_file : str
             Path to a param card that will be used as template to create the appropriate param cards for these runs.
-
-        reweight_card_template_file : str
-            Path to an empty reweight card that will be used as template to create the appropriate reweight cards for
-            these runs.
 
         run_card_files : list of str
             Paths to the MadGraph run card.
@@ -964,7 +948,6 @@ class MadMiner:
                 # Creat param and reweight cards
                 self._export_cards(
                     param_card_template_file,
-                    reweight_card_template_file,
                     mg_process_directory,
                     sample_benchmark=sample_benchmark,
                     param_card_filename=param_card_file,
