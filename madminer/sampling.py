@@ -977,16 +977,20 @@ class SampleAugmenter:
 
         return all_thetas, all_xsecs, all_xsec_uncertainties
 
-    def extract_raw_data(self, theta=None):
+    def extract_raw_data(self, theta=None, derivative=False):
 
         """
         Returns all events together with the benchmark weights (if theta is None) or weights for a given theta.
 
         Parameters
         ----------
-        theta : None or ndarray
+        theta : None or ndarray, optional
             If None, the function returns the benchmark weights. Otherwise it uses morphing to calculate the weights for
             this value of theta. Default value: None.
+
+        derivative : bool, optional
+            If True and if theta is not None, the derivative of the weights with respect to theta are returned. Default
+            value: False.
 
         Returns
         -------
@@ -994,14 +998,24 @@ class SampleAugmenter:
             Observables with shape `(n_unweighted_samples, n_observables)`.
 
         weights : ndarray
-            If theta is None, benchmark weights with shape  `(n_unweighted_samples, n_benchmarks)` in pb. Otherwise,
-            weights for the given parameter theta with shape `(n_unweighted_samples,)` in pb.
+            If theta is None and derivative is False, benchmark weights with shape
+            `(n_unweighted_samples, n_benchmarks)` in pb. If theta is not None and derivative is True, the gradient of
+            the weight for the given parameter with respect to theta with shape `(n_unweighted_samples, n_gradients)`
+            in pb. Otherwise, weights for the given parameter theta with shape `(n_unweighted_samples,)` in pb.
 
         """
 
         x, weights_benchmarks = next(madminer_event_loader(self.madminer_filename, batch_size=None))
 
-        if theta is not None:
+        if theta is not None and derivative:
+            dtheta_matrix = get_dtheta_benchmark_matrix("morphing", theta, self.benchmarks, self.morpher)
+
+            gradients_theta = dtheta_matrix.dot(weights_benchmarks.T)  # (n_gradients, n_samples)
+            gradients_theta = gradient_theta.T
+
+            return x, gradients_theta
+
+        elif theta is not None:
             theta_matrix = get_theta_benchmark_matrix("morphing", theta, self.benchmarks, self.morpher)
 
             weights_theta = theta_matrix.dot(weights_benchmarks.T)
@@ -1117,9 +1131,8 @@ class SampleAugmenter:
 
         n_thetas = len(theta_sets_types)
         assert n_thetas == len(theta_sets_values)
-
-        n_sets = len(theta_sets_types[sampling_theta_index])  # Within each set, all thetas (sampling, numerator, ...)
-        # have a constant value
+        # Sets (within each set, all thetas (sampling, numerator, ...) have a constant value)
+        n_sets = len(theta_sets_types[sampling_theta_index])
         for theta_types, theta_values in zip(theta_sets_types, theta_sets_values):
             assert n_sets == len(theta_types) == len(theta_values)
 
