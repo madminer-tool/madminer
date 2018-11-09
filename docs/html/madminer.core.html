@@ -217,7 +217,7 @@ for more details.</p>
 
 <dl class="method">
 <dt id="madminer.core.MadMiner.run">
-<code class="descname">run</code><span class="sig-paren">(</span><em>mg_directory</em>, <em>proc_card_file</em>, <em>param_card_template_file</em>, <em>reweight_card_template_file</em>, <em>run_card_file=None</em>, <em>mg_process_directory=None</em>, <em>pythia8_card_file=None</em>, <em>sample_benchmark=None</em>, <em>is_background=False</em>, <em>only_prepare_script=False</em>, <em>ufo_model_directory=None</em>, <em>log_directory=None</em>, <em>temp_directory=None</em>, <em>initial_command=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/core.html#MadMiner.run"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.core.MadMiner.run" title="Permalink to this definition">¶</a></dt>
+<code class="descname">run</code><span class="sig-paren">(</span><em>mg_directory</em>, <em>proc_card_file</em>, <em>param_card_template_file</em>, <em>run_card_file=None</em>, <em>mg_process_directory=None</em>, <em>pythia8_card_file=None</em>, <em>sample_benchmark=None</em>, <em>is_background=False</em>, <em>only_prepare_script=False</em>, <em>ufo_model_directory=None</em>, <em>log_directory=None</em>, <em>temp_directory=None</em>, <em>initial_command=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/core.html#MadMiner.run"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.core.MadMiner.run" title="Permalink to this definition">¶</a></dt>
 <dd><p>High-level function that creates the the MadGraph process, all required cards, and prepares or runs the event
 generation for one combination of cards.</p>
 <p>If <cite>only_prepare_scripts=True</cite>, the event generation is not run
@@ -242,10 +242,6 @@ generation with the correct settings.</p>
 <dt><strong>param_card_template_file</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
 <dd><p class="first last">Path to a param card that will be used as template to create the
 appropriate param cards for these runs.</p>
-</dd>
-<dt><strong>reweight_card_template_file</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
-<dd><p class="first last">Path to an empty reweight card that will be used as template to create
-the appropriate reweight cards for these runs.</p>
 </dd>
 <dt><strong>run_card_file</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
 <dd><p class="first last">Paths to the MadGraph run card. If None, the default run_card is used.</p>
@@ -306,7 +302,7 @@ Default value: None.</p>
 
 <dl class="method">
 <dt id="madminer.core.MadMiner.run_multiple">
-<code class="descname">run_multiple</code><span class="sig-paren">(</span><em>mg_directory</em>, <em>proc_card_file</em>, <em>param_card_template_file</em>, <em>reweight_card_template_file</em>, <em>run_card_files</em>, <em>mg_process_directory=None</em>, <em>pythia8_card_file=None</em>, <em>sample_benchmarks=None</em>, <em>is_background=False</em>, <em>only_prepare_script=False</em>, <em>ufo_model_directory=None</em>, <em>log_directory=None</em>, <em>temp_directory=None</em>, <em>initial_command=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/core.html#MadMiner.run_multiple"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.core.MadMiner.run_multiple" title="Permalink to this definition">¶</a></dt>
+<code class="descname">run_multiple</code><span class="sig-paren">(</span><em>mg_directory</em>, <em>proc_card_file</em>, <em>param_card_template_file</em>, <em>run_card_files</em>, <em>mg_process_directory=None</em>, <em>pythia8_card_file=None</em>, <em>sample_benchmarks=None</em>, <em>is_background=False</em>, <em>only_prepare_script=False</em>, <em>ufo_model_directory=None</em>, <em>log_directory=None</em>, <em>temp_directory=None</em>, <em>initial_command=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/core.html#MadMiner.run_multiple"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.core.MadMiner.run_multiple" title="Permalink to this definition">¶</a></dt>
 <dd><p>High-level function that creates the the MadGraph process, all required cards, and prepares or runs the event
 generation for multiple combinations of run_cards or importance samplings (<cite>sample_benchmarks</cite>).</p>
 <p>If <cite>only_prepare_scripts=True</cite>, the event generation is not run
@@ -325,10 +321,6 @@ generation with the correct settings.</p>
 </dd>
 <dt><strong>param_card_template_file</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
 <dd><p class="first last">Path to a param card that will be used as template to create the appropriate param cards for these runs.</p>
-</dd>
-<dt><strong>reweight_card_template_file</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
-<dd><p class="first last">Path to an empty reweight card that will be used as template to create the appropriate reweight cards for
-these runs.</p>
 </dd>
 <dt><strong>run_card_files</strong> <span class="classifier-delimiter">:</span> <span class="classifier">list of str</span></dt>
 <dd><p class="first last">Paths to the MadGraph run card.</p>
