@@ -109,7 +109,7 @@ class DelphesProcessor:
         self.hepmc_sample_filenames.append(filename)
         self.hepmc_sample_weight_labels.append(extract_weight_order(filename, sampled_from_benchmark))
 
-    def run_delphes(self, delphes_directory, delphes_card, initial_command=None, log_directory=None):
+    def run_delphes(self, delphes_directory, delphes_card, initial_command=None, log_file=None):
         """
         Runs the fast detector simulation on all HepMC samples added so far.
 
@@ -125,8 +125,8 @@ class DelphesProcessor:
             Initial bash commands that have to be executed before Delphes is run (e.g. to load the correct virtual
             environment). Default value: None.
 
-        log_directory : str or None, optional
-            Directory for log files in which the Delphes output is saved. Default value: None.
+        log_file : str or None, optional
+            Path to log file in which the Delphes output is saved. Default value: None.
 
         Returns
         -------
@@ -134,9 +134,8 @@ class DelphesProcessor:
 
         """
 
-        if log_directory is None:
-            log_directory = "./logs"
-        log_file = log_directory + "/delphes.log"
+        if log_file is None:
+            log_file = "./logs/delphes.log"
 
         for hepmc_sample_filename in self.hepmc_sample_filenames:
             logging.info("Running Delphes (%s) on event sample at %s", delphes_directory, hepmc_sample_filename)
