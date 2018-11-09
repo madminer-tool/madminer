@@ -426,11 +426,14 @@ class MadMiner:
                 benchmarks=self.benchmarks,
                 morphing_components=self.morpher.components,
                 morphing_matrix=self.morpher.morphing_matrix,
+                overwrite_existing_files=True,
             )
         else:
             logging.info("Saving setup (without morphing) to %s", filename)
 
-            save_madminer_settings(filename=filename, parameters=self.parameters, benchmarks=self.benchmarks)
+            save_madminer_settings(
+                filename=filename, parameters=self.parameters, benchmarks=self.benchmarks, overwrite_existing_files=True
+            )
 
     @staticmethod
     def _generate_mg_process(
