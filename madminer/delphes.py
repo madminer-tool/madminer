@@ -109,7 +109,7 @@ class DelphesProcessor:
         self.hepmc_sample_filenames.append(filename)
         self.hepmc_sample_weight_labels.append(extract_weight_order(filename, sampled_from_benchmark))
 
-    def run_delphes(self, delphes_directory, delphes_card, initial_command=None, log_directory=None):
+    def run_delphes(self, delphes_directory, delphes_card, initial_command=None, log_file=None):
         """
         Runs the fast detector simulation on all HepMC samples added so far.
 
@@ -125,8 +125,8 @@ class DelphesProcessor:
             Initial bash commands that have to be executed before Delphes is run (e.g. to load the correct virtual
             environment). Default value: None.
 
-        log_directory : str or None, optional
-            Directory for log files in which the Delphes output is saved. Default value: None.
+        log_file : str or None, optional
+            Path to log file in which the Delphes output is saved. Default value: None.
 
         Returns
         -------
@@ -134,9 +134,8 @@ class DelphesProcessor:
 
         """
 
-        if log_directory is None:
-            log_directory = "./logs"
-        log_file = log_directory + "/delphes.log"
+        if log_file is None:
+            log_file = "./logs/delphes.log"
 
         for hepmc_sample_filename in self.hepmc_sample_filenames:
             logging.info("Running Delphes (%s) on event sample at %s", delphes_directory, hepmc_sample_filename)
@@ -150,15 +149,15 @@ class DelphesProcessor:
             self.delphes_sample_filenames.append(delphes_sample_filename)
 
     def set_acceptance(
-        self,
-        pt_min_e=10.0,
-        pt_min_mu=10.0,
-        pt_min_a=10.0,
-        pt_min_j=20.0,
-        eta_max_e=2.5,
-        eta_max_mu=2.5,
-        eta_max_a=2.5,
-        eta_max_j=5.0,
+            self,
+            pt_min_e=10.0,
+            pt_min_mu=10.0,
+            pt_min_a=10.0,
+            pt_min_j=20.0,
+            eta_max_e=2.5,
+            eta_max_mu=2.5,
+            eta_max_a=2.5,
+            eta_max_j=5.0,
     ):
         """
         Sets acceptance cuts for all visible particles. These are taken into account before observables and cuts
@@ -294,14 +293,14 @@ class DelphesProcessor:
         self.observables_defaults[name] = default
 
     def add_default_observables(
-        self,
-        n_leptons_max=2,
-        n_photons_max=2,
-        n_jets_max=2,
-        include_met=True,
-        include_visible_sum=True,
-        include_numbers=True,
-        include_charge=True,
+            self,
+            n_leptons_max=2,
+            n_photons_max=2,
+            n_jets_max=2,
+            include_met=True,
+            include_visible_sum=True,
+            include_numbers=True,
+            include_charge=True,
     ):
         """
         Adds a set of simple standard observables: the four-momenta (parameterized as E, pT, eta, phi) of the hardest
@@ -347,7 +346,7 @@ class DelphesProcessor:
 
         # Individual observed particles
         for n, symbol, include_this_charge in zip(
-            [n_leptons_max, n_photons_max, n_jets_max], ["l", "a", "j"], [False, False, include_charge]
+                [n_leptons_max, n_photons_max, n_jets_max], ["l", "a", "j"], [False, False, include_charge]
         ):
             if include_numbers:
                 self.add_observable("n_{}s".format(symbol), "len({})".format(symbol), required=True)
@@ -404,6 +403,17 @@ class DelphesProcessor:
         logging.debug("Adding cut %s", definition)
         self.cuts.append(definition)
         self.cuts_default_pass.append(pass_if_not_parsed)
+
+    def reset_observables(self):
+        """ Resets all observables. """
+        self.observables = OrderedDict()
+        self.observables_required = OrderedDict()
+        self.observables_defaults = OrderedDict()
+
+    def reset_cuts(self):
+        """ Resets all cuts. """
+        self.cuts = []
+        self.cuts_default_pass = []
 
     def analyse_delphes_samples(self, delete_delphes_files=False):
         """

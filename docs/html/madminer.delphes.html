@@ -100,6 +100,12 @@ analysis routine of your choice.</p>
 <tr class="row-even"><td><a class="reference internal" href="#madminer.delphes.DelphesProcessor.analyse_delphes_samples" title="madminer.delphes.DelphesProcessor.analyse_delphes_samples"><code class="xref py py-obj docutils literal notranslate"><span class="pre">analyse_delphes_samples</span></code></a>([delete_delphes_files])</td>
 <td>Main function that parses the Delphes samples (ROOT files), checks acceptance and cuts, and extracts the observables and weights.</td>
 </tr>
+<tr class="row-odd"><td><a class="reference internal" href="#madminer.delphes.DelphesProcessor.reset_cuts" title="madminer.delphes.DelphesProcessor.reset_cuts"><code class="xref py py-obj docutils literal notranslate"><span class="pre">reset_cuts</span></code></a>()</td>
+<td>Resets all cuts.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#madminer.delphes.DelphesProcessor.reset_observables" title="madminer.delphes.DelphesProcessor.reset_observables"><code class="xref py py-obj docutils literal notranslate"><span class="pre">reset_observables</span></code></a>()</td>
+<td>Resets all observables.</td>
+</tr>
 <tr class="row-odd"><td><a class="reference internal" href="#madminer.delphes.DelphesProcessor.run_delphes" title="madminer.delphes.DelphesProcessor.run_delphes"><code class="xref py py-obj docutils literal notranslate"><span class="pre">run_delphes</span></code></a>(delphes_directory,&nbsp;delphes_card)</td>
 <td>Runs the fast detector simulation on all HepMC samples added so far.</td>
 </tr>
@@ -337,6 +343,18 @@ False.</p>
 </dd></dl>
 
 <dl class="method">
+<dt id="madminer.delphes.DelphesProcessor.reset_cuts">
+<code class="descname">reset_cuts</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/delphes.html#DelphesProcessor.reset_cuts"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.delphes.DelphesProcessor.reset_cuts" title="Permalink to this definition">¶</a></dt>
+<dd><p>Resets all cuts.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="madminer.delphes.DelphesProcessor.reset_observables">
+<code class="descname">reset_observables</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/delphes.html#DelphesProcessor.reset_observables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.delphes.DelphesProcessor.reset_observables" title="Permalink to this definition">¶</a></dt>
+<dd><p>Resets all observables.</p>
+</dd></dl>
+
+<dl class="method">
 <dt id="madminer.delphes.DelphesProcessor.run_delphes">
 <code class="descname">run_delphes</code><span class="sig-paren">(</span><em>delphes_directory</em>, <em>delphes_card</em>, <em>initial_command=None</em>, <em>log_directory=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/delphes.html#DelphesProcessor.run_delphes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.delphes.DelphesProcessor.run_delphes" title="Permalink to this definition">¶</a></dt>
 <dd><p>Runs the fast detector simulation on all HepMC samples added so far.</p>
@@ -400,7 +418,7 @@ assumed to exist and contain the correct parameter, benchmark, and morphing setu
 
 <dl class="method">
 <dt id="madminer.delphes.DelphesProcessor.set_acceptance">
-<code class="descname">set_acceptance</code><span class="sig-paren">(</span><em>pt_min_e=10.0</em>, <em>pt_min_mu=10.0</em>, <em>pt_min_a=0.0</em>, <em>pt_min_j=20.0</em>, <em>eta_max_e=2.5</em>, <em>eta_max_mu=2.5</em>, <em>eta_max_a=2.5</em>, <em>eta_max_j=5.0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/delphes.html#DelphesProcessor.set_acceptance"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.delphes.DelphesProcessor.set_acceptance" title="Permalink to this definition">¶</a></dt>
+<code class="descname">set_acceptance</code><span class="sig-paren">(</span><em>pt_min_e=10.0</em>, <em>pt_min_mu=10.0</em>, <em>pt_min_a=10.0</em>, <em>pt_min_j=20.0</em>, <em>eta_max_e=2.5</em>, <em>eta_max_mu=2.5</em>, <em>eta_max_a=2.5</em>, <em>eta_max_j=5.0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/delphes.html#DelphesProcessor.set_acceptance"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.delphes.DelphesProcessor.set_acceptance" title="Permalink to this definition">¶</a></dt>
 <dd><p>Sets acceptance cuts for all visible particles. These are taken into account before observables and cuts
 are calculated.</p>
 <table class="docutils field-list" frame="void" rules="none">

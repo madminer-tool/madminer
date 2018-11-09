@@ -461,11 +461,14 @@
                 <span class="n">benchmarks</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">benchmarks</span><span class="p">,</span>
                 <span class="n">morphing_components</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">morpher</span><span class="o">.</span><span class="n">components</span><span class="p">,</span>
                 <span class="n">morphing_matrix</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">morpher</span><span class="o">.</span><span class="n">morphing_matrix</span><span class="p">,</span>
+                <span class="n">overwrite_existing_files</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
             <span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Saving setup (without morphing) to </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">filename</span><span class="p">)</span>
 
-            <span class="n">save_madminer_settings</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="n">filename</span><span class="p">,</span> <span class="n">parameters</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">,</span> <span class="n">benchmarks</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">benchmarks</span><span class="p">)</span></div>
+            <span class="n">save_madminer_settings</span><span class="p">(</span>
+                <span class="n">filename</span><span class="o">=</span><span class="n">filename</span><span class="p">,</span> <span class="n">parameters</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">,</span> <span class="n">benchmarks</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">benchmarks</span><span class="p">,</span> <span class="n">overwrite_existing_files</span><span class="o">=</span><span class="kc">True</span>
+            <span class="p">)</span></div>
 
     <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">_generate_mg_process</span><span class="p">(</span>
@@ -532,7 +535,6 @@
     <span class="k">def</span> <span class="nf">_export_cards</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">param_card_template_file</span><span class="p">,</span>
-        <span class="n">reweight_card_template_file</span><span class="p">,</span>
         <span class="n">mg_process_directory</span><span class="p">,</span>
         <span class="n">sample_benchmark</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">param_card_filename</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -547,9 +549,6 @@
 <span class="sd">        ----------</span>
 <span class="sd">        param_card_template_file : str</span>
 <span class="sd">            Path to a param_card.dat of the used model.</span>
-
-<span class="sd">        reweight_card_template_file : str</span>
-<span class="sd">            Path to an empty reweight_card.dat (no commands, the default &#39;launch&#39; should be commented out or removed).</span>
 
 <span class="sd">        mg_process_directory : str</span>
 <span class="sd">            Path to the directory of the MG process.</span>
@@ -599,7 +598,6 @@
             <span class="n">sample_benchmark</span><span class="o">=</span><span class="n">sample_benchmark</span><span class="p">,</span>
             <span class="n">benchmarks</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">benchmarks</span><span class="p">,</span>
             <span class="n">parameters</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">,</span>
-            <span class="n">reweight_card_template_file</span><span class="o">=</span><span class="n">reweight_card_template_file</span><span class="p">,</span>
             <span class="n">mg_process_directory</span><span class="o">=</span><span class="n">mg_process_directory</span><span class="p">,</span>
             <span class="n">reweight_card_filename</span><span class="o">=</span><span class="n">reweight_card_filename</span><span class="p">,</span>
         <span class="p">)</span>
@@ -726,7 +724,6 @@
         <span class="n">mg_directory</span><span class="p">,</span>
         <span class="n">proc_card_file</span><span class="p">,</span>
         <span class="n">param_card_template_file</span><span class="p">,</span>
-        <span class="n">reweight_card_template_file</span><span class="p">,</span>
         <span class="n">run_card_file</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">mg_process_directory</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">pythia8_card_file</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -765,10 +762,6 @@
 <span class="sd">        param_card_template_file : str</span>
 <span class="sd">            Path to a param card that will be used as template to create the</span>
 <span class="sd">            appropriate param cards for these runs.</span>
-
-<span class="sd">        reweight_card_template_file : str</span>
-<span class="sd">            Path to an empty reweight card that will be used as template to create</span>
-<span class="sd">            the appropriate reweight cards for these runs.</span>
 
 <span class="sd">        run_card_file : str</span>
 <span class="sd">            Paths to the MadGraph run card. If None, the default run_card is used.</span>
@@ -827,7 +820,6 @@
             <span class="n">mg_directory</span><span class="o">=</span><span class="n">mg_directory</span><span class="p">,</span>
             <span class="n">proc_card_file</span><span class="o">=</span><span class="n">proc_card_file</span><span class="p">,</span>
             <span class="n">param_card_template_file</span><span class="o">=</span><span class="n">param_card_template_file</span><span class="p">,</span>
-            <span class="n">reweight_card_template_file</span><span class="o">=</span><span class="n">reweight_card_template_file</span><span class="p">,</span>
             <span class="n">run_card_files</span><span class="o">=</span><span class="p">[</span><span class="n">run_card_file</span><span class="p">],</span>
             <span class="n">mg_process_directory</span><span class="o">=</span><span class="n">mg_process_directory</span><span class="p">,</span>
             <span class="n">pythia8_card_file</span><span class="o">=</span><span class="n">pythia8_card_file</span><span class="p">,</span>
@@ -845,7 +837,6 @@
         <span class="n">mg_directory</span><span class="p">,</span>
         <span class="n">proc_card_file</span><span class="p">,</span>
         <span class="n">param_card_template_file</span><span class="p">,</span>
-        <span class="n">reweight_card_template_file</span><span class="p">,</span>
         <span class="n">run_card_files</span><span class="p">,</span>
         <span class="n">mg_process_directory</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">pythia8_card_file</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -876,10 +867,6 @@
 
 <span class="sd">        param_card_template_file : str</span>
 <span class="sd">            Path to a param card that will be used as template to create the appropriate param cards for these runs.</span>
-
-<span class="sd">        reweight_card_template_file : str</span>
-<span class="sd">            Path to an empty reweight card that will be used as template to create the appropriate reweight cards for</span>
-<span class="sd">            these runs.</span>
 
 <span class="sd">        run_card_files : list of str</span>
 <span class="sd">            Paths to the MadGraph run card.</span>
@@ -999,7 +986,6 @@
                 <span class="c1"># Creat param and reweight cards</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_export_cards</span><span class="p">(</span>
                     <span class="n">param_card_template_file</span><span class="p">,</span>
-                    <span class="n">reweight_card_template_file</span><span class="p">,</span>
                     <span class="n">mg_process_directory</span><span class="p">,</span>
                     <span class="n">sample_benchmark</span><span class="o">=</span><span class="n">sample_benchmark</span><span class="p">,</span>
                     <span class="n">param_card_filename</span><span class="o">=</span><span class="n">param_card_file</span><span class="p">,</span>

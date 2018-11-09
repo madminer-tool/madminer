@@ -110,7 +110,7 @@ different slices of one observable (the “distribution of the Fisher informatio
 </table>
 <dl class="method">
 <dt id="madminer.fisherinformation.FisherInformation.calculate_fisher_information_full_detector">
-<code class="descname">calculate_fisher_information_full_detector</code><span class="sig-paren">(</span><em>theta</em>, <em>model_file</em>, <em>unweighted_x_sample_file=None</em>, <em>luminosity=300000.0</em>, <em>return_error=None</em>, <em>ensemble_vote_expectation_weight=None</em>, <em>batch_size=100000</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/fisherinformation.html#FisherInformation.calculate_fisher_information_full_detector"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.fisherinformation.FisherInformation.calculate_fisher_information_full_detector" title="Permalink to this definition">¶</a></dt>
+<code class="descname">calculate_fisher_information_full_detector</code><span class="sig-paren">(</span><em>theta</em>, <em>model_file</em>, <em>unweighted_x_sample_file=None</em>, <em>luminosity=300000.0</em>, <em>return_error=None</em>, <em>ensemble_vote_expectation_weight=None</em>, <em>batch_size=100000</em>, <em>test_split=0.5</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/fisherinformation.html#FisherInformation.calculate_fisher_information_full_detector"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.fisherinformation.FisherInformation.calculate_fisher_information_full_detector" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculates the full Fisher information in realistic detector-level observations, estimated with neural networks.
 In addition to the MadMiner file, this requires a trained SALLY or SALLINO estimator.</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -145,6 +145,10 @@ value: None.</p>
 </dd>
 <dt><strong>batch_size</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int, optional</span></dt>
 <dd><p class="first last">Batch size. Default value: 100000.</p>
+</dd>
+<dt><strong>test_split</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float or None, optional</span></dt>
+<dd><p class="first last">If unweighted_x_sample_file is None, this determines the fraction of weighted events used for evaluation.
+If None, all events are used (this will probably include events used during training!). Default value: 0.5.</p>
 </dd>
 </dl>
 </td>

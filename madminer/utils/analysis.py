@@ -6,21 +6,6 @@ import logging
 
 
 def get_theta_value(theta_type, theta_value, benchmarks):
-    """
-
-    Parameters
-    ----------
-    theta_type :
-        
-    theta_value :
-        
-    benchmarks :
-        
-
-    Returns
-    -------
-
-    """
     if theta_type == "benchmark":
         benchmark = benchmarks[theta_value]
         benchmark_theta = np.array([benchmark[key] for key in benchmark])
@@ -34,23 +19,7 @@ def get_theta_value(theta_type, theta_value, benchmarks):
 
 
 def get_theta_benchmark_matrix(theta_type, theta_value, benchmarks, morpher=None):
-    """Calculates vector A such that dsigma(theta) = A * dsigma_benchmarks
-
-    Parameters
-    ----------
-    theta_type :
-        
-    theta_value :
-        
-    benchmarks :
-        
-    morpher :
-         (Default value = None)
-
-    Returns
-    -------
-
-    """
+    """Calculates vector A such that dsigma(theta) = A * dsigma_benchmarks"""
 
     if theta_type == "benchmark":
         n_benchmarks = len(benchmarks)
@@ -61,11 +30,11 @@ def get_theta_benchmark_matrix(theta_type, theta_value, benchmarks, morpher=None
     elif theta_type == "morphing":
         theta_matrix = morpher.calculate_morphing_weights(theta_value)
 
-    elif theta_type == "sampling":
-        theta_matrix = "sampling"
-
-    elif theta_type == "auxiliary":
-        theta_matrix = "auxiliary"
+    # elif theta_type == "sampling":
+    #     theta_matrix = "sampling"
+    #
+    # elif theta_type == "auxiliary":
+    #     theta_matrix = "auxiliary"
 
     else:
         raise ValueError("Unknown theta {}".format(theta_type))
@@ -74,23 +43,7 @@ def get_theta_benchmark_matrix(theta_type, theta_value, benchmarks, morpher=None
 
 
 def get_dtheta_benchmark_matrix(theta_type, theta_value, benchmarks, morpher=None):
-    """Calculates matrix A_ij such that d dsigma(theta) / d theta_i = A_ij * dsigma (benchmark j)
-
-    Parameters
-    ----------
-    theta_type :
-        
-    theta_value :
-        
-    benchmarks :
-        
-    morpher :
-         (Default value = None)
-
-    Returns
-    -------
-
-    """
+    """Calculates matrix A_ij such that d dsigma(theta) / d theta_i = A_ij * dsigma (benchmark j)"""
 
     if theta_type == "benchmark":
         if morpher is None:
@@ -107,11 +60,11 @@ def get_dtheta_benchmark_matrix(theta_type, theta_value, benchmarks, morpher=Non
 
         dtheta_matrix = morpher.calculate_morphing_weight_gradient(theta_value)  # Shape (n_parameters, n_benchmarks)
 
-    elif theta_type == "sampling":
-        dtheta_matrix = "sampling_gradient"
-
-    elif theta_type == "auxiliary":
-        dtheta_matrix = "auxiliary_gradient"
+    # elif theta_type == "sampling":
+    #     dtheta_matrix = "sampling_gradient"
+    #
+    # elif theta_type == "auxiliary":
+    #     dtheta_matrix = "auxiliary_gradient"
 
     else:
         raise ValueError("Unknown theta {}".format(theta_type))
@@ -122,25 +75,7 @@ def get_dtheta_benchmark_matrix(theta_type, theta_value, benchmarks, morpher=Non
 def extract_augmented_data(
     augmented_data_definitions, weights_benchmarks, xsecs_benchmarks, theta_matrices, theta_gradient_matrices
 ):
-    """
-
-    Parameters
-    ----------
-    augmented_data_definitions :
-        
-    weights_benchmarks :
-        
-    xsecs_benchmarks :
-        
-    theta_matrices :
-        
-    theta_gradient_matrices :
-        
-
-    Returns
-    -------
-
-    """
+    """Extracts augmented data from benchmark weights"""
     augmented_data = []
 
     for definition in augmented_data_definitions:
@@ -162,15 +97,15 @@ def extract_augmented_data(
         elif definition[0] == "score":
             i = definition[1]
 
-            gradient_dsigma = theta_gradient_matrices[i].dot(weights_benchmarks.T)
-            gradient_sigma = theta_gradient_matrices[i].dot(xsecs_benchmarks.T)
+            gradient_dsigma = theta_gradient_matrices[i].dot(weights_benchmarks.T)  # (n_gradients, n_samples)
+            gradient_sigma = theta_gradient_matrices[i].dot(xsecs_benchmarks.T)  # (n_gradients,)
 
-            dsigma = theta_matrices[i].dot(weights_benchmarks.T)
-            sigma = theta_matrices[i].dot(xsecs_benchmarks.T)
+            dsigma = theta_matrices[i].dot(weights_benchmarks.T)  # (n_samples,)
+            sigma = theta_matrices[i].dot(xsecs_benchmarks.T)  # scalar
 
             score = gradient_dsigma / dsigma  # (n_gradients, n_samples)
             score = score.T  # (n_samples, n_gradients)
-            score = score - np.broadcast_to(gradient_sigma / sigma, score.shape)
+            score = score - np.broadcast_to(gradient_sigma / sigma, score.shape)  # (n_samples, n_gradients)
 
             augmented_data.append(score)
 
@@ -181,19 +116,6 @@ def extract_augmented_data(
 
 
 def parse_theta(theta, n_samples):
-    """
-
-    Parameters
-    ----------
-    theta :
-        
-    n_samples :
-        
-
-    Returns
-    -------
-
-    """
     theta_type_in = theta[0]
     theta_value_in = theta[1]
 

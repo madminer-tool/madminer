@@ -37,11 +37,6 @@
   <div class="section" id="module-madminer.plotting">
 <span id="madminer-plotting-module"></span><h1>madminer.plotting module<a class="headerlink" href="#module-madminer.plotting" title="Permalink to this headline">¶</a></h1>
 <dl class="function">
-<dt id="madminer.plotting.kinematic_distribution_of_information">
-<code class="descclassname">madminer.plotting.</code><code class="descname">kinematic_distribution_of_information</code><span class="sig-paren">(</span><em>xbins</em>, <em>xlabel</em>, <em>xmin</em>, <em>xmax</em>, <em>xsecs</em>, <em>matrices</em>, <em>matrices_aux</em>, <em>filename</em>, <em>ylabel_addition=''</em>, <em>log_xsec=False</em>, <em>norm_xsec=True</em>, <em>show_aux=False</em>, <em>show_labels=False</em>, <em>label_pos_information=(0.0</em>, <em>0.0)</em>, <em>label_pos_sm=(0.0</em>, <em>0.0)</em>, <em>label_pos_bsm=(0.0</em>, <em>0.0)</em>, <em>label_pos_bkg=(0.0</em>, <em>0.0)</em>, <em>label_bsm=''</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/plotting.html#kinematic_distribution_of_information"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.plotting.kinematic_distribution_of_information" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
 <dt id="madminer.plotting.plot_2d_morphing_basis">
 <code class="descclassname">madminer.plotting.</code><code class="descname">plot_2d_morphing_basis</code><span class="sig-paren">(</span><em>morpher</em>, <em>xlabel='$\\theta_0$'</em>, <em>ylabel='$\\theta_1$'</em>, <em>xrange=(-1.0</em>, <em>1.0)</em>, <em>yrange=(-1.0</em>, <em>1.0)</em>, <em>crange=(1.0</em>, <em>100.0)</em>, <em>resolution=100</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/plotting.html#plot_2d_morphing_basis"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.plotting.plot_2d_morphing_basis" title="Permalink to this definition">¶</a></dt>
 <dd><p>Visualizes a morphing basis and morphing errors for problems with a two-dimensional parameter space.</p>
@@ -70,6 +65,59 @@
 </dd>
 <dt><strong>resolution</strong> <span class="classifier-delimiter">:</span> <span class="classifier">int, optional</span></dt>
 <dd><p class="first last">Number of points per axis for the rendering of the squared morphing weights. Default value: 100.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>figure</strong> <span class="classifier-delimiter">:</span> <span class="classifier">Figure</span></dt>
+<dd><p class="first last">Plot as Matplotlib Figure instance.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="madminer.plotting.plot_distribution_of_information">
+<code class="descclassname">madminer.plotting.</code><code class="descname">plot_distribution_of_information</code><span class="sig-paren">(</span><em>xbins</em>, <em>xsecs</em>, <em>fisher_information_matrices</em>, <em>fisher_information_matrices_aux=None</em>, <em>xlabel=None</em>, <em>xmin=None</em>, <em>xmax=None</em>, <em>log_xsec=False</em>, <em>norm_xsec=True</em>, <em>epsilon=1e-09</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/plotting.html#plot_distribution_of_information"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.plotting.plot_distribution_of_information" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plots the distribution of the cross section together with the distribution of the Fisher information.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>xbins</strong> <span class="classifier-delimiter">:</span> <span class="classifier">list of float</span></dt>
+<dd><p class="first last">Bin boundaries.</p>
+</dd>
+<dt><strong>xsecs</strong> <span class="classifier-delimiter">:</span> <span class="classifier">list of float</span></dt>
+<dd><p class="first last">Cross sections (in pb) per bin.</p>
+</dd>
+<dt><strong>fisher_information_matrices</strong> <span class="classifier-delimiter">:</span> <span class="classifier">list of ndarray</span></dt>
+<dd><p class="first last">Fisher information matrices for each bin.</p>
+</dd>
+<dt><strong>fisher_information_matrices_aux</strong> <span class="classifier-delimiter">:</span> <span class="classifier">list of ndarray or None, optional</span></dt>
+<dd><p class="first last">Additional Fisher information matrices for each bin (will be plotted with a dashed line).</p>
+</dd>
+<dt><strong>xlabel</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str or None, optional</span></dt>
+<dd><p class="first last">Label for the x axis.</p>
+</dd>
+<dt><strong>xmin</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float or None, optional</span></dt>
+<dd><p class="first last">Minimum value for the x axis.</p>
+</dd>
+<dt><strong>xmax</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float or None, optional</span></dt>
+<dd><p class="first last">Maximum value for the x axis.</p>
+</dd>
+<dt><strong>log_xsec</strong> <span class="classifier-delimiter">:</span> <span class="classifier">bool, optional</span></dt>
+<dd><p class="first last">Whether to plot the cross section on a logarithmic y axis.</p>
+</dd>
+<dt><strong>norm_xsec</strong> <span class="classifier-delimiter">:</span> <span class="classifier">bool, optional</span></dt>
+<dd><p class="first last">Whether the cross sections are normalized to 1.</p>
+</dd>
+<dt><strong>epsilon</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float, optional</span></dt>
+<dd><p class="first last">Numerical factor.</p>
 </dd>
 </dl>
 </td>
@@ -163,8 +211,40 @@ None.</p>
 
 <dl class="function">
 <dt id="madminer.plotting.plot_fisherinfo_barplot">
-<code class="descclassname">madminer.plotting.</code><code class="descname">plot_fisherinfo_barplot</code><span class="sig-paren">(</span><em>matrices</em>, <em>matrices_for_determinants</em>, <em>labels</em>, <em>categories</em>, <em>operatorlabels</em>, <em>filename</em>, <em>additional_label=''</em>, <em>top_label=''</em>, <em>normalise_determinants=False</em>, <em>use_bar_colors=False</em>, <em>eigenvalue_operator_legend=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/plotting.html#plot_fisherinfo_barplot"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.plotting.plot_fisherinfo_barplot" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<code class="descclassname">madminer.plotting.</code><code class="descname">plot_fisherinfo_barplot</code><span class="sig-paren">(</span><em>fisher_information_matrices</em>, <em>labels</em>, <em>determinant_indices=None</em>, <em>eigenvalue_colors=None</em>, <em>bar_colors=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/plotting.html#plot_fisherinfo_barplot"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.plotting.plot_fisherinfo_barplot" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>fisher_information_matrices</strong> <span class="classifier-delimiter">:</span> <span class="classifier">list of ndarray</span></dt>
+<dd><p class="first last">Fisher information matrices</p>
+</dd>
+<dt><strong>labels</strong> <span class="classifier-delimiter">:</span> <span class="classifier">list of str</span></dt>
+<dd><p class="first last">Labels for the x axis</p>
+</dd>
+<dt><strong>determinant_indices</strong> <span class="classifier-delimiter">:</span> <span class="classifier">list of int or None, optional</span></dt>
+<dd><p class="first last">If not None, the determinants will be based only on the indices given here. Default value: None.</p>
+</dd>
+<dt><strong>eigenvalue_colors</strong> <span class="classifier-delimiter">:</span> <span class="classifier">None or list of str</span></dt>
+<dd><p class="first last">Colors for the eigenvalue decomposition. If None, default colors are used. Default value: None.</p>
+</dd>
+<dt><strong>bar_colors</strong> <span class="classifier-delimiter">:</span> <span class="classifier">None or list of str</span></dt>
+<dd><p class="first last">Colors for the determinant bars. If None, default colors are used. Default value: None.</p>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="first last docutils">
+<dt><strong>figure</strong> <span class="classifier-delimiter">:</span> <span class="classifier">Figure</span></dt>
+<dd><p class="first last">Plot as Matplotlib Figure instance.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 <dl class="function">
 <dt id="madminer.plotting.plot_nd_morphing_basis_scatter">

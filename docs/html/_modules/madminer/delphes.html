@@ -185,15 +185,15 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">delphes_sample_filenames</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">delphes_sample_filename</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="DelphesProcessor.set_acceptance"><a class="viewcode-back" href="../../madminer.delphes.html#madminer.delphes.DelphesProcessor.set_acceptance">[docs]</a>    <span class="k">def</span> <span class="nf">set_acceptance</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span>
-        <span class="n">pt_min_e</span><span class="o">=</span><span class="mf">10.0</span><span class="p">,</span>
-        <span class="n">pt_min_mu</span><span class="o">=</span><span class="mf">10.0</span><span class="p">,</span>
-        <span class="n">pt_min_a</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
-        <span class="n">pt_min_j</span><span class="o">=</span><span class="mf">20.0</span><span class="p">,</span>
-        <span class="n">eta_max_e</span><span class="o">=</span><span class="mf">2.5</span><span class="p">,</span>
-        <span class="n">eta_max_mu</span><span class="o">=</span><span class="mf">2.5</span><span class="p">,</span>
-        <span class="n">eta_max_a</span><span class="o">=</span><span class="mf">2.5</span><span class="p">,</span>
-        <span class="n">eta_max_j</span><span class="o">=</span><span class="mf">5.0</span><span class="p">,</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="n">pt_min_e</span><span class="o">=</span><span class="mf">10.0</span><span class="p">,</span>
+            <span class="n">pt_min_mu</span><span class="o">=</span><span class="mf">10.0</span><span class="p">,</span>
+            <span class="n">pt_min_a</span><span class="o">=</span><span class="mf">10.0</span><span class="p">,</span>
+            <span class="n">pt_min_j</span><span class="o">=</span><span class="mf">20.0</span><span class="p">,</span>
+            <span class="n">eta_max_e</span><span class="o">=</span><span class="mf">2.5</span><span class="p">,</span>
+            <span class="n">eta_max_mu</span><span class="o">=</span><span class="mf">2.5</span><span class="p">,</span>
+            <span class="n">eta_max_a</span><span class="o">=</span><span class="mf">2.5</span><span class="p">,</span>
+            <span class="n">eta_max_j</span><span class="o">=</span><span class="mf">5.0</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Sets acceptance cuts for all visible particles. These are taken into account before observables and cuts</span>
@@ -329,14 +329,14 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">observables_defaults</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">default</span></div>
 
 <div class="viewcode-block" id="DelphesProcessor.add_default_observables"><a class="viewcode-back" href="../../madminer.delphes.html#madminer.delphes.DelphesProcessor.add_default_observables">[docs]</a>    <span class="k">def</span> <span class="nf">add_default_observables</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span>
-        <span class="n">n_leptons_max</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
-        <span class="n">n_photons_max</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
-        <span class="n">n_jets_max</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
-        <span class="n">include_met</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-        <span class="n">include_visible_sum</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-        <span class="n">include_numbers</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-        <span class="n">include_charge</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="n">n_leptons_max</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+            <span class="n">n_photons_max</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+            <span class="n">n_jets_max</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+            <span class="n">include_met</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">include_visible_sum</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">include_numbers</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">include_charge</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Adds a set of simple standard observables: the four-momenta (parameterized as E, pT, eta, phi) of the hardest</span>
@@ -381,8 +381,8 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">add_observable</span><span class="p">(</span><span class="s2">&quot;eta_visible&quot;</span><span class="p">,</span> <span class="s2">&quot;visible.eta&quot;</span><span class="p">,</span> <span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
         <span class="c1"># Individual observed particles</span>
-        <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="n">symbol</span><span class="p">,</span> <span class="n">include_charge</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span>
-            <span class="p">[</span><span class="n">n_leptons_max</span><span class="p">,</span> <span class="n">n_photons_max</span><span class="p">,</span> <span class="n">n_jets_max</span><span class="p">],</span> <span class="p">[</span><span class="s2">&quot;l&quot;</span><span class="p">,</span> <span class="s2">&quot;a&quot;</span><span class="p">,</span> <span class="s2">&quot;j&quot;</span><span class="p">],</span> <span class="p">[</span><span class="kc">False</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">True</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="n">symbol</span><span class="p">,</span> <span class="n">include_this_charge</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span>
+                <span class="p">[</span><span class="n">n_leptons_max</span><span class="p">,</span> <span class="n">n_photons_max</span><span class="p">,</span> <span class="n">n_jets_max</span><span class="p">],</span> <span class="p">[</span><span class="s2">&quot;l&quot;</span><span class="p">,</span> <span class="s2">&quot;a&quot;</span><span class="p">,</span> <span class="s2">&quot;j&quot;</span><span class="p">],</span> <span class="p">[</span><span class="kc">False</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="n">include_charge</span><span class="p">]</span>
         <span class="p">):</span>
             <span class="k">if</span> <span class="n">include_numbers</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">add_observable</span><span class="p">(</span><span class="s2">&quot;n_</span><span class="si">{}</span><span class="s2">s&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">symbol</span><span class="p">),</span> <span class="s2">&quot;len(</span><span class="si">{}</span><span class="s2">)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">symbol</span><span class="p">),</span> <span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
@@ -400,7 +400,7 @@
                 <span class="bp">self</span><span class="o">.</span><span class="n">add_observable</span><span class="p">(</span>
                     <span class="s2">&quot;phi_</span><span class="si">{}{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">symbol</span><span class="p">,</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">[</span><span class="si">{}</span><span class="s2">].phi()&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">symbol</span><span class="p">,</span> <span class="n">i</span><span class="p">),</span> <span class="n">required</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mf">0.0</span>
                 <span class="p">)</span>
-                <span class="k">if</span> <span class="n">include_charge</span> <span class="ow">and</span> <span class="n">symbol</span> <span class="o">==</span> <span class="s2">&quot;l&quot;</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">include_this_charge</span> <span class="ow">and</span> <span class="n">symbol</span> <span class="o">==</span> <span class="s2">&quot;l&quot;</span><span class="p">:</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">add_observable</span><span class="p">(</span>
                         <span class="s2">&quot;charge_</span><span class="si">{}{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">symbol</span><span class="p">,</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span>
                         <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">[</span><span class="si">{}</span><span class="s2">].charge&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">symbol</span><span class="p">,</span> <span class="n">i</span><span class="p">),</span>
@@ -439,6 +439,17 @@
         <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Adding cut </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">definition</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">cuts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">definition</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">cuts_default_pass</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">pass_if_not_parsed</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="DelphesProcessor.reset_observables"><a class="viewcode-back" href="../../madminer.delphes.html#madminer.delphes.DelphesProcessor.reset_observables">[docs]</a>    <span class="k">def</span> <span class="nf">reset_observables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Resets all observables. &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">observables</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">observables_required</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">observables_defaults</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="DelphesProcessor.reset_cuts"><a class="viewcode-back" href="../../madminer.delphes.html#madminer.delphes.DelphesProcessor.reset_cuts">[docs]</a>    <span class="k">def</span> <span class="nf">reset_cuts</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Resets all cuts. &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cuts</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cuts_default_pass</span> <span class="o">=</span> <span class="p">[]</span></div>
 
 <div class="viewcode-block" id="DelphesProcessor.analyse_delphes_samples"><a class="viewcode-back" href="../../madminer.delphes.html#madminer.delphes.DelphesProcessor.analyse_delphes_samples">[docs]</a>    <span class="k">def</span> <span class="nf">analyse_delphes_samples</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">delete_delphes_files</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>

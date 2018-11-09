@@ -352,6 +352,9 @@
     <span class="k">if</span> <span class="n">fisher_information_covariances</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">fisher_information_covariances</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_matrices</span><span class="p">)]</span>
 
+    <span class="k">if</span> <span class="n">reference_thetas</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">reference_thetas</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_matrices</span><span class="p">)]</span>
+
     <span class="n">d2_threshold</span> <span class="o">=</span> <span class="n">contour_distance</span> <span class="o">**</span> <span class="mf">2.0</span>
 
     <span class="c1"># Line formatting</span>
@@ -377,41 +380,36 @@
     <span class="c1"># Grid</span>
     <span class="n">xi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">xrange</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">xrange</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">resolution</span><span class="p">)</span>
     <span class="n">yi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">yrange</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">yrange</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">resolution</span><span class="p">)</span>
-    <span class="n">xx</span><span class="p">,</span> <span class="n">yy</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">meshgrid</span><span class="p">(</span><span class="n">xi</span><span class="p">,</span> <span class="n">yi</span><span class="p">)</span>
+    <span class="n">xx</span><span class="p">,</span> <span class="n">yy</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">meshgrid</span><span class="p">(</span><span class="n">xi</span><span class="p">,</span> <span class="n">yi</span><span class="p">,</span> <span class="n">indexing</span><span class="o">=</span><span class="s2">&quot;xy&quot;</span><span class="p">)</span>
     <span class="n">xx</span><span class="p">,</span> <span class="n">yy</span> <span class="o">=</span> <span class="n">xx</span><span class="o">.</span><span class="n">flatten</span><span class="p">(),</span> <span class="n">yy</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span>
     <span class="n">thetas</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">((</span><span class="n">xx</span><span class="p">,</span> <span class="n">yy</span><span class="p">))</span><span class="o">.</span><span class="n">T</span>
 
+    <span class="c1"># Theta from reference thetas</span>
+    <span class="n">d_thetas</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">reference_theta</span> <span class="ow">in</span> <span class="n">reference_thetas</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">reference_theta</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">d_thetas</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">thetas</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">d_thetas</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">thetas</span> <span class="o">-</span> <span class="n">reference_theta</span><span class="p">)</span>
+    <span class="n">d_thetas</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">d_thetas</span><span class="p">)</span>  <span class="c1"># Shape (n_matrices, n_thetas, n_parameters)</span>
+
     <span class="c1"># Calculate Fisher distances</span>
-    <span class="n">fisher_distances_squared</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span>
-        <span class="n">fisher_information_matrices</span><span class="p">[:,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:],</span>  <span class="c1"># (n_matrices, 1, m, n)</span>
-        <span class="n">thetas</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">],</span>  <span class="c1"># (1, n_grid, n, 1)</span>
-    <span class="p">)</span>
-    <span class="n">fisher_distances_squared</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span>
-        <span class="n">thetas</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span> <span class="p">:,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span> <span class="p">:],</span>  <span class="c1"># (1, n_grid, 1, m)</span>
-        <span class="n">fisher_distances_squared</span><span class="p">,</span>  <span class="c1"># (n_matrices, n_grid, m, 1)</span>
-    <span class="p">)</span>
+    <span class="n">fisher_distances_squared</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;mni,mij,mnj-&gt;mn&quot;</span><span class="p">,</span> <span class="n">d_thetas</span><span class="p">,</span> <span class="n">fisher_information_matrices</span><span class="p">,</span> <span class="n">d_thetas</span><span class="p">)</span>
     <span class="n">fisher_distances_squared</span> <span class="o">=</span> <span class="n">fisher_distances_squared</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="n">n_matrices</span><span class="p">,</span> <span class="n">resolution</span><span class="p">,</span> <span class="n">resolution</span><span class="p">))</span>
-
-    <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Fisher distances: </span><span class="se">\n</span><span class="s2"> </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">fisher_distances_squared</span><span class="p">)</span>
-
-    <span class="n">fisher_distances_alt</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;ni,mij,nj-&gt;mn&quot;</span><span class="p">,</span> <span class="n">thetas</span><span class="p">,</span> <span class="n">fisher_information_matrices</span><span class="p">,</span> <span class="n">thetas</span><span class="p">)</span>
-    <span class="n">fisher_distances_alt_squared</span> <span class="o">=</span> <span class="n">fisher_distances_alt</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="n">n_matrices</span><span class="p">,</span> <span class="n">resolution</span><span class="p">,</span> <span class="n">resolution</span><span class="p">))</span>
-    <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Diff: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">fisher_distances_squared</span> <span class="o">-</span> <span class="n">fisher_distances_alt_squared</span><span class="p">)</span>
 
     <span class="c1"># Calculate uncertainties of Fisher distances</span>
     <span class="n">fisher_distances_squared_uncertainties</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="k">for</span> <span class="n">inf_cov</span> <span class="ow">in</span> <span class="n">fisher_information_covariances</span><span class="p">:</span>
+    <span class="k">for</span> <span class="n">d_theta</span><span class="p">,</span> <span class="n">inf_cov</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">d_thetas</span><span class="p">,</span> <span class="n">fisher_information_covariances</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">inf_cov</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">fisher_distances_squared_uncertainties</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
             <span class="k">continue</span>
 
-        <span class="n">var</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;ni,nj,ijkl,nk,nl-&gt;n&quot;</span><span class="p">,</span> <span class="n">thetas</span><span class="p">,</span> <span class="n">thetas</span><span class="p">,</span> <span class="n">inf_cov</span><span class="p">,</span> <span class="n">thetas</span><span class="p">,</span> <span class="n">thetas</span><span class="p">)</span>
+        <span class="n">var</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;ni,nj,ijkl,nk,nl-&gt;n&quot;</span><span class="p">,</span> <span class="n">d_theta</span><span class="p">,</span> <span class="n">d_theta</span><span class="p">,</span> <span class="n">inf_cov</span><span class="p">,</span> <span class="n">d_theta</span><span class="p">,</span> <span class="n">d_theta</span><span class="p">)</span>
 
         <span class="n">uncertainties</span> <span class="o">=</span> <span class="p">(</span><span class="n">var</span> <span class="o">**</span> <span class="mf">0.5</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="n">resolution</span><span class="p">,</span> <span class="n">resolution</span><span class="p">))</span>
+        <span class="n">fisher_distances_squared_uncertainties</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">uncertainties</span><span class="p">)</span>
 
         <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Std: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">uncertainties</span><span class="p">)</span>
-
-        <span class="n">fisher_distances_squared_uncertainties</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">uncertainties</span><span class="p">)</span>
 
     <span class="c1"># Plot results</span>
     <span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mf">5.0</span><span class="p">,</span> <span class="mf">5.0</span><span class="p">))</span>
@@ -456,68 +454,56 @@
     <span class="k">return</span> <span class="n">fig</span></div>
 
 
-<span class="c1"># TODO: Clean up below here</span>
-
-
 <div class="viewcode-block" id="plot_fisherinfo_barplot"><a class="viewcode-back" href="../../madminer.plotting.html#madminer.plotting.plot_fisherinfo_barplot">[docs]</a><span class="k">def</span> <span class="nf">plot_fisherinfo_barplot</span><span class="p">(</span>
-    <span class="n">matrices</span><span class="p">,</span>
-    <span class="n">matrices_for_determinants</span><span class="p">,</span>
-    <span class="n">labels</span><span class="p">,</span>
-    <span class="n">categories</span><span class="p">,</span>
-    <span class="n">operatorlabels</span><span class="p">,</span>
-    <span class="n">filename</span><span class="p">,</span>
-    <span class="n">additional_label</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
-    <span class="n">top_label</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
-    <span class="n">normalise_determinants</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-    <span class="n">use_bar_colors</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-    <span class="n">eigenvalue_operator_legend</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">fisher_information_matrices</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">determinant_indices</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">eigenvalue_colors</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">bar_colors</span><span class="o">=</span><span class="kc">None</span>
 <span class="p">):</span>
-    <span class="c1"># &quot;&quot;&quot;</span>
-    <span class="c1"># :matrices: list (length N) of fisher infos (n x n tensors) for eigenvalue decomposition</span>
-    <span class="c1"># :matrices_for_determinants: list (length N) of fisher infos (n x n tensors) for determinant evaluation</span>
-    <span class="c1"># :labels: list (length N) of analysis label (string)</span>
-    <span class="c1"># :categories: group into categories (integer) - there will be extra space between categories</span>
-    <span class="c1"># :operatorlabels: list (length M) of operator names (string)</span>
-    <span class="c1"># :filename: save files under path (string)</span>
-    <span class="c1"># :additional_label: label (string) in lower panel</span>
-    <span class="c1"># :top_label: label (string) above top panel</span>
-    <span class="c1"># :normalise_determinants: are determinants normalized to unity (bool)</span>
-    <span class="c1"># :use_bar_colors: are bars in lower panel colored (bool)</span>
-    <span class="c1"># :eigenvalue_operator_legend: plot legend for operators (bool)</span>
-    <span class="c1"># &quot;&quot;&quot;</span>
+    <span class="sd">&quot;&quot;&quot;</span>
 
-    <span class="c1">#################################################################################</span>
-    <span class="c1"># Data</span>
-    <span class="c1">#################################################################################</span>
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    fisher_information_matrices : list of ndarray</span>
+<span class="sd">        Fisher information matrices</span>
 
-    <span class="c1"># dimensionality of matrices</span>
-    <span class="n">size_upper</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">matrices</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+<span class="sd">    labels : list of str</span>
+<span class="sd">        Labels for the x axis</span>
+
+<span class="sd">    determinant_indices : list of int or None, optional</span>
+<span class="sd">        If not None, the determinants will be based only on the indices given here. Default value: None.</span>
+
+<span class="sd">    eigenvalue_colors : None or list of str</span>
+<span class="sd">        Colors for the eigenvalue decomposition. If None, default colors are used. Default value: None.</span>
+
+<span class="sd">    bar_colors : None or list of str</span>
+<span class="sd">        Colors for the determinant bars. If None, default colors are used. Default value: None.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    figure : Figure</span>
+<span class="sd">        Plot as Matplotlib Figure instance.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># Prepare data</span>
+    <span class="k">if</span> <span class="n">determinant_indices</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">matrices_for_determinants</span> <span class="o">=</span> <span class="n">fisher_information_matrices</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">matrices_for_determinants</span> <span class="o">=</span> <span class="p">[</span><span class="n">m</span><span class="p">[</span><span class="n">determinant_indices</span><span class="p">,</span> <span class="n">determinant_indices</span><span class="p">]</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">fisher_information_matrices</span><span class="p">]</span>
+
+    <span class="n">size_upper</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">fisher_information_matrices</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
     <span class="n">size_lower</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">matrices_for_determinants</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
-    <span class="n">exponent_upper</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="nb">float</span><span class="p">(</span><span class="n">size_upper</span><span class="p">)</span>
     <span class="n">exponent_lower</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="nb">float</span><span class="p">(</span><span class="n">size_lower</span><span class="p">)</span>
 
-    <span class="c1"># calculate + normalize determinants</span>
     <span class="n">determinants</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">det</span><span class="p">(</span><span class="n">m</span><span class="p">)</span> <span class="o">**</span> <span class="n">exponent_lower</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">matrices_for_determinants</span><span class="p">]</span>
-
-    <span class="k">if</span> <span class="n">normalise_determinants</span><span class="p">:</span>
-        <span class="n">max_information</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">determinants</span><span class="p">)</span>
-        <span class="n">determinants</span> <span class="o">=</span> <span class="n">determinants</span> <span class="o">/</span> <span class="n">max_information</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="n">max_information</span> <span class="o">=</span> <span class="mf">1.0</span>
 
     <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">determinants</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">labels</span><span class="p">)</span>
     <span class="n">n_entries</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">determinants</span><span class="p">)</span>
 
-    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
-    <span class="k">for</span> <span class="n">l</span><span class="p">,</span> <span class="n">d</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">labels</span><span class="p">,</span> <span class="n">determinants</span><span class="p">):</span>
-        <span class="nb">print</span><span class="p">(</span><span class="n">l</span> <span class="o">+</span> <span class="s2">&quot;: det I_</span><span class="si">{ij}</span><span class="s2"> =&quot;</span><span class="p">,</span> <span class="n">d</span><span class="p">)</span>
-
-    <span class="c1"># calculate eigenvalues + eigenvalue composition</span>
+    <span class="c1"># Calculate eigenvalues + eigenvalue composition</span>
     <span class="n">eigenvalues</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="n">eigenvalues_dominant_components</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="n">eigenvalues_composition</span> <span class="o">=</span> <span class="p">[]</span>
 
-    <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">matrices</span><span class="p">:</span>
+    <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">fisher_information_matrices</span><span class="p">:</span>
         <span class="n">v</span><span class="p">,</span> <span class="n">w</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">eig</span><span class="p">(</span><span class="n">m</span><span class="p">)</span>
         <span class="n">w</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">w</span><span class="p">)</span>
         <span class="n">v</span><span class="p">,</span> <span class="n">w</span> <span class="o">=</span> <span class="nb">zip</span><span class="p">(</span><span class="o">*</span><span class="nb">sorted</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">w</span><span class="p">),</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">reverse</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
@@ -533,58 +519,36 @@
         <span class="n">eigenvalues_dominant_components</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">temp_dominant_components</span><span class="p">)</span>
         <span class="n">eigenvalues_composition</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">temp_composition</span><span class="p">)</span>
 
-    <span class="c1"># assign categories, if they are not defined yet</span>
-    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">categories</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-        <span class="n">categories</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_entries</span><span class="p">)]</span>
-
-    <span class="c1">#################################################################################</span>
-    <span class="c1"># Plotting options</span>
-    <span class="c1">#################################################################################</span>
-
-    <span class="c1"># Base x values</span>
+    <span class="c1"># x positioning</span>
     <span class="n">base_xvalues</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="n">n_entries</span><span class="p">)</span> <span class="o">-</span> <span class="mf">1.0</span><span class="p">,</span> <span class="n">n_entries</span><span class="p">)</span>
-    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_entries</span><span class="p">):</span>
-        <span class="n">base_xvalues</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="nb">float</span><span class="p">(</span><span class="n">categories</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="o">*</span> <span class="mf">1.0</span>
-
     <span class="n">base_xmin</span> <span class="o">=</span> <span class="n">base_xvalues</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
     <span class="n">base_xmax</span> <span class="o">=</span> <span class="n">base_xvalues</span><span class="p">[</span><span class="n">n_entries</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="mf">1.0</span>
-
-    <span class="n">xpos</span> <span class="o">=</span> <span class="n">base_xvalues</span> <span class="o">+</span> <span class="mf">0.2</span>
-    <span class="n">width</span> <span class="o">=</span> <span class="mf">0.6</span>
     <span class="n">xmin_eigenvalues</span> <span class="o">=</span> <span class="n">base_xvalues</span> <span class="o">+</span> <span class="mf">0.08</span>
     <span class="n">xmax_eigenvalues</span> <span class="o">=</span> <span class="n">base_xvalues</span> <span class="o">+</span> <span class="mf">0.92</span>
     <span class="n">xpos_ticks</span> <span class="o">=</span> <span class="n">base_xvalues</span> <span class="o">+</span> <span class="mf">0.5</span>
-
     <span class="n">xpos_lower</span> <span class="o">=</span> <span class="n">base_xvalues</span> <span class="o">+</span> <span class="mf">0.5</span>
     <span class="n">width_lower</span> <span class="o">=</span> <span class="mf">0.8</span>
 
-    <span class="c1"># barcolored - either colored or gray</span>
-    <span class="k">if</span> <span class="n">use_bar_colors</span><span class="p">:</span>
-        <span class="n">bar_colors</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;red&quot;</span><span class="p">,</span> <span class="s2">&quot;blue&quot;</span><span class="p">,</span> <span class="s2">&quot;green&quot;</span><span class="p">,</span> <span class="s2">&quot;darkorange&quot;</span><span class="p">,</span> <span class="s2">&quot;fuchsia&quot;</span><span class="p">,</span> <span class="s2">&quot;turquoise&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="mi">5</span>
-        <span class="n">bar_colors_light</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;red&quot;</span><span class="p">,</span> <span class="s2">&quot;blue&quot;</span><span class="p">,</span> <span class="s2">&quot;green&quot;</span><span class="p">,</span> <span class="s2">&quot;darkorange&quot;</span><span class="p">,</span> <span class="s2">&quot;fuchsia&quot;</span><span class="p">,</span> <span class="s2">&quot;turquoise&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="mi">5</span>
+    <span class="c1"># Colors</span>
+    <span class="k">if</span> <span class="n">bar_colors</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">bar_colors</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;0.5&quot;</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_entries</span><span class="p">)]</span>
+        <span class="n">bar_colors_light</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;0.9&quot;</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_entries</span><span class="p">)]</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="n">bar_colors</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;0.5&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="mi">30</span>
-        <span class="n">bar_colors_light</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;0.9&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="mi">30</span>
+        <span class="n">bar_colors_light</span> <span class="o">=</span> <span class="n">bar_colors</span>
 
-    <span class="n">eigenvalue_colors</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;red&quot;</span><span class="p">,</span> <span class="s2">&quot;blue&quot;</span><span class="p">,</span> <span class="s2">&quot;green&quot;</span><span class="p">,</span> <span class="s2">&quot;darkorange&quot;</span><span class="p">,</span> <span class="s2">&quot;fuchsia&quot;</span><span class="p">,</span> <span class="s2">&quot;turquoise&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="mi">5</span>
+    <span class="k">if</span> <span class="n">eigenvalue_colors</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">eigenvalue_colors</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;C</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">str</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">)]</span>
     <span class="n">operator_order</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">size_upper</span><span class="p">)]</span>
     <span class="n">eigenvalue_linewidth</span> <span class="o">=</span> <span class="mf">1.5</span>
 
-    <span class="c1">#################################################################################</span>
     <span class="c1"># Upper plot</span>
-    <span class="c1">#################################################################################</span>
-
-    <span class="c1"># Plot bars!</span>
-    <span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mf">9.0</span><span class="p">,</span> <span class="mf">6.0</span><span class="p">))</span>
+    <span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mf">10.0</span><span class="p">,</span> <span class="mf">7.0</span><span class="p">))</span>
     <span class="n">ax1</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">211</span><span class="p">)</span>
-    <span class="n">ax1</span><span class="o">.</span><span class="n">set_yscale</span><span class="p">(</span><span class="s2">&quot;log&quot;</span><span class="p">)</span>
-    <span class="n">fig</span><span class="o">.</span><span class="n">subplots_adjust</span><span class="p">(</span><span class="n">left</span><span class="o">=</span><span class="mf">0.075</span><span class="p">,</span> <span class="n">right</span><span class="o">=</span><span class="mf">0.925</span><span class="p">,</span> <span class="n">bottom</span><span class="o">=</span><span class="mf">0.15</span><span class="p">,</span> <span class="n">top</span><span class="o">=</span><span class="mf">0.95</span><span class="p">,</span> <span class="n">wspace</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">hspace</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
 
     <span class="c1"># Plot eigenvalues</span>
     <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_entries</span><span class="p">):</span>
-
         <span class="k">for</span> <span class="n">eigenvalue</span><span class="p">,</span> <span class="n">composition</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">eigenvalues</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">eigenvalues_composition</span><span class="p">[</span><span class="n">i</span><span class="p">]):</span>
-            <span class="c1"># gap sizing</span>
+            <span class="c1"># Gap sizing</span>
             <span class="n">n_gaps</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
             <span class="n">minimal_fraction_for_plot</span> <span class="o">=</span> <span class="mf">0.01</span>
             <span class="k">for</span> <span class="n">fraction</span> <span class="ow">in</span> <span class="n">composition</span><span class="p">:</span>
@@ -595,8 +559,7 @@
 
             <span class="n">fraction_finished</span> <span class="o">=</span> <span class="mf">0.0</span>
 
-            <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">composition</span><span class="p">)):</span>
-                <span class="n">component</span> <span class="o">=</span> <span class="n">operator_order</span><span class="p">[</span><span class="n">j</span><span class="p">]</span>
+            <span class="k">for</span> <span class="n">component</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">composition</span><span class="p">)):</span>
                 <span class="n">fraction</span> <span class="o">=</span> <span class="n">composition</span><span class="p">[</span><span class="n">component</span><span class="p">]</span>
 
                 <span class="k">if</span> <span class="n">fraction</span> <span class="o">&gt;=</span> <span class="n">minimal_fraction_for_plot</span><span class="p">:</span>
@@ -612,207 +575,107 @@
                     <span class="p">)</span>
                     <span class="n">fraction_finished</span> <span class="o">+=</span> <span class="n">gap_correction_factor</span> <span class="o">*</span> <span class="n">fraction</span> <span class="o">+</span> <span class="n">gap_fraction</span>
 
+    <span class="n">ax1</span><span class="o">.</span><span class="n">set_yscale</span><span class="p">(</span><span class="s2">&quot;log&quot;</span><span class="p">)</span>
     <span class="n">ax1</span><span class="o">.</span><span class="n">set_xlim</span><span class="p">([</span><span class="n">base_xmin</span> <span class="o">-</span> <span class="mf">0.2</span><span class="p">,</span> <span class="n">base_xmax</span> <span class="o">+</span> <span class="mf">0.2</span><span class="p">])</span>
-
-    <span class="k">if</span> <span class="n">size_upper</span> <span class="o">&gt;</span> <span class="mi">2</span><span class="p">:</span>
-        <span class="n">orderofmagnitudes</span> <span class="o">=</span> <span class="mf">1.0e6</span>
-        <span class="n">topfactor</span> <span class="o">=</span> <span class="mf">10.0</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="n">orderofmagnitudes</span> <span class="o">=</span> <span class="mf">1.0e3</span>
-        <span class="n">topfactor</span> <span class="o">=</span> <span class="mf">5.0</span>
-
-    <span class="n">ax1</span><span class="o">.</span><span class="n">set_ylim</span><span class="p">(</span>
-        <span class="p">[</span><span class="nb">max</span><span class="p">([</span><span class="nb">max</span><span class="p">(</span><span class="n">ev</span><span class="p">)</span> <span class="k">for</span> <span class="n">ev</span> <span class="ow">in</span> <span class="n">eigenvalues</span><span class="p">])</span> <span class="o">/</span> <span class="n">orderofmagnitudes</span><span class="p">,</span> <span class="nb">max</span><span class="p">([</span><span class="nb">max</span><span class="p">(</span><span class="n">ev</span><span class="p">)</span> <span class="k">for</span> <span class="n">ev</span> <span class="ow">in</span> <span class="n">eigenvalues</span><span class="p">])</span> <span class="o">*</span> <span class="n">topfactor</span><span class="p">]</span>
-    <span class="p">)</span>
-    <span class="n">legend_position</span> <span class="o">=</span> <span class="nb">max</span><span class="p">([</span><span class="nb">max</span><span class="p">(</span><span class="n">ev</span><span class="p">)</span> <span class="k">for</span> <span class="n">ev</span> <span class="ow">in</span> <span class="n">eigenvalues</span><span class="p">])</span> <span class="o">*</span> <span class="n">topfactor</span> <span class="o">/</span> <span class="p">(</span><span class="n">topfactor</span> <span class="o">*</span> <span class="n">orderofmagnitudes</span><span class="p">)</span> <span class="o">**</span> <span class="mf">0.1</span>
+    <span class="n">y_max</span> <span class="o">=</span> <span class="nb">max</span><span class="p">([</span><span class="nb">max</span><span class="p">(</span><span class="n">ev</span><span class="p">)</span> <span class="k">for</span> <span class="n">ev</span> <span class="ow">in</span> <span class="n">eigenvalues</span><span class="p">])</span>
+    <span class="n">ax1</span><span class="o">.</span><span class="n">set_ylim</span><span class="p">(</span><span class="mf">0.0001</span> <span class="o">*</span> <span class="n">y_max</span><span class="p">,</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="n">y_max</span><span class="p">)</span>
 
     <span class="n">ax1</span><span class="o">.</span><span class="n">set_xticks</span><span class="p">(</span><span class="n">xpos_ticks</span><span class="p">)</span>
     <span class="n">ax1</span><span class="o">.</span><span class="n">set_xticklabels</span><span class="p">([</span><span class="s2">&quot;&quot;</span> <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">labels</span><span class="p">],</span> <span class="n">rotation</span><span class="o">=</span><span class="mi">40</span><span class="p">,</span> <span class="n">ha</span><span class="o">=</span><span class="s2">&quot;right&quot;</span><span class="p">)</span>
     <span class="n">ax1</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;$I_</span><span class="si">{ij}</span><span class="s2">$ eigenvalues&quot;</span><span class="p">)</span>
-    <span class="n">ax1</span><span class="o">.</span><span class="n">yaxis</span><span class="o">.</span><span class="n">set_label_coords</span><span class="p">(</span><span class="o">-</span><span class="mf">0.055</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">)</span>
 
-    <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="n">top_label</span><span class="p">,</span> <span class="n">fontdict</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;fontsize&quot;</span><span class="p">:</span> <span class="mf">12.0</span><span class="p">},</span> <span class="n">loc</span><span class="o">=</span><span class="s2">&quot;right&quot;</span><span class="p">)</span>
-
-    <span class="c1"># Second axis with typical precision</span>
-    <span class="n">ax2</span> <span class="o">=</span> <span class="n">ax1</span><span class="o">.</span><span class="n">twinx</span><span class="p">()</span>
-    <span class="n">ax2</span><span class="o">.</span><span class="n">set_yscale</span><span class="p">(</span><span class="s2">&quot;log&quot;</span><span class="p">)</span>
-
-    <span class="n">epsilon</span> <span class="o">=</span> <span class="mf">1.0e-9</span>
-
-    <span class="k">def</span> <span class="nf">precision_to_information</span><span class="p">(</span><span class="n">precision</span><span class="p">):</span>
-        <span class="k">return</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">precision</span><span class="p">,</span> <span class="n">epsilon</span><span class="p">)</span> <span class="o">/</span> <span class="mf">0.246</span><span class="p">)</span> <span class="o">**</span> <span class="mf">4.0</span>
-
-    <span class="k">def</span> <span class="nf">information_to_precision</span><span class="p">(</span><span class="n">fisher_inf</span><span class="p">):</span>
-        <span class="k">return</span> <span class="mf">0.246</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">fisher_inf</span><span class="p">,</span> <span class="n">epsilon</span><span class="p">)</span> <span class="o">**</span> <span class="mf">0.25</span>
-
-    <span class="k">def</span> <span class="nf">tick_function_information</span><span class="p">(</span><span class="n">fisher_inf</span><span class="p">):</span>
-        <span class="n">precision</span> <span class="o">=</span> <span class="mf">0.246</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">fisher_inf</span><span class="p">,</span> <span class="n">epsilon</span><span class="p">)</span> <span class="o">**</span> <span class="mf">0.25</span>
-        <span class="k">return</span> <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">z</span><span class="p">)</span> <span class="k">for</span> <span class="n">z</span> <span class="ow">in</span> <span class="n">precision</span><span class="p">]</span>
-
-    <span class="k">def</span> <span class="nf">tick_function_precision</span><span class="p">(</span><span class="n">precision</span><span class="p">):</span>
-        <span class="k">return</span> <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">z</span><span class="p">)</span> <span class="k">for</span> <span class="n">z</span> <span class="ow">in</span> <span class="n">precision</span><span class="p">]</span>
-
-    <span class="n">ax2_limits</span> <span class="o">=</span> <span class="n">ax1</span><span class="o">.</span><span class="n">get_ylim</span><span class="p">()</span>
-    <span class="n">precision_limits</span> <span class="o">=</span> <span class="n">information_to_precision</span><span class="p">(</span><span class="n">ax2_limits</span><span class="p">)</span>
-
-    <span class="n">precision_ticks</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">0.1</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.5</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">,</span> <span class="mf">3.0</span><span class="p">,</span> <span class="mf">4.0</span><span class="p">,</span> <span class="mf">5.0</span><span class="p">])</span>
-    <span class="n">ax2_ticks</span> <span class="o">=</span> <span class="n">precision_to_information</span><span class="p">(</span><span class="n">precision_ticks</span><span class="p">)</span>
-
-    <span class="n">precision_minor_ticks</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">5.0</span><span class="p">,</span> <span class="mi">51</span><span class="p">)</span>
-    <span class="n">ax2_minor_ticks</span> <span class="o">=</span> <span class="n">precision_to_information</span><span class="p">(</span><span class="n">precision_minor_ticks</span><span class="p">)</span>
-    <span class="n">ax2</span><span class="o">.</span><span class="n">set_yticks</span><span class="p">(</span><span class="n">ax2_ticks</span><span class="p">,</span> <span class="n">minor</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-    <span class="n">ax2</span><span class="o">.</span><span class="n">set_yticklabels</span><span class="p">(</span><span class="n">tick_function_precision</span><span class="p">(</span><span class="n">precision_ticks</span><span class="p">))</span>
-    <span class="n">ax2</span><span class="o">.</span><span class="n">set_yticks</span><span class="p">(</span><span class="n">ax2_minor_ticks</span><span class="p">,</span> <span class="n">minor</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-    <span class="n">ax2</span><span class="o">.</span><span class="n">set_ylim</span><span class="p">(</span><span class="n">ax2_limits</span><span class="p">)</span>
-
-    <span class="n">ax2</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;Reach $\Lambda / \sqrt</span><span class="si">{f}</span><span class="s2">$ [TeV]&quot;</span><span class="p">)</span>
-    <span class="n">ax2</span><span class="o">.</span><span class="n">yaxis</span><span class="o">.</span><span class="n">set_label_coords</span><span class="p">(</span><span class="mf">1.058</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">)</span>
-
-    <span class="c1"># legend</span>
-    <span class="k">if</span> <span class="n">eigenvalue_operator_legend</span><span class="p">:</span>
-
-        <span class="k">if</span> <span class="n">size_upper</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
-            <span class="n">legend_labels</span> <span class="o">=</span> <span class="p">[</span><span class="sa">r</span><span class="s2">&quot;Eigenvector composition:&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="n">operatorlabels</span>
-            <span class="n">legend_labels_x</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.58</span><span class="p">,</span> <span class="mf">0.88</span><span class="p">,</span> <span class="mf">0.94</span><span class="p">]</span>
-            <span class="n">legend_labels_color</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;black&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="n">eigenvalue_colors</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">legend_labels</span> <span class="o">=</span> <span class="p">[</span><span class="sa">r</span><span class="s2">&quot;Eigenvector composition:&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="n">operatorlabels</span>
-            <span class="n">legend_labels_x</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.94</span> <span class="o">-</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">operatorlabels</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="mf">0.1</span> <span class="o">-</span> <span class="mf">0.4</span><span class="p">]</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span>
-                <span class="mf">0.94</span> <span class="o">-</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">operatorlabels</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="mf">0.1</span><span class="p">,</span> <span class="mf">0.94</span><span class="p">,</span> <span class="n">num</span><span class="o">=</span><span class="mi">2</span>
-            <span class="p">)</span>
-            <span class="n">legend_labels_color</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;black&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="n">eigenvalue_colors</span>
-
-        <span class="k">for</span> <span class="n">legend_label</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">col</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">legend_labels</span><span class="p">,</span> <span class="n">legend_labels_x</span><span class="p">,</span> <span class="n">legend_labels_color</span><span class="p">):</span>
-            <span class="n">ax1</span><span class="o">.</span><span class="n">text</span><span class="p">(</span>
-                <span class="n">x</span> <span class="o">*</span> <span class="n">base_xmax</span><span class="p">,</span>
-                <span class="n">legend_position</span><span class="p">,</span>
-                <span class="n">legend_label</span><span class="p">,</span>
-                <span class="n">fontsize</span><span class="o">=</span><span class="mi">12</span><span class="p">,</span>
-                <span class="n">color</span><span class="o">=</span><span class="n">col</span><span class="p">,</span>
-                <span class="n">horizontalalignment</span><span class="o">=</span><span class="s2">&quot;left&quot;</span><span class="p">,</span>
-                <span class="n">verticalalignment</span><span class="o">=</span><span class="s2">&quot;center&quot;</span><span class="p">,</span>
-            <span class="p">)</span>
-
-    <span class="c1">#################################################################################</span>
     <span class="c1"># Lower plot</span>
-    <span class="c1">#################################################################################</span>
-
-    <span class="c1"># Plot bars!</span>
     <span class="n">ax3</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">212</span><span class="p">)</span>
 
     <span class="n">bar_plot</span> <span class="o">=</span> <span class="n">ax3</span><span class="o">.</span><span class="n">bar</span><span class="p">(</span><span class="n">xpos_lower</span><span class="p">,</span> <span class="n">determinants</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="n">width_lower</span><span class="p">,</span> <span class="n">log</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 
     <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_entries</span><span class="p">):</span>
-        <span class="n">bar_plot</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">set_color</span><span class="p">(</span><span class="n">bar_colors_light</span><span class="p">[</span><span class="n">categories</span><span class="p">[</span><span class="n">i</span><span class="p">]])</span>
-        <span class="n">bar_plot</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">set_edgecolor</span><span class="p">(</span><span class="n">bar_colors</span><span class="p">[</span><span class="n">categories</span><span class="p">[</span><span class="n">i</span><span class="p">]])</span>
+        <span class="n">bar_plot</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">set_color</span><span class="p">(</span><span class="n">bar_colors_light</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+        <span class="n">bar_plot</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">set_edgecolor</span><span class="p">(</span><span class="n">bar_colors</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
 
     <span class="n">ax3</span><span class="o">.</span><span class="n">set_xlim</span><span class="p">([</span><span class="n">base_xmin</span> <span class="o">-</span> <span class="mf">0.2</span><span class="p">,</span> <span class="n">base_xmax</span> <span class="o">+</span> <span class="mf">0.2</span><span class="p">])</span>
     <span class="n">ax3</span><span class="o">.</span><span class="n">set_ylim</span><span class="p">([</span><span class="mf">0.0</span><span class="p">,</span> <span class="nb">max</span><span class="p">(</span><span class="n">determinants</span><span class="p">)</span> <span class="o">*</span> <span class="mf">1.05</span><span class="p">])</span>
 
     <span class="n">ax3</span><span class="o">.</span><span class="n">set_xticks</span><span class="p">(</span><span class="n">xpos_ticks</span><span class="p">)</span>
     <span class="n">ax3</span><span class="o">.</span><span class="n">set_xticklabels</span><span class="p">(</span><span class="n">labels</span><span class="p">,</span> <span class="n">rotation</span><span class="o">=</span><span class="mi">40</span><span class="p">,</span> <span class="n">ha</span><span class="o">=</span><span class="s2">&quot;right&quot;</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">normalise_determinants</span><span class="p">:</span>
-        <span class="n">ax3</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;$(\det \ I_</span><span class="si">{ij}</span><span class="s2"> / \det \ I_</span><span class="si">{ij}</span><span class="s2">^{\mathrm</span><span class="si">{full}</span><span class="s2">})^{1/&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">size_lower</span><span class="p">)</span> <span class="o">+</span> <span class="sa">r</span><span class="s2">&quot;}$&quot;</span><span class="p">)</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="n">ax3</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;$(\det \ I_</span><span class="si">{ij}</span><span class="s2">)^{1/&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">size_lower</span><span class="p">)</span> <span class="o">+</span> <span class="sa">r</span><span class="s2">&quot;}$&quot;</span><span class="p">)</span>
-    <span class="n">ax3</span><span class="o">.</span><span class="n">yaxis</span><span class="o">.</span><span class="n">set_label_coords</span><span class="p">(</span><span class="o">-</span><span class="mf">0.052</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">)</span>
+    <span class="n">ax3</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;$(\det \ I_</span><span class="si">{ij}</span><span class="s2">)^{1/&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">size_lower</span><span class="p">)</span> <span class="o">+</span> <span class="sa">r</span><span class="s2">&quot;}$&quot;</span><span class="p">)</span>
 
-    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">additional_label</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-        <span class="n">ax3</span><span class="o">.</span><span class="n">text</span><span class="p">(</span>
-            <span class="mf">0.99</span> <span class="o">*</span> <span class="n">base_xmax</span><span class="p">,</span>
-            <span class="nb">max</span><span class="p">(</span><span class="n">determinants</span><span class="p">)</span> <span class="o">*</span> <span class="mf">0.93</span><span class="p">,</span>
-            <span class="n">additional_label</span><span class="p">,</span>
-            <span class="n">fontsize</span><span class="o">=</span><span class="mi">12</span><span class="p">,</span>
-            <span class="n">color</span><span class="o">=</span><span class="s2">&quot;black&quot;</span><span class="p">,</span>
-            <span class="n">horizontalalignment</span><span class="o">=</span><span class="s2">&quot;right&quot;</span><span class="p">,</span>
-            <span class="n">verticalalignment</span><span class="o">=</span><span class="s2">&quot;center&quot;</span><span class="p">,</span>
-        <span class="p">)</span>
-
-    <span class="k">def</span> <span class="nf">precision_to_norm_information</span><span class="p">(</span><span class="n">precision</span><span class="p">):</span>
-        <span class="k">return</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">precision</span><span class="p">,</span> <span class="n">epsilon</span><span class="p">)</span> <span class="o">/</span> <span class="mf">0.246</span><span class="p">)</span> <span class="o">**</span> <span class="mf">4.0</span> <span class="o">/</span> <span class="n">max_information</span>
-
-    <span class="k">def</span> <span class="nf">norm_information_to_precision</span><span class="p">(</span><span class="n">fisher_inf</span><span class="p">):</span>
-        <span class="k">return</span> <span class="mf">0.246</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">fisher_inf</span> <span class="o">*</span> <span class="n">max_information</span><span class="p">,</span> <span class="n">epsilon</span><span class="p">)</span> <span class="o">**</span> <span class="mf">0.25</span>
-
-    <span class="k">def</span> <span class="nf">tick_function_precision</span><span class="p">(</span><span class="n">precision</span><span class="p">):</span>
-        <span class="k">return</span> <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">z</span><span class="p">)</span> <span class="k">for</span> <span class="n">z</span> <span class="ow">in</span> <span class="n">precision</span><span class="p">]</span>
-
-    <span class="c1"># Second axis with typical precision</span>
-    <span class="n">ax4</span> <span class="o">=</span> <span class="n">ax3</span><span class="o">.</span><span class="n">twinx</span><span class="p">()</span>
-    <span class="n">ax4_limits</span> <span class="o">=</span> <span class="n">ax3</span><span class="o">.</span><span class="n">get_ylim</span><span class="p">()</span>
-    <span class="n">precision_limits</span> <span class="o">=</span> <span class="n">norm_information_to_precision</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">ax4_limits</span><span class="p">))</span>
-
-    <span class="c1"># precision_ticks = np.array([1.e-3,1.e-2,1.e-1,1.,1.e1,1.e2,1.e3])</span>
-    <span class="n">precision_ticks</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">0.1</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">,</span> <span class="mf">0.3</span><span class="p">,</span> <span class="mf">0.4</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.8</span><span class="p">,</span> <span class="mf">0.9</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.1</span><span class="p">,</span> <span class="mf">1.2</span><span class="p">,</span> <span class="mf">1.3</span><span class="p">,</span> <span class="mf">1.4</span><span class="p">,</span> <span class="mf">1.5</span><span class="p">])</span>
-    <span class="n">ax4_ticks</span> <span class="o">=</span> <span class="n">precision_to_norm_information</span><span class="p">(</span><span class="n">precision_ticks</span><span class="p">)</span>
-
-    <span class="c1">## precision_minor_ticks = []</span>
-    <span class="c1">## for i in [0.01,0.1,1.]:</span>
-    <span class="c1">##     for j in range(10):</span>
-    <span class="c1">##         precision_minor_ticks.append(i * j)</span>
-    <span class="c1">## precision_minor_ticks.append(precision_ticks[-1])</span>
-    <span class="c1">## precision_minor_ticks = np.array(precision_minor_ticks)</span>
-    <span class="n">precision_minor_ticks</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mf">0.1</span><span class="p">,</span> <span class="mf">5.0</span><span class="p">,</span> <span class="mi">50</span><span class="p">)</span>
-    <span class="n">ax4_minor_ticks</span> <span class="o">=</span> <span class="n">precision_to_norm_information</span><span class="p">(</span><span class="n">precision_minor_ticks</span><span class="p">)</span>
-
-    <span class="n">ax4</span><span class="o">.</span><span class="n">set_yticks</span><span class="p">(</span><span class="n">ax4_ticks</span><span class="p">,</span> <span class="n">minor</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-    <span class="n">ax4</span><span class="o">.</span><span class="n">set_yticklabels</span><span class="p">(</span><span class="n">tick_function_precision</span><span class="p">(</span><span class="n">precision_ticks</span><span class="p">))</span>
-    <span class="n">ax4</span><span class="o">.</span><span class="n">set_yticks</span><span class="p">(</span><span class="n">ax4_minor_ticks</span><span class="p">,</span> <span class="n">minor</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-
-    <span class="n">ax4</span><span class="o">.</span><span class="n">set_ylim</span><span class="p">(</span><span class="n">ax4_limits</span><span class="p">)</span>
-
-    <span class="n">ax4</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;Reach $\Lambda / \sqrt</span><span class="si">{f}</span><span class="s2">$ [TeV]&quot;</span><span class="p">)</span>
-    <span class="n">ax4</span><span class="o">.</span><span class="n">yaxis</span><span class="o">.</span><span class="n">set_label_coords</span><span class="p">(</span><span class="mf">1.058</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">)</span>
-
-    <span class="c1">#################################################################################</span>
-    <span class="c1"># Show and Save</span>
-    <span class="c1">#################################################################################</span>
-
-    <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
-    <span class="n">create_missing_folders</span><span class="p">([</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">filename</span><span class="p">)])</span>
-    <span class="n">fig</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">dpi</span><span class="o">=</span><span class="mi">300</span><span class="p">)</span>
-    <span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+    <span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">fig</span></div>
 
 
-<div class="viewcode-block" id="kinematic_distribution_of_information"><a class="viewcode-back" href="../../madminer.plotting.html#madminer.plotting.kinematic_distribution_of_information">[docs]</a><span class="k">def</span> <span class="nf">kinematic_distribution_of_information</span><span class="p">(</span>
+<div class="viewcode-block" id="plot_distribution_of_information"><a class="viewcode-back" href="../../madminer.plotting.html#madminer.plotting.plot_distribution_of_information">[docs]</a><span class="k">def</span> <span class="nf">plot_distribution_of_information</span><span class="p">(</span>
     <span class="n">xbins</span><span class="p">,</span>
-    <span class="n">xlabel</span><span class="p">,</span>
-    <span class="n">xmin</span><span class="p">,</span>
-    <span class="n">xmax</span><span class="p">,</span>
     <span class="n">xsecs</span><span class="p">,</span>
-    <span class="n">matrices</span><span class="p">,</span>
-    <span class="n">matrices_aux</span><span class="p">,</span>
-    <span class="n">filename</span><span class="p">,</span>
-    <span class="n">ylabel_addition</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+    <span class="n">fisher_information_matrices</span><span class="p">,</span>
+    <span class="n">fisher_information_matrices_aux</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">xlabel</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">xmin</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">xmax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="n">log_xsec</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
     <span class="n">norm_xsec</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-    <span class="n">show_aux</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-    <span class="n">show_labels</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-    <span class="n">label_pos_information</span><span class="o">=</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span>
-    <span class="n">label_pos_sm</span><span class="o">=</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span>
-    <span class="n">label_pos_bsm</span><span class="o">=</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span>
-    <span class="n">label_pos_bkg</span><span class="o">=</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span>
-    <span class="n">label_bsm</span><span class="o">=</span><span class="sa">r</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+    <span class="n">epsilon</span><span class="o">=</span><span class="mf">1.0e-9</span><span class="p">,</span>
 <span class="p">):</span>
-    <span class="n">epsilon</span> <span class="o">=</span> <span class="mf">1.0e-9</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Plots the distribution of the cross section together with the distribution of the Fisher information.</span>
 
-    <span class="c1"># Calculate data</span>
-    <span class="n">size</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">matrices</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    xbins : list of float</span>
+<span class="sd">        Bin boundaries.</span>
+
+<span class="sd">    xsecs : list of float</span>
+<span class="sd">        Cross sections (in pb) per bin.</span>
+
+<span class="sd">    fisher_information_matrices : list of ndarray</span>
+<span class="sd">        Fisher information matrices for each bin.</span>
+
+<span class="sd">    fisher_information_matrices_aux : list of ndarray or None, optional</span>
+<span class="sd">        Additional Fisher information matrices for each bin (will be plotted with a dashed line).</span>
+
+<span class="sd">    xlabel : str or None, optional</span>
+<span class="sd">        Label for the x axis.</span>
+
+<span class="sd">    xmin : float or None, optional</span>
+<span class="sd">        Minimum value for the x axis.</span>
+
+<span class="sd">    xmax : float or None, optional</span>
+<span class="sd">        Maximum value for the x axis.</span>
+
+<span class="sd">    log_xsec : bool, optional</span>
+<span class="sd">        Whether to plot the cross section on a logarithmic y axis.</span>
+
+<span class="sd">    norm_xsec : bool, optional</span>
+<span class="sd">        Whether the cross sections are normalized to 1.</span>
+
+<span class="sd">    epsilon : float, optional</span>
+<span class="sd">        Numerical factor.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    figure : Figure</span>
+<span class="sd">        Plot as Matplotlib Figure instance.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Prepare data</span>
+    <span class="n">n_entries</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">fisher_information_matrices</span><span class="p">)</span>
+    <span class="n">size</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">fisher_information_matrices</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
     <span class="n">exponent</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="nb">float</span><span class="p">(</span><span class="n">size</span><span class="p">)</span>
-    <span class="n">determinants</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">det</span><span class="p">(</span><span class="n">m</span><span class="p">)</span> <span class="o">**</span> <span class="n">exponent</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">matrices</span><span class="p">]</span>
-    <span class="n">determinants_aux</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">det</span><span class="p">(</span><span class="n">m</span><span class="p">)</span> <span class="o">**</span> <span class="n">exponent</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">matrices_aux</span><span class="p">]</span>
 
-    <span class="n">determinants</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan_to_num</span><span class="p">(</span><span class="n">determinants</span><span class="p">)</span>
-    <span class="n">determinants_aux</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan_to_num</span><span class="p">(</span><span class="n">determinants_aux</span><span class="p">)</span>
+    <span class="n">determinants</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">nan_to_num</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">det</span><span class="p">(</span><span class="n">m</span><span class="p">)</span> <span class="o">**</span> <span class="n">exponent</span><span class="p">)</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">fisher_information_matrices</span><span class="p">]</span>
 
-    <span class="c1"># extract normalized xsec information</span>
+    <span class="k">if</span> <span class="n">fisher_information_matrices_aux</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">determinants_aux</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">nan_to_num</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">det</span><span class="p">(</span><span class="n">m</span><span class="p">)</span> <span class="o">**</span> <span class="n">exponent</span><span class="p">)</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">fisher_information_matrices_aux</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">xlabel</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">xlabel</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+
+    <span class="c1"># Normalize xsecs</span>
     <span class="k">if</span> <span class="n">norm_xsec</span><span class="p">:</span>
         <span class="n">norm</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="nb">max</span><span class="p">(</span><span class="nb">sum</span><span class="p">([</span><span class="n">xs</span> <span class="k">for</span> <span class="n">xs</span> <span class="ow">in</span> <span class="n">xsecs</span><span class="p">]),</span> <span class="n">epsilon</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">norm</span> <span class="o">=</span> <span class="mf">1.0</span>
     <span class="n">xsec_norm</span> <span class="o">=</span> <span class="p">[</span><span class="n">norm</span> <span class="o">*</span> <span class="n">xs</span> <span class="k">for</span> <span class="n">xs</span> <span class="ow">in</span> <span class="n">xsecs</span><span class="p">]</span>
-
-    <span class="n">n_entries</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">determinants</span><span class="p">)</span>
 
     <span class="c1"># Get xvals from xbins</span>
     <span class="n">xvals</span> <span class="o">=</span> <span class="p">[(</span><span class="n">xbins</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+</span> <span class="n">xbins</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">])</span> <span class="o">/</span> <span class="mi">2</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">xbins</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)]</span>
@@ -821,22 +684,19 @@
 
     <span class="c1"># Plotting options</span>
     <span class="n">xs_color</span> <span class="o">=</span> <span class="s2">&quot;black&quot;</span>
-    <span class="n">xs_linestyle</span> <span class="o">=</span> <span class="s2">&quot;solid&quot;</span>
+    <span class="n">xs_linestyle</span> <span class="o">=</span> <span class="s2">&quot;-&quot;</span>
     <span class="n">xs_linewidth</span> <span class="o">=</span> <span class="mf">1.5</span>
 
     <span class="n">det_color</span> <span class="o">=</span> <span class="s2">&quot;red&quot;</span>
-    <span class="n">det_linestyle</span> <span class="o">=</span> <span class="s2">&quot;solid&quot;</span>
+    <span class="n">det_linestyle</span> <span class="o">=</span> <span class="s2">&quot;-&quot;</span>
     <span class="n">det_linewidth</span> <span class="o">=</span> <span class="mf">1.5</span>
-    <span class="n">det_alpha</span> <span class="o">=</span> <span class="mf">0.04</span>
+    <span class="n">det_fill_alpha</span> <span class="o">=</span> <span class="mf">0.1</span>
 
     <span class="n">det_aux_color</span> <span class="o">=</span> <span class="s2">&quot;red&quot;</span>
-    <span class="n">det_aux_linestyle</span> <span class="o">=</span> <span class="s2">&quot;dashed&quot;</span>
+    <span class="n">det_aux_linestyle</span> <span class="o">=</span> <span class="s2">&quot;--&quot;</span>
     <span class="n">det_aux_linewidth</span> <span class="o">=</span> <span class="mf">1.5</span>
 
-    <span class="c1">#################################################################################</span>
-    <span class="c1"># Full plot</span>
-    <span class="c1">#################################################################################</span>
-
+    <span class="c1"># xsec plot</span>
     <span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mf">5.4</span><span class="p">,</span> <span class="mf">4.5</span><span class="p">))</span>
     <span class="n">ax1</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">111</span><span class="p">)</span>
     <span class="n">fig</span><span class="o">.</span><span class="n">subplots_adjust</span><span class="p">(</span><span class="n">left</span><span class="o">=</span><span class="mf">0.1667</span><span class="p">,</span> <span class="n">right</span><span class="o">=</span><span class="mf">0.8333</span><span class="p">,</span> <span class="n">bottom</span><span class="o">=</span><span class="mf">0.17</span><span class="p">,</span> <span class="n">top</span><span class="o">=</span><span class="mf">0.97</span><span class="p">)</span>
@@ -844,7 +704,6 @@
     <span class="k">if</span> <span class="n">log_xsec</span><span class="p">:</span>
         <span class="n">ax1</span><span class="o">.</span><span class="n">set_yscale</span><span class="p">(</span><span class="s2">&quot;log&quot;</span><span class="p">)</span>
 
-    <span class="c1"># SM signal</span>
     <span class="n">ax1</span><span class="o">.</span><span class="n">hist</span><span class="p">(</span>
         <span class="n">xvals</span><span class="p">,</span>
         <span class="n">weights</span><span class="o">=</span><span class="n">xsec_norm</span><span class="p">,</span>
@@ -856,7 +715,6 @@
         <span class="n">linestyle</span><span class="o">=</span><span class="n">xs_linestyle</span><span class="p">,</span>
     <span class="p">)</span>
 
-    <span class="c1"># axis</span>
     <span class="k">if</span> <span class="n">norm_xsec</span><span class="p">:</span>
         <span class="n">ax1</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;Normalized distribution&quot;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">xs_color</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
@@ -867,10 +725,10 @@
     <span class="k">for</span> <span class="n">tl</span> <span class="ow">in</span> <span class="n">ax1</span><span class="o">.</span><span class="n">get_yticklabels</span><span class="p">():</span>
         <span class="n">tl</span><span class="o">.</span><span class="n">set_color</span><span class="p">(</span><span class="n">xs_color</span><span class="p">)</span>
 
-    <span class="c1"># plot: determinant</span>
+    <span class="c1"># det plot</span>
     <span class="n">ax2</span> <span class="o">=</span> <span class="n">ax1</span><span class="o">.</span><span class="n">twinx</span><span class="p">()</span>
 
-    <span class="k">if</span> <span class="n">show_aux</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">fisher_information_matrices_aux</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">ax2</span><span class="o">.</span><span class="n">hist</span><span class="p">(</span>
             <span class="n">xvals</span><span class="p">,</span>
             <span class="n">weights</span><span class="o">=</span><span class="n">determinants_aux</span><span class="p">,</span>
@@ -888,7 +746,7 @@
         <span class="n">bins</span><span class="o">=</span><span class="n">xbins</span><span class="p">,</span>
         <span class="nb">range</span><span class="o">=</span><span class="p">(</span><span class="n">xmin</span><span class="p">,</span> <span class="n">xmax</span><span class="p">),</span>
         <span class="n">histtype</span><span class="o">=</span><span class="s2">&quot;stepfilled&quot;</span><span class="p">,</span>
-        <span class="n">alpha</span><span class="o">=</span><span class="n">det_alpha</span><span class="p">,</span>
+        <span class="n">alpha</span><span class="o">=</span><span class="n">det_fill_alpha</span><span class="p">,</span>
         <span class="n">color</span><span class="o">=</span><span class="n">det_color</span><span class="p">,</span>
         <span class="n">linewidth</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
     <span class="p">)</span>
@@ -906,19 +764,11 @@
 
     <span class="n">ax2</span><span class="o">.</span><span class="n">set_xlim</span><span class="p">([</span><span class="n">xmin</span><span class="p">,</span> <span class="n">xmax</span><span class="p">])</span>
     <span class="n">ax2</span><span class="o">.</span><span class="n">set_ylim</span><span class="p">([</span><span class="mf">0.0</span><span class="p">,</span> <span class="nb">max</span><span class="p">(</span><span class="n">determinants</span><span class="p">)</span> <span class="o">*</span> <span class="mf">1.1</span><span class="p">])</span>
-    <span class="n">ax2</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;$(\det \; I_</span><span class="si">{ij}</span><span class="s2">)^{1/&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">size</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;}$&quot;</span> <span class="o">+</span> <span class="n">ylabel_addition</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">det_color</span><span class="p">)</span>
+    <span class="n">ax2</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;$(\det \; I_</span><span class="si">{ij}</span><span class="s2">)^{1/&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">size</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;}$&quot;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">det_color</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">tl</span> <span class="ow">in</span> <span class="n">ax2</span><span class="o">.</span><span class="n">get_yticklabels</span><span class="p">():</span>
         <span class="n">tl</span><span class="o">.</span><span class="n">set_color</span><span class="p">(</span><span class="n">det_color</span><span class="p">)</span>
 
-    <span class="c1">#################################################################################</span>
-    <span class="c1"># Show and Save</span>
-    <span class="c1">#################################################################################</span>
-
-    <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
-
-    <span class="n">create_missing_folders</span><span class="p">([</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">filename</span><span class="p">)])</span>
-    <span class="n">fig</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">dpi</span><span class="o">=</span><span class="mi">300</span><span class="p">)</span>
-    <span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+    <span class="k">return</span> <span class="n">fig</span></div>
 </pre></div>
 
           </div>
