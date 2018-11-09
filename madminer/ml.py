@@ -764,7 +764,8 @@ class MLForge:
 
         # Load training data
         logging.debug("Loading evaluation data")
-        if isinstance(x, str):
+        if isinstance(x, unicode):
+        #if isinstance(x, str):
             x = load_and_check(x)
         n_samples = x.shape[0]
 
