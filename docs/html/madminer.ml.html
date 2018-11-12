@@ -647,7 +647,7 @@ file, and numpy files for the mean and variance of the inputs (used for input sc
 
 <dl class="method">
 <dt id="madminer.ml.MLForge.train">
-<code class="descname">train</code><span class="sig-paren">(</span><em>method</em>, <em>x_filename</em>, <em>y_filename=None</em>, <em>theta0_filename=None</em>, <em>theta1_filename=None</em>, <em>r_xz_filename=None</em>, <em>t_xz0_filename=None</em>, <em>t_xz1_filename=None</em>, <em>features=None</em>, <em>nde_type='maf'</em>, <em>n_hidden=(100</em>, <em>100)</em>, <em>activation='tanh'</em>, <em>maf_n_mades=3</em>, <em>maf_batch_norm=True</em>, <em>maf_batch_norm_alpha=0.1</em>, <em>maf_mog_n_components=10</em>, <em>alpha=1.0</em>, <em>trainer='amsgrad'</em>, <em>n_epochs=50</em>, <em>batch_size=128</em>, <em>initial_lr=0.001</em>, <em>final_lr=0.0001</em>, <em>nesterov_momentum=None</em>, <em>validation_split=0.25</em>, <em>early_stopping=True</em>, <em>scale_inputs=True</em>, <em>grad_x_regularization=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/ml.html#MLForge.train"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.ml.MLForge.train" title="Permalink to this definition">¶</a></dt>
+<code class="descname">train</code><span class="sig-paren">(</span><em>method</em>, <em>x_filename</em>, <em>y_filename=None</em>, <em>theta0_filename=None</em>, <em>theta1_filename=None</em>, <em>r_xz_filename=None</em>, <em>t_xz0_filename=None</em>, <em>t_xz1_filename=None</em>, <em>features=None</em>, <em>nde_type='maf'</em>, <em>n_hidden=(100</em>, <em>100)</em>, <em>activation='tanh'</em>, <em>maf_n_mades=3</em>, <em>maf_batch_norm=False</em>, <em>maf_batch_norm_alpha=0.1</em>, <em>maf_mog_n_components=10</em>, <em>alpha=1.0</em>, <em>trainer='amsgrad'</em>, <em>n_epochs=50</em>, <em>batch_size=128</em>, <em>initial_lr=0.001</em>, <em>final_lr=0.0001</em>, <em>nesterov_momentum=None</em>, <em>validation_split=0.25</em>, <em>early_stopping=True</em>, <em>scale_inputs=True</em>, <em>grad_x_regularization=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/ml.html#MLForge.train"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.ml.MLForge.train" title="Permalink to this definition">¶</a></dt>
 <dd><p>Trains a neural network to estimate either the likelihood ratio or, if method is ‘sally’ or ‘sallino’, the
 score.</p>
 <p>The keyword method determines the structure of the estimator that an instance of this class represents:</p>
@@ -729,7 +729,7 @@ setup of each individual MADE layer. Default value: (100, 100).</p>
 </dd>
 <dt><strong>maf_batch_norm</strong> <span class="classifier-delimiter">:</span> <span class="classifier">bool, optional</span></dt>
 <dd><p class="first last">If method is ‘nde’ or ‘scandal’, switches batch normalization layers after each MADE layer on or off.
-Default: True.</p>
+Default: False.</p>
 </dd>
 <dt><strong>maf_batch_norm_alpha</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float, optional</span></dt>
 <dd><p class="first last">If method is ‘nde’ or ‘scandal’ and maf_batch_norm is True, this sets the alpha parameter in the calculation
@@ -741,7 +741,7 @@ Default value: 10.</p>
 </dd>
 <dt><strong>alpha</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float, optional</span></dt>
 <dd><p class="first last">Hyperparameter weighting the score error in the loss function of the ‘alices’, ‘alices2’, ‘rascal’,
-‘rascal2’, and ‘scandal’ methods.</p>
+‘rascal2’, and ‘scandal’ methods. Default value: 1.</p>
 </dd>
 <dt><strong>trainer</strong> <span class="classifier-delimiter">:</span> <span class="classifier">{“adam”, “amsgrad”, “sgd”}, optional</span></dt>
 <dd><p class="first last">Optimization algorithm. Default value: “amsgrad”.</p>
