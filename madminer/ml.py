@@ -76,7 +76,7 @@ class MLForge:
         n_hidden=(100, 100),
         activation="tanh",
         maf_n_mades=3,
-        maf_batch_norm=True,
+        maf_batch_norm=False,
         maf_batch_norm_alpha=0.1,
         maf_mog_n_components=10,
         alpha=1.0,
@@ -172,7 +172,7 @@ class MLForge:
 
         maf_batch_norm : bool, optional
             If method is 'nde' or 'scandal', switches batch normalization layers after each MADE layer on or off.
-            Default: True.
+            Default: False.
 
         maf_batch_norm_alpha : float, optional
             If method is 'nde' or 'scandal' and maf_batch_norm is True, this sets the alpha parameter in the calculation
@@ -184,7 +184,7 @@ class MLForge:
 
         alpha : float, optional
             Hyperparameter weighting the score error in the loss function of the 'alices', 'alices2', 'rascal',
-            'rascal2', and 'scandal' methods.
+            'rascal2', and 'scandal' methods. Default value: 1.
 
         trainer : {"adam", "amsgrad", "sgd"}, optional
             Optimization algorithm. Default value: "amsgrad".

@@ -199,8 +199,10 @@ class SampleAugmenter:
     * `SampleAugmenter.extract_samples_train_plain()` creates plain training samples without augmented data.
     * `SampleAugmenter.extract_samples_train_local()` creates training samples for local methods based on the score,
       such as SALLY and SALLINO.
+    * `SampleAugmenter.extract_samples_train_global()` creates training samples for non-local methods based on density
+      estimation and the score, such as SCANDAL.
     * `SampleAugmenter.extract_samples_train_ratio()` creates training samples for non-local, ratio-based methods
-      like RASCAL, ALICE, and SCANDAL.
+      like RASCAL or ALICE.
     * `SampleAugmenter.extract_samples_train_more_ratios()` does the same, but can extract joint ratios and scores
       at more parameter points. This additional information  can be used efficiently in the setup with a "doubly
       parameterized" likelihood ratio estimator that models the dependence on both the numerator and denominator
@@ -344,7 +346,7 @@ class SampleAugmenter:
         return x, theta
 
     def extract_samples_train_local(
-        self, theta, n_samples, folder, filename, test_split=0.5, switch_train_test_events=False
+        self, theta, n_samples, folder, filename, test_split=0.5, switch_train_test_events=False, log_message=True
     ):
         """
         Extracts training samples x ~ p(x|theta) as well as the joint score t(x, z|theta). This can be used for
@@ -355,6 +357,95 @@ class SampleAugmenter:
         theta : tuple
             Tuple (type, value) that defines the parameter point for the sampling. This is also where the score is
             evaluated. Pass the output of the functions `constant_benchmark_theta()` or `constant_morphing_theta()`.
+
+        n_samples : int
+            Total number of events to be drawn.
+
+        folder : str
+            Path to the folder where the resulting samples should be saved (ndarrays in .npy format).
+
+        filename : str
+            Filenames for the resulting samples. A prefix such as 'x' or 'theta0' as well as the extension
+            '.npy' will be added automatically.
+
+        test_split : float or None, optional
+            Fraction of events reserved for the evaluation sample (that will not be used for any training samples).
+            Default value: 0.5.
+
+        switch_train_test_events : bool, optional
+            If True, this function generates a training sample from the events normally reserved for test samples.
+            Default value: False.
+
+        log_message : bool, optional
+            If True, logging output. This option is only designed for internal use.
+
+        Returns
+        -------
+        x : ndarray
+            Observables with shape `(n_samples, n_observables)`. The same information is saved as a file in the given
+            folder.
+
+        theta : ndarray
+            Parameter points used for sampling (and  evaluation of the joint score) with shape
+            `(n_samples, n_parameters)`. The same information is saved as a file in the given folder.
+
+        t_xz : ndarray
+            Joint score evaluated at theta with shape `(n_samples, n_parameters)`. The same information is saved as a
+            file in the given folder.
+
+        """
+
+        if log_message:
+            logging.info(
+                "Extracting training sample for local score regression. Sampling and score evaluation according to %s",
+                theta,
+            )
+
+        create_missing_folders([folder])
+
+        if self.morpher is None:
+            raise RuntimeError("No morphing setup loaded. Cannot calculate score.")
+
+        # Thetas
+        theta_types, theta_values, n_samples_per_theta = parse_theta(theta, n_samples)
+
+        # Augmented data (gold)
+        augmented_data_definitions = [("score", 0)]
+
+        # Train / test split
+        start_event, end_event = self._train_test_split(not switch_train_test_events, test_split)
+
+        # Start
+        x, (t_xz,), (theta,) = self._extract_sample(
+            theta_sets_types=[theta_types],
+            theta_sets_values=[theta_values],
+            n_samples_per_theta=n_samples_per_theta,
+            augmented_data_definitions=augmented_data_definitions,
+            start_event=start_event,
+            end_event=end_event,
+        )
+
+        # Save data
+        if filename is not None and folder is not None:
+            np.save(folder + "/theta_" + filename + ".npy", theta)
+            np.save(folder + "/x_" + filename + ".npy", x)
+            np.save(folder + "/t_xz_" + filename + ".npy", t_xz)
+
+        return x, theta, t_xz
+
+    def extract_samples_train_global(
+        self, theta, n_samples, folder, filename, test_split=0.5, switch_train_test_events=False
+    ):
+        """
+        Extracts training samples x ~ p(x|theta) as well as the joint score t(x, z|theta), where theta is sampled
+        from a prior. This can be used for inference methods such as SCANDAL.
+
+        Parameters
+        ----------
+        theta : tuple
+            Tuple (type, value) that defines the numerator parameter point or prior over parameter points for the
+            sampling. Pass the output of the functions `constant_benchmark_theta()`, `multiple_benchmark_thetas()`,
+            `constant_morphing_theta()`, `multiple_morphing_thetas()`, or `random_morphing_thetas()`.
 
         n_samples : int
             Total number of events to be drawn.
@@ -391,41 +482,20 @@ class SampleAugmenter:
         """
 
         logging.info(
-            "Extracting training sample for local score regression. Sampling and score evaluation according to" " %s",
+            "Extracting training sample for non-local score-based methods. Sampling and score evaluation according "
+            "to %s",
             theta,
         )
 
-        create_missing_folders([folder])
-
-        if self.morpher is None:
-            raise RuntimeError("No morphing setup loaded. Cannot calculate score.")
-
-        # Thetas
-        theta_types, theta_values, n_samples_per_theta = parse_theta(theta, n_samples)
-
-        # Augmented data (gold)
-        augmented_data_definitions = [("score", 0)]
-
-        # Train / test split
-        start_event, end_event = self._train_test_split(not switch_train_test_events, test_split)
-
-        # Start
-        x, (t_xz,), (theta,) = self._extract_sample(
-            theta_sets_types=[theta_types],
-            theta_sets_values=[theta_values],
-            n_samples_per_theta=n_samples_per_theta,
-            augmented_data_definitions=augmented_data_definitions,
-            start_event=start_event,
-            end_event=end_event,
+        return self.extract_samples_train_local(
+            theta,
+            n_samples,
+            folder,
+            filename,
+            test_split=test_split,
+            switch_train_test_events=switch_train_test_events,
+            log_message=False,
         )
-
-        # Save data
-        if filename is not None and folder is not None:
-            np.save(folder + "/theta_" + filename + ".npy", theta)
-            np.save(folder + "/x_" + filename + ".npy", x)
-            np.save(folder + "/t_xz_" + filename + ".npy", t_xz)
-
-        return x, theta, t_xz
 
     def extract_samples_train_ratio(
         self, theta0, theta1, n_samples, folder, filename, test_split=0.5, switch_train_test_events=False
@@ -437,12 +507,12 @@ class SampleAugmenter:
 
         Parameters
         ----------
-        theta0 :
+        theta0 : tuple
             Tuple (type, value) that defines the numerator parameter point or prior over parameter points for the
             sampling. Pass the output of the functions `constant_benchmark_theta()`, `multiple_benchmark_thetas()`,
             `constant_morphing_theta()`, `multiple_morphing_thetas()`, or `random_morphing_thetas()`.
 
-        theta1 :
+        theta1 : tuple
             Tuple (type, value) that defines the denominator parameter point or prior over parameter points for the
             sampling. Pass the output of the functions `constant_benchmark_theta()`, `multiple_benchmark_thetas()`,
             `constant_morphing_theta()`, `multiple_morphing_thetas()`, or `random_morphing_thetas()`.
@@ -1081,7 +1151,7 @@ class SampleAugmenter:
 
         logging.debug("Starting sample extraction")
 
-        assert n_samples_per_theta > 0, "Requested %s samples per theta!".format(n_samples_per_theta)
+        assert n_samples_per_theta > 0, "Requested {} samples per theta!".format(n_samples_per_theta)
 
         if augmented_data_definitions is None:
             augmented_data_definitions = []

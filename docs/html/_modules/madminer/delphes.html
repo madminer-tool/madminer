@@ -144,7 +144,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">hepmc_sample_filenames</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">hepmc_sample_weight_labels</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">extract_weight_order</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">sampled_from_benchmark</span><span class="p">))</span></div>
 
-<div class="viewcode-block" id="DelphesProcessor.run_delphes"><a class="viewcode-back" href="../../madminer.delphes.html#madminer.delphes.DelphesProcessor.run_delphes">[docs]</a>    <span class="k">def</span> <span class="nf">run_delphes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">delphes_directory</span><span class="p">,</span> <span class="n">delphes_card</span><span class="p">,</span> <span class="n">initial_command</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">log_directory</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="DelphesProcessor.run_delphes"><a class="viewcode-back" href="../../madminer.delphes.html#madminer.delphes.DelphesProcessor.run_delphes">[docs]</a>    <span class="k">def</span> <span class="nf">run_delphes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">delphes_directory</span><span class="p">,</span> <span class="n">delphes_card</span><span class="p">,</span> <span class="n">initial_command</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">log_file</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Runs the fast detector simulation on all HepMC samples added so far.</span>
 
@@ -160,8 +160,8 @@
 <span class="sd">            Initial bash commands that have to be executed before Delphes is run (e.g. to load the correct virtual</span>
 <span class="sd">            environment). Default value: None.</span>
 
-<span class="sd">        log_directory : str or None, optional</span>
-<span class="sd">            Directory for log files in which the Delphes output is saved. Default value: None.</span>
+<span class="sd">        log_file : str or None, optional</span>
+<span class="sd">            Path to log file in which the Delphes output is saved. Default value: None.</span>
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
@@ -169,9 +169,8 @@
 
 <span class="sd">        &quot;&quot;&quot;</span>
 
-        <span class="k">if</span> <span class="n">log_directory</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">log_directory</span> <span class="o">=</span> <span class="s2">&quot;./logs&quot;</span>
-        <span class="n">log_file</span> <span class="o">=</span> <span class="n">log_directory</span> <span class="o">+</span> <span class="s2">&quot;/delphes.log&quot;</span>
+        <span class="k">if</span> <span class="n">log_file</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">log_file</span> <span class="o">=</span> <span class="s2">&quot;./logs/delphes.log&quot;</span>
 
         <span class="k">for</span> <span class="n">hepmc_sample_filename</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">hepmc_sample_filenames</span><span class="p">:</span>
             <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Running Delphes (</span><span class="si">%s</span><span class="s2">) on event sample at </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">delphes_directory</span><span class="p">,</span> <span class="n">hepmc_sample_filename</span><span class="p">)</span>
@@ -185,15 +184,15 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">delphes_sample_filenames</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">delphes_sample_filename</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="DelphesProcessor.set_acceptance"><a class="viewcode-back" href="../../madminer.delphes.html#madminer.delphes.DelphesProcessor.set_acceptance">[docs]</a>    <span class="k">def</span> <span class="nf">set_acceptance</span><span class="p">(</span>
-            <span class="bp">self</span><span class="p">,</span>
-            <span class="n">pt_min_e</span><span class="o">=</span><span class="mf">10.0</span><span class="p">,</span>
-            <span class="n">pt_min_mu</span><span class="o">=</span><span class="mf">10.0</span><span class="p">,</span>
-            <span class="n">pt_min_a</span><span class="o">=</span><span class="mf">10.0</span><span class="p">,</span>
-            <span class="n">pt_min_j</span><span class="o">=</span><span class="mf">20.0</span><span class="p">,</span>
-            <span class="n">eta_max_e</span><span class="o">=</span><span class="mf">2.5</span><span class="p">,</span>
-            <span class="n">eta_max_mu</span><span class="o">=</span><span class="mf">2.5</span><span class="p">,</span>
-            <span class="n">eta_max_a</span><span class="o">=</span><span class="mf">2.5</span><span class="p">,</span>
-            <span class="n">eta_max_j</span><span class="o">=</span><span class="mf">5.0</span><span class="p">,</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">pt_min_e</span><span class="o">=</span><span class="mf">10.0</span><span class="p">,</span>
+        <span class="n">pt_min_mu</span><span class="o">=</span><span class="mf">10.0</span><span class="p">,</span>
+        <span class="n">pt_min_a</span><span class="o">=</span><span class="mf">10.0</span><span class="p">,</span>
+        <span class="n">pt_min_j</span><span class="o">=</span><span class="mf">20.0</span><span class="p">,</span>
+        <span class="n">eta_max_e</span><span class="o">=</span><span class="mf">2.5</span><span class="p">,</span>
+        <span class="n">eta_max_mu</span><span class="o">=</span><span class="mf">2.5</span><span class="p">,</span>
+        <span class="n">eta_max_a</span><span class="o">=</span><span class="mf">2.5</span><span class="p">,</span>
+        <span class="n">eta_max_j</span><span class="o">=</span><span class="mf">5.0</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Sets acceptance cuts for all visible particles. These are taken into account before observables and cuts</span>
@@ -329,14 +328,14 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">observables_defaults</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">default</span></div>
 
 <div class="viewcode-block" id="DelphesProcessor.add_default_observables"><a class="viewcode-back" href="../../madminer.delphes.html#madminer.delphes.DelphesProcessor.add_default_observables">[docs]</a>    <span class="k">def</span> <span class="nf">add_default_observables</span><span class="p">(</span>
-            <span class="bp">self</span><span class="p">,</span>
-            <span class="n">n_leptons_max</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
-            <span class="n">n_photons_max</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
-            <span class="n">n_jets_max</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
-            <span class="n">include_met</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-            <span class="n">include_visible_sum</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-            <span class="n">include_numbers</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-            <span class="n">include_charge</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">n_leptons_max</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+        <span class="n">n_photons_max</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+        <span class="n">n_jets_max</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+        <span class="n">include_met</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">include_visible_sum</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">include_numbers</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">include_charge</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Adds a set of simple standard observables: the four-momenta (parameterized as E, pT, eta, phi) of the hardest</span>
@@ -382,7 +381,7 @@
 
         <span class="c1"># Individual observed particles</span>
         <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="n">symbol</span><span class="p">,</span> <span class="n">include_this_charge</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span>
-                <span class="p">[</span><span class="n">n_leptons_max</span><span class="p">,</span> <span class="n">n_photons_max</span><span class="p">,</span> <span class="n">n_jets_max</span><span class="p">],</span> <span class="p">[</span><span class="s2">&quot;l&quot;</span><span class="p">,</span> <span class="s2">&quot;a&quot;</span><span class="p">,</span> <span class="s2">&quot;j&quot;</span><span class="p">],</span> <span class="p">[</span><span class="kc">False</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="n">include_charge</span><span class="p">]</span>
+            <span class="p">[</span><span class="n">n_leptons_max</span><span class="p">,</span> <span class="n">n_photons_max</span><span class="p">,</span> <span class="n">n_jets_max</span><span class="p">],</span> <span class="p">[</span><span class="s2">&quot;l&quot;</span><span class="p">,</span> <span class="s2">&quot;a&quot;</span><span class="p">,</span> <span class="s2">&quot;j&quot;</span><span class="p">],</span> <span class="p">[</span><span class="kc">False</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="n">include_charge</span><span class="p">]</span>
         <span class="p">):</span>
             <span class="k">if</span> <span class="n">include_numbers</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">add_observable</span><span class="p">(</span><span class="s2">&quot;n_</span><span class="si">{}</span><span class="s2">s&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">symbol</span><span class="p">),</span> <span class="s2">&quot;len(</span><span class="si">{}</span><span class="s2">)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">symbol</span><span class="p">),</span> <span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
