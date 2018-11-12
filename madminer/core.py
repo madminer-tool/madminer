@@ -568,7 +568,7 @@ class MadMiner:
         )
 
     @staticmethod
-    def _run_or_prepare_mg_and_pythia(
+    def _run_mg_and_pythia(
         mg_directory,
         mg_process_directory,
         proc_card_filename=None,
@@ -577,16 +577,13 @@ class MadMiner:
         reweight_card_file=None,
         pythia8_card_file=None,
         is_background=False,
-        only_prepare_script=False,
-        script_filename=None,
         initial_command=None,
         log_file=None,
     ):
 
         """
-        Calls MadGraph to either generate events (with `only_prepare_scripts=False`) or to prepare a bash script that
-        will start the event generation (with `only_prepare_scripts=True`). Instead of this low-level function, it is
-        recommended to use `run` or `run_multiple`.
+        Calls MadGraph to generate events. Instead of this low-level function, it is recommended to use `run` or
+        `run_multiple`.
 
         Parameters
         ----------
@@ -620,14 +617,6 @@ class MadMiner:
             depend on the parameters (and would be the same for all benchmarks). In this case, no reweighting is run,
             which can substantially speed up the event generation. Default value: False.
 
-        only_prepare_script : bool, optional
-            If True, the event generation is not started, but instead a run.sh script is created in the process
-            directory. Default value: False.
-
-        script_filename : str or None, optional
-            If only_prepare_script is True, this sets where the shell script to run MG and Pythia is generated. If None,
-            a default filename in `mg_process_directory/madminer` is used. Default value: None.
-
         initial_command : str or None, optional
             Initial shell commands that have to be executed before MG is run (e.g. to load a virtual environment).
             Default value: None.
@@ -637,8 +626,7 @@ class MadMiner:
 
         Returns
         -------
-        bash_script_filename : str or None
-            If only_prepare_script is True, this is the path to the created bash script. Otherwise, it is None.
+            None
 
         """
 
@@ -647,42 +635,115 @@ class MadMiner:
         if proc_card_filename is not None:
             create_missing_folders([os.path.dirname(proc_card_filename)])
 
+        # Just run it already
+        logging.info("Starting MadGraph and Pythia in %s", mg_process_directory)
+
+        run_mg_pythia(
+            mg_directory,
+            mg_process_directory,
+            proc_card_filename,
+            run_card_file,
+            param_card_file,
+            reweight_card_file,
+            pythia8_card_file,
+            is_background=is_background,
+            initial_command=initial_command,
+            log_file=log_file,
+        )
+
+    @staticmethod
+    def _prepare_mg_and_pythia(
+        mg_process_directory,
+        proc_card_filename_from_mgprocdir=None,
+        run_card_file_from_mgprocdir=None,
+        param_card_file_from_mgprocdir=None,
+        reweight_card_file_from_mgprocdir=None,
+        pythia8_card_file_from_mgprocdir=None,
+        is_background=False,
+        script_file_from_mgprocdir=None,
+        initial_command=None,
+        log_dir=None,
+        log_file_from_logdir=None,
+    ):
+
+        """
+        Prepares a bash script that will start the event generation. Instead of this low-level function, it is
+        recommended to use `run` or `run_multiple`.
+
+        Parameters
+        ----------
+        mg_directory : str
+            Path to the MadGraph 5 base directory.
+
+        mg_process_directory : str
+            Path to the MG process directory.
+
+        proc_card_filename : str or None, optional
+            Filename for the MG command card that will be generated. If None, a default filename in the MG process
+            directory will be chosen.
+
+        proc_card_filename_placeholder : str or None, optional
+            Filename for the MG command card that will be generated. If None, a default filename in the MG process
+            directory will be chosen.
+
+        run_card_file_placeholder : str or None, optional
+            Path to the MadGraph run card. If None, the card present in the process folder is used. Default value:
+            None)
+
+        param_card_file_placeholder : str or None, optional
+            Path to the MadGraph run card. If None, the card present in the process folder is used. Default value:
+            None)
+
+        reweight_card_file_placeholder : str or None, optional
+            Path to the MadGraph reweight card. If None, the card present in the process folder is used. (Default value
+            = None)
+
+        pythia8_card_file_placeholder : str or None, optional
+            Path to the MadGraph Pythia8 card. If None, Pythia is not run. Default value: None.
+
+        is_background : bool, optional
+            Should be True for background processes, i.e. process in which the differential cross section does not
+            depend on the parameters (and would be the same for all benchmarks). In this case, no reweighting is run,
+            which can substantially speed up the event generation. Default value: False.
+
+        script_filename : str or None, optional
+            This sets where the shell script to run MG and Pythia is generated. If None,
+            a default filename in `mg_process_directory/madminer` is used. Default value: None.
+
+        initial_command : str or None, optional
+            Initial shell commands that have to be executed before MG is run (e.g. to load a virtual environment).
+            Default value: None.
+
+        log_file_placeholder : str or None, optional
+            Path to a log file in which the MadGraph output is saved. Default value: None.
+
+        Returns
+        -------
+        bash_script_call : str
+            How to call this script.
+
+        """
+
+        # Preparations
+        create_missing_folders([mg_process_directory, log_dir])
+        if proc_card_filename_from_mgprocdir is not None:
+            create_missing_folders([os.path.dirname(mg_process_directory + "/" + proc_card_filename_from_mgprocdir)])
+
         # Prepare run...
-        if only_prepare_script:
-            logging.info("Preparing script to run MadGraph and Pythia in %s", mg_process_directory)
+        logging.info("Preparing script to run MadGraph and Pythia in %s", mg_process_directory)
 
-            return prepare_run_mg_pythia(
-                mg_directory,
-                mg_process_directory,
-                proc_card_filename,
-                run_card_file,
-                param_card_file,
-                reweight_card_file,
-                pythia8_card_file,
-                script_file=script_filename,
-                is_background=is_background,
-                initial_command=initial_command,
-                log_file=log_file,
-            )
-
-        # ... or just run it already
-        else:
-            logging.info("Starting MadGraph and Pythia in %s", mg_process_directory)
-
-            run_mg_pythia(
-                mg_directory,
-                mg_process_directory,
-                proc_card_filename,
-                run_card_file,
-                param_card_file,
-                reweight_card_file,
-                pythia8_card_file,
-                is_background=is_background,
-                initial_command=initial_command,
-                log_file=log_file,
-            )
-
-            return None
+        return prepare_run_mg_pythia(
+            mg_process_directory,
+            proc_card_filename_from_mgprocdir=proc_card_filename_from_mgprocdir,
+            run_card_file_from_mgprocdir=run_card_file_from_mgprocdir,
+            param_card_file_from_mgprocdir=param_card_file_from_mgprocdir,
+            reweight_card_file_from_mgprocdir=reweight_card_file_from_mgprocdir,
+            pythia8_card_file_from_mgprocdir=pythia8_card_file_from_mgprocdir,
+            is_background=is_background,
+            script_file_from_mgprocdir=script_file_from_mgprocdir,
+            initial_command=initial_command,
+            log_file_from_logdir=log_file_from_logdir,
+        )
 
     def run(
         self,
@@ -926,17 +987,17 @@ class MadMiner:
             for sample_benchmark in sample_benchmarks:
 
                 # Files
-                script_file = mg_process_directory + "/madminer/scripts/run_{}.sh".format(i)
-                log_file_run = log_directory + "/run_{}.log".format(i)
-                mg_commands_filename = mg_process_directory + "/madminer/cards/mg_commands_{}.dat".format(i)
-                param_card_file = mg_process_directory + "/madminer/cards/param_card_{}.dat".format(i)
-                reweight_card_file = mg_process_directory + "/madminer/cards/reweight_card_{}.dat".format(i)
+                script_file = "madminer/scripts/run_{}.sh".format(i)
+                log_file_run = "run_{}.log".format(i)
+                mg_commands_filename =  "/madminer/cards/mg_commands_{}.dat".format(i)
+                param_card_file =  "/madminer/cards/param_card_{}.dat".format(i)
+                reweight_card_file =  "/madminer/cards/reweight_card_{}.dat".format(i)
                 new_pythia8_card_file = None
                 if pythia8_card_file is not None:
-                    new_pythia8_card_file = mg_process_directory + "/madminer/cards/pythia8_card_{}.dat".format(i)
+                    new_pythia8_card_file =  "/madminer/cards/pythia8_card_{}.dat".format(i)
                 new_run_card_file = None
                 if run_card_file is not None:
-                    new_run_card_file = mg_process_directory + "/madminer/cards/run_card_{}.dat".format(i)
+                    new_run_card_file =  "/madminer/cards/run_card_{}.dat".format(i)
 
                 logging.info("Run %s", i)
                 logging.info("  Sampling from benchmark: %s", sample_benchmark)
@@ -953,33 +1014,45 @@ class MadMiner:
                     param_card_template_file,
                     mg_process_directory,
                     sample_benchmark=sample_benchmark,
-                    param_card_filename=param_card_file,
-                    reweight_card_filename=reweight_card_file,
+                    param_card_filename=mg_process_directory + '/' + param_card_file,
+                    reweight_card_filename=mg_process_directory + '/' + reweight_card_file,
                 )
 
                 # Copy run and Pythia cards
                 if run_card_file is not None:
-                    copy_file(run_card_file, new_run_card_file)
+                    copy_file(run_card_file, mg_process_directory + '/' +  new_run_card_file)
                 if pythia8_card_file is not None:
-                    copy_file(pythia8_card_file, new_pythia8_card_file)
+                    copy_file(pythia8_card_file, mg_process_directory + '/' + new_pythia8_card_file)
 
                 # Run MG and Pythia
-                result = self._run_or_prepare_mg_and_pythia(
-                    mg_directory,
-                    mg_process_directory,
-                    mg_commands_filename,
-                    new_run_card_file,
-                    param_card_file,
-                    reweight_card_file,
-                    new_pythia8_card_file,
-                    is_background=is_background,
-                    only_prepare_script=only_prepare_script,
-                    script_filename=script_file,
-                    initial_command=initial_command,
-                    log_file=log_file_run,
-                )
-
-                results.append(result)
+                if only_prepare_script:
+                    result = self._prepare_mg_and_pythia(
+                        mg_process_directory,
+                        proc_card_filename_from_mgprocdir=mg_commands_filename,
+                        run_card_file_from_mgprocdir=new_run_card_file,
+                        param_card_file_from_mgprocdir=param_card_file,
+                        reweight_card_file_from_mgprocdir=reweight_card_file,
+                        pythia8_card_file_from_mgprocdir=new_pythia8_card_file,
+                        is_background=is_background,
+                        script_file_from_mgprocdir=script_file,
+                        initial_command=initial_command,
+                        log_dir=log_directory,
+                        log_file_from_logdir=log_file_run,
+                    )
+                    results.append(result)
+                else:
+                    self._run_mg_and_pythia(
+                        mg_directory,
+                        mg_process_directory,
+                        mg_commands_filename,
+                        mg_process_directory + "/" + new_run_card_file,
+                        mg_process_directory + "/" + param_card_file,
+                        mg_process_directory + "/" + reweight_card_file,
+                        mg_process_directory + "/" + new_pythia8_card_file,
+                        is_background=is_background,
+                        initial_command=initial_command,
+                        log_file=log_file_run,
+                    )
 
                 i += 1
 
@@ -987,11 +1060,16 @@ class MadMiner:
         if only_prepare_script:
             master_script_filename = "{}/madminer/run.sh".format(mg_process_directory)
 
+            placeholder_definition = r"mgdir=${1:-" + mg_directory + r"}" + "\n"
+            placeholder_definition += r"mgprocdir=${2:-" + mg_process_directory + r"}" + "\n"
+            placeholder_definition += r"mmlogdir=${3:-" + log_directory + r"}"
+
             commands = "\n".join(results)
             script = (
                 "#!/bin/bash\n\n# Master script to generate events for MadMiner\n\n"
-                + "# Usage: run.sh [MG_directory] [MG_process_directory]\n\n{}"
-            ).format(commands)
+                + "# Usage: run.sh [MG_directory] [MG_process_directory] [log_directory]\n\n"
+                + "{}\n\n{}"
+            ).format(placeholder_definition, commands)
 
             with open(master_script_filename, "w") as file:
                 file.write(script)
@@ -999,6 +1077,6 @@ class MadMiner:
             make_file_executable(master_script_filename)
 
             logging.info(
-                "To generate events, please run:\n\n %s [MG_directory] [MG_process_directory]\n\n",
+                "To generate events, please run:\n\n %s [MG_directory] [MG_process_directory] [log_dir]\n\n",
                 master_script_filename,
             )
