@@ -16,7 +16,7 @@ from madminer.utils.ml.models.score import LocalScoreEstimator
 from madminer.utils.ml.flow_trainer import train_flow_model, evaluate_flow_model
 from madminer.utils.ml.ratio_trainer import train_ratio_model, evaluate_ratio_model
 from madminer.utils.ml.score_trainer import train_local_score_model, evaluate_local_score_model
-from madminer.utils.various import create_missing_folders, load_and_check, general_init
+from madminer.utils.various import create_missing_folders, load_and_check, general_init, shuffle
 
 
 class MLForge:
@@ -62,34 +62,35 @@ class MLForge:
         self.x_scaling_stds = None
 
     def train(
-        self,
-        method,
-        x_filename,
-        y_filename=None,
-        theta0_filename=None,
-        theta1_filename=None,
-        r_xz_filename=None,
-        t_xz0_filename=None,
-        t_xz1_filename=None,
-        features=None,
-        nde_type="mafmog",
-        n_hidden=(100, 100, 100, 100),
-        activation="tanh",
-        maf_n_mades=3,
-        maf_batch_norm=False,
-        maf_batch_norm_alpha=0.1,
-        maf_mog_n_components=10,
-        alpha=1.0,
-        trainer="amsgrad",
-        n_epochs=50,
-        batch_size=128,
-        initial_lr=0.01,
-        final_lr=0.0001,
-        nesterov_momentum=None,
-        validation_split=None,
-        early_stopping=True,
-        scale_inputs=True,
-        grad_x_regularization=None,
+            self,
+            method,
+            x_filename,
+            y_filename=None,
+            theta0_filename=None,
+            theta1_filename=None,
+            r_xz_filename=None,
+            t_xz0_filename=None,
+            t_xz1_filename=None,
+            features=None,
+            nde_type="mafmog",
+            n_hidden=(100, 100, 100, 100),
+            activation="tanh",
+            maf_n_mades=3,
+            maf_batch_norm=False,
+            maf_batch_norm_alpha=0.1,
+            maf_mog_n_components=10,
+            alpha=1.0,
+            trainer="amsgrad",
+            n_epochs=50,
+            batch_size=128,
+            initial_lr=0.01,
+            final_lr=0.0001,
+            nesterov_momentum=None,
+            validation_split=None,
+            early_stopping=True,
+            scale_inputs=True,
+            shuffle_labels=False,
+            grad_x_regularization=None,
     ):
 
         """
@@ -217,6 +218,11 @@ class MLForge:
         scale_inputs : bool, optional
             Scale the observables to zero mean and unit variance. Default value: True.
 
+        shuffle_labels : bool optional
+            If True, the labels (`y`, `r_xz`, `t_xz`) are shuffled, while the observations (`x`) remain in their
+            normal order. This serves as a closure test, in particular as cross-check against overfitting: an estimator
+            trained with shuffle_labels=True should predict to likelihood ratios around 1 and scores around 0.
+
         grad_x_regularization : float or None, optional
             If not None, a term of the form `grad_x_regularization * |grad_x f(x)|^2` is added to the loss, where `f(x)`
             is the neural network output (the estimated log likelihood ratio or score). Default value: None.
@@ -268,6 +274,7 @@ class MLForge:
         logging.info("  Validation split:       %s", validation_split)
         logging.info("  Early stopping:         %s", early_stopping)
         logging.info("  Scale inputs:           %s", scale_inputs)
+        logging.info("  Shuffle labels          %s", shuffle_labels)
         if grad_x_regularization is None:
             logging.info("  Regularization:         None")
         else:
@@ -329,8 +336,8 @@ class MLForge:
         logging.info("Found %s samples with %s parameters and %s observables", n_samples, n_parameters, n_observables)
 
         # Scale features
-        logging.info("Rescaling inputs")
         if scale_inputs:
+            logging.info("Rescaling inputs")
             self.x_scaling_means = np.mean(x, axis=0)
             self.x_scaling_stds = np.maximum(np.std(x, axis=0), 1.0e-6)
             x[:] -= self.x_scaling_means
@@ -349,6 +356,11 @@ class MLForge:
                 np.min(x[:, i]),
                 np.max(x[:, i]),
             )
+
+        # Shuffle labels
+        if shuffle_labels:
+            logging.info("Shuffling labels")
+            y, r_xz, t_xz0, t_xz1 = shuffle(y, r_xz, t_xz0, t_xz1)
 
         # Features
         if features is not None:
@@ -535,13 +547,13 @@ class MLForge:
             )
 
     def evaluate(
-        self,
-        x_filename,
-        theta0_filename=None,
-        theta1_filename=None,
-        test_all_combinations=True,
-        evaluate_score=False,
-        return_grad_x=False,
+            self,
+            x_filename,
+            theta0_filename=None,
+            theta1_filename=None,
+            test_all_combinations=True,
+            evaluate_score=False,
+            return_grad_x=False,
     ):
 
         """
@@ -1147,14 +1159,14 @@ class EnsembleForge:
         return self.expectations
 
     def evaluate(
-        self,
-        x_filename,
-        theta0_filename=None,
-        theta1_filename=None,
-        test_all_combinations=True,
-        vote_expectation_weight=None,
-        calculate_covariance=True,
-        return_individual_predictions=False,
+            self,
+            x_filename,
+            theta0_filename=None,
+            theta1_filename=None,
+            test_all_combinations=True,
+            vote_expectation_weight=None,
+            calculate_covariance=True,
+            return_individual_predictions=False,
     ):
 
         """
@@ -1289,7 +1301,7 @@ class EnsembleForge:
         return means, covariances
 
     def calculate_fisher_information(
-        self, x, obs_weights=None, n_events=1, vote_expectation_weight=None, return_individual_predictions=False
+            self, x, obs_weights=None, n_events=1, vote_expectation_weight=None, return_individual_predictions=False
     ):
         """
         Calculates the expected Fisher information matrices for each estimator, and then returns the ensemble mean and
