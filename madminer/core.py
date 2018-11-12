@@ -985,14 +985,20 @@ class MadMiner:
 
         # Master shell script
         if only_prepare_script:
-            master_script_filename = mg_process_directory + "/madminer/run.sh"
+            master_script_filename = "{}/madminer/run.sh".format(mg_process_directory)
 
             commands = "\n".join(results)
-            script = "#!/bin/bash\n\n{}".format(commands)
+            script = (
+                "#!/bin/bash\n\n# Master script to generate events for MadMiner\n\n"
+                + "# Usage: run.sh [MG_directory] [MG_process_directory]\n\n{}"
+            ).format(commands)
 
             with open(master_script_filename, "w") as file:
                 file.write(script)
 
             make_file_executable(master_script_filename)
 
-            logging.info("To run MadGraph, please execute %s", master_script_filename)
+            logging.info(
+                "To generate events, please run:\n\n %s [MG_directory] [MG_process_directory]\n\n",
+                master_script_filename,
+            )
