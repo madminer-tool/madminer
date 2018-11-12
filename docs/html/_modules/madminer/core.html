@@ -603,7 +603,7 @@
         <span class="p">)</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">_run_or_prepare_mg_and_pythia</span><span class="p">(</span>
+    <span class="k">def</span> <span class="nf">_run_mg_and_pythia</span><span class="p">(</span>
         <span class="n">mg_directory</span><span class="p">,</span>
         <span class="n">mg_process_directory</span><span class="p">,</span>
         <span class="n">proc_card_filename</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -612,16 +612,13 @@
         <span class="n">reweight_card_file</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">pythia8_card_file</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">is_background</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-        <span class="n">only_prepare_script</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-        <span class="n">script_filename</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">initial_command</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">log_file</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="p">):</span>
 
         <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Calls MadGraph to either generate events (with `only_prepare_scripts=False`) or to prepare a bash script that</span>
-<span class="sd">        will start the event generation (with `only_prepare_scripts=True`). Instead of this low-level function, it is</span>
-<span class="sd">        recommended to use `run` or `run_multiple`.</span>
+<span class="sd">        Calls MadGraph to generate events. Instead of this low-level function, it is recommended to use `run` or</span>
+<span class="sd">        `run_multiple`.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
@@ -655,14 +652,6 @@
 <span class="sd">            depend on the parameters (and would be the same for all benchmarks). In this case, no reweighting is run,</span>
 <span class="sd">            which can substantially speed up the event generation. Default value: False.</span>
 
-<span class="sd">        only_prepare_script : bool, optional</span>
-<span class="sd">            If True, the event generation is not started, but instead a run.sh script is created in the process</span>
-<span class="sd">            directory. Default value: False.</span>
-
-<span class="sd">        script_filename : str or None, optional</span>
-<span class="sd">            If only_prepare_script is True, this sets where the shell script to run MG and Pythia is generated. If None,</span>
-<span class="sd">            a default filename in `mg_process_directory/madminer` is used. Default value: None.</span>
-
 <span class="sd">        initial_command : str or None, optional</span>
 <span class="sd">            Initial shell commands that have to be executed before MG is run (e.g. to load a virtual environment).</span>
 <span class="sd">            Default value: None.</span>
@@ -672,8 +661,7 @@
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
-<span class="sd">        bash_script_filename : str or None</span>
-<span class="sd">            If only_prepare_script is True, this is the path to the created bash script. Otherwise, it is None.</span>
+<span class="sd">            None</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
 
@@ -682,42 +670,110 @@
         <span class="k">if</span> <span class="n">proc_card_filename</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">create_missing_folders</span><span class="p">([</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">proc_card_filename</span><span class="p">)])</span>
 
+        <span class="c1"># Just run it already</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Starting MadGraph and Pythia in </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">mg_process_directory</span><span class="p">)</span>
+
+        <span class="n">run_mg_pythia</span><span class="p">(</span>
+            <span class="n">mg_directory</span><span class="p">,</span>
+            <span class="n">mg_process_directory</span><span class="p">,</span>
+            <span class="n">proc_card_filename</span><span class="p">,</span>
+            <span class="n">run_card_file</span><span class="p">,</span>
+            <span class="n">param_card_file</span><span class="p">,</span>
+            <span class="n">reweight_card_file</span><span class="p">,</span>
+            <span class="n">pythia8_card_file</span><span class="p">,</span>
+            <span class="n">is_background</span><span class="o">=</span><span class="n">is_background</span><span class="p">,</span>
+            <span class="n">initial_command</span><span class="o">=</span><span class="n">initial_command</span><span class="p">,</span>
+            <span class="n">log_file</span><span class="o">=</span><span class="n">log_file</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_prepare_mg_and_pythia</span><span class="p">(</span>
+        <span class="n">mg_process_directory</span><span class="p">,</span>
+        <span class="n">proc_card_filename_from_mgprocdir</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">run_card_file_from_mgprocdir</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">param_card_file_from_mgprocdir</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">reweight_card_file_from_mgprocdir</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">pythia8_card_file_from_mgprocdir</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">is_background</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">script_file_from_mgprocdir</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">initial_command</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">log_dir</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">log_file_from_logdir</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="p">):</span>
+
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Prepares a bash script that will start the event generation. Instead of this low-level function, it is</span>
+<span class="sd">        recommended to use `run` or `run_multiple`.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        mg_process_directory : str</span>
+<span class="sd">            Path to the MG process directory.</span>
+
+<span class="sd">        proc_card_filename_from_mgprocdir : str or None, optional</span>
+<span class="sd">            Filename for the MG command card that will be generated, relative from mg_process_directory. If None, a</span>
+<span class="sd">            default filename in the MG process directory will be chosen.</span>
+
+<span class="sd">        param_card_file_from_mgprocdir : str or None, optional</span>
+<span class="sd">            Path to the MadGraph run card, relative from mg_process_directory. If None, the card present in the process</span>
+<span class="sd">            folder is used. Default value: None.</span>
+
+<span class="sd">        param_card_file_from_mgprocdir : str or None, optional</span>
+<span class="sd">            Path to the MadGraph run card, relative from mg_process_directory. If None, the card present in the process</span>
+<span class="sd">            folder is used. Default value: None.</span>
+
+<span class="sd">        reweight_card_file_from_mgprocdir : str or None, optional</span>
+<span class="sd">            Path to the MadGraph reweight card, relative from mg_process_directory. If None, the card present in the</span>
+<span class="sd">            process folder is used. Default value: None.</span>
+
+<span class="sd">        pythia8_card_file_from_mgprocdir : str or None, optional</span>
+<span class="sd">            Path to the MadGraph Pythia8 card, relative from mg_process_directory. If None, Pythia is not run. Default</span>
+<span class="sd">            value: None.</span>
+
+<span class="sd">        is_background : bool, optional</span>
+<span class="sd">            Should be True for background processes, i.e. process in which the differential cross section does not</span>
+<span class="sd">            depend on the parameters (and would be the same for all benchmarks). In this case, no reweighting is run,</span>
+<span class="sd">            which can substantially speed up the event generation. Default value: False.</span>
+
+<span class="sd">        script_file_from_mgprocdir : str or None, optional</span>
+<span class="sd">            This sets where the shell script to run MG and Pythia is generated, relative from mg_process_directory. If</span>
+<span class="sd">            None, a default filename in `mg_process_directory/madminer` is used. Default value: None.</span>
+
+<span class="sd">        initial_command : str or None, optional</span>
+<span class="sd">            Initial shell commands that have to be executed before MG is run (e.g. to load a virtual environment).</span>
+<span class="sd">            Default value: None.</span>
+
+<span class="sd">        log_file_from_logdir : str or None, optional</span>
+<span class="sd">            Path to a log file in which the MadGraph output is saved, relative from the default log directory. Default</span>
+<span class="sd">            value: None.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        bash_script_call : str</span>
+<span class="sd">            How to call this script.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Preparations</span>
+        <span class="n">create_missing_folders</span><span class="p">([</span><span class="n">mg_process_directory</span><span class="p">,</span> <span class="n">log_dir</span><span class="p">])</span>
+        <span class="k">if</span> <span class="n">proc_card_filename_from_mgprocdir</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">create_missing_folders</span><span class="p">([</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">mg_process_directory</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span> <span class="o">+</span> <span class="n">proc_card_filename_from_mgprocdir</span><span class="p">)])</span>
+
         <span class="c1"># Prepare run...</span>
-        <span class="k">if</span> <span class="n">only_prepare_script</span><span class="p">:</span>
-            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Preparing script to run MadGraph and Pythia in </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">mg_process_directory</span><span class="p">)</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Preparing script to run MadGraph and Pythia in </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">mg_process_directory</span><span class="p">)</span>
 
-            <span class="k">return</span> <span class="n">prepare_run_mg_pythia</span><span class="p">(</span>
-                <span class="n">mg_directory</span><span class="p">,</span>
-                <span class="n">mg_process_directory</span><span class="p">,</span>
-                <span class="n">proc_card_filename</span><span class="p">,</span>
-                <span class="n">run_card_file</span><span class="p">,</span>
-                <span class="n">param_card_file</span><span class="p">,</span>
-                <span class="n">reweight_card_file</span><span class="p">,</span>
-                <span class="n">pythia8_card_file</span><span class="p">,</span>
-                <span class="n">script_file</span><span class="o">=</span><span class="n">script_filename</span><span class="p">,</span>
-                <span class="n">is_background</span><span class="o">=</span><span class="n">is_background</span><span class="p">,</span>
-                <span class="n">initial_command</span><span class="o">=</span><span class="n">initial_command</span><span class="p">,</span>
-                <span class="n">log_file</span><span class="o">=</span><span class="n">log_file</span><span class="p">,</span>
-            <span class="p">)</span>
-
-        <span class="c1"># ... or just run it already</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Starting MadGraph and Pythia in </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">mg_process_directory</span><span class="p">)</span>
-
-            <span class="n">run_mg_pythia</span><span class="p">(</span>
-                <span class="n">mg_directory</span><span class="p">,</span>
-                <span class="n">mg_process_directory</span><span class="p">,</span>
-                <span class="n">proc_card_filename</span><span class="p">,</span>
-                <span class="n">run_card_file</span><span class="p">,</span>
-                <span class="n">param_card_file</span><span class="p">,</span>
-                <span class="n">reweight_card_file</span><span class="p">,</span>
-                <span class="n">pythia8_card_file</span><span class="p">,</span>
-                <span class="n">is_background</span><span class="o">=</span><span class="n">is_background</span><span class="p">,</span>
-                <span class="n">initial_command</span><span class="o">=</span><span class="n">initial_command</span><span class="p">,</span>
-                <span class="n">log_file</span><span class="o">=</span><span class="n">log_file</span><span class="p">,</span>
-            <span class="p">)</span>
-
-            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="n">prepare_run_mg_pythia</span><span class="p">(</span>
+            <span class="n">mg_process_directory</span><span class="p">,</span>
+            <span class="n">proc_card_filename_from_mgprocdir</span><span class="o">=</span><span class="n">proc_card_filename_from_mgprocdir</span><span class="p">,</span>
+            <span class="n">run_card_file_from_mgprocdir</span><span class="o">=</span><span class="n">run_card_file_from_mgprocdir</span><span class="p">,</span>
+            <span class="n">param_card_file_from_mgprocdir</span><span class="o">=</span><span class="n">param_card_file_from_mgprocdir</span><span class="p">,</span>
+            <span class="n">reweight_card_file_from_mgprocdir</span><span class="o">=</span><span class="n">reweight_card_file_from_mgprocdir</span><span class="p">,</span>
+            <span class="n">pythia8_card_file_from_mgprocdir</span><span class="o">=</span><span class="n">pythia8_card_file_from_mgprocdir</span><span class="p">,</span>
+            <span class="n">is_background</span><span class="o">=</span><span class="n">is_background</span><span class="p">,</span>
+            <span class="n">script_file_from_mgprocdir</span><span class="o">=</span><span class="n">script_file_from_mgprocdir</span><span class="p">,</span>
+            <span class="n">initial_command</span><span class="o">=</span><span class="n">initial_command</span><span class="p">,</span>
+            <span class="n">log_file_from_logdir</span><span class="o">=</span><span class="n">log_file_from_logdir</span><span class="p">,</span>
+        <span class="p">)</span>
 
 <div class="viewcode-block" id="MadMiner.run"><a class="viewcode-back" href="../../madminer.core.html#madminer.core.MadMiner.run">[docs]</a>    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -944,7 +1000,7 @@
             <span class="n">log_file</span><span class="o">=</span><span class="n">log_file_generate</span><span class="p">,</span>
         <span class="p">)</span>
 
-        <span class="c1"># Make card folder</span>
+        <span class="c1"># Make MadMiner folders</span>
         <span class="n">create_missing_folders</span><span class="p">(</span>
             <span class="p">[</span>
                 <span class="n">mg_process_directory</span> <span class="o">+</span> <span class="s2">&quot;/madminer&quot;</span><span class="p">,</span>
@@ -961,17 +1017,17 @@
             <span class="k">for</span> <span class="n">sample_benchmark</span> <span class="ow">in</span> <span class="n">sample_benchmarks</span><span class="p">:</span>
 
                 <span class="c1"># Files</span>
-                <span class="n">script_file</span> <span class="o">=</span> <span class="n">mg_process_directory</span> <span class="o">+</span> <span class="s2">&quot;/madminer/scripts/run_</span><span class="si">{}</span><span class="s2">.sh&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
-                <span class="n">log_file_run</span> <span class="o">=</span> <span class="n">log_directory</span> <span class="o">+</span> <span class="s2">&quot;/run_</span><span class="si">{}</span><span class="s2">.log&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
-                <span class="n">mg_commands_filename</span> <span class="o">=</span> <span class="n">mg_process_directory</span> <span class="o">+</span> <span class="s2">&quot;/madminer/cards/mg_commands_</span><span class="si">{}</span><span class="s2">.dat&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
-                <span class="n">param_card_file</span> <span class="o">=</span> <span class="n">mg_process_directory</span> <span class="o">+</span> <span class="s2">&quot;/madminer/cards/param_card_</span><span class="si">{}</span><span class="s2">.dat&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
-                <span class="n">reweight_card_file</span> <span class="o">=</span> <span class="n">mg_process_directory</span> <span class="o">+</span> <span class="s2">&quot;/madminer/cards/reweight_card_</span><span class="si">{}</span><span class="s2">.dat&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+                <span class="n">script_file</span> <span class="o">=</span> <span class="s2">&quot;madminer/scripts/run_</span><span class="si">{}</span><span class="s2">.sh&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+                <span class="n">log_file_run</span> <span class="o">=</span> <span class="s2">&quot;run_</span><span class="si">{}</span><span class="s2">.log&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+                <span class="n">mg_commands_filename</span> <span class="o">=</span>  <span class="s2">&quot;/madminer/cards/mg_commands_</span><span class="si">{}</span><span class="s2">.dat&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+                <span class="n">param_card_file</span> <span class="o">=</span>  <span class="s2">&quot;/madminer/cards/param_card_</span><span class="si">{}</span><span class="s2">.dat&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+                <span class="n">reweight_card_file</span> <span class="o">=</span>  <span class="s2">&quot;/madminer/cards/reweight_card_</span><span class="si">{}</span><span class="s2">.dat&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
                 <span class="n">new_pythia8_card_file</span> <span class="o">=</span> <span class="kc">None</span>
                 <span class="k">if</span> <span class="n">pythia8_card_file</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                    <span class="n">new_pythia8_card_file</span> <span class="o">=</span> <span class="n">mg_process_directory</span> <span class="o">+</span> <span class="s2">&quot;/madminer/cards/pythia8_card_</span><span class="si">{}</span><span class="s2">.dat&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+                    <span class="n">new_pythia8_card_file</span> <span class="o">=</span>  <span class="s2">&quot;/madminer/cards/pythia8_card_</span><span class="si">{}</span><span class="s2">.dat&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
                 <span class="n">new_run_card_file</span> <span class="o">=</span> <span class="kc">None</span>
                 <span class="k">if</span> <span class="n">run_card_file</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                    <span class="n">new_run_card_file</span> <span class="o">=</span> <span class="n">mg_process_directory</span> <span class="o">+</span> <span class="s2">&quot;/madminer/cards/run_card_</span><span class="si">{}</span><span class="s2">.dat&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+                    <span class="n">new_run_card_file</span> <span class="o">=</span>  <span class="s2">&quot;/madminer/cards/run_card_</span><span class="si">{}</span><span class="s2">.dat&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
 
                 <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Run </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span>
                 <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;  Sampling from benchmark: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">sample_benchmark</span><span class="p">)</span>
@@ -988,49 +1044,72 @@
                     <span class="n">param_card_template_file</span><span class="p">,</span>
                     <span class="n">mg_process_directory</span><span class="p">,</span>
                     <span class="n">sample_benchmark</span><span class="o">=</span><span class="n">sample_benchmark</span><span class="p">,</span>
-                    <span class="n">param_card_filename</span><span class="o">=</span><span class="n">param_card_file</span><span class="p">,</span>
-                    <span class="n">reweight_card_filename</span><span class="o">=</span><span class="n">reweight_card_file</span><span class="p">,</span>
+                    <span class="n">param_card_filename</span><span class="o">=</span><span class="n">mg_process_directory</span> <span class="o">+</span> <span class="s1">&#39;/&#39;</span> <span class="o">+</span> <span class="n">param_card_file</span><span class="p">,</span>
+                    <span class="n">reweight_card_filename</span><span class="o">=</span><span class="n">mg_process_directory</span> <span class="o">+</span> <span class="s1">&#39;/&#39;</span> <span class="o">+</span> <span class="n">reweight_card_file</span><span class="p">,</span>
                 <span class="p">)</span>
 
                 <span class="c1"># Copy run and Pythia cards</span>
                 <span class="k">if</span> <span class="n">run_card_file</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                    <span class="n">copy_file</span><span class="p">(</span><span class="n">run_card_file</span><span class="p">,</span> <span class="n">new_run_card_file</span><span class="p">)</span>
+                    <span class="n">copy_file</span><span class="p">(</span><span class="n">run_card_file</span><span class="p">,</span> <span class="n">mg_process_directory</span> <span class="o">+</span> <span class="s1">&#39;/&#39;</span> <span class="o">+</span>  <span class="n">new_run_card_file</span><span class="p">)</span>
                 <span class="k">if</span> <span class="n">pythia8_card_file</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                    <span class="n">copy_file</span><span class="p">(</span><span class="n">pythia8_card_file</span><span class="p">,</span> <span class="n">new_pythia8_card_file</span><span class="p">)</span>
+                    <span class="n">copy_file</span><span class="p">(</span><span class="n">pythia8_card_file</span><span class="p">,</span> <span class="n">mg_process_directory</span> <span class="o">+</span> <span class="s1">&#39;/&#39;</span> <span class="o">+</span> <span class="n">new_pythia8_card_file</span><span class="p">)</span>
 
                 <span class="c1"># Run MG and Pythia</span>
-                <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_run_or_prepare_mg_and_pythia</span><span class="p">(</span>
-                    <span class="n">mg_directory</span><span class="p">,</span>
-                    <span class="n">mg_process_directory</span><span class="p">,</span>
-                    <span class="n">mg_commands_filename</span><span class="p">,</span>
-                    <span class="n">new_run_card_file</span><span class="p">,</span>
-                    <span class="n">param_card_file</span><span class="p">,</span>
-                    <span class="n">reweight_card_file</span><span class="p">,</span>
-                    <span class="n">new_pythia8_card_file</span><span class="p">,</span>
-                    <span class="n">is_background</span><span class="o">=</span><span class="n">is_background</span><span class="p">,</span>
-                    <span class="n">only_prepare_script</span><span class="o">=</span><span class="n">only_prepare_script</span><span class="p">,</span>
-                    <span class="n">script_filename</span><span class="o">=</span><span class="n">script_file</span><span class="p">,</span>
-                    <span class="n">initial_command</span><span class="o">=</span><span class="n">initial_command</span><span class="p">,</span>
-                    <span class="n">log_file</span><span class="o">=</span><span class="n">log_file_run</span><span class="p">,</span>
-                <span class="p">)</span>
-
-                <span class="n">results</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">only_prepare_script</span><span class="p">:</span>
+                    <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prepare_mg_and_pythia</span><span class="p">(</span>
+                        <span class="n">mg_process_directory</span><span class="p">,</span>
+                        <span class="n">proc_card_filename_from_mgprocdir</span><span class="o">=</span><span class="n">mg_commands_filename</span><span class="p">,</span>
+                        <span class="n">run_card_file_from_mgprocdir</span><span class="o">=</span><span class="n">new_run_card_file</span><span class="p">,</span>
+                        <span class="n">param_card_file_from_mgprocdir</span><span class="o">=</span><span class="n">param_card_file</span><span class="p">,</span>
+                        <span class="n">reweight_card_file_from_mgprocdir</span><span class="o">=</span><span class="n">reweight_card_file</span><span class="p">,</span>
+                        <span class="n">pythia8_card_file_from_mgprocdir</span><span class="o">=</span><span class="n">new_pythia8_card_file</span><span class="p">,</span>
+                        <span class="n">is_background</span><span class="o">=</span><span class="n">is_background</span><span class="p">,</span>
+                        <span class="n">script_file_from_mgprocdir</span><span class="o">=</span><span class="n">script_file</span><span class="p">,</span>
+                        <span class="n">initial_command</span><span class="o">=</span><span class="n">initial_command</span><span class="p">,</span>
+                        <span class="n">log_dir</span><span class="o">=</span><span class="n">log_directory</span><span class="p">,</span>
+                        <span class="n">log_file_from_logdir</span><span class="o">=</span><span class="n">log_file_run</span><span class="p">,</span>
+                    <span class="p">)</span>
+                    <span class="n">results</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_run_mg_and_pythia</span><span class="p">(</span>
+                        <span class="n">mg_directory</span><span class="p">,</span>
+                        <span class="n">mg_process_directory</span><span class="p">,</span>
+                        <span class="n">mg_commands_filename</span><span class="p">,</span>
+                        <span class="n">mg_process_directory</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span> <span class="o">+</span> <span class="n">new_run_card_file</span><span class="p">,</span>
+                        <span class="n">mg_process_directory</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span> <span class="o">+</span> <span class="n">param_card_file</span><span class="p">,</span>
+                        <span class="n">mg_process_directory</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span> <span class="o">+</span> <span class="n">reweight_card_file</span><span class="p">,</span>
+                        <span class="n">mg_process_directory</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span> <span class="o">+</span> <span class="n">new_pythia8_card_file</span><span class="p">,</span>
+                        <span class="n">is_background</span><span class="o">=</span><span class="n">is_background</span><span class="p">,</span>
+                        <span class="n">initial_command</span><span class="o">=</span><span class="n">initial_command</span><span class="p">,</span>
+                        <span class="n">log_file</span><span class="o">=</span><span class="n">log_file_run</span><span class="p">,</span>
+                    <span class="p">)</span>
 
                 <span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span>
 
         <span class="c1"># Master shell script</span>
         <span class="k">if</span> <span class="n">only_prepare_script</span><span class="p">:</span>
-            <span class="n">master_script_filename</span> <span class="o">=</span> <span class="n">mg_process_directory</span> <span class="o">+</span> <span class="s2">&quot;/madminer/run.sh&quot;</span>
+            <span class="n">master_script_filename</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">/madminer/run.sh&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">mg_process_directory</span><span class="p">)</span>
+
+            <span class="n">placeholder_definition</span> <span class="o">=</span> <span class="sa">r</span><span class="s2">&quot;mgdir=${1:-&quot;</span> <span class="o">+</span> <span class="n">mg_directory</span> <span class="o">+</span> <span class="sa">r</span><span class="s2">&quot;}&quot;</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="n">placeholder_definition</span> <span class="o">+=</span> <span class="sa">r</span><span class="s2">&quot;mgprocdir=${2:-&quot;</span> <span class="o">+</span> <span class="n">mg_process_directory</span> <span class="o">+</span> <span class="sa">r</span><span class="s2">&quot;}&quot;</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="n">placeholder_definition</span> <span class="o">+=</span> <span class="sa">r</span><span class="s2">&quot;mmlogdir=${3:-&quot;</span> <span class="o">+</span> <span class="n">log_directory</span> <span class="o">+</span> <span class="sa">r</span><span class="s2">&quot;}&quot;</span>
 
             <span class="n">commands</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">results</span><span class="p">)</span>
-            <span class="n">script</span> <span class="o">=</span> <span class="s2">&quot;#!/bin/bash</span><span class="se">\n\n</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">commands</span><span class="p">)</span>
+            <span class="n">script</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="s2">&quot;#!/bin/bash</span><span class="se">\n\n</span><span class="s2"># Master script to generate events for MadMiner</span><span class="se">\n\n</span><span class="s2">&quot;</span>
+                <span class="o">+</span> <span class="s2">&quot;# Usage: run.sh [MG_directory] [MG_process_directory] [log_directory]</span><span class="se">\n\n</span><span class="s2">&quot;</span>
+                <span class="o">+</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="se">\n\n</span><span class="si">{}</span><span class="s2">&quot;</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">placeholder_definition</span><span class="p">,</span> <span class="n">commands</span><span class="p">)</span>
 
             <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">master_script_filename</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">file</span><span class="p">:</span>
                 <span class="n">file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">script</span><span class="p">)</span>
 
             <span class="n">make_file_executable</span><span class="p">(</span><span class="n">master_script_filename</span><span class="p">)</span>
 
-            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;To run MadGraph, please execute </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">master_script_filename</span><span class="p">)</span></div></div>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                <span class="s2">&quot;To generate events, please run:</span><span class="se">\n\n</span><span class="s2"> </span><span class="si">%s</span><span class="s2"> [MG_directory] [MG_process_directory] [log_dir]</span><span class="se">\n\n</span><span class="s2">&quot;</span><span class="p">,</span>
+                <span class="n">master_script_filename</span><span class="p">,</span>
+            <span class="p">)</span></div></div>
 </pre></div>
 
           </div>

@@ -672,50 +672,45 @@ class MadMiner:
 
         Parameters
         ----------
-        mg_directory : str
-            Path to the MadGraph 5 base directory.
-
         mg_process_directory : str
             Path to the MG process directory.
 
-        proc_card_filename : str or None, optional
-            Filename for the MG command card that will be generated. If None, a default filename in the MG process
-            directory will be chosen.
+        proc_card_filename_from_mgprocdir : str or None, optional
+            Filename for the MG command card that will be generated, relative from mg_process_directory. If None, a
+            default filename in the MG process directory will be chosen.
 
-        proc_card_filename_placeholder : str or None, optional
-            Filename for the MG command card that will be generated. If None, a default filename in the MG process
-            directory will be chosen.
+        param_card_file_from_mgprocdir : str or None, optional
+            Path to the MadGraph run card, relative from mg_process_directory. If None, the card present in the process
+            folder is used. Default value: None.
 
-        run_card_file_placeholder : str or None, optional
-            Path to the MadGraph run card. If None, the card present in the process folder is used. Default value:
-            None)
+        param_card_file_from_mgprocdir : str or None, optional
+            Path to the MadGraph run card, relative from mg_process_directory. If None, the card present in the process
+            folder is used. Default value: None.
 
-        param_card_file_placeholder : str or None, optional
-            Path to the MadGraph run card. If None, the card present in the process folder is used. Default value:
-            None)
+        reweight_card_file_from_mgprocdir : str or None, optional
+            Path to the MadGraph reweight card, relative from mg_process_directory. If None, the card present in the
+            process folder is used. Default value: None.
 
-        reweight_card_file_placeholder : str or None, optional
-            Path to the MadGraph reweight card. If None, the card present in the process folder is used. (Default value
-            = None)
-
-        pythia8_card_file_placeholder : str or None, optional
-            Path to the MadGraph Pythia8 card. If None, Pythia is not run. Default value: None.
+        pythia8_card_file_from_mgprocdir : str or None, optional
+            Path to the MadGraph Pythia8 card, relative from mg_process_directory. If None, Pythia is not run. Default
+            value: None.
 
         is_background : bool, optional
             Should be True for background processes, i.e. process in which the differential cross section does not
             depend on the parameters (and would be the same for all benchmarks). In this case, no reweighting is run,
             which can substantially speed up the event generation. Default value: False.
 
-        script_filename : str or None, optional
-            This sets where the shell script to run MG and Pythia is generated. If None,
-            a default filename in `mg_process_directory/madminer` is used. Default value: None.
+        script_file_from_mgprocdir : str or None, optional
+            This sets where the shell script to run MG and Pythia is generated, relative from mg_process_directory. If
+            None, a default filename in `mg_process_directory/madminer` is used. Default value: None.
 
         initial_command : str or None, optional
             Initial shell commands that have to be executed before MG is run (e.g. to load a virtual environment).
             Default value: None.
 
-        log_file_placeholder : str or None, optional
-            Path to a log file in which the MadGraph output is saved. Default value: None.
+        log_file_from_logdir : str or None, optional
+            Path to a log file in which the MadGraph output is saved, relative from the default log directory. Default
+            value: None.
 
         Returns
         -------
@@ -970,7 +965,7 @@ class MadMiner:
             log_file=log_file_generate,
         )
 
-        # Make card folder
+        # Make MadMiner folders
         create_missing_folders(
             [
                 mg_process_directory + "/madminer",
@@ -989,15 +984,15 @@ class MadMiner:
                 # Files
                 script_file = "madminer/scripts/run_{}.sh".format(i)
                 log_file_run = "run_{}.log".format(i)
-                mg_commands_filename =  "/madminer/cards/mg_commands_{}.dat".format(i)
-                param_card_file =  "/madminer/cards/param_card_{}.dat".format(i)
-                reweight_card_file =  "/madminer/cards/reweight_card_{}.dat".format(i)
+                mg_commands_filename = "/madminer/cards/mg_commands_{}.dat".format(i)
+                param_card_file = "/madminer/cards/param_card_{}.dat".format(i)
+                reweight_card_file = "/madminer/cards/reweight_card_{}.dat".format(i)
                 new_pythia8_card_file = None
                 if pythia8_card_file is not None:
-                    new_pythia8_card_file =  "/madminer/cards/pythia8_card_{}.dat".format(i)
+                    new_pythia8_card_file = "/madminer/cards/pythia8_card_{}.dat".format(i)
                 new_run_card_file = None
                 if run_card_file is not None:
-                    new_run_card_file =  "/madminer/cards/run_card_{}.dat".format(i)
+                    new_run_card_file = "/madminer/cards/run_card_{}.dat".format(i)
 
                 logging.info("Run %s", i)
                 logging.info("  Sampling from benchmark: %s", sample_benchmark)
@@ -1014,15 +1009,15 @@ class MadMiner:
                     param_card_template_file,
                     mg_process_directory,
                     sample_benchmark=sample_benchmark,
-                    param_card_filename=mg_process_directory + '/' + param_card_file,
-                    reweight_card_filename=mg_process_directory + '/' + reweight_card_file,
+                    param_card_filename=mg_process_directory + "/" + param_card_file,
+                    reweight_card_filename=mg_process_directory + "/" + reweight_card_file,
                 )
 
                 # Copy run and Pythia cards
                 if run_card_file is not None:
-                    copy_file(run_card_file, mg_process_directory + '/' +  new_run_card_file)
+                    copy_file(run_card_file, mg_process_directory + "/" + new_run_card_file)
                 if pythia8_card_file is not None:
-                    copy_file(pythia8_card_file, mg_process_directory + '/' + new_pythia8_card_file)
+                    copy_file(pythia8_card_file, mg_process_directory + "/" + new_pythia8_card_file)
 
                 # Run MG and Pythia
                 if only_prepare_script:

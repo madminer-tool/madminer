@@ -122,7 +122,6 @@ def prepare_run_mg_pythia(
             "/Cards/pythia8_card.dat",
         )
 
-
     # Replace environment variable in proc card
     replacement_command = """sed -e 's@\$mgprocdir@'"$mgprocdir"'@' {}/{} > {}/{}""".format(
         mg_process_directory_placeholder,
@@ -158,7 +157,7 @@ def prepare_run_mg_pythia(
         script_file_from_mgprocdir,
         mg_directory_placeholder,
         mg_process_directory_placeholder,
-        log_dir_placeholder
+        log_dir_placeholder,
     )
 
     return call_placeholder
