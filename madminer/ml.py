@@ -314,7 +314,7 @@ class MLForge:
             assert t_xz1 is not None
 
         if method in ["nde", "scandal"]:
-            assert nde_type in ["maf", "maf_mog"]
+            assert nde_type in ["maf", "mafmog"]
 
         # Infer dimensions of problem
         n_samples = x.shape[0]
@@ -394,7 +394,7 @@ class MLForge:
                     batch_norm=maf_batch_norm,
                     alpha=maf_batch_norm_alpha,
                 )
-            elif nde_type == "maf_mog":
+            elif nde_type == "mafmog":
                 self.model = ConditionalMixtureMaskedAutoregressiveFlow(
                     n_conditionals=n_parameters,
                     n_inputs=n_observables,
@@ -405,8 +405,10 @@ class MLForge:
                     batch_norm=maf_batch_norm,
                     alpha=maf_batch_norm_alpha,
                 )
+            else:
+                raise RuntimeError("Unknown NDE type {}".format(nde_type))
         else:
-            raise NotImplementedError("Unknown method {}".format(method))
+            raise RuntimeError("Unknown method {}".format(method))
 
         # Loss fn
         if method in ["carl", "carl2"]:
@@ -491,6 +493,7 @@ class MLForge:
                 loss_weights=loss_weights,
                 loss_labels=loss_labels,
                 xs=x,
+                theta0s=theta0,
                 t_xz0s=t_xz0,
                 batch_size=batch_size,
                 n_epochs=n_epochs,
@@ -959,8 +962,6 @@ class EnsembleForge:
     type: either all estimators are single-parameterized likelihood ratio estimators, or all estimators are
     doubly-parameterized likelihood estimators, or all estimators are local score regressors.
 
-    Note that currently EnsembleForge only supports SALLY and SALLINO estimators.
-
     Parameters
     ----------
     estimators : None or int or list of (MLForge or str), optional
@@ -1040,7 +1041,7 @@ class EnsembleForge:
 
     def train_one(self, i, **kwargs):
         """
-        Trains an individual estimator.
+        Trains an individual estimator. See `MLForge.train()`.
 
         Parameters
         ----------
@@ -1062,7 +1063,7 @@ class EnsembleForge:
 
     def train_all(self, **kwargs):
         """
-        Trains all estimators.
+        Trains all estimators. See `MLForge.train()`.
 
         Parameters
         ----------
@@ -1513,11 +1514,9 @@ class EnsembleForge:
             if method in ["sally", "sallino"]:
                 this_method_type = "local_score"
             elif method in ["carl", "rolr", "rascal", "alice", "alices", "nde", "scandal"]:
-                # this_method_type = 'parameterized'
-                raise NotImplementedError("For now, ensemble methods are only implemented for SALLY and SALLINO.")
+                this_method_type = "parameterized"
             elif method in ["carl2", "rolr2", "rascal2", "alice2", "alices2"]:
-                # this_method_type = 'doubly_parameterized'
-                raise NotImplementedError("For now, ensemble methods are only implemented for SALLY and SALLINO.")
+                this_method_type = "doubly_parameterized"
             elif method is None:
                 continue
             else:
