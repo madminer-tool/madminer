@@ -72,8 +72,8 @@ class MLForge:
         t_xz0_filename=None,
         t_xz1_filename=None,
         features=None,
-        nde_type="maf",
-        n_hidden=(100, 100),
+        nde_type="mafmog",
+        n_hidden=(100, 100, 100, 100),
         activation="tanh",
         maf_n_mades=3,
         maf_batch_norm=False,
@@ -83,10 +83,10 @@ class MLForge:
         trainer="amsgrad",
         n_epochs=50,
         batch_size=128,
-        initial_lr=0.001,
+        initial_lr=0.01,
         final_lr=0.0001,
         nesterov_momentum=None,
-        validation_split=0.25,
+        validation_split=None,
         early_stopping=True,
         scale_inputs=True,
         grad_x_regularization=None,
@@ -158,14 +158,15 @@ class MLForge:
         nde_type : {'maf', 'mafmog'}, optional
             If the method is 'nde' or 'scandal', nde_type determines the architecture used in the neural density
             estimator. Currently supported are 'maf' for a Masked Autoregressive Flow with a Gaussian base density, or
-            'mafmog' for a Masked Autoregressive Flow with a mixture of Gaussian base densities. Default value: 'maf'.
+            'mafmog' for a Masked Autoregressive Flow with a mixture of Gaussian base densities. Default value:
+            'mafmog'.
 
         n_hidden : tuple of int, optional
             Units in each hidden layer in the neural networks. If method is 'nde' or 'scandal', this refers to the
-            setup of each individual MADE layer. Default value: (100, 100).
+            setup of each individual MADE layer. Default value: (100, 100, 100, 100).
             
         activation : {'tanh', 'sigmoid', 'relu'}, optional
-            Activation function. Default value: 'tanh'
+            Activation function. Default value: 'tanh'.
 
         maf_n_mades : int, optional
             If method is 'nde' or 'scandal', this sets the number of MADE layers. Default value: 3.
@@ -197,7 +198,7 @@ class MLForge:
 
         initial_lr : float, optional
             Learning rate during the first epoch, after which it exponentially decays to final_lr. Default value:
-            0.001.
+            0.01.
 
         final_lr : float, optional
             Learning rate during the last epoch. Default value: 0.0001.
@@ -207,17 +208,18 @@ class MLForge:
 
         validation_split : float or None, optional
             Fraction of samples used  for validation and early stopping (if early_stopping is True). If None, the entire
-            sample is used for training and early stopping is deactivated. Default value: 0.25.
+            sample is used for training and early stopping is deactivated. Default value: None.
 
         early_stopping : bool, optional
-            Activates early stopping based on the validation loss (only if validation_split is not None).
+            Activates early stopping based on the validation loss (only if validation_split is not None). Default value:
+            True.
 
         scale_inputs : bool, optional
             Scale the observables to zero mean and unit variance. Default value: True.
 
         grad_x_regularization : float or None, optional
             If not None, a term of the form `grad_x_regularization * |grad_x f(x)|^2` is added to the loss, where `f(x)`
-            is the neural network output (the estimated log likelihood ratio or score).
+            is the neural network output (the estimated log likelihood ratio or score). Default value: None.
 
         Returns
         -------
