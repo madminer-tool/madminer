@@ -412,7 +412,7 @@ class FisherInformation:
                 return fisher_info_results, covariance_results
 
             else:
-                return fisher_info_rate + fisher_info_kin[0], rate_covariance + covariance[0]
+                return fisher_info_rate + fisher_info_kin, rate_covariance + covariance
 
         return fisher_info_rate + fisher_info_kin, rate_covariance
 

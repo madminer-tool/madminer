@@ -1165,7 +1165,7 @@ class EnsembleForge:
         theta1_filename=None,
         test_all_combinations=True,
         vote_expectation_weight=None,
-        calculate_covariance=True,
+        calculate_covariance=False,
         return_individual_predictions=False,
     ):
 
@@ -1207,7 +1207,7 @@ class EnsembleForge:
             Default value: None.
 
         calculate_covariance : bool, optional
-            Whether the covariance matrix is calculated. Default value: True.
+            Whether the covariance matrix is calculated. Default value: False.
 
         return_individual_predictions : bool, optional
             Whether the individual estimator predictions are returned. Default value: False.
