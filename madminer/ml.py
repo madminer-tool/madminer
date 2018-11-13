@@ -1301,7 +1301,13 @@ class EnsembleForge:
         return means, covariances
 
     def calculate_fisher_information(
-        self, x, obs_weights=None, n_events=1, vote_expectation_weight=None, return_individual_predictions=False
+        self,
+        x,
+        obs_weights=None,
+        n_events=1,
+        uncertainty="ensemble",
+        vote_expectation_weight=None,
+        return_individual_predictions=False,
     ):
         """
         Calculates the expected Fisher information matrices for each estimator, and then returns the ensemble mean and
@@ -1326,6 +1332,12 @@ class EnsembleForge:
         n_events : float, optional
             Expected number of events for which the kinematic Fisher information should be calculated. Default value: 1.
 
+        uncertainty : {"ensemble", "expectation", "sum"}, optional
+            How the covariance matrix of the Fisher information estimate is calculate. With "ensemble", the ensemble
+            covariance is used. With "expectation", the expectation of the score is used as a measure of the uncertainty
+            of the score estimator, and this uncertainty is propagated through to the covariance matrix. With "sum",
+            both terms are summed. Default value: "ensemble"
+
         vote_expectation_weight : float or list of float or None, optional
             Factor that determines how much more weight is given to those estimators with small expectation value (as
             calculated by `calculate_expectation()`). If a list is given, results are returned for each element in the
@@ -1345,7 +1357,8 @@ class EnsembleForge:
             is given, this is a list with results for all entries in vote_expectation_weight.
 
         covariance : ndarray or list of ndarray
-            The covariance matrix of the Fisher information estimate, defined as the ensemble covariance. This object
+            The covariance matrix of the Fisher information estimate. Its definition depends on the value of
+            uncertainty; by default, the covariance is defined as the ensemble covariance. This object
             has four indices, `cov_(ij)(i'j')`, ordered as i j i' j'. It has shape
             `(n_parameters, n_parameters, n_parameters, n_parameters)`. If more then one value vote_expectation_weight
             is given, this is a list with results for all entries in vote_expectation_weight.
@@ -1395,7 +1408,7 @@ class EnsembleForge:
 
         # Calculate weighted means and covariance matrices
         means = []
-        covariances = []
+        ensemble_covariances = []
 
         for these_weights in estimator_weights:
             mean = np.average(predictions, axis=0, weights=these_weights)
@@ -1406,7 +1419,28 @@ class EnsembleForge:
             covariance_shape = (predictions.shape[1], predictions.shape[2], predictions.shape[1], predictions.shape[2])
             covariance = covariance.reshape(covariance_shape)
 
-            covariances.append(covariance)
+            ensemble_covariances.append(covariance)
+
+        # Calculate ensemble expectation
+        expectation_covariances = None
+        if self.expectations is not None and (uncertainty == "expectation" or uncertainty == "sum"):
+            individual_expectation_covariances = [2.0 * np.einsum("a,b,c,d", e, e, e, e) for e in self.expectations]
+            individual_expectation_covariances = np.array(individual_expectation_covariances)
+
+            expectation_covariances = [
+                np.average(individual_expectation_covariances, weights=these_weights)
+                for these_weights in estimator_weights
+            ]
+
+        # Final covariances
+        if uncertainty == "ensemble":
+            covariances = ensemble_covariances
+        elif uncertainty == "expectation":
+            covariances = expectation_covariances
+        elif uncertainty == "sum":
+            covariances = [cov1 + cov2 for cov1, cov2 in zip(ensemble_covariances, expectation_covariances)]
+        else:
+            raise ValueError("Unknown uncertainty mode {}".format(uncertainty))
 
         # Returns
         if len(estimator_weights) == 1:
