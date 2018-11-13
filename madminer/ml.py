@@ -1439,7 +1439,7 @@ class EnsembleForge:
             expectation_covariances = []
             for these_weights in estimator_weights:
                 expectation_covariances.append(
-                    np.average(individual_expectation_covariances, weights=these_weights)
+                    np.average(individual_expectation_covariances, weights=these_weights, axis=0)
                 )
 
         # Final covariances
