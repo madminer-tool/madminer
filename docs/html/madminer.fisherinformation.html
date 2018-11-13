@@ -110,7 +110,7 @@ different slices of one observable (the “distribution of the Fisher informatio
 </table>
 <dl class="method">
 <dt id="madminer.fisherinformation.FisherInformation.calculate_fisher_information_full_detector">
-<code class="descname">calculate_fisher_information_full_detector</code><span class="sig-paren">(</span><em>theta</em>, <em>model_file</em>, <em>unweighted_x_sample_file=None</em>, <em>luminosity=300000.0</em>, <em>return_error=None</em>, <em>ensemble_vote_expectation_weight=None</em>, <em>batch_size=100000</em>, <em>test_split=0.5</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/fisherinformation.html#FisherInformation.calculate_fisher_information_full_detector"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.fisherinformation.FisherInformation.calculate_fisher_information_full_detector" title="Permalink to this definition">¶</a></dt>
+<code class="descname">calculate_fisher_information_full_detector</code><span class="sig-paren">(</span><em>theta</em>, <em>model_file</em>, <em>unweighted_x_sample_file=None</em>, <em>luminosity=300000.0</em>, <em>include_xsec_info=True</em>, <em>uncertainty='ensemble'</em>, <em>ensemble_vote_expectation_weight=None</em>, <em>batch_size=100000</em>, <em>test_split=0.5</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/fisherinformation.html#FisherInformation.calculate_fisher_information_full_detector"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.fisherinformation.FisherInformation.calculate_fisher_information_full_detector" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculates the full Fisher information in realistic detector-level observations, estimated with neural networks.
 In addition to the MadMiner file, this requires a trained SALLY or SALLINO estimator.</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -128,14 +128,19 @@ In addition to the MadMiner file, this requires a trained SALLY or SALLINO estim
 <dt><strong>unweighted_x_sample_file</strong> <span class="classifier-delimiter">:</span> <span class="classifier">str or None</span></dt>
 <dd><p class="first last">Filename of an unweighted x sample that is sampled according to theta and obeys the cuts
 (see <cite>madminer.sampling.SampleAugmenter.extract_samples_train_local()</cite>). If None, the Fisher information
-is instead calculated on the full, weighted samples (the data in the MadMiner file).</p>
+is instead calculated on the full, weighted samples (the data in the MadMiner file). Default value: None.</p>
 </dd>
-<dt><strong>luminosity</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
-<dd><p class="first last">Luminosity in pb^-1.</p>
+<dt><strong>luminosity</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float, optional</span></dt>
+<dd><p class="first last">Luminosity in pb^-1. Default value: 300000.</p>
 </dd>
-<dt><strong>return_error</strong> <span class="classifier-delimiter">:</span> <span class="classifier">None or bool, optional</span></dt>
-<dd><p class="first last">Whether an uncertainty of the Fisher information is returned together with the prediction. If None, it is
-returned only if model_file points to the directory of an ensemble. Default value: None.</p>
+<dt><strong>include_xsec_info</strong> <span class="classifier-delimiter">:</span> <span class="classifier">bool, optional</span></dt>
+<dd><p class="first last">Whether the rate information is included in the returned Fisher information. Default value: True.</p>
+</dd>
+<dt><strong>uncertainty</strong> <span class="classifier-delimiter">:</span> <span class="classifier">{“ensemble”, “expectation”, “sum”}, optional</span></dt>
+<dd><p class="first last">How the covariance matrix of the Fisher information estimate is calculate. With “ensemble”, the ensemble
+covariance is used. With “expectation”, the expectation of the score is used as a measure of the uncertainty
+of the score estimator, and this uncertainty is propagated through to the covariance matrix. With “sum”,
+both terms are summed. Default value: “ensemble”.</p>
 </dd>
 <dt><strong>ensemble_vote_expectation_weight</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float or list of float or None, optional</span></dt>
 <dd><p class="first last">For ensemble models, the factor that determines how much more weight is given to those estimators with small
@@ -159,9 +164,8 @@ If None, all events are used (this will probably include events used during trai
 If more then one value ensemble_vote_expectation_weight is given, this is a list with results for all
 entries in ensemble_vote_expectation_weight.</p>
 </dd>
-<dt><strong>fisher_information_uncertainty</strong> <span class="classifier-delimiter">:</span> <span class="classifier">ndarray or list of ndarray</span></dt>
-<dd><p class="first last">Returned only if return_error is True, or if return_error is None and model_file is the directory of an
-ensemble. Covariance matrix of the Fisher information matrix with shape
+<dt><strong>fisher_information_uncertainty</strong> <span class="classifier-delimiter">:</span> <span class="classifier">ndarray or list of ndarray or None</span></dt>
+<dd><p class="first last">Covariance matrix of the Fisher information matrix with shape
 <cite>(n_parameters, n_parameters, n_parameters, n_parameters)</cite>. If more then one value
 ensemble_vote_expectation_weight is given, this is a list with results for all entries in
 ensemble_vote_expectation_weight.</p>

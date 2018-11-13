@@ -187,7 +187,7 @@ functions. Required if the estimators were trained with the ‘alice2’, ‘ali
 
 <dl class="method">
 <dt id="madminer.ml.EnsembleForge.calculate_fisher_information">
-<code class="descname">calculate_fisher_information</code><span class="sig-paren">(</span><em>x</em>, <em>obs_weights=None</em>, <em>n_events=1</em>, <em>vote_expectation_weight=None</em>, <em>return_individual_predictions=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/ml.html#EnsembleForge.calculate_fisher_information"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.ml.EnsembleForge.calculate_fisher_information" title="Permalink to this definition">¶</a></dt>
+<code class="descname">calculate_fisher_information</code><span class="sig-paren">(</span><em>x</em>, <em>obs_weights=None</em>, <em>n_events=1</em>, <em>uncertainty='ensemble'</em>, <em>vote_expectation_weight=None</em>, <em>return_individual_predictions=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/ml.html#EnsembleForge.calculate_fisher_information"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.ml.EnsembleForge.calculate_fisher_information" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculates the expected Fisher information matrices for each estimator, and then returns the ensemble mean and
 variance.</p>
 <p>The user has the option to treat all estimators equally (‘committee method’) or to give those with expected
@@ -211,6 +211,12 @@ parameter where the score is estimated with the SALLY / SALLINO estimator!</p>
 <dt><strong>n_events</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float, optional</span></dt>
 <dd><p class="first last">Expected number of events for which the kinematic Fisher information should be calculated. Default value: 1.</p>
 </dd>
+<dt><strong>uncertainty</strong> <span class="classifier-delimiter">:</span> <span class="classifier">{“ensemble”, “expectation”, “sum”}, optional</span></dt>
+<dd><p class="first last">How the covariance matrix of the Fisher information estimate is calculate. With “ensemble”, the ensemble
+covariance is used. With “expectation”, the expectation of the score is used as a measure of the uncertainty
+of the score estimator, and this uncertainty is propagated through to the covariance matrix. With “sum”,
+both terms are summed. Default value: “ensemble”.</p>
+</dd>
 <dt><strong>vote_expectation_weight</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float or list of float or None, optional</span></dt>
 <dd><p class="first last">Factor that determines how much more weight is given to those estimators with small expectation value (as
 calculated by <cite>calculate_expectation()</cite>). If a list is given, results are returned for each element in the
@@ -232,7 +238,8 @@ Otherwise, the estimated likelihood ratio (if test_all_combinations is True, the
 is given, this is a list with results for all entries in vote_expectation_weight.</p>
 </dd>
 <dt><strong>covariance</strong> <span class="classifier-delimiter">:</span> <span class="classifier">ndarray or list of ndarray</span></dt>
-<dd><p class="first last">The covariance matrix of the Fisher information estimate, defined as the ensemble covariance. This object
+<dd><p class="first last">The covariance matrix of the Fisher information estimate. Its definition depends on the value of
+uncertainty; by default, the covariance is defined as the ensemble covariance. This object
 has four indices, <cite>cov_(ij)(i’j’)</cite>, ordered as i j i’ j’. It has shape
 <cite>(n_parameters, n_parameters, n_parameters, n_parameters)</cite>. If more then one value vote_expectation_weight
 is given, this is a list with results for all entries in vote_expectation_weight.</p>
@@ -253,7 +260,7 @@ vote_expectation_weight is given, this is a list with results for all entries in
 
 <dl class="method">
 <dt id="madminer.ml.EnsembleForge.evaluate">
-<code class="descname">evaluate</code><span class="sig-paren">(</span><em>x_filename</em>, <em>theta0_filename=None</em>, <em>theta1_filename=None</em>, <em>test_all_combinations=True</em>, <em>vote_expectation_weight=None</em>, <em>calculate_covariance=True</em>, <em>return_individual_predictions=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/ml.html#EnsembleForge.evaluate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.ml.EnsembleForge.evaluate" title="Permalink to this definition">¶</a></dt>
+<code class="descname">evaluate</code><span class="sig-paren">(</span><em>x_filename</em>, <em>theta0_filename=None</em>, <em>theta1_filename=None</em>, <em>test_all_combinations=True</em>, <em>vote_expectation_weight=None</em>, <em>calculate_covariance=False</em>, <em>return_individual_predictions=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/ml.html#EnsembleForge.evaluate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.ml.EnsembleForge.evaluate" title="Permalink to this definition">¶</a></dt>
 <dd><p>Evaluates the estimators of the likelihood ratio (or, if method is ‘sally’ or ‘sallino’, the score), and
 calculates the ensemble mean or variance.</p>
 <p>The user has the option to treat all estimators equally (‘committee method’) or to give those with expected
@@ -292,7 +299,7 @@ list. If None, or if <cite>calculate_expectation()</cite> has not been called, a
 Default value: None.</p>
 </dd>
 <dt><strong>calculate_covariance</strong> <span class="classifier-delimiter">:</span> <span class="classifier">bool, optional</span></dt>
-<dd><p class="first last">Whether the covariance matrix is calculated. Default value: True.</p>
+<dd><p class="first last">Whether the covariance matrix is calculated. Default value: False.</p>
 </dd>
 <dt><strong>return_individual_predictions</strong> <span class="classifier-delimiter">:</span> <span class="classifier">bool, optional</span></dt>
 <dd><p class="first last">Whether the individual estimator predictions are returned. Default value: False.</p>
@@ -646,7 +653,7 @@ file, and numpy files for the mean and variance of the inputs (used for input sc
 
 <dl class="method">
 <dt id="madminer.ml.MLForge.train">
-<code class="descname">train</code><span class="sig-paren">(</span><em>method</em>, <em>x_filename</em>, <em>y_filename=None</em>, <em>theta0_filename=None</em>, <em>theta1_filename=None</em>, <em>r_xz_filename=None</em>, <em>t_xz0_filename=None</em>, <em>t_xz1_filename=None</em>, <em>features=None</em>, <em>nde_type='mafmog'</em>, <em>n_hidden=(100</em>, <em>100</em>, <em>100</em>, <em>100)</em>, <em>activation='tanh'</em>, <em>maf_n_mades=3</em>, <em>maf_batch_norm=False</em>, <em>maf_batch_norm_alpha=0.1</em>, <em>maf_mog_n_components=10</em>, <em>alpha=1.0</em>, <em>trainer='amsgrad'</em>, <em>n_epochs=50</em>, <em>batch_size=128</em>, <em>initial_lr=0.01</em>, <em>final_lr=0.0001</em>, <em>nesterov_momentum=None</em>, <em>validation_split=None</em>, <em>early_stopping=True</em>, <em>scale_inputs=True</em>, <em>grad_x_regularization=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/ml.html#MLForge.train"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.ml.MLForge.train" title="Permalink to this definition">¶</a></dt>
+<code class="descname">train</code><span class="sig-paren">(</span><em>method</em>, <em>x_filename</em>, <em>y_filename=None</em>, <em>theta0_filename=None</em>, <em>theta1_filename=None</em>, <em>r_xz_filename=None</em>, <em>t_xz0_filename=None</em>, <em>t_xz1_filename=None</em>, <em>features=None</em>, <em>nde_type='mafmog'</em>, <em>n_hidden=(100</em>, <em>100</em>, <em>100</em>, <em>100)</em>, <em>activation='tanh'</em>, <em>maf_n_mades=3</em>, <em>maf_batch_norm=False</em>, <em>maf_batch_norm_alpha=0.1</em>, <em>maf_mog_n_components=10</em>, <em>alpha=1.0</em>, <em>trainer='amsgrad'</em>, <em>n_epochs=50</em>, <em>batch_size=128</em>, <em>initial_lr=0.01</em>, <em>final_lr=0.0001</em>, <em>nesterov_momentum=None</em>, <em>validation_split=None</em>, <em>early_stopping=True</em>, <em>scale_inputs=True</em>, <em>shuffle_labels=False</em>, <em>grad_x_regularization=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/ml.html#MLForge.train"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.ml.MLForge.train" title="Permalink to this definition">¶</a></dt>
 <dd><p>Trains a neural network to estimate either the likelihood ratio or, if method is ‘sally’ or ‘sallino’, the
 score.</p>
 <p>The keyword method determines the structure of the estimator that an instance of this class represents:</p>
@@ -772,6 +779,11 @@ True.</p>
 </dd>
 <dt><strong>scale_inputs</strong> <span class="classifier-delimiter">:</span> <span class="classifier">bool, optional</span></dt>
 <dd><p class="first last">Scale the observables to zero mean and unit variance. Default value: True.</p>
+</dd>
+<dt><strong>shuffle_labels</strong> <span class="classifier-delimiter">:</span> <span class="classifier">bool optional</span></dt>
+<dd><p class="first last">If True, the labels (<cite>y</cite>, <cite>r_xz</cite>, <cite>t_xz</cite>) are shuffled, while the observations (<cite>x</cite>) remain in their
+normal order. This serves as a closure test, in particular as cross-check against overfitting: an estimator
+trained with shuffle_labels=True should predict to likelihood ratios around 1 and scores around 0.</p>
 </dd>
 <dt><strong>grad_x_regularization</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float or None, optional</span></dt>
 <dd><p class="first last">If not None, a term of the form <cite>grad_x_regularization * |grad_x f(x)|^2</cite> is added to the loss, where <cite>f(x)</cite>

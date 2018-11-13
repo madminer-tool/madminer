@@ -51,7 +51,7 @@
 <span class="kn">from</span> <span class="nn">madminer.utils.ml.flow_trainer</span> <span class="k">import</span> <span class="n">train_flow_model</span><span class="p">,</span> <span class="n">evaluate_flow_model</span>
 <span class="kn">from</span> <span class="nn">madminer.utils.ml.ratio_trainer</span> <span class="k">import</span> <span class="n">train_ratio_model</span><span class="p">,</span> <span class="n">evaluate_ratio_model</span>
 <span class="kn">from</span> <span class="nn">madminer.utils.ml.score_trainer</span> <span class="k">import</span> <span class="n">train_local_score_model</span><span class="p">,</span> <span class="n">evaluate_local_score_model</span>
-<span class="kn">from</span> <span class="nn">madminer.utils.various</span> <span class="k">import</span> <span class="n">create_missing_folders</span><span class="p">,</span> <span class="n">load_and_check</span><span class="p">,</span> <span class="n">general_init</span>
+<span class="kn">from</span> <span class="nn">madminer.utils.various</span> <span class="k">import</span> <span class="n">create_missing_folders</span><span class="p">,</span> <span class="n">load_and_check</span><span class="p">,</span> <span class="n">general_init</span><span class="p">,</span> <span class="n">shuffle</span>
 
 
 <div class="viewcode-block" id="MLForge"><a class="viewcode-back" href="../../madminer.ml.html#madminer.ml.MLForge">[docs]</a><span class="k">class</span> <span class="nc">MLForge</span><span class="p">:</span>
@@ -124,6 +124,7 @@
         <span class="n">validation_split</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">early_stopping</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
         <span class="n">scale_inputs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">shuffle_labels</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
         <span class="n">grad_x_regularization</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="p">):</span>
 
@@ -252,6 +253,11 @@
 <span class="sd">        scale_inputs : bool, optional</span>
 <span class="sd">            Scale the observables to zero mean and unit variance. Default value: True.</span>
 
+<span class="sd">        shuffle_labels : bool optional</span>
+<span class="sd">            If True, the labels (`y`, `r_xz`, `t_xz`) are shuffled, while the observations (`x`) remain in their</span>
+<span class="sd">            normal order. This serves as a closure test, in particular as cross-check against overfitting: an estimator</span>
+<span class="sd">            trained with shuffle_labels=True should predict to likelihood ratios around 1 and scores around 0.</span>
+
 <span class="sd">        grad_x_regularization : float or None, optional</span>
 <span class="sd">            If not None, a term of the form `grad_x_regularization * |grad_x f(x)|^2` is added to the loss, where `f(x)`</span>
 <span class="sd">            is the neural network output (the estimated log likelihood ratio or score). Default value: None.</span>
@@ -303,6 +309,7 @@
         <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;  Validation split:       </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">validation_split</span><span class="p">)</span>
         <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;  Early stopping:         </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">early_stopping</span><span class="p">)</span>
         <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;  Scale inputs:           </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">scale_inputs</span><span class="p">)</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;  Shuffle labels          </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">shuffle_labels</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">grad_x_regularization</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;  Regularization:         None&quot;</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
@@ -364,8 +371,8 @@
         <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Found </span><span class="si">%s</span><span class="s2"> samples with </span><span class="si">%s</span><span class="s2"> parameters and </span><span class="si">%s</span><span class="s2"> observables&quot;</span><span class="p">,</span> <span class="n">n_samples</span><span class="p">,</span> <span class="n">n_parameters</span><span class="p">,</span> <span class="n">n_observables</span><span class="p">)</span>
 
         <span class="c1"># Scale features</span>
-        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Rescaling inputs&quot;</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">scale_inputs</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Rescaling inputs&quot;</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">x_scaling_means</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">x_scaling_stds</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span> <span class="mf">1.0e-6</span><span class="p">)</span>
             <span class="n">x</span><span class="p">[:]</span> <span class="o">-=</span> <span class="bp">self</span><span class="o">.</span><span class="n">x_scaling_means</span>
@@ -384,6 +391,11 @@
                 <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">x</span><span class="p">[:,</span> <span class="n">i</span><span class="p">]),</span>
                 <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">x</span><span class="p">[:,</span> <span class="n">i</span><span class="p">]),</span>
             <span class="p">)</span>
+
+        <span class="c1"># Shuffle labels</span>
+        <span class="k">if</span> <span class="n">shuffle_labels</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Shuffling labels&quot;</span><span class="p">)</span>
+            <span class="n">y</span><span class="p">,</span> <span class="n">r_xz</span><span class="p">,</span> <span class="n">t_xz0</span><span class="p">,</span> <span class="n">t_xz1</span> <span class="o">=</span> <span class="n">shuffle</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">r_xz</span><span class="p">,</span> <span class="n">t_xz0</span><span class="p">,</span> <span class="n">t_xz1</span><span class="p">)</span>
 
         <span class="c1"># Features</span>
         <span class="k">if</span> <span class="n">features</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -1188,7 +1200,7 @@
         <span class="n">theta1_filename</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">test_all_combinations</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
         <span class="n">vote_expectation_weight</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-        <span class="n">calculate_covariance</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">calculate_covariance</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
         <span class="n">return_individual_predictions</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
     <span class="p">):</span>
 
@@ -1230,7 +1242,7 @@
 <span class="sd">            Default value: None.</span>
 
 <span class="sd">        calculate_covariance : bool, optional</span>
-<span class="sd">            Whether the covariance matrix is calculated. Default value: True.</span>
+<span class="sd">            Whether the covariance matrix is calculated. Default value: False.</span>
 
 <span class="sd">        return_individual_predictions : bool, optional</span>
 <span class="sd">            Whether the individual estimator predictions are returned. Default value: False.</span>
@@ -1324,7 +1336,13 @@
         <span class="k">return</span> <span class="n">means</span><span class="p">,</span> <span class="n">covariances</span></div>
 
 <div class="viewcode-block" id="EnsembleForge.calculate_fisher_information"><a class="viewcode-back" href="../../madminer.ml.html#madminer.ml.EnsembleForge.calculate_fisher_information">[docs]</a>    <span class="k">def</span> <span class="nf">calculate_fisher_information</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">obs_weights</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">n_events</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">vote_expectation_weight</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">return_individual_predictions</span><span class="o">=</span><span class="kc">False</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">x</span><span class="p">,</span>
+        <span class="n">obs_weights</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">n_events</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">uncertainty</span><span class="o">=</span><span class="s2">&quot;ensemble&quot;</span><span class="p">,</span>
+        <span class="n">vote_expectation_weight</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">return_individual_predictions</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Calculates the expected Fisher information matrices for each estimator, and then returns the ensemble mean and</span>
@@ -1349,6 +1367,12 @@
 <span class="sd">        n_events : float, optional</span>
 <span class="sd">            Expected number of events for which the kinematic Fisher information should be calculated. Default value: 1.</span>
 
+<span class="sd">        uncertainty : {&quot;ensemble&quot;, &quot;expectation&quot;, &quot;sum&quot;}, optional</span>
+<span class="sd">            How the covariance matrix of the Fisher information estimate is calculate. With &quot;ensemble&quot;, the ensemble</span>
+<span class="sd">            covariance is used. With &quot;expectation&quot;, the expectation of the score is used as a measure of the uncertainty</span>
+<span class="sd">            of the score estimator, and this uncertainty is propagated through to the covariance matrix. With &quot;sum&quot;,</span>
+<span class="sd">            both terms are summed. Default value: &quot;ensemble&quot;.</span>
+
 <span class="sd">        vote_expectation_weight : float or list of float or None, optional</span>
 <span class="sd">            Factor that determines how much more weight is given to those estimators with small expectation value (as</span>
 <span class="sd">            calculated by `calculate_expectation()`). If a list is given, results are returned for each element in the</span>
@@ -1368,7 +1392,8 @@
 <span class="sd">            is given, this is a list with results for all entries in vote_expectation_weight.</span>
 
 <span class="sd">        covariance : ndarray or list of ndarray</span>
-<span class="sd">            The covariance matrix of the Fisher information estimate, defined as the ensemble covariance. This object</span>
+<span class="sd">            The covariance matrix of the Fisher information estimate. Its definition depends on the value of</span>
+<span class="sd">            uncertainty; by default, the covariance is defined as the ensemble covariance. This object</span>
 <span class="sd">            has four indices, `cov_(ij)(i&#39;j&#39;)`, ordered as i j i&#39; j&#39;. It has shape</span>
 <span class="sd">            `(n_parameters, n_parameters, n_parameters, n_parameters)`. If more then one value vote_expectation_weight</span>
 <span class="sd">            is given, this is a list with results for all entries in vote_expectation_weight.</span>
@@ -1382,6 +1407,13 @@
 
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Evaluating Fisher information for </span><span class="si">%s</span><span class="s2"> estimators in ensemble&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_estimators</span><span class="p">)</span>
+
+        <span class="c1"># Check input</span>
+
+        <span class="k">if</span> <span class="n">uncertainty</span> <span class="o">==</span> <span class="s2">&quot;expectation&quot;</span> <span class="ow">or</span> <span class="n">uncertainty</span> <span class="o">==</span> <span class="s2">&quot;sum&quot;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">expectations</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;Expectations have not been calculated, cannot use uncertainty mode &#39;expectation&#39; &quot;</span>
+                                   <span class="s2">&quot;or &#39;sum&#39;!&quot;</span><span class="p">)</span>
 
         <span class="c1"># Calculate estimator_weights of each estimator in vote</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">expectations</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">vote_expectation_weight</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -1418,7 +1450,7 @@
 
         <span class="c1"># Calculate weighted means and covariance matrices</span>
         <span class="n">means</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="n">covariances</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">ensemble_covariances</span> <span class="o">=</span> <span class="p">[]</span>
 
         <span class="k">for</span> <span class="n">these_weights</span> <span class="ow">in</span> <span class="n">estimator_weights</span><span class="p">:</span>
             <span class="n">mean</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">average</span><span class="p">(</span><span class="n">predictions</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="n">these_weights</span><span class="p">)</span>
@@ -1429,7 +1461,28 @@
             <span class="n">covariance_shape</span> <span class="o">=</span> <span class="p">(</span><span class="n">predictions</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">predictions</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">predictions</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">predictions</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
             <span class="n">covariance</span> <span class="o">=</span> <span class="n">covariance</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">covariance_shape</span><span class="p">)</span>
 
-            <span class="n">covariances</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">covariance</span><span class="p">)</span>
+            <span class="n">ensemble_covariances</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">covariance</span><span class="p">)</span>
+
+        <span class="c1"># Calculate ensemble expectation</span>
+        <span class="n">expectation_covariances</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">uncertainty</span> <span class="o">==</span> <span class="s2">&quot;expectation&quot;</span> <span class="ow">or</span> <span class="n">uncertainty</span> <span class="o">==</span> <span class="s2">&quot;sum&quot;</span><span class="p">:</span>
+            <span class="n">individual_expectation_covariances</span> <span class="o">=</span> <span class="p">[</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;a,b,c,d&quot;</span><span class="p">,</span> <span class="n">e</span><span class="p">,</span> <span class="n">e</span><span class="p">,</span> <span class="n">e</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">expectations</span><span class="p">]</span>
+            <span class="n">individual_expectation_covariances</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">individual_expectation_covariances</span><span class="p">)</span>
+
+            <span class="n">expectation_covariances</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">average</span><span class="p">(</span><span class="n">individual_expectation_covariances</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="n">these_weights</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">these_weights</span> <span class="ow">in</span> <span class="n">estimator_weights</span>
+            <span class="p">]</span>
+
+        <span class="c1"># Final covariances</span>
+        <span class="k">if</span> <span class="n">uncertainty</span> <span class="o">==</span> <span class="s2">&quot;ensemble&quot;</span><span class="p">:</span>
+            <span class="n">covariances</span> <span class="o">=</span> <span class="n">ensemble_covariances</span>
+        <span class="k">elif</span> <span class="n">uncertainty</span> <span class="o">==</span> <span class="s2">&quot;expectation&quot;</span><span class="p">:</span>
+            <span class="n">covariances</span> <span class="o">=</span> <span class="n">expectation_covariances</span>
+        <span class="k">elif</span> <span class="n">uncertainty</span> <span class="o">==</span> <span class="s2">&quot;sum&quot;</span><span class="p">:</span>
+            <span class="n">covariances</span> <span class="o">=</span> <span class="p">[</span><span class="n">cov1</span> <span class="o">+</span> <span class="n">cov2</span> <span class="k">for</span> <span class="n">cov1</span><span class="p">,</span> <span class="n">cov2</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">ensemble_covariances</span><span class="p">,</span> <span class="n">expectation_covariances</span><span class="p">)]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Unknown uncertainty mode </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">uncertainty</span><span class="p">))</span>
 
         <span class="c1"># Returns</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">estimator_weights</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
