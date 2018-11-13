@@ -1377,8 +1377,9 @@ class EnsembleForge:
 
         if uncertainty == "expectation" or uncertainty == "sum":
             if self.expectations is None:
-                raise RuntimeError("Expectations have not been calculated, cannot use uncertainty mode 'expectation' "
-                                   "or 'sum'!")
+                raise RuntimeError(
+                    "Expectations have not been calculated, cannot use uncertainty mode 'expectation' " "or 'sum'!"
+                )
 
         # Calculate estimator_weights of each estimator in vote
         if self.expectations is None or vote_expectation_weight is None:
@@ -1431,10 +1432,10 @@ class EnsembleForge:
         # Calculate ensemble expectation
         expectation_covariances = None
         if uncertainty == "expectation" or uncertainty == "sum":
-            individual_expectation_covariances = [2.0 * np.einsum("a,b,c,d->abcd", e, e, e, e)
-                                                  for e in self.expectations]
-            logging.debug('Individual exp. covariances: %s', individual_expectation_covariances)
-            individual_expectation_covariances = np.array(individual_expectation_covariances)
+            individual_expectation_covariances = [
+                2.0 * np.einsum("a,b,c,d->abcd", e, e, e, e) for e in self.expectations
+            ]
+            individual_expectation_covariances = n_events * np.array(individual_expectation_covariances)
 
             expectation_covariances = []
             for these_weights in estimator_weights:

@@ -370,7 +370,7 @@ class FisherInformation:
                         obs_weights=weights_theta,
                         n_events=luminosity * total_xsec * np.sum(weights_theta) / total_sum_weights_theta,
                         vote_expectation_weight=ensemble_vote_expectation_weight,
-                        uncertainty=uncertainty
+                        uncertainty=uncertainty,
                     )
                 else:
                     this_fisher_info = model.calculate_fisher_information(
@@ -403,7 +403,7 @@ class FisherInformation:
                     unweighted_x_sample_file,
                     n_events=luminosity * total_xsec,
                     vote_expectation_weight=ensemble_vote_expectation_weight,
-                    uncertainty=uncertainty
+                    uncertainty=uncertainty,
                 )
             else:
                 fisher_info_kin = model.calculate_fisher_information(
