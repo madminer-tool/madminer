@@ -248,6 +248,7 @@ class FisherInformation:
         unweighted_x_sample_file=None,
         luminosity=300000.0,
         include_xsec_info=True,
+        uncertainty="ensemble",
         ensemble_vote_expectation_weight=None,
         batch_size=100000,
         test_split=0.5,
@@ -275,6 +276,12 @@ class FisherInformation:
 
         include_xsec_info : bool, optional
             Whether the rate information is included in the returned Fisher information. Default value: True.
+
+        uncertainty : {"ensemble", "expectation", "sum"}, optional
+            How the covariance matrix of the Fisher information estimate is calculate. With "ensemble", the ensemble
+            covariance is used. With "expectation", the expectation of the score is used as a measure of the uncertainty
+            of the score estimator, and this uncertainty is propagated through to the covariance matrix. With "sum",
+            both terms are summed. Default value: "ensemble".
 
         ensemble_vote_expectation_weight : float or list of float or None, optional
             For ensemble models, the factor that determines how much more weight is given to those estimators with small
@@ -363,6 +370,7 @@ class FisherInformation:
                         obs_weights=weights_theta,
                         n_events=luminosity * total_xsec * np.sum(weights_theta) / total_sum_weights_theta,
                         vote_expectation_weight=ensemble_vote_expectation_weight,
+                        uncertainty=uncertainty
                     )
                 else:
                     this_fisher_info = model.calculate_fisher_information(
@@ -395,6 +403,7 @@ class FisherInformation:
                     unweighted_x_sample_file,
                     n_events=luminosity * total_xsec,
                     vote_expectation_weight=ensemble_vote_expectation_weight,
+                    uncertainty=uncertainty
                 )
             else:
                 fisher_info_kin = model.calculate_fisher_information(

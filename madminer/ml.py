@@ -1336,7 +1336,7 @@ class EnsembleForge:
             How the covariance matrix of the Fisher information estimate is calculate. With "ensemble", the ensemble
             covariance is used. With "expectation", the expectation of the score is used as a measure of the uncertainty
             of the score estimator, and this uncertainty is propagated through to the covariance matrix. With "sum",
-            both terms are summed. Default value: "ensemble"
+            both terms are summed. Default value: "ensemble".
 
         vote_expectation_weight : float or list of float or None, optional
             Factor that determines how much more weight is given to those estimators with small expectation value (as
@@ -1372,6 +1372,13 @@ class EnsembleForge:
 
         """
         logging.debug("Evaluating Fisher information for %s estimators in ensemble", self.n_estimators)
+
+        # Check input
+
+        if uncertainty == "expectation" or uncertainty == "sum":
+            if self.expectations is None:
+                raise RuntimeError("Expectations have not been calculated, cannot use uncertainty mode 'expectation' "
+                                   "or 'sum'!")
 
         # Calculate estimator_weights of each estimator in vote
         if self.expectations is None or vote_expectation_weight is None:
@@ -1423,7 +1430,7 @@ class EnsembleForge:
 
         # Calculate ensemble expectation
         expectation_covariances = None
-        if self.expectations is not None and (uncertainty == "expectation" or uncertainty == "sum"):
+        if uncertainty == "expectation" or uncertainty == "sum":
             individual_expectation_covariances = [2.0 * np.einsum("a,b,c,d", e, e, e, e) for e in self.expectations]
             individual_expectation_covariances = np.array(individual_expectation_covariances)
 
