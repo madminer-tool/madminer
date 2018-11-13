@@ -27,33 +27,49 @@ def generate_mg_process(
 
 
 def prepare_run_mg_pythia(
-    mg_directory,
     mg_process_directory,
-    proc_card_filename=None,
-    run_card_file=None,
-    param_card_file=None,
-    reweight_card_file=None,
-    pythia8_card_file=None,
+    proc_card_filename_from_mgprocdir=None,
+    run_card_file_from_mgprocdir=None,
+    param_card_file_from_mgprocdir=None,
+    reweight_card_file_from_mgprocdir=None,
+    pythia8_card_file_from_mgprocdir=None,
     is_background=False,
-    script_file=None,
+    script_file_from_mgprocdir=None,
     initial_command=None,
-    log_file=None,
+    log_file_from_logdir=None,
 ):
-    # Find filenames for process card and script
-    if proc_card_filename is None:
-        for i in range(1000):
-            proc_card_filename = mg_process_directory + "/Cards/start_event_generation_{}.mg5".format(i)
-            if not os.path.isfile(proc_card_filename):
-                break
 
-    if script_file is None:
+    # Bash script can optionally provide MG path or process directory
+    mg_directory_placeholder = "$mgdir"
+    mg_process_directory_placeholder = "$mgprocdir"
+    log_dir_placeholder = "$mmlogdir"
+    placeholder_definition = "mgdir=$1\nmgprocdir=$2\nmmlogdir=$3"
+
+    # Find filenames for process card and script
+    if proc_card_filename_from_mgprocdir is None:
         for i in range(1000):
-            script_file = mg_process_directory + "/madminer_run_{}.sh".format(i)
+            proc_card_filename_from_mgprocdir = "/Cards/start_event_generation_{}.mg5".format(i)
+            if not os.path.isfile(mg_process_directory + "/" + proc_card_filename_from_mgprocdir):
+                break
+    else:
+        proc_card_filename = mg_process_directory + "/" + proc_card_filename_from_mgprocdir
+        proc_card_filename_placeholder = mg_process_directory_placeholder + proc_card_filename_from_mgprocdir
+
+    if script_file_from_mgprocdir is None:
+        for i in range(1000):
+            script_file = mg_process_directory + "/madminer/scripts/madminer_run_{}.sh".format(i)
             if not os.path.isfile(script_file):
                 break
+    else:
+        script_file = mg_process_directory + "/" + script_file_from_mgprocdir
+
+    script_filename = os.path.basename(script_file)
+
+    if log_file_from_logdir is None:
+        log_file_from_logdir = "/log.log"
 
     # MG commands
-    shower_option = "OFF" if pythia8_card_file is None else "Pythia8"
+    shower_option = "OFF" if pythia8_card_file_from_mgprocdir is None else "Pythia8"
     reweight_option = "OFF" if is_background else "ON"
 
     mg_commands = """
@@ -65,7 +81,7 @@ def prepare_run_mg_pythia(
         reweight={}
         done
         """.format(
-        mg_process_directory, shower_option, reweight_option
+        mg_process_directory_placeholder, shower_option, reweight_option
     )
 
     with open(proc_card_filename, "w") as file:
@@ -74,30 +90,77 @@ def prepare_run_mg_pythia(
     # Initial commands
     if initial_command is None:
         initial_command = ""
-    else:
-        initial_command = initial_command + "\n\n"
 
     #  Card copying commands
     copy_commands = ""
-    if run_card_file is not None:
-        copy_commands += "cp {} {}\n".format(run_card_file, mg_process_directory + "/Cards/run_card.dat")
-    if param_card_file is not None:
-        copy_commands += "cp {} {}\n".format(param_card_file, mg_process_directory + "/Cards/param_card.dat")
-    if reweight_card_file is not None and not is_background:
-        copy_commands += "cp {} {}\n".format(reweight_card_file, mg_process_directory + "/Cards/reweight_card.dat")
-    if pythia8_card_file is not None:
-        copy_commands += "cp {} {}\n".format(pythia8_card_file, mg_process_directory + "/Cards/pythia8_card.dat")
+    if run_card_file_from_mgprocdir is not None:
+        copy_commands += "cp {}/{} {}{}\n".format(
+            mg_process_directory_placeholder,
+            run_card_file_from_mgprocdir,
+            mg_process_directory_placeholder,
+            "/Cards/run_card.dat",
+        )
+    if param_card_file_from_mgprocdir is not None:
+        copy_commands += "cp {}/{} {}{}\n".format(
+            mg_process_directory_placeholder,
+            param_card_file_from_mgprocdir,
+            mg_process_directory_placeholder,
+            "/Cards/param_card.dat",
+        )
+    if reweight_card_file_from_mgprocdir is not None and not is_background:
+        copy_commands += "cp {}/{} {}{}\n".format(
+            mg_process_directory_placeholder,
+            reweight_card_file_from_mgprocdir,
+            mg_process_directory_placeholder,
+            "/Cards/reweight_card.dat",
+        )
+    if pythia8_card_file_from_mgprocdir is not None:
+        copy_commands += "cp {}/{} {}{}\n".format(
+            mg_process_directory_placeholder,
+            pythia8_card_file_from_mgprocdir,
+            mg_process_directory_placeholder,
+            "/Cards/pythia8_card.dat",
+        )
+
+    # Replace environment variable in proc card
+    replacement_command = """sed -e 's@\$mgprocdir@'"$mgprocdir"'@' {}/{} > {}/{}""".format(
+        mg_process_directory_placeholder,
+        proc_card_filename_from_mgprocdir,
+        mg_process_directory_placeholder,
+        "Cards/mg_commands.mg5",
+    )
 
     # Put together script
-    script = "#!/bin/bash\n\n{}\n\n{}\n\n{}/bin/mg5_aMC {} > {}\n".format(
-        initial_command, copy_commands, mg_directory, proc_card_filename, log_file
+    script = (
+        "#!/bin/bash\n\n# Script generated by MadMiner\n\n# Usage: {} MG_directory MG_process_directory log_dir\n\n"
+        + "{}\n\n{}\n\n{}\n{}\n\n{}/bin/mg5_aMC {}/{} > {}/{}\n"
+    ).format(
+        script_filename,
+        initial_command,
+        placeholder_definition,
+        copy_commands,
+        replacement_command,
+        mg_directory_placeholder,
+        mg_process_directory_placeholder,
+        "Cards/mg_commands.mg5",
+        log_dir_placeholder,
+        log_file_from_logdir,
     )
 
     with open(script_file, "w") as file:
         file.write(script)
     make_file_executable(script_file)
 
-    return script_file
+    # How to call it from master script
+    call_placeholder = "{}/{} {} {} {}".format(
+        mg_process_directory_placeholder,
+        script_file_from_mgprocdir,
+        mg_directory_placeholder,
+        mg_process_directory_placeholder,
+        log_dir_placeholder,
+    )
+
+    return call_placeholder
 
 
 def run_mg_pythia(

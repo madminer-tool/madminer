@@ -149,15 +149,15 @@ class DelphesProcessor:
             self.delphes_sample_filenames.append(delphes_sample_filename)
 
     def set_acceptance(
-            self,
-            pt_min_e=10.0,
-            pt_min_mu=10.0,
-            pt_min_a=10.0,
-            pt_min_j=20.0,
-            eta_max_e=2.5,
-            eta_max_mu=2.5,
-            eta_max_a=2.5,
-            eta_max_j=5.0,
+        self,
+        pt_min_e=10.0,
+        pt_min_mu=10.0,
+        pt_min_a=10.0,
+        pt_min_j=20.0,
+        eta_max_e=2.5,
+        eta_max_mu=2.5,
+        eta_max_a=2.5,
+        eta_max_j=5.0,
     ):
         """
         Sets acceptance cuts for all visible particles. These are taken into account before observables and cuts
@@ -293,14 +293,14 @@ class DelphesProcessor:
         self.observables_defaults[name] = default
 
     def add_default_observables(
-            self,
-            n_leptons_max=2,
-            n_photons_max=2,
-            n_jets_max=2,
-            include_met=True,
-            include_visible_sum=True,
-            include_numbers=True,
-            include_charge=True,
+        self,
+        n_leptons_max=2,
+        n_photons_max=2,
+        n_jets_max=2,
+        include_met=True,
+        include_visible_sum=True,
+        include_numbers=True,
+        include_charge=True,
     ):
         """
         Adds a set of simple standard observables: the four-momenta (parameterized as E, pT, eta, phi) of the hardest
@@ -346,7 +346,7 @@ class DelphesProcessor:
 
         # Individual observed particles
         for n, symbol, include_this_charge in zip(
-                [n_leptons_max, n_photons_max, n_jets_max], ["l", "a", "j"], [False, False, include_charge]
+            [n_leptons_max, n_photons_max, n_jets_max], ["l", "a", "j"], [False, False, include_charge]
         ):
             if include_numbers:
                 self.add_observable("n_{}s".format(symbol), "len({})".format(symbol), required=True)
