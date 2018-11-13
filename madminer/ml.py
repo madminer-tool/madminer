@@ -62,35 +62,35 @@ class MLForge:
         self.x_scaling_stds = None
 
     def train(
-            self,
-            method,
-            x_filename,
-            y_filename=None,
-            theta0_filename=None,
-            theta1_filename=None,
-            r_xz_filename=None,
-            t_xz0_filename=None,
-            t_xz1_filename=None,
-            features=None,
-            nde_type="mafmog",
-            n_hidden=(100, 100, 100, 100),
-            activation="tanh",
-            maf_n_mades=3,
-            maf_batch_norm=False,
-            maf_batch_norm_alpha=0.1,
-            maf_mog_n_components=10,
-            alpha=1.0,
-            trainer="amsgrad",
-            n_epochs=50,
-            batch_size=128,
-            initial_lr=0.01,
-            final_lr=0.0001,
-            nesterov_momentum=None,
-            validation_split=None,
-            early_stopping=True,
-            scale_inputs=True,
-            shuffle_labels=False,
-            grad_x_regularization=None,
+        self,
+        method,
+        x_filename,
+        y_filename=None,
+        theta0_filename=None,
+        theta1_filename=None,
+        r_xz_filename=None,
+        t_xz0_filename=None,
+        t_xz1_filename=None,
+        features=None,
+        nde_type="mafmog",
+        n_hidden=(100, 100, 100, 100),
+        activation="tanh",
+        maf_n_mades=3,
+        maf_batch_norm=False,
+        maf_batch_norm_alpha=0.1,
+        maf_mog_n_components=10,
+        alpha=1.0,
+        trainer="amsgrad",
+        n_epochs=50,
+        batch_size=128,
+        initial_lr=0.01,
+        final_lr=0.0001,
+        nesterov_momentum=None,
+        validation_split=None,
+        early_stopping=True,
+        scale_inputs=True,
+        shuffle_labels=False,
+        grad_x_regularization=None,
     ):
 
         """
@@ -547,13 +547,13 @@ class MLForge:
             )
 
     def evaluate(
-            self,
-            x_filename,
-            theta0_filename=None,
-            theta1_filename=None,
-            test_all_combinations=True,
-            evaluate_score=False,
-            return_grad_x=False,
+        self,
+        x_filename,
+        theta0_filename=None,
+        theta1_filename=None,
+        test_all_combinations=True,
+        evaluate_score=False,
+        return_grad_x=False,
     ):
 
         """
@@ -1159,14 +1159,14 @@ class EnsembleForge:
         return self.expectations
 
     def evaluate(
-            self,
-            x_filename,
-            theta0_filename=None,
-            theta1_filename=None,
-            test_all_combinations=True,
-            vote_expectation_weight=None,
-            calculate_covariance=True,
-            return_individual_predictions=False,
+        self,
+        x_filename,
+        theta0_filename=None,
+        theta1_filename=None,
+        test_all_combinations=True,
+        vote_expectation_weight=None,
+        calculate_covariance=True,
+        return_individual_predictions=False,
     ):
 
         """
@@ -1301,7 +1301,7 @@ class EnsembleForge:
         return means, covariances
 
     def calculate_fisher_information(
-            self, x, obs_weights=None, n_events=1, vote_expectation_weight=None, return_individual_predictions=False
+        self, x, obs_weights=None, n_events=1, vote_expectation_weight=None, return_individual_predictions=False
     ):
         """
         Calculates the expected Fisher information matrices for each estimator, and then returns the ensemble mean and

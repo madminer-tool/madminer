@@ -247,7 +247,7 @@ class FisherInformation:
         model_file,
         unweighted_x_sample_file=None,
         luminosity=300000.0,
-        return_error=None,
+        include_xsec_info=True,
         ensemble_vote_expectation_weight=None,
         batch_size=100000,
         test_split=0.5,
@@ -268,14 +268,13 @@ class FisherInformation:
         unweighted_x_sample_file : str or None
             Filename of an unweighted x sample that is sampled according to theta and obeys the cuts
             (see `madminer.sampling.SampleAugmenter.extract_samples_train_local()`). If None, the Fisher information
-            is instead calculated on the full, weighted samples (the data in the MadMiner file).
+            is instead calculated on the full, weighted samples (the data in the MadMiner file). Default value: None.
 
-        luminosity : float
-            Luminosity in pb^-1.
+        luminosity : float, optional
+            Luminosity in pb^-1. Default value: 300000.
 
-        return_error : None or bool, optional
-            Whether an uncertainty of the Fisher information is returned together with the prediction. If None, it is
-            returned only if model_file points to the directory of an ensemble. Default value: None.
+        include_xsec_info : bool, optional
+            Whether the rate information is included in the returned Fisher information. Default value: True.
 
         ensemble_vote_expectation_weight : float or list of float or None, optional
             For ensemble models, the factor that determines how much more weight is given to those estimators with small
@@ -297,9 +296,8 @@ class FisherInformation:
             If more then one value ensemble_vote_expectation_weight is given, this is a list with results for all
             entries in ensemble_vote_expectation_weight.
 
-        fisher_information_uncertainty : ndarray or list of ndarray
-            Returned only if return_error is True, or if return_error is None and model_file is the directory of an
-            ensemble. Covariance matrix of the Fisher information matrix with shape
+        fisher_information_uncertainty : ndarray or list of ndarray or None
+            Covariance matrix of the Fisher information matrix with shape
             `(n_parameters, n_parameters, n_parameters, n_parameters)`. If more then one value
             ensemble_vote_expectation_weight is given, this is a list with results for all entries in
             ensemble_vote_expectation_weight.
@@ -310,22 +308,21 @@ class FisherInformation:
         total_xsec = self._calculate_xsec(theta=theta)
 
         # Rate part of Fisher information
-        logging.info("Evaluating rate Fisher information")
-        fisher_info_rate, rate_covariance = self.calculate_fisher_information_rate(theta=theta, luminosity=luminosity)
+        fisher_info_rate = 0.0
+        rate_covariance = 0.0
+        if include_xsec_info:
+            logging.info("Evaluating rate Fisher information")
+            fisher_info_rate, rate_covariance = self.calculate_fisher_information_rate(
+                theta=theta, luminosity=luminosity
+            )
 
         # Load SALLY model
         if os.path.isdir(model_file):
             model_is_ensemble = True
-            if return_error is None:
-                return_error = True
-
             model = EnsembleForge(debug=self.debug)
             model.load(model_file)
         else:
             model_is_ensemble = False
-            if return_error is None:
-                return_error = False
-
             model = MLForge(debug=self.debug)
             model.load(model_file)
 
@@ -406,24 +403,18 @@ class FisherInformation:
                 covariance = None
 
         # Returns
-        if (
-            model_is_ensemble
-            and isinstance(ensemble_vote_expectation_weight, list)
-            and len(ensemble_vote_expectation_weight) > 1
-        ):
-            fisher_info_results = [fisher_info_rate + this_fisher_info_kin for this_fisher_info_kin in fisher_info_kin]
-            covariance_results = [rate_covariance + this_covariance for this_covariance in covariance]
-            if return_error:
+        if model_is_ensemble:
+            if isinstance(ensemble_vote_expectation_weight, list) and len(ensemble_vote_expectation_weight) > 1:
+                fisher_info_results = [
+                    fisher_info_rate + this_fisher_info_kin for this_fisher_info_kin in fisher_info_kin
+                ]
+                covariance_results = [rate_covariance + this_covariance for this_covariance in covariance]
                 return fisher_info_results, covariance_results
-            return fisher_info_results
 
-        if return_error:
-            logging.warning(
-                "Uncertainty on Fisher information with single SALLY instance only reflects the covariance from the "
-                "rate, not the kinematic part!"
-            )
-            return fisher_info_rate + fisher_info_kin, rate_covariance
-        return fisher_info_rate + fisher_info_kin
+            else:
+                return fisher_info_rate + fisher_info_kin[0], rate_covariance + covariance[0]
+
+        return fisher_info_rate + fisher_info_kin, rate_covariance
 
     def calculate_fisher_information_rate(self, theta, luminosity, cuts=None, efficiency_functions=None):
         """
