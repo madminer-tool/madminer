@@ -73,7 +73,7 @@ class MLForge:
         t_xz1_filename=None,
         features=None,
         nde_type="mafmog",
-        n_hidden=(100, 100, 100, 100),
+        n_hidden=(100, 100),
         activation="tanh",
         maf_n_mades=3,
         maf_batch_norm=False,
@@ -83,7 +83,7 @@ class MLForge:
         trainer="amsgrad",
         n_epochs=50,
         batch_size=128,
-        initial_lr=0.01,
+        initial_lr=0.001,
         final_lr=0.0001,
         nesterov_momentum=None,
         validation_split=None,
@@ -164,7 +164,7 @@ class MLForge:
 
         n_hidden : tuple of int, optional
             Units in each hidden layer in the neural networks. If method is 'nde' or 'scandal', this refers to the
-            setup of each individual MADE layer. Default value: (100, 100, 100, 100).
+            setup of each individual MADE layer. Default value: (100, 100).
             
         activation : {'tanh', 'sigmoid', 'relu'}, optional
             Activation function. Default value: 'tanh'.
@@ -199,7 +199,7 @@ class MLForge:
 
         initial_lr : float, optional
             Learning rate during the first epoch, after which it exponentially decays to final_lr. Default value:
-            0.01.
+            0.001.
 
         final_lr : float, optional
             Learning rate during the last epoch. Default value: 0.0001.
