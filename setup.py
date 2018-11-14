@@ -19,7 +19,7 @@ DESCRIPTION = 'Mining gold from MadGraph to improve limit setting in particle ph
 URL = 'https://github.com/johannbrehmer/madminer'
 EMAIL = 'johann.brehmer@nyu.edu'
 AUTHOR = 'Johann Brehmer, Felix Kling, Kyle Cranmer'
-REQUIRES_PYTHON = '>=2.7.0'
+REQUIRES_PYTHON = '>=3.6.0'
 VERSION = '0.1.0'
 
 # What packages are required for this module to be executed?
@@ -31,8 +31,8 @@ REQUIRED = [
     "matplotlib",
     "h5py",
     "six",
-    "pytorch>=0.4.0",
-    "bqplot>=0.11.0",
+    "torch>=0.4.0",
+    "bqplot",
     "uproot",
     "scikit-hep"
 ]

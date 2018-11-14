@@ -1,6 +1,6 @@
 # MadMiner
 
-*Johann Brehmer, Kyle Cranmer, and Felix Kling*
+*Johann Brehmer, Felix Kling, and Kyle Cranmer*
 
 Mining gold from MadGraph to improve limit setting in particle physics.
 
