@@ -1,7 +1,11 @@
 # MadMiner
 
-Mining gold from MadGraph for better inference in particle physics. Work in progress by Johann Brehmer, Kyle Cranmer,
-and Felix Kling. Note that this is a prototype and all the interfaces are still constantly changing.
+Mining gold from MadGraph to improve limit setting in particle physics.
+
+Work in progress by Johann Brehmer, Kyle Cranmer, and Felix Kling.
+
+Note that this is an early development version. Do not expect anything to be stable. If you have any questions, please
+contact us at [johann.brehmer@nyu.edu](johann.brehmer@nyu.edu).
 
 [![Docker stars](https://img.shields.io/docker/stars/irinahub/docker-madminer-madgraph.svg)](https://hub.docker.com/r/irinahub/docker-madminer-madgraph)
 [![Docker pulls](https://img.shields.io/docker/pulls/irinahub/docker-madminer-madgraph.svg)](https://hub.docker.com/r/irinahub/docker-madminer-madgraph)
@@ -11,10 +15,24 @@ and Felix Kling. Note that this is a prototype and all the interfaces are still 
 
 ## Introduction
 
-For an introduction to the implemented inference methods, see
+Particle physics processes are usually modelled with complex Monte-Carlo simulations of the hard process, parton shower,
+and detector interactions. These simulators typically do not admit a tractable likelihood function: given a (potentially
+high-dimensional) set of observables, it is usually not possible to calculate the probability of these observables
+for some model parameters. Particle physicisists usually tackle this problem of "likelihood-free inference" by
+hand-picking a few "good" observables or summary statistics and filling histograms of them. But this conventional
+approach discards the information in all other observables and often does not scale well to high-dimensional problems.
+
+In the two publications
 ["Constraining Effective Field Theories With Machine Learning"](https://arxiv.org/abs/1805.00013) and
 ["A Guide to Constraining Effective Field Theories With Machine Learning"](https://arxiv.org/abs/1805.00020),
-both by Johann Brehmer, Gilles Louppe, Juan Pavez, and Kyle Cranmer.
+both by Johann Brehmer, Gilles Louppe, Juan Pavez, and Kyle Cranmer, a new approach has been developed. In a nut shell,
+additional information is extracted from the simulators. This "augmented data" can be used to train neural networks
+to efficiently approximate arbitrary likelihood ratios.
+
+This package automates these inference strategies. It wraps around the simulators MadGraph (or MG5_aMC) and Pythia,
+with different options for the detector simulation. All steps in the analysis chain from the simulation to the
+extraction of the augmented data, their processing, and the training and evaluation of the neural estimators are
+implemented.
 
 ## Getting started
 
@@ -22,7 +40,8 @@ both by Johann Brehmer, Gilles Louppe, Juan Pavez, and Kyle Cranmer.
 
 Make sure the following dependencies are installed and running:
 - MadGraph (we've tested our setup with MG5_aMC v2.6.2 and have received reports about issues with newer versions)
-- Pythia8 and the MG-Pythia interface installed from the MadGraph interface. The MadGraph-Pythia interface has issues
+- Pythia8 and the MG-Pythia interface installed from the MadGraph interface.
+- The MadGraph-Pythia interface has issues
 with the treatment of multiple weights. Until this is fixed in the official release, the user has to install a patch
 manually. These files are available upon request.
 - Python packages as given in [environment.yml](environment.yml). You can create a conda environment from this file, see
@@ -30,7 +49,7 @@ manually. These files are available upon request.
 
 ### Detector simulation and observable calculation
 
-First, we provide an option to calculate truth-level observables which do not require any additional packages.
+For the detector simulation part, there are different options. First, we provide an option to calculate truth-level observables which do not require any additional packages.
 
 We have also implemented a fast detector simulation and observable calculation in our workflow. This adds another
 requirement:
@@ -45,7 +64,7 @@ some guidance for this.
 
 ### Installation
 
-Clone the repository and run `pip install -e <path to repository>`.
+Clone this repository and run `pip install -e <path to repository>`.
 
 ## Using MadMiner
 
@@ -88,7 +107,7 @@ The [setup.py](setup.py) was adapted from
 
 ## References
 
-General method papers:
+General idea paper in an abstract setting:
 ```
 @article{Brehmer:2018hga,
       author         = "Brehmer, Johann and Louppe, Gilles and Pavez, Juan and
@@ -103,7 +122,7 @@ General method papers:
 }
 ```
 
-Physics publications:
+Inference methods applied to the particle physics case:
 ```
 @article{Brehmer:2018kdj,
       author         = "Brehmer, Johann and Cranmer, Kyle and Louppe, Gilles and

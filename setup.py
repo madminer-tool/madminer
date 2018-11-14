@@ -20,7 +20,7 @@ URL = 'https://github.com/johannbrehmer/madminer'
 EMAIL = 'johann.brehmer@nyu.edu'
 AUTHOR = 'Johann Brehmer, Kyle Cranmer, Felix Kling'
 REQUIRES_PYTHON = '>=3.6.0'
-VERSION = None
+VERSION = '0.1.0'
 
 # What packages are required for this module to be executed?
 REQUIRED = [
