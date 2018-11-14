@@ -3,7 +3,6 @@ channels:
 - pytorch
 - anaconda
 - defaults
-- conda-ml
 dependencies:
 - python=3.6.*
 - numpy
