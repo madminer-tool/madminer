@@ -1432,15 +1432,12 @@ class EnsembleForge:
         # Calculate ensemble expectation
         expectation_covariances = None
         if uncertainty == "expectation" or uncertainty == "sum":
-            individual_expectation_covariances = [
-                2.0 * np.einsum("a,b,c,d->abcd", e, e, e, e) for e in self.expectations
-            ]
-            individual_expectation_covariances = n_events * np.array(individual_expectation_covariances)
-
             expectation_covariances = []
-            for these_weights in estimator_weights:
+            for these_weights, expectation in zip(estimator_weights, self.expectations):
+                mean_expectation = np.average(expectation, weights=these_weights, axis=0)
                 expectation_covariances.append(
-                    np.average(individual_expectation_covariances, weights=these_weights, axis=0)
+                    n_events
+                    * np.einsum("a,b,c,d->abcd", mean_expectation, mean_expectation, mean_expectation, mean_expectation)
                 )
 
         # Final covariances
