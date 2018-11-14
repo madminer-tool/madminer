@@ -78,7 +78,7 @@ such that <cite>p(theta) = sum_b w_b(theta) p(theta_b)</cite>.</li>
 values equal to tuples (LHA_block, LHA_ID, morphing_max_power, param_min, param_max)</p>
 </dd>
 <dt><strong>parameter_max_power</strong> <span class="classifier-delimiter">:</span> <span class="classifier">None or list of int  or list of tuple of int, optional</span></dt>
-<dd><p class="first last">Only used if parameters_from_madminer is not None. Maximal power with which each parameter contributes to
+<dd><p class="first last">Only used if parameters_from_madminer is None. Maximal power with which each parameter contributes to
 the squared matrix element. If tuples are given, gives this
 maximal power for each of several operator configurations. Typically at tree level,
 this maximal number is 2 for parameters that affect one vertex (e.g. only production
@@ -86,7 +86,7 @@ or only decay of a particle), and 4 for parameters that affect two vertices (e.g
 production and decay).</p>
 </dd>
 <dt><strong>parameter_range</strong> <span class="classifier-delimiter">:</span> <span class="classifier">None or list of tuple of float, optional</span></dt>
-<dd><p class="first last">Only used if parameters_from_madminer is not None. Parameter range (param_min, param_max) for each parameter.</p>
+<dd><p class="first last">Only used if parameters_from_madminer is None. Parameter range (param_min, param_max) for each parameter.</p>
 </dd>
 </dl>
 </td>
@@ -473,7 +473,7 @@ parameter might be described by the components [[2], [1], [0]].</p>
       <div class="clearer"></div>
     </div>
     <div class="footer">
-      &copy;Johann Brehmer, Kyle Cranmer, and Felix Kling 2018.
+      &copy;Johann Brehmer, Felix Kling, and Kyle Cranmer 2018.
       
       |
       Powered by <a href="http://sphinx-doc.org/">Sphinx 1.8.1</a>

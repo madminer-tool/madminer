@@ -78,7 +78,7 @@
 <span class="sd">        values equal to tuples (LHA_block, LHA_ID, morphing_max_power, param_min, param_max)</span>
 
 <span class="sd">    parameter_max_power : None or list of int  or list of tuple of int, optional</span>
-<span class="sd">        Only used if parameters_from_madminer is not None. Maximal power with which each parameter contributes to</span>
+<span class="sd">        Only used if parameters_from_madminer is None. Maximal power with which each parameter contributes to</span>
 <span class="sd">        the squared matrix element. If tuples are given, gives this</span>
 <span class="sd">        maximal power for each of several operator configurations. Typically at tree level,</span>
 <span class="sd">        this maximal number is 2 for parameters that affect one vertex (e.g. only production</span>
@@ -86,7 +86,7 @@
 <span class="sd">        production and decay).</span>
 
 <span class="sd">    parameter_range : None or list of tuple of float, optional</span>
-<span class="sd">        Only used if parameters_from_madminer is not None. Parameter range (param_min, param_max) for each parameter.</span>
+<span class="sd">        Only used if parameters_from_madminer is None. Parameter range (param_min, param_max) for each parameter.</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
 
@@ -107,7 +107,11 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">use_madminer_interface</span> <span class="o">=</span> <span class="kc">False</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">n_parameters</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">parameter_max_power</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">parameter_names</span> <span class="o">=</span> <span class="kc">None</span>
+
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">parameter_max_power</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="nb">int</span><span class="p">):</span>
+                <span class="n">parameter_max_power</span> <span class="o">=</span> <span class="p">[(</span><span class="n">mp</span><span class="p">,)</span> <span class="k">for</span> <span class="n">mp</span> <span class="ow">in</span> <span class="n">parameter_max_power</span><span class="p">]</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">parameter_max_power</span> <span class="o">=</span> <span class="n">parameter_max_power</span>
+
             <span class="bp">self</span><span class="o">.</span><span class="n">parameter_range</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">parameter_range</span><span class="p">)</span>
 
         <span class="c1"># Currently empty</span>
@@ -706,7 +710,7 @@
       <div class="clearer"></div>
     </div>
     <div class="footer">
-      &copy;Johann Brehmer, Kyle Cranmer, and Felix Kling 2018.
+      &copy;Johann Brehmer, Felix Kling, and Kyle Cranmer 2018.
       
       |
       Powered by <a href="http://sphinx-doc.org/">Sphinx 1.8.1</a>
