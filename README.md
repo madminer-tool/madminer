@@ -161,4 +161,4 @@ added in:
 ```
 
 Individual inference methods are introduced in other papers, including [CARL](https://arxiv.org/abs/1506.02169),
-[Masked Autoregressive Flows] (https://arxiv.org/abs/1705.07057), and [ALICE(S)](https://arxiv.org/abs/1808.00973).
+[Masked Autoregressive Flows](https://arxiv.org/abs/1705.07057), and [ALICE(S)](https://arxiv.org/abs/1808.00973).
