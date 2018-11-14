@@ -22,17 +22,19 @@ for some model parameters. Particle physicisists usually tackle this problem of 
 hand-picking a few "good" observables or summary statistics and filling histograms of them. But this conventional
 approach discards the information in all other observables and often does not scale well to high-dimensional problems.
 
-In the two publications
-["Constraining Effective Field Theories With Machine Learning"](https://arxiv.org/abs/1805.00013) and
-["A Guide to Constraining Effective Field Theories With Machine Learning"](https://arxiv.org/abs/1805.00020),
-both by Johann Brehmer, Gilles Louppe, Juan Pavez, and Kyle Cranmer, a new approach has been developed. In a nut shell,
-additional information is extracted from the simulators. This "augmented data" can be used to train neural networks
-to efficiently approximate arbitrary likelihood ratios.
+In the three publications
+["Constraining Effective Field Theories With Machine Learning"](https://arxiv.org/abs/1805.00013),
+["A Guide to Constraining Effective Field Theories With Machine Learning"](https://arxiv.org/abs/1805.00020), and
+["Mining gold from implicit models to improve likelihood-free inference"](https://arxiv.org/abs/1805.00020),
+a new approach has been developed. In a nut shell, additional information is extracted from the simulators. This
+"augmented data" can be used to train neural networks to efficiently approximate arbitrary likelihood ratios. We
+playfully call this process "mining gold" from the simulator, since this information may be hard to get, but turns out
+to be very valuable for inference.
 
-This package automates these inference strategies. It wraps around the simulators MadGraph (or MG5_aMC) and Pythia,
-with different options for the detector simulation. All steps in the analysis chain from the simulation to the
-extraction of the augmented data, their processing, and the training and evaluation of the neural estimators are
-implemented.
+But the gold does not have to be hard to mine. This package automates these inference strategies. It wraps around the
+simulators MadGraph and Pythia, with different options for the detector simulation. All steps in the analysis chain from
+the simulation to the extraction of the augmented data, their processing, and the training and evaluation of the neural
+estimators are implemented.
 
 ## Getting started
 
