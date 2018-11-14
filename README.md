@@ -1,8 +1,8 @@
 # MadMiner
 
-Mining gold from MadGraph to improve limit setting in particle physics.
+*Johann Brehmer, Kyle Cranmer, Felix Kling*
 
-Work in progress by Johann Brehmer, Kyle Cranmer, and Felix Kling.
+Mining gold from MadGraph to improve limit setting in particle physics.
 
 Note that this is an early development version. Do not expect anything to be stable. If you have any questions, please
 contact us at [johann.brehmer@nyu.edu](johann.brehmer@nyu.edu).
@@ -36,23 +36,20 @@ implemented.
 
 ## Getting started
 
-### Core dependencies
+### Simulator dependencies
 
-Make sure the following dependencies are installed and running:
+Make sure the following tools are installed and running:
 - MadGraph (we've tested our setup with MG5_aMC v2.6.2 and have received reports about issues with newer versions)
 - Pythia8 and the MG-Pythia interface installed from the MadGraph interface.
 - The MadGraph-Pythia interface has issues
 with the treatment of multiple weights. Until this is fixed in the official release, the user has to install a patch
 manually. These files are available upon request.
-- Python packages as given in [environment.yml](environment.yml). You can create a conda environment from this file, see
-(https://conda.io/docs/user-guide/tasks/manage-environments.html#creating-an-environment-from-an-environment-yml-file).
 
-### Detector simulation and observable calculation
+For the detector simulation part, there are different options. For simple parton-level analyses, we provide a bare-bones
+option to calculate truth-level observables which do not require any additional packages.
 
-For the detector simulation part, there are different options. First, we provide an option to calculate truth-level observables which do not require any additional packages.
-
-We have also implemented a fast detector simulation and observable calculation in our workflow. This adds another
-requirement:
+We have also implemented a fast detector simulation based on Delphes with a flexible framework to calculate observables.
+Using this adds another requirement:
 - Delphes, for instance installed from the MadGraph interface. Delphes has issues with the treatment of multiple
 weights. Until this is fixed in the official releases, the user has to install a patch manually. These files are also
 available upon request.
@@ -61,6 +58,9 @@ Finally, Delphes can be replaced with another detector simulation, for instance 
 with Geant4. In this case, the user has to implement code that runs the detector simulation, calculates the observables,
 and stores the observables and weights in the HDF5 file. The `DelphesProcessor` and `LHEProcessor` classes might provide
 some guidance for this.
+
+We're currently working on a [reference Docker image](https://hub.docker.com/r/irinahub/docker-madminer-madgraph) that
+has all these dependencies and the needed patches installed.
 
 ### Installation
 
@@ -107,22 +107,7 @@ The [setup.py](setup.py) was adapted from
 
 ## References
 
-General idea paper in an abstract setting:
-```
-@article{Brehmer:2018hga,
-      author         = "Brehmer, Johann and Louppe, Gilles and Pavez, Juan and
-                        Cranmer, Kyle",
-      title          = "{Mining gold from implicit models to improve
-                        likelihood-free inference}",
-      year           = "2018",
-      eprint         = "1805.12244",
-      archivePrefix  = "arXiv",
-      primaryClass   = "stat.ML",
-      SLACcitation   = "%%CITATION = ARXIV:1805.12244;%%"
-}
-```
-
-Inference methods applied to the particle physics case:
+There are two main references for these inference methods applied to problems in particle physics:
 ```
 @article{Brehmer:2018kdj,
       author         = "Brehmer, Johann and Cranmer, Kyle and Louppe, Gilles and
@@ -157,41 +142,21 @@ Inference methods applied to the particle physics case:
 }
 ```
 
-Individual inference methods are introduced in the following papers:
-- CARL:
+In addition, the inference techniques are discussed in a more abstract setting, and the SCANDAL family of methods is
+added in:
 ```
-@article{Cranmer:2015bka,
-      author         = "Cranmer, Kyle and Pavez, Juan and Louppe, Gilles",
-      title          = "{Approximating Likelihood Ratios with Calibrated
-                        Discriminative  Classifiers}",
-      year           = "2015",
-      eprint         = "1506.02169",
-      archivePrefix  = "arXiv",
-      primaryClass   = "stat.AP",
-}
-```
-- Masked Autoregressive Flows:
-```
-@incollection{2017arXiv170507057P,
-      title = {Masked Autoregressive Flow for Density Estimation},
-      author = {Papamakarios, George and Murray, Iain and Pavlakou, Theo},
-      booktitle = {Advances in Neural Information Processing Systems 30},
-      editor = {I. Guyon and U. V. Luxburg and S. Bengio and H. Wallach and R. Fergus and S. Vishwanathan and R. Garnett},
-      pages = {2338--2347},
-      year = {2017},
-}
-```
-- ALICE: 
-```
-@article{Stoye:2018ovl,
-      author         = "Stoye, Markus and Brehmer, Johann and Louppe, Gilles and
-                        Pavez, Juan and Cranmer, Kyle",
-      title          = "{Likelihood-free inference with an improved cross-entropy
-                        estimator}",
+@article{Brehmer:2018hga,
+      author         = "Brehmer, Johann and Louppe, Gilles and Pavez, Juan and
+                        Cranmer, Kyle",
+      title          = "{Mining gold from implicit models to improve
+                        likelihood-free inference}",
       year           = "2018",
-      eprint         = "1808.00973",
+      eprint         = "1805.12244",
       archivePrefix  = "arXiv",
       primaryClass   = "stat.ML",
-      SLACcitation   = "%%CITATION = ARXIV:1808.00973;%%"
+      SLACcitation   = "%%CITATION = ARXIV:1805.12244;%%"
 }
 ```
+
+Individual inference methods are introduced in other papers, including [CARL](https://arxiv.org/abs/1506.02169),
+[Masked Autoregressive Flows] (https://arxiv.org/abs/1705.07057), and [ALICE(S)](https://arxiv.org/abs/1808.00973).
