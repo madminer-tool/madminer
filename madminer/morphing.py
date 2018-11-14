@@ -43,7 +43,7 @@ class Morpher:
         values equal to tuples (LHA_block, LHA_ID, morphing_max_power, param_min, param_max)
 
     parameter_max_power : None or list of int  or list of tuple of int, optional
-        Only used if parameters_from_madminer is not None. Maximal power with which each parameter contributes to
+        Only used if parameters_from_madminer is None. Maximal power with which each parameter contributes to
         the squared matrix element. If tuples are given, gives this
         maximal power for each of several operator configurations. Typically at tree level,
         this maximal number is 2 for parameters that affect one vertex (e.g. only production
@@ -51,7 +51,7 @@ class Morpher:
         production and decay).
 
     parameter_range : None or list of tuple of float, optional
-        Only used if parameters_from_madminer is not None. Parameter range (param_min, param_max) for each parameter.
+        Only used if parameters_from_madminer is None. Parameter range (param_min, param_max) for each parameter.
 
     """
 
@@ -72,7 +72,11 @@ class Morpher:
             self.use_madminer_interface = False
             self.n_parameters = len(parameter_max_power)
             self.parameter_names = None
+
+            if isinstance(parameter_max_power[0], int):
+                parameter_max_power = [(mp,) for mp in parameter_max_power]
             self.parameter_max_power = parameter_max_power
+
             self.parameter_range = np.array(parameter_range)
 
         # Currently empty

@@ -16,6 +16,7 @@ dependencies:
 - six
 - pytorch=0.4.*
 - bqplot=0.11.0
+- pip
 - pip:
   - uproot
   - scikit-hep
