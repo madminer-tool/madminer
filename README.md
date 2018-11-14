@@ -1,6 +1,6 @@
 # MadMiner
 
-*Johann Brehmer, Kyle Cranmer, Felix Kling*
+*Johann Brehmer, Kyle Cranmer, and Felix Kling*
 
 Mining gold from MadGraph to improve limit setting in particle physics.
 
@@ -62,9 +62,11 @@ some guidance for this.
 We're currently working on a [reference Docker image](https://hub.docker.com/r/irinahub/docker-madminer-madgraph) that
 has all these dependencies and the needed patches installed.
 
-### Installation
+### Install MadMiner
 
-Clone this repository and run `pip install -e <path to repository>`.
+To install the MadMiner package with all its Python dependencies, run `pip install madminer`.
+
+To get the [examples](examples/), including the tutorials, and the documentation, clone this repository.
 
 ## Using MadMiner
 
