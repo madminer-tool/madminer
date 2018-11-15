@@ -7,7 +7,8 @@ Mining gold from MadGraph to improve limit setting in particle physics.
 Note that this is an early development version. Do not expect anything to be stable. If you have any questions, please
 contact us at [johann.brehmer@nyu.edu](johann.brehmer@nyu.edu).
 
-[![Docker stars](https://img.shields.io/docker/stars/irinahub/docker-madminer-madgraph.svg)](https://hub.docker.com/r/irinahub/docker-madminer-madgraph)
+[![DOI](https://zenodo.org/badge/136200312.svg)](https://zenodo.org/badge/latestdoi/136200312)
+[![PyPI version](https://badge.fury.io/py/madminer.svg)](https://badge.fury.io/py/madminer)
 [![Docker pulls](https://img.shields.io/docker/pulls/irinahub/docker-madminer-madgraph.svg)](https://hub.docker.com/r/irinahub/docker-madminer-madgraph)
 [![Binder](https://mybinder.org/badge.svg)](https://mybinder.org/v2/gh/johannbrehmer/madminer/master)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/ambv/black)
