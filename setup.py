@@ -19,7 +19,7 @@ DESCRIPTION = 'Mining gold from MadGraph to improve limit setting in particle ph
 URL = 'https://github.com/johannbrehmer/madminer'
 EMAIL = 'johann.brehmer@nyu.edu'
 AUTHOR = 'Johann Brehmer, Felix Kling, Kyle Cranmer'
-REQUIRES_PYTHON = '>=3.6.0'
+REQUIRES_PYTHON = '>=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, <4'
 VERSION = '0.1.0'
 
 # What packages are required for this module to be executed?
@@ -131,8 +131,6 @@ setup(
         'Programming Language :: Python',
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.6',
-        'Programming Language :: Python :: Implementation :: CPython',
-        'Programming Language :: Python :: Implementation :: PyPy'
     ],
     # $ setup.py publish support.
     cmdclass={
