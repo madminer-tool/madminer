@@ -1046,7 +1046,7 @@ class MadMiner:
                         mg_process_directory + "/" + new_pythia8_card_file,
                         is_background=is_background,
                         initial_command=initial_command,
-                        log_file=log_file_run,
+                        log_file=log_directory + "/" + log_file_run,
                     )
 
                 i += 1
