@@ -11,7 +11,6 @@ dependencies:
 - scikit-learn=0.19.*
 - matplotlib
 - jupyter
-- h5py
 - six
 - pytorch=0.4.*
 - bqplot=0.11.0
