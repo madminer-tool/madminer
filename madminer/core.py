@@ -1039,7 +1039,7 @@ class MadMiner:
                     self._run_mg_and_pythia(
                         mg_directory,
                         mg_process_directory,
-                        mg_commands_filename,
+                        mg_process_directory + "/" + mg_commands_filename,
                         mg_process_directory + "/" + new_run_card_file,
                         mg_process_directory + "/" + param_card_file,
                         mg_process_directory + "/" + reweight_card_file,

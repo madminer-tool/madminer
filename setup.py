@@ -24,7 +24,7 @@ VERSION = '0.1.0'
 
 # What packages are required for this module to be executed?
 REQUIRED = [
-    "numpy",
+    "numpy>=1.11.0",
     "h5py",
     "scipy>=1.0.0",
     "scikit-learn>=0.19.0",
