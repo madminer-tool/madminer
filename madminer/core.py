@@ -997,7 +997,7 @@ class MadMiner:
                 logging.info("Run %s", i)
                 logging.info("  Sampling from benchmark: %s", sample_benchmark)
                 logging.info("  Original run card:       %s", run_card_file)
-                logging.info("  Original Pythia8 card:   %s", run_card_file)
+                logging.info("  Original Pythia8 card:   %s", pythia8_card_file)
                 logging.info("  Copied run card:         %s", new_run_card_file)
                 logging.info("  Copied Pythia8 card:     %s", new_pythia8_card_file)
                 logging.info("  Param card:              %s", param_card_file)
