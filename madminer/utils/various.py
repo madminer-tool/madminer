@@ -67,7 +67,7 @@ def create_missing_folders(folders):
         return
 
     for folder in folders:
-        if folder is None:
+        if folder is None or folder == "":
             continue
 
         if not os.path.exists(folder):

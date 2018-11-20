@@ -6,7 +6,7 @@
   <head>
     <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title>madminer.ml module &#8212; MadMiner  documentation</title>
+    <title>madminer.ml module &#8212; MadMiner 0.1.0 documentation</title>
     <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
@@ -653,7 +653,7 @@ file, and numpy files for the mean and variance of the inputs (used for input sc
 
 <dl class="method">
 <dt id="madminer.ml.MLForge.train">
-<code class="descname">train</code><span class="sig-paren">(</span><em>method</em>, <em>x_filename</em>, <em>y_filename=None</em>, <em>theta0_filename=None</em>, <em>theta1_filename=None</em>, <em>r_xz_filename=None</em>, <em>t_xz0_filename=None</em>, <em>t_xz1_filename=None</em>, <em>features=None</em>, <em>nde_type='mafmog'</em>, <em>n_hidden=(100</em>, <em>100</em>, <em>100</em>, <em>100)</em>, <em>activation='tanh'</em>, <em>maf_n_mades=3</em>, <em>maf_batch_norm=False</em>, <em>maf_batch_norm_alpha=0.1</em>, <em>maf_mog_n_components=10</em>, <em>alpha=1.0</em>, <em>trainer='amsgrad'</em>, <em>n_epochs=50</em>, <em>batch_size=128</em>, <em>initial_lr=0.01</em>, <em>final_lr=0.0001</em>, <em>nesterov_momentum=None</em>, <em>validation_split=None</em>, <em>early_stopping=True</em>, <em>scale_inputs=True</em>, <em>shuffle_labels=False</em>, <em>grad_x_regularization=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/ml.html#MLForge.train"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.ml.MLForge.train" title="Permalink to this definition">¶</a></dt>
+<code class="descname">train</code><span class="sig-paren">(</span><em>method</em>, <em>x_filename</em>, <em>y_filename=None</em>, <em>theta0_filename=None</em>, <em>theta1_filename=None</em>, <em>r_xz_filename=None</em>, <em>t_xz0_filename=None</em>, <em>t_xz1_filename=None</em>, <em>features=None</em>, <em>nde_type='mafmog'</em>, <em>n_hidden=(100</em>, <em>100)</em>, <em>activation='tanh'</em>, <em>maf_n_mades=3</em>, <em>maf_batch_norm=False</em>, <em>maf_batch_norm_alpha=0.1</em>, <em>maf_mog_n_components=10</em>, <em>alpha=1.0</em>, <em>trainer='amsgrad'</em>, <em>n_epochs=50</em>, <em>batch_size=128</em>, <em>initial_lr=0.001</em>, <em>final_lr=0.0001</em>, <em>nesterov_momentum=None</em>, <em>validation_split=None</em>, <em>early_stopping=True</em>, <em>scale_inputs=True</em>, <em>shuffle_labels=False</em>, <em>grad_x_regularization=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/ml.html#MLForge.train"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.ml.MLForge.train" title="Permalink to this definition">¶</a></dt>
 <dd><p>Trains a neural network to estimate either the likelihood ratio or, if method is ‘sally’ or ‘sallino’, the
 score.</p>
 <p>The keyword method determines the structure of the estimator that an instance of this class represents:</p>
@@ -726,7 +726,7 @@ estimator. Currently supported are ‘maf’ for a Masked Autoregressive Flow wi
 </dd>
 <dt><strong>n_hidden</strong> <span class="classifier-delimiter">:</span> <span class="classifier">tuple of int, optional</span></dt>
 <dd><p class="first last">Units in each hidden layer in the neural networks. If method is ‘nde’ or ‘scandal’, this refers to the
-setup of each individual MADE layer. Default value: (100, 100, 100, 100).</p>
+setup of each individual MADE layer. Default value: (100, 100).</p>
 </dd>
 <dt><strong>activation</strong> <span class="classifier-delimiter">:</span> <span class="classifier">{‘tanh’, ‘sigmoid’, ‘relu’}, optional</span></dt>
 <dd><p class="first last">Activation function. Default value: ‘tanh’.</p>
@@ -761,7 +761,7 @@ Default value: 10.</p>
 </dd>
 <dt><strong>initial_lr</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float, optional</span></dt>
 <dd><p class="first last">Learning rate during the first epoch, after which it exponentially decays to final_lr. Default value:
-0.01.</p>
+0.001.</p>
 </dd>
 <dt><strong>final_lr</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float, optional</span></dt>
 <dd><p class="first last">Learning rate during the last epoch. Default value: 0.0001.</p>
@@ -868,7 +868,7 @@ is the neural network output (the estimated log likelihood ratio or score). Defa
       <div class="clearer"></div>
     </div>
     <div class="footer">
-      &copy;Johann Brehmer, Kyle Cranmer, and Felix Kling 2018.
+      &copy;Johann Brehmer, Felix Kling, and Kyle Cranmer 2018.
       
       |
       Powered by <a href="http://sphinx-doc.org/">Sphinx 1.8.1</a>

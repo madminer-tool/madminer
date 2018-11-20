@@ -3,7 +3,6 @@ channels:
 - pytorch
 - anaconda
 - defaults
-- conda-ml
 dependencies:
 - python=3.6.*
 - numpy
@@ -12,10 +11,10 @@ dependencies:
 - scikit-learn=0.19.*
 - matplotlib
 - jupyter
-- h5py
 - six
 - pytorch=0.4.*
 - bqplot=0.11.0
+- pip
 - pip:
   - uproot
   - scikit-hep
