@@ -131,17 +131,27 @@ examples/tutorial/mg_processes
 examples/tutorial/py.py
 examples/tutorial/models
 
-examples/tutorial_parton/temp
-examples/tutorial_parton/nsqso_born.inc
-examples/tutorial_parton/data
-examples/tutorial_parton/datasave
-examples/tutorial_parton/logs
-examples/tutorial_parton/ME5_debug
-examples/tutorial_parton/MG_Process
-examples/tutorial_parton/py.py
-examples/tutorial_parton/models
-examples/tutorial_parton/figures
-examples/tutorial_parton/smearing_data
+examples/tutorial_wbf/temp
+examples/tutorial_wbf/nsqso_born.inc
+examples/tutorial_wbf/data
+examples/tutorial_wbf/datasave
+examples/tutorial_wbf/logs
+examples/tutorial_wbf/ME5_debug
+examples/tutorial_wbf/MG_process
+examples/tutorial_wbf/py.py
+examples/tutorial_wbf/models
+examples/tutorial_wbf/figures
+
+examples/tutorial_wgamma/temp
+examples/tutorial_wgamma/nsqso_born.inc
+examples/tutorial_wgamma/data
+examples/tutorial_wgamma/datasave
+examples/tutorial_wgamma/logs
+examples/tutorial_wgamma/ME5_debug
+examples/tutorial_wgamma/mg_processes
+examples/tutorial_wgamma/py.py
+examples/tutorial_wgamma/models
+examples/tutorial_wgamma/figures
 
 examples/tutorial_F
 
