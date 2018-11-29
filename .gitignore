@@ -140,6 +140,7 @@ examples/tutorial_wbf/ME5_debug
 examples/tutorial_wbf/MG_process
 examples/tutorial_wbf/py.py
 examples/tutorial_wbf/models
+examples/tutorial_wbf/model
 examples/tutorial_wbf/figures
 
 examples/tutorial_wgamma/temp
@@ -150,6 +151,7 @@ examples/tutorial_wgamma/logs
 examples/tutorial_wgamma/ME5_debug
 examples/tutorial_wgamma/mg_processes
 examples/tutorial_wgamma/py.py
+examples/tutorial_wgamma/model
 examples/tutorial_wgamma/models
 examples/tutorial_wgamma/figures
 
