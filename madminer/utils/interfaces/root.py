@@ -435,14 +435,14 @@ def _get_particles_truth_jets(tree, pt_min, eta_max):
     pts = tree.array("GenJet.PT")
     etas = tree.array("GenJet.Eta")
     phis = tree.array("GenJet.Phi")
-    es = tree.array("GenJet.E")
+    masses = tree.array("GenJet.Mass")
 
     all_particles = []
 
     for ievent in range(len(pts)):
         event_particles = []
 
-        for pt, eta, phi, e in zip(pts[ievent], etas[ievent], phis[ievent], es[ievent]):
+        for pt, eta, phi, mass in zip(pts[ievent], etas[ievent], phis[ievent], masses[ievent]):
 
             if pt_min is not None and pt < pt_min:
                 continue
@@ -450,7 +450,7 @@ def _get_particles_truth_jets(tree, pt_min, eta_max):
                 continue
 
             particle = MadMinerParticle()
-            particle.setptetaphie(pt, eta, phi, e)
+            particle.setptetaphim(pt, eta, phi, m)
             particle.set_pdgid(9)
             event_particles.append(particle)
 
