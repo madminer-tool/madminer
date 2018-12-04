@@ -997,7 +997,7 @@ class MadMiner:
                 logging.info("Run %s", i)
                 logging.info("  Sampling from benchmark: %s", sample_benchmark)
                 logging.info("  Original run card:       %s", run_card_file)
-                logging.info("  Original Pythia8 card:   %s", run_card_file)
+                logging.info("  Original Pythia8 card:   %s", pythia8_card_file)
                 logging.info("  Copied run card:         %s", new_run_card_file)
                 logging.info("  Copied Pythia8 card:     %s", new_pythia8_card_file)
                 logging.info("  Param card:              %s", param_card_file)
@@ -1043,7 +1043,8 @@ class MadMiner:
                         mg_process_directory + "/" + new_run_card_file,
                         mg_process_directory + "/" + param_card_file,
                         mg_process_directory + "/" + reweight_card_file,
-                        mg_process_directory + "/" + new_pythia8_card_file,
+                        None if new_pythia8_card_file is None else mg_process_directory + "/" + new_pythia8_card_file,
+                        #mg_process_directory + "/" + new_pythia8_card_file,
                         is_background=is_background,
                         initial_command=initial_command,
                         log_file=log_directory + "/" + log_file_run,

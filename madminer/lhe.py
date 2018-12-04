@@ -50,6 +50,35 @@ class LHEProcessor:
         self.observables[name] = definition
         self.observables_required[name] = required
 
+    def add_observable_from_function(self, name, fn, required=False):
+        """
+        Adds an observable defined through a function.
+        
+        Parameters
+        ----------
+        name : str
+            Name of the observable. Since this name will be used in `eval()` calls for cuts, this should not contain spaces or special characters.
+        
+        fn : function
+            A function with signature `observable(p)` where the input arguments are lists of ndarrays and a float is returned. The function should raise a `RuntimeError` to signal that it is not defined.
+        
+        required : bool, optional
+            Whether the observable is required. If True, an event will only be retained if this observable is successfully parsed. For instance, any observable involving `"p[1]"` will only be parsed if there are at least two particles passing the acceptance cuts. Default value: False.
+
+        Returns
+        -------
+        None
+        
+        """
+            
+        if required:
+            logging.info("Adding required observable %s ", name)
+        else:
+            logging.info("Adding (not required) observable %s ", name)
+        
+        self.observables[name] = fn
+        self.observables_required[name] = required
+
     def set_default_observables(self):
         raise NotImplementedError
 
@@ -71,13 +100,13 @@ class LHEProcessor:
 
             if len(self.weights) != len(this_weights):
                 raise ValueError(
-                    "Number of weights in different Delphes files incompatible: {} vs {}".format(
+                    "Number of weights in different LHE files incompatible: {} vs {}".format(
                         len(self.weights), len(this_weights)
                     )
                 )
             if len(self.observations) != len(this_observations):
                 raise ValueError(
-                    "Number of observations in different Delphes files incompatible: {} vs {}".format(
+                    "Number of observations in different LHE files incompatible: {} vs {}".format(
                         len(self.observations), len(this_observations)
                     )
                 )

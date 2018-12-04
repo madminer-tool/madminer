@@ -22,7 +22,7 @@ def export_param_card(benchmark, parameters, param_card_template_file, mg_proces
         if block_begin < 0:
             raise ValueError("Could not find block {0} in param_card template!".format(parameter_lha_block))
 
-        block_end = param_card.lower().find("Block".lower(), block_begin + 5)
+        block_end = param_card.lower().find("Block".lower(), block_begin + 20)
         if block_end < 0:
             block_end = len(param_card)
 
