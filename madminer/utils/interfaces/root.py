@@ -19,6 +19,7 @@ def extract_observables_from_delphes_file(
     cuts,
     cuts_default_pass,
     weight_labels,
+    use_generator_truth=False,
     acceptance_pt_min_e=10.0,
     acceptance_pt_min_mu=10.0,
     acceptance_pt_min_a=10.0,
@@ -48,16 +49,27 @@ def extract_observables_from_delphes_file(
     weights = np.array(ar_weights).reshape((n_events, n_weights)).T
 
     # Get all particle properties
-    photons_all_events = _get_particles_photons(tree, acceptance_pt_min_a, acceptance_eta_max_a)
-    electrons_all_events = _get_particles_charged(
-        tree, "Electron", 0.000511, -11, acceptance_pt_min_e, acceptance_eta_max_e
-    )
-    muons_all_events = _get_particles_charged(tree, "Muon", 0.105, -13, acceptance_pt_min_mu, acceptance_eta_max_mu)
-    leptons_all_events = _get_particles_leptons(
-        tree, acceptance_pt_min_e, acceptance_eta_max_e, acceptance_pt_min_mu, acceptance_eta_max_mu
-    )
-    jets_all_events = _get_particles_jets(tree, acceptance_pt_min_j, acceptance_eta_max_j)
-    met_all_events = _get_particles_met(tree)
+    if use_generator_truth:
+        photons_all_events = _get_particles_truth(tree, acceptance_pt_min_a, acceptance_eta_max_a, [22])
+        electrons_all_events = _get_particles_truth(tree, acceptance_pt_min_a, acceptance_eta_max_a, [11, -11])
+        muons_all_events = _get_particles_truth(tree, acceptance_pt_min_a, acceptance_eta_max_a, [13, -13])
+        leptons_all_events = _get_particles_truth_leptons(
+            tree, acceptance_pt_min_e, acceptance_eta_max_e, acceptance_pt_min_mu, acceptance_eta_max_mu
+        )
+        jets_all_events = _get_particles_truth_jets(tree, acceptance_pt_min_j, acceptance_eta_max_j)
+        met_all_events = _get_particles_truth_met(tree)
+
+    else:
+        photons_all_events = _get_particles_photons(tree, acceptance_pt_min_a, acceptance_eta_max_a)
+        electrons_all_events = _get_particles_charged(
+            tree, "Electron", 0.000511, -11, acceptance_pt_min_e, acceptance_eta_max_e
+        )
+        muons_all_events = _get_particles_charged(tree, "Muon", 0.105, -13, acceptance_pt_min_mu, acceptance_eta_max_mu)
+        leptons_all_events = _get_particles_leptons(
+            tree, acceptance_pt_min_e, acceptance_eta_max_e, acceptance_pt_min_mu, acceptance_eta_max_mu
+        )
+        jets_all_events = _get_particles_jets(tree, acceptance_pt_min_j, acceptance_eta_max_j)
+        met_all_events = _get_particles_met(tree)
 
     # Prepare variables
     def get_objects(ievent):
@@ -206,6 +218,38 @@ def extract_observables_from_delphes_file(
     return observable_values, weights_dict
 
 
+def _get_particles_truth(tree, pt_min, eta_max, included_pdgids=None):
+    es = tree.array("Particle.E")
+    pts = tree.array("Particle.PT")
+    etas = tree.array("Particle.Eta")
+    phis = tree.array("Particle.Phi")
+    charges = tree.array("Particle.Charge")
+    pdgids = tree.array("Particle.PID")
+
+    all_particles = []
+
+    for ievent in range(len(pts)):
+        event_particles = []
+
+        for e, pt, eta, phi, pdgid in zip(es[ievent], pts[ievent], etas[ievent], phis[ievent], pdgids[ievent]):
+
+            if pt_min is not None and pt < pt_min:
+                continue
+            if eta_max is not None and abs(eta) > eta_max:
+                continue
+            if (included_pdgids is not None) and (not pdgid in included_pdgids):
+                continue
+
+            particle = MadMinerParticle()
+            particle.setptetaphie(pt, eta, phi, e)
+            particle.set_pdgid(pdgid)
+            event_particles.append(particle)
+
+        all_particles.append(event_particles)
+
+    return all_particles
+
+
 def _get_particles_charged(tree, name, mass, pdgid_positive_charge, pt_min, eta_max):
     pts = tree.array(name + ".PT")
     etas = tree.array(name + ".Eta")
@@ -300,6 +344,37 @@ def _get_particles_leptons(tree, pt_min_e, eta_max_e, pt_min_mu, eta_max_mu):
     return all_particles
 
 
+def _get_particles_truth_leptons(tree, pt_min_e, eta_max_e, pt_min_mu, eta_max_mu):
+    es = tree.array("Particle.E")
+    pts = tree.array("Particle.PT")
+    etas = tree.array("Particle.Eta")
+    phis = tree.array("Particle.Phi")
+    charges = tree.array("Particle.Charge")
+    pdgids = tree.array("Particle.PID")
+
+    all_particles = []
+
+    for ievent in range(len(pts)):
+        event_particles = []
+
+        for e, pt, eta, phi, pdgid in zip(es[ievent], pts[ievent], etas[ievent], phis[ievent], pdgids[ievent]):
+            if pdgid not in [11, 13, -11, -13]:
+                continue
+            if pdgid in [11, -11] and (not pt > pt_min_e or not abs(eta) < eta_max_e):
+                continue
+            if pdgid in [13, -13] and (not pt > pt_min_mu or not abs(eta) < eta_max_mu):
+                continue
+
+            particle = MadMinerParticle()
+            particle.setptetaphie(pt, eta, phi, e)
+            particle.set_pdgid(pdgid)
+            event_particles.append(particle)
+
+        all_particles.append(event_particles)
+
+    return all_particles
+
+
 def _get_particles_photons(tree, pt_min, eta_max):
     pts = tree.array("Photon.PT")
     etas = tree.array("Photon.Eta")
@@ -349,6 +424,54 @@ def _get_particles_jets(tree, pt_min, eta_max):
             particle = MadMinerParticle()
             particle.setptetaphim(pt, eta, phi, mass)
             particle.set_pdgid(9)
+            event_particles.append(particle)
+
+        all_particles.append(event_particles)
+
+    return all_particles
+
+
+def _get_particles_truth_jets(tree, pt_min, eta_max):
+    pts = tree.array("GenJet.PT")
+    etas = tree.array("GenJet.Eta")
+    phis = tree.array("GenJet.Phi")
+    masses = tree.array("GenJet.Mass")
+
+    all_particles = []
+
+    for ievent in range(len(pts)):
+        event_particles = []
+
+        for pt, eta, phi, mass in zip(pts[ievent], etas[ievent], phis[ievent], masses[ievent]):
+
+            if pt_min is not None and pt < pt_min:
+                continue
+            if eta_max is not None and abs(eta) > eta_max:
+                continue
+
+            particle = MadMinerParticle()
+            particle.setptetaphim(pt, eta, phi, m)
+            particle.set_pdgid(9)
+            event_particles.append(particle)
+
+        all_particles.append(event_particles)
+
+    return all_particles
+
+
+def _get_particles_truth_met(tree):
+    mets = tree.array("GenMissingET.MET")
+    phis = tree.array("GenMissingET.Phi")
+
+    all_particles = []
+
+    for ievent in range(len(mets)):
+        event_particles = []
+
+        for met, phi in zip(mets[ievent], phis[ievent]):
+            particle = MadMinerParticle()
+            particle.setptetaphim(met, 0.0, phi, 0.0)
+            particle.set_pdgid(0)
             event_particles.append(particle)
 
         all_particles.append(event_particles)

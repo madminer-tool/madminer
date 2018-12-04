@@ -415,13 +415,17 @@ class DelphesProcessor:
         self.cuts = []
         self.cuts_default_pass = []
 
-    def analyse_delphes_samples(self, delete_delphes_files=False):
+    def analyse_delphes_samples(self, generator_truth=False, delete_delphes_files=False):
         """
         Main function that parses the Delphes samples (ROOT files), checks acceptance and cuts, and extracts
         the observables and weights.
 
         Parameters
         ----------
+        generator_truth : bool, optional
+            If True, the generator truth information (as given out by Pythia) will be parsed. Detector resolution or
+            efficiency effects will not be taken into account.
+
         delete_delphes_files : bool, optional
             If True, the Delphes ROOT files will be deleted after extracting the information from them. Default value:
             False.
@@ -451,7 +455,16 @@ class DelphesProcessor:
                 self.cuts,
                 self.cuts_default_pass,
                 weight_labels,
+                use_generator_truth=generator_truth,
                 delete_delphes_sample_file=delete_delphes_files,
+                acceptance_eta_max_a=self.acceptance_eta_max_a,
+                acceptance_eta_max_e=self.acceptance_eta_max_e,
+                acceptance_eta_max_mu=self.acceptance_eta_max_mu,
+                acceptance_eta_max_j=self.acceptance_eta_max_j,
+                acceptance_pt_min_a=self.acceptance_pt_min_a,
+                acceptance_pt_min_e=self.acceptance_pt_min_e,
+                acceptance_pt_min_mu=self.acceptance_pt_min_mu,
+                acceptance_pt_min_j=self.acceptance_pt_min_j,
             )
 
             # No events found?
