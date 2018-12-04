@@ -30,12 +30,6 @@ def get_theta_benchmark_matrix(theta_type, theta_value, benchmarks, morpher=None
     elif theta_type == "morphing":
         theta_matrix = morpher.calculate_morphing_weights(theta_value)
 
-    # elif theta_type == "sampling":
-    #     theta_matrix = "sampling"
-    #
-    # elif theta_type == "auxiliary":
-    #     theta_matrix = "auxiliary"
-
     else:
         raise ValueError("Unknown theta {}".format(theta_type))
 
@@ -59,12 +53,6 @@ def get_dtheta_benchmark_matrix(theta_type, theta_value, benchmarks, morpher=Non
             raise RuntimeError("Cannot calculate score without morphing")
 
         dtheta_matrix = morpher.calculate_morphing_weight_gradient(theta_value)  # Shape (n_parameters, n_benchmarks)
-
-    # elif theta_type == "sampling":
-    #     dtheta_matrix = "sampling_gradient"
-    #
-    # elif theta_type == "auxiliary":
-    #     dtheta_matrix = "auxiliary_gradient"
 
     else:
         raise ValueError("Unknown theta {}".format(theta_type))

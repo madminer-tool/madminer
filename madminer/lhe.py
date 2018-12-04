@@ -70,12 +70,12 @@ class LHEProcessor:
         None
         
         """
-            
+
         if required:
             logging.info("Adding required observable %s ", name)
         else:
             logging.info("Adding (not required) observable %s ", name)
-        
+
         self.observables[name] = fn
         self.observables_required[name] = required
 
