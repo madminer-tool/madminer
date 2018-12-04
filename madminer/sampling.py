@@ -211,6 +211,22 @@ class SampleAugmenter:
 
     Please see the tutorial for a walkthrough.
 
+    For the curious, let us explain these steps in a little bit more detail (assuming a morphing setup):
+
+    * The sample augmentation step starts from a set of events `(x_i, z_i)` together with corresponding weights for each
+      morphing basis point `theta_b`, `p(x_i, z_i | theta_b)`.
+    * Morphing: Assume we want to generate data sampled from a parameter point theta, which is not necessarily one of
+      the basis points theta_b. Using the morphing structure, the event weights for p(x_i, z_i | theta) can be
+      calculated. Note that the events (phase-space points) `(x_i, z_i)` are not changed, only their weights.
+    * Unweighting: For the machine learning part, such a weighted event sample is not practical. Instead we aim for an
+      unweighted one, in which events can appear multiple times. If the user request `N` events (which can be larger
+      than the original number of events in the MadGraph runs), SampleAugmenter will draw `N` samples `(x_i, z_i)` from
+      the discrete distribution `p(x_i, z_i | theta)`. In other words, it draws (with replacement) `N` of the original
+      events from MadGraph, with probabilities given by the morphing setup before. This is similar to what
+      `np.random.choice()` does.
+    * Augmentation: For each of the drawn samples, the morphing setup can be used to calculate the joint likelihood
+      ratio and / or the joint score (this depends on which SampleAugmenter function is called).
+
     Parameters
     ----------
     filename : str

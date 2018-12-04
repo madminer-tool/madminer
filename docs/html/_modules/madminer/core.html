@@ -1074,14 +1074,14 @@
                     <span class="bp">self</span><span class="o">.</span><span class="n">_run_mg_and_pythia</span><span class="p">(</span>
                         <span class="n">mg_directory</span><span class="p">,</span>
                         <span class="n">mg_process_directory</span><span class="p">,</span>
-                        <span class="n">mg_commands_filename</span><span class="p">,</span>
+                        <span class="n">mg_process_directory</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span> <span class="o">+</span> <span class="n">mg_commands_filename</span><span class="p">,</span>
                         <span class="n">mg_process_directory</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span> <span class="o">+</span> <span class="n">new_run_card_file</span><span class="p">,</span>
                         <span class="n">mg_process_directory</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span> <span class="o">+</span> <span class="n">param_card_file</span><span class="p">,</span>
                         <span class="n">mg_process_directory</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span> <span class="o">+</span> <span class="n">reweight_card_file</span><span class="p">,</span>
                         <span class="n">mg_process_directory</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span> <span class="o">+</span> <span class="n">new_pythia8_card_file</span><span class="p">,</span>
                         <span class="n">is_background</span><span class="o">=</span><span class="n">is_background</span><span class="p">,</span>
                         <span class="n">initial_command</span><span class="o">=</span><span class="n">initial_command</span><span class="p">,</span>
-                        <span class="n">log_file</span><span class="o">=</span><span class="n">log_file_run</span><span class="p">,</span>
+                        <span class="n">log_file</span><span class="o">=</span><span class="n">log_directory</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span> <span class="o">+</span> <span class="n">log_file_run</span><span class="p">,</span>
                     <span class="p">)</span>
 
                 <span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span>
