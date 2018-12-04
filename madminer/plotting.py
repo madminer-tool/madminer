@@ -502,7 +502,7 @@ def plot_fisherinfo_barplot(
         bar_colors_light = bar_colors
 
     if eigenvalue_colors is None:
-        eigenvalue_colors = ["C{}".str(i) for i in range(10)]
+        eigenvalue_colors = ["C{}".format(str(i)) for i in range(10)]
     operator_order = [i for i in range(0, size_upper)]
     eigenvalue_linewidth = 1.5
 
