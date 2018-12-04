@@ -464,7 +464,7 @@ class DelphesProcessor:
                 acceptance_pt_min_a=self.acceptance_pt_min_a,
                 acceptance_pt_min_e=self.acceptance_pt_min_e,
                 acceptance_pt_min_mu=self.acceptance_pt_min_mu,
-                acceptance_pt_min_j=self.acceptance_pt_min_j
+                acceptance_pt_min_j=self.acceptance_pt_min_j,
             )
 
             # No events found?
