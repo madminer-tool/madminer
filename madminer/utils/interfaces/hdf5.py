@@ -360,15 +360,28 @@ def save_madminer_file_from_lhe(
             except Exception:
                 pass
 
-        # Prepare observable definitions
-        observable_names = [oname for oname in observables]
-        n_observables = len(observable_names)
-        observable_names_ascii = [oname.encode("ascii", "ignore") for oname in observable_names]
-        observable_definitions = [observables[key].encode("ascii", "ignore") for key in observable_names]
+        if observables is not None:
+            # Prepare observable definitions
+            observable_names = [oname for oname in observables]
+            n_observables = len(observable_names)
+            observable_names_ascii = [oname.encode("ascii", "ignore") for oname in observable_names]
+            observable_definitions = []
+            for key in observable_names:
+                definition = observables[key]
+                if isinstance(definition, six.string_types):
+                    observable_definitions.append(definition.encode("ascii", "ignore"))
+                else:
+                    observable_definitions.append("".encode("ascii", "ignore"))
 
-        # Store observable definitions
-        f.create_dataset("observables/names", (n_observables,), dtype="S256", data=observable_names_ascii)
-        f.create_dataset("observables/definitions", (n_observables,), dtype="S256", data=observable_definitions)
+            # Prepare observable definitions
+            #observable_names = [oname for oname in observables]
+            #n_observables = len(observable_names)
+            #observable_names_ascii = [oname.encode("ascii", "ignore") for oname in observable_names]
+            #observable_definitions = [observables[key].encode("ascii", "ignore") for key in observable_names]
+
+            # Store observable definitions
+            f.create_dataset("observables/names", (n_observables,), dtype="S256", data=observable_names_ascii)
+            f.create_dataset("observables/definitions", (n_observables,), dtype="S256", data=observable_definitions)
 
         # Save weights
         weights_event_benchmark = weights.T
