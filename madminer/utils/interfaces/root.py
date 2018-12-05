@@ -450,7 +450,7 @@ def _get_particles_truth_jets(tree, pt_min, eta_max):
                 continue
 
             particle = MadMinerParticle()
-            particle.setptetaphim(pt, eta, phi, m)
+            particle.setptetaphim(pt, eta, phi, mass)
             particle.set_pdgid(9)
             event_particles.append(particle)
 
