@@ -65,14 +65,14 @@ class DelphesProcessor:
         self.cuts_default_pass = []
 
         # Initialize acceptance cuts
-        self.acceptance_pt_min_e = 10.0
-        self.acceptance_pt_min_mu = 10.0
-        self.acceptance_pt_min_a = 10.0
-        self.acceptance_pt_min_j = 20.0
-        self.acceptance_eta_max_e = 2.5
-        self.acceptance_eta_max_mu = 2.5
-        self.acceptance_eta_max_a = 2.5
-        self.acceptance_eta_max_j = 5.0
+        self.acceptance_pt_min_e = None
+        self.acceptance_pt_min_mu = None
+        self.acceptance_pt_min_a = None
+        self.acceptance_pt_min_j = None
+        self.acceptance_eta_max_e = None
+        self.acceptance_eta_max_mu = None
+        self.acceptance_eta_max_a = None
+        self.acceptance_eta_max_j = None
 
         # Initialize samples
         self.observations = None
@@ -150,14 +150,14 @@ class DelphesProcessor:
 
     def set_acceptance(
         self,
-        pt_min_e=10.0,
-        pt_min_mu=10.0,
-        pt_min_a=10.0,
-        pt_min_j=20.0,
-        eta_max_e=2.5,
-        eta_max_mu=2.5,
-        eta_max_a=2.5,
-        eta_max_j=5.0,
+        pt_min_e=None,
+        pt_min_mu=None,
+        pt_min_a=None,
+        pt_min_j=None,
+        eta_max_e=None,
+        eta_max_mu=None,
+        eta_max_a=None,
+        eta_max_j=None,
     ):
         """
         Sets acceptance cuts for all visible particles. These are taken into account before observables and cuts
@@ -165,29 +165,29 @@ class DelphesProcessor:
 
         Parameters
         ----------
-        pt_min_e : float
-             Minimum electron transverse momentum in GeV. Default value: 10.
+        pt_min_e : float or None, optional
+             Minimum electron transverse momentum in GeV. None means no acceptance cut. Default value: None.
 
-        pt_min_mu : float
-             Minimum muon transverse momentum in GeV. Default value: 10.
+        pt_min_mu : float or None, optional
+             Minimum muon transverse momentum in GeV. None means no acceptance cut. Default value: None.
 
-        pt_min_a : float
-             Minimum photon transverse momentum in GeV. Default value: 10.
+        pt_min_a : float or None, optional
+             Minimum photon transverse momentum in GeV. None means no acceptance cut. Default value: None.
 
-        pt_min_j : float
-             Minimum jet transverse momentum in GeV. Default value: 20.
+        pt_min_j : float or None, optional
+             Minimum jet transverse momentum in GeV. None means no acceptance cut. Default value: None.
 
-        eta_max_e : float
-             Maximum absolute electron pseudorapidity. Default value: 2.5.
+        eta_max_e : float or None, optional
+             Maximum absolute electron pseudorapidity. None means no acceptance cut. Default value: None.
 
-        eta_max_mu : float
-             Maximum absolute muon pseudorapidity. Default value: 2.5.
+        eta_max_mu : float or None, optional
+             Maximum absolute muon pseudorapidity. None means no acceptance cut. Default value: None.
 
-        eta_max_a : float
-             Maximum absolute photon pseudorapidity. Default value: 2.5.
+        eta_max_a : float or None, optional
+             Maximum absolute photon pseudorapidity. None means no acceptance cut. Default value: None.
 
-        eta_max_j : float
-             Maximum absolute jet pseudorapidity. Default value: 5.
+        eta_max_j : float or None, optional
+             Maximum absolute jet pseudorapidity. None means no acceptance cut. Default value: None.
 
         Returns
         -------

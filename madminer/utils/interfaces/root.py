@@ -20,14 +20,14 @@ def extract_observables_from_delphes_file(
     cuts_default_pass,
     weight_labels,
     use_generator_truth=False,
-    acceptance_pt_min_e=10.0,
-    acceptance_pt_min_mu=10.0,
-    acceptance_pt_min_a=10.0,
-    acceptance_pt_min_j=20.0,
-    acceptance_eta_max_e=10.0,
-    acceptance_eta_max_mu=10.0,
-    acceptance_eta_max_a=10.0,
-    acceptance_eta_max_j=20.0,
+    acceptance_pt_min_e=None,
+    acceptance_pt_min_mu=None,
+    acceptance_pt_min_a=None,
+    acceptance_pt_min_j=None,
+    acceptance_eta_max_e=None,
+    acceptance_eta_max_mu=None,
+    acceptance_eta_max_a=None,
+    acceptance_eta_max_j=None,
     delete_delphes_sample_file=False,
 ):
     """ Extracts observables and weights from a Delphes ROOT file """
@@ -360,9 +360,13 @@ def _get_particles_truth_leptons(tree, pt_min_e, eta_max_e, pt_min_mu, eta_max_m
         for e, pt, eta, phi, pdgid in zip(es[ievent], pts[ievent], etas[ievent], phis[ievent], pdgids[ievent]):
             if pdgid not in [11, 13, -11, -13]:
                 continue
-            if pdgid in [11, -11] and (not pt > pt_min_e or not abs(eta) < eta_max_e):
+            if pdgid in [11, -11] and (pt_min_e is not None and pt < pt_min_e):
                 continue
-            if pdgid in [13, -13] and (not pt > pt_min_mu or not abs(eta) < eta_max_mu):
+            if pdgid in [11, -11] and (eta_max_e is not None and abs(eta) > eta_max_e):
+                continue
+            if pdgid in [13, -13] and (pt_min_mu is not None and pt < pt_min_mu):
+                continue
+            if pdgid in [13, -13] and (eta_max_mu is not None and abs(eta) > eta_max_mu):
                 continue
 
             particle = MadMinerParticle()
