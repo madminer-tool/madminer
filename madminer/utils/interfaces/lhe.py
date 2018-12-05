@@ -10,7 +10,15 @@ import logging
 from madminer.utils.various import call_command
 
 
-def extract_observables_from_lhe_file(filename, sampling_benchmark, observables, benchmark_names):
+def extract_observables_from_lhe_file(
+    filename,
+    sampling_benchmark,
+    observables,
+    benchmark_names
+):
+    
+    """ Extracts observables and weights from a LHE file """
+    
     # Untar Event file
     new_filename, extension = os.path.splitext(filename)
     if extension == ".gz":
@@ -54,10 +62,16 @@ def extract_observables_from_lhe_file(filename, sampling_benchmark, observables,
         for event in range(n_events):
             variables = {"p": partons_all_events[event]}
 
-            try:
-                values_this_observable.append(eval(obs_definition, variables))
-            except Exception:
-                values_this_observable.append(np.nan)
+            if isinstance(obs_definition, six.string_types):
+                try:
+                    values_this_observable.append(eval(obs_definition, variables))
+                except Exception:
+                    values_this_observable.append(np.nan)
+            else:
+                try:
+                    values_this_observable.append(obs_definition(partons_all_events[event]))
+                except RuntimeError:  # (SyntaxError, NameError, TypeError, ZeroDivisionError, IndexError, RuntimeError):
+                    values_this_observable.append(np.nan)
 
         values_this_observable = np.array(values_this_observable, dtype=np.float)
         observable_values[obs_name] = values_this_observable
