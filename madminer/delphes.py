@@ -353,10 +353,10 @@ class DelphesProcessor:
 
             for i in range(n):
                 self.add_observable(
-                    "e_{}{}".format(symbol, i + 1), "{}[{}].pt".format(symbol, i), required=False, default=0.0
+                    "e_{}{}".format(symbol, i + 1), "{}[{}].e".format(symbol, i), required=False, default=0.0
                 )
                 self.add_observable(
-                    "pt_{}{}".format(symbol, i + 1), "{}[{}].e".format(symbol, i), required=False, default=0.0
+                    "pt_{}{}".format(symbol, i + 1), "{}[{}].pt".format(symbol, i), required=False, default=0.0
                 )
                 self.add_observable(
                     "eta_{}{}".format(symbol, i + 1), "{}[{}].eta".format(symbol, i), required=False, default=0.0
