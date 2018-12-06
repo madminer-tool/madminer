@@ -1448,7 +1448,7 @@ class EnsembleForge:
                 ensemble_covariances.append(covariance)
 
         # "score" mode:
-        else mode == "score":
+        else:
             # Calculate score predictions
             score_predictions = []
             for i, estimator in enumerate(self.estimators):
@@ -1458,7 +1458,6 @@ class EnsembleForge:
             score_predictions = np.array(score_predictions)  # (n_estimators, n_events, n_parameters)
 
             # Get ensemble mean and ensemble covariance
-            n_estimators = self.
             score_mean = np.mean(score_predictions, axis=0)  # (n_events, n_parameters)
             score_pred_minus_ens_mean = score_predictions[:,:,:] - score_means[np.newaxis,:,:]  # (n_estimators, n_events, n_parameters)
             score_cov = 1. / (self.n_estimators - 1.) * np.einsum(
@@ -1468,10 +1467,10 @@ class EnsembleForge:
             # Event-wise FIsher info
             event_information_mean = np.einsum("ni,nj->nij", score_mean, score_mean)
             event_information_cov = (
-                np.einsum("i,jk,l->ijkl"), score_mean, score_cov, score_mean)
-                + np.einsum("i,jl,k->ijkl"), score_mean, score_cov, score_mean)
-                + np.einsum("j,ik,l->ijkl"), score_mean, score_cov, score_mean)
-                + np.einsum("j,il,k->ijkl"), score_mean, score_cov, score_mean)
+                np.einsum("i,jk,l->ijkl", score_mean, score_cov, score_mean)
+                + np.einsum("i,jl,k->ijkl", score_mean, score_cov, score_mean)
+                + np.einsum("j,ik,l->ijkl", score_mean, score_cov, score_mean)
+                + np.einsum("j,il,k->ijkl", score_mean, score_cov, score_mean)
             )  # (n_events, n_parameters, n_parameters, n_parameters, n_parameters)
 
             # Weights
