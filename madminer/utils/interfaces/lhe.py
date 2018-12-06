@@ -10,15 +10,10 @@ import logging
 from madminer.utils.various import call_command
 
 
-def extract_observables_from_lhe_file(
-    filename,
-    sampling_benchmark,
-    observables,
-    benchmark_names
-):
-    
+def extract_observables_from_lhe_file(filename, sampling_benchmark, observables, benchmark_names):
+
     """ Extracts observables and weights from a LHE file """
-    
+
     # Untar Event file
     new_filename, extension = os.path.splitext(filename)
     if extension == ".gz":

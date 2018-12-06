@@ -6,7 +6,7 @@
   <head>
     <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title>madminer.delphes module &#8212; MadMiner 0.1.0 documentation</title>
+    <title>madminer.delphes module &#8212; MadMiner 0.1.1 documentation</title>
     <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
@@ -97,7 +97,7 @@ analysis routine of your choice.</p>
 <tr class="row-odd"><td><a class="reference internal" href="#madminer.delphes.DelphesProcessor.add_observable_from_function" title="madminer.delphes.DelphesProcessor.add_observable_from_function"><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_observable_from_function</span></code></a>(name,&nbsp;fn[,&nbsp;…])</td>
 <td>Adds an observable defined through a function.</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#madminer.delphes.DelphesProcessor.analyse_delphes_samples" title="madminer.delphes.DelphesProcessor.analyse_delphes_samples"><code class="xref py py-obj docutils literal notranslate"><span class="pre">analyse_delphes_samples</span></code></a>([delete_delphes_files])</td>
+<tr class="row-even"><td><a class="reference internal" href="#madminer.delphes.DelphesProcessor.analyse_delphes_samples" title="madminer.delphes.DelphesProcessor.analyse_delphes_samples"><code class="xref py py-obj docutils literal notranslate"><span class="pre">analyse_delphes_samples</span></code></a>([generator_truth,&nbsp;…])</td>
 <td>Main function that parses the Delphes samples (ROOT files), checks acceptance and cuts, and extracts the observables and weights.</td>
 </tr>
 <tr class="row-odd"><td><a class="reference internal" href="#madminer.delphes.DelphesProcessor.reset_cuts" title="madminer.delphes.DelphesProcessor.reset_cuts"><code class="xref py py-obj docutils literal notranslate"><span class="pre">reset_cuts</span></code></a>()</td>
@@ -317,7 +317,7 @@ with <cite>np.nan</cite>. Default value: None.</p>
 
 <dl class="method">
 <dt id="madminer.delphes.DelphesProcessor.analyse_delphes_samples">
-<code class="descname">analyse_delphes_samples</code><span class="sig-paren">(</span><em>delete_delphes_files=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/delphes.html#DelphesProcessor.analyse_delphes_samples"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.delphes.DelphesProcessor.analyse_delphes_samples" title="Permalink to this definition">¶</a></dt>
+<code class="descname">analyse_delphes_samples</code><span class="sig-paren">(</span><em>generator_truth=False</em>, <em>delete_delphes_files=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/delphes.html#DelphesProcessor.analyse_delphes_samples"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.delphes.DelphesProcessor.analyse_delphes_samples" title="Permalink to this definition">¶</a></dt>
 <dd><p>Main function that parses the Delphes samples (ROOT files), checks acceptance and cuts, and extracts
 the observables and weights.</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -325,6 +325,10 @@ the observables and weights.</p>
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
+<dt><strong>generator_truth</strong> <span class="classifier-delimiter">:</span> <span class="classifier">bool, optional</span></dt>
+<dd><p class="first last">If True, the generator truth information (as given out by Pythia) will be parsed. Detector resolution or
+efficiency effects will not be taken into account.</p>
+</dd>
 <dt><strong>delete_delphes_files</strong> <span class="classifier-delimiter">:</span> <span class="classifier">bool, optional</span></dt>
 <dd><p class="first last">If True, the Delphes ROOT files will be deleted after extracting the information from them. Default value:
 False.</p>
@@ -418,7 +422,7 @@ assumed to exist and contain the correct parameter, benchmark, and morphing setu
 
 <dl class="method">
 <dt id="madminer.delphes.DelphesProcessor.set_acceptance">
-<code class="descname">set_acceptance</code><span class="sig-paren">(</span><em>pt_min_e=10.0</em>, <em>pt_min_mu=10.0</em>, <em>pt_min_a=10.0</em>, <em>pt_min_j=20.0</em>, <em>eta_max_e=2.5</em>, <em>eta_max_mu=2.5</em>, <em>eta_max_a=2.5</em>, <em>eta_max_j=5.0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/delphes.html#DelphesProcessor.set_acceptance"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.delphes.DelphesProcessor.set_acceptance" title="Permalink to this definition">¶</a></dt>
+<code class="descname">set_acceptance</code><span class="sig-paren">(</span><em>pt_min_e=None</em>, <em>pt_min_mu=None</em>, <em>pt_min_a=None</em>, <em>pt_min_j=None</em>, <em>eta_max_e=None</em>, <em>eta_max_mu=None</em>, <em>eta_max_a=None</em>, <em>eta_max_j=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/delphes.html#DelphesProcessor.set_acceptance"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.delphes.DelphesProcessor.set_acceptance" title="Permalink to this definition">¶</a></dt>
 <dd><p>Sets acceptance cuts for all visible particles. These are taken into account before observables and cuts
 are calculated.</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -426,29 +430,29 @@ are calculated.</p>
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><dl class="first docutils">
-<dt><strong>pt_min_e</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
-<dd><p class="first last">Minimum electron transverse momentum in GeV. Default value: 10.</p>
+<dt><strong>pt_min_e</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float or None, optional</span></dt>
+<dd><p class="first last">Minimum electron transverse momentum in GeV. None means no acceptance cut. Default value: None.</p>
 </dd>
-<dt><strong>pt_min_mu</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
-<dd><p class="first last">Minimum muon transverse momentum in GeV. Default value: 10.</p>
+<dt><strong>pt_min_mu</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float or None, optional</span></dt>
+<dd><p class="first last">Minimum muon transverse momentum in GeV. None means no acceptance cut. Default value: None.</p>
 </dd>
-<dt><strong>pt_min_a</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
-<dd><p class="first last">Minimum photon transverse momentum in GeV. Default value: 10.</p>
+<dt><strong>pt_min_a</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float or None, optional</span></dt>
+<dd><p class="first last">Minimum photon transverse momentum in GeV. None means no acceptance cut. Default value: None.</p>
 </dd>
-<dt><strong>pt_min_j</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
-<dd><p class="first last">Minimum jet transverse momentum in GeV. Default value: 20.</p>
+<dt><strong>pt_min_j</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float or None, optional</span></dt>
+<dd><p class="first last">Minimum jet transverse momentum in GeV. None means no acceptance cut. Default value: None.</p>
 </dd>
-<dt><strong>eta_max_e</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
-<dd><p class="first last">Maximum absolute electron pseudorapidity. Default value: 2.5.</p>
+<dt><strong>eta_max_e</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float or None, optional</span></dt>
+<dd><p class="first last">Maximum absolute electron pseudorapidity. None means no acceptance cut. Default value: None.</p>
 </dd>
-<dt><strong>eta_max_mu</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
-<dd><p class="first last">Maximum absolute muon pseudorapidity. Default value: 2.5.</p>
+<dt><strong>eta_max_mu</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float or None, optional</span></dt>
+<dd><p class="first last">Maximum absolute muon pseudorapidity. None means no acceptance cut. Default value: None.</p>
 </dd>
-<dt><strong>eta_max_a</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
-<dd><p class="first last">Maximum absolute photon pseudorapidity. Default value: 2.5.</p>
+<dt><strong>eta_max_a</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float or None, optional</span></dt>
+<dd><p class="first last">Maximum absolute photon pseudorapidity. None means no acceptance cut. Default value: None.</p>
 </dd>
-<dt><strong>eta_max_j</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
-<dd><p class="first last">Maximum absolute jet pseudorapidity. Default value: 5.</p>
+<dt><strong>eta_max_j</strong> <span class="classifier-delimiter">:</span> <span class="classifier">float or None, optional</span></dt>
+<dd><p class="first last">Maximum absolute jet pseudorapidity. None means no acceptance cut. Default value: None.</p>
 </dd>
 </dl>
 </td>

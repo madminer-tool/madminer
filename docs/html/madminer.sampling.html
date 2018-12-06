@@ -6,7 +6,7 @@
   <head>
     <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title>madminer.sampling module &#8212; MadMiner 0.1.0 documentation</title>
+    <title>madminer.sampling module &#8212; MadMiner 0.1.1 documentation</title>
     <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
@@ -62,6 +62,22 @@ hypothesis.</li>
 <li><cite>SampleAugmenter.extract_samples_test()</cite> creates evaluation samples for all methods.</li>
 </ul>
 <p>Please see the tutorial for a walkthrough.</p>
+<p>For the curious, let us explain these steps in a little bit more detail (assuming a morphing setup):</p>
+<ul class="simple">
+<li>The sample augmentation step starts from a set of events <cite>(x_i, z_i)</cite> together with corresponding weights for each
+morphing basis point <cite>theta_b</cite>, <cite>p(x_i, z_i | theta_b)</cite>.</li>
+<li>Morphing: Assume we want to generate data sampled from a parameter point theta, which is not necessarily one of
+the basis points theta_b. Using the morphing structure, the event weights for p(x_i, z_i | theta) can be
+calculated. Note that the events (phase-space points) <cite>(x_i, z_i)</cite> are not changed, only their weights.</li>
+<li>Unweighting: For the machine learning part, such a weighted event sample is not practical. Instead we aim for an
+unweighted one, in which events can appear multiple times. If the user request <cite>N</cite> events (which can be larger
+than the original number of events in the MadGraph runs), SampleAugmenter will draw <cite>N</cite> samples <cite>(x_i, z_i)</cite> from
+the discrete distribution <cite>p(x_i, z_i | theta)</cite>. In other words, it draws (with replacement) <cite>N</cite> of the original
+events from MadGraph, with probabilities given by the morphing setup before. This is similar to what
+<cite>np.random.choice()</cite> does.</li>
+<li>Augmentation: For each of the drawn samples, the morphing setup can be used to calculate the joint likelihood
+ratio and / or the joint score (this depends on which SampleAugmenter function is called).</li>
+</ul>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
