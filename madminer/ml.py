@@ -548,7 +548,7 @@ class MLForge:
 
     def evaluate(
         self,
-        x_filename,
+        x,
         theta0_filename=None,
         theta1_filename=None,
         test_all_combinations=True,
@@ -561,9 +561,10 @@ class MLForge:
 
         Parameters
         ----------
-        x_filename : str
-            Path to an unweighted sample of observations, as saved by the `madminer.sampling.SampleAugmenter` functions.
-            
+        x : str or ndarray
+            Sample of observations, or path to numpy file with observations, as saved by the
+            `madminer.sampling.SampleAugmenter` functions.
+
         theta0_filename : str or None, optional
             Path to an unweighted sample of numerator parameters, as saved by the `madminer.sampling.SampleAugmenter`
             functions. Required if the estimator was trained with the 'alice', 'alice2', 'alices', 'alices2', 'carl',
@@ -625,27 +626,29 @@ class MLForge:
 
         theta0s = load_and_check(theta0_filename)
         theta1s = load_and_check(theta1_filename)
-        xs = load_and_check(x_filename)
+
+        if isinstance(x, six.string_types):
+            x = load_and_check(x)
 
         # Scale observables
         if self.x_scaling_means is not None and self.x_scaling_stds is not None:
-            xs[:] -= self.x_scaling_means
-            xs[:] /= self.x_scaling_stds
+            x[:] -= self.x_scaling_means
+            x[:] /= self.x_scaling_stds
 
         # Restrict featuers
         if self.features is not None:
-            xs = xs[:, self.features]
+            x = x[:, self.features]
 
         # SALLY evaluation
         if self.method in ["sally", "sallino"]:
             logging.debug("Starting score evaluation")
 
             if return_grad_x:
-                all_t_hat, all_x_gradients = evaluate_local_score_model(model=self.model, xs=xs, return_grad_x=True)
+                all_t_hat, all_x_gradients = evaluate_local_score_model(model=self.model, xs=x, return_grad_x=True)
 
                 return all_t_hat, all_x_gradients
 
-            all_t_hat = evaluate_local_score_model(model=self.model, xs=xs)
+            all_t_hat = evaluate_local_score_model(model=self.model, xs=x)
 
             return all_t_hat
 
@@ -674,7 +677,7 @@ class MLForge:
 
                 if self.method in ["nde", "scandal"]:
                     _, log_r_hat, t_hat0 = evaluate_flow_model(
-                        model=self.model, theta0s=[theta0], xs=xs, evaluate_score=evaluate_score
+                        model=self.model, theta0s=[theta0], xs=x, evaluate_score=evaluate_score
                     )
                     t_hat1 = None
 
@@ -685,7 +688,7 @@ class MLForge:
                             method_type=self.method_type,
                             theta0s=[theta0],
                             theta1s=[theta1] if theta1 is not None else None,
-                            xs=xs,
+                            xs=x,
                             evaluate_score=evaluate_score,
                             return_grad_x=True,
                         )
@@ -695,7 +698,7 @@ class MLForge:
                             method_type=self.method_type,
                             theta0s=[theta0],
                             theta1s=[theta1] if theta1 is not None else None,
-                            xs=xs,
+                            xs=x,
                             evaluate_score=evaluate_score,
                         )
                         x_gradient = None
@@ -717,7 +720,7 @@ class MLForge:
 
             if self.method in ["nde", "scandal"]:
                 _, all_log_r_hat, t_hat0 = evaluate_flow_model(
-                    model=self.model, theta0s=theta0s, xs=xs, evaluate_score=evaluate_score
+                    model=self.model, theta0s=theta0s, xs=x, evaluate_score=evaluate_score
                 )
                 all_t_hat1 = None
 
@@ -728,7 +731,7 @@ class MLForge:
                         method_type=self.method_type,
                         theta0s=theta0s,
                         theta1s=None if None in theta1s else theta1s,
-                        xs=xs,
+                        xs=x,
                         evaluate_score=evaluate_score,
                         return_grad_x=True,
                     )
@@ -738,7 +741,7 @@ class MLForge:
                         method_type=self.method_type,
                         theta0s=theta0s,
                         theta1s=None if None in theta1s else theta1s,
-                        xs=xs,
+                        xs=x,
                         evaluate_score=evaluate_score,
                     )
                     all_x_gradients = None
@@ -1305,6 +1308,7 @@ class EnsembleForge:
         x,
         obs_weights=None,
         n_events=1,
+        mode="information",
         uncertainty="ensemble",
         vote_expectation_weight=None,
         return_individual_predictions=False,
@@ -1331,6 +1335,12 @@ class EnsembleForge:
 
         n_events : float, optional
             Expected number of events for which the kinematic Fisher information should be calculated. Default value: 1.
+
+        mode : {"score", "information"}, optional
+            If mode is "information", the Fisher information for each estimator is calculated individually and only then
+            are the sample mean and covariance calculated. If mode is "score", the sample mean and covariance are
+            calculated for the score for each event, and the covariance is then propagated through to the final Fisher
+            information uncertainty (neglecting the correlation between events). Default value: "information".
 
         uncertainty : {"ensemble", "expectation", "sum"}, optional
             How the covariance matrix of the Fisher information estimate is calculate. With "ensemble", the ensemble
@@ -1374,6 +1384,8 @@ class EnsembleForge:
         logging.debug("Evaluating Fisher information for %s estimators in ensemble", self.n_estimators)
 
         # Check input
+        if mode not in ["score", "information"]:
+            raise ValueError("Unknown mode {}, has to be 'score' or 'information'!".format(mode))
 
         if uncertainty == "expectation" or uncertainty == "sum":
             if self.expectations is None:
@@ -1406,39 +1418,46 @@ class EnsembleForge:
 
         logging.debug("  Estimator estimator_weights: %s", estimator_weights)
 
-        # Calculate estimator predictions
-        predictions = []
-        for i, estimator in enumerate(self.estimators):
-            logging.debug("Starting evaluation for estimator %s / %s in ensemble", i + 1, self.n_estimators)
+        # "information" mode
+        if mode == "information":
+            # Calculate estimator predictions
+            predictions = []
+            for i, estimator in enumerate(self.estimators):
+                logging.debug("Starting evaluation for estimator %s / %s in ensemble", i + 1, self.n_estimators)
 
-            predictions.append(estimator.calculate_fisher_information(x=x, weights=obs_weights, n_events=n_events))
-        predictions = np.array(predictions)
+                predictions.append(estimator.calculate_fisher_information(x=x, weights=obs_weights, n_events=n_events))
+            predictions = np.array(predictions)
 
-        # Calculate weighted means and covariance matrices
-        means = []
-        ensemble_covariances = []
+            # Calculate weighted means and covariance matrices
+            means = []
+            ensemble_covariances = []
 
-        for these_weights in estimator_weights:
-            mean = np.average(predictions, axis=0, weights=these_weights)
-            means.append(mean)
+            for these_weights in estimator_weights:
+                mean = np.average(predictions, axis=0, weights=these_weights)
+                means.append(mean)
 
-            predictions_flat = predictions.reshape((predictions.shape[0], -1))
-            covariance = np.cov(predictions_flat.T, aweights=these_weights)
-            covariance_shape = (predictions.shape[1], predictions.shape[2], predictions.shape[1], predictions.shape[2])
-            covariance = covariance.reshape(covariance_shape)
+                predictions_flat = predictions.reshape((predictions.shape[0], -1))
+                covariance = np.cov(predictions_flat.T, aweights=these_weights)
+                covariance_shape = (predictions.shape[1], predictions.shape[2], predictions.shape[1], predictions.shape[2])
+                covariance = covariance.reshape(covariance_shape)
 
-            ensemble_covariances.append(covariance)
+                ensemble_covariances.append(covariance)
 
-        # Calculate ensemble expectation
-        expectation_covariances = None
-        if uncertainty == "expectation" or uncertainty == "sum":
-            expectation_covariances = []
-            for these_weights, expectation in zip(estimator_weights, self.expectations):
-                mean_expectation = np.average(expectation, weights=these_weights, axis=0)
-                expectation_covariances.append(
-                    n_events
-                    * np.einsum("a,b,c,d->abcd", mean_expectation, mean_expectation, mean_expectation, mean_expectation)
-                )
+            # Calculate ensemble expectation
+            expectation_covariances = None
+            if uncertainty == "expectation" or uncertainty == "sum":
+                expectation_covariances = []
+                for these_weights, expectation in zip(estimator_weights, self.expectations):
+                    mean_expectation = np.average(expectation, weights=these_weights, axis=0)
+                    expectation_covariances.append(
+                        n_events
+                        * np.einsum("a,b,c,d->abcd", mean_expectation, mean_expectation, mean_expectation, mean_expectation)
+                    )
+
+        # "score" mode:
+        else mode == "score":
+            # Calculate score predictions
+            raise NotImplementedError
 
         # Final covariances
         if uncertainty == "ensemble":
