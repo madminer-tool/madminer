@@ -1055,6 +1055,7 @@ class EnsembleForge:
             raise ValueError("Entry {} in estimators is neither str nor MLForge instance")
 
         self.estimators.append(estimator_object)
+        self.n_estimators = len(self.estimators)
 
     def train_one(self, i, **kwargs):
         """
@@ -1349,10 +1350,10 @@ class EnsembleForge:
             both terms are summed. Default value: "ensemble".
 
         vote_expectation_weight : float or list of float or None, optional
-            Factor that determines how much more weight is given to those estimators with small expectation value (as
-            calculated by `calculate_expectation()`). If a list is given, results are returned for each element in the
-            list. If None, or if `calculate_expectation()` has not been called, all estimators are treated equal.
-            Default value: None.
+            If mode is "information", this factor determines how much more weight is given to those estimators with
+            small expectation value (as calculated by `calculate_expectation()`). If a list is given, results are
+            returned for each element in the list. If None, or if `calculate_expectation()` has not been called, all
+            estimators are treated equal. Default value: None.
 
         return_individual_predictions : bool, optional
             Whether the individual estimator predictions are returned. Default value: False.
@@ -1386,6 +1387,9 @@ class EnsembleForge:
         # Check input
         if mode not in ["score", "information"]:
             raise ValueError("Unknown mode {}, has to be 'score' or 'information'!".format(mode))
+
+        if mode == "score":
+            vote_expectation_weight = None
 
         if uncertainty == "expectation" or uncertainty == "sum":
             if self.expectations is None:
@@ -1443,21 +1447,54 @@ class EnsembleForge:
 
                 ensemble_covariances.append(covariance)
 
-            # Calculate ensemble expectation
-            expectation_covariances = None
-            if uncertainty == "expectation" or uncertainty == "sum":
-                expectation_covariances = []
-                for these_weights, expectation in zip(estimator_weights, self.expectations):
-                    mean_expectation = np.average(expectation, weights=these_weights, axis=0)
-                    expectation_covariances.append(
-                        n_events
-                        * np.einsum("a,b,c,d->abcd", mean_expectation, mean_expectation, mean_expectation, mean_expectation)
-                    )
-
         # "score" mode:
         else mode == "score":
             # Calculate score predictions
-            raise NotImplementedError
+            score_predictions = []
+            for i, estimator in enumerate(self.estimators):
+                logging.debug("Starting evaluation for estimator %s / %s in ensemble", i + 1, self.n_estimators)
+
+                score_predictions.append(estimator.evaluate(x=x))
+            score_predictions = np.array(score_predictions)  # (n_estimators, n_events, n_parameters)
+
+            # Get ensemble mean and ensemble covariance
+            n_estimators = self.
+            score_mean = np.mean(score_predictions, axis=0)  # (n_events, n_parameters)
+            score_pred_minus_ens_mean = score_predictions[:,:,:] - score_means[np.newaxis,:,:]  # (n_estimators, n_events, n_parameters)
+            score_cov = 1. / (self.n_estimators - 1.) * np.einsum(
+                "xei,xej->xij", score_pred_minus_ens_mean, score_pred_minus_ens_mean
+            )  # (n_events, n_parameters, n_parameters)
+
+            # Event-wise FIsher info
+            event_information_mean = np.einsum("ni,nj->nij", score_mean, score_mean)
+            event_information_cov = (
+                np.einsum("i,jk,l->ijkl"), score_mean, score_cov, score_mean)
+                + np.einsum("i,jl,k->ijkl"), score_mean, score_cov, score_mean)
+                + np.einsum("j,ik,l->ijkl"), score_mean, score_cov, score_mean)
+                + np.einsum("j,il,k->ijkl"), score_mean, score_cov, score_mean)
+            )  # (n_events, n_parameters, n_parameters, n_parameters, n_parameters)
+
+            # Weights
+            if weights is None:
+                weights = np.ones(n_samples)
+            weights /= np.sum(weights)
+
+            # Mean Fisher information
+            means = [float(n_events) * np.einsum("n,nij->ij", weights, event_information_mean)]
+
+            # Propagate uncertainty to Fisher information
+            ensemble_covariances = [float(n_events) * np.einsum("n,nijkl->ijkl", weights, event_information_cov)]
+
+        # Calculate ensemble expectation
+        expectation_covariances = None
+        if uncertainty == "expectation" or uncertainty == "sum":
+            expectation_covariances = []
+            for these_weights, expectation in zip(estimator_weights, self.expectations):
+                mean_expectation = np.average(expectation, weights=these_weights, axis=0)
+                expectation_covariances.append(
+                    n_events
+                    * np.einsum("a,b,c,d->abcd", mean_expectation, mean_expectation, mean_expectation, mean_expectation)
+                )
 
         # Final covariances
         if uncertainty == "ensemble":
