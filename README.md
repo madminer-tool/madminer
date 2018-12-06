@@ -81,8 +81,7 @@ steps of a detector-level analysis.
 After that, we recommend going through [tutorial_2.ipynb](examples/tutorial/tutorial_1.ipynb), which explains local
 score methods, how to estimate the Fisher information, and introduces some convenient ensemble methods.
 
-Finally, [tutorial_parton.ipynb](examples/tutorial/tutorial.ipynb) explains how to perform a parton-level Fisher
-information analysis.
+We're currently working on a significantly extended and improved series of tutorials.
 
 ### Package structure
 
