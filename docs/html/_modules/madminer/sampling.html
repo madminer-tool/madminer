@@ -6,7 +6,7 @@
   <head>
     <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title>madminer.sampling &#8212; MadMiner 0.1.0 documentation</title>
+    <title>madminer.sampling &#8212; MadMiner 0.1.1 documentation</title>
     <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
     <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
@@ -245,6 +245,22 @@
 <span class="sd">    * `SampleAugmenter.extract_samples_test()` creates evaluation samples for all methods.</span>
 
 <span class="sd">    Please see the tutorial for a walkthrough.</span>
+
+<span class="sd">    For the curious, let us explain these steps in a little bit more detail (assuming a morphing setup):</span>
+
+<span class="sd">    * The sample augmentation step starts from a set of events `(x_i, z_i)` together with corresponding weights for each</span>
+<span class="sd">      morphing basis point `theta_b`, `p(x_i, z_i | theta_b)`.</span>
+<span class="sd">    * Morphing: Assume we want to generate data sampled from a parameter point theta, which is not necessarily one of</span>
+<span class="sd">      the basis points theta_b. Using the morphing structure, the event weights for p(x_i, z_i | theta) can be</span>
+<span class="sd">      calculated. Note that the events (phase-space points) `(x_i, z_i)` are not changed, only their weights.</span>
+<span class="sd">    * Unweighting: For the machine learning part, such a weighted event sample is not practical. Instead we aim for an</span>
+<span class="sd">      unweighted one, in which events can appear multiple times. If the user request `N` events (which can be larger</span>
+<span class="sd">      than the original number of events in the MadGraph runs), SampleAugmenter will draw `N` samples `(x_i, z_i)` from</span>
+<span class="sd">      the discrete distribution `p(x_i, z_i | theta)`. In other words, it draws (with replacement) `N` of the original</span>
+<span class="sd">      events from MadGraph, with probabilities given by the morphing setup before. This is similar to what</span>
+<span class="sd">      `np.random.choice()` does.</span>
+<span class="sd">    * Augmentation: For each of the drawn samples, the morphing setup can be used to calculate the joint likelihood</span>
+<span class="sd">      ratio and / or the joint score (this depends on which SampleAugmenter function is called).</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
