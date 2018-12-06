@@ -131,16 +131,6 @@ examples/tutorial/mg_processes
 examples/tutorial/py.py
 examples/tutorial/models
 
-examples/debug/temp
-examples/debug/nsqso_born.inc
-examples/debug/data
-examples/debug/datasave
-examples/debug/logs
-examples/debug/ME5_debug
-examples/debug/MG_process
-examples/debug/py.py
-examples/debug/models
-
 examples/example_wgamma/temp
 examples/example_wgamma/nsqso_born.inc
 examples/example_wgamma/data
@@ -151,8 +141,6 @@ examples/example_wgamma/mg_processes
 examples/example_wgamma/py.py
 examples/example_wgamma/models
 examples/example_wgamma/figures
-
-examples/reproduce_wbf_4l/data
 
 # MG / Pythia / Delphes patch
 patches/
