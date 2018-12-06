@@ -1,6 +1,0 @@
-import model EWdim6
-define l = l+ l-
-define v = vl vl~
-define p = u d u d~ g
-#generate p p  >  l v a  QCD=0 QED=99 NP=2
-generate u d~  >  mu+ vm a  QCD=0 QED=99 NP=2
