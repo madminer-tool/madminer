@@ -248,6 +248,7 @@ class FisherInformation:
         unweighted_x_sample_file=None,
         luminosity=300000.0,
         include_xsec_info=True,
+        mode="information",
         uncertainty="ensemble",
         ensemble_vote_expectation_weight=None,
         batch_size=100000,
@@ -277,8 +278,15 @@ class FisherInformation:
         include_xsec_info : bool, optional
             Whether the rate information is included in the returned Fisher information. Default value: True.
 
+        mode : {"score", "information"}, optional
+            How the ensemble uncertainty on the kinematic Fisher information is calculated. If mode is "information",
+            the Fisher information for each estimator is calculated individually and only then
+            are the sample mean and covariance calculated. If mode is "score", the sample mean and covariance are
+            calculated for the score for each event, and the covariance is then propagated through to the final Fisher
+            information uncertainty (neglecting the correlation between events). Default value: "information".
+
         uncertainty : {"ensemble", "expectation", "sum"}, optional
-            How the covariance matrix of the Fisher information estimate is calculate. With "ensemble", the ensemble
+            How the covariance matrix of the Fisher information estimate is calculated. With "ensemble", the ensemble
             covariance is used. With "expectation", the expectation of the score is used as a measure of the uncertainty
             of the score estimator, and this uncertainty is propagated through to the covariance matrix. With "sum",
             both terms are summed. Default value: "ensemble".
@@ -310,6 +318,10 @@ class FisherInformation:
             ensemble_vote_expectation_weight.
 
         """
+
+        # Check input
+        if mode not in ["score", "information"]:
+            raise ValueError("Unknown mode {}, has to be 'score' or 'information'!".format(mode))
 
         # Total xsec
         total_xsec = self._calculate_xsec(theta=theta)
@@ -370,6 +382,7 @@ class FisherInformation:
                         obs_weights=weights_theta,
                         n_events=luminosity * total_xsec * np.sum(weights_theta) / total_sum_weights_theta,
                         vote_expectation_weight=ensemble_vote_expectation_weight,
+                        mode=mode,
                         uncertainty=uncertainty,
                     )
                 else:
@@ -403,6 +416,7 @@ class FisherInformation:
                     unweighted_x_sample_file,
                     n_events=luminosity * total_xsec,
                     vote_expectation_weight=ensemble_vote_expectation_weight,
+                    mode=mode,
                     uncertainty=uncertainty,
                 )
             else:
