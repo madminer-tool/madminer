@@ -9,7 +9,13 @@ import logging
 
 
 def save_madminer_settings(
-    filename, parameters, benchmarks, morphing_components=None, morphing_matrix=None, overwrite_existing_files=True
+    filename,
+    parameters,
+    benchmarks,
+    morphing_components=None,
+    morphing_matrix=None,
+    systematics_arguments=None,
+    overwrite_existing_files=True,
 ):
     """Saves all MadMiner settings into an HDF5 file."""
 
@@ -58,6 +64,11 @@ def save_madminer_settings(
             f.create_dataset("morphing/components", data=morphing_components.astype(np.int))
         if morphing_matrix is not None:
             f.create_dataset("morphing/morphing_matrix", data=morphing_matrix.astype(np.float))
+
+        # Prepare and store systematics setup
+        if systematics_arguments is not None:
+            systematics_arguments_ascii = [systematics_arguments.encode("ascii", "ignore")]
+            f.create_dataset("systematics/arguments", dtype="S256", data=systematics_arguments_ascii)
 
 
 def load_madminer_settings(filename):

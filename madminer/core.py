@@ -336,12 +336,7 @@ class MadMiner:
         self.morpher = morpher
         self.export_morphing = True
 
-    def set_systematics(
-            self,
-            scale_variation=None,
-            scales="together",
-            pdf_variation=None
-    ):
+    def set_systematics(self, scale_variation=None, scales="together", pdf_variation=None):
         """
         Prepares the simulation of the effect of different nuisance parameters, including scale variations and PDF
         changes.
@@ -457,7 +452,8 @@ class MadMiner:
         The file format follows the HDF5 standard. The saved information includes:
 
         * the parameter definitions,
-        * the benchmark points, and
+        * the benchmark points,
+        * the systematics setup (if defined), and
         * the morphing setup (if defined).
 
         This file is an important input to later stages in the analysis chain, including the processing of generated
@@ -487,13 +483,18 @@ class MadMiner:
                 benchmarks=self.benchmarks,
                 morphing_components=self.morpher.components,
                 morphing_matrix=self.morpher.morphing_matrix,
+                systematics_arguments=self.systematics_arguments if self.run_systematics else None,
                 overwrite_existing_files=True,
             )
         else:
             logging.info("Saving setup (without morphing) to %s", filename)
 
             save_madminer_settings(
-                filename=filename, parameters=self.parameters, benchmarks=self.benchmarks, overwrite_existing_files=True
+                filename=filename,
+                parameters=self.parameters,
+                benchmarks=self.benchmarks,
+                systematics_arguments=self.systematics_arguments if self.run_systematics else None,
+                overwrite_existing_files=True,
             )
 
     @staticmethod
