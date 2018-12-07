@@ -1326,7 +1326,7 @@ class EnsembleForge:
 
         Parameters
         ----------
-        x : str
+        x : str or ndarray
             Sample of observations, or path to numpy file with observations, as saved by the
             `madminer.sampling.SampleAugmenter` functions. Note that this sample has to be sampled from the reference
             parameter where the score is estimated with the SALLY / SALLINO estimator!
@@ -1442,13 +1442,23 @@ class EnsembleForge:
 
                 predictions_flat = predictions.reshape((predictions.shape[0], -1))
                 covariance = np.cov(predictions_flat.T, aweights=these_weights)
-                covariance_shape = (predictions.shape[1], predictions.shape[2], predictions.shape[1], predictions.shape[2])
+                covariance_shape = (
+                    predictions.shape[1],
+                    predictions.shape[2],
+                    predictions.shape[1],
+                    predictions.shape[2],
+                )
                 covariance = covariance.reshape(covariance_shape)
 
                 ensemble_covariances.append(covariance)
 
         # "score" mode:
         else:
+            # Load training data
+            if isinstance(x, six.string_types):
+                x = load_and_check(x)
+            n_samples = x.shape[0]
+
             # Calculate score predictions
             score_predictions = []
             for i, estimator in enumerate(self.estimators):
@@ -1459,30 +1469,34 @@ class EnsembleForge:
 
             # Get ensemble mean and ensemble covariance
             score_mean = np.mean(score_predictions, axis=0)  # (n_events, n_parameters)
-            score_pred_minus_ens_mean = score_predictions[:,:,:] - score_means[np.newaxis,:,:]  # (n_estimators, n_events, n_parameters)
-            score_cov = 1. / (self.n_estimators - 1.) * np.einsum(
-                "xei,xej->xij", score_pred_minus_ens_mean, score_pred_minus_ens_mean
+            score_pred_minus_ens_mean = (
+                score_predictions[:, :, :] - score_mean[np.newaxis, :, :]
+            )  # (n_estimators, n_events, n_parameters)
+            score_cov = (
+                1.0
+                / (self.n_estimators - 1.0)
+                * np.einsum("eni,enj->nij", score_pred_minus_ens_mean, score_pred_minus_ens_mean)
             )  # (n_events, n_parameters, n_parameters)
 
             # Event-wise FIsher info
             event_information_mean = np.einsum("ni,nj->nij", score_mean, score_mean)
             event_information_cov = (
-                np.einsum("i,jk,l->ijkl", score_mean, score_cov, score_mean)
-                + np.einsum("i,jl,k->ijkl", score_mean, score_cov, score_mean)
-                + np.einsum("j,ik,l->ijkl", score_mean, score_cov, score_mean)
-                + np.einsum("j,il,k->ijkl", score_mean, score_cov, score_mean)
+                np.einsum("ni,njk,nl->nijkl", score_mean, score_cov, score_mean)
+                + np.einsum("ni,njl,nk->nijkl", score_mean, score_cov, score_mean)
+                + np.einsum("nj,nik,nl->nijkl", score_mean, score_cov, score_mean)
+                + np.einsum("nj,nil,nk->nijkl", score_mean, score_cov, score_mean)
             )  # (n_events, n_parameters, n_parameters, n_parameters, n_parameters)
 
             # Weights
-            if weights is None:
-                weights = np.ones(n_samples)
-            weights /= np.sum(weights)
+            if obs_weights is None:
+                obs_weights = np.ones(n_samples)
+            obs_weights /= np.sum(obs_weights)
 
             # Mean Fisher information
-            means = [float(n_events) * np.einsum("n,nij->ij", weights, event_information_mean)]
+            means = [float(n_events) * np.einsum("n,nij->ij", obs_weights, event_information_mean)]
 
             # Propagate uncertainty to Fisher information
-            ensemble_covariances = [float(n_events) * np.einsum("n,nijkl->ijkl", weights, event_information_cov)]
+            ensemble_covariances = [float(n_events) * np.einsum("n,nijkl->ijkl", obs_weights, event_information_cov)]
 
         # Calculate ensemble expectation
         expectation_covariances = None
