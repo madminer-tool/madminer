@@ -283,6 +283,7 @@
         <span class="n">unweighted_x_sample_file</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">luminosity</span><span class="o">=</span><span class="mf">300000.0</span><span class="p">,</span>
         <span class="n">include_xsec_info</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;information&quot;</span><span class="p">,</span>
         <span class="n">uncertainty</span><span class="o">=</span><span class="s2">&quot;ensemble&quot;</span><span class="p">,</span>
         <span class="n">ensemble_vote_expectation_weight</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">batch_size</span><span class="o">=</span><span class="mi">100000</span><span class="p">,</span>
@@ -312,8 +313,15 @@
 <span class="sd">        include_xsec_info : bool, optional</span>
 <span class="sd">            Whether the rate information is included in the returned Fisher information. Default value: True.</span>
 
+<span class="sd">        mode : {&quot;score&quot;, &quot;information&quot;}, optional</span>
+<span class="sd">            How the ensemble uncertainty on the kinematic Fisher information is calculated. If mode is &quot;information&quot;,</span>
+<span class="sd">            the Fisher information for each estimator is calculated individually and only then</span>
+<span class="sd">            are the sample mean and covariance calculated. If mode is &quot;score&quot;, the sample mean and covariance are</span>
+<span class="sd">            calculated for the score for each event, and the covariance is then propagated through to the final Fisher</span>
+<span class="sd">            information uncertainty (neglecting the correlation between events). Default value: &quot;information&quot;.</span>
+
 <span class="sd">        uncertainty : {&quot;ensemble&quot;, &quot;expectation&quot;, &quot;sum&quot;}, optional</span>
-<span class="sd">            How the covariance matrix of the Fisher information estimate is calculate. With &quot;ensemble&quot;, the ensemble</span>
+<span class="sd">            How the covariance matrix of the Fisher information estimate is calculated. With &quot;ensemble&quot;, the ensemble</span>
 <span class="sd">            covariance is used. With &quot;expectation&quot;, the expectation of the score is used as a measure of the uncertainty</span>
 <span class="sd">            of the score estimator, and this uncertainty is propagated through to the covariance matrix. With &quot;sum&quot;,</span>
 <span class="sd">            both terms are summed. Default value: &quot;ensemble&quot;.</span>
@@ -345,6 +353,10 @@
 <span class="sd">            ensemble_vote_expectation_weight.</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Check input</span>
+        <span class="k">if</span> <span class="n">mode</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;score&quot;</span><span class="p">,</span> <span class="s2">&quot;information&quot;</span><span class="p">]:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Unknown mode </span><span class="si">{}</span><span class="s2">, has to be &#39;score&#39; or &#39;information&#39;!&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">mode</span><span class="p">))</span>
 
         <span class="c1"># Total xsec</span>
         <span class="n">total_xsec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calculate_xsec</span><span class="p">(</span><span class="n">theta</span><span class="o">=</span><span class="n">theta</span><span class="p">)</span>
@@ -405,6 +417,7 @@
                         <span class="n">obs_weights</span><span class="o">=</span><span class="n">weights_theta</span><span class="p">,</span>
                         <span class="n">n_events</span><span class="o">=</span><span class="n">luminosity</span> <span class="o">*</span> <span class="n">total_xsec</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">weights_theta</span><span class="p">)</span> <span class="o">/</span> <span class="n">total_sum_weights_theta</span><span class="p">,</span>
                         <span class="n">vote_expectation_weight</span><span class="o">=</span><span class="n">ensemble_vote_expectation_weight</span><span class="p">,</span>
+                        <span class="n">mode</span><span class="o">=</span><span class="n">mode</span><span class="p">,</span>
                         <span class="n">uncertainty</span><span class="o">=</span><span class="n">uncertainty</span><span class="p">,</span>
                     <span class="p">)</span>
                 <span class="k">else</span><span class="p">:</span>
@@ -438,6 +451,7 @@
                     <span class="n">unweighted_x_sample_file</span><span class="p">,</span>
                     <span class="n">n_events</span><span class="o">=</span><span class="n">luminosity</span> <span class="o">*</span> <span class="n">total_xsec</span><span class="p">,</span>
                     <span class="n">vote_expectation_weight</span><span class="o">=</span><span class="n">ensemble_vote_expectation_weight</span><span class="p">,</span>
+                    <span class="n">mode</span><span class="o">=</span><span class="n">mode</span><span class="p">,</span>
                     <span class="n">uncertainty</span><span class="o">=</span><span class="n">uncertainty</span><span class="p">,</span>
                 <span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>

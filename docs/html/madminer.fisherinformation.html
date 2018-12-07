@@ -110,7 +110,7 @@ different slices of one observable (the “distribution of the Fisher informatio
 </table>
 <dl class="method">
 <dt id="madminer.fisherinformation.FisherInformation.calculate_fisher_information_full_detector">
-<code class="descname">calculate_fisher_information_full_detector</code><span class="sig-paren">(</span><em>theta</em>, <em>model_file</em>, <em>unweighted_x_sample_file=None</em>, <em>luminosity=300000.0</em>, <em>include_xsec_info=True</em>, <em>uncertainty='ensemble'</em>, <em>ensemble_vote_expectation_weight=None</em>, <em>batch_size=100000</em>, <em>test_split=0.5</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/fisherinformation.html#FisherInformation.calculate_fisher_information_full_detector"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.fisherinformation.FisherInformation.calculate_fisher_information_full_detector" title="Permalink to this definition">¶</a></dt>
+<code class="descname">calculate_fisher_information_full_detector</code><span class="sig-paren">(</span><em>theta</em>, <em>model_file</em>, <em>unweighted_x_sample_file=None</em>, <em>luminosity=300000.0</em>, <em>include_xsec_info=True</em>, <em>mode='information'</em>, <em>uncertainty='ensemble'</em>, <em>ensemble_vote_expectation_weight=None</em>, <em>batch_size=100000</em>, <em>test_split=0.5</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/madminer/fisherinformation.html#FisherInformation.calculate_fisher_information_full_detector"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#madminer.fisherinformation.FisherInformation.calculate_fisher_information_full_detector" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculates the full Fisher information in realistic detector-level observations, estimated with neural networks.
 In addition to the MadMiner file, this requires a trained SALLY or SALLINO estimator.</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -136,8 +136,15 @@ is instead calculated on the full, weighted samples (the data in the MadMiner fi
 <dt><strong>include_xsec_info</strong> <span class="classifier-delimiter">:</span> <span class="classifier">bool, optional</span></dt>
 <dd><p class="first last">Whether the rate information is included in the returned Fisher information. Default value: True.</p>
 </dd>
+<dt><strong>mode</strong> <span class="classifier-delimiter">:</span> <span class="classifier">{“score”, “information”}, optional</span></dt>
+<dd><p class="first last">How the ensemble uncertainty on the kinematic Fisher information is calculated. If mode is “information”,
+the Fisher information for each estimator is calculated individually and only then
+are the sample mean and covariance calculated. If mode is “score”, the sample mean and covariance are
+calculated for the score for each event, and the covariance is then propagated through to the final Fisher
+information uncertainty (neglecting the correlation between events). Default value: “information”.</p>
+</dd>
 <dt><strong>uncertainty</strong> <span class="classifier-delimiter">:</span> <span class="classifier">{“ensemble”, “expectation”, “sum”}, optional</span></dt>
-<dd><p class="first last">How the covariance matrix of the Fisher information estimate is calculate. With “ensemble”, the ensemble
+<dd><p class="first last">How the covariance matrix of the Fisher information estimate is calculated. With “ensemble”, the ensemble
 covariance is used. With “expectation”, the expectation of the score is used as a measure of the uncertainty
 of the score estimator, and this uncertainty is propagated through to the covariance matrix. With “sum”,
 both terms are summed. Default value: “ensemble”.</p>
