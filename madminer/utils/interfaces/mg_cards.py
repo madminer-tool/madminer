@@ -1,6 +1,8 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 import six
 
+from madminer.utils.various import copy_file
+
 
 def export_param_card(benchmark, parameters, param_card_template_file, mg_process_directory, param_card_filename=None):
     # Open parameter card template
@@ -98,3 +100,48 @@ def export_reweight_card(sample_benchmark, benchmarks, parameters, mg_process_di
     # Save param_card.dat
     with open(reweight_card_filename, "w") as file:
         file.write(reweight_card)
+
+
+def export_run_card(template_filename, run_card_filename, run_systematics=False, systematics_arguments=None):
+    # Open parameter card template
+    with open(template_filename) as file:
+        run_card_template = file.read()
+
+    run_card_lines = run_card_template.split("\n")
+
+    # Changes to be made
+    settings = {}
+    settings['use_syst'] = 'True' if run_systematics else 'False'
+    if run_systematics:
+        settings['systematics_program'] = 'systematics'
+        settings['systematics_arguments'] = str(systematics_arguments)
+
+    # Remove old entries
+    for i, line in enumerate(run_card_lines):
+        comment_pos = line.find("#")
+        if i >= 0:
+            line = line[:comment_pos]
+
+        try:
+            line_value, line_key = line.split("=")
+        except ValueError:
+            continue
+        line_key = line_key.strip()
+
+        if line_key in settings:
+            del run_card_lines[i]
+            break
+
+    # Add new entries
+    run_card_lines.append("")
+    run_card_lines.append("#*********************************************************************")
+    run_card_lines.append("# MadMiner systematics setup                                         *")
+    run_card_lines.append("#*********************************************************************")
+    for key, value in six.iteritems(settings):
+        run_card_lines.append("    {} = {}".format(value, key))
+    run_card_lines.append("")
+
+    # Write new run card
+    new_run_card = "\n".join(run_card_lines)
+    with open(run_card_filename, "w") as file:
+        file.write(new_run_card)

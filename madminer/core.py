@@ -664,7 +664,7 @@ class MadMiner:
             None)
 
         param_card_file : str or None, optional
-            Path to the MadGraph run card. If None, the card present in the process folder is used. Default value:
+            Path to the MadGraph param card. If None, the card present in the process folder is used. Default value:
             None)
 
         reweight_card_file : str or None, optional
@@ -1066,7 +1066,14 @@ class MadMiner:
                 logging.info("  Reweight card:           %s", reweight_card_file)
                 logging.info("  Log file:                %s", log_file_run)
 
-                # Creat param and reweight cards
+                # Check input
+                if run_card_file is None and self.run_systematics:
+                    logging.warning(
+                        "Warning: No run card given, but systematics set up. The correct systematics"
+                        " settings are not set automatically. Make sure to set them correctly!"
+                    )
+
+                # Create param and reweight cards
                 self._export_cards(
                     param_card_template_file,
                     mg_process_directory,
@@ -1075,9 +1082,16 @@ class MadMiner:
                     reweight_card_filename=mg_process_directory + "/" + reweight_card_file,
                 )
 
-                # Copy run and Pythia cards
+                # Create run card
                 if run_card_file is not None:
-                    copy_file(run_card_file, mg_process_directory + "/" + new_run_card_file)
+                    export_run_card(
+                        template_filename=run_card_file,
+                        run_card_filename=mg_process_directory + "/" + new_run_card_file,
+                        run_systematics=self.run_systematics,
+                        systematics_arguments=self.systematics_arguments,
+                    )
+
+                # Copy Pythia card
                 if pythia8_card_file is not None:
                     copy_file(pythia8_card_file, mg_process_directory + "/" + new_pythia8_card_file)
 
@@ -1089,7 +1103,9 @@ class MadMiner:
                         run_card_file_from_mgprocdir=new_run_card_file,
                         param_card_file_from_mgprocdir=param_card_file,
                         reweight_card_file_from_mgprocdir=reweight_card_file,
-                        pythia8_card_file_from_mgprocdir=new_pythia8_card_file,
+                        pythia8_card_file_from_mgprocdir=None
+                        if new_pythia8_card_file is None
+                        else new_pythia8_card_file,
                         is_background=is_background,
                         script_file_from_mgprocdir=script_file,
                         initial_command=initial_command,
@@ -1106,7 +1122,6 @@ class MadMiner:
                         mg_process_directory + "/" + param_card_file,
                         mg_process_directory + "/" + reweight_card_file,
                         None if new_pythia8_card_file is None else mg_process_directory + "/" + new_pythia8_card_file,
-                        # mg_process_directory + "/" + new_pythia8_card_file,
                         is_background=is_background,
                         initial_command=initial_command,
                         log_file=log_directory + "/" + log_file_run,
