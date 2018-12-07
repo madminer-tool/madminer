@@ -45,6 +45,10 @@ class MadMiner:
         self.default_benchmark = None
         self.morpher = None
         self.export_morphing = False
+        self.run_systematics = False
+        self.run_scale_variation = False
+        self.run_pdf_variation = False
+        self.systematics_arguments = ""
 
     def add_parameter(
         self,
@@ -331,6 +335,63 @@ class MadMiner:
         self.set_benchmarks(basis)
         self.morpher = morpher
         self.export_morphing = True
+
+    def set_systematics(
+            self,
+            scale_variation=None,
+            scales="together",
+            pdf_variation=None
+    ):
+        """
+        Prepares the simulation of the effect of different nuisance parameters, including scale variations and PDF
+        changes.
+
+        Parameters
+        ----------
+        scale_variation : None or tuple of float, optional
+            If not None, the regularization and / or factorization scales are varied. A tuple like (0.5,1.,2.)
+            specifies the factors with which they are varied. Default value: None.
+
+        scales : {"together", "independent", "mur", "muf"}, optional
+            Whether only the regularization scale ("mur"), only the factorization scale ("muf"), both simultanously
+            ("together") or both independently ("independent") are varied. Default value: "together".
+
+        pdf_variation : None or str, optional
+            If not None, the PDFs are varied. The option is passed along to the `--pdf` option
+            of MadGraph's systematics module. See https://cp3.irmp.ucl.ac.be/projects/madgraph/wiki/Systematics for a
+            list. The option "CT10" would, as an example, run over all the eigenvectors of the CTEQ10 set.
+
+        Returns
+        -------
+            None
+
+        """
+
+        # Check input
+        if scales not in ["together", "independent", "mur", "muf"]:
+            raise ValueError("Unknown value {} for argument scales".format(scales))
+
+        self.run_systematics = scale_variation is not None or pdf_variation is not None
+        self.run_scale_variation = scale_variation is not None
+        self.run_pdf_variation = pdf_variation is not None
+
+        # Put together systematics string for MadGraph
+        systematics_arguments = []
+
+        if self.run_scale_variation:
+            if scales == "together" or scales == "independent" or scales == "mur":
+                systematics_arguments.append("'--mur={}'".format(scale_variation))
+            if scales == "together" or scales == "independent" or scales == "muf":
+                systematics_arguments.append("'--muf={}'".format(scale_variation))
+            if scales == "together":
+                systematics_arguments.append("'--together=mur,muf'")
+
+        if self.run_pdf_variation:
+            systematics_arguments.append("'--pdf={}'".format(pdf_variation))
+
+        self.systematics_arguments = ""
+        if len(systematics_arguments) > 0:
+            self.systematics_arguments = "[" + ", ".join(systematics_arguments) + "]"
 
     def load(self, filename, disable_morphing=False):
         """
