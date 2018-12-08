@@ -8,7 +8,7 @@ import tempfile
 
 from madminer.morphing import Morpher
 from madminer.utils.interfaces.hdf5 import save_madminer_settings, load_madminer_settings
-from madminer.utils.interfaces.mg_cards import export_param_card, export_reweight_card
+from madminer.utils.interfaces.mg_cards import export_param_card, export_reweight_card, export_run_card
 from madminer.utils.interfaces.mg import generate_mg_process, prepare_run_mg_pythia, run_mg_pythia, copy_ufo_model
 from madminer.utils.various import create_missing_folders, general_init, format_benchmark, make_file_executable
 from madminer.utils.various import copy_file
@@ -131,6 +131,15 @@ class MadMiner:
             parameter_range,
         )
 
+        # Reset benchmarks
+        if len(self.benchmarks) > 0:
+            logging.warning("Resetting benchmarks and morphing")
+
+        self.benchmarks = OrderedDict()
+        self.default_benchmark = None
+        self.morpher = None
+        self.export_morphing = False
+
     def set_parameters(self, parameters=None):
 
         """
@@ -176,11 +185,19 @@ class MadMiner:
                 self.add_parameter(values[0], values[1])
 
         # After manually adding parameters, the morphing information is not accurate anymore
+        if len(self.benchmarks) > 0:
+            logging.warning("Resetting benchmarks and morphing")
+
+        self.benchmarks = OrderedDict()
+        self.default_benchmark = None
         self.morpher = None
+        self.export_morphing = False
 
     def add_benchmark(self, parameter_values, benchmark_name=None):
         """
         Manually adds an individual benchmark, that is, a parameter point that will be evaluated by MadGraph.
+
+        If this command is called before
 
         Parameters
         ----------
@@ -224,9 +241,6 @@ class MadMiner:
         if len(self.benchmarks) == 1:
             self.default_benchmark = benchmark_name
 
-        # After manually adding benchmarks, the morphing information is not accurate anymore
-        self.morpher = None
-
         logging.info("Added benchmark %s: %s)", benchmark_name, format_benchmark(parameter_values))
 
     def set_benchmarks(self, benchmarks=None):
@@ -261,12 +275,17 @@ class MadMiner:
                 self.add_benchmark(values)
 
         # After manually adding benchmarks, the morphing information is not accurate anymore
-        self.morpher = None
+        if self.morpher is not None:
+            logging.warning("Reset morphing")
+            self.morpher = None
+            self.export_morphing = False
 
-    def set_benchmarks_from_morphing(
-        self, max_overall_power=4, n_bases=1, keep_existing_benchmarks=True, n_trials=100, n_test_thetas=100
+    def set_morphing(
+        self, max_overall_power=4, n_bases=1, include_existing_benchmarks=True, n_trials=100, n_test_thetas=100
     ):
         """
+        Sets up the morphing environment.
+
         Sets benchmarks, i.e. parameter points that will be evaluated by MadGraph, for a morphing algorithm, and
         calculates all information required for morphing. Morphing is a technique that allows MadMax to infer the full
         probability distribution `p(x_i | theta)` for each simulated event `x_i` and any `theta`, not just the
@@ -293,10 +312,10 @@ class MadMiner:
             weights for each basis are reduced by a factor 1 / n_bases. Currently only the default choice of 1 is
             fully implemented. Do not use any other value for now. Default value: 1.
 
-        keep_existing_benchmarks : bool, optional
-            If True, the previously defined benchmarks are included in the basis. In that case, the number of free
-            parameters in the optimization routine is reduced. If False, all benchmarks are optimized and all previously
-            defined benchmarks forgotten. Default value: True.
+        include_existing_benchmarks : bool, optional
+            If True, the previously defined benchmarks are included in the morphing basis. In that case, the number of
+            free parameters in the optimization routine is reduced. If False, the existing benchmarks will still be
+            simulated, but are not part of the morphing routine. Default value: True.
 
         n_trials : int, optional
             Number of random basis configurations tested in the optimization procedure. A larger number will increase
@@ -320,7 +339,7 @@ class MadMiner:
         morpher = Morpher(parameters_from_madminer=self.parameters)
         morpher.find_components(max_overall_power)
 
-        if keep_existing_benchmarks:
+        if include_existing_benchmarks:
             basis = morpher.optimize_basis(
                 n_bases=n_bases,
                 fixed_benchmarks_from_madminer=self.benchmarks,
@@ -331,6 +350,8 @@ class MadMiner:
             basis = morpher.optimize_basis(
                 n_bases=n_bases, fixed_benchmarks_from_madminer=None, n_trials=n_trials, n_test_thetas=n_test_thetas
             )
+
+            basis.update(self.benchmarks)
 
         self.set_benchmarks(basis)
         self.morpher = morpher
@@ -374,15 +395,16 @@ class MadMiner:
         systematics_arguments = []
 
         if self.run_scale_variation:
+            scale_variation_string = ",".join([str(factor) for factor in scale_variation])
             if scales == "together" or scales == "independent" or scales == "mur":
-                systematics_arguments.append("'--mur={}'".format(scale_variation))
+                systematics_arguments.append("'--mur={}'".format(scale_variation_string))
             if scales == "together" or scales == "independent" or scales == "muf":
-                systematics_arguments.append("'--muf={}'".format(scale_variation))
+                systematics_arguments.append("'--muf={}'".format(scale_variation_string))
             if scales == "together":
                 systematics_arguments.append("'--together=mur,muf'")
 
         if self.run_pdf_variation:
-            systematics_arguments.append("'--pdf={}'".format(pdf_variation))
+            systematics_arguments.append("'--pdf={}'".format(pdf_variation.strip()))
 
         self.systematics_arguments = ""
         if len(systematics_arguments) > 0:

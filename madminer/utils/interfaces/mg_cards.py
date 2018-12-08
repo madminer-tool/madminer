@@ -138,7 +138,7 @@ def export_run_card(template_filename, run_card_filename, run_systematics=False,
     run_card_lines.append("# MadMiner systematics setup                                         *")
     run_card_lines.append("#*********************************************************************")
     for key, value in six.iteritems(settings):
-        run_card_lines.append("    {} = {}".format(value, key))
+        run_card_lines.append("{} = {}".format(value, key))
     run_card_lines.append("")
 
     # Write new run card
