@@ -41,12 +41,12 @@ def extract_observables_from_delphes_file(
     # Weights
     ar_weights = tree.array("Weight.Weight")
 
-    n_weights = len(ar_weights[0])
-    n_events = len(ar_weights)
+    n_weights = len(weights[0])
+    n_events = len(weights)
 
     assert n_weights == len(weight_labels)
 
-    weights = np.array(ar_weights).reshape((n_events, n_weights)).T
+    weights = np.array(weights).reshape((n_events, n_weights)).T
 
     # Get all particle properties
     if use_generator_truth:

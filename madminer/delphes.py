@@ -46,7 +46,7 @@ class DelphesProcessor:
 
     """
 
-    def __init__(self, filename=None, debug=False):
+    def __init__(self, filename, debug=False):
         general_init(debug=debug)
 
         # Initialize samples
@@ -54,6 +54,7 @@ class DelphesProcessor:
         self.delphes_sample_filenames = []
         self.hepmc_sample_weight_labels = []
         self.hepmc_sampled_from_benchmark = []
+        self.hepmc_is_backgrounds = []
 
         # Initialize observables
         self.observables = OrderedDict()
@@ -80,12 +81,10 @@ class DelphesProcessor:
 
         # Information from .h5 file
         self.filename = filename
-        if self.filename is None:
-            self.benchmark_names = None
-        else:
-            self.benchmark_names = load_benchmarks_from_madminer_file(self.filename)
+        self.benchmark_names = load_benchmarks_from_madminer_file(self.filename)
+        self.n_benchmarks = len(self.benchmark_names)
 
-    def add_hepmc_sample(self, filename, sampled_from_benchmark):
+    def add_hepmc_sample(self, filename, sampled_from_benchmark, is_background=False):
         """
         Adds simulated events in the HepMC format.
 
@@ -98,6 +97,9 @@ class DelphesProcessor:
             Name of the benchmark that was used for sampling in this event file (the keyword `sample_benchmark`
             of `madminer.core.MadMiner.run()`).
 
+        is_background : bool, optional
+            Whether the sample is a background sample (i.e. without benchmark reweighting).
+
         Returns
         -------
             None
@@ -108,6 +110,7 @@ class DelphesProcessor:
 
         self.hepmc_sample_filenames.append(filename)
         self.hepmc_sample_weight_labels.append(extract_weight_order(filename, sampled_from_benchmark))
+        self.hepmc_is_backgrounds.append(is_background)
 
     def run_delphes(self, delphes_directory, delphes_card, initial_command=None, log_file=None):
         """
@@ -440,9 +443,7 @@ class DelphesProcessor:
         self.observations = None
         self.weights = None
 
-        n_benchmarks = None if self.benchmark_names is None else len(self.benchmark_names)
-
-        for delphes_file, weight_labels in zip(self.delphes_sample_filenames, self.hepmc_sample_weight_labels):
+        for delphes_file, weight_labels, is_background in zip(self.delphes_sample_filenames, self.hepmc_sample_weight_labels, self.hepmc_is_backgrounds):
 
             logging.info("Analysing Delphes sample %s", delphes_file)
 
@@ -472,16 +473,14 @@ class DelphesProcessor:
                 continue
 
             # Number of benchmarks
-            if n_benchmarks is None:
-                n_benchmarks = len(this_weights)
+            n_weights = len(this_weights)
 
             # Background scenario: we only have one set of weights, but these should be true for all benchmarks
-            if len(this_weights) == 1 and self.benchmark_names is not None:
-                original_weights = list(six.itervalues(this_weights))[0]
+            if is_background:
+                benchmarks_weight = list(six.itervalues(this_weights))[0]
 
-                this_weights = OrderedDict()
                 for benchmark_name in self.benchmark_names:
-                    this_weights[benchmark_name] = original_weights
+                    this_weights[benchmark_name] = benchmarks_weight
 
             # First results
             if self.observations is None and self.weights is None:

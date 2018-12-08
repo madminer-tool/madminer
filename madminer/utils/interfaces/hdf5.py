@@ -313,6 +313,8 @@ def save_events_to_madminer_file(
 
                 weights_sorted = [weights[key] for key in benchmark_names]
 
+                # TODO: add remaining weights 
+
             except Exception as e:
                 logging.warning("Issue matching weight names in HepMC file to benchmark names in MadMiner file:\n%s", e)
 
@@ -331,27 +333,6 @@ def save_events_to_madminer_file(
 def save_madminer_file_from_lhe(
     filename, observables, observations, weights, copy_from=None, overwrite_existing_samples=True
 ):
-    """
-
-    Parameters
-    ----------
-    filename :
-        
-    observables :
-        
-    observations :
-        
-    weights :
-        
-    copy_from :
-         (Default value = None)
-    overwrite_existing_samples :
-         (Default value = True)
-
-    Returns
-    -------
-
-    """
     if copy_from is not None:
         try:
             shutil.copyfile(copy_from, filename)
