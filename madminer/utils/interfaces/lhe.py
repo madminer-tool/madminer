@@ -31,10 +31,19 @@ def extract_observables_from_lhe_file(
     # Load LHE file
     file = open(filename, "r")
 
-    # Go to first event
+    # Go to first event, also check if sum or avg
+    is_average=False
     for line in file:
+        if len(line.split())>2 and line.split()[1]=="=" and line.split()[2]=="nevents":
+            number_events_runcard=float(line.split()[0])
+        if len(line.split())>2 and line.split()[2]=="event_norm" and line.split()[0]=="average":
+            is_average=True
         if line.strip() == "</init>":
             break
+
+    #Rescale by nevent if average
+    if is_average:
+        rescale_factor=rescale_factor/number_events_runcard
 
     #Sampling benchmark default for is_background=True
     if is_background:
