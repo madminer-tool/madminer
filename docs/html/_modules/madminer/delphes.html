@@ -6,7 +6,7 @@
   <head>
     <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title>madminer.delphes &#8212; MadMiner 0.1.0 documentation</title>
+    <title>madminer.delphes &#8212; MadMiner 0.1.1 documentation</title>
     <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
     <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
@@ -100,14 +100,14 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">cuts_default_pass</span> <span class="o">=</span> <span class="p">[]</span>
 
         <span class="c1"># Initialize acceptance cuts</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">acceptance_pt_min_e</span> <span class="o">=</span> <span class="mf">10.0</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">acceptance_pt_min_mu</span> <span class="o">=</span> <span class="mf">10.0</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">acceptance_pt_min_a</span> <span class="o">=</span> <span class="mf">10.0</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">acceptance_pt_min_j</span> <span class="o">=</span> <span class="mf">20.0</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">acceptance_eta_max_e</span> <span class="o">=</span> <span class="mf">2.5</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">acceptance_eta_max_mu</span> <span class="o">=</span> <span class="mf">2.5</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">acceptance_eta_max_a</span> <span class="o">=</span> <span class="mf">2.5</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">acceptance_eta_max_j</span> <span class="o">=</span> <span class="mf">5.0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">acceptance_pt_min_e</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">acceptance_pt_min_mu</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">acceptance_pt_min_a</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">acceptance_pt_min_j</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">acceptance_eta_max_e</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">acceptance_eta_max_mu</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">acceptance_eta_max_a</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">acceptance_eta_max_j</span> <span class="o">=</span> <span class="kc">None</span>
 
         <span class="c1"># Initialize samples</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">observations</span> <span class="o">=</span> <span class="kc">None</span>
@@ -185,14 +185,14 @@
 
 <div class="viewcode-block" id="DelphesProcessor.set_acceptance"><a class="viewcode-back" href="../../madminer.delphes.html#madminer.delphes.DelphesProcessor.set_acceptance">[docs]</a>    <span class="k">def</span> <span class="nf">set_acceptance</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
-        <span class="n">pt_min_e</span><span class="o">=</span><span class="mf">10.0</span><span class="p">,</span>
-        <span class="n">pt_min_mu</span><span class="o">=</span><span class="mf">10.0</span><span class="p">,</span>
-        <span class="n">pt_min_a</span><span class="o">=</span><span class="mf">10.0</span><span class="p">,</span>
-        <span class="n">pt_min_j</span><span class="o">=</span><span class="mf">20.0</span><span class="p">,</span>
-        <span class="n">eta_max_e</span><span class="o">=</span><span class="mf">2.5</span><span class="p">,</span>
-        <span class="n">eta_max_mu</span><span class="o">=</span><span class="mf">2.5</span><span class="p">,</span>
-        <span class="n">eta_max_a</span><span class="o">=</span><span class="mf">2.5</span><span class="p">,</span>
-        <span class="n">eta_max_j</span><span class="o">=</span><span class="mf">5.0</span><span class="p">,</span>
+        <span class="n">pt_min_e</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">pt_min_mu</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">pt_min_a</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">pt_min_j</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">eta_max_e</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">eta_max_mu</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">eta_max_a</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">eta_max_j</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Sets acceptance cuts for all visible particles. These are taken into account before observables and cuts</span>
@@ -200,29 +200,29 @@
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
-<span class="sd">        pt_min_e : float</span>
-<span class="sd">             Minimum electron transverse momentum in GeV. Default value: 10.</span>
+<span class="sd">        pt_min_e : float or None, optional</span>
+<span class="sd">             Minimum electron transverse momentum in GeV. None means no acceptance cut. Default value: None.</span>
 
-<span class="sd">        pt_min_mu : float</span>
-<span class="sd">             Minimum muon transverse momentum in GeV. Default value: 10.</span>
+<span class="sd">        pt_min_mu : float or None, optional</span>
+<span class="sd">             Minimum muon transverse momentum in GeV. None means no acceptance cut. Default value: None.</span>
 
-<span class="sd">        pt_min_a : float</span>
-<span class="sd">             Minimum photon transverse momentum in GeV. Default value: 10.</span>
+<span class="sd">        pt_min_a : float or None, optional</span>
+<span class="sd">             Minimum photon transverse momentum in GeV. None means no acceptance cut. Default value: None.</span>
 
-<span class="sd">        pt_min_j : float</span>
-<span class="sd">             Minimum jet transverse momentum in GeV. Default value: 20.</span>
+<span class="sd">        pt_min_j : float or None, optional</span>
+<span class="sd">             Minimum jet transverse momentum in GeV. None means no acceptance cut. Default value: None.</span>
 
-<span class="sd">        eta_max_e : float</span>
-<span class="sd">             Maximum absolute electron pseudorapidity. Default value: 2.5.</span>
+<span class="sd">        eta_max_e : float or None, optional</span>
+<span class="sd">             Maximum absolute electron pseudorapidity. None means no acceptance cut. Default value: None.</span>
 
-<span class="sd">        eta_max_mu : float</span>
-<span class="sd">             Maximum absolute muon pseudorapidity. Default value: 2.5.</span>
+<span class="sd">        eta_max_mu : float or None, optional</span>
+<span class="sd">             Maximum absolute muon pseudorapidity. None means no acceptance cut. Default value: None.</span>
 
-<span class="sd">        eta_max_a : float</span>
-<span class="sd">             Maximum absolute photon pseudorapidity. Default value: 2.5.</span>
+<span class="sd">        eta_max_a : float or None, optional</span>
+<span class="sd">             Maximum absolute photon pseudorapidity. None means no acceptance cut. Default value: None.</span>
 
-<span class="sd">        eta_max_j : float</span>
-<span class="sd">             Maximum absolute jet pseudorapidity. Default value: 5.</span>
+<span class="sd">        eta_max_j : float or None, optional</span>
+<span class="sd">             Maximum absolute jet pseudorapidity. None means no acceptance cut. Default value: None.</span>
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
@@ -388,10 +388,10 @@
 
             <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">add_observable</span><span class="p">(</span>
-                    <span class="s2">&quot;e_</span><span class="si">{}{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">symbol</span><span class="p">,</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">[</span><span class="si">{}</span><span class="s2">].pt&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">symbol</span><span class="p">,</span> <span class="n">i</span><span class="p">),</span> <span class="n">required</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mf">0.0</span>
+                    <span class="s2">&quot;e_</span><span class="si">{}{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">symbol</span><span class="p">,</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">[</span><span class="si">{}</span><span class="s2">].e&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">symbol</span><span class="p">,</span> <span class="n">i</span><span class="p">),</span> <span class="n">required</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mf">0.0</span>
                 <span class="p">)</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">add_observable</span><span class="p">(</span>
-                    <span class="s2">&quot;pt_</span><span class="si">{}{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">symbol</span><span class="p">,</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">[</span><span class="si">{}</span><span class="s2">].e&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">symbol</span><span class="p">,</span> <span class="n">i</span><span class="p">),</span> <span class="n">required</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mf">0.0</span>
+                    <span class="s2">&quot;pt_</span><span class="si">{}{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">symbol</span><span class="p">,</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">[</span><span class="si">{}</span><span class="s2">].pt&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">symbol</span><span class="p">,</span> <span class="n">i</span><span class="p">),</span> <span class="n">required</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mf">0.0</span>
                 <span class="p">)</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">add_observable</span><span class="p">(</span>
                     <span class="s2">&quot;eta_</span><span class="si">{}{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">symbol</span><span class="p">,</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">[</span><span class="si">{}</span><span class="s2">].eta&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">symbol</span><span class="p">,</span> <span class="n">i</span><span class="p">),</span> <span class="n">required</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mf">0.0</span>
@@ -450,13 +450,17 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">cuts</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">cuts_default_pass</span> <span class="o">=</span> <span class="p">[]</span></div>
 
-<div class="viewcode-block" id="DelphesProcessor.analyse_delphes_samples"><a class="viewcode-back" href="../../madminer.delphes.html#madminer.delphes.DelphesProcessor.analyse_delphes_samples">[docs]</a>    <span class="k">def</span> <span class="nf">analyse_delphes_samples</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">delete_delphes_files</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<div class="viewcode-block" id="DelphesProcessor.analyse_delphes_samples"><a class="viewcode-back" href="../../madminer.delphes.html#madminer.delphes.DelphesProcessor.analyse_delphes_samples">[docs]</a>    <span class="k">def</span> <span class="nf">analyse_delphes_samples</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">generator_truth</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">delete_delphes_files</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Main function that parses the Delphes samples (ROOT files), checks acceptance and cuts, and extracts</span>
 <span class="sd">        the observables and weights.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
+<span class="sd">        generator_truth : bool, optional</span>
+<span class="sd">            If True, the generator truth information (as given out by Pythia) will be parsed. Detector resolution or</span>
+<span class="sd">            efficiency effects will not be taken into account.</span>
+
 <span class="sd">        delete_delphes_files : bool, optional</span>
 <span class="sd">            If True, the Delphes ROOT files will be deleted after extracting the information from them. Default value:</span>
 <span class="sd">            False.</span>
@@ -486,7 +490,16 @@
                 <span class="bp">self</span><span class="o">.</span><span class="n">cuts</span><span class="p">,</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">cuts_default_pass</span><span class="p">,</span>
                 <span class="n">weight_labels</span><span class="p">,</span>
+                <span class="n">use_generator_truth</span><span class="o">=</span><span class="n">generator_truth</span><span class="p">,</span>
                 <span class="n">delete_delphes_sample_file</span><span class="o">=</span><span class="n">delete_delphes_files</span><span class="p">,</span>
+                <span class="n">acceptance_eta_max_a</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">acceptance_eta_max_a</span><span class="p">,</span>
+                <span class="n">acceptance_eta_max_e</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">acceptance_eta_max_e</span><span class="p">,</span>
+                <span class="n">acceptance_eta_max_mu</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">acceptance_eta_max_mu</span><span class="p">,</span>
+                <span class="n">acceptance_eta_max_j</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">acceptance_eta_max_j</span><span class="p">,</span>
+                <span class="n">acceptance_pt_min_a</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">acceptance_pt_min_a</span><span class="p">,</span>
+                <span class="n">acceptance_pt_min_e</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">acceptance_pt_min_e</span><span class="p">,</span>
+                <span class="n">acceptance_pt_min_mu</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">acceptance_pt_min_mu</span><span class="p">,</span>
+                <span class="n">acceptance_pt_min_j</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">acceptance_pt_min_j</span><span class="p">,</span>
             <span class="p">)</span>
 
             <span class="c1"># No events found?</span>

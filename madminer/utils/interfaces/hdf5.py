@@ -374,10 +374,10 @@ def save_madminer_file_from_lhe(
                     observable_definitions.append("".encode("ascii", "ignore"))
 
             # Prepare observable definitions
-            #observable_names = [oname for oname in observables]
-            #n_observables = len(observable_names)
-            #observable_names_ascii = [oname.encode("ascii", "ignore") for oname in observable_names]
-            #observable_definitions = [observables[key].encode("ascii", "ignore") for key in observable_names]
+            # observable_names = [oname for oname in observables]
+            # n_observables = len(observable_names)
+            # observable_names_ascii = [oname.encode("ascii", "ignore") for oname in observable_names]
+            # observable_definitions = [observables[key].encode("ascii", "ignore") for key in observable_names]
 
             # Store observable definitions
             f.create_dataset("observables/names", (n_observables,), dtype="S256", data=observable_names_ascii)

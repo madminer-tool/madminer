@@ -6,7 +6,7 @@
   <head>
     <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title>madminer.core &#8212; MadMiner 0.1.0 documentation</title>
+    <title>madminer.core &#8212; MadMiner 0.1.1 documentation</title>
     <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
     <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
@@ -1032,7 +1032,7 @@
                 <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Run </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span>
                 <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;  Sampling from benchmark: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">sample_benchmark</span><span class="p">)</span>
                 <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;  Original run card:       </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">run_card_file</span><span class="p">)</span>
-                <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;  Original Pythia8 card:   </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">run_card_file</span><span class="p">)</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;  Original Pythia8 card:   </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">pythia8_card_file</span><span class="p">)</span>
                 <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;  Copied run card:         </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">new_run_card_file</span><span class="p">)</span>
                 <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;  Copied Pythia8 card:     </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">new_pythia8_card_file</span><span class="p">)</span>
                 <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;  Param card:              </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">param_card_file</span><span class="p">)</span>
@@ -1078,7 +1078,8 @@
                         <span class="n">mg_process_directory</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span> <span class="o">+</span> <span class="n">new_run_card_file</span><span class="p">,</span>
                         <span class="n">mg_process_directory</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span> <span class="o">+</span> <span class="n">param_card_file</span><span class="p">,</span>
                         <span class="n">mg_process_directory</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span> <span class="o">+</span> <span class="n">reweight_card_file</span><span class="p">,</span>
-                        <span class="n">mg_process_directory</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span> <span class="o">+</span> <span class="n">new_pythia8_card_file</span><span class="p">,</span>
+                        <span class="kc">None</span> <span class="k">if</span> <span class="n">new_pythia8_card_file</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">mg_process_directory</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span> <span class="o">+</span> <span class="n">new_pythia8_card_file</span><span class="p">,</span>
+                        <span class="c1"># mg_process_directory + &quot;/&quot; + new_pythia8_card_file,</span>
                         <span class="n">is_background</span><span class="o">=</span><span class="n">is_background</span><span class="p">,</span>
                         <span class="n">initial_command</span><span class="o">=</span><span class="n">initial_command</span><span class="p">,</span>
                         <span class="n">log_file</span><span class="o">=</span><span class="n">log_directory</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span> <span class="o">+</span> <span class="n">log_file_run</span><span class="p">,</span>

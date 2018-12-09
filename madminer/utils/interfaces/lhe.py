@@ -18,9 +18,9 @@ def extract_observables_from_lhe_file(
     observables,
     benchmark_names
 ):
-    
+
     """ Extracts observables and weights from a LHE file """
-    
+
     # Untar Event file
     new_filename, extension = os.path.splitext(filename)
     if extension == ".gz":
