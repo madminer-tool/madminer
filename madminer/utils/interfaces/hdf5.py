@@ -311,9 +311,13 @@ def save_events_to_madminer_file(
 
                 logging.debug("Benchmarks found in MadMiner file: %s", benchmark_names)
 
-                weights_sorted = [weights[key] for key in benchmark_names]
-
-                # TODO: add remaining weights 
+                # Sort weights: First the benchmarks in the right order, then the rest alphabetically
+                weights_sorted = []
+                for key in benchmark_names:
+                    weights_sorted.append(weights[key])
+                for key in sorted(weights_sorted.keys()):
+                    if key not in benchmark_names:
+                        weights_sorted.append(key)
 
             except Exception as e:
                 logging.warning("Issue matching weight names in HepMC file to benchmark names in MadMiner file:\n%s", e)
