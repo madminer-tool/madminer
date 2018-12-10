@@ -39,7 +39,7 @@ def extract_observables_from_delphes_file(
     tree = root_file["Delphes"]
 
     # Weights
-    ar_weights = tree.array("Weight.Weight")
+    weights = tree.array("Weight.Weight")
 
     n_weights = len(weights[0])
     n_events = len(weights)
