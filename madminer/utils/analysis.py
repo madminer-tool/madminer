@@ -61,7 +61,12 @@ def get_dtheta_benchmark_matrix(theta_type, theta_value, benchmarks, morpher=Non
 
 
 def extract_augmented_data(
-    augmented_data_definitions, weights_benchmarks, xsecs_benchmarks, theta_matrices, theta_gradient_matrices
+    augmented_data_definitions,
+    weights_benchmarks,
+    xsecs_benchmarks,
+    theta_matrices,
+    theta_gradient_matrices,
+    nuisance_score=False,
 ):
     """Extracts augmented data from benchmark weights"""
     augmented_data = []

@@ -54,10 +54,12 @@ def save_madminer_settings(
         benchmark_values = np.array(
             [[benchmarks[bname][pname] for pname in parameter_names] for bname in benchmark_names]
         )
+        benchmark_is_nuisance = np.array([False for _ in benchmarks], dtype=np.bool)
 
         # Store benchmarks
         f.create_dataset("benchmarks/names", (n_benchmarks,), dtype="S256", data=benchmark_names_ascii)
         f.create_dataset("benchmarks/values", data=benchmark_values)
+        f.create_dataset("benchmarks/is_nuisance", data=benchmark_is_nuisance)
 
         # Store morphing info
         if morphing_components is not None:
@@ -71,7 +73,7 @@ def save_madminer_settings(
             f.create_dataset("systematics/arguments", dtype="S256", data=systematics_arguments_ascii)
 
 
-def load_madminer_settings(filename):
+def load_madminer_settings(filename, include_nuisance_benchmarks=False):
     """ Loads MadMiner settings, observables, and weights from a HDF5 file. """
 
     with h5py.File(filename, "r") as f:
@@ -103,7 +105,6 @@ def load_madminer_settings(filename):
                 parameter_max_power,
                 parameter_transforms,
             ):
-
                 parameters[pname] = (pblock, int(pid), tuple(p_maxpower), tuple(prange), ptrf)
 
         except KeyError:
@@ -113,17 +114,19 @@ def load_madminer_settings(filename):
         try:
             benchmark_names = f["benchmarks/names"][()]
             benchmark_values = f["benchmarks/values"][()]
+            benchmark_is_nuisance = f["benchmarks/is_nuisance"][()]
 
             benchmark_names = [bname.decode("ascii") for bname in benchmark_names]
 
             benchmarks = OrderedDict()
 
-            for bname, bvalue_matrix in zip(benchmark_names, benchmark_values):
-                bvalues = OrderedDict()
-                for pname, pvalue in zip(parameter_names, bvalue_matrix):
-                    bvalues[pname] = pvalue
+            for bname, bvalue_matrix, is_nuisance in zip(benchmark_names, benchmark_values, benchmark_is_nuisance):
+                if include_nuisance_benchmarks or (not is_nuisance):
+                    bvalues = OrderedDict()
+                    for pname, pvalue in zip(parameter_names, bvalue_matrix):
+                        bvalues[pname] = pvalue
 
-                benchmarks[bname] = bvalues
+                    benchmarks[bname] = bvalues
 
         except KeyError:
             raise IOError("Cannot read benchmarks from HDF5 file")
@@ -219,25 +222,6 @@ def load_benchmarks_from_madminer_file(filename):
 def save_preformatted_events_to_madminer_file(
     filename, observations, weights, copy_setup_from, overwrite_existing_samples=True
 ):
-    """
-
-    Parameters
-    ----------
-    filename :
-        
-    observations :
-        
-    weights :
-        
-    copy_setup_from :
-        
-    overwrite_existing_samples :
-         (Default value = True)
-
-    Returns
-    -------
-
-    """
     if copy_setup_from is not None:
         try:
             shutil.copyfile(copy_setup_from, filename)
@@ -261,6 +245,59 @@ def save_preformatted_events_to_madminer_file(
 
         # Prepare observable values
         f.create_dataset("samples/observations", data=observations)
+
+
+def save_nuisance_benchmarks_to_madminer_file(filename, weight_names, sort=True, copy_from=None):
+    """ Saves the names of nuisance-defined benchmarks in an HDF5 file """
+
+    # Copy file
+    if copy_from is not None:
+        try:
+            shutil.copyfile(copy_from, filename)
+        except IOError:
+            pass
+
+    # Sort weight names
+    if sort:
+        weight_names = sorted(weight_names)
+
+    io_tag = "a"  # Read-write if file exists, otherwise create
+
+    with h5py.File(filename, io_tag) as f:
+
+        # Load existing benchmarks
+        try:
+            benchmark_names = list(f["benchmarks/names"][()])
+            benchmark_values = list(f["benchmarks/values"][()])
+            benchmark_is_nuisance = list(f["benchmarks/is_nuisance"][()])
+
+            benchmark_names = [bname.decode("ascii") for bname in benchmark_names]
+
+        except KeyError:
+            raise IOError("Cannot read benchmarks from HDF5 file")
+
+        # Add weights not found before
+        for weight_name in weight_names:
+            if weight_name in benchmark_names:
+                continue
+
+            benchmark_names.append(weight_names)
+            benchmark_is_nuisance.append(True)
+            benchmark_values.append(np.zeros_like(benchmark_values[0]))
+
+        # Prepare benchmarks for saving
+        n_benchmarks = len(benchmark_names)
+        benchmark_names_ascii = [bname.encode("ascii", "ignore") for bname in benchmark_names]
+        benchmark_values = np.array(benchmark_values)
+        benchmark_is_nuisance = np.array(benchmark_is_nuisance, dtype=np.bool)
+
+        # Make room for saving all this glorious data
+        del f["benchmarks"]
+
+        # Store benchmarks
+        f.create_dataset("benchmarks/names", (n_benchmarks,), dtype="S256", data=benchmark_names_ascii)
+        f.create_dataset("benchmarks/values", data=benchmark_values)
+        f.create_dataset("benchmarks/is_nuisance", data=benchmark_is_nuisance)
 
 
 def save_events_to_madminer_file(
@@ -326,10 +363,10 @@ def save_events_to_madminer_file(
 
             # Save weights
             weights_sorted = np.array(weights_sorted)
-            weights_sorted = weights_sorted.T  # Shape (n_events, n_benchmarks)
+            weights_sorted = weights_sorted.T  # Shape (n_events, n_weights)
             f.create_dataset("samples/weights", data=weights_sorted)
 
-            # Prepare observable values
+            # Prepare and save observable values
             observations = np.array([observations[oname] for oname in observable_names]).T
             f.create_dataset("samples/observations", data=observations)
 

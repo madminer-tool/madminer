@@ -362,7 +362,15 @@ class SampleAugmenter:
         return x, theta
 
     def extract_samples_train_local(
-        self, theta, n_samples, folder, filename, test_split=0.5, switch_train_test_events=False, log_message=True
+        self,
+        theta,
+        n_samples,
+        folder,
+        filename,
+        nuisance_score=False,
+        test_split=0.5,
+        switch_train_test_events=False,
+        log_message=True,
     ):
         """
         Extracts training samples x ~ p(x|theta) as well as the joint score t(x, z|theta). This can be used for
@@ -383,6 +391,11 @@ class SampleAugmenter:
         filename : str
             Filenames for the resulting samples. A prefix such as 'x' or 'theta0' as well as the extension
             '.npy' will be added automatically.
+
+        nuisance_score : bool, optional
+            If True and if the sample contains nuisance parameters, the score with respect to the nuisance parameters
+            (at the default position) will also be calculated. Otherwise, only the score with respect to the
+            physics parameters is calculated. Default: False.
 
         test_split : float or None, optional
             Fraction of events reserved for the evaluation sample (that will not be used for any training samples).
@@ -406,7 +419,8 @@ class SampleAugmenter:
             `(n_samples, n_parameters)`. The same information is saved as a file in the given folder.
 
         t_xz : ndarray
-            Joint score evaluated at theta with shape `(n_samples, n_parameters)`. The same information is saved as a
+            Joint score evaluated at theta with shape `(n_samples, n_parameters + n_nuisance_parameters)` (if
+            nuisance_score is True) or `(n_samples, n_parameters)`. The same information is saved as a
             file in the given folder.
 
         """
@@ -437,6 +451,7 @@ class SampleAugmenter:
             theta_sets_values=[theta_values],
             n_samples_per_theta=n_samples_per_theta,
             augmented_data_definitions=augmented_data_definitions,
+            nuisance_score=nuisance_score,
             start_event=start_event,
             end_event=end_event,
         )
@@ -1117,6 +1132,7 @@ class SampleAugmenter:
         n_samples_per_theta,
         sampling_theta_index=0,
         augmented_data_definitions=None,
+        nuisance_score=False,
         start_event=0,
         end_event=None,
     ):
@@ -1141,6 +1157,11 @@ class SampleAugmenter:
             ('score', theta), where num_theta, den_theta, and theta are indexes marking
             which of the theta sets defined through thetas_types and thetas_values is
             used. Default value: None.
+
+        nuisance_score : bool, optional
+            If True and if the sample contains nuisance parameters, any joint score in the augmented data definitions
+            is also calculated with respect to the nuisance parameters (evaluated at their default position). Default
+            value: False.
 
         sampling_theta_index : int
             Marking the index of the theta set defined through thetas_types and
@@ -1342,6 +1363,7 @@ class SampleAugmenter:
                         xsecs_benchmarks,
                         theta_matrices,
                         theta_gradient_matrices,
+                        nuisance_score=nuisance_score,
                     )
                     for i, this_relevant_augmented_data in enumerate(relevant_augmented_data):
                         samples_augmented_data[i][found_now] = this_relevant_augmented_data

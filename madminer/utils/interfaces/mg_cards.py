@@ -111,10 +111,10 @@ def export_run_card(template_filename, run_card_filename, run_systematics=False,
 
     # Changes to be made
     settings = {}
-    settings['use_syst'] = 'True' if run_systematics else 'False'
+    settings["use_syst"] = "True" if run_systematics else "False"
     if run_systematics:
-        settings['systematics_program'] = 'systematics'
-        settings['systematics_arguments'] = str(systematics_arguments)
+        settings["systematics_program"] = "systematics"
+        settings["systematics_arguments"] = str(systematics_arguments)
 
     # Remove old entries
     for i, line in enumerate(run_card_lines):

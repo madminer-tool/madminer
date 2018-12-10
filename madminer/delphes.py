@@ -443,7 +443,9 @@ class DelphesProcessor:
         self.observations = None
         self.weights = None
 
-        for delphes_file, weight_labels, is_background in zip(self.delphes_sample_filenames, self.hepmc_sample_weight_labels, self.hepmc_is_backgrounds):
+        for delphes_file, weight_labels, is_background in zip(
+            self.delphes_sample_filenames, self.hepmc_sample_weight_labels, self.hepmc_is_backgrounds
+        ):
 
             logging.info("Analysing Delphes sample %s", delphes_file)
 
