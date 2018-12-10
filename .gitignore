@@ -131,16 +131,27 @@ examples/tutorial/mg_processes
 examples/tutorial/py.py
 examples/tutorial/models
 
-examples/example_wgamma/temp
-examples/example_wgamma/nsqso_born.inc
-examples/example_wgamma/data
-examples/example_wgamma/datasave
-examples/example_wgamma/logs
-examples/example_wgamma/ME5_debug
-examples/example_wgamma/mg_processes
-examples/example_wgamma/py.py
-examples/example_wgamma/models
-examples/example_wgamma/figures
+examples/example1_wgamma/temp
+examples/example1_wgamma/nsqso_born.inc
+examples/example1_wgamma/data
+examples/example1_wgamma/datasave
+examples/example1_wgamma/logs
+examples/example1_wgamma/ME5_debug
+examples/example1_wgamma/mg_processes
+examples/example1_wgamma/py.py
+examples/example1_wgamma/models
+examples/example1_wgamma/figures
+
+examples/example2_wbf/temp
+examples/example2_wbf/nsqso_born.inc
+examples/example2_wbf/data
+examples/example2_wbf/datasave
+examples/example2_wbf/logs
+examples/example2_wbf/ME5_debug
+examples/example2_wbf/mg_processes
+examples/example2_wbf/py.py
+examples/example2_wbf/models
+examples/example2_wbf/figures
 
 # MG / Pythia / Delphes patch
 patches/

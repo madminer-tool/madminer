@@ -10,7 +10,14 @@ import logging
 from madminer.utils.various import call_command
 
 
-def extract_observables_from_lhe_file(filename, sampling_benchmark, observables, benchmark_names):
+def extract_observables_from_lhe_file(
+    filename,
+    sampling_benchmark,
+    is_background,
+    rescale_factor,
+    observables,
+    benchmark_names
+):
 
     """ Extracts observables and weights from a LHE file """
 
@@ -24,14 +31,27 @@ def extract_observables_from_lhe_file(filename, sampling_benchmark, observables,
     # Load LHE file
     file = open(filename, "r")
 
-    # Go to first event
+    # Go to first event, also check if sum or avg
+    is_average=False
     for line in file:
+        if len(line.split())>2 and line.split()[1]=="=" and line.split()[2]=="nevents":
+            number_events_runcard=float(line.split()[0])
+        if len(line.split())>2 and line.split()[2]=="event_norm" and line.split()[0]=="average":
+            is_average=True
         if line.strip() == "</init>":
             break
 
+    #Rescale by nevent if average
+    if is_average:
+        rescale_factor=rescale_factor/number_events_runcard
+
+    #Sampling benchmark default for is_background=True
+    if is_background:
+        sampling_benchmark="default"
+
     # Read events
-    weights_all_events = []
     partons_all_events = []
+    weights_all_events = []
     while True:
         end_of_file, event_partons, event_weights = _read_lhe_event(file, sampling_benchmark)
         if end_of_file:
@@ -41,12 +61,20 @@ def extract_observables_from_lhe_file(filename, sampling_benchmark, observables,
 
     # Rewrite weights
     weights = []
-    for benchmarkname in benchmark_names:
-        key_weights = []
-        for weight_event in weights_all_events:
-            key_weights.append(weight_event[benchmarkname])
-        weights.append(key_weights)
-    weights = np.array(weights)
+    if is_background:
+        for benchmarkname in benchmark_names:
+            key_weights = []
+            for weight_event in weights_all_events:
+                key_weights.append(weight_event["default"]*rescale_factor)
+            weights.append(key_weights)
+        weights = np.array(weights)
+    else:
+        for benchmarkname in benchmark_names:
+            key_weights = []
+            for weight_event in weights_all_events:
+                key_weights.append(weight_event[benchmarkname]*rescale_factor)
+            weights.append(key_weights)
+        weights = np.array(weights)
 
     # Obtain values for each observable in each event
     observable_values = OrderedDict()
@@ -107,6 +135,8 @@ def _read_lhe_event(file, sampling_benchmark):
 
         # Read Momenta and store as 4-vector
         if do_momenta:
+            if line.strip() == "</event>":
+                return False, event_momenta, event_weights
             if line.strip() == "<mgrwt>":
                 do_momenta = False
                 do_wait_for_reweight = True
