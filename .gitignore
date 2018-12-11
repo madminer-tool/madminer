@@ -156,5 +156,6 @@ examples/example2_wbf/figures
 # MG / Pythia / Delphes patch
 patches/
 
-# Black
+# Shell scripts
 black.sh
+run_sphinx.sh
