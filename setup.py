@@ -25,7 +25,7 @@ VERSION = '0.1.1'
 # What packages are required for this module to be executed?
 REQUIRED = [
     "six",
-    "numpy>=1.11.0",
+    "numpy>=1.13.0",
     "scipy>=1.0.0",
     "h5py",
     "scikit-hep",
