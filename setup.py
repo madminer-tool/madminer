@@ -33,7 +33,7 @@ REQUIRED = [
     "torch>=0.4.0",
     "bqplot",
     "uproot",
-    "matplotlib",
+    "matplotlib>=2.0.0",
 ]
 
 # What packages are optional?
