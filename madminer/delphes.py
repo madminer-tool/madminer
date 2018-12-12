@@ -179,7 +179,7 @@ class DelphesProcessor:
             log_file = "./logs/delphes.log"
 
         for i, (delphes_filename, hepmc_filename) in enumerate(
-            zip(self.hepmc_sample_filenames, self.delphes_sample_filenames)
+            zip(self.delphes_sample_filenames, self.hepmc_sample_filenames)
         ):
             if delphes_filename is not None:
                 logging.debug("Delphes already run for event sample %s", hepmc_filename)
