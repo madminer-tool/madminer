@@ -111,10 +111,44 @@ class DelphesProcessor:
         self.hepmc_sample_filenames.append(filename)
         self.hepmc_sample_weight_labels.append(extract_weight_order(filename, sampled_from_benchmark))
         self.hepmc_is_backgrounds.append(is_background)
+        self.delphes_sample_filenames.append(None)
+
+    def add_delphes_sample(self, delphes_filename, hepmc_filename, sampled_from_benchmark, is_background=False):
+        """
+        Adds simulated events as a Delphes ROOT file. Since not all relevant information is contained in the Delphes
+        ROOT file, a HepMC file also has to be provided.
+
+        Parameters
+        ----------
+        delphes_filename : str
+            Path to the Delphes event file (with extension '.root').
+
+        hepmc_filename : str
+            Path to the HepMC event file (with extension '.hepmc' or '.hepmc.gz').
+
+        sampled_from_benchmark : str
+            Name of the benchmark that was used for sampling in this event file (the keyword `sample_benchmark`
+            of `madminer.core.MadMiner.run()`).
+
+        is_background : bool, optional
+            Whether the sample is a background sample (i.e. without benchmark reweighting).
+
+        Returns
+        -------
+            None
+
+        """
+
+        logging.debug("Adding Delphes sample at %s, based on HepMC file at %s", delphes_filename, hepmc_filename)
+
+        self.hepmc_sample_filenames.append(hepmc_filename)
+        self.hepmc_sample_weight_labels.append(extract_weight_order(hepmc_filename, sampled_from_benchmark))
+        self.hepmc_is_backgrounds.append(is_background)
+        self.delphes_sample_filenames.append(delphes_filename)
 
     def run_delphes(self, delphes_directory, delphes_card, initial_command=None, log_file=None):
         """
-        Runs the fast detector simulation on all HepMC samples added so far.
+        Runs the fast detector simulation Delphes on all HepMC samples added so far for which it hasn't been run yet.
 
         Parameters
         ----------
@@ -140,16 +174,20 @@ class DelphesProcessor:
         if log_file is None:
             log_file = "./logs/delphes.log"
 
-        for hepmc_sample_filename in self.hepmc_sample_filenames:
-            logging.info("Running Delphes (%s) on event sample at %s", delphes_directory, hepmc_sample_filename)
+        for i, (delphes_filename, hepmc_filename) in enumerate(zip(self.hepmc_sample_filenames, self.delphes_sample_filenames)):
+            if delphes_filename is not None:
+                logging.debug("Delphes already run for event sample %s", hepmc_filename)
+                continue
+
+            logging.info("Running Delphes (%s) on event sample at %s", delphes_directory, hepmc_filename)
             delphes_sample_filename = run_delphes(
                 delphes_directory,
                 delphes_card,
-                hepmc_sample_filename,
+                hepmc_filename,
                 initial_command=initial_command,
                 log_file=log_file,
             )
-            self.delphes_sample_filenames.append(delphes_sample_filename)
+            self.delphes_sample_filenames[i] = delphes_sample_filename
 
     def set_acceptance(
         self,
