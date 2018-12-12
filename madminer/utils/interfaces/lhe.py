@@ -10,6 +10,69 @@ import logging
 from madminer.utils.various import call_command
 
 
+def extract_weights_from_lhe_file(filename, sampling_benchmark, is_background, rescale_factor=1.0):
+    """ Extracts weights from a LHE file and returns them as a dict with entries benchmark_name:values """
+
+    # Untar Event file
+    new_filename, extension = os.path.splitext(filename)
+    if extension == ".gz":
+        if not os.path.exists(new_filename):
+            call_command("gunzip -k {}".format(filename))
+        filename = new_filename
+
+    # Load LHE file
+    file = open(filename, "r")
+
+    # Go to first event, also check if sum or avg
+    is_average = False
+    for line in file:
+        if len(line.split()) > 2 and line.split()[1] == "=" and line.split()[2] == "nevents":
+            number_events_runcard = float(line.split()[0])
+        if len(line.split()) > 2 and line.split()[2] == "event_norm" and line.split()[0] == "average":
+            is_average = True
+        if line.strip() == "</init>":
+            break
+
+    # Rescale by nevent if average
+    if is_average:
+        rescale_factor = rescale_factor / number_events_runcard
+
+    # Sampling benchmark default for is_background=True
+    if is_background:
+        sampling_benchmark = "default"
+
+    # Read and process weights, event by event
+    weights = None
+
+    while True:
+        end_of_file, _, this_weights = _read_lhe_event(file, sampling_benchmark)
+        if end_of_file:
+            break
+
+        # First results
+        if weights is None:
+            weights = OrderedDict()
+            for key in this_weights:
+                weights[key] = [this_weights[key] * rescale_factor]
+
+        # Following results: check consistency with previous results
+        if len(weights) != len(this_weights):
+            raise ValueError(
+                "Number of weights in different LHE events incompatible: {} vs {}".format(
+                    len(weights), len(this_weights)
+                )
+            )
+
+        # Merge results with previous
+        for key in weights:
+            assert key in this_weights, "Weight label {} not found in LHE event".format(key)
+            weights[key].append(this_weights[key] * rescale_factor)
+
+    # Vectorize
+    for key in weights:
+        weights[key] = np.array(weights[key])
+
+
 def extract_observables_from_lhe_file(
     filename, sampling_benchmark, is_background, rescale_factor, observables, benchmark_names
 ):

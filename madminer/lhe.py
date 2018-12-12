@@ -37,7 +37,7 @@ class LHEProcessor:
     def read_benchmark_names(self, filename):
         self.benchmark_names = load_benchmarks_from_madminer_file(filename)
 
-    def add_lhe_sample(self, filename, sampling_benchmark, is_background=False, rescale_factor=1):
+    def add_lhe_sample(self, filename, sampling_benchmark, is_background=False, rescale_factor=1.0):
         logging.info("Adding LHE sample at %s", filename)
 
         self.lhe_sample_filenames.append(filename)

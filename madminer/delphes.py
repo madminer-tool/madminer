@@ -13,6 +13,7 @@ from madminer.utils.interfaces.hdf5 import (
 from madminer.utils.interfaces.delphes import run_delphes
 from madminer.utils.interfaces.root import parse_delphes_root_file
 from madminer.utils.interfaces.hepmc import extract_weight_order
+from madminer.utils.interfaces.lhe import extract_weights_from_lhe_file
 from madminer.utils.various import general_init
 
 
@@ -55,10 +56,11 @@ class DelphesProcessor:
 
         # Initialize samples
         self.hepmc_sample_filenames = []
-        self.delphes_sample_filenames = []
         self.hepmc_sample_weight_labels = []
         self.hepmc_sampled_from_benchmark = []
         self.hepmc_is_backgrounds = []
+        self.lhe_sample_filenames_for_weights = []
+        self.delphes_sample_filenames = []
 
         # Initialize observables
         self.observables = OrderedDict()
@@ -88,7 +90,9 @@ class DelphesProcessor:
         self.benchmark_names = load_benchmarks_from_madminer_file(self.filename)
         self.n_benchmarks = len(self.benchmark_names)
 
-    def add_hepmc_sample(self, filename, sampled_from_benchmark, is_background=False):
+    def add_hepmc_sample(
+        self, filename, sampled_from_benchmark, is_background=False, weights="delphes", lhe_filename=None
+    ):
         """
         Adds simulated events in the HepMC format.
 
@@ -104,6 +108,19 @@ class DelphesProcessor:
         is_background : bool, optional
             Whether the sample is a background sample (i.e. without benchmark reweighting).
 
+        weights : {"delphes", "lhe"}, optional
+            If "delphes", the weights are read out from the Delphes ROOT file, and their names are taken from the
+            HepMC file. If "lhe" (and lhe_filename is not None), the weights are taken from the LHE file (and matched
+            with the observables from the Delphes ROOT file). The "delphes" behaviour is generally better as it
+            minimizes the risk of mismatching observables and weights, but for some MadGraph and Delphes versions
+            there are issues with weights not being saved in the HepMC and Delphes ROOT files. In this case, setting
+            weights to "lhe" and providing the unweighted LHE file from MadGraph may be an easy fix. Default value:
+            "delphes".
+
+        lhe_filename : None or str, optional
+            If weights is "lhe", this is the path to the unweighted LHE file (with extension '.lhe' or '.lhe.gz') that
+            MadGraph put out and feeds into Pythia.
+
         Returns
         -------
             None
@@ -112,12 +129,27 @@ class DelphesProcessor:
 
         logging.debug("Adding HepMC sample at %s", filename)
 
+        assert weights in ["delphes", "lhe"], "Unknown setting for weights: %s. Has to be 'delphes' or 'lhe'."
+
         self.hepmc_sample_filenames.append(filename)
         self.hepmc_sample_weight_labels.append(extract_weight_order(filename, sampled_from_benchmark))
         self.hepmc_is_backgrounds.append(is_background)
         self.delphes_sample_filenames.append(None)
 
-    def add_delphes_sample(self, delphes_filename, hepmc_filename, sampled_from_benchmark, is_background=False):
+        if weights == "lhe" and lhe_filename is not None:
+            self.lhe_sample_filenames_for_weights.append(lhe_filename)
+        else:
+            self.lhe_sample_filenames_for_weights.append(None)
+
+    def add_delphes_sample(
+        self,
+        delphes_filename,
+        hepmc_filename,
+        sampled_from_benchmark,
+        is_background=False,
+        weights="delphes",
+        lhe_filename=None,
+    ):
         """
         Adds simulated events as a Delphes ROOT file. Since not all relevant information is contained in the Delphes
         ROOT file, a HepMC file also has to be provided.
@@ -137,6 +169,19 @@ class DelphesProcessor:
         is_background : bool, optional
             Whether the sample is a background sample (i.e. without benchmark reweighting).
 
+        weights : {"delphes", "lhe"}, optional
+            If "delphes", the weights are read out from the Delphes ROOT file, and their names are taken from the
+            HepMC file. If "lhe" (and lhe_filename is not None), the weights are taken from the LHE file (and matched
+            with the observables from the Delphes ROOT file). The "delphes" behaviour is generally better as it
+            minimizes the risk of mismatching observables and weights, but for some MadGraph and Delphes versions
+            there are issues with weights not being saved in the HepMC and Delphes ROOT files. In this case, setting
+            weights to "lhe" and providing the unweighted LHE file from MadGraph may be an easy fix. Default value:
+            "delphes".
+
+        lhe_filename : None or str, optional
+            If weights is "lhe", this is the path to the unweighted LHE file (with extension '.lhe' or '.lhe.gz') that
+            MadGraph put out and feeds into Pythia.
+
         Returns
         -------
             None
@@ -145,10 +190,17 @@ class DelphesProcessor:
 
         logging.debug("Adding Delphes sample at %s, based on HepMC file at %s", delphes_filename, hepmc_filename)
 
+        assert weights in ["delphes", "lhe"], "Unknown setting for weights: %s. Has to be 'delphes' or 'lhe'."
+
         self.hepmc_sample_filenames.append(hepmc_filename)
         self.hepmc_sample_weight_labels.append(extract_weight_order(hepmc_filename, sampled_from_benchmark))
         self.hepmc_is_backgrounds.append(is_background)
         self.delphes_sample_filenames.append(delphes_filename)
+
+        if weights == "lhe" and lhe_filename is not None:
+            self.lhe_sample_filenames_for_weights.append(lhe_filename)
+        else:
+            self.lhe_sample_filenames_for_weights.append(None)
 
     def run_delphes(self, delphes_directory, delphes_card, initial_command=None, log_file=None):
         """
@@ -492,8 +544,12 @@ class DelphesProcessor:
         self.observations = None
         self.weights = None
 
-        for delphes_file, weight_labels, is_background in zip(
-            self.delphes_sample_filenames, self.hepmc_sample_weight_labels, self.hepmc_is_backgrounds
+        for delphes_file, weight_labels, is_background, sampling_benchmark, lhe_file in zip(
+            self.delphes_sample_filenames,
+            self.hepmc_sample_weight_labels,
+            self.hepmc_is_backgrounds,
+            self.hepmc_sampled_from_benchmark,
+            self.lhe_sample_filenames_for_weights,
         ):
 
             logging.info("Analysing Delphes sample %s", delphes_file)
@@ -520,10 +576,20 @@ class DelphesProcessor:
             )
 
             # No events found?
-            if this_observations is None or this_weights is None:
+            if this_observations is None:
+                logging.debug("No observations in this Delphes file, skipping it")
                 continue
 
-            logging.debug("Found weights %s", list(this_weights.keys()))
+            logging.debug("Found weights %s in Delphes file", list(this_weights.keys()))
+
+            # Find weights in LHE file
+            if lhe_file is not None:
+                logging.debug("Extracting weights from LHE file")
+                this_weights = extract_weights_from_lhe_file(
+                    lhe_file, sampling_benchmark=sampling_benchmark, is_background=is_background
+                )
+
+                logging.debug("Found weights %s in LHE file", list(this_weights.keys()))
 
             # Background scenario: we only have one set of weights, but these should be true for all benchmarks
             if is_background:
@@ -542,7 +608,7 @@ class DelphesProcessor:
             # Following results: check consistency with previous results
             if len(self.weights) != len(this_weights):
                 raise ValueError(
-                    "Number of weights in different Delphes files incompatible: {} vs {}".format(
+                    "Number of weights in different files incompatible: {} vs {}".format(
                         len(self.weights), len(this_weights)
                     )
                 )
@@ -555,7 +621,7 @@ class DelphesProcessor:
 
             # Merge results with previous
             for key in self.weights:
-                assert key in this_weights, "Weight label {} not found in Delphes sample!".format(key)
+                assert key in this_weights, "Weight label {} not found in sample!".format(key)
                 self.weights[key] = np.hstack([self.weights[key], this_weights[key]])
 
             for key in self.observations:
