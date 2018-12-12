@@ -235,15 +235,20 @@ class SampleAugmenter:
     disable_morphing : bool, optional
         If True, the morphing setup is not loaded from the file. Default value: False.
 
+    include_nuisance_parameters : bool, optional
+        If True, nuisance parameters are taken into account. Default value: True.
+
     debug : bool, optional
         If True, additional detailed debugging output is printed. Default value: False.
 
     """
 
-    def __init__(self, filename, disable_morphing=False, debug=False):
+    def __init__(self, filename, disable_morphing=False, include_nuisance_parameters=True, debug=False):
 
         general_init(debug=debug)
 
+        # Save setup
+        self.include_nuisance_parameters = include_nuisance_parameters
         self.madminer_filename = filename
 
         logging.info("Loading data from %s", filename)
@@ -252,13 +257,16 @@ class SampleAugmenter:
         (
             self.parameters,
             self.benchmarks,
+            self.benchmark_is_nuisance,
             self.morphing_components,
             self.morphing_matrix,
             self.observables,
             self.n_samples,
-        ) = load_madminer_settings(filename)
+        ) = load_madminer_settings(filename, include_nuisance_benchmarks=include_nuisance_parameters)
 
         self.n_parameters = len(self.parameters)
+        self.n_benchmarks = len(self.benchmarks)
+        self.n_benchmarks_phys = len(self.benchmarks[np.logical_not(self.benchmark_is_nuisance)])
 
         logging.info("Found %s parameters:", self.n_parameters)
         for key, values in six.iteritems(self.parameters):
@@ -271,9 +279,12 @@ class SampleAugmenter:
                 values[3],
             )
 
-        logging.info("Found %s benchmarks:", len(self.benchmarks))
-        for key, values in six.iteritems(self.benchmarks):
-            logging.info("   %s: %s", key, format_benchmark(values))
+        logging.info("Found %s benchmarks, of which %s physical:", self.n_benchmarks, self.n_benchmarks_phys)
+        for (key, values), is_nuisance in zip(six.iteritems(self.benchmarks), self.benchmark_is_nuisance):
+            if is_nuisance:
+                logging.info("   %s: nuisance parameter", key)
+            else:
+                logging.info("   %s: %s", key, format_benchmark(values))
 
         logging.info("Found %s observables: %s", len(self.observables), ", ".join(self.observables))
         logging.info("Found %s events", self.n_samples)

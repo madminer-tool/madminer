@@ -177,7 +177,7 @@ def load_madminer_settings(filename, include_nuisance_benchmarks=False):
         except KeyError:
             n_samples = 0
 
-        return (parameters, benchmarks, morphing_components, morphing_matrix, observables, n_samples)
+        return (parameters, benchmarks, benchmark_is_nuisance, morphing_components, morphing_matrix, observables, n_samples)
 
 
 def madminer_event_loader(filename, start=0, end=None, batch_size=100000):

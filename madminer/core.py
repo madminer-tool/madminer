@@ -430,8 +430,8 @@ class MadMiner:
         """
 
         # Load data
-        (self.parameters, self.benchmarks, morphing_components, morphing_matrix, _, _) = load_madminer_settings(
-            filename
+        (self.parameters, self.benchmarks, _, morphing_components, morphing_matrix, _, _) = load_madminer_settings(
+            filename, include_nuisance_benchmarks=False
         )
 
         logging.info("Found %s parameters:", len(self.parameters))

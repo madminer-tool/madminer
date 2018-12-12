@@ -138,6 +138,7 @@ class FisherInformation:
         (
             self.parameters,
             self.benchmarks,
+            self.benchmark_is_nuisance,
             self.morphing_components,
             self.morphing_matrix,
             self.observables,
@@ -145,6 +146,7 @@ class FisherInformation:
         ) = load_madminer_settings(filename)
         self.n_parameters = len(self.parameters)
         self.n_benchmarks = len(self.benchmarks)
+        self.n_benchmarks_phys = len(self.benchmarks[np.logical_not(self.benchmark_is_nuisance)])
 
         logging.info("Found %s parameters:", len(self.parameters))
         for key, values in six.iteritems(self.parameters):
@@ -157,9 +159,12 @@ class FisherInformation:
                 values[3],
             )
 
-        logging.info("Found %s benchmarks:", len(self.benchmarks))
-        for key, values in six.iteritems(self.benchmarks):
-            logging.info("   %s: %s", key, format_benchmark(values))
+        logging.info("Found %s benchmarks, of which %s physical:", self.n_benchmarks, self.n_benchmarks_phys)
+        for (key, values), is_nuisance in zip(six.iteritems(self.benchmarks), self.benchmark_is_nuisance):
+            if is_nuisance:
+                logging.info("   %s: nuisance parameter", key)
+            else:
+                logging.info("   %s: %s", key, format_benchmark(values))
 
         logging.info("Found %s observables: %s", len(self.observables), ", ".join(self.observables))
         logging.info("Found %s events", self.n_samples)
