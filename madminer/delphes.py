@@ -5,7 +5,11 @@ from collections import OrderedDict
 import numpy as np
 import logging
 
-from madminer.utils.interfaces.hdf5 import save_events_to_madminer_file, load_benchmarks_from_madminer_file
+from madminer.utils.interfaces.hdf5 import (
+    save_events_to_madminer_file,
+    load_benchmarks_from_madminer_file,
+    save_nuisance_benchmarks_to_madminer_file,
+)
 from madminer.utils.interfaces.delphes import run_delphes
 from madminer.utils.interfaces.root import extract_observables_from_delphes_file
 from madminer.utils.interfaces.hepmc import extract_weight_order
@@ -174,18 +178,16 @@ class DelphesProcessor:
         if log_file is None:
             log_file = "./logs/delphes.log"
 
-        for i, (delphes_filename, hepmc_filename) in enumerate(zip(self.hepmc_sample_filenames, self.delphes_sample_filenames)):
+        for i, (delphes_filename, hepmc_filename) in enumerate(
+            zip(self.hepmc_sample_filenames, self.delphes_sample_filenames)
+        ):
             if delphes_filename is not None:
                 logging.debug("Delphes already run for event sample %s", hepmc_filename)
                 continue
 
             logging.info("Running Delphes (%s) on event sample at %s", delphes_directory, hepmc_filename)
             delphes_sample_filename = run_delphes(
-                delphes_directory,
-                delphes_card,
-                hepmc_filename,
-                initial_command=initial_command,
-                log_file=log_file,
+                delphes_directory, delphes_card, hepmc_filename, initial_command=initial_command, log_file=log_file
             )
             self.delphes_sample_filenames[i] = delphes_sample_filename
 
@@ -554,13 +556,13 @@ class DelphesProcessor:
     def save(self, filename_out):
         """
         Saves the observable definitions, observable values, and event weights in a MadMiner file. The parameter,
-        benchmark, and morphing setup is copied from the file provided during initialization.
+        benchmark, and morphing setup is copied from the file provided during initialization. Nuisance benchmarks found
+        in the HepMC file are added.
 
         Parameters
         ----------
         filename_out : str
-            Path to where the results should be saved. If the class was initialized with `filename=None`, this file is
-            assumed to exist and contain the correct parameter, benchmark, and morphing setup.
+            Path to where the results should be saved.
 
         Returns
         -------
@@ -568,11 +570,11 @@ class DelphesProcessor:
 
         """
 
-        if self.filename is None:
-            logging.debug("Saving HDF5 file to %s", filename_out)
-        else:
-            logging.debug("Loading HDF5 data from %s and saving file to %s", self.filename, filename_out)
+        logging.debug("Loading HDF5 data from %s and saving file to %s", self.filename, filename_out)
 
-        save_events_to_madminer_file(
-            filename_out, self.observables, self.observations, self.weights, copy_from=self.filename
-        )
+        # Save nuisance benchmarks
+        weight_names = list(self.weights.keys())
+        save_nuisance_benchmarks_to_madminer_file(filename_out, weight_names, copy_from=self.filename)
+
+        # Save events
+        save_events_to_madminer_file(filename_out, self.observables, self.observations, self.weights)

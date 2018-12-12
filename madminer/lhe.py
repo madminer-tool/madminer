@@ -19,7 +19,7 @@ class LHEProcessor:
 
         # Initialize samples
         self.lhe_sample_filenames = []
-        self.is_background=[]
+        self.is_background = []
         self.sampling_benchmarks = []
         self.rescale_factor = []
 
@@ -37,14 +37,9 @@ class LHEProcessor:
     def read_benchmark_names(self, filename):
         self.benchmark_names = load_benchmarks_from_madminer_file(filename)
 
-    def add_lhe_sample(self,
-            filename,
-            sampling_benchmark,
-            is_background=False,
-            rescale_factor=1
-            ):
+    def add_lhe_sample(self, filename, sampling_benchmark, is_background=False, rescale_factor=1):
         logging.info("Adding LHE sample at %s", filename)
-        
+
         self.lhe_sample_filenames.append(filename)
         self.is_background.append(is_background)
         self.sampling_benchmarks.append(sampling_benchmark)
@@ -92,14 +87,15 @@ class LHEProcessor:
         raise NotImplementedError
 
     def analyse_lhe_samples(self):
-        for lhe_file, sampling_benchmark, is_background, rescale_factor in zip(self.lhe_sample_filenames, self.sampling_benchmarks,self.is_background,self.rescale_factor):
+        for lhe_file, sampling_benchmark, is_background, rescale_factor in zip(
+            self.lhe_sample_filenames, self.sampling_benchmarks, self.is_background, self.rescale_factor
+        ):
 
             logging.info("Analysing LHE sample %s", lhe_file)
 
             # Calculate observables and weights
             this_observations, this_weights = extract_observables_from_lhe_file(
-                lhe_file, sampling_benchmark, is_background, rescale_factor,
-                self.observables, self.benchmark_names
+                lhe_file, sampling_benchmark, is_background, rescale_factor, self.observables, self.benchmark_names
             )
 
             # Merge

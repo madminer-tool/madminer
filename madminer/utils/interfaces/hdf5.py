@@ -273,12 +273,16 @@ def save_nuisance_benchmarks_to_madminer_file(filename, weight_names, sort=True,
         try:
             benchmark_names = list(f["benchmarks/names"][()])
             benchmark_values = list(f["benchmarks/values"][()])
-            benchmark_is_nuisance = list(f["benchmarks/is_nuisance"][()])
-
-            benchmark_names = [bname.decode("ascii") for bname in benchmark_names]
-
         except KeyError:
             raise IOError("Cannot read benchmarks from HDF5 file")
+
+        try:
+            benchmark_is_nuisance = list(f["benchmarks/is_nuisance"][()])
+        except KeyError:
+            logging.info("HDF5 file does not contain is_nuisance field. Assuming is_nuisance=False for all benchmarks.")
+            benchmark_is_nuisance = np.array([False for _ in benchmark_names])
+
+        benchmark_names = [bname.decode("ascii") for bname in benchmark_names]
 
         # Add weights not found before
         for weight_name in weight_names:
@@ -409,12 +413,6 @@ def save_madminer_file_from_lhe(
                     observable_definitions.append(definition.encode("ascii", "ignore"))
                 else:
                     observable_definitions.append("".encode("ascii", "ignore"))
-
-            # Prepare observable definitions
-            # observable_names = [oname for oname in observables]
-            # n_observables = len(observable_names)
-            # observable_names_ascii = [oname.encode("ascii", "ignore") for oname in observable_names]
-            # observable_definitions = [observables[key].encode("ascii", "ignore") for key in observable_names]
 
             # Store observable definitions
             f.create_dataset("observables/names", (n_observables,), dtype="S256", data=observable_names_ascii)
