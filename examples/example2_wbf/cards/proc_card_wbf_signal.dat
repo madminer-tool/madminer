@@ -1,0 +1,2 @@
+import model dim6_for_information_parton
+generate u d > u d h / a z QCD=0 QED=99 ANO=2, h > a a QCD=0 QED=99 ANO=0
