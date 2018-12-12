@@ -12,6 +12,7 @@ def save_madminer_settings(
     filename,
     parameters,
     benchmarks,
+    benchmarks_is_nuisance=None,
     morphing_components=None,
     morphing_matrix=None,
     systematics_arguments=None,
@@ -54,7 +55,12 @@ def save_madminer_settings(
         benchmark_values = np.array(
             [[benchmarks[bname][pname] for pname in parameter_names] for bname in benchmark_names]
         )
-        benchmark_is_nuisance = np.array([False for _ in benchmarks], dtype=np.bool)
+        if benchmarks_is_nuisance is None:
+            benchmark_is_nuisance = [False for _ in benchmarks]
+        benchmark_is_nuisance = np.array(
+            [1 if is_nuisance else 0 for is_nuisance in benchmark_is_nuisance],
+            dtype=np.int
+        )
 
         # Store benchmarks
         f.create_dataset("benchmarks/names", (n_benchmarks,), dtype="S256", data=benchmark_names_ascii)
@@ -119,9 +125,10 @@ def load_madminer_settings(filename, include_nuisance_benchmarks=False):
 
         try:
             benchmark_is_nuisance = f["benchmarks/is_nuisance"][()]
+            benchmark_is_nuisance = [False if is_nuisance == 0 else True for is_nuisance in benchmark_is_nuisance]
         except KeyError:
             logging.info("HDF5 file does not contain is_nuisance field. Assuming is_nuisance=False for all benchmarks.")
-            benchmark_is_nuisance = np.array([False for _ in benchmark_names])
+            benchmark_is_nuisance = [False for _ in benchmark_names]
 
         benchmark_names = [bname.decode("ascii") for bname in benchmark_names]
 
@@ -280,6 +287,7 @@ def save_nuisance_benchmarks_to_madminer_file(filename, weight_names, sort=True,
 
         try:
             benchmark_is_nuisance = list(f["benchmarks/is_nuisance"][()])
+            benchmark_is_nuisance = [False if is_nuisance == 0 else True for is_nuisance in benchmark_is_nuisance]
         except KeyError:
             logging.info("HDF5 file does not contain is_nuisance field. Assuming is_nuisance=False for all benchmarks.")
             benchmark_is_nuisance = [False for _ in benchmark_names]
@@ -302,7 +310,10 @@ def save_nuisance_benchmarks_to_madminer_file(filename, weight_names, sort=True,
         n_benchmarks = len(benchmark_names)
         benchmark_names_ascii = [bname.encode("ascii", "ignore") for bname in benchmark_names]
         benchmark_values = np.array(benchmark_values)
-        benchmark_is_nuisance = np.array(benchmark_is_nuisance, dtype=np.bool)
+        benchmark_is_nuisance = np.array(
+            [1 if is_nuisance else 0 for is_nuisance in benchmark_is_nuisance],
+            dtype=np.int
+        )
 
         logging.debug("Combined benchmark names: %s", benchmark_names)
         logging.debug("Combined is_nuisance: %s", benchmark_is_nuisance)
@@ -368,9 +379,11 @@ def save_events_to_madminer_file(
                 weights_sorted = []
                 for key in benchmark_names:
                     weights_sorted.append(weights[key])
-                for key in sorted(weights_sorted.keys()):
+                for key in sorted(weights.keys()):
                     if key not in benchmark_names:
                         weights_sorted.append(key)
+
+                logging.debug("Sorted benchmarks: %s", benchmark_names)
 
             except Exception as e:
                 logging.warning("Issue matching weight names in HepMC file to benchmark names in MadMiner file:\n%s", e)

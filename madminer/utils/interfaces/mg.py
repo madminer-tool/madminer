@@ -4,12 +4,61 @@ import os
 import shutil
 import logging
 
-from madminer.utils.various import call_command, make_file_executable
+from madminer.utils.various import call_command, make_file_executable, create_missing_folders
 
 
 def generate_mg_process(
-    mg_directory, temp_directory, proc_card_file, mg_process_directory, initial_command=None, log_file=None
+        mg_directory,
+        temp_directory,
+        proc_card_file,
+        mg_process_directory,
+        ufo_model_directory=None,
+        log_file=None,
+        initial_command=None,
 ):
+
+    """
+    Calls MadGraph to create the process folder.
+
+    Parameters
+    ----------
+    mg_directory : str
+        Path to the MadGraph 5 directory.
+
+    temp_directory : str
+        Path to a directory for temporary files.
+
+    proc_card_file : str
+        Path to the process card that tells MadGraph how to generate the process.
+
+    mg_process_directory : str
+        Path to the MG process directory.
+
+    ufo_model_directory : str or None, optional
+        Path to a UFO model that is not yet installed. It will be copied to the MG directory before the process card
+        is executed. Default value: None.
+
+    initial_command : str or None, optional
+        Initial bash commands that have to be executed before MG is run (e.g. to load the correct virtual
+        environment). Default value: None.
+
+    log_file : str or None, optional
+        Path to a log file in which the MadGraph output is saved. Default value: None.
+
+    Returns
+    -------
+        None
+
+    """
+
+    # Preparations
+    logging.info("Generating MadGraph process folder from %s at %s", proc_card_file, mg_process_directory)
+
+    create_missing_folders([temp_directory, mg_process_directory, os.path.dirname(log_file)])
+
+    if ufo_model_directory is not None:
+        copy_ufo_model(ufo_model_directory, mg_directory)
+
     # MG commands
     temp_proc_card_file = temp_directory + "/generate.mg5"
     shutil.copyfile(proc_card_file, temp_proc_card_file)
@@ -38,6 +87,65 @@ def prepare_run_mg_pythia(
     initial_command=None,
     log_file_from_logdir=None,
 ):
+    """
+    Prepares a bash script that will start the event generation.
+
+    Parameters
+    ----------
+    mg_process_directory : str
+        Path to the MG process directory.
+
+    proc_card_filename_from_mgprocdir : str or None, optional
+        Filename for the MG command card that will be generated, relative from mg_process_directory. If None, a
+        default filename in the MG process directory will be chosen.
+
+    param_card_file_from_mgprocdir : str or None, optional
+        Path to the MadGraph run card, relative from mg_process_directory. If None, the card present in the process
+        folder is used. Default value: None.
+
+    param_card_file_from_mgprocdir : str or None, optional
+        Path to the MadGraph run card, relative from mg_process_directory. If None, the card present in the process
+        folder is used. Default value: None.
+
+    reweight_card_file_from_mgprocdir : str or None, optional
+        Path to the MadGraph reweight card, relative from mg_process_directory. If None, the card present in the
+        process folder is used. Default value: None.
+
+    pythia8_card_file_from_mgprocdir : str or None, optional
+        Path to the MadGraph Pythia8 card, relative from mg_process_directory. If None, Pythia is not run. Default
+        value: None.
+
+    is_background : bool, optional
+        Should be True for background processes, i.e. process in which the differential cross section does not
+        depend on the parameters (and would be the same for all benchmarks). In this case, no reweighting is run,
+        which can substantially speed up the event generation. Default value: False.
+
+    script_file_from_mgprocdir : str or None, optional
+        This sets where the shell script to run MG and Pythia is generated, relative from mg_process_directory. If
+        None, a default filename in `mg_process_directory/madminer` is used. Default value: None.
+
+    initial_command : str or None, optional
+        Initial shell commands that have to be executed before MG is run (e.g. to load a virtual environment).
+        Default value: None.
+
+    log_file_from_logdir : str or None, optional
+        Path to a log file in which the MadGraph output is saved, relative from the default log directory. Default
+        value: None.
+
+    Returns
+    -------
+    bash_script_call : str
+        How to call this script.
+
+    """
+
+    # Preparations
+    create_missing_folders([mg_process_directory, log_dir])
+    if proc_card_filename_from_mgprocdir is not None:
+        create_missing_folders([os.path.dirname(mg_process_directory + "/" + proc_card_filename_from_mgprocdir)])
+
+    # Prepare run...
+    logging.info("Preparing script to run MadGraph and Pythia in %s", mg_process_directory)
 
     # Bash script can optionally provide MG path or process directory
     mg_directory_placeholder = "$mgdir"
@@ -175,6 +283,62 @@ def run_mg_pythia(
     initial_command=None,
     log_file=None,
 ):
+    """
+    Calls MadGraph to generate events.
+
+    Parameters
+    ----------
+    mg_directory : str
+        Path to the MadGraph 5 base directory.
+
+    mg_process_directory : str
+        Path to the MG process directory.
+
+    proc_card_filename : str or None, optional
+        Filename for the MG command card that will be generated. If None, a default filename in the MG process
+        directory will be chosen.
+
+    run_card_file : str or None, optional
+        Path to the MadGraph run card. If None, the card present in the process folder is used. Default value:
+        None)
+
+    param_card_file : str or None, optional
+        Path to the MadGraph param card. If None, the card present in the process folder is used. Default value:
+        None)
+
+    reweight_card_file : str or None, optional
+        Path to the MadGraph reweight card. If None, the card present in the process folder is used. (Default value
+        = None)
+
+    pythia8_card_file : str or None, optional
+        Path to the MadGraph Pythia8 card. If None, Pythia is not run. Default value: None.
+
+    is_background : bool, optional
+        Should be True for background processes, i.e. process in which the differential cross section does not
+        depend on the parameters (and would be the same for all benchmarks). In this case, no reweighting is run,
+        which can substantially speed up the event generation. Default value: False.
+
+    initial_command : str or None, optional
+        Initial shell commands that have to be executed before MG is run (e.g. to load a virtual environment).
+        Default value: None.
+
+    log_file : str or None, optional
+        Path to a log file in which the MadGraph output is saved. Default value: None.
+
+    Returns
+    -------
+        None
+
+    """
+
+    # Preparations
+    create_missing_folders([mg_process_directory, os.path.dirname(log_file)])
+    if proc_card_filename is not None:
+        create_missing_folders([os.path.dirname(proc_card_filename)])
+
+    # Just run it already
+    logging.info("Starting MadGraph and Pythia in %s", mg_process_directory)
+
     # Copy cards
     if run_card_file is not None:
         shutil.copyfile(run_card_file, mg_process_directory + "/Cards/run_card.dat")
