@@ -377,6 +377,8 @@ class DelphesProcessor:
             None
 
         """
+        logging.debug("Adding default observables")
+
         # ETMiss
         if include_met:
             self.add_observable("et_miss", "met.pt", required=True)
@@ -444,17 +446,24 @@ class DelphesProcessor:
 
         """
         logging.debug("Adding cut %s", definition)
+
         self.cuts.append(definition)
         self.cuts_default_pass.append(pass_if_not_parsed)
 
     def reset_observables(self):
         """ Resets all observables. """
+
+        logging.debug("Resetting observables")
+
         self.observables = OrderedDict()
         self.observables_required = OrderedDict()
         self.observables_defaults = OrderedDict()
 
     def reset_cuts(self):
         """ Resets all cuts. """
+
+        logging.debug("Resetting cuts")
+
         self.cuts = []
         self.cuts_default_pass = []
 
