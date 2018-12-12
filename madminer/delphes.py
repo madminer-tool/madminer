@@ -11,7 +11,7 @@ from madminer.utils.interfaces.hdf5 import (
     save_nuisance_benchmarks_to_madminer_file,
 )
 from madminer.utils.interfaces.delphes import run_delphes
-from madminer.utils.interfaces.root import extract_observables_from_delphes_file
+from madminer.utils.interfaces.root import parse_delphes_root_file
 from madminer.utils.interfaces.hepmc import extract_weight_order
 from madminer.utils.various import general_init
 
@@ -499,7 +499,7 @@ class DelphesProcessor:
             logging.info("Analysing Delphes sample %s", delphes_file)
 
             # Calculate observables and weights in Delphes ROOT file
-            this_observations, this_weights = extract_observables_from_delphes_file(
+            this_observations, this_weights = parse_delphes_root_file(
                 delphes_file,
                 self.observables,
                 self.observables_required,
@@ -523,11 +523,11 @@ class DelphesProcessor:
             if this_observations is None or this_weights is None:
                 continue
 
-            # Number of benchmarks
-            n_weights = len(this_weights)
+            logging.debug("Found weights %s", list(this_weights.keys()))
 
             # Background scenario: we only have one set of weights, but these should be true for all benchmarks
             if is_background:
+                logging.debug("Sample is background")
                 benchmarks_weight = list(six.itervalues(this_weights))[0]
 
                 for benchmark_name in self.benchmark_names:

@@ -11,7 +11,7 @@ import os
 from madminer.utils.various import math_commands
 
 
-def extract_observables_from_delphes_file(
+def parse_delphes_root_file(
     delphes_sample_file,
     observables,
     observables_required,
@@ -32,6 +32,9 @@ def extract_observables_from_delphes_file(
 ):
     """ Extracts observables and weights from a Delphes ROOT file """
 
+    logging.debug("Parsing Delphes file %s", delphes_sample_file)
+    logging.debug("Expected weight labels: %s")
+
     # Delphes ROOT file
     root_file = uproot.open(delphes_sample_file)
 
@@ -43,6 +46,8 @@ def extract_observables_from_delphes_file(
 
     n_weights = len(weights[0])
     n_events = len(weights)
+
+    logging.debug("Found %s events, %s weights", n_events, n_weights)
 
     assert n_weights == len(weight_labels)
 

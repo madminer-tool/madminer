@@ -22,6 +22,8 @@ def extract_weight_order(filename, default_weight_label=None):
             if len(terms) == 0 or terms[0] != "N":
                 continue
 
+            logging.debug("Parsing HepMC line: %s", line)
+
             n_benchmarks = int(terms[1])
             assert len(terms) == n_benchmarks + 2
 
@@ -35,11 +37,11 @@ def extract_weight_order(filename, default_weight_label=None):
                 else:
                     weight_labels.append(default_weight_label)
 
-            logging.debug("Found weight labels in HEPMC file: %s", weight_labels)
+            logging.debug("Found weight labels in HepMC file: %s", weight_labels)
 
             return weight_labels
 
     # Default result (no reweighting, background scenario)
-    logging.debug("Did not find weight labels in HEPMC file")
+    logging.debug("Did not find weight labels in HepMC file")
 
     return [default_weight_label]
