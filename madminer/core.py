@@ -7,9 +7,9 @@ from collections import OrderedDict
 import tempfile
 
 from madminer.morphing import Morpher
-from madminer.utils.interfaces.hdf5 import save_madminer_settings, load_madminer_settings
+from madminer.utils.interfaces.madminer_hdf5 import save_madminer_settings, load_madminer_settings
 from madminer.utils.interfaces.mg_cards import export_param_card, export_reweight_card, export_run_card
-from madminer.utils.interfaces.mg import generate_mg_process, prepare_run_mg_pythia, run_mg_pythia, copy_ufo_model
+from madminer.utils.interfaces.mg import generate_mg_process, prepare_run_mg_pythia, run_mg_pythia
 from madminer.utils.various import create_missing_folders, general_init, format_benchmark, make_file_executable
 from madminer.utils.various import copy_file
 
@@ -804,7 +804,7 @@ class MadMiner:
         # Generate process folder
         log_file_generate = log_directory + "/generate.log"
 
-        self._generate_mg_process(
+        generate_mg_process(
             mg_directory,
             temp_directory,
             proc_card_file,

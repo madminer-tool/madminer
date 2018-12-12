@@ -8,13 +8,13 @@ from madminer.utils.various import call_command, make_file_executable, create_mi
 
 
 def generate_mg_process(
-        mg_directory,
-        temp_directory,
-        proc_card_file,
-        mg_process_directory,
-        ufo_model_directory=None,
-        log_file=None,
-        initial_command=None,
+    mg_directory,
+    temp_directory,
+    proc_card_file,
+    mg_process_directory,
+    ufo_model_directory=None,
+    log_file=None,
+    initial_command=None,
 ):
 
     """
@@ -167,7 +167,6 @@ def prepare_run_mg_pythia(
                 break
     else:
         proc_card_filename = mg_process_directory + "/" + proc_card_filename_from_mgprocdir
-        proc_card_filename_placeholder = mg_process_directory_placeholder + proc_card_filename_from_mgprocdir
 
     if script_file_from_mgprocdir is None:
         for i in range(1000):

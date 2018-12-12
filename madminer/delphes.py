@@ -5,7 +5,7 @@ from collections import OrderedDict
 import numpy as np
 import logging
 
-from madminer.utils.interfaces.hdf5 import (
+from madminer.utils.interfaces.madminer_hdf5 import (
     save_events_to_madminer_file,
     load_benchmarks_from_madminer_file,
     save_nuisance_benchmarks_to_madminer_file,

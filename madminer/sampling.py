@@ -5,10 +5,10 @@ import numpy as np
 import collections
 import six
 
-from madminer.utils.interfaces.hdf5 import load_madminer_settings, madminer_event_loader
-from madminer.utils.interfaces.hdf5 import save_preformatted_events_to_madminer_file
+from madminer.utils.interfaces.madminer_hdf5 import load_madminer_settings, madminer_event_loader
+from madminer.utils.interfaces.madminer_hdf5 import save_preformatted_events_to_madminer_file
 from madminer.utils.analysis import get_theta_value, get_theta_benchmark_matrix, get_dtheta_benchmark_matrix
-from madminer.utils.analysis import extract_augmented_data, parse_theta
+from madminer.utils.analysis import calculate_augmented_data, parse_theta
 from madminer.morphing import Morpher
 from madminer.utils.various import general_init, format_benchmark, create_missing_folders, shuffle, balance_thetas
 
@@ -1357,7 +1357,7 @@ class SampleAugmenter:
                     samples_done[found_now] = True
 
                     # Extract augmented data
-                    relevant_augmented_data = extract_augmented_data(
+                    relevant_augmented_data = calculate_augmented_data(
                         augmented_data_definitions,
                         weights_benchmarks_batch[indices[found_now], :],
                         xsecs_benchmarks,

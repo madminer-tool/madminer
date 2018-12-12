@@ -5,7 +5,7 @@ import numpy as np
 import six
 import os
 
-from madminer.utils.interfaces.hdf5 import load_madminer_settings, madminer_event_loader
+from madminer.utils.interfaces.madminer_hdf5 import load_madminer_settings, madminer_event_loader
 from madminer.utils.analysis import get_theta_benchmark_matrix, get_dtheta_benchmark_matrix
 from madminer.morphing import Morpher
 from madminer.utils.various import general_init, format_benchmark, math_commands, weighted_quantile, sanitize_array

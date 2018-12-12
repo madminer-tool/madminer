@@ -60,7 +60,7 @@ def get_dtheta_benchmark_matrix(theta_type, theta_value, benchmarks, morpher=Non
     return dtheta_matrix
 
 
-def extract_augmented_data(
+def calculate_augmented_data(
     augmented_data_definitions,
     weights_benchmarks,
     xsecs_benchmarks,

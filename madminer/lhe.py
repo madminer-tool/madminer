@@ -4,7 +4,7 @@ from collections import OrderedDict
 import numpy as np
 import logging
 
-from madminer.utils.interfaces.hdf5 import load_benchmarks_from_madminer_file, save_madminer_file_from_lhe
+from madminer.utils.interfaces.madminer_hdf5 import load_benchmarks_from_madminer_file, save_madminer_file_from_lhe
 from madminer.utils.interfaces.lhe import extract_observables_from_lhe_file
 from madminer.utils.various import general_init
 

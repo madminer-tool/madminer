@@ -58,8 +58,7 @@ def save_madminer_settings(
         if benchmarks_is_nuisance is None:
             benchmark_is_nuisance = [False for _ in benchmarks]
         benchmark_is_nuisance = np.array(
-            [1 if is_nuisance else 0 for is_nuisance in benchmark_is_nuisance],
-            dtype=np.int
+            [1 if is_nuisance else 0 for is_nuisance in benchmark_is_nuisance], dtype=np.int
         )
 
         # Store benchmarks
@@ -311,8 +310,7 @@ def save_nuisance_benchmarks_to_madminer_file(filename, weight_names, sort=True,
         benchmark_names_ascii = [bname.encode("ascii", "ignore") for bname in benchmark_names]
         benchmark_values = np.array(benchmark_values)
         benchmark_is_nuisance = np.array(
-            [1 if is_nuisance else 0 for is_nuisance in benchmark_is_nuisance],
-            dtype=np.int
+            [1 if is_nuisance else 0 for is_nuisance in benchmark_is_nuisance], dtype=np.int
         )
 
         logging.debug("Combined benchmark names: %s", benchmark_names)
