@@ -72,6 +72,8 @@ def extract_weights_from_lhe_file(filename, sampling_benchmark, is_background, r
     for key in weights:
         weights[key] = np.array(weights[key])
 
+    return weights
+
 
 def extract_observables_from_lhe_file(
     filename, sampling_benchmark, is_background, rescale_factor, observables, benchmark_names

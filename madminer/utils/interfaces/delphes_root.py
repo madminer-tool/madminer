@@ -33,7 +33,7 @@ def parse_delphes_root_file(
     """ Extracts observables and weights from a Delphes ROOT file """
 
     logging.debug("Parsing Delphes file %s", delphes_sample_file)
-    logging.debug("Expected weight labels: %s")
+    logging.debug("Expected weight labels: %s", weight_labels)
 
     # Delphes ROOT file
     root_file = uproot.open(delphes_sample_file)
@@ -133,7 +133,7 @@ def parse_delphes_root_file(
                             met_all_events[event][0],
                         )
                     )
-                except RuntimeError:  # (SyntaxError, NameError, TypeError, ZeroDivisionError, IndexError, RuntimeError):
+                except RuntimeError:
                     default = observables_defaults[obs_name]
                     if default is None:
                         default = np.nan
@@ -220,7 +220,7 @@ def parse_delphes_root_file(
         logging.debug("  Deleting %s", delphes_sample_file)
         os.remove(delphes_sample_file)
 
-    return observable_values, weights_dict
+    return observable_values, weights_dict, combined_filter
 
 
 def _get_particles_truth(tree, pt_min, eta_max, included_pdgids=None):

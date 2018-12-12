@@ -11,7 +11,7 @@ from madminer.utils.interfaces.hdf5 import (
     save_nuisance_benchmarks_to_madminer_file,
 )
 from madminer.utils.interfaces.delphes import run_delphes
-from madminer.utils.interfaces.root import parse_delphes_root_file
+from madminer.utils.interfaces.delphes_root import parse_delphes_root_file
 from madminer.utils.interfaces.hepmc import extract_weight_order
 from madminer.utils.interfaces.lhe import extract_weights_from_lhe_file
 from madminer.utils.various import general_init
@@ -29,8 +29,9 @@ class DelphesProcessor:
     This class provides an example implementation based on Delphes. Its workflow consists of the following steps:
 
     * Initializing the class with the filename of a MadMiner HDF5 file (the output of `madminer.core.MadMiner.save()`)
-    * Adding one or multiple HepMC samples produced by Pythia in `DelphesProcessor.add_hepmc_sample()`
-    * Running Delphes on these samples through `DelphesProcessor.run_delphes()`
+    * Adding one or multiple HepMC samples produced by Pythia in `DelphesProcessor.add_hepmc_sample()` or,
+      alternatively, adding Delphes samples with `DelphesProcessor.add_delphes_sample()`
+    * Running Delphes on the samples that require it through `DelphesProcessor.run_delphes()`
     * Optionally, acceptance cuts for all visible particles can be defined with `DelphesProcessor.set_acceptance()`.
     * Defining observables through `DelphesProcessor.add_observable()` or
       `DelphesProcessor.add_observable_from_function()`. A simple set of default observables is provided in
@@ -133,6 +134,7 @@ class DelphesProcessor:
 
         self.hepmc_sample_filenames.append(filename)
         self.hepmc_sample_weight_labels.append(extract_weight_order(filename, sampled_from_benchmark))
+        self.hepmc_sampled_from_benchmark.append(sampled_from_benchmark)
         self.hepmc_is_backgrounds.append(is_background)
         self.delphes_sample_filenames.append(None)
 
@@ -194,6 +196,7 @@ class DelphesProcessor:
 
         self.hepmc_sample_filenames.append(hepmc_filename)
         self.hepmc_sample_weight_labels.append(extract_weight_order(hepmc_filename, sampled_from_benchmark))
+        self.hepmc_sampled_from_benchmark.append(sampled_from_benchmark)
         self.hepmc_is_backgrounds.append(is_background)
         self.delphes_sample_filenames.append(delphes_filename)
 
@@ -555,7 +558,7 @@ class DelphesProcessor:
             logging.info("Analysing Delphes sample %s", delphes_file)
 
             # Calculate observables and weights in Delphes ROOT file
-            this_observations, this_weights = parse_delphes_root_file(
+            this_observations, this_weights, cut_filter = parse_delphes_root_file(
                 delphes_file,
                 self.observables,
                 self.observables_required,
@@ -603,6 +606,11 @@ class DelphesProcessor:
                 this_weights = extract_weights_from_lhe_file(
                     lhe_file, sampling_benchmark=sampling_benchmark, is_background=is_background
                 )
+
+                # Apply cuts
+                logging.debug("Applying Delphes-based cuts to LHE weights")
+                for key, weights in six.iteritems(this_weights):
+                    this_weights[key] = weights[cut_filter]
 
                 logging.debug("Found weights %s in LHE file", list(this_weights.keys()))
 
