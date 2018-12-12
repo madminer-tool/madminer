@@ -7,12 +7,14 @@ Mining gold from MadGraph to improve limit setting in particle physics.
 Note that this is an early development version. Do not expect anything to be stable. If you have any questions, please
 contact us at [johann.brehmer@nyu.edu](johann.brehmer@nyu.edu).
 
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.1489147.svg)](https://doi.org/10.5281/zenodo.1489147)
 [![PyPI version](https://badge.fury.io/py/madminer.svg)](https://badge.fury.io/py/madminer)
+[![Documentation Status](https://readthedocs.org/projects/madminer/badge/?version=latest)](https://madminer.readthedocs.io/en/latest/?badge=latest)
 [![Docker pulls](https://img.shields.io/docker/pulls/irinahub/docker-madminer-madgraph.svg)](https://hub.docker.com/r/irinahub/docker-madminer-madgraph)
 [![Binder](https://mybinder.org/badge.svg)](https://mybinder.org/v2/gh/johannbrehmer/madminer/master)
-[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/ambv/black)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.1489147.svg)](https://doi.org/10.5281/zenodo.1489147)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/ambv/black)
+
 
 ## Introduction
 
@@ -98,7 +100,7 @@ We're currently working on a significantly extended and improved series of tutor
 
 ### Documentation
 
-In [docs](docs/) we provide a HTML and PDF documentation of the different modules and classes.
+The madminer API is documented on [readthedocs](https://madminer.readthedocs.io/en/latest/?badge=latest).
 
 ## Acknowledgements
 
