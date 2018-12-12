@@ -85,6 +85,7 @@ def prepare_run_mg_pythia(
     is_background=False,
     script_file_from_mgprocdir=None,
     initial_command=None,
+    log_dir=None,
     log_file_from_logdir=None,
 ):
     """
@@ -129,6 +130,9 @@ def prepare_run_mg_pythia(
         Default value: None.
 
     log_file_from_logdir : str or None, optional
+        Log directory. Default value: None.
+
+    log_file_from_logdir : str or None, optional
         Path to a log file in which the MadGraph output is saved, relative from the default log directory. Default
         value: None.
 
@@ -140,7 +144,9 @@ def prepare_run_mg_pythia(
     """
 
     # Preparations
-    create_missing_folders([mg_process_directory, log_dir])
+    create_missing_folders([mg_process_directory])
+    if log_dir is not None:
+        create_missing_folders([log_dir])
     if proc_card_filename_from_mgprocdir is not None:
         create_missing_folders([os.path.dirname(mg_process_directory + "/" + proc_card_filename_from_mgprocdir)])
 
