@@ -114,22 +114,26 @@ def load_madminer_settings(filename, include_nuisance_benchmarks=False):
         try:
             benchmark_names = f["benchmarks/names"][()]
             benchmark_values = f["benchmarks/values"][()]
-            benchmark_is_nuisance = f["benchmarks/is_nuisance"][()]
-
-            benchmark_names = [bname.decode("ascii") for bname in benchmark_names]
-
-            benchmarks = OrderedDict()
-
-            for bname, bvalue_matrix, is_nuisance in zip(benchmark_names, benchmark_values, benchmark_is_nuisance):
-                if include_nuisance_benchmarks or (not is_nuisance):
-                    bvalues = OrderedDict()
-                    for pname, pvalue in zip(parameter_names, bvalue_matrix):
-                        bvalues[pname] = pvalue
-
-                    benchmarks[bname] = bvalues
-
         except KeyError:
             raise IOError("Cannot read benchmarks from HDF5 file")
+
+        try:
+            benchmark_is_nuisance = f["benchmarks/is_nuisance"][()]
+        except KeyError:
+            logging.info("HDF5 file does not contain is_nuisance field. Assuming is_nuisance=False for all benchmarks.")
+            benchmark_is_nuisance = np.array([False for _ in benchmark_names])
+
+        benchmark_names = [bname.decode("ascii") for bname in benchmark_names]
+
+        benchmarks = OrderedDict()
+
+        for bname, bvalue_matrix, is_nuisance in zip(benchmark_names, benchmark_values, benchmark_is_nuisance):
+            if include_nuisance_benchmarks or (not is_nuisance):
+                bvalues = OrderedDict()
+                for pname, pvalue in zip(parameter_names, bvalue_matrix):
+                    bvalues[pname] = pvalue
+
+                benchmarks[bname] = bvalues
 
         # Morphing
         try:

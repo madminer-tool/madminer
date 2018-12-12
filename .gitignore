@@ -147,3 +147,4 @@ patches/
 
 # Black
 black.sh
+run_sphinx.sh
