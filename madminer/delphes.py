@@ -607,6 +607,8 @@ class DelphesProcessor:
                     lhe_file, sampling_benchmark=sampling_benchmark, is_background=is_background
                 )
 
+                logging.debug("Found weights %s in LHE file", list(this_weights.keys()))
+
                 # Apply cuts
                 logging.debug("Applying Delphes-based cuts to LHE weights")
                 for key, weights in six.iteritems(this_weights):

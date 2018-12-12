@@ -55,6 +55,8 @@ def extract_weights_from_lhe_file(filename, sampling_benchmark, is_background, r
             for key in this_weights:
                 weights[key] = [this_weights[key] * rescale_factor]
 
+            continue
+
         # Following results: check consistency with previous results
         if len(weights) != len(this_weights):
             raise ValueError(
