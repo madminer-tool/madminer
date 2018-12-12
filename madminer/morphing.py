@@ -36,6 +36,9 @@ class Morpher:
       such that `p(theta) = sum_b w_b(theta) p(theta_b)`.
     * `calculate_morphing_weight_gradient()` calculates the gradient of the morphing weights, `grad_theta w_b(theta)`.
 
+    Note that this class only implements the "physics morphing", and does not handle nuisance parameters modelling
+    systematioc uncertainties.
+
     Parameters
     ----------
     parameters_from_madminer : OrderedDict or None, optional
@@ -202,6 +205,9 @@ class Morpher:
             self.basis = np.array(basis_numpy)
         else:
             raise RuntimeError("No basis given")
+
+        # Restrict basis to the first benchmarks
+        self.basis = self.basis[:self.n_components,:]
 
         if morphing_matrix is None:
             self.morphing_matrix = self.calculate_morphing_matrix()

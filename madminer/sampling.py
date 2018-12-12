@@ -1208,12 +1208,17 @@ class SampleAugmenter:
         for augmented_data_definition in augmented_data_definitions:
             logging.debug("  %s", augmented_data_definition)
 
+        # Nuisance parameters?
+        include_nuisance_parameters = self.include_nuisance_parameters and nuisance_score
+
         # Calculate total xsecs for benchmarks
         xsecs_benchmarks = None
         squared_weight_sum_benchmarks = None
         n_observables = 0
 
-        for obs, weights in madminer_event_loader(self.madminer_filename, start=start_event, end=end_event):
+        for obs, weights in madminer_event_loader(self.madminer_filename, start=start_event, end=end_event,
+                                                  include_nuisance_parameters=include_nuisance_parameters,
+                                                  benchmark_is_nuisance=self.benchmark_is_nuisance):
             if xsecs_benchmarks is None:
                 xsecs_benchmarks = np.sum(weights, axis=0)
                 squared_weight_sum_benchmarks = np.sum(weights * weights, axis=0)
@@ -1230,12 +1235,13 @@ class SampleAugmenter:
 
         # Consistency checks
         n_benchmarks = xsecs_benchmarks.shape[0]
-        if n_benchmarks != len(self.benchmarks) and self.morphing_matrix is None:
+        expected_n_benchmarks = self.n_benchmarks if include_nuisance_parameters else self.n_benchmarks_phys
+        if n_benchmarks != expected_n_benchmarks and self.morphing_matrix is None:
             raise ValueError(
                 "Inconsistent numbers of benchmarks: {} in observations,"
                 "{} in benchmark list".format(n_benchmarks, len(self.benchmarks))
             )
-        elif n_benchmarks != len(self.benchmarks) or n_benchmarks != self.morphing_matrix.shape[0]:
+        elif n_benchmarks != expected_n_benchmarks or n_benchmarks < self.morphing_matrix.shape[0]:
             raise ValueError(
                 "Inconsistent numbers of benchmarks: {} in observations, {} in benchmark list, "
                 "{} in morphing matrix".format(n_benchmarks, len(self.benchmarks), self.morphing_matrix.shape[0])
@@ -1269,6 +1275,7 @@ class SampleAugmenter:
         # Main loop over thetas
         for i_set in range(n_sets):
 
+            # Setup for set
             n_samples = n_samples_per_theta[i_set]
 
             theta_types = [t[i_set] for t in theta_sets_types]

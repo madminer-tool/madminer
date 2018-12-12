@@ -77,10 +77,10 @@ def calculate_augmented_data(
             i_num = definition[1]
             i_den = definition[2]
 
-            dsigma_num = theta_matrices[i_num].dot(weights_benchmarks.T)
-            sigma_num = theta_matrices[i_num].dot(xsecs_benchmarks.T)
-            dsigma_den = theta_matrices[i_den].dot(weights_benchmarks.T)
-            sigma_den = theta_matrices[i_den].dot(xsecs_benchmarks.T)
+            dsigma_num = _mdot(theta_matrices[i_num], weights_benchmarks)
+            sigma_num = _mdot(theta_matrices[i_num],xsecs_benchmarks)
+            dsigma_den = _mdot(theta_matrices[i_den], weights_benchmarks)
+            sigma_den = _mdot(theta_matrices[i_den], xsecs_benchmarks)
 
             ratio = (dsigma_num / sigma_num) / (dsigma_den / sigma_den)
             ratio = ratio.reshape((-1, 1))
@@ -93,8 +93,8 @@ def calculate_augmented_data(
             gradient_dsigma = theta_gradient_matrices[i].dot(weights_benchmarks.T)  # (n_gradients, n_samples)
             gradient_sigma = theta_gradient_matrices[i].dot(xsecs_benchmarks.T)  # (n_gradients,)
 
-            dsigma = theta_matrices[i].dot(weights_benchmarks.T)  # (n_samples,)
-            sigma = theta_matrices[i].dot(xsecs_benchmarks.T)  # scalar
+            dsigma = _mdot(theta_matrices[i], weights_benchmarks)  # (n_samples,)
+            sigma = _mdot(theta_matrices[i], xsecs_benchmarks)  # scalar
 
             score = gradient_dsigma / dsigma  # (n_gradients, n_samples)
             score = score.T  # (n_samples, n_gradients)
@@ -170,3 +170,14 @@ def parse_theta(theta, n_samples):
         raise ValueError("Unknown theta {}".format(theta))
 
     return theta_types, theta_values, n_samples_per_theta
+
+
+def _mdot(matrix, weights_benchmarks):
+    _, n_benchmarks_matrix = matrix.shape
+    weights_benchmarks_T = weights_benchmarks.T
+    n_benchmarks_in = weights_benchmarks_T.shape[0]
+
+    if n_benchmarks_matrix == n_benchmarks_in:
+        return matrix.dot(weights_benchmarks_T)
+
+    return matrix.dot(weights_benchmarks_T[:n_benchmarks_matrix])

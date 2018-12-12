@@ -120,17 +120,22 @@ class FisherInformation:
     filename : str
         Path to MadMiner file (for instance the output of `madminer.delphes.DelphesProcessor.save()`).
 
+    include_nuisance_parameters : bool, optional
+        If True, nuisance parameters are taken into account. Default value: True.
+
     debug : bool, optional
         If True, additional detailed debugging output is printed. Default value: False.
 
     """
 
-    def __init__(self, filename, debug=False):
+    def __init__(self, filename, include_nuisance_parameters=True, debug=False):
 
         general_init(debug=debug)
-        self.debug = debug
 
+        # Save settings
+        self.debug = debug
         self.madminer_filename = filename
+        self.include_nuisance_parameters = include_nuisance_parameters
 
         logging.info("Loading data from %s", filename)
 
@@ -143,7 +148,7 @@ class FisherInformation:
             self.morphing_matrix,
             self.observables,
             self.n_samples,
-        ) = load_madminer_settings(filename)
+        ) = load_madminer_settings(filename, include_nuisance_benchmarks=include_nuisance_parameters)
         self.n_parameters = len(self.parameters)
         self.n_benchmarks = len(self.benchmarks)
         self.n_benchmarks_phys = len(self.benchmarks[np.logical_not(self.benchmark_is_nuisance)])

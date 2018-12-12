@@ -180,7 +180,15 @@ def load_madminer_settings(filename, include_nuisance_benchmarks=False):
         return (parameters, benchmarks, benchmark_is_nuisance, morphing_components, morphing_matrix, observables, n_samples)
 
 
-def madminer_event_loader(filename, start=0, end=None, batch_size=100000):
+def madminer_event_loader(filename, start=0, end=None, batch_size=100000, include_nuisance_parameters=True, benchmark_is_nuisance=None):
+
+    # Nuisance parameter filtering
+    if not include_nuisance_parameters:
+        if benchmark_is_nuisance is None:
+            raise ValueError("MadMiner event loader requires include_nuisance_parameters=True or benchmark_is_nuisance to be set.")
+
+        benchmark_filter = np.logical_not(np.array(benchmark_is_nuisance, dtype=np.bool))
+
     with h5py.File(filename, "r") as f:
 
         # Handles to data
@@ -208,7 +216,10 @@ def madminer_event_loader(filename, start=0, end=None, batch_size=100000):
         while current < end:
             this_end = min(current + batch_size, end)
 
-            yield (np.array(observations[current:this_end]), np.array(weights[current:this_end]))
+            if include_nuisance_parameters:
+                yield (np.array(observations[current:this_end]), np.array(weights[current:this_end]))
+            else:
+                yield (np.array(observations[current:this_end]), np.array(weights[current:this_end, benchmark_filter]))
 
             current += batch_size
 
