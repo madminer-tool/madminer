@@ -582,6 +582,21 @@ class DelphesProcessor:
 
             logging.debug("Found weights %s in Delphes file", list(this_weights.keys()))
 
+            # Check number of events in observables
+            n_events = None
+            for key, obs in six.iteritems(this_observations):
+                this_n_events = len(obs)
+                if n_events is None:
+                    n_events = this_n_events
+                    logging.debug("Found %s events", n_events)
+
+                if this_n_events != n_events:
+                    raise RuntimeError(
+                        "Mismatching number of events in Delphes observations for {}: {} vs {}".format(
+                            key, n_events, this_n_events
+                        )
+                    )
+
             # Find weights in LHE file
             if lhe_file is not None:
                 logging.debug("Extracting weights from LHE file")
@@ -590,6 +605,18 @@ class DelphesProcessor:
                 )
 
                 logging.debug("Found weights %s in LHE file", list(this_weights.keys()))
+
+            # Check number of events in weights
+            for key, weights in six.iteritems(this_weights):
+                this_n_events = len(weights)
+                if n_events is None:
+                    n_events = this_n_events
+                    logging.debug("Found %s events", n_events)
+
+                if this_n_events != n_events:
+                    raise RuntimeError(
+                        "Mismatching number of events in weights {}: {} vs {}".format(key, n_events, this_n_events)
+                    )
 
             # Background scenario: we only have one set of weights, but these should be true for all benchmarks
             if is_background:
