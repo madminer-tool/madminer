@@ -574,6 +574,8 @@ class DelphesProcessor:
 
         # Save nuisance benchmarks
         weight_names = list(self.weights.keys())
+        logging.debug("Weight names: %s", weight_names)
+
         save_nuisance_benchmarks_to_madminer_file(filename_out, weight_names, copy_from=self.filename)
 
         # Save events

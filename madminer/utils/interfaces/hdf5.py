@@ -276,20 +276,25 @@ def save_nuisance_benchmarks_to_madminer_file(filename, weight_names, sort=True,
         except KeyError:
             raise IOError("Cannot read benchmarks from HDF5 file")
 
+        benchmark_names = [bname.decode("ascii") for bname in benchmark_names]
+
         try:
             benchmark_is_nuisance = list(f["benchmarks/is_nuisance"][()])
         except KeyError:
             logging.info("HDF5 file does not contain is_nuisance field. Assuming is_nuisance=False for all benchmarks.")
-            benchmark_is_nuisance = np.array([False for _ in benchmark_names])
+            benchmark_is_nuisance = [False for _ in benchmark_names]
 
-        benchmark_names = [bname.decode("ascii") for bname in benchmark_names]
+        logging.debug("Benchmarks found in HDF5 file: %s", benchmark_names)
 
         # Add weights not found before
         for weight_name in weight_names:
             if weight_name in benchmark_names:
+                logging.debug("Benchmark %s already in benchmark_names", weight_name)
                 continue
 
-            benchmark_names.append(weight_names)
+            logging.debug("Adding nuisance benchmark %s", weight_name)
+
+            benchmark_names.append(weight_name)
             benchmark_is_nuisance.append(True)
             benchmark_values.append(np.zeros_like(benchmark_values[0]))
 
@@ -298,6 +303,9 @@ def save_nuisance_benchmarks_to_madminer_file(filename, weight_names, sort=True,
         benchmark_names_ascii = [bname.encode("ascii", "ignore") for bname in benchmark_names]
         benchmark_values = np.array(benchmark_values)
         benchmark_is_nuisance = np.array(benchmark_is_nuisance, dtype=np.bool)
+
+        logging.debug("Combined benchmark names: %s", benchmark_names)
+        logging.debug("Combined is_nuisance: %s", benchmark_is_nuisance)
 
         # Make room for saving all this glorious data
         del f["benchmarks"]
