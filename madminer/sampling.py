@@ -267,6 +267,7 @@ class SampleAugmenter:
         self.n_parameters = len(self.parameters)
         self.n_benchmarks = len(self.benchmarks)
         self.n_benchmarks_phys = np.sum(np.logical_not(self.benchmark_is_nuisance))
+        self.n_nuisance_parameters = self.n_benchmarks - self.n_benchmarks_phys
 
         logging.info("Found %s parameters:", self.n_parameters)
         for key, values in six.iteritems(self.parameters):
@@ -1375,6 +1376,8 @@ class SampleAugmenter:
                     samples_augmented_data.append(np.zeros((n_samples, 1)))
                 elif definition[0] == "score":
                     samples_augmented_data.append(np.zeros((n_samples, self.n_parameters)))
+                elif definition[0] == "nuisance_score":
+                    samples_augmented_data.append(np.zeros((n_samples, self.n_nuisance_parameters)))
 
             largest_weight = 0.0
 
