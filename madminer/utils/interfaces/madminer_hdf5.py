@@ -249,6 +249,11 @@ def madminer_event_loader(
             if include_sampling_information:
                 this_sampled_from = None if sampled_from is None else np.array(sampled_from[current:this_end])
 
+                # As a temporary solution, here's a hack:
+                # TODO: remove this!
+                if this_sampled_from is None:
+                    this_sampled_from = np.array([0 for _ in this_observations])
+
                 yield (this_observations, this_weights, this_sampled_from)
             else:
                 yield (this_observations, this_weights)

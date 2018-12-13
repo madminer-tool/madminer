@@ -107,6 +107,8 @@ def calculate_augmented_data(
             nuisance_score = np.log(weights_nuisance_ratios)  # Shape (n_samples, n_nuisance)
             nuisance_score -= np.log(xsecs_nuisance_ratios)[np.newaxis, :]  # Shape (n_samples, n_nuisance)
 
+            logging.debug("Nuisance score: shape %s, content %s", nuisance_score.shape, nuisance_score)
+
             augmented_data.append(nuisance_score)
 
         else:
@@ -182,7 +184,7 @@ def parse_theta(theta, n_samples):
 def mdot(matrix, benchmark_information):
     """ Calculates a product between a matrix with shape (a, n1) and a weight list with shape (?, n2) with n1 <= n2 """
 
-    _, n_benchmarks_matrix = matrix.shape
+    n_benchmarks_matrix = matrix.shape[-1]
     weights_benchmarks_T = benchmark_information.T
     n_benchmarks_in = weights_benchmarks_T.shape[0]
 
