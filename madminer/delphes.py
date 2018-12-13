@@ -85,6 +85,7 @@ class DelphesProcessor:
         # Initialize samples
         self.observations = None
         self.weights = None
+        self.sampled_from_benchmark = None
 
         # Information from .h5 file
         self.filename = filename
@@ -546,6 +547,7 @@ class DelphesProcessor:
         # Reset observations
         self.observations = None
         self.weights = None
+        self.sampled_from_benchmark = None
 
         for delphes_file, weight_labels, is_background, sampling_benchmark, lhe_file in zip(
             self.delphes_sample_filenames,
@@ -640,6 +642,7 @@ class DelphesProcessor:
             if self.observations is None and self.weights is None:
                 self.observations = this_observations
                 self.weights = this_weights
+                self.sampled_from_benchmark = [sampling_benchmark for _ in range(n_events)]
                 continue
 
             # Following results: check consistency with previous results
@@ -664,6 +667,8 @@ class DelphesProcessor:
             for key in self.observations:
                 assert key in this_observations, "Observable {} not found in Delphes sample!".format(key)
                 self.observations[key] = np.hstack([self.observations[key], this_observations[key]])
+
+            self.sampled_from_benchmark += [sampling_benchmark for _ in range(n_events)]
 
     def save(self, filename_out):
         """
@@ -695,4 +700,10 @@ class DelphesProcessor:
         save_nuisance_benchmarks_to_madminer_file(filename_out, weight_names, copy_from=self.filename)
 
         # Save events
-        save_events_to_madminer_file(filename_out, self.observables, self.observations, self.weights)
+        save_events_to_madminer_file(
+            filename_out,
+            self.observables,
+            self.observations,
+            self.weights,
+            sampled_from_benchmark=self.sampled_from_benchmark,
+        )

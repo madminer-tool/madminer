@@ -207,7 +207,7 @@ class Morpher:
             raise RuntimeError("No basis given")
 
         # Restrict basis to the first benchmarks
-        self.basis = self.basis[:self.n_components,:]
+        self.basis = self.basis[: self.n_components, :]
 
         if morphing_matrix is None:
             self.morphing_matrix = self.calculate_morphing_matrix()

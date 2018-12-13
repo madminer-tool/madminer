@@ -1216,9 +1216,13 @@ class SampleAugmenter:
         squared_weight_sum_benchmarks = None
         n_observables = 0
 
-        for obs, weights in madminer_event_loader(self.madminer_filename, start=start_event, end=end_event,
-                                                  include_nuisance_parameters=include_nuisance_parameters,
-                                                  benchmark_is_nuisance=self.benchmark_is_nuisance):
+        for obs, weights in madminer_event_loader(
+            self.madminer_filename,
+            start=start_event,
+            end=end_event,
+            include_nuisance_parameters=include_nuisance_parameters,
+            benchmark_is_nuisance=self.benchmark_is_nuisance,
+        ):
             if xsecs_benchmarks is None:
                 xsecs_benchmarks = np.sum(weights, axis=0)
                 squared_weight_sum_benchmarks = np.sum(weights * weights, axis=0)

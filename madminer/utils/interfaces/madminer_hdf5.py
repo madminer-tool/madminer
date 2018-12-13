@@ -177,15 +177,26 @@ def load_madminer_settings(filename, include_nuisance_benchmarks=False):
         except KeyError:
             n_samples = 0
 
-        return (parameters, benchmarks, benchmark_is_nuisance, morphing_components, morphing_matrix, observables, n_samples)
+        return (
+            parameters,
+            benchmarks,
+            benchmark_is_nuisance,
+            morphing_components,
+            morphing_matrix,
+            observables,
+            n_samples,
+        )
 
 
-def madminer_event_loader(filename, start=0, end=None, batch_size=100000, include_nuisance_parameters=True, benchmark_is_nuisance=None):
-
+def madminer_event_loader(
+    filename, start=0, end=None, batch_size=100000, include_nuisance_parameters=True, benchmark_is_nuisance=None
+):
     # Nuisance parameter filtering
     if not include_nuisance_parameters:
         if benchmark_is_nuisance is None:
-            raise ValueError("MadMiner event loader requires include_nuisance_parameters=True or benchmark_is_nuisance to be set.")
+            raise ValueError(
+                "MadMiner event loader requires include_nuisance_parameters=True or benchmark_is_nuisance to be set."
+            )
 
         benchmark_filter = np.logical_not(np.array(benchmark_is_nuisance, dtype=np.bool))
 
@@ -337,7 +348,13 @@ def save_nuisance_benchmarks_to_madminer_file(filename, weight_names, sort=True,
 
 
 def save_events_to_madminer_file(
-    filename, observables, observations, weights, copy_from=None, overwrite_existing_samples=True
+    filename,
+    observables,
+    observations,
+    weights,
+    sampled_from_benchmark=None,
+    copy_from=None,
+    overwrite_existing_samples=True,
 ):
     if copy_from is not None:
         try:
@@ -407,6 +424,25 @@ def save_events_to_madminer_file(
             # Prepare and save observable values
             observations = np.array([observations[oname] for oname in observable_names]).T
             f.create_dataset("samples/observations", data=observations)
+
+            # Sampling information (needed for nuisance morphing)
+            if sampled_from_benchmark is not None:
+                sampled_from_benchmark_indices = []
+                for name in benchmark_names:
+                    try:
+                        sampled_from_benchmark_indices.append(benchmark_names.index(name))
+                    except ValueError:
+                        logging.error(
+                            "Could not find sampling benchmark %s in benchmark names %s. Not saving sampling "
+                            "information (this might break nuisance parameter analyses).",
+                            name,
+                            benchmark_names,
+                        )
+                        return
+
+                # Store sampling information
+                sampled_from_benchmark_indices = np.array(sampled_from_benchmark_indices)
+                f.create_dataset("samples/sampled_from_benchmark", data=sampled_from_benchmark_indices)
 
 
 def save_madminer_file_from_lhe(
