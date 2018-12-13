@@ -189,7 +189,13 @@ def load_madminer_settings(filename, include_nuisance_benchmarks=False):
 
 
 def madminer_event_loader(
-    filename, start=0, end=None, batch_size=100000, include_nuisance_parameters=True, benchmark_is_nuisance=None
+    filename,
+    start=0,
+    end=None,
+    batch_size=100000,
+    include_nuisance_parameters=True,
+    benchmark_is_nuisance=None,
+    include_sampling_information=False,
 ):
     # Nuisance parameter filtering
     if not include_nuisance_parameters:
@@ -207,7 +213,14 @@ def madminer_event_loader(
             observations = f["samples/observations"]
             weights = f["samples/weights"]
         except KeyError:
+            logging.warning("No events found!")
             return
+
+        if include_sampling_information:
+            try:
+                sampled_from = f["samples/sampled_from_benchmark"]
+            except KeyError:
+                raise RuntimeError("No sampling information stored in file {}".format(filename))
 
         # Preparations
         n_samples = observations.shape[0]
@@ -227,10 +240,16 @@ def madminer_event_loader(
         while current < end:
             this_end = min(current + batch_size, end)
 
+            this_observations = np.array(observations[current:this_end])
             if include_nuisance_parameters:
-                yield (np.array(observations[current:this_end]), np.array(weights[current:this_end]))
+                this_weights = np.array(weights[current:this_end])
             else:
-                yield (np.array(observations[current:this_end]), np.array(weights[current:this_end, benchmark_filter]))
+                this_weights = np.array(weights[current:this_end, benchmark_filter])
+            if include_sampling_information:
+                this_sampled_from = np.array(sampled_from[current:this_end])
+                yield (this_observations, this_weights, this_sampled_from)
+            else:
+                yield (this_observations, this_weights)
 
             current += batch_size
 
