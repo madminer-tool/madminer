@@ -62,6 +62,7 @@ class DelphesProcessor:
         self.hepmc_is_backgrounds = []
         self.lhe_sample_filenames_for_weights = []
         self.delphes_sample_filenames = []
+        self.sample_k_factors = []
 
         # Initialize observables
         self.observables = OrderedDict()
@@ -93,7 +94,7 @@ class DelphesProcessor:
         self.n_benchmarks = len(self.benchmark_names)
 
     def add_hepmc_sample(
-        self, filename, sampled_from_benchmark, is_background=False, weights="delphes", lhe_filename=None
+        self, filename, sampled_from_benchmark, is_background=False, k_factor=1.0, weights="delphes", lhe_filename=None
     ):
         """
         Adds simulated events in the HepMC format.
@@ -109,6 +110,9 @@ class DelphesProcessor:
 
         is_background : bool, optional
             Whether the sample is a background sample (i.e. without benchmark reweighting).
+
+        k_factor : float, optional
+            Multiplies the cross sections found in the sample. Default value: 1.
 
         weights : {"delphes", "lhe"}, optional
             If "delphes", the weights are read out from the Delphes ROOT file, and their names are taken from the
@@ -138,6 +142,7 @@ class DelphesProcessor:
         self.hepmc_sampled_from_benchmark.append(sampled_from_benchmark)
         self.hepmc_is_backgrounds.append(is_background)
         self.delphes_sample_filenames.append(None)
+        self.sample_k_factors.append(k_factor)
 
         if weights == "lhe" and lhe_filename is not None:
             self.lhe_sample_filenames_for_weights.append(lhe_filename)
@@ -150,6 +155,7 @@ class DelphesProcessor:
         hepmc_filename,
         sampled_from_benchmark,
         is_background=False,
+        k_factor=1.0,
         weights="delphes",
         lhe_filename=None,
     ):
@@ -171,6 +177,9 @@ class DelphesProcessor:
 
         is_background : bool, optional
             Whether the sample is a background sample (i.e. without benchmark reweighting).
+
+        k_factor : float, optional
+            Multiplies the cross sections found in the sample. Default value: 1.
 
         weights : {"delphes", "lhe"}, optional
             If "delphes", the weights are read out from the Delphes ROOT file, and their names are taken from the
@@ -200,6 +209,7 @@ class DelphesProcessor:
         self.hepmc_sampled_from_benchmark.append(sampled_from_benchmark)
         self.hepmc_is_backgrounds.append(is_background)
         self.delphes_sample_filenames.append(delphes_filename)
+        self.sample_k_factors.append(k_factor)
 
         if weights == "lhe" and lhe_filename is not None:
             self.lhe_sample_filenames_for_weights.append(lhe_filename)
@@ -549,12 +559,13 @@ class DelphesProcessor:
         self.weights = None
         self.sampled_from_benchmark = None
 
-        for delphes_file, weight_labels, is_background, sampling_benchmark, lhe_file in zip(
+        for delphes_file, weight_labels, is_background, sampling_benchmark, lhe_file, k_factor in zip(
             self.delphes_sample_filenames,
             self.hepmc_sample_weight_labels,
             self.hepmc_is_backgrounds,
             self.hepmc_sampled_from_benchmark,
             self.lhe_sample_filenames_for_weights,
+            self.sample_k_factors,
         ):
 
             logging.info("Analysing Delphes sample %s", delphes_file)
@@ -629,6 +640,11 @@ class DelphesProcessor:
                     raise RuntimeError(
                         "Mismatching number of events in weights {}: {} vs {}".format(key, n_events, this_n_events)
                     )
+
+            # k factors
+            if k_factor is not None:
+                for key in this_weights:
+                    this_weights[key] = k_factor * this_weights[key]
 
             # Background scenario: we only have one set of weights, but these should be true for all benchmarks
             if is_background:

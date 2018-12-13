@@ -13,7 +13,7 @@ from madminer.morphing import Morpher
 from madminer.utils.various import general_init, format_benchmark, create_missing_folders, shuffle, balance_thetas
 
 
-def combine_and_shuffle(input_filenames, output_filename, overwrite_existing_file=True, debug=False):
+def combine_and_shuffle(input_filenames, output_filename, k_factors=None, overwrite_existing_file=True, debug=False):
     """
     Combines multiple MadMiner files into one, and shuffles the order of the events.
 
@@ -29,6 +29,10 @@ def combine_and_shuffle(input_filenames, output_filename, overwrite_existing_fil
     output_filename : str
         Path to the combined MadMiner file.
 
+    k_factors : float or list of float, optional
+        Multiplies the weights in input_filenames with a universal factor (if k_factors is a float) or with independent
+        factors (if it is a list of float). Default value: None.
+
     overwrite_existing_file : bool, optional
         If True and if the output file exists, it is overwritten. Default value: True.
 
@@ -43,12 +47,20 @@ def combine_and_shuffle(input_filenames, output_filename, overwrite_existing_fil
 
     general_init(debug=debug)
 
+    logging.debug("Combining and shuffling samples")
+
     if len(input_filenames) > 1:
         logging.warning(
             "Careful: this tool assumes that all samples are generated with the same setup, including"
             " identical benchmarks (and thus morphing setup). If it is used with samples with different"
             " settings, there will be wrong results! There are no explicit cross checks in place yet."
         )
+
+    # k factors
+    if k_factors is None:
+        k_factors = [1.0 for _ in input_filenames]
+    elif isinstance(k_factors, float):
+        k_factors = [k_factors for _ in input_filenames]
 
     # Copy first file to output_filename
     logging.info("Copying setup from %s to %s", input_filenames[0], output_filename)
@@ -59,16 +71,22 @@ def combine_and_shuffle(input_filenames, output_filename, overwrite_existing_fil
     all_observations = None
     all_weights = None
 
-    for i, filename in enumerate(input_filenames):
-        logging.info("Loading samples from file %s / %s at %s", i + 1, len(input_filenames), filename)
+    for i, (filename, k_factor) in enumerate(zip(input_filenames, k_factors)):
+        logging.info(
+            "Loading samples from file %s / %s at %s, multiplying weights with k factor %s",
+            i + 1,
+            len(input_filenames),
+            filename,
+            k_factor,
+        )
 
         for observations, weights in madminer_event_loader(filename):
             if all_observations is None:
                 all_observations = observations
-                all_weights = weights
+                all_weights = k_factor * weights
             else:
                 all_observations = np.vstack((all_observations, observations))
-                all_weights = np.vstack((all_weights, weights))
+                all_weights = np.vstack((all_weights, k_factor * weights))
 
     # Shuffle
     all_observations, all_weights = shuffle(all_observations, all_weights)

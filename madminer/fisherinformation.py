@@ -43,7 +43,13 @@ def project_information(fisher_information, remaining_components):
     return fisher_information_new
 
 
-def profile_information(fisher_information, remaining_components, covariance=None, error_propagation_n_ensemble=1000, error_propagation_factor=1.e-3):
+def profile_information(
+    fisher_information,
+    remaining_components,
+    covariance=None,
+    error_propagation_n_ensemble=1000,
+    error_propagation_factor=1.0e-3,
+):
     """
     Calculates the profiled Fisher information matrix as defined in Appendix A.4 of arXiv:1612.05261.
 
@@ -115,8 +121,8 @@ def profile_information(fisher_information, remaining_components, covariance=Non
         # Draw toys
         information_toys = np.random.multivariate_normal(
             mean=fisher_information.reshape((-1,)),
-            cov=error_propagation_factor * covariance.reshape((n_components**2, n_components**2)),
-            size=error_propagation_n_ensemble
+            cov=error_propagation_factor * covariance.reshape((n_components ** 2, n_components ** 2)),
+            size=error_propagation_n_ensemble,
         )
         information_toys.reshape((-1, n_components, n_components))
 
@@ -124,8 +130,10 @@ def profile_information(fisher_information, remaining_components, covariance=Non
         profiled_information_toys = np.array([_profile(info) for info in information_toys])
 
         # Calculate ensemble covariance
-        toy_covariance = np.cov(profiled_information_toys.reshape((-1, n_remaining_components**2)).T)
-        toy_covariance = toy_covariance.reshape((n_remaining_components, n_remaining_components, n_remaining_components, n_remaining_components))
+        toy_covariance = np.cov(profiled_information_toys.reshape((-1, n_remaining_components ** 2)).T)
+        toy_covariance = toy_covariance.reshape(
+            (n_remaining_components, n_remaining_components, n_remaining_components, n_remaining_components)
+        )
         profiled_information_covariance = toy_covariance / error_propagation_factor
 
         # Cross-check: toy mean
