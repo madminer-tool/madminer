@@ -189,7 +189,7 @@ def parse_delphes_root_file(
         logging.debug("  %s / %s events pass cut %s", n_pass, n_pass + n_fail, cut)
 
         if combined_filter is None:
-            combined_filter = values_this_cut
+            combined_filteparse_delphes_root_filer = values_this_cut
         else:
             combined_filter = np.logical_and(combined_filter, values_this_cut)
 
@@ -201,7 +201,7 @@ def parse_delphes_root_file(
         if n_pass == 0:
             logging.warning("  No observations remainining!")
 
-            return None, None
+            return None, None, combined_filter
 
         logging.info("  %s / %s events pass everything", n_pass, n_pass + n_fail)
 

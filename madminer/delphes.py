@@ -682,6 +682,10 @@ class DelphesProcessor:
 
         """
 
+        if self.observations is None or self.keys is None:
+            logging.warning("No observations to save!")
+            return
+
         logging.debug("Loading HDF5 data from %s and saving file to %s", self.filename, filename_out)
 
         # Save nuisance benchmarks
