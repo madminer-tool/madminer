@@ -477,9 +477,9 @@ class SampleAugmenter:
 
             logging.debug(
                 "Found physical score with shape %s, nuisance score with shape %s, combined shape %s",
-                t_xz_physics,
-                t_xz_nuisance,
-                t_xz,
+                t_xz_physics.shape,
+                t_xz_nuisance.shape,
+                t_xz.shape,
             )
         else:
             t_xz = t_xz_physics
