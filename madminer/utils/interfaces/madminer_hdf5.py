@@ -177,6 +177,12 @@ def load_madminer_settings(filename, include_nuisance_benchmarks=False):
         except KeyError:
             n_samples = 0
 
+        # Systematics setup
+        try:
+            systematics_arguments = f["systematics/arguments"][0].decode("ascii")
+        except KeyError:
+            systematics_arguments = None
+
         return (
             parameters,
             benchmarks,
@@ -185,6 +191,7 @@ def load_madminer_settings(filename, include_nuisance_benchmarks=False):
             morphing_matrix,
             observables,
             n_samples,
+            systematics_arguments
         )
 
 

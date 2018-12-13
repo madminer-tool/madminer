@@ -66,8 +66,8 @@ def calculate_augmented_data(
     xsecs_benchmarks,
     theta_matrices,
     theta_gradient_matrices,
-    weights_nuisance_ratios,
-    xsecs_nuisance_ratios,
+    weights_nuisance_ratios=None,
+    xsecs_nuisance_ratios=None,
 ):
     """Extracts augmented data from benchmark weights"""
     augmented_data = []

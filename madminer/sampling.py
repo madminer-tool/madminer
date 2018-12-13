@@ -262,6 +262,7 @@ class SampleAugmenter:
             self.morphing_matrix,
             self.observables,
             self.n_samples,
+            _
         ) = load_madminer_settings(filename, include_nuisance_benchmarks=include_nuisance_parameters)
 
         self.n_parameters = len(self.parameters)
