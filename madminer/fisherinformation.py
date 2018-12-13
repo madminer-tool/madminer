@@ -43,7 +43,7 @@ def project_information(fisher_information, remaining_components):
     return fisher_information_new
 
 
-def profile_information(fisher_information, remaining_components):
+def profile_information(fisher_information, remaining_components, ):
     """
     Calculates the profiled Fisher information matrix as defined in Appendix A.4 of arXiv:1612.05261.
 
@@ -86,7 +86,7 @@ def profile_information(fisher_information, remaining_components):
     inverse_information_nuisance = np.linalg.inv(information_nuisance)
     profiled_information = information_phys - information_mix.T.dot(inverse_information_nuisance.dot(information_mix))
 
-    return profiled_fisher_information
+    return profiled_information
 
 
 class FisherInformation:
