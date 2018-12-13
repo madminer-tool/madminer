@@ -8,7 +8,7 @@ import six
 from madminer.utils.interfaces.madminer_hdf5 import load_madminer_settings, madminer_event_loader
 from madminer.utils.interfaces.madminer_hdf5 import save_preformatted_events_to_madminer_file
 from madminer.utils.analysis import get_theta_value, get_theta_benchmark_matrix, get_dtheta_benchmark_matrix
-from madminer.utils.analysis import calculate_augmented_data, parse_theta
+from madminer.utils.analysis import calculate_augmented_data, parse_theta, mdot
 from madminer.morphing import Morpher
 from madminer.utils.various import general_init, format_benchmark, create_missing_folders, shuffle, balance_thetas
 
@@ -1210,8 +1210,7 @@ class SampleAugmenter:
 
         # Nuisance parameters?
         include_nuisance_parameters = self.include_nuisance_parameters and nuisance_score
-
-        nuisance_filter = None  # TODO
+        nuisance_filter = np.array(self.benchmark_is_nuisance, dtype=np.bool)
         i_ref_benchmark = 0
 
         # Calculate total xsecs for benchmarks
@@ -1327,9 +1326,9 @@ class SampleAugmenter:
             sampling_theta_matrix = theta_matrices[sampling_theta_index]
 
             # Total xsec for sampling theta
-            xsec_sampling_theta = sampling_theta_matrix.dot(xsecs_benchmarks)
+            xsec_sampling_theta = mdot(sampling_theta_matrix, xsecs_benchmarks)
             rms_xsec_sampling_theta = (
-                (sampling_theta_matrix * sampling_theta_matrix).dot(squared_weight_sum_benchmarks)
+                mdot(sampling_theta_matrix * sampling_theta_matrix, squared_weight_sum_benchmarks)
             ) ** 0.5
 
             if rms_xsec_sampling_theta > 0.1 * xsec_sampling_theta:
@@ -1366,7 +1365,7 @@ class SampleAugmenter:
                     self.madminer_filename, start=start_event, end=end_event, include_sampling_information=True
                 ):
                     # Evaluate p(x | sampling theta)
-                    weights_theta = sampling_theta_matrix.dot(weights_benchmarks_batch.T)  # Shape (n_batch_size,)
+                    weights_theta = mdot(sampling_theta_matrix, weights_benchmarks_batch)  # Shape (n_batch_size,)
                     p_theta = weights_theta / xsec_sampling_theta  # Shape: (n_batch_size,)
 
                     # Handle negative weights (should be rare)
@@ -1394,7 +1393,7 @@ class SampleAugmenter:
                     # Information for nuisance parameters
                     if include_nuisance_parameters:
                         weights_nuisance_at_ref_benchmark = []
-                        for weight, sampled_from in zip(weights_benchmarks_batch, sampled_from_benchmark)
+                        for weight, sampled_from in zip(weights_benchmarks_batch, sampled_from_benchmark):
                             weights_nuisance_at_ref_benchmark.append(weight[nuisance_filter] * weight[i_ref_benchmark] / weight[sampled_from])
                         weights_nuisance_at_ref_benchmark = np.array(weights_nuisance_at_ref_benchmark)
                         weights_ref_benchmark = weights_benchmarks_batch[:, i_ref_benchmark]

@@ -78,10 +78,10 @@ def calculate_augmented_data(
             i_num = definition[1]
             i_den = definition[2]
 
-            dsigma_num = _mdot(theta_matrices[i_num], weights_benchmarks)
-            sigma_num = _mdot(theta_matrices[i_num], xsecs_benchmarks)
-            dsigma_den = _mdot(theta_matrices[i_den], weights_benchmarks)
-            sigma_den = _mdot(theta_matrices[i_den], xsecs_benchmarks)
+            dsigma_num = mdot(theta_matrices[i_num], weights_benchmarks)
+            sigma_num = mdot(theta_matrices[i_num], xsecs_benchmarks)
+            dsigma_den = mdot(theta_matrices[i_den], weights_benchmarks)
+            sigma_den = mdot(theta_matrices[i_den], xsecs_benchmarks)
 
             ratio = (dsigma_num / sigma_num) / (dsigma_den / sigma_den)
             ratio = ratio.reshape((-1, 1))
@@ -91,11 +91,11 @@ def calculate_augmented_data(
         elif definition[0] == "score":
             i = definition[1]
 
-            gradient_dsigma = theta_gradient_matrices[i].dot(weights_benchmarks.T)  # (n_gradients, n_samples)
-            gradient_sigma = theta_gradient_matrices[i].dot(xsecs_benchmarks.T)  # (n_gradients,)
+            gradient_dsigma = mdot(theta_gradient_matrices[i], weights_benchmarks)  # (n_gradients, n_samples)
+            gradient_sigma = mdot(theta_gradient_matrices[i], xsecs_benchmarks)  # (n_gradients,)
 
-            dsigma = _mdot(theta_matrices[i], weights_benchmarks)  # (n_samples,)
-            sigma = _mdot(theta_matrices[i], xsecs_benchmarks)  # scalar
+            dsigma = mdot(theta_matrices[i], weights_benchmarks)  # (n_samples,)
+            sigma = mdot(theta_matrices[i], xsecs_benchmarks)  # scalar
 
             score = gradient_dsigma / dsigma  # (n_gradients, n_samples)
             score = score.T  # (n_samples, n_gradients)
@@ -179,9 +179,11 @@ def parse_theta(theta, n_samples):
     return theta_types, theta_values, n_samples_per_theta
 
 
-def _mdot(matrix, weights_benchmarks):
+def mdot(matrix, benchmark_information):
+    """ Calculates a product between a matrix with shape (a, n1) and a weight list with shape (?, n2) with n1 <= n2 """
+
     _, n_benchmarks_matrix = matrix.shape
-    weights_benchmarks_T = weights_benchmarks.T
+    weights_benchmarks_T = benchmark_information.T
     n_benchmarks_in = weights_benchmarks_T.shape[0]
 
     if n_benchmarks_matrix == n_benchmarks_in:
