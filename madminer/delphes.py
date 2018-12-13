@@ -682,7 +682,7 @@ class DelphesProcessor:
 
         """
 
-        if self.observations is None or self.keys is None:
+        if self.observations is None or self.weights is None:
             logging.warning("No observations to save!")
             return
 
