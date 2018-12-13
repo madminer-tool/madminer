@@ -191,7 +191,7 @@ def load_madminer_settings(filename, include_nuisance_benchmarks=False):
             morphing_matrix,
             observables,
             n_samples,
-            systematics_arguments
+            systematics_arguments,
         )
 
 

@@ -262,7 +262,7 @@ class SampleAugmenter:
             self.morphing_matrix,
             self.observables,
             self.n_samples,
-            _
+            _,
         ) = load_madminer_settings(filename, include_nuisance_benchmarks=include_nuisance_parameters)
 
         self.n_parameters = len(self.parameters)
@@ -1423,7 +1423,9 @@ class SampleAugmenter:
                     # Information for nuisance parameters
                     if include_nuisance_parameters:
                         weights_nuisance_at_ref_benchmark = []
-                        for weight, sampled_from in zip(weights_benchmarks_batch[indices[found_now], :], sampled_from_benchmark[indices[found_now]]):
+                        for weight, sampled_from in zip(
+                            weights_benchmarks_batch[indices[found_now], :], sampled_from_benchmark[indices[found_now]]
+                        ):
                             weights_nuisance_at_ref_benchmark.append(
                                 weight[nuisance_filter] * weight[i_ref_benchmark] / weight[sampled_from]
                             )
@@ -1438,7 +1440,8 @@ class SampleAugmenter:
                             xsecs_benchmarks,
                             theta_matrices,
                             theta_gradient_matrices,
-                            weights_nuisance_ratios=weights_nuisance_at_ref_benchmark / weights_ref_benchmark[:,np.newaxis],
+                            weights_nuisance_ratios=weights_nuisance_at_ref_benchmark
+                            / weights_ref_benchmark[:, np.newaxis],
                             xsecs_nuisance_ratios=xsec_nuisance_at_ref_benchmark / xsec_ref_benchmark[np.newaxis],
                         )
                     else:

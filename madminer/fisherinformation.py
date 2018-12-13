@@ -54,7 +54,7 @@ def profile_information(fisher_information, remaining_components):
 
     remaining_components : list of int
         List with m entries, each an int with 0 <= remaining_compoinents[i] < n. Denotes which parameters are kept, and
-        their new order. All other parameters or projected out.
+        their new order. All other parameters or profiled out.
 
     Returns
     -------
@@ -74,21 +74,17 @@ def profile_information(fisher_information, remaining_components):
             remaining_components_checked.append(i)
         else:
             profiled_components.append(i)
-    new_index_order = remaining_components + profiled_components
 
     assert len(remaining_components) == len(remaining_components_checked), "Inconsistent input"
 
-    # Sort Fisher information such that the remaining components are  at the beginning and the profiled at the end
-    profiled_fisher_information = np.copy(fisher_information[new_index_order, :])
-    profiled_fisher_information = profiled_fisher_information[:, new_index_order]
+    # Separate Fisher information parts
+    information_phys = fisher_information[remaining_components, remaining_components]
+    information_mix = fisher_information[profiled_components, remaining_components]
+    information_nuisance = fisher_information[profiled_components, profiled_components]
 
-    # Profile over one component at a time
-    for c in range(n_components - 1, len(remaining_components) - 1, -1):
-        profiled_fisher_information = (
-            profiled_fisher_information[:c, :c]
-            - np.outer(profiled_fisher_information[c, :c], profiled_fisher_information[c, :c])
-            / profiled_fisher_information[c, c]
-        )
+    # Calculate profiled information
+    inverse_information_nuisance = np.linalg.inv(information_nuisance)
+    profiled_information = information_phys - information_mix.T.dot(inverse_information_nuisance.dot(information_mix))
 
     return profiled_fisher_information
 
@@ -148,7 +144,7 @@ class FisherInformation:
             self.morphing_matrix,
             self.observables,
             self.n_samples,
-            _
+            _,
         ) = load_madminer_settings(filename, include_nuisance_benchmarks=include_nuisance_parameters)
         self.n_parameters = len(self.parameters)
         self.n_benchmarks = len(self.benchmarks)
