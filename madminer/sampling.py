@@ -266,7 +266,7 @@ class SampleAugmenter:
 
         self.n_parameters = len(self.parameters)
         self.n_benchmarks = len(self.benchmarks)
-        self.n_benchmarks_phys = len(self.benchmarks[np.logical_not(self.benchmark_is_nuisance)])
+        self.n_benchmarks_phys = np.sum(np.logical_not(self.benchmark_is_nuisance))
 
         logging.info("Found %s parameters:", self.n_parameters)
         for key, values in six.iteritems(self.parameters):
@@ -452,12 +452,14 @@ class SampleAugmenter:
 
         # Augmented data (gold)
         augmented_data_definitions = [("score", 0)]
+        if nuisance_score:
+            augmented_data_definitions += [("nuisance_score",)]
 
         # Train / test split
         start_event, end_event = self._train_test_split(not switch_train_test_events, test_split)
 
         # Start
-        x, (t_xz,), (theta,) = self._extract_sample(
+        x, augmented_data, (theta,) = self._extract_sample(
             theta_sets_types=[theta_types],
             theta_sets_values=[theta_values],
             n_samples_per_theta=n_samples_per_theta,
@@ -466,6 +468,20 @@ class SampleAugmenter:
             start_event=start_event,
             end_event=end_event,
         )
+
+        t_xz_physics = augmented_data[0]
+        if nuisance_score:
+            t_xz_nuisance = augmented_data[1]
+            t_xz = np.hstack([t_xz_physics, t_xz_nuisance])
+
+            logging.debug(
+                "Found physical score with shape %s, nuisance score with shape %s, combined shape %s",
+                t_xz_physics,
+                t_xz_nuisance,
+                t_xz,
+            )
+        else:
+            t_xz = t_xz_physics
 
         # Save data
         if filename is not None and folder is not None:
@@ -1216,7 +1232,7 @@ class SampleAugmenter:
         # Calculate total xsecs for benchmarks
         xsecs_benchmarks = None
         squared_weight_sum_benchmarks = None
-        xsec_nuisance_at_ref_benchmark = 0.
+        xsec_nuisance_at_ref_benchmark = 0.0
         n_observables = 0
 
         for obs, weights, sampled_from_benchmark in madminer_event_loader(
@@ -1225,7 +1241,7 @@ class SampleAugmenter:
             end=end_event,
             include_nuisance_parameters=include_nuisance_parameters,
             benchmark_is_nuisance=self.benchmark_is_nuisance,
-            include_sampling_information=True
+            include_sampling_information=True,
         ):
             if xsecs_benchmarks is None:
                 xsecs_benchmarks = np.sum(weights, axis=0)
@@ -1237,7 +1253,9 @@ class SampleAugmenter:
             # Calculate xsec at reference benchmark (let's take the first one)
             if include_nuisance_parameters:
                 for weight, sampled_from in zip(weights, sampled_from_benchmark):
-                    xsec_nuisance_at_ref_benchmark += weight[nuisance_filter] * weight[i_ref_benchmark] / weight[sampled_from_benchmark]
+                    xsec_nuisance_at_ref_benchmark += (
+                        weight[nuisance_filter] * weight[i_ref_benchmark] / weight[sampled_from_benchmark]
+                    )
 
             n_observables = obs.shape[1]
 
@@ -1394,7 +1412,9 @@ class SampleAugmenter:
                     if include_nuisance_parameters:
                         weights_nuisance_at_ref_benchmark = []
                         for weight, sampled_from in zip(weights_benchmarks_batch, sampled_from_benchmark):
-                            weights_nuisance_at_ref_benchmark.append(weight[nuisance_filter] * weight[i_ref_benchmark] / weight[sampled_from])
+                            weights_nuisance_at_ref_benchmark.append(
+                                weight[nuisance_filter] * weight[i_ref_benchmark] / weight[sampled_from]
+                            )
                         weights_nuisance_at_ref_benchmark = np.array(weights_nuisance_at_ref_benchmark)
                         weights_ref_benchmark = weights_benchmarks_batch[:, i_ref_benchmark]
 
