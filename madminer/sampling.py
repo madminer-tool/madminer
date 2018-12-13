@@ -1211,17 +1211,22 @@ class SampleAugmenter:
         # Nuisance parameters?
         include_nuisance_parameters = self.include_nuisance_parameters and nuisance_score
 
+        nuisance_filter = None  # TODO
+        i_ref_benchmark = 0
+
         # Calculate total xsecs for benchmarks
         xsecs_benchmarks = None
         squared_weight_sum_benchmarks = None
+        xsec_nuisance_at_ref_benchmark = 0.
         n_observables = 0
 
-        for obs, weights in madminer_event_loader(
+        for obs, weights, sampled_from_benchmark in madminer_event_loader(
             self.madminer_filename,
             start=start_event,
             end=end_event,
             include_nuisance_parameters=include_nuisance_parameters,
             benchmark_is_nuisance=self.benchmark_is_nuisance,
+            include_sampling_information=True
         ):
             if xsecs_benchmarks is None:
                 xsecs_benchmarks = np.sum(weights, axis=0)
@@ -1230,9 +1235,17 @@ class SampleAugmenter:
                 xsecs_benchmarks += np.sum(weights, axis=0)
                 squared_weight_sum_benchmarks += np.sum(weights * weights, axis=0)
 
+            # Calculate xsec at reference benchmark (let's take the first one)
+            if include_nuisance_parameters:
+                for weight, sampled_from in zip(weights, sampled_from_benchmark):
+                    xsec_nuisance_at_ref_benchmark += weight[nuisance_filter] * weight[i_ref_benchmark] / weight[sampled_from_benchmark]
+
             n_observables = obs.shape[1]
 
         logging.debug("Benchmark cross sections [pb]: %s", xsecs_benchmarks)
+
+        # Nuisance parameter
+        xsec_ref_benchmark = xsecs_benchmarks[i_ref_benchmark]
 
         # Balance thetas
         theta_sets_types, theta_sets_values = balance_thetas(theta_sets_types, theta_sets_values)
@@ -1349,8 +1362,8 @@ class SampleAugmenter:
                 # Loop over weighted events
                 cumulative_p = np.array([0.0])
 
-                for x_batch, weights_benchmarks_batch in madminer_event_loader(
-                    self.madminer_filename, start=start_event, end=end_event
+                for x_batch, weights_benchmarks_batch, sampled_from_benchmark_batch in madminer_event_loader(
+                    self.madminer_filename, start=start_event, end=end_event, include_sampling_information=True
                 ):
                     # Evaluate p(x | sampling theta)
                     weights_theta = sampling_theta_matrix.dot(weights_benchmarks_batch.T)  # Shape (n_batch_size,)
@@ -1378,15 +1391,34 @@ class SampleAugmenter:
                     samples_x[found_now] = x_batch[indices[found_now]]
                     samples_done[found_now] = True
 
+                    # Information for nuisance parameters
+                    if include_nuisance_parameters:
+                        weights_nuisance_at_ref_benchmark = []
+                        for weight, sampled_from in zip(weights_benchmarks_batch, sampled_from_benchmark)
+                            weights_nuisance_at_ref_benchmark.append(weight[nuisance_filter] * weight[i_ref_benchmark] / weight[sampled_from])
+                        weights_nuisance_at_ref_benchmark = np.array(weights_nuisance_at_ref_benchmark)
+                        weights_ref_benchmark = weights_benchmarks_batch[:, i_ref_benchmark]
+
                     # Extract augmented data
-                    relevant_augmented_data = calculate_augmented_data(
-                        augmented_data_definitions,
-                        weights_benchmarks_batch[indices[found_now], :],
-                        xsecs_benchmarks,
-                        theta_matrices,
-                        theta_gradient_matrices,
-                        nuisance_score=nuisance_score,
-                    )
+                    if include_nuisance_parameters:
+                        relevant_augmented_data = calculate_augmented_data(
+                            augmented_data_definitions,
+                            weights_benchmarks_batch[indices[found_now], :],
+                            xsecs_benchmarks,
+                            theta_matrices,
+                            theta_gradient_matrices,
+                            weights_nuisance_ratios=weights_nuisance_at_ref_benchmark / weights_ref_benchmark,
+                            xsecs_nuisance_ratios=xsec_nuisance_at_ref_benchmark / xsec_ref_benchmark,
+                        )
+                    else:
+                        relevant_augmented_data = calculate_augmented_data(
+                            augmented_data_definitions,
+                            weights_benchmarks_batch[indices[found_now], :],
+                            xsecs_benchmarks,
+                            theta_matrices,
+                            theta_gradient_matrices,
+                        )
+
                     for i, this_relevant_augmented_data in enumerate(relevant_augmented_data):
                         samples_augmented_data[i][found_now] = this_relevant_augmented_data
 

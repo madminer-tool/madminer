@@ -220,7 +220,8 @@ def madminer_event_loader(
             try:
                 sampled_from = f["samples/sampled_from_benchmark"]
             except KeyError:
-                raise RuntimeError("No sampling information stored in file {}".format(filename))
+                logging.warning("No sampling information stored in file {}".format(filename))
+                sampled_from = None
 
         # Preparations
         n_samples = observations.shape[0]
@@ -246,7 +247,8 @@ def madminer_event_loader(
             else:
                 this_weights = np.array(weights[current:this_end, benchmark_filter])
             if include_sampling_information:
-                this_sampled_from = np.array(sampled_from[current:this_end])
+                this_sampled_from = None if sampled_from is None else np.array(sampled_from[current:this_end])
+
                 yield (this_observations, this_weights, this_sampled_from)
             else:
                 yield (this_observations, this_weights)

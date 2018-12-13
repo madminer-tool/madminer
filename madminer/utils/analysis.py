@@ -61,7 +61,13 @@ def get_dtheta_benchmark_matrix(theta_type, theta_value, benchmarks, morpher=Non
 
 
 def calculate_augmented_data(
-    augmented_data_definitions, weights_benchmarks, xsecs_benchmarks, theta_matrices, theta_gradient_matrices
+    augmented_data_definitions,
+    weights_benchmarks,
+    xsecs_benchmarks,
+    theta_matrices,
+    theta_gradient_matrices,
+    weights_nuisance_ratios,
+    xsecs_nuisance_ratios,
 ):
     """Extracts augmented data from benchmark weights"""
     augmented_data = []
@@ -98,7 +104,10 @@ def calculate_augmented_data(
             augmented_data.append(score)
 
         elif definition[0] == "nuisance_score":
-            raise NotImplementedError
+            nuisance_score = np.log(weights_nuisance_ratios)  # Shape (n_samples, n_nuisance)
+            nuisance_score -= np.log(xsecs_nuisance_ratios)[np.newaxis, :]  # Shape (n_samples, n_nuisance)
+
+            augmented_data.append(nuisance_score)
 
         else:
             raise ValueError("Unknown augmented data type {}".format(definition[0]))
