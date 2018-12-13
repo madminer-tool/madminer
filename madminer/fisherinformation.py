@@ -43,7 +43,7 @@ def project_information(fisher_information, remaining_components):
     return fisher_information_new
 
 
-def profile_information(fisher_information, remaining_components, ):
+def profile_information(fisher_information, remaining_components, covariance=None, error_propagation_n_ensemble=1000, error_propagation_factor=1.e-3):
     """
     Calculates the profiled Fisher information matrix as defined in Appendix A.4 of arXiv:1612.05261.
 
@@ -56,16 +56,35 @@ def profile_information(fisher_information, remaining_components, ):
         List with m entries, each an int with 0 <= remaining_compoinents[i] < n. Denotes which parameters are kept, and
         their new order. All other parameters or profiled out.
 
+    covariance : ndarray or None, optional
+        The covariance matrix of the original Fisher information with shape (n, n, n, n). If None, the error on the
+        profiled information is not calculated. Default value: None.
+
+    error_propagation_n_ensemble : int, optional
+        If covariance is not None, this sets the number of Fisher information matrices drawn from a normal distribution
+        for the Monte-Carlo error propagation. Default value: 1000.
+
+    error_propagation_factor : float, optional
+        If covariance is not None, this factor multiplies the covariance of the distribution of Fisher information
+        matrices. Smaller factors can avoid problems with ill-behaved Fisher information matrices. Default value: 1.e-3.
+
     Returns
     -------
     profiled_fisher_information : ndarray
         Profiled m x m Fisher information, where the `i`-th row or column corresponds to the
         `remaining_components[i]`-th row or column of fisher_information.
 
+    profiled_fisher_information_covariance : ndarray
+        Covariance matrix of the profiled Fishere information matrix with shape (m, m, m, m).
+
     """
+
+    logging.debug("Profiling Fisher information")
 
     # Group components
     n_components = len(fisher_information)
+    n_remaining_components = len(remaining_components)
+
     remaining_components_checked = []
     profiled_components = []
 
@@ -75,16 +94,45 @@ def profile_information(fisher_information, remaining_components, ):
         else:
             profiled_components.append(i)
 
-    assert len(remaining_components) == len(remaining_components_checked), "Inconsistent input"
+    assert n_remaining_components == len(remaining_components_checked), "Inconsistent input"
 
-    # Separate Fisher information parts
-    information_phys = fisher_information[remaining_components, remaining_components]
-    information_mix = fisher_information[profiled_components, remaining_components]
-    information_nuisance = fisher_information[profiled_components, profiled_components]
+    # Profile
+    def _profile(information_in):
+        # Separate Fisher information parts
+        information_phys = information_in[remaining_components, remaining_components]
+        information_mix = information_in[profiled_components, remaining_components]
+        information_nuisance = information_in[profiled_components, profiled_components]
 
-    # Calculate profiled information
-    inverse_information_nuisance = np.linalg.inv(information_nuisance)
-    profiled_information = information_phys - information_mix.T.dot(inverse_information_nuisance.dot(information_mix))
+        # Calculate profiled information
+        inverse_information_nuisance = np.linalg.inv(information_nuisance)
+        return information_phys - information_mix.T.dot(inverse_information_nuisance.dot(information_mix))
+
+    # Central value
+    profiled_information = _profile(fisher_information)
+
+    # Uncertainty propagation
+    if covariance is not None:
+        # Draw toys
+        information_toys = np.random.multivariate_normal(
+            mean=fisher_information.reshape((-1,)),
+            cov=error_propagation_factor * covariance.reshape((n_components**2, n_components**2)),
+            size=error_propagation_n_ensemble
+        )
+        information_toys.reshape((-1, n_components, n_components))
+
+        # Profile each toy
+        profiled_information_toys = np.array([_profile(info) for info in information_toys])
+
+        # Calculate ensemble covariance
+        toy_covariance = np.cov(profiled_information_toys.reshape((-1, n_remaining_components**2)).T)
+        toy_covariance = toy_covariance.reshape((n_remaining_components, n_remaining_components, n_remaining_components, n_remaining_components))
+        profiled_information_covariance = toy_covariance / error_propagation_factor
+
+        # Cross-check: toy mean
+        toy_mean = np.mean(profiled_information_toys, axis=0)
+        logging.debug("Central Fisher info:\n%s\nToy mean Fisher info:\n%s", profiled_information, toy_mean)
+
+        return profiled_information, profiled_information_covariance
 
     return profiled_information
 
