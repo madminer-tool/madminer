@@ -989,7 +989,7 @@ class FisherInformation:
         sum_events=False,
         calculate_uncertainty=False,
         weights_benchmark_uncertainties=None,
-        weights_sampling_benchmark=None
+        weights_sampling_benchmark=None,
     ):
         """
         Low-level function that calculates a list of full Fisher information matrices for a given parameter point and
@@ -1058,30 +1058,34 @@ class FisherInformation:
         # Nuisance parameter Fisher info
         if include_nuisance_parameters:
             if weights_sampling_benchmark is None:
-                weights_sampling_benchmark = weights_benchmarks[:,0]
+                weights_sampling_benchmark = weights_benchmarks[:, 0]
 
-            nuisance_weight_ratio = weights_benchmarks.T[self.benchmark_is_nuisance,:] / weights_sampling_benchmark[np.newaxis,:]
+            nuisance_weight_ratio = (
+                weights_benchmarks.T[self.benchmark_is_nuisance, :] / weights_sampling_benchmark[np.newaxis, :]
+            )
             # Shape (n_nuisance_parameters, n_events)
 
             # grad_i dsigma(x), where i is a nuisance parameter, is given by
             # sigma[np.newaxis, :] * np.log(nuisance_weight_ratio)
 
-            fisher_info_nuisance = luminosity * np.einsum("n,in,jn->nij", sigma, np.log(nuisance_weight_ratio), np.log(nuisance_weight_ratio))
+            fisher_info_nuisance = luminosity * np.einsum(
+                "n,in,jn->nij", sigma, np.log(nuisance_weight_ratio), np.log(nuisance_weight_ratio)
+            )
             fisher_info_mix = luminosity * np.einsum("in,jn->nij", dsigma, np.log(nuisance_weight_ratio))
 
             n_all_parameters = self.n_parameters + self.n_nuisance_parameters
             fisher_info = np.zeros((n_all_parameters, n_all_parameters))
-            fisher_info[:self.n_parameters, :self.n_parameters] = fisher_info_phys
-            fisher_info[:self.n_parameters, self.n_parameters:] = fisher_info_mix
-            fisher_info[self.n_parameters:, :self.n_parameters] = fisher_info_mix.T
-            fisher_info[self.n_parameters:,self.n_parameters:] = fisher_info_nuisance
+            fisher_info[: self.n_parameters, : self.n_parameters] = fisher_info_phys
+            fisher_info[: self.n_parameters, self.n_parameters :] = fisher_info_mix
+            fisher_info[self.n_parameters :, : self.n_parameters] = fisher_info_mix.T
+            fisher_info[self.n_parameters :, self.n_parameters :] = fisher_info_nuisance
 
         else:
             fisher_info = fisher_info_phys
 
         # Error propagation
         if calculate_uncertainty:
-            weights_benchmarks_phys = weights_benchmarks[:,np.logical_not(self.benchmark_is_nuisance)]
+            weights_benchmarks_phys = weights_benchmarks[:, np.logical_not(self.benchmark_is_nuisance)]
 
             n_events = weights_benchmarks_phys.shape[0]
             n_benchmarks = weights_benchmarks_phys.shape[1]

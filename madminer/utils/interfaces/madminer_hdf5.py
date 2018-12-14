@@ -286,7 +286,9 @@ def load_benchmarks_from_madminer_file(filename, include_nuisance_benchmarks=Fal
                 benchmark_is_nuisance = f["benchmarks/is_nuisance"][()]
                 benchmark_is_nuisance = [False if is_nuisance == 0 else True for is_nuisance in benchmark_is_nuisance]
             except KeyError:
-                logging.info("HDF5 file does not contain is_nuisance field. Assuming is_nuisance=False for all benchmarks.")
+                logging.info(
+                    "HDF5 file does not contain is_nuisance field. Assuming is_nuisance=False for all benchmarks."
+                )
                 benchmark_is_nuisance = [False for _ in benchmark_names]
 
             phys_benchmark_names = []
@@ -327,7 +329,9 @@ def save_preformatted_events_to_madminer_file(
         f.create_dataset("samples/observations", data=observations)
 
 
-def save_nuisance_benchmarks_to_madminer_file(filename, weight_names, reference_benchmark=None, sort=True, copy_from=None):
+def save_nuisance_benchmarks_to_madminer_file(
+    filename, weight_names, reference_benchmark=None, sort=True, copy_from=None
+):
     """ Saves the names of nuisance-defined benchmarks in an HDF5 file """
 
     # Copy file
