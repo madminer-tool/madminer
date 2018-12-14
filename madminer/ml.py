@@ -1004,6 +1004,8 @@ class EnsembleForge:
     def __init__(self, estimators=None, debug=False):
         general_init(debug=debug)
         self.debug = debug
+        self.n_parameters = None
+        self.n_observables = None
 
         # Initialize estimators
         if estimators is None:
@@ -1625,6 +1627,8 @@ class EnsembleForge:
         """
         # Accumulate methods of all estimators
         methods = [estimator.method for estimator in self.estimators]
+        all_n_parameters = [estimator.n_parameters for estimator in self.estimators]
+        all_n_observables = [estimator.n_observables for estimator in self.estimators]
 
         if keywords is not None:
             keyword_method = keywords.get("method", None)
@@ -1633,8 +1637,9 @@ class EnsembleForge:
             else:
                 methods.append(keyword_method)
 
-        # Check consistency
-        method_type = None
+        # Check consistency of methods
+        self.method_type = None
+
         for method in methods:
             if method in ["sally", "sallino"]:
                 this_method_type = "local_score"
@@ -1647,15 +1652,34 @@ class EnsembleForge:
             else:
                 raise RuntimeError("Unknown method %s", method)
 
-            if method_type is None:
-                method_type = this_method_type
+            if self.method_type is None:
+                self.method_type = this_method_type
 
-            if method_type != this_method_type:
+            if self.method_type != this_method_type:
                 raise RuntimeError(
                     "Ensemble with inconsistent estimator methods! All methods have to be either"
                     " single-parameterized ratio estimators, doubly parameterized ratio estimators,"
                     " or local score estimators. Found methods " + ", ".join(methods) + "."
                 )
 
+        # Check consistency of parameter and observable numnbers
+        self.n_parameters = None
+        self.n_observables = None
+
+        for estimator_n_parameters, estimator_n_observables in zip(all_n_parameters, all_n_observables):
+            if self.n_parameters is None:
+                self.n_parameters = estimator_n_parameters
+            if self.n_observables is None:
+                self.n_observables = estimator_n_observables
+
+            if self.n_parameters is not None and self.n_parameters != estimator_n_parameters:
+                raise RuntimeError(
+                    "Ensemble with inconsistent numbers of parameters for different estimators: %s", all_n_parameters
+                )
+            if self.n_observables is not None and self.n_observables != n_observables:
+                raise RuntimeError(
+                    "Ensemble with inconsistent numbers of parameters for different estimators: %s", all_n_observables
+                )
+
         # Return method type of ensemble
-        return method_type
+        return self.method_type
