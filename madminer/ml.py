@@ -1679,7 +1679,7 @@ class EnsembleForge:
                 raise RuntimeError(
                     "Ensemble with inconsistent numbers of parameters for different estimators: %s", all_n_parameters
                 )
-            if self.n_observables is not None and self.n_observables != n_observables:
+            if self.n_observables is not None and self.n_observables != estimator_n_observables:
                 raise RuntimeError(
                     "Ensemble with inconsistent numbers of parameters for different estimators: %s", all_n_observables
                 )

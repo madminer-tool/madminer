@@ -217,11 +217,12 @@ def madminer_event_loader(
     # Nuisance parameter filtering
     if not include_nuisance_parameters:
         if benchmark_is_nuisance is None:
-            raise ValueError(
-                "MadMiner event loader requires include_nuisance_parameters=True or benchmark_is_nuisance to be set."
+            logging.warning(
+                "include_nuisance_parameters=False without benchmark_is_nuisance information. Returning all weights."
             )
-
-        benchmark_filter = np.logical_not(np.array(benchmark_is_nuisance, dtype=np.bool))
+            include_nuisance_parameters = True
+        else:
+            benchmark_filter = np.logical_not(np.array(benchmark_is_nuisance, dtype=np.bool))
 
     with h5py.File(filename, "r") as f:
 
