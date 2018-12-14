@@ -990,7 +990,6 @@ class FisherInformation:
         sum_events=False,
         calculate_uncertainty=False,
         weights_benchmark_uncertainties=None,
-        weights_sampling_benchmark=None,
     ):
         """
         Low-level function that calculates a list of full Fisher information matrices for a given parameter point and
@@ -1023,11 +1022,6 @@ class FisherInformation:
             If calculate_uncertainty is True, weights_benchmark_uncertainties sets the uncertainties on each entry of
             weights_benchmarks. If None, weights_benchmark_uncertainties = weights_benchmarks is assumed.
 
-        weights_sampling_benchmark : ndarray or None, optional
-            If include_nuisance_parameters is True, this sets the weights at the morphing benchmark. Shape
-            `(n_events,)`. If None, this function assumes that the first benchmark was always used for sampling, i.e.
-            `weights_sampling_benchmark = weights_benchmarks[:, 0]`.
-
         Returns
         -------
         fisher_information : ndarray
@@ -1058,11 +1052,9 @@ class FisherInformation:
 
         # Nuisance parameter Fisher info
         if include_nuisance_parameters:
-            if weights_sampling_benchmark is None:
-                weights_sampling_benchmark = weights_benchmarks[:, 0]
-
+            i_ref_benchmark = list(self.benchmarks.keys()).index(self.reference_benchmark)
             nuisance_weight_ratio = (
-                weights_benchmarks.T[self.benchmark_is_nuisance, :] / weights_sampling_benchmark[np.newaxis, :]
+                weights_benchmarks.T[self.benchmark_is_nuisance, :] / weights_benchmarks[np.newaxis, :, i_ref_benchmark]
             )
             # Shape (n_nuisance_parameters, n_events)
 
