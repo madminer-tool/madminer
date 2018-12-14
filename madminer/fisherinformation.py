@@ -241,7 +241,9 @@ class FisherInformation:
         else:
             raise RuntimeError("Did not find morphing setup.")
 
-    def calculate_fisher_information_full_truth(self, theta, luminosity=300000.0, cuts=None, efficiency_functions=None):
+    def calculate_fisher_information_full_truth(
+        self, theta, luminosity=300000.0, cuts=None, efficiency_functions=None, include_nuisance_parameters=False
+    ):
         """
         Calculates the full Fisher information at parton / truth level. This is the information in an idealized
         measurement where all parton-level particles with their charges, flavours, and four-momenta can be accessed with
@@ -263,6 +265,9 @@ class FisherInformation:
             Efficiencies. Each entry is a parseable Python expression that returns a float for the efficiency of one
             component. Default value: None.
 
+        include_nuisance_parameters : bool, optional
+            If True, nuisance parameters are taken into account. Default value: False.
+
         Returns
         -------
         fisher_information : ndarray
@@ -282,8 +287,12 @@ class FisherInformation:
             efficiency_functions = []
 
         # Loop over batches
-        fisher_info = np.zeros((self.n_parameters, self.n_parameters))
-        covariance = np.zeros((self.n_parameters, self.n_parameters, self.n_parameters, self.n_parameters))
+        n_all_parameters = self.n_parameters
+        if include_nuisance_parameters:
+            n_all_parameters += self.n_nuisance_parameters
+
+        fisher_info = np.zeros((n_all_parameters, n_all_parameters))
+        covariance = np.zeros((n_all_parameters, n_all_parameters, n_all_parameters, n_all_parameters))
 
         for observations, weights in madminer_event_loader(self.madminer_filename):
             # Cuts
@@ -299,7 +308,12 @@ class FisherInformation:
 
             # Fisher information
             this_fisher_info, this_covariance = self._calculate_fisher_information(
-                theta, weights, luminosity, sum_events=True, calculate_uncertainty=True
+                theta,
+                weights,
+                luminosity,
+                sum_events=True,
+                calculate_uncertainty=True,
+                include_nuisance_parameters=include_nuisance_parameters,
             )
             fisher_info += this_fisher_info
             covariance += this_covariance
@@ -1074,6 +1088,7 @@ class FisherInformation:
             fisher_info[self.n_parameters :, self.n_parameters :] = fisher_info_nuisance
 
         else:
+            n_all_parameters = self.n_parameters
             fisher_info = fisher_info_phys
 
         # Error propagation
@@ -1110,7 +1125,13 @@ class FisherInformation:
             jacobian = luminosity * (temp1 + temp2 + temp3)  # (n_parameters, n_parameters, n_events, n_benchmarks)
 
             # Covariance of information
-            covariance_information = np.einsum("ijnb,nbc,klnc->ijkl", jacobian, covariance_inputs, jacobian)
+            covariance_information_phys = np.einsum("ijnb,nbc,klnc->ijkl", jacobian, covariance_inputs, jacobian)
+
+            if include_nuisance_parameters:
+                covariance_information = np.zeros((n_all_parameters, n_all_parameters))
+                covariance_information[: self.n_parameters, : self.n_parameters] = covariance_information_phys
+            else:
+                covariance_information = covariance_information_phys
 
             if sum_events:
                 return np.sum(fisher_info, axis=0), covariance_information
