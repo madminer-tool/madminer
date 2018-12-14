@@ -268,7 +268,7 @@ def madminer_event_loader(
             current += batch_size
 
 
-def load_benchmarks_from_madminer_file(filename):
+def load_benchmarks_from_madminer_file(filename, include_nuisance_benchmarks=False):
     with h5py.File(filename, "r") as f:
 
         # Benchmarks
@@ -280,6 +280,21 @@ def load_benchmarks_from_madminer_file(filename):
 
         except KeyError:
             raise IOError("Cannot read benchmarks from HDF5 file")
+
+        if not include_nuisance_benchmarks:
+            try:
+                benchmark_is_nuisance = f["benchmarks/is_nuisance"][()]
+                benchmark_is_nuisance = [False if is_nuisance == 0 else True for is_nuisance in benchmark_is_nuisance]
+            except KeyError:
+                logging.info("HDF5 file does not contain is_nuisance field. Assuming is_nuisance=False for all benchmarks.")
+                benchmark_is_nuisance = [False for _ in benchmark_names]
+
+            phys_benchmark_names = []
+            for name, is_nuisance in zip(benchmark_names, benchmark_is_nuisance):
+                if not is_nuisance:
+                    phys_benchmark_names.append(name)
+
+            return phys_benchmark_names
 
         return benchmark_names
 

@@ -482,7 +482,7 @@ class DelphesProcessor:
         self.cuts = []
         self.cuts_default_pass = []
 
-    def analyse_delphes_samples(self, generator_truth=False, delete_delphes_files=False):
+    def analyse_delphes_samples(self, generator_truth=False, delete_delphes_files=False, reference_benchmark=None):
         """
         Main function that parses the Delphes samples (ROOT files), checks acceptance and cuts, and extracts
         the observables and weights.
@@ -497,11 +497,21 @@ class DelphesProcessor:
             If True, the Delphes ROOT files will be deleted after extracting the information from them. Default value:
             False.
 
+        reference_benchmark : str or None, optional
+            The weights at the nuisance benchmarks will be rescaled to some reference theta benchmark:
+            `dsigma(x|theta_sampling(x),nu) -> dsigma(x|theta_ref,nu) = dsigma(x|theta_sampling(x),nu)
+            * dsigma(x|theta_ref,0) / dsigma(x|theta_sampling(x),0)`. This sets the name of the reference benchmark.
+            If None, the first one will be used. Default value: None.
+
         Returns
         -------
             None
 
         """
+
+        # Input
+        if reference_benchmark is None:
+            reference_benchmark = self.benchmark_names[0]
 
         # Reset observations
         self.observations = None
@@ -602,6 +612,14 @@ class DelphesProcessor:
 
                 for benchmark_name in self.benchmark_names:
                     this_weights[benchmark_name] = benchmarks_weight
+
+            # Rescale nuisance parameters to reference benchmark
+            reference_weights = this_weights[reference_benchmark]
+            sampling_weights = this_weights[sampling_benchmark]
+
+            for key in this_weights:
+                if not key in self.benchmark_names:  # Only rescale nuisance benchmarks
+                    this_weights[key] = reference_weights / sampling_weights * this_weights[key]
 
             # First results
             if self.observations is None and self.weights is None:
