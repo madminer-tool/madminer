@@ -1603,6 +1603,9 @@ class EnsembleForge:
             estimator.load(folder + "/estimator_" + str(i))
             self.estimators.append(estimator)
 
+        # Check consistency and update n_parameters, n_observables
+        self._check_consistency()
+
     def _check_consistency(self, keywords=None):
         """
         Internal function that checks if all estimators belong to the same category

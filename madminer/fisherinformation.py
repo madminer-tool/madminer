@@ -44,11 +44,11 @@ def project_information(fisher_information, remaining_components):
 
 
 def profile_information(
-    fisher_information,
-    remaining_components,
-    covariance=None,
-    error_propagation_n_ensemble=1000,
-    error_propagation_factor=1.0e-3,
+        fisher_information,
+        remaining_components,
+        covariance=None,
+        error_propagation_n_ensemble=1000,
+        error_propagation_factor=1.0e-3,
 ):
     """
     Calculates the profiled Fisher information matrix as defined in Appendix A.4 of arXiv:1612.05261.
@@ -242,7 +242,7 @@ class FisherInformation:
             raise RuntimeError("Did not find morphing setup.")
 
     def calculate_fisher_information_full_truth(
-        self, theta, luminosity=300000.0, cuts=None, efficiency_functions=None, include_nuisance_parameters=True
+            self, theta, luminosity=300000.0, cuts=None, efficiency_functions=None, include_nuisance_parameters=True
     ):
         """
         Calculates the full Fisher information at parton / truth level. This is the information in an idealized
@@ -295,7 +295,7 @@ class FisherInformation:
         covariance = np.zeros((n_all_parameters, n_all_parameters, n_all_parameters, n_all_parameters))
 
         for observations, weights in madminer_event_loader(
-            self.madminer_filename, include_nuisance_parameters=include_nuisance_parameters
+                self.madminer_filename, include_nuisance_parameters=include_nuisance_parameters
         ):
             # Cuts
             cut_filter = [self._pass_cuts(obs_event, cuts) for obs_event in observations]
@@ -323,17 +323,17 @@ class FisherInformation:
         return fisher_info, covariance
 
     def calculate_fisher_information_full_detector(
-        self,
-        theta,
-        model_file,
-        unweighted_x_sample_file=None,
-        luminosity=300000.0,
-        include_xsec_info=True,
-        mode="information",
-        uncertainty="ensemble",
-        ensemble_vote_expectation_weight=None,
-        batch_size=100000,
-        test_split=0.5,
+            self,
+            theta,
+            model_file,
+            unweighted_x_sample_file=None,
+            luminosity=300000.0,
+            include_xsec_info=True,
+            mode="information",
+            uncertainty="ensemble",
+            ensemble_vote_expectation_weight=None,
+            batch_size=100000,
+            test_split=0.5,
     ):
         """
         Calculates the full Fisher information in realistic detector-level observations, estimated with neural networks.
@@ -478,12 +478,12 @@ class FisherInformation:
             n_batches = int(np.ceil((self.n_samples - start_event) / batch_size))
 
             for i_batch, (observations, weights_benchmarks) in enumerate(
-                madminer_event_loader(
-                    self.madminer_filename,
-                    batch_size=batch_size,
-                    start=start_event,
-                    include_nuisance_parameters=include_nuisance_parameters,
-                )
+                    madminer_event_loader(
+                        self.madminer_filename,
+                        batch_size=batch_size,
+                        start=start_event,
+                        include_nuisance_parameters=include_nuisance_parameters,
+                    )
             ):
                 logging.info("Evaluating kinematic Fisher information on batch %s / %s", i_batch + 1, n_batches)
 
@@ -554,7 +554,7 @@ class FisherInformation:
         return fisher_info_rate + fisher_info_kin, rate_covariance
 
     def calculate_fisher_information_rate(
-        self, theta, luminosity, cuts=None, efficiency_functions=None, include_nuisance_parameters=True
+            self, theta, luminosity, cuts=None, efficiency_functions=None, include_nuisance_parameters=True
     ):
         """
         Calculates the Fisher information in a measurement of the total cross section (without any kinematic
@@ -616,15 +616,15 @@ class FisherInformation:
         return fisher_info, covariance
 
     def calculate_fisher_information_hist1d(
-        self,
-        theta,
-        luminosity,
-        observable,
-        nbins,
-        histrange=None,
-        cuts=None,
-        efficiency_functions=None,
-        n_events_dynamic_binning=100000,
+            self,
+            theta,
+            luminosity,
+            observable,
+            nbins,
+            histrange=None,
+            cuts=None,
+            efficiency_functions=None,
+            n_events_dynamic_binning=100000,
     ):
         """
         Calculates the Fisher information in the one-dimensional histogram of an (parton-level or detector-level,
@@ -758,17 +758,17 @@ class FisherInformation:
         return fisher_info, covariance
 
     def calculate_fisher_information_hist2d(
-        self,
-        theta,
-        luminosity,
-        observable1,
-        nbins1,
-        histrange1,
-        observable2,
-        nbins2,
-        histrange2,
-        cuts=None,
-        efficiency_functions=None,
+            self,
+            theta,
+            luminosity,
+            observable1,
+            nbins1,
+            histrange1,
+            observable2,
+            nbins2,
+            histrange2,
+            cuts=None,
+            efficiency_functions=None,
     ):
 
         """
@@ -875,7 +875,7 @@ class FisherInformation:
         return fisher_info
 
     def histogram_of_fisher_information(
-        self, theta, luminosity, observable, nbins, histrange, cuts=None, efficiency_functions=None
+            self, theta, luminosity, observable, nbins, histrange, cuts=None, efficiency_functions=None
     ):
         """
         Calculates the full and rate-only Fisher information in slices of one observable.
@@ -1040,14 +1040,14 @@ class FisherInformation:
         return x, weights_thetas
 
     def _calculate_fisher_information(
-        self,
-        theta,
-        weights_benchmarks,
-        luminosity=300000.0,
-        include_nuisance_parameters=True,
-        sum_events=False,
-        calculate_uncertainty=False,
-        weights_benchmark_uncertainties=None,
+            self,
+            theta,
+            weights_benchmarks,
+            luminosity=300000.0,
+            include_nuisance_parameters=True,
+            sum_events=False,
+            calculate_uncertainty=False,
+            weights_benchmark_uncertainties=None,
     ):
         """
         Low-level function that calculates a list of full Fisher information matrices for a given parameter point and
@@ -1110,9 +1110,14 @@ class FisherInformation:
 
         # Nuisance parameter Fisher info
         if include_nuisance_parameters:
-            i_ref_benchmark = list(self.benchmarks.keys()).index(self.reference_benchmark)
+            if self.reference_benchmark is None:
+                logging.warning("Reference benchmark unknown, using first benchmark")
+                i_ref_benchmark = 0
+            else:
+                i_ref_benchmark = list(self.benchmarks.keys()).index(self.reference_benchmark)
             nuisance_weight_ratio = (
-                weights_benchmarks.T[self.benchmark_is_nuisance, :] / weights_benchmarks[np.newaxis, :, i_ref_benchmark]
+                    weights_benchmarks.T[self.benchmark_is_nuisance, :] / weights_benchmarks[np.newaxis, :,
+                                                                          i_ref_benchmark]
             )
             # Shape (n_nuisance_parameters, n_events)
 
@@ -1125,11 +1130,11 @@ class FisherInformation:
             fisher_info_mix = luminosity * np.einsum("in,jn->nij", dsigma, np.log(nuisance_weight_ratio))
 
             n_all_parameters = self.n_parameters + self.n_nuisance_parameters
-            fisher_info = np.zeros((n_all_parameters, n_all_parameters))
-            fisher_info[: self.n_parameters, : self.n_parameters] = fisher_info_phys
-            fisher_info[: self.n_parameters, self.n_parameters :] = fisher_info_mix
-            fisher_info[self.n_parameters :, : self.n_parameters] = fisher_info_mix.T
-            fisher_info[self.n_parameters :, self.n_parameters :] = fisher_info_nuisance
+            fisher_info = np.zeros((fisher_info_phys.shape[0], n_all_parameters, n_all_parameters))
+            fisher_info[:, :self.n_parameters, :self.n_parameters] = fisher_info_phys
+            fisher_info[:, :self.n_parameters, self.n_parameters:] = fisher_info_mix
+            fisher_info[:, self.n_parameters:, :self.n_parameters] = fisher_info_mix.T
+            fisher_info[:, self.n_parameters:, self.n_parameters:] = fisher_info_nuisance
 
         else:
             n_all_parameters = self.n_parameters
@@ -1156,7 +1161,7 @@ class FisherInformation:
 
                 else:  # Off-diagonal, same event
                     covariance_inputs[i, b1, b2] = (
-                        weights_benchmark_uncertainties[i, b1] * weights_benchmark_uncertainties[i, b2]
+                            weights_benchmark_uncertainties[i, b1] * weights_benchmark_uncertainties[i, b2]
                     )
 
             # Jacobian
@@ -1295,14 +1300,14 @@ class FisherInformation:
         return float(eval(observable_definition, variables))
 
     def _calculate_xsec(
-        self,
-        theta=None,
-        cuts=None,
-        efficiency_functions=None,
-        return_benchmark_xsecs=False,
-        return_error=False,
-        include_nuisance_parameters=True,
-        start_event=0,
+            self,
+            theta=None,
+            cuts=None,
+            efficiency_functions=None,
+            return_benchmark_xsecs=False,
+            return_error=False,
+            include_nuisance_parameters=True,
+            start_event=0,
     ):
         """
         Calculates the total cross section for a parameter point.
@@ -1358,7 +1363,7 @@ class FisherInformation:
         xsecs_uncertainty_benchmarks = None
 
         for observations, weights in madminer_event_loader(
-            self.madminer_filename, start=start_event, include_nuisance_parameters=include_nuisance_parameters
+                self.madminer_filename, start=start_event, include_nuisance_parameters=include_nuisance_parameters
         ):
             # Cuts
             cut_filter = [self._pass_cuts(obs_event, cuts) for obs_event in observations]
