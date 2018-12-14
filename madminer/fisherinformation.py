@@ -1109,7 +1109,7 @@ class FisherInformation:
         fisher_info_phys = luminosity * np.einsum("n,in,jn->nij", inv_sigma, dsigma, dsigma)
 
         # Nuisance parameter Fisher info
-        if include_nuisance_parameters:
+        if include_nuisance_parameters and self.n_nuisance_parameters > 0:
             if self.reference_benchmark is None:
                 logging.warning("Reference benchmark unknown, using first benchmark")
                 i_ref_benchmark = 0
@@ -1145,7 +1145,7 @@ class FisherInformation:
             weights_benchmarks_phys = weights_benchmarks[:, np.logical_not(self.benchmark_is_nuisance)]
 
             n_events = weights_benchmarks_phys.shape[0]
-            n_benchmarks = weights_benchmarks_phys.shape[1]
+            n_benchmarks_phys = weights_benchmarks_phys.shape[1]
 
             # Input uncertainties
             if weights_benchmark_uncertainties is None:
@@ -1153,16 +1153,18 @@ class FisherInformation:
 
             # Build covariance matrix of inputs
             # We assume full correlation between weights_benchmarks[i, b1] and weights_benchmarks[i, b2]
-            covariance_inputs = np.zeros((n_events, weights_benchmarks_phys, weights_benchmarks_phys))
-            for i, b1, b2 in zip(range(n_events), range(n_benchmarks), range(n_benchmarks)):
+            covariance_inputs = np.zeros((n_events, n_benchmarks_phys, n_benchmarks_phys))
+            for i in range(n_events):
+                for b1 in range(n_benchmarks_phys):
+                    for b2 in range(n_benchmarks_phys):
 
-                if b1 == b2:  # Diagonal
-                    covariance_inputs[i, b1, b2] = weights_benchmark_uncertainties[i, b1] ** 2
+                        if b1 == b2:  # Diagonal
+                            covariance_inputs[i, b1, b2] = weights_benchmark_uncertainties[i, b1] ** 2
 
-                else:  # Off-diagonal, same event
-                    covariance_inputs[i, b1, b2] = (
-                            weights_benchmark_uncertainties[i, b1] * weights_benchmark_uncertainties[i, b2]
-                    )
+                        else:  # Off-diagonal, same event
+                            covariance_inputs[i, b1, b2] = (
+                                    weights_benchmark_uncertainties[i, b1] * weights_benchmark_uncertainties[i, b2]
+                            )
 
             # Jacobian
             temp1 = np.einsum("ib,jn,n->ijnb", dtheta_matrix, dsigma, inv_sigma)
