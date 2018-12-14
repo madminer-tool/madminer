@@ -327,7 +327,7 @@ def save_preformatted_events_to_madminer_file(
         f.create_dataset("samples/observations", data=observations)
 
 
-def save_nuisance_benchmarks_to_madminer_file(filename, weight_names, sort=True, copy_from=None):
+def save_nuisance_benchmarks_to_madminer_file(filename, weight_names, reference_benchmark=None, sort=True, copy_from=None):
     """ Saves the names of nuisance-defined benchmarks in an HDF5 file """
 
     # Copy file
@@ -382,9 +382,13 @@ def save_nuisance_benchmarks_to_madminer_file(filename, weight_names, sort=True,
         benchmark_is_nuisance = np.array(
             [1 if is_nuisance else 0 for is_nuisance in benchmark_is_nuisance], dtype=np.int
         )
+        benchmark_is_reference = np.array(
+            [1 if bname == reference_benchmark else 0 for bname in benchmark_names], dtype=np.int
+        )
 
         logging.debug("Combined benchmark names: %s", benchmark_names)
         logging.debug("Combined is_nuisance: %s", benchmark_is_nuisance)
+        logging.debug("Combined is_reference: %s", benchmark_is_reference)
 
         # Make room for saving all this glorious data
         del f["benchmarks"]
@@ -393,6 +397,7 @@ def save_nuisance_benchmarks_to_madminer_file(filename, weight_names, sort=True,
         f.create_dataset("benchmarks/names", (n_benchmarks,), dtype="S256", data=benchmark_names_ascii)
         f.create_dataset("benchmarks/values", data=benchmark_values)
         f.create_dataset("benchmarks/is_nuisance", data=benchmark_is_nuisance)
+        f.create_dataset("benchmarks/is_reference", data=benchmark_is_reference)
 
 
 def save_events_to_madminer_file(

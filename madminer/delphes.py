@@ -83,6 +83,7 @@ class DelphesProcessor:
         self.acceptance_eta_max_j = None
 
         # Initialize samples
+        self.reference_benchmark = None
         self.observations = None
         self.weights = None
         self.sampled_from_benchmark = None
@@ -512,6 +513,7 @@ class DelphesProcessor:
         # Input
         if reference_benchmark is None:
             reference_benchmark = self.benchmark_names[0]
+        self.reference_benchmark = reference_benchmark
 
         # Reset observations
         self.observations = None
@@ -680,7 +682,7 @@ class DelphesProcessor:
         weight_names = list(self.weights.keys())
         logging.debug("Weight names: %s", weight_names)
 
-        save_nuisance_benchmarks_to_madminer_file(filename_out, weight_names, copy_from=self.filename)
+        save_nuisance_benchmarks_to_madminer_file(filename_out, weight_names, reference_benchmark=self.reference_benchmark, copy_from=self.filename)
 
         # Save events
         save_events_to_madminer_file(
