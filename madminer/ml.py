@@ -814,7 +814,7 @@ class MLForge:
 
         # Calculate expected score
         expected_score = np.mean(t_hats, axis=0)
-        logging.debug("Expected per-event score (should be close to zero): %s", expected_score)
+        logging.info("Expected per-event score (should be close to zero): %s", expected_score)
 
         return fisher_information
 
@@ -1480,7 +1480,7 @@ class EnsembleForge:
                 * np.einsum("eni,enj->nij", score_pred_minus_ens_mean, score_pred_minus_ens_mean)
             )  # (n_events, n_parameters, n_parameters)
 
-            # Event-wise FIsher info
+            # Event-wise Fisher info
             event_information_mean = np.einsum("ni,nj->nij", score_mean, score_mean)
             event_information_cov = (
                 np.einsum("ni,njk,nl->nijkl", score_mean, score_cov, score_mean)
@@ -1499,6 +1499,13 @@ class EnsembleForge:
 
             # Propagate uncertainty to Fisher information
             ensemble_covariances = [float(n_events) * np.einsum("n,nijkl->ijkl", obs_weights, event_information_cov)]
+
+            # Let's check the expected score
+            expected_score = [np.einsum("n,ni->i", obs_weights, score_mean)]
+            expected_score_cov = [np.einsum("n,nij->ij", obs_weights, score_cov)]
+            logging.info("Expected per-event score (should be close to zero):\n%s\nwith covariance matrix\n%s",
+                         expected_score, expected_score_cov)
+
 
         # Calculate ensemble expectation
         expectation_covariances = None
