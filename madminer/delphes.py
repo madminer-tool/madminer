@@ -29,8 +29,7 @@ class DelphesProcessor:
     This class provides an example implementation based on Delphes. Its workflow consists of the following steps:
 
     * Initializing the class with the filename of a MadMiner HDF5 file (the output of `madminer.core.MadMiner.save()`)
-    * Adding one or multiple HepMC samples produced by Pythia in `DelphesProcessor.add_hepmc_sample()` or,
-      alternatively, adding Delphes samples with `DelphesProcessor.add_delphes_sample()`
+    * Adding one or multiple event samples produced by MadGraph and Pythia in `DelphesProcessor.add_sample()`.
     * Running Delphes on the samples that require it through `DelphesProcessor.run_delphes()`
     * Optionally, acceptance cuts for all visible particles can be defined with `DelphesProcessor.set_acceptance()`.
     * Defining observables through `DelphesProcessor.add_observable()` or
@@ -93,81 +92,28 @@ class DelphesProcessor:
         self.benchmark_names = load_benchmarks_from_madminer_file(self.filename)
         self.n_benchmarks = len(self.benchmark_names)
 
-    def add_hepmc_sample(
-        self, filename, sampled_from_benchmark, is_background=False, k_factor=1.0, weights="delphes", lhe_filename=None
-    ):
-        """
-        Adds simulated events in the HepMC format.
-
-        Parameters
-        ----------
-        filename : str
-            Path to the HepMC event file (with extension '.hepmc' or '.hepmc.gz').
-            
-        sampled_from_benchmark : str
-            Name of the benchmark that was used for sampling in this event file (the keyword `sample_benchmark`
-            of `madminer.core.MadMiner.run()`).
-
-        is_background : bool, optional
-            Whether the sample is a background sample (i.e. without benchmark reweighting).
-
-        k_factor : float, optional
-            Multiplies the cross sections found in the sample. Default value: 1.
-
-        weights : {"delphes", "lhe"}, optional
-            If "delphes", the weights are read out from the Delphes ROOT file, and their names are taken from the
-            HepMC file. If "lhe" (and lhe_filename is not None), the weights are taken from the LHE file (and matched
-            with the observables from the Delphes ROOT file). The "delphes" behaviour is generally better as it
-            minimizes the risk of mismatching observables and weights, but for some MadGraph and Delphes versions
-            there are issues with weights not being saved in the HepMC and Delphes ROOT files. In this case, setting
-            weights to "lhe" and providing the unweighted LHE file from MadGraph may be an easy fix. Default value:
-            "delphes".
-
-        lhe_filename : None or str, optional
-            If weights is "lhe", this is the path to the unweighted LHE file (with extension '.lhe' or '.lhe.gz') that
-            MadGraph put out and feeds into Pythia.
-
-        Returns
-        -------
-            None
-
-        """
-
-        logging.debug("Adding HepMC sample at %s", filename)
-
-        assert weights in ["delphes", "lhe"], "Unknown setting for weights: %s. Has to be 'delphes' or 'lhe'."
-
-        self.hepmc_sample_filenames.append(filename)
-        self.hepmc_sample_weight_labels.append(extract_weight_order(filename, sampled_from_benchmark))
-        self.hepmc_sampled_from_benchmark.append(sampled_from_benchmark)
-        self.hepmc_is_backgrounds.append(is_background)
-        self.delphes_sample_filenames.append(None)
-        self.sample_k_factors.append(k_factor)
-
-        if weights == "lhe" and lhe_filename is not None:
-            self.lhe_sample_filenames_for_weights.append(lhe_filename)
-        else:
-            self.lhe_sample_filenames_for_weights.append(None)
-
-    def add_delphes_sample(
+    def add_sample(
         self,
-        delphes_filename,
         hepmc_filename,
         sampled_from_benchmark,
         is_background=False,
+        delphes_filename=None,
+        lhe_filename=None,
         k_factor=1.0,
         weights="delphes",
-        lhe_filename=None,
     ):
         """
-        Adds simulated events as a Delphes ROOT file. Since not all relevant information is contained in the Delphes
-        ROOT file, a HepMC file also has to be provided.
+        Adds a sample of simulated events. A HepMC file (from Pythia) has to be provided always, since some relevant
+        information is only stored in this file. The user can optionally provide a Delphes file, in this case
+        run_delphes() does not have to be called.
+
+        By default, the weights are read out from the Delphes file and their names from the HepMC file. There are some
+        issues with current MadGraph versions that lead to Pythia not storing the weights. As work-around, MadMiner
+        supports reading weights from the LHE file (the observables still come from the Delphes file). To enable this,
+        use weights="lhe".
 
         Parameters
         ----------
-        delphes_filename : str
-            Path to the Delphes event file (with extension '.root').
-
         hepmc_filename : str
             Path to the HepMC event file (with extension '.hepmc' or '.hepmc.gz').
 
@@ -178,6 +124,13 @@ class DelphesProcessor:
         is_background : bool, optional
             Whether the sample is a background sample (i.e. without benchmark reweighting).
 
+        delphes_filename : str or None, optional
+            Path to the Delphes event file (with extension '.root'). If None, the user has to call run_delphes(), which
+            will create this file. Default value: None.
+
+        lhe_filename : None or str, optional
+            Path to the LHE event file (with extension '.lhe' or '.lhe.gz'). This is only needed if weights is "lhe".
+
         k_factor : float, optional
             Multiplies the cross sections found in the sample. Default value: 1.
 
@@ -190,17 +143,13 @@ class DelphesProcessor:
             weights to "lhe" and providing the unweighted LHE file from MadGraph may be an easy fix. Default value:
             "delphes".
 
-        lhe_filename : None or str, optional
-            If weights is "lhe", this is the path to the unweighted LHE file (with extension '.lhe' or '.lhe.gz') that
-            MadGraph put out and feeds into Pythia.
-
         Returns
         -------
             None
 
         """
 
-        logging.debug("Adding Delphes sample at %s, based on HepMC file at %s", delphes_filename, hepmc_filename)
+        logging.debug("Adding event sample %s", hepmc_filename)
 
         assert weights in ["delphes", "lhe"], "Unknown setting for weights: %s. Has to be 'delphes' or 'lhe'."
 
@@ -208,8 +157,8 @@ class DelphesProcessor:
         self.hepmc_sample_weight_labels.append(extract_weight_order(hepmc_filename, sampled_from_benchmark))
         self.hepmc_sampled_from_benchmark.append(sampled_from_benchmark)
         self.hepmc_is_backgrounds.append(is_background)
-        self.delphes_sample_filenames.append(delphes_filename)
         self.sample_k_factors.append(k_factor)
+        self.delphes_sample_filenames.append(delphes_filename)
 
         if weights == "lhe" and lhe_filename is not None:
             self.lhe_sample_filenames_for_weights.append(lhe_filename)
