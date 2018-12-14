@@ -242,7 +242,7 @@ class FisherInformation:
             raise RuntimeError("Did not find morphing setup.")
 
     def calculate_fisher_information_full_truth(
-        self, theta, luminosity=300000.0, cuts=None, efficiency_functions=None, include_nuisance_parameters=False
+        self, theta, luminosity=300000.0, cuts=None, efficiency_functions=None, include_nuisance_parameters=True
     ):
         """
         Calculates the full Fisher information at parton / truth level. This is the information in an idealized
@@ -266,7 +266,7 @@ class FisherInformation:
             component. Default value: None.
 
         include_nuisance_parameters : bool, optional
-            If True, nuisance parameters are taken into account. Default value: False.
+            If True, nuisance parameters are taken into account. Default value: True.
 
         Returns
         -------
@@ -554,7 +554,7 @@ class FisherInformation:
         return fisher_info_rate + fisher_info_kin, rate_covariance
 
     def calculate_fisher_information_rate(
-        self, theta, luminosity, cuts=None, efficiency_functions=None, include_nuisance_parameters=False
+        self, theta, luminosity, cuts=None, efficiency_functions=None, include_nuisance_parameters=True
     ):
         """
         Calculates the Fisher information in a measurement of the total cross section (without any kinematic
@@ -577,7 +577,7 @@ class FisherInformation:
             component. Default value: None.
 
         include_nuisance_parameters : bool, optional
-            If True, nuisance parameters are taken into account. Default value: False.
+            If True, nuisance parameters are taken into account. Default value: True.
 
         Returns
         -------
@@ -1044,7 +1044,7 @@ class FisherInformation:
         theta,
         weights_benchmarks,
         luminosity=300000.0,
-        include_nuisance_parameters=False,
+        include_nuisance_parameters=True,
         sum_events=False,
         calculate_uncertainty=False,
         weights_benchmark_uncertainties=None,
@@ -1065,7 +1065,7 @@ class FisherInformation:
             Luminosity in pb^-1. Default value: 300000.
 
         include_nuisance_parameters : bool, optional
-            If True, nuisance parameters are taken into account. Default value: False.
+            If True, nuisance parameters are taken into account. Default value: True.
 
         sum_events : bool, optional
             If True, returns the summed FIsher information. Otherwise, a list of Fisher
@@ -1301,7 +1301,7 @@ class FisherInformation:
         efficiency_functions=None,
         return_benchmark_xsecs=False,
         return_error=False,
-        include_nuisance_parameters=False,
+        include_nuisance_parameters=True,
         start_event=0,
     ):
         """
@@ -1329,7 +1329,7 @@ class FisherInformation:
 
         include_nuisance_parameters : bool, optional
             If True and if return_benchmark_xsecs is True, the nuisance benchmarks are included in the output. Default
-            value: False.
+            value: True.
 
         start_event : int, optional
             Index of first event in MadMiner file to consider. Default value: 0.
