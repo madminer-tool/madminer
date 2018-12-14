@@ -294,7 +294,9 @@ class FisherInformation:
         fisher_info = np.zeros((n_all_parameters, n_all_parameters))
         covariance = np.zeros((n_all_parameters, n_all_parameters, n_all_parameters, n_all_parameters))
 
-        for observations, weights in madminer_event_loader(self.madminer_filename):
+        for observations, weights in madminer_event_loader(
+            self.madminer_filename, include_nuisance_parameters=include_nuisance_parameters
+        ):
             # Cuts
             cut_filter = [self._pass_cuts(obs_event, cuts) for obs_event in observations]
             observations = observations[cut_filter]
@@ -336,6 +338,8 @@ class FisherInformation:
         """
         Calculates the full Fisher information in realistic detector-level observations, estimated with neural networks.
         In addition to the MadMiner file, this requires a trained SALLY or SALLINO estimator.
+
+        Nuisance parameter are taken into account automatically if the SALLY / SALLINO model was trained with them.
 
         Parameters
         ----------
@@ -402,18 +406,6 @@ class FisherInformation:
         if mode not in ["score", "information"]:
             raise ValueError("Unknown mode {}, has to be 'score' or 'information'!".format(mode))
 
-        # Total xsec
-        total_xsec = self._calculate_xsec(theta=theta)
-
-        # Rate part of Fisher information
-        fisher_info_rate = 0.0
-        rate_covariance = 0.0
-        if include_xsec_info:
-            logging.info("Evaluating rate Fisher information")
-            fisher_info_rate, rate_covariance = self.calculate_fisher_information_rate(
-                theta=theta, luminosity=luminosity
-            )
-
         # Load SALLY model
         if os.path.isdir(model_file):
             model_is_ensemble = True
@@ -423,6 +415,44 @@ class FisherInformation:
             model_is_ensemble = False
             model = MLForge(debug=self.debug)
             model.load(model_file)
+
+        # Nuisance parameters?
+        if model.n_parameters == self.n_parameters:
+            logging.debug(
+                "Found %s parameters in SALLY model, matching %s physical parameters in MadMiner file",
+                model.n_parameters,
+                self.n_parameters,
+            )
+            include_nuisance_parameters = False
+        elif model.n_parameters == self.n_parameters + self.n_nuisance_parameters:
+            logging.debug(
+                "Found %s parameters in SALLY model, matching %s physical parameters + %s nuisance parameters"
+                " in MadMiner file",
+                model.n_parameters,
+                self.n_parameters,
+                self.n_nuisance_parameters,
+            )
+            include_nuisance_parameters = True
+        else:
+            logging.warning(
+                "Inconsistent numbers of parameters! Found %s in SALLY model, %s physical parameters in "
+                "MadMiner file, and %s nuisance parameters in MadMiner file.",
+                model.n_parameters,
+                self.n_parameters,
+                self.n_nuisance_parameters,
+            )
+
+        # Total xsec
+        total_xsec = self._calculate_xsec(theta=theta)
+
+        # Rate part of Fisher information
+        fisher_info_rate = 0.0
+        rate_covariance = 0.0
+        if include_xsec_info:
+            logging.info("Evaluating rate Fisher information")
+            fisher_info_rate, rate_covariance = self.calculate_fisher_information_rate(
+                theta=theta, luminosity=luminosity, include_nuisance_parameters=include_nuisance_parameters
+            )
 
         # Evaluation from weighted events
         if unweighted_x_sample_file is None:
@@ -448,7 +478,12 @@ class FisherInformation:
             n_batches = int(np.ceil((self.n_samples - start_event) / batch_size))
 
             for i_batch, (observations, weights_benchmarks) in enumerate(
-                madminer_event_loader(self.madminer_filename, batch_size=batch_size, start=start_event)
+                madminer_event_loader(
+                    self.madminer_filename,
+                    batch_size=batch_size,
+                    start=start_event,
+                    include_nuisance_parameters=include_nuisance_parameters,
+                )
             ):
                 logging.info("Evaluating kinematic Fisher information on batch %s / %s", i_batch + 1, n_batches)
 
@@ -518,7 +553,9 @@ class FisherInformation:
 
         return fisher_info_rate + fisher_info_kin, rate_covariance
 
-    def calculate_fisher_information_rate(self, theta, luminosity, cuts=None, efficiency_functions=None):
+    def calculate_fisher_information_rate(
+        self, theta, luminosity, cuts=None, efficiency_functions=None, include_nuisance_parameters=False
+    ):
         """
         Calculates the Fisher information in a measurement of the total cross section (without any kinematic
         information).
@@ -539,6 +576,9 @@ class FisherInformation:
             Efficiencies. Each entry is a parseable Python expression that returns a float for the efficiency of one
             component. Default value: None.
 
+        include_nuisance_parameters : bool, optional
+            If True, nuisance parameters are taken into account. Default value: False.
+
         Returns
         -------
         fisher_information : ndarray
@@ -553,7 +593,11 @@ class FisherInformation:
 
         # Get weights at benchmarks
         weights_benchmarks, weights_benchmark_uncertainties = self._calculate_xsec(
-            cuts=cuts, efficiency_functions=efficiency_functions, return_benchmark_xsecs=True, return_error=True
+            cuts=cuts,
+            efficiency_functions=efficiency_functions,
+            return_benchmark_xsecs=True,
+            return_error=True,
+            include_nuisance_parameters=include_nuisance_parameters,
         )
 
         weights_benchmarks = weights_benchmarks.reshape((1, -1))
@@ -1257,6 +1301,7 @@ class FisherInformation:
         efficiency_functions=None,
         return_benchmark_xsecs=False,
         return_error=False,
+        include_nuisance_parameters=False,
         start_event=0,
     ):
         """
@@ -1281,6 +1326,10 @@ class FisherInformation:
 
         return_error : bool, optional
             If True, this function also returns the square root of the summed squared weights.
+
+        include_nuisance_parameters : bool, optional
+            If True and if return_benchmark_xsecs is True, the nuisance benchmarks are included in the output. Default
+            value: False.
 
         start_event : int, optional
             Index of first event in MadMiner file to consider. Default value: 0.
@@ -1308,7 +1357,9 @@ class FisherInformation:
         xsecs_benchmarks = None
         xsecs_uncertainty_benchmarks = None
 
-        for observations, weights in madminer_event_loader(self.madminer_filename, start=start_event):
+        for observations, weights in madminer_event_loader(
+            self.madminer_filename, start=start_event, include_nuisance_parameters=include_nuisance_parameters
+        ):
             # Cuts
             cut_filter = [self._pass_cuts(obs_event, cuts) for obs_event in observations]
             observations = observations[cut_filter]
