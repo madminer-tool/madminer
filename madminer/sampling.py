@@ -281,6 +281,7 @@ class SampleAugmenter:
             self.observables,
             self.n_samples,
             _,
+            self.reference_benchmark,
         ) = load_madminer_settings(filename, include_nuisance_benchmarks=include_nuisance_parameters)
 
         self.n_parameters = len(self.parameters)
@@ -1248,11 +1249,14 @@ class SampleAugmenter:
         include_nuisance_parameters = self.include_nuisance_parameters and nuisance_score
         nuisance_filter = np.array(self.benchmark_is_nuisance, dtype=np.bool)
         i_ref_benchmark = 0
+        if self.reference_benchmark is not None:
+            i_ref_benchmark = list(self.benchmarks.keys()).index(self.reference_benchmark)
+        elif include_nuisance_parameters:
+            logging.warning("No reference benchmark found. Using first benchmark.")
 
         # Calculate total xsecs for benchmarks
         xsecs_benchmarks = None
         squared_weight_sum_benchmarks = None
-        xsec_nuisance_at_ref_benchmark = 0.0
         n_observables = 0
 
         for obs, weights, sampled_from_benchmark in madminer_event_loader(
@@ -1274,23 +1278,9 @@ class SampleAugmenter:
                 xsecs_benchmarks += np.sum(weights, axis=0)
                 squared_weight_sum_benchmarks += np.sum(weights * weights, axis=0)
 
-            # Calculate xsec at reference benchmark (let's take the first one)
-            if include_nuisance_parameters:
-                for weight, sampled_from in zip(weights, sampled_from_benchmark):
-                    xsec_nuisance_at_ref_benchmark += (
-                        weight[nuisance_filter] * weight[i_ref_benchmark] / weight[sampled_from]
-                    )
-
             n_observables = obs.shape[1]
 
         logging.debug("Benchmark cross sections [pb]: %s", xsecs_benchmarks)
-
-        # Nuisance parameter
-        xsec_ref_benchmark = xsecs_benchmarks[i_ref_benchmark]
-
-        if include_nuisance_parameters:
-            logging.debug("Reference benchmark cross section [pb]: %s", xsec_ref_benchmark)
-            logging.debug("Nuisance benchmark cross sections at reference [pb]: %s", xsec_nuisance_at_ref_benchmark)
 
         # Balance thetas
         theta_sets_types, theta_sets_values = balance_thetas(theta_sets_types, theta_sets_values)
@@ -1438,18 +1428,6 @@ class SampleAugmenter:
                     samples_x[found_now] = x_batch[indices[found_now]]
                     samples_done[found_now] = True
 
-                    # Information for nuisance parameters
-                    if include_nuisance_parameters:
-                        weights_nuisance_at_ref_benchmark = []
-                        for weight, sampled_from in zip(
-                            weights_benchmarks_batch[indices[found_now], :], sampled_from_benchmark[indices[found_now]]
-                        ):
-                            weights_nuisance_at_ref_benchmark.append(
-                                weight[nuisance_filter] * weight[i_ref_benchmark] / weight[sampled_from]
-                            )
-                        weights_nuisance_at_ref_benchmark = np.array(weights_nuisance_at_ref_benchmark)
-                        weights_ref_benchmark = weights_benchmarks_batch[indices[found_now], i_ref_benchmark]
-
                     # Extract augmented data
                     if include_nuisance_parameters:
                         relevant_augmented_data = calculate_augmented_data(
@@ -1458,9 +1436,8 @@ class SampleAugmenter:
                             xsecs_benchmarks,
                             theta_matrices,
                             theta_gradient_matrices,
-                            weights_nuisance_ratios=weights_nuisance_at_ref_benchmark
-                            / weights_ref_benchmark[:, np.newaxis],
-                            xsecs_nuisance_ratios=xsec_nuisance_at_ref_benchmark / xsec_ref_benchmark[np.newaxis],
+                            nuisance_filter=nuisance_filter,
+                            i_ref_benchmark=i_ref_benchmark,
                         )
                     else:
                         relevant_augmented_data = calculate_augmented_data(

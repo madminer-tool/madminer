@@ -129,6 +129,15 @@ def load_madminer_settings(filename, include_nuisance_benchmarks=False):
             logging.info("HDF5 file does not contain is_nuisance field. Assuming is_nuisance=False for all benchmarks.")
             benchmark_is_nuisance = [False for _ in benchmark_names]
 
+        reference_benchmark = None
+        try:
+            benchmark_is_reference = f["benchmarks/is_reference"][()]
+            for is_reference, bname in zip(benchmark_is_reference, benchmark_names):
+                if is_reference:
+                    reference_benchmark = bname
+        except KeyError:
+            logging.info("HDF5 file does not contain is_reference field.")
+
         benchmark_names = [bname.decode("ascii") for bname in benchmark_names]
 
         benchmarks = OrderedDict()
@@ -192,6 +201,7 @@ def load_madminer_settings(filename, include_nuisance_benchmarks=False):
             observables,
             n_samples,
             systematics_arguments,
+            reference_benchmark,
         )
 
 
