@@ -6,7 +6,7 @@ import six
 import os
 
 from madminer.utils.interfaces.madminer_hdf5 import load_madminer_settings, madminer_event_loader
-from madminer.utils.analysis import get_theta_benchmark_matrix, get_dtheta_benchmark_matrix
+from madminer.utils.analysis import get_theta_benchmark_matrix, get_dtheta_benchmark_matrix, mdot
 from madminer.morphing import Morpher
 from madminer.utils.various import general_init, format_benchmark, math_commands, weighted_quantile, sanitize_array
 from madminer.ml import MLForge, EnsembleForge
@@ -205,6 +205,7 @@ class FisherInformation:
         self.n_parameters = len(self.parameters)
         self.n_benchmarks = len(self.benchmarks)
         self.n_benchmarks_phys = np.sum(np.logical_not(self.benchmark_is_nuisance))
+        self.n_nuisance_parameters = self.n_benchmarks - self.n_benchmarks_phys
 
         logging.info("Found %s parameters:", len(self.parameters))
         for key, values in six.iteritems(self.parameters):
@@ -984,9 +985,11 @@ class FisherInformation:
         theta,
         weights_benchmarks,
         luminosity=300000.0,
+        include_nuisance_parameters=False,
         sum_events=False,
         calculate_uncertainty=False,
         weights_benchmark_uncertainties=None,
+        weights_sampling_benchmark=None
     ):
         """
         Low-level function that calculates a list of full Fisher information matrices for a given parameter point and
@@ -1000,12 +1003,29 @@ class FisherInformation:
         weights_benchmarks : ndarray
             Benchmark weights.  Shape (n_events, n_benchmark).
 
-        luminosity : float
-            Luminosity in pb^-1.
+        luminosity : float, optional
+            Luminosity in pb^-1. Default value: 300000.
+
+        include_nuisance_parameters : bool, optional
+            If True, nuisance parameters are taken into account. Default value: False.
 
         sum_events : bool, optional
             If True, returns the summed FIsher information. Otherwise, a list of Fisher
             information matrices for each event. Default value: False.
+
+        calculate_uncertainty : bool, optional
+            Whether an uncertainty of the result is calculated. Note that this uncertainty is currently only
+            implemented for the "physical" part of the FIsher information, not for the nuisance parameters. Default
+            value: False.
+
+        weights_benchmark_uncertainties : ndarray or None, optional
+            If calculate_uncertainty is True, weights_benchmark_uncertainties sets the uncertainties on each entry of
+            weights_benchmarks. If None, weights_benchmark_uncertainties = weights_benchmarks is assumed.
+
+        weights_sampling_benchmark : ndarray or None, optional
+            If include_nuisance_parameters is True, this sets the weights at the morphing benchmark. Shape
+            `(n_events,)`. If None, this function assumes that the first benchmark was always used for sampling, i.e.
+            `weights_sampling_benchmark = weights_benchmarks[:, 0]`.
 
         Returns
         -------
@@ -1013,6 +1033,11 @@ class FisherInformation:
             If sum_events is True, the return value is an nxn matrix, the total Fisher information
             summed over all events. Otherwise, a n_events x n_parameters x n_parameters tensor is returned that
             includes the Fisher information matrices for each event separately.
+
+        fisher_information_uncertainty : ndarray
+            Only returned if calculate_uncertainty is True. Covariance matrix of the Fisher information. Note that this
+            does not take into account any uncertainty on the nuisance parameter part of the Fisher information, and
+            correlations between events are neglected.
 
         """
 
@@ -1023,34 +1048,51 @@ class FisherInformation:
         )  # (n_parameters, n_benchmarks)
 
         # Get differential xsec per event, and the derivative wrt to theta
-        sigma = theta_matrix.dot(weights_benchmarks.T)  # Shape (n_events,)
+        sigma = mdot(theta_matrix, weights_benchmarks)  # Shape (n_events,)
         inv_sigma = sanitize_array(1.0 / sigma)  # Shape (n_events,)
-        dsigma = dtheta_matrix.dot(weights_benchmarks.T)  # Shape (n_parameters, n_events)
+        dsigma = mdot(dtheta_matrix, weights_benchmarks)  # Shape (n_parameters, n_events)
 
-        # Calculate Fisher info for this event
-        fisher_info = luminosity * np.einsum("n,in,jn->nij", inv_sigma, dsigma, dsigma)
+        # Calculate physics Fisher info for this event
+        fisher_info_phys = luminosity * np.einsum("n,in,jn->nij", inv_sigma, dsigma, dsigma)
 
-        # # Old code:
-        # fisher_info_debug = []
-        # for i_event in range(len(sigma)):
-        #     fisher_info_debug.append(luminosity / sigma[i_event] * np.tensordot(dsigma.T[i_event], dsigma.T[i_event],
-        #                                                                         axes=0))
-        # fisher_info_debug = np.array(fisher_info_debug)
-        # fisher_info_debug = sanitize_array(fisher_info_debug)
-        # logging.debug('Old vs new Fisher info calculation:\n%s\n%s\n%s', fisher_info - fisher_info_debug, fisher_info,
-        #               fisher_info_debug)
+        # Nuisance parameter Fisher info
+        if include_nuisance_parameters:
+            if weights_sampling_benchmark is None:
+                weights_sampling_benchmark = weights_benchmarks[:,0]
 
+            nuisance_weight_ratio = weights_benchmarks.T[self.benchmark_is_nuisance,:] / weights_sampling_benchmark[np.newaxis,:]
+            # Shape (n_nuisance_parameters, n_events)
+
+            # grad_i dsigma(x), where i is a nuisance parameter, is given by
+            # sigma[np.newaxis, :] * np.log(nuisance_weight_ratio)
+
+            fisher_info_nuisance = luminosity * np.einsum("n,in,jn->nij", sigma, np.log(nuisance_weight_ratio), np.log(nuisance_weight_ratio))
+            fisher_info_mix = luminosity * np.einsum("in,jn->nij", dsigma, np.log(nuisance_weight_ratio))
+
+            n_all_parameters = self.n_parameters + self.n_nuisance_parameters
+            fisher_info = np.zeros((n_all_parameters, n_all_parameters))
+            fisher_info[:self.n_parameters, :self.n_parameters] = fisher_info_phys
+            fisher_info[:self.n_parameters, self.n_parameters:] = fisher_info_mix
+            fisher_info[self.n_parameters:, :self.n_parameters] = fisher_info_mix.T
+            fisher_info[self.n_parameters:,self.n_parameters:] = fisher_info_nuisance
+
+        else:
+            fisher_info = fisher_info_phys
+
+        # Error propagation
         if calculate_uncertainty:
-            n_events = weights_benchmarks.shape[0]
-            n_benchmarks = weights_benchmarks.shape[1]
+            weights_benchmarks_phys = weights_benchmarks[:,np.logical_not(self.benchmark_is_nuisance)]
+
+            n_events = weights_benchmarks_phys.shape[0]
+            n_benchmarks = weights_benchmarks_phys.shape[1]
 
             # Input uncertainties
             if weights_benchmark_uncertainties is None:
-                weights_benchmark_uncertainties = weights_benchmarks  # Shape (n_events, n_benchmarks)
+                weights_benchmark_uncertainties = weights_benchmarks_phys  # Shape (n_events, n_benchmarks)
 
             # Build covariance matrix of inputs
             # We assume full correlation between weights_benchmarks[i, b1] and weights_benchmarks[i, b2]
-            covariance_inputs = np.zeros((n_events, n_benchmarks, n_benchmarks))
+            covariance_inputs = np.zeros((n_events, weights_benchmarks_phys, weights_benchmarks_phys))
             for i, b1, b2 in zip(range(n_events), range(n_benchmarks), range(n_benchmarks)):
 
                 if b1 == b2:  # Diagonal
@@ -1072,26 +1114,6 @@ class FisherInformation:
 
             # Covariance of information
             covariance_information = np.einsum("ijnb,nbc,klnc->ijkl", jacobian, covariance_inputs, jacobian)
-
-            # Old code:
-            # covariance_inputs = covariance_inputs.reshape((-1))
-            # jacobian = jacobian.reshape((jacobian.shape[0] * jacobian.shape[1], -1))
-            # covariance_information = np.einsum("IK,K,JK->IJ", jacobian, covariance_inputs, jacobian)
-            # covariance_information = covariance_information.reshape(
-            #     (self.n_parameters, self.n_parameters, self.n_parameters, self.n_parameters)
-            # )
-
-            # logging.debug('Terms in uncertainty calculation:')
-            # logging.debug('  theta_matrix = %s', theta_matrix)
-            # logging.debug('  dtheta_matrix = %s', dtheta_matrix)
-            # logging.debug('  sigma = %s', sigma)
-            # logging.debug('  inv_sigma = %s', inv_sigma)
-            # logging.debug('  covariance_inputs = %s', covariance_inputs)
-            # logging.debug('  temp1 = %s', temp1)
-            # logging.debug('  temp2 = %s', temp2)
-            # logging.debug('  temp3 = %s', temp3)
-            # logging.debug('  jacobian = %s', jacobian)
-            # logging.debug('  covariance_information = %s', covariance_information)
 
             if sum_events:
                 return np.sum(fisher_info, axis=0), covariance_information
