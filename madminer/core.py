@@ -38,7 +38,7 @@ class MadMiner:
     """
 
     def __init__(self, debug=False):
-        general_init(debug=debug)
+        self.logger = general_init(debug=debug)
 
         self.parameters = OrderedDict()
         self.benchmarks = OrderedDict()
@@ -122,7 +122,7 @@ class MadMiner:
         # After manually adding parameters, the morphing information is not accurate anymore
         self.morpher = None
 
-        logging.info(
+        self.logger.info(
             "Added parameter %s (LHA: %s %s, maximal power in squared ME: %s, range: %s)",
             parameter_name,
             lha_block,
@@ -133,7 +133,7 @@ class MadMiner:
 
         # Reset benchmarks
         if len(self.benchmarks) > 0:
-            logging.warning("Resetting benchmarks and morphing")
+            self.logger.warning("Resetting benchmarks and morphing")
 
         self.benchmarks = OrderedDict()
         self.default_benchmark = None
@@ -186,7 +186,7 @@ class MadMiner:
 
         # After manually adding parameters, the morphing information is not accurate anymore
         if len(self.benchmarks) > 0:
-            logging.warning("Resetting benchmarks and morphing")
+            self.logger.warning("Resetting benchmarks and morphing")
 
         self.benchmarks = OrderedDict()
         self.default_benchmark = None
@@ -241,7 +241,7 @@ class MadMiner:
         if len(self.benchmarks) == 1:
             self.default_benchmark = benchmark_name
 
-        logging.info("Added benchmark %s: %s)", benchmark_name, format_benchmark(parameter_values))
+        self.logger.info("Added benchmark %s: %s)", benchmark_name, format_benchmark(parameter_values))
 
     def set_benchmarks(self, benchmarks=None):
         """
@@ -276,7 +276,7 @@ class MadMiner:
 
         # After manually adding benchmarks, the morphing information is not accurate anymore
         if self.morpher is not None:
-            logging.warning("Reset morphing")
+            self.logger.warning("Reset morphing")
             self.morpher = None
             self.export_morphing = False
 
@@ -331,7 +331,7 @@ class MadMiner:
 
         """
 
-        logging.info("Optimizing basis for morphing")
+        self.logger.info("Optimizing basis for morphing")
 
         if isinstance(max_overall_power, int):
             max_overall_power = (max_overall_power,)
@@ -442,9 +442,9 @@ class MadMiner:
             _,
         ) = load_madminer_settings(filename, include_nuisance_benchmarks=False)
 
-        logging.info("Found %s parameters:", len(self.parameters))
+        self.logger.info("Found %s parameters:", len(self.parameters))
         for key, values in six.iteritems(self.parameters):
-            logging.info(
+            self.logger.info(
                 "   %s (LHA: %s %s, maximal power in squared ME: %s, range: %s)",
                 key,
                 values[0],
@@ -453,9 +453,9 @@ class MadMiner:
                 values[3],
             )
 
-        logging.info("Found %s benchmarks:", len(self.benchmarks))
+        self.logger.info("Found %s benchmarks:", len(self.benchmarks))
         for key, values in six.iteritems(self.benchmarks):
-            logging.info("   %s: %s", key, format_benchmark(values))
+            self.logger.info("   %s: %s", key, format_benchmark(values))
 
             if self.default_benchmark is None:
                 self.default_benchmark = key
@@ -470,10 +470,10 @@ class MadMiner:
             self.morpher.set_basis(self.benchmarks, morphing_matrix=morphing_matrix)
             self.export_morphing = True
 
-            logging.info("Found morphing setup with %s components", len(morphing_components))
+            self.logger.info("Found morphing setup with %s components", len(morphing_components))
 
         else:
-            logging.info("Did not find morphing setup.")
+            self.logger.info("Did not find morphing setup.")
 
         # Systematics setup
         self.run_systematics = False
@@ -482,13 +482,13 @@ class MadMiner:
         self.systematics_arguments = ""
 
         if systematics_arguments is None or systematics_arguments == "":
-            logging.info("Did not find systematics setup.")
+            self.logger.info("Did not find systematics setup.")
         else:
             self.run_systematics = True
             self.run_scale_variation = "--muf" in systematics_arguments or "--mur" in systematics_arguments
             self.run_pdf_variation = "--pdf" in systematics_arguments
 
-            logging.info("Found systematics setup with options %s", systematics_arguments)
+            self.logger.info("Found systematics setup with options %s", systematics_arguments)
 
     def save(self, filename):
         """
@@ -520,7 +520,7 @@ class MadMiner:
         create_missing_folders([os.path.dirname(filename)])
 
         if self.morpher is not None:
-            logging.info("Saving setup (including morphing) to %s", filename)
+            self.logger.info("Saving setup (including morphing) to %s", filename)
 
             save_madminer_settings(
                 filename=filename,
@@ -532,7 +532,7 @@ class MadMiner:
                 overwrite_existing_files=True,
             )
         else:
-            logging.info("Saving setup (without morphing) to %s", filename)
+            self.logger.info("Saving setup (without morphing) to %s", filename)
 
             save_madminer_settings(
                 filename=filename,
@@ -582,9 +582,9 @@ class MadMiner:
         """
 
         if param_card_filename is None or reweight_card_filename is None:
-            logging.info("Creating param and reweight cards in %s", mg_process_directory)
+            self.logger.info("Creating param and reweight cards in %s", mg_process_directory)
         else:
-            logging.info("Creating param and reweight cards in %s, %s", param_card_filename, reweight_card_filename)
+            self.logger.info("Creating param and reweight cards in %s, %s", param_card_filename, reweight_card_filename)
 
         # Check status
         assert self.default_benchmark is not None
@@ -866,19 +866,19 @@ class MadMiner:
                 if run_card_file is not None:
                     new_run_card_file = "/madminer/cards/run_card_{}.dat".format(i)
 
-                logging.info("Run %s", i)
-                logging.info("  Sampling from benchmark: %s", sample_benchmark)
-                logging.info("  Original run card:       %s", run_card_file)
-                logging.info("  Original Pythia8 card:   %s", pythia8_card_file)
-                logging.info("  Copied run card:         %s", new_run_card_file)
-                logging.info("  Copied Pythia8 card:     %s", new_pythia8_card_file)
-                logging.info("  Param card:              %s", param_card_file)
-                logging.info("  Reweight card:           %s", reweight_card_file)
-                logging.info("  Log file:                %s", log_file_run)
+                self.logger.info("Run %s", i)
+                self.logger.info("  Sampling from benchmark: %s", sample_benchmark)
+                self.logger.info("  Original run card:       %s", run_card_file)
+                self.logger.info("  Original Pythia8 card:   %s", pythia8_card_file)
+                self.logger.info("  Copied run card:         %s", new_run_card_file)
+                self.logger.info("  Copied Pythia8 card:     %s", new_pythia8_card_file)
+                self.logger.info("  Param card:              %s", param_card_file)
+                self.logger.info("  Reweight card:           %s", reweight_card_file)
+                self.logger.info("  Log file:                %s", log_file_run)
 
                 # Check input
                 if run_card_file is None and self.run_systematics:
-                    logging.warning(
+                    self.logger.warning(
                         "Warning: No run card given, but systematics set up. The correct systematics"
                         " settings are not set automatically. Make sure to set them correctly!"
                     )
@@ -959,7 +959,7 @@ class MadMiner:
 
             make_file_executable(master_script_filename)
 
-            logging.info(
+            self.logger.info(
                 "To generate events, please run:\n\n %s [MG_directory] [MG_process_directory] [log_dir]\n\n",
                 master_script_filename,
             )

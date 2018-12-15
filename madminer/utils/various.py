@@ -18,7 +18,8 @@ def general_init(debug=False):
     global printed_splash
 
     logging.basicConfig(format="%(asctime)s %(levelname)s:    %(message)s", datefmt="%H:%M")
-    logging.getLogger().setLevel(logging.DEBUG if debug else logging.INFO)
+    logger = logging.getLogger("madminer")
+    logger.setLevel(logging.DEBUG if debug else logging.INFO)
 
     if not printed_splash:
         logging.info("")
@@ -32,6 +33,8 @@ def general_init(debug=False):
         logging.info("")
 
         printed_splash = True
+
+    return logger
 
 
 def call_command(cmd, log_file=None):
