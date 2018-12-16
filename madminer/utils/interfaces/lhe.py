@@ -5,9 +5,10 @@ import numpy as np
 from collections import OrderedDict
 import skhep.math
 import os
-import logging
 
-from madminer.utils.various import call_command
+from madminer.utils.various import call_command, general_init
+
+logger = general_init(debug=None)
 
 
 def extract_weights_from_lhe_file(filename, sampling_benchmark, is_background, rescale_factor=1.0):

@@ -3,8 +3,10 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import torch
 import torch.nn as nn
 from torch.autograd import grad
-
 from madminer.utils.ml.utils import get_activation_function
+from madminer.utils.various import general_init
+
+logger = general_init(debug=None)
 
 
 class LocalScoreEstimator(nn.Module):

@@ -1,6 +1,9 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from skhep.math.vectors import LorentzVector
+from madminer.utils.various import general_init
+
+logger = general_init(debug=None)
 
 
 class MadMinerParticle(LorentzVector):

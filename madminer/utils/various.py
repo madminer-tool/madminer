@@ -1,14 +1,13 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-import logging
 import six
+import logging
 import os
 import stat
 from subprocess import Popen, PIPE
 import io
 import numpy as np
 import shutil
-
 from madminer import __version__
 
 printed_splash = False
@@ -17,29 +16,35 @@ printed_splash = False
 def general_init(debug=False):
     global printed_splash
 
-    logging.basicConfig(format="%(asctime)s %(levelname)s:    %(message)s", datefmt="%H:%M")
     logger = logging.getLogger("madminer")
-    logger.setLevel(logging.DEBUG if debug else logging.INFO)
+    formatter = logging.Formatter(fmt="%(asctime)s %(message)s", datefmt="%H:%M")
+    handler = logging.StreamHandler()
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+
+    if debug is not None:
+        logger.setLevel(level=logging.DEBUG if debug else logging.INFO)
 
     if not printed_splash:
-        logging.info("")
-        logging.info("------------------------------------------------------------")
-        logging.info("|                                                          |")
-        logging.info("|  MadMiner v{}|".format(__version__.ljust(46)))
-        logging.info("|                                                          |")
-        logging.info("|           Johann Brehmer, Kyle Cranmer, and Felix Kling  |")
-        logging.info("|                                                          |")
-        logging.info("------------------------------------------------------------")
-        logging.info("")
+        logger.info("")
+        logger.info("------------------------------------------------------------")
+        logger.info("|                                                          |")
+        logger.info("|  MadMiner v{}|".format(__version__.ljust(46)))
+        logger.info("|                                                          |")
+        logger.info("|           Johann Brehmer, Kyle Cranmer, and Felix Kling  |")
+        logger.info("|                                                          |")
+        logger.info("------------------------------------------------------------")
+        logger.info("")
 
         printed_splash = True
 
     return logger
 
 
-def call_command(cmd, log_file=None):
-    logging.debug("Calling %s > %s", cmd, log_file)
+logger = general_init(debug=None)
 
+
+def call_command(cmd, log_file=None):
     if log_file is not None:
         with io.open(log_file, "wb") as log:
             proc = Popen(cmd, stdout=log, stderr=log, shell=True)
@@ -154,7 +159,7 @@ def load_and_check(filename, warning_threshold=1.0e9):
     n_finite = np.sum(np.isfinite(data))
 
     if n_nans + n_infs > 0:
-        logging.warning(
+        logger.warning(
             "Warning: file %s contains %s NaNs and %s Infs, compared to %s finite numbers!",
             filename,
             n_nans,
@@ -166,7 +171,7 @@ def load_and_check(filename, warning_threshold=1.0e9):
     largest = np.nanmax(data)
 
     if np.abs(smallest) > warning_threshold or np.abs(largest) > warning_threshold:
-        logging.warning("Warning: file %s has some large numbers, rangin from %s to %s", filename, smallest, largest)
+        logger.warning("Warning: file %s has some large numbers, rangin from %s to %s", filename, smallest, largest)
 
     return data
 
@@ -240,7 +245,6 @@ def copy_file(source, destination):
 
 
 def weighted_quantile(values, quantiles, sample_weight=None, values_sorted=False, old_style=False):
-
     """
     Calculates quantiles (similar to np.percentile), but supports weights.
 

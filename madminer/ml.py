@@ -1481,7 +1481,7 @@ class EnsembleForge:
                 * np.einsum("eni,enj->nij", score_pred_minus_ens_mean, score_pred_minus_ens_mean)
             )
 
-            self.logger.debug("Individual score predictions:\n %s", score_predictions[:,0,:])
+            self.logger.debug("Individual score predictions for first event:\n %s", score_predictions[:,0,:])
             self.logger.debug("Mean:\n%s", score_mean[0,:])
             self.logger.debug("Covariance:\n%s", score_cov[0,:,:])
 

@@ -1,14 +1,15 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-import logging
 import numpy as np
-
 import torch
 from torch import tensor
 import torch.optim as optim
 from torch.utils.data import Dataset, DataLoader
 from torch.utils.data.sampler import SubsetRandomSampler
 from torch.nn.utils import clip_grad_norm_
+from madminer.utils.various import general_init
+
+logger = general_init(debug=None)
 
 
 class LocalScoreDataset(torch.utils.data.Dataset):
@@ -200,7 +201,7 @@ def train_local_score_model(
                         individual_loss_string += ", "
                     individual_loss_string += "{}: {:.4f}".format(label, value)
 
-                logging.info(
+                logger.info(
                     "  Epoch %d: train loss %.4f (%s)" % (epoch + 1, total_losses_train[-1], individual_loss_string)
                 )
             continue
@@ -253,26 +254,26 @@ def train_local_score_model(
                 individual_loss_string_val += "{}: {:.4f}".format(label, value_val)
 
             if early_stopping and epoch == early_stopping_epoch:
-                logging.info(
+                logger.info(
                     "  Epoch %d: train loss %.4f (%s)", epoch + 1, total_losses_train[-1], individual_loss_string_train
                 )
-                logging.info("            val. loss  %.4f (%s) (*)", total_losses_val[-1], individual_loss_string_val)
+                logger.info("            val. loss  %.4f (%s) (*)", total_losses_val[-1], individual_loss_string_val)
             else:
-                logging.info(
+                logger.info(
                     "  Epoch %d: train loss %.4f (%s)", epoch + 1, total_losses_train[-1], individual_loss_string_train
                 )
-                logging.info("            val. loss  %.4f (%s)", total_losses_val[-1], individual_loss_string_val)
+                logger.info("            val. loss  %.4f (%s)", total_losses_val[-1], individual_loss_string_val)
 
         # Early stopping: actually stop training
         if early_stopping and early_stopping_patience is not None:
             if epoch - early_stopping_epoch >= early_stopping_patience > 0:
-                logging.info("No improvement for %s epochs, stopping training", epoch - early_stopping_epoch)
+                logger.info("No improvement for %s epochs, stopping training", epoch - early_stopping_epoch)
                 break
 
     # Early stopping: back to best state
     if early_stopping:
         if early_stopping_best_val_loss < total_val_loss:
-            logging.info(
+            logger.info(
                 "Early stopping after epoch %s, with loss %.2f compared to final loss %.2f",
                 early_stopping_epoch + 1,
                 early_stopping_best_val_loss,
@@ -280,7 +281,7 @@ def train_local_score_model(
             )
             model.load_state_dict(early_stopping_best_model)
         else:
-            logging.info("Early stopping did not improve performance")
+            logger.info("Early stopping did not improve performance")
 
     # Save learning curve
     if learning_curve_folder is not None and learning_curve_filename is not None:
@@ -304,7 +305,7 @@ def train_local_score_model(
                         individual_losses_val[:, i],
                     )
 
-    logging.info("Finished training")
+    logger.info("Finished training")
 
     return total_losses_train, total_losses_val
 

@@ -2,7 +2,9 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import numpy as np
 import six
-import logging
+from madminer.utils.various import general_init
+
+logger = general_init(debug=None)
 
 
 def get_theta_value(theta_type, theta_value, benchmarks):
@@ -115,7 +117,7 @@ def calculate_augmented_data(
             nuisance_score = np.log(weight_ratio)  # Shape (n_samples, n_nuisance)
             nuisance_score -= np.log(xsec_ratio)[np.newaxis, :]  # Shape (n_samples, n_nuisance)
 
-            logging.debug("Nuisance score: shape %s, content %s", nuisance_score.shape, nuisance_score)
+            logger.debug("Nuisance score: shape %s, content %s", nuisance_score.shape, nuisance_score)
 
             augmented_data.append(nuisance_score)
 
@@ -176,7 +178,7 @@ def parse_theta(theta, n_samples):
         theta_values = np.array(theta_values).T
         n_samples_per_theta = int(round(n_samples / n_benchmarks, 0))
 
-        logging.debug(
+        logger.debug(
             "Total n_samples: %s, n_benchmarks: %s, n_samples_per_theta: %s",
             n_samples,
             n_benchmarks,

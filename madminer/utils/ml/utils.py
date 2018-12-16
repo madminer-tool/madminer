@@ -2,6 +2,9 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import numpy as np
 import torch
+from madminer.utils.various import general_init
+
+logger = general_init(debug=None)
 
 
 def get_activation_function(activation):

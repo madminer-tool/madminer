@@ -9,6 +9,8 @@ from torch import tensor
 from madminer.utils.ml.models.base import BaseFlow
 
 
+
+
 class BatchNorm(BaseFlow):
     """BatchNorm implementation"""
 
@@ -71,7 +73,7 @@ class BatchNorm(BaseFlow):
         return x
 
     def to(self, *args, **kwargs):
-        logging.debug('Transforming BatchNorm to %s', args)
+        logger.debug('Transforming BatchNorm to %s', args)
 
         self = super().to(*args, **kwargs)
 

@@ -2,10 +2,9 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import os
 import shutil
-import logging
+from madminer.utils.various import call_command, make_file_executable, create_missing_folders, general_init
 
-from madminer.utils.various import call_command, make_file_executable, create_missing_folders
-
+logger = general_init(debug=None)
 
 def generate_mg_process(
     mg_directory,
@@ -52,7 +51,7 @@ def generate_mg_process(
     """
 
     # Preparations
-    logging.info("Generating MadGraph process folder from %s at %s", proc_card_file, mg_process_directory)
+    logger.info("Generating MadGraph process folder from %s at %s", proc_card_file, mg_process_directory)
 
     create_missing_folders([temp_directory, mg_process_directory, os.path.dirname(log_file)])
 
@@ -151,7 +150,7 @@ def prepare_run_mg_pythia(
         create_missing_folders([os.path.dirname(mg_process_directory + "/" + proc_card_filename_from_mgprocdir)])
 
     # Prepare run...
-    logging.info("Preparing script to run MadGraph and Pythia in %s", mg_process_directory)
+    logger.info("Preparing script to run MadGraph and Pythia in %s", mg_process_directory)
 
     # Bash script can optionally provide MG path or process directory
     mg_directory_placeholder = "$mgdir"
@@ -342,7 +341,7 @@ def run_mg_pythia(
         create_missing_folders([os.path.dirname(proc_card_filename)])
 
     # Just run it already
-    logging.info("Starting MadGraph and Pythia in %s", mg_process_directory)
+    logger.info("Starting MadGraph and Pythia in %s", mg_process_directory)
 
     # Copy cards
     if run_card_file is not None:

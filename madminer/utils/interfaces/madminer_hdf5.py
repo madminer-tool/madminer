@@ -5,7 +5,9 @@ import shutil
 import h5py
 import numpy as np
 from collections import OrderedDict
-import logging
+from madminer.utils.various import general_init
+
+logger = general_init(debug=None)
 
 
 def save_madminer_settings(
@@ -126,7 +128,7 @@ def load_madminer_settings(filename, include_nuisance_benchmarks=False):
             benchmark_is_nuisance = f["benchmarks/is_nuisance"][()]
             benchmark_is_nuisance = [False if is_nuisance == 0 else True for is_nuisance in benchmark_is_nuisance]
         except KeyError:
-            logging.info("HDF5 file does not contain is_nuisance field. Assuming is_nuisance=False for all benchmarks.")
+            logger.info("HDF5 file does not contain is_nuisance field. Assuming is_nuisance=False for all benchmarks.")
             benchmark_is_nuisance = [False for _ in benchmark_names]
 
         reference_benchmark = None
@@ -136,7 +138,7 @@ def load_madminer_settings(filename, include_nuisance_benchmarks=False):
                 if is_reference:
                     reference_benchmark = bname
         except KeyError:
-            logging.info("HDF5 file does not contain is_reference field.")
+            logger.info("HDF5 file does not contain is_reference field.")
 
         benchmark_names = [bname.decode("ascii") for bname in benchmark_names]
 
@@ -217,7 +219,7 @@ def madminer_event_loader(
     # Nuisance parameter filtering
     if not include_nuisance_parameters:
         if benchmark_is_nuisance is None:
-            logging.warning(
+            logger.warning(
                 "include_nuisance_parameters=False without benchmark_is_nuisance information. Returning all weights."
             )
             include_nuisance_parameters = True
@@ -231,14 +233,14 @@ def madminer_event_loader(
             observations = f["samples/observations"]
             weights = f["samples/weights"]
         except KeyError:
-            logging.warning("No events found!")
+            logger.warning("No events found!")
             return
 
         if include_sampling_information:
             try:
                 sampled_from = f["samples/sampled_from_benchmark"]
             except KeyError:
-                logging.warning("No sampling information stored in file {}".format(filename))
+                logger.warning("No sampling information stored in file {}".format(filename))
                 sampled_from = None
 
         # Preparations
@@ -287,7 +289,7 @@ def load_benchmarks_from_madminer_file(filename, include_nuisance_benchmarks=Fal
             benchmark_names = f["benchmarks/names"][()]
             benchmark_names = [bname.decode("ascii") for bname in benchmark_names]
 
-            logging.debug("Benchmarks found in MadMiner file: %s", benchmark_names)
+            logger.debug("Benchmarks found in MadMiner file: %s", benchmark_names)
 
         except KeyError:
             raise IOError("Cannot read benchmarks from HDF5 file")
@@ -297,7 +299,7 @@ def load_benchmarks_from_madminer_file(filename, include_nuisance_benchmarks=Fal
                 benchmark_is_nuisance = f["benchmarks/is_nuisance"][()]
                 benchmark_is_nuisance = [False if is_nuisance == 0 else True for is_nuisance in benchmark_is_nuisance]
             except KeyError:
-                logging.info(
+                logger.info(
                     "HDF5 file does not contain is_nuisance field. Assuming is_nuisance=False for all benchmarks."
                 )
                 benchmark_is_nuisance = [False for _ in benchmark_names]
@@ -373,18 +375,18 @@ def save_nuisance_benchmarks_to_madminer_file(
             benchmark_is_nuisance = list(f["benchmarks/is_nuisance"][()])
             benchmark_is_nuisance = [False if is_nuisance == 0 else True for is_nuisance in benchmark_is_nuisance]
         except KeyError:
-            logging.info("HDF5 file does not contain is_nuisance field. Assuming is_nuisance=False for all benchmarks.")
+            logger.info("HDF5 file does not contain is_nuisance field. Assuming is_nuisance=False for all benchmarks.")
             benchmark_is_nuisance = [False for _ in benchmark_names]
 
-        logging.debug("Benchmarks found in HDF5 file: %s", benchmark_names)
+        logger.debug("Benchmarks found in HDF5 file: %s", benchmark_names)
 
         # Add weights not found before
         for weight_name in weight_names:
             if weight_name in benchmark_names:
-                logging.debug("Benchmark %s already in benchmark_names", weight_name)
+                logger.debug("Benchmark %s already in benchmark_names", weight_name)
                 continue
 
-            logging.debug("Adding nuisance benchmark %s", weight_name)
+            logger.debug("Adding nuisance benchmark %s", weight_name)
 
             benchmark_names.append(weight_name)
             benchmark_is_nuisance.append(True)
@@ -401,9 +403,9 @@ def save_nuisance_benchmarks_to_madminer_file(
             [1 if bname == reference_benchmark else 0 for bname in benchmark_names], dtype=np.int
         )
 
-        logging.debug("Combined benchmark names: %s", benchmark_names)
-        logging.debug("Combined is_nuisance: %s", benchmark_is_nuisance)
-        logging.debug("Combined is_reference: %s", benchmark_is_reference)
+        logger.debug("Combined benchmark names: %s", benchmark_names)
+        logger.debug("Combined is_nuisance: %s", benchmark_is_nuisance)
+        logger.debug("Combined is_reference: %s", benchmark_is_reference)
 
         # Make room for saving all this glorious data
         del f["benchmarks"]
@@ -462,12 +464,12 @@ def save_events_to_madminer_file(
 
         if weights is not None and observations is not None:
             # Try to find benchmarks in file
-            logging.debug("Weight names found in Delphes files: %s", [key for key in weights])
+            logger.debug("Weight names found in Delphes files: %s", [key for key in weights])
             try:
                 benchmark_names = f["benchmarks/names"][()]
                 benchmark_names = [bname.decode("ascii") for bname in benchmark_names]
 
-                logging.debug("Benchmarks found in MadMiner file: %s", benchmark_names)
+                logger.debug("Benchmarks found in MadMiner file: %s", benchmark_names)
 
                 # Sort weights: First the benchmarks in the right order, then the rest alphabetically
                 weights_sorted = []
@@ -477,10 +479,10 @@ def save_events_to_madminer_file(
                     if key not in benchmark_names:
                         weights_sorted.append(key)
 
-                logging.debug("Sorted benchmarks: %s", benchmark_names)
+                logger.debug("Sorted benchmarks: %s", benchmark_names)
 
             except Exception as e:
-                logging.warning("Issue matching weight names in HepMC file to benchmark names in MadMiner file:\n%s", e)
+                logger.warning("Issue matching weight names in HepMC file to benchmark names in MadMiner file:\n%s", e)
 
                 weights_sorted = [weights[key] for key in weights]
 
@@ -500,7 +502,7 @@ def save_events_to_madminer_file(
                     try:
                         sampled_from_benchmark_indices.append(benchmark_names.index(name))
                     except ValueError:
-                        logging.error(
+                        logger.error(
                             "Could not find sampling benchmark %s in benchmark names %s. Not saving sampling "
                             "information (this might break nuisance parameter analyses).",
                             name,
