@@ -1,35 +1,53 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+import six
 import numpy as np
 from matplotlib import pyplot as plt
 import matplotlib
 import logging
 
+from madminer.sampling import SampleAugmenter, constant_benchmark_theta, constant_morphing_theta
+
 logger = logging.getLogger(__name__)
 
 
-def plot_distributions(madminer_file, observables=None, parameter_points=None, nuisance_points=False):
+def plot_distributions(
+    filename,
+    observables=None,
+    parameter_points=None,
+    nuisance_points=False,
+    n_samples=10000,
+    observable_labels=None,
+    n_bins=50,
+    line_labels=None,
+    colors=None,
+    linestyles=None,
+    linewidths=1.5,
+):
     """
     Plots one-dimensional histograms of observables in a MadMiner file for a given set of benchmarks.
 
     Parameters
     ----------
-    madminer_file : str
+    filename : str
         Filename of a MadMiner HDF5 file.
 
-    observables : list of str or None.
+    observables : list of str or None, optional
         Which observables to plot, given by a list of their names. If None, all observables in the file
         are plotted. Default value: None.
 
-    parameter_points : list of (str or ndarray) or None.
+    parameter_points : list of (str or ndarray) or None, optional
         Which parameter points to use for histogramming the data. Given by a list, each element can either be the name
         of a benchmark in the MadMiner file, or an ndarray specifying any parameter point in a morphing setup. If None,
         all physics (non-nuisance) benchmarks defined in the MadMiner file are plotted. Default value: None.
 
-    nuisance_points : list of (str or ndarray) or None.
+    nuisance_points : list of (str or ndarray) or None, optional
         Sets the value of the nuisance parameters for histogramming the data. Given by a list, each element can either
         be the name of a nuisance benchmark in the MadMiner file, or an ndarray specifying all nuisance parameters. If
         None, all nuisance parameters are assumed to be at their nominal (central) value.  Default value: None.
+
+    n_samples : int, optional
+        Number of unweighted samples drawn to draw the histogram. Default value: 10000.
 
     Returns
     -------
@@ -38,7 +56,105 @@ def plot_distributions(madminer_file, observables=None, parameter_points=None, n
 
     """
 
-    return NotImplementedError
+    if nuisance_points is not None:
+        return NotImplementedError("Sampling from non-zero nuisance parameters not implemented yet!")
+
+    # Load data
+    sa = SampleAugmenter(filename)
+
+    # Default parameters
+    if parameter_points is None:
+        parameter_points = []
+
+        for key, is_nuisance in zip(sa.benchmarks, sa.benchmark_is_nuisance):
+            if not is_nuisance:
+                parameter_points.append(key)
+
+        if line_labels is None:
+            line_labels = parameter_points
+
+    n_parameter_points = len(parameter_points)
+
+    if nuisance_points is None:
+        nuisance_points = [None for _ in range(n_parameter_points)]
+
+    if colors is None:
+        colors = ["C" + str(i) for i in range(10)] * (n_parameter_points // 10 + 1)
+    elif not isinstance(colors, list):
+        colors = [colors for _ in range(n_parameter_points)]
+
+    if linestyles is None:
+        linestyles = ["solid", "dashed", "dotted", "dashdot"] * (n_parameter_points // 4 + 1)
+    elif not isinstance(linestyles, list):
+        linestyles = [linestyles for _ in range(n_parameter_points)]
+
+    if not isinstance(linewidths, list):
+        linewidths = [linewidths for _ in range(n_parameter_points)]
+
+    if observables is None:
+        observables = list(range(len(sa.observables)))
+    n_observables = len(observables)
+
+    if observable_labels is None:
+        observable_labels = list(sa.observables.keys())[observables]
+
+    # Get unweighted data for each hypothesis
+    samples = []
+
+    for theta_in, nu_in in zip(parameter_points, nuisance_points):
+
+        assert nu_in is None  # For now...
+
+        if isinstance(theta_in, six.string_types):
+            theta = constant_benchmark_theta(theta_in)
+        else:
+            theta = constant_morphing_theta(theta)
+
+        events, _ = sa.extract_samples_test(theta=theta, n_samples=n_samples, folder=None, filename=None)
+        samples.append(events)
+
+    if len(samples) == 0:
+        return
+
+    # Plot distributions
+    n_cols = 3
+    n_rows = (n_observables + n_cols - 1) // n_cols
+
+    fig = plt.figure(figsize=(4.0 * n_cols, 4.0 * n_rows))
+
+    for i, xlabel in enumerate(observable_labels):
+
+        # Figure out x range
+        xmins, xmaxs = [], []
+        for x in samples:
+            xmin = np.percentile(x[:, i], 5.0)
+            xmax = np.percentile(x[:, i], 95.0)
+            xwidth = xmax - xmin
+            xmin -= xwidth * 0.1
+            xmax += xwidth * 0.1
+            xmin = max(xmin, np.min(x[:, i]))
+            xmax = min(xmax, np.max(x[:, i]))
+            xmins.append(xmin)
+            xmaxs.append(xmax)
+
+        xmin = min(xmins)
+        xmax = max(xmaxs)
+        x_range = (xmin, xmax)
+
+        # Plot
+        plt.subplot(n_rows, n_cols, i + 1)
+
+        for x, lw, color, label in zip(samples, linewidths, colors, line_labels):
+            plt.hist(
+                x[:, i], histtype="step", range=x_range, bins=n_bins, lw=lw, color=color, label=label, density=True
+            )
+
+        plt.legend()
+        plt.xlabel(xlabel)
+
+    plt.tight_layout()
+
+    return fig
 
 
 def plot_2d_morphing_basis(
