@@ -8,6 +8,7 @@ from madminer.utils.various import call_command, make_file_executable, create_mi
 
 logger = logging.getLogger(__name__)
 
+
 def generate_mg_process(
     mg_directory,
     temp_directory,

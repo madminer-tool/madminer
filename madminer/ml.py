@@ -20,6 +20,7 @@ from madminer.utils.various import create_missing_folders, load_and_check, shuff
 
 logger = logging.getLogger(__name__)
 
+
 class MLForge:
     """
     Estimating likelihood ratios and scores with machine learning.
@@ -1479,9 +1480,9 @@ class EnsembleForge:
                 * np.einsum("eni,enj->nij", score_pred_minus_ens_mean, score_pred_minus_ens_mean)
             )
 
-            logger.debug("Individual score predictions for first event:\n %s", score_predictions[:,0,:])
-            logger.debug("Mean:\n%s", score_mean[0,:])
-            logger.debug("Covariance:\n%s", score_cov[0,:,:])
+            logger.debug("Individual score predictions for first event:\n %s", score_predictions[:, 0, :])
+            logger.debug("Mean:\n%s", score_mean[0, :])
+            logger.debug("Covariance:\n%s", score_cov[0, :, :])
 
             # Event-wise Fisher info
             event_information_mean = np.einsum("ni,nj->nij", score_mean, score_mean)
@@ -1506,9 +1507,11 @@ class EnsembleForge:
             # Let's check the expected score
             expected_score = [np.einsum("n,ni->i", obs_weights, score_mean)]
             expected_score_cov = [np.einsum("n,nij->ij", obs_weights, score_cov)]
-            logger.info("Expected per-event score (should be close to zero):\n%s\nwith covariance matrix\n%s",
-                         expected_score, expected_score_cov)
-
+            logger.info(
+                "Expected per-event score (should be close to zero):\n%s\nwith covariance matrix\n%s",
+                expected_score,
+                expected_score_cov,
+            )
 
         # Calculate ensemble expectation
         expectation_covariances = None

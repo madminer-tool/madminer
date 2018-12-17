@@ -1,6 +1,7 @@
 from madminer.__version__ import __version__
 
 import logging
+
 logger = logging.getLogger(__name__)
 
 logger.info("")

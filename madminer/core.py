@@ -50,13 +50,13 @@ class MadMiner:
         self.systematics_arguments = ""
 
     def add_parameter(
-            self,
-            lha_block,
-            lha_id,
-            parameter_name=None,
-            param_card_transform=None,
-            morphing_max_power=2,
-            parameter_range=(0.0, 1.0),
+        self,
+        lha_block,
+        lha_id,
+        parameter_name=None,
+        param_card_transform=None,
+        morphing_max_power=2,
+        parameter_range=(0.0, 1.0),
     ):
 
         """
@@ -280,7 +280,7 @@ class MadMiner:
             self.export_morphing = False
 
     def set_morphing(
-            self, max_overall_power=4, n_bases=1, include_existing_benchmarks=True, n_trials=100, n_test_thetas=100
+        self, max_overall_power=4, n_bases=1, include_existing_benchmarks=True, n_trials=100, n_test_thetas=100
     ):
         """
         Sets up the morphing environment.
@@ -542,12 +542,12 @@ class MadMiner:
             )
 
     def _export_cards(
-            self,
-            param_card_template_file,
-            mg_process_directory,
-            sample_benchmark=None,
-            param_card_filename=None,
-            reweight_card_filename=None,
+        self,
+        param_card_template_file,
+        mg_process_directory,
+        sample_benchmark=None,
+        param_card_filename=None,
+        reweight_card_filename=None,
     ):
 
         """
@@ -612,20 +612,20 @@ class MadMiner:
         )
 
     def run(
-            self,
-            mg_directory,
-            proc_card_file,
-            param_card_template_file,
-            run_card_file=None,
-            mg_process_directory=None,
-            pythia8_card_file=None,
-            sample_benchmark=None,
-            is_background=False,
-            only_prepare_script=False,
-            ufo_model_directory=None,
-            log_directory=None,
-            temp_directory=None,
-            initial_command=None,
+        self,
+        mg_directory,
+        proc_card_file,
+        param_card_template_file,
+        run_card_file=None,
+        mg_process_directory=None,
+        pythia8_card_file=None,
+        sample_benchmark=None,
+        is_background=False,
+        only_prepare_script=False,
+        ufo_model_directory=None,
+        log_directory=None,
+        temp_directory=None,
+        initial_command=None,
     ):
 
         """
@@ -725,20 +725,20 @@ class MadMiner:
         )
 
     def run_multiple(
-            self,
-            mg_directory,
-            proc_card_file,
-            param_card_template_file,
-            run_card_files,
-            mg_process_directory=None,
-            pythia8_card_file=None,
-            sample_benchmarks=None,
-            is_background=False,
-            only_prepare_script=False,
-            ufo_model_directory=None,
-            log_directory=None,
-            temp_directory=None,
-            initial_command=None,
+        self,
+        mg_directory,
+        proc_card_file,
+        param_card_template_file,
+        run_card_files,
+        mg_process_directory=None,
+        pythia8_card_file=None,
+        sample_benchmarks=None,
+        is_background=False,
+        only_prepare_script=False,
+        ufo_model_directory=None,
+        log_directory=None,
+        temp_directory=None,
+        initial_command=None,
     ):
 
         """
@@ -948,9 +948,9 @@ class MadMiner:
 
             commands = "\n".join(results)
             script = (
-                    "#!/bin/bash\n\n# Master script to generate events for MadMiner\n\n"
-                    + "# Usage: run.sh [MG_directory] [MG_process_directory] [log_directory]\n\n"
-                    + "{}\n\n{}"
+                "#!/bin/bash\n\n# Master script to generate events for MadMiner\n\n"
+                + "# Usage: run.sh [MG_directory] [MG_process_directory] [log_directory]\n\n"
+                + "{}\n\n{}"
             ).format(placeholder_definition, commands)
 
             with open(master_script_filename, "w") as file:

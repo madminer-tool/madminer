@@ -13,6 +13,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+
 class GoldDataset(torch.utils.data.Dataset):
     """ """
 
