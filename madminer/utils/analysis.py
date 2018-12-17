@@ -2,9 +2,9 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import numpy as np
 import six
-from madminer.utils.various import general_init
+import logging
 
-logger = general_init(debug=None)
+logger = logging.getLogger(__name__)
 
 
 def get_theta_value(theta_type, theta_value, benchmarks):

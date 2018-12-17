@@ -14,7 +14,8 @@ from madminer.utils.interfaces.delphes import run_delphes
 from madminer.utils.interfaces.delphes_root import parse_delphes_root_file
 from madminer.utils.interfaces.hepmc import extract_weight_order
 from madminer.utils.interfaces.lhe import extract_weights_from_lhe_file
-from madminer.utils.various import general_init
+
+logger = logging.getLogger(__name__)
 
 
 class DelphesProcessor:
@@ -52,8 +53,6 @@ class DelphesProcessor:
     """
 
     def __init__(self, filename, debug=False):
-        self.logger = general_init(debug=debug)
-
         # Initialize samples
         self.hepmc_sample_filenames = []
         self.hepmc_sample_weight_labels = []
@@ -150,7 +149,7 @@ class DelphesProcessor:
 
         """
 
-        self.logger.debug("Adding event sample %s", hepmc_filename)
+        logger.debug("Adding event sample %s", hepmc_filename)
 
         assert weights in ["delphes", "lhe"], "Unknown setting for weights: %s. Has to be 'delphes' or 'lhe'."
 
@@ -198,10 +197,10 @@ class DelphesProcessor:
             zip(self.delphes_sample_filenames, self.hepmc_sample_filenames)
         ):
             if delphes_filename is not None:
-                self.logger.debug("Delphes already run for event sample %s", hepmc_filename)
+                logger.debug("Delphes already run for event sample %s", hepmc_filename)
                 continue
 
-            self.logger.info("Running Delphes (%s) on event sample at %s", delphes_directory, hepmc_filename)
+            logger.info("Running Delphes (%s) on event sample at %s", delphes_directory, hepmc_filename)
             delphes_sample_filename = run_delphes(
                 delphes_directory, delphes_card, hepmc_filename, initial_command=initial_command, log_file=log_file
             )
@@ -302,9 +301,9 @@ class DelphesProcessor:
         """
 
         if required:
-            self.logger.debug("Adding required observable %s = %s", name, definition)
+            logger.debug("Adding required observable %s = %s", name, definition)
         else:
-            self.logger.debug("Adding optional observable %s = %s with default %s", name, definition, default)
+            logger.debug("Adding optional observable %s = %s with default %s", name, definition, default)
 
         self.observables[name] = definition
         self.observables_required[name] = required
@@ -341,9 +340,9 @@ class DelphesProcessor:
         """
 
         if required:
-            self.logger.debug("Adding required observable %s defined through external function", name)
+            logger.debug("Adding required observable %s defined through external function", name)
         else:
-            self.logger.debug(
+            logger.debug(
                 "Adding optional observable %s defined through external function with default %s", name, default
             )
 
@@ -393,7 +392,7 @@ class DelphesProcessor:
             None
 
         """
-        self.logger.debug("Adding default observables")
+        logger.debug("Adding default observables")
 
         # ETMiss
         if include_met:
@@ -461,7 +460,7 @@ class DelphesProcessor:
             None
 
         """
-        self.logger.debug("Adding cut %s", definition)
+        logger.debug("Adding cut %s", definition)
 
         self.cuts.append(definition)
         self.cuts_default_pass.append(pass_if_not_parsed)
@@ -469,7 +468,7 @@ class DelphesProcessor:
     def reset_observables(self):
         """ Resets all observables. """
 
-        self.logger.debug("Resetting observables")
+        logger.debug("Resetting observables")
 
         self.observables = OrderedDict()
         self.observables_required = OrderedDict()
@@ -478,7 +477,7 @@ class DelphesProcessor:
     def reset_cuts(self):
         """ Resets all cuts. """
 
-        self.logger.debug("Resetting cuts")
+        logger.debug("Resetting cuts")
 
         self.cuts = []
         self.cuts_default_pass = []
@@ -529,7 +528,7 @@ class DelphesProcessor:
             self.sample_k_factors,
         ):
 
-            self.logger.info("Analysing Delphes sample %s", delphes_file)
+            logger.info("Analysing Delphes sample %s", delphes_file)
 
             # Calculate observables and weights in Delphes ROOT file
             this_observations, this_weights, cut_filter = parse_delphes_root_file(
@@ -554,10 +553,10 @@ class DelphesProcessor:
 
             # No events found?
             if this_observations is None:
-                self.logger.debug("No observations in this Delphes file, skipping it")
+                logger.debug("No observations in this Delphes file, skipping it")
                 continue
 
-            self.logger.debug("Found weights %s in Delphes file", list(this_weights.keys()))
+            logger.debug("Found weights %s in Delphes file", list(this_weights.keys()))
 
             # Check number of events in observables
             n_events = None
@@ -565,7 +564,7 @@ class DelphesProcessor:
                 this_n_events = len(obs)
                 if n_events is None:
                     n_events = this_n_events
-                    self.logger.debug("Found %s events", n_events)
+                    logger.debug("Found %s events", n_events)
 
                 if this_n_events != n_events:
                     raise RuntimeError(
@@ -576,26 +575,26 @@ class DelphesProcessor:
 
             # Find weights in LHE file
             if lhe_file is not None:
-                self.logger.debug("Extracting weights from LHE file")
+                logger.debug("Extracting weights from LHE file")
                 this_weights = extract_weights_from_lhe_file(
                     lhe_file, sampling_benchmark=sampling_benchmark, is_background=is_background
                 )
 
-                self.logger.debug("Found weights %s in LHE file", list(this_weights.keys()))
+                logger.debug("Found weights %s in LHE file", list(this_weights.keys()))
 
                 # Apply cuts
-                self.logger.debug("Applying Delphes-based cuts to LHE weights")
+                logger.debug("Applying Delphes-based cuts to LHE weights")
                 for key, weights in six.iteritems(this_weights):
                     this_weights[key] = weights[cut_filter]
 
-                self.logger.debug("Found weights %s in LHE file", list(this_weights.keys()))
+                logger.debug("Found weights %s in LHE file", list(this_weights.keys()))
 
             # Check number of events in weights
             for key, weights in six.iteritems(this_weights):
                 this_n_events = len(weights)
                 if n_events is None:
                     n_events = this_n_events
-                    self.logger.debug("Found %s events", n_events)
+                    logger.debug("Found %s events", n_events)
 
                 if this_n_events != n_events:
                     raise RuntimeError(
@@ -609,7 +608,7 @@ class DelphesProcessor:
 
             # Background scenario: we only have one set of weights, but these should be true for all benchmarks
             if is_background:
-                self.logger.debug("Sample is background")
+                logger.debug("Sample is background")
                 benchmarks_weight = list(six.itervalues(this_weights))[0]
 
                 for benchmark_name in self.benchmark_names:
@@ -673,14 +672,14 @@ class DelphesProcessor:
         """
 
         if self.observations is None or self.weights is None:
-            self.logger.warning("No observations to save!")
+            logger.warning("No observations to save!")
             return
 
-        self.logger.debug("Loading HDF5 data from %s and saving file to %s", self.filename, filename_out)
+        logger.debug("Loading HDF5 data from %s and saving file to %s", self.filename, filename_out)
 
         # Save nuisance benchmarks
         weight_names = list(self.weights.keys())
-        self.logger.debug("Weight names: %s", weight_names)
+        logger.debug("Weight names: %s", weight_names)
 
         save_nuisance_benchmarks_to_madminer_file(
             filename_out, weight_names, reference_benchmark=self.reference_benchmark, copy_from=self.filename

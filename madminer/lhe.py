@@ -6,7 +6,8 @@ import logging
 
 from madminer.utils.interfaces.madminer_hdf5 import load_benchmarks_from_madminer_file, save_madminer_file_from_lhe
 from madminer.utils.interfaces.lhe import extract_observables_from_lhe_file
-from madminer.utils.various import general_init
+
+logger = logging.getLogger(__name__)
 
 
 class LHEProcessor:
@@ -14,8 +15,6 @@ class LHEProcessor:
 
     def __init__(self, debug=False):
         """ Constructor """
-
-        self.logger = general_init(debug=debug)
 
         # Initialize samples
         self.lhe_sample_filenames = []
@@ -38,7 +37,7 @@ class LHEProcessor:
         self.benchmark_names = load_benchmarks_from_madminer_file(filename)
 
     def add_lhe_sample(self, filename, sampling_benchmark, is_background=False, rescale_factor=1.0):
-        self.logger.info("Adding LHE sample at %s", filename)
+        logger.info("Adding LHE sample at %s", filename)
 
         self.lhe_sample_filenames.append(filename)
         self.is_background.append(is_background)
@@ -47,9 +46,9 @@ class LHEProcessor:
 
     def add_observable(self, name, definition, required=False):
         if required:
-            self.logger.info("Adding required observable %s = %s", name, definition)
+            logger.info("Adding required observable %s = %s", name, definition)
         else:
-            self.logger.info("Adding (not required) observable %s = %s", name, definition)
+            logger.info("Adding (not required) observable %s = %s", name, definition)
 
         self.observables[name] = definition
         self.observables_required[name] = required
@@ -76,9 +75,9 @@ class LHEProcessor:
         """
 
         if required:
-            self.logger.info("Adding required observable %s ", name)
+            logger.info("Adding required observable %s ", name)
         else:
-            self.logger.info("Adding (not required) observable %s ", name)
+            logger.info("Adding (not required) observable %s ", name)
 
         self.observables[name] = fn
         self.observables_required[name] = required
@@ -91,7 +90,7 @@ class LHEProcessor:
             self.lhe_sample_filenames, self.sampling_benchmarks, self.is_background, self.rescale_factor
         ):
 
-            self.logger.info("Analysing LHE sample %s", lhe_file)
+            logger.info("Analysing LHE sample %s", lhe_file)
 
             # Calculate observables and weights
             this_observations, this_weights = extract_observables_from_lhe_file(
@@ -129,9 +128,9 @@ class LHEProcessor:
         ), "Nothing to save!"
 
         if filename_in is None:
-            self.logger.info("Saving HDF5 file to %s", filename_out)
+            logger.info("Saving HDF5 file to %s", filename_out)
         else:
-            self.logger.info("Loading HDF5 data from %s and saving file to %s", filename_in, filename_out)
+            logger.info("Loading HDF5 data from %s and saving file to %s", filename_in, filename_out)
 
         save_madminer_file_from_lhe(
             filename_out, self.observables, self.observations, self.weights, copy_from=filename_in

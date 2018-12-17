@@ -6,9 +6,9 @@ from torch import tensor
 from madminer.utils.ml.models.base import BaseFlow, BaseConditionalFlow
 from madminer.utils.ml.models.made import GaussianMADE, ConditionalGaussianMADE
 from madminer.utils.ml.models.batch_norm import BatchNorm
-from madminer.utils.various import general_init
+import logging
 
-logger = general_init(debug=None)
+logger = logging.getLogger(__name__)
 
 
 class MaskedAutoregressiveFlow(BaseFlow):

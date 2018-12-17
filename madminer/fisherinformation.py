@@ -8,8 +8,10 @@ import os
 from madminer.utils.interfaces.madminer_hdf5 import load_madminer_settings, madminer_event_loader
 from madminer.utils.analysis import get_theta_benchmark_matrix, get_dtheta_benchmark_matrix, mdot
 from madminer.morphing import Morpher
-from madminer.utils.various import general_init, format_benchmark, math_commands, weighted_quantile, sanitize_array
+from madminer.utils.various import format_benchmark, math_commands, weighted_quantile, sanitize_array
 from madminer.ml import MLForge, EnsembleForge
+
+logger = logging.getLogger(__name__)
 
 
 def project_information(fisher_information, remaining_components):
@@ -85,7 +87,7 @@ def profile_information(
 
     """
 
-    self.logger.debug("Profiling Fisher information")
+    logger.debug("Profiling Fisher information")
 
     # Group components
     n_components = len(fisher_information)
@@ -138,7 +140,7 @@ def profile_information(
 
         # Cross-check: toy mean
         toy_mean = np.mean(profiled_information_toys, axis=0)
-        self.logger.debug("Central Fisher info:\n%s\nToy mean Fisher info:\n%s", profiled_information, toy_mean)
+        logger.debug("Central Fisher info:\n%s\nToy mean Fisher info:\n%s", profiled_information, toy_mean)
 
         return profiled_information, profiled_information_covariance
 
@@ -181,15 +183,12 @@ class FisherInformation:
     """
 
     def __init__(self, filename, include_nuisance_parameters=True, debug=False):
-
-        self.logger = general_init(debug=debug)
-
         # Save settings
         self.debug = debug
         self.madminer_filename = filename
         self.include_nuisance_parameters = include_nuisance_parameters
 
-        self.logger.info("Loading data from %s", filename)
+        logger.info("Loading data from %s", filename)
 
         # Load data
         (
@@ -208,9 +207,9 @@ class FisherInformation:
         self.n_benchmarks_phys = np.sum(np.logical_not(self.benchmark_is_nuisance))
         self.n_nuisance_parameters = self.n_benchmarks - self.n_benchmarks_phys
 
-        self.logger.info("Found %s parameters:", len(self.parameters))
+        logger.info("Found %s parameters:", len(self.parameters))
         for key, values in six.iteritems(self.parameters):
-            self.logger.info(
+            logger.info(
                 "   %s (LHA: %s %s, maximal power in squared ME: %s, range: %s)",
                 key,
                 values[0],
@@ -219,15 +218,15 @@ class FisherInformation:
                 values[3],
             )
 
-        self.logger.info("Found %s benchmarks, of which %s physical:", self.n_benchmarks, self.n_benchmarks_phys)
+        logger.info("Found %s benchmarks, of which %s physical:", self.n_benchmarks, self.n_benchmarks_phys)
         for (key, values), is_nuisance in zip(six.iteritems(self.benchmarks), self.benchmark_is_nuisance):
             if is_nuisance:
-                self.logger.info("   %s: nuisance parameter", key)
+                logger.info("   %s: nuisance parameter", key)
             else:
-                self.logger.info("   %s: %s", key, format_benchmark(values))
+                logger.info("   %s: %s", key, format_benchmark(values))
 
-        self.logger.info("Found %s observables: %s", len(self.observables), ", ".join(self.observables))
-        self.logger.info("Found %s events", self.n_samples)
+        logger.info("Found %s observables: %s", len(self.observables), ", ".join(self.observables))
+        logger.info("Found %s events", self.n_samples)
 
         # Morphing
         self.morpher = None
@@ -236,7 +235,7 @@ class FisherInformation:
             self.morpher.set_components(self.morphing_components)
             self.morpher.set_basis(self.benchmarks, morphing_matrix=self.morphing_matrix)
 
-            self.logger.info("Found morphing setup with %s components", len(self.morphing_components))
+            logger.info("Found morphing setup with %s components", len(self.morphing_components))
 
         else:
             raise RuntimeError("Did not find morphing setup.")
@@ -418,14 +417,14 @@ class FisherInformation:
 
         # Nuisance parameters?
         if model.n_parameters == self.n_parameters:
-            self.logger.debug(
+            logger.debug(
                 "Found %s parameters in SALLY model, matching %s physical parameters in MadMiner file",
                 model.n_parameters,
                 self.n_parameters,
             )
             include_nuisance_parameters = False
         elif model.n_parameters == self.n_parameters + self.n_nuisance_parameters:
-            self.logger.debug(
+            logger.debug(
                 "Found %s parameters in SALLY model, matching %s physical parameters + %s nuisance parameters"
                 + " in MadMiner file",
                 model.n_parameters,
@@ -434,7 +433,7 @@ class FisherInformation:
             )
             include_nuisance_parameters = True
         else:
-            self.logger.warning(
+            logger.warning(
                 "Inconsistent numbers of parameters! Found %s in SALLY model, %s physical parameters in "
                 "MadMiner file, and %s nuisance parameters in MadMiner file.",
                 model.n_parameters,
@@ -442,19 +441,19 @@ class FisherInformation:
                 self.n_nuisance_parameters,
             )
         if include_nuisance_parameters:
-            self.logger.debug("Including nuisance parameters")
+            logger.debug("Including nuisance parameters")
         else:
-            self.logger.debug("Not including nuisance parameters")
+            logger.debug("Not including nuisance parameters")
 
         # Total xsec
         total_xsec = self._calculate_xsec(theta=theta)
-        self.logger.debug("Total cross section: %s pb", total_xsec)
+        logger.debug("Total cross section: %s pb", total_xsec)
 
         # Rate part of Fisher information
         fisher_info_rate = 0.0
         rate_covariance = 0.0
         if include_xsec_info:
-            self.logger.info("Evaluating rate Fisher information")
+            logger.info("Evaluating rate Fisher information")
             fisher_info_rate, rate_covariance = self.calculate_fisher_information_rate(
                 theta=theta, luminosity=luminosity, include_nuisance_parameters=include_nuisance_parameters
             )
@@ -490,7 +489,7 @@ class FisherInformation:
                     include_nuisance_parameters=include_nuisance_parameters,
                 )
             ):
-                self.logger.info("Evaluating kinematic Fisher information on batch %s / %s", i_batch + 1, n_batches)
+                logger.info("Evaluating kinematic Fisher information on batch %s / %s", i_batch + 1, n_batches)
 
                 weights_theta = theta_matrix.dot(weights_benchmarks.T)
 
@@ -713,7 +712,7 @@ class FisherInformation:
             bin_boundaries = weighted_quantile(histo_observables_pilot, quantile_values, weight_theta_pilot)
             bin_boundaries = bin_boundaries[1:-1]
 
-            self.logger.debug("Automatic dynamic binning: bin boundaries %s", bin_boundaries)
+            logger.debug("Automatic dynamic binning: bin boundaries %s", bin_boundaries)
 
         # Manual binning
         else:
@@ -1117,7 +1116,7 @@ class FisherInformation:
         # Nuisance parameter Fisher info
         if include_nuisance_parameters and self.n_nuisance_parameters > 0:
             if self.reference_benchmark is None:
-                self.logger.warning("Reference benchmark unknown, using first benchmark")
+                logger.warning("Reference benchmark unknown, using first benchmark")
                 i_ref_benchmark = 0
             else:
                 i_ref_benchmark = list(self.benchmarks.keys()).index(self.reference_benchmark)

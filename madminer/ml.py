@@ -16,8 +16,9 @@ from madminer.utils.ml.models.score import LocalScoreEstimator
 from madminer.utils.ml.flow_trainer import train_flow_model, evaluate_flow_model
 from madminer.utils.ml.ratio_trainer import train_ratio_model, evaluate_ratio_model
 from madminer.utils.ml.score_trainer import train_local_score_model, evaluate_local_score_model
-from madminer.utils.various import create_missing_folders, load_and_check, general_init, shuffle
+from madminer.utils.various import create_missing_folders, load_and_check, shuffle
 
+logger = logging.getLogger(__name__)
 
 class MLForge:
     """
@@ -42,8 +43,6 @@ class MLForge:
     """
 
     def __init__(self, debug=False):
-        self.logger = general_init(debug=debug)
-
         self.debug = debug
 
         self.method_type = None
@@ -233,55 +232,55 @@ class MLForge:
 
         """
 
-        self.logger.info("Starting training")
-        self.logger.info("  Method:                 %s", method)
-        self.logger.info("  Training data: x at %s", x_filename)
+        logger.info("Starting training")
+        logger.info("  Method:                 %s", method)
+        logger.info("  Training data: x at %s", x_filename)
         if theta0_filename is not None:
-            self.logger.info("                 theta0 at %s", theta0_filename)
+            logger.info("                 theta0 at %s", theta0_filename)
         if theta1_filename is not None:
-            self.logger.info("                 theta1 at %s", theta1_filename)
+            logger.info("                 theta1 at %s", theta1_filename)
         if y_filename is not None:
-            self.logger.info("                 y at %s", y_filename)
+            logger.info("                 y at %s", y_filename)
         if r_xz_filename is not None:
-            self.logger.info("                 r_xz at %s", r_xz_filename)
+            logger.info("                 r_xz at %s", r_xz_filename)
         if t_xz0_filename is not None:
-            self.logger.info("                 t_xz (theta0) at  %s", t_xz0_filename)
+            logger.info("                 t_xz (theta0) at  %s", t_xz0_filename)
         if t_xz1_filename is not None:
-            self.logger.info("                 t_xz (theta1) at  %s", t_xz1_filename)
+            logger.info("                 t_xz (theta1) at  %s", t_xz1_filename)
         if features is None:
-            self.logger.info("  Features:               all")
+            logger.info("  Features:               all")
         else:
-            self.logger.info("  Features:               %s", features)
-        self.logger.info("  Method:                 %s", method)
+            logger.info("  Features:               %s", features)
+        logger.info("  Method:                 %s", method)
         if method in ["nde", "scandal"]:
-            self.logger.info("  Neural density est.:    %s", nde_type)
+            logger.info("  Neural density est.:    %s", nde_type)
         if method not in ["nde", "scandal"]:
-            self.logger.info("  Hidden layers:          %s", n_hidden)
+            logger.info("  Hidden layers:          %s", n_hidden)
         if method in ["nde", "scandal"]:
-            self.logger.info("  MAF, number MADEs:      %s", maf_n_mades)
-            self.logger.info("  MAF, batch norm:        %s", maf_batch_norm)
-            self.logger.info("  MAF, BN alpha:          %s", maf_batch_norm_alpha)
-            self.logger.info("  MAF MoG, components:    %s", maf_mog_n_components)
-        self.logger.info("  Activation function:    %s", activation)
+            logger.info("  MAF, number MADEs:      %s", maf_n_mades)
+            logger.info("  MAF, batch norm:        %s", maf_batch_norm)
+            logger.info("  MAF, BN alpha:          %s", maf_batch_norm_alpha)
+            logger.info("  MAF MoG, components:    %s", maf_mog_n_components)
+        logger.info("  Activation function:    %s", activation)
         if method in ["cascal", "cascal2", "rascal", "rascal2", "scandal"]:
-            self.logger.info("  alpha:                  %s", alpha)
-        self.logger.info("  Batch size:             %s", batch_size)
-        self.logger.info("  Trainer:                %s", trainer)
-        self.logger.info("  Epochs:                 %s", n_epochs)
-        self.logger.info("  Learning rate:          %s initially, decaying to %s", initial_lr, final_lr)
+            logger.info("  alpha:                  %s", alpha)
+        logger.info("  Batch size:             %s", batch_size)
+        logger.info("  Trainer:                %s", trainer)
+        logger.info("  Epochs:                 %s", n_epochs)
+        logger.info("  Learning rate:          %s initially, decaying to %s", initial_lr, final_lr)
         if trainer == "sgd":
-            self.logger.info("  Nesterov momentum:      %s", nesterov_momentum)
-        self.logger.info("  Validation split:       %s", validation_split)
-        self.logger.info("  Early stopping:         %s", early_stopping)
-        self.logger.info("  Scale inputs:           %s", scale_inputs)
-        self.logger.info("  Shuffle labels          %s", shuffle_labels)
+            logger.info("  Nesterov momentum:      %s", nesterov_momentum)
+        logger.info("  Validation split:       %s", validation_split)
+        logger.info("  Early stopping:         %s", early_stopping)
+        logger.info("  Scale inputs:           %s", scale_inputs)
+        logger.info("  Shuffle labels          %s", shuffle_labels)
         if grad_x_regularization is None:
-            self.logger.info("  Regularization:         None")
+            logger.info("  Regularization:         None")
         else:
-            self.logger.info("  Regularization:         %s * |grad_x f(x)|^2", grad_x_regularization)
+            logger.info("  Regularization:         %s * |grad_x f(x)|^2", grad_x_regularization)
 
         # Load training data
-        self.logger.info("Loading training data")
+        logger.info("Loading training data")
 
         theta0 = load_and_check(theta0_filename)
         theta1 = load_and_check(theta1_filename)
@@ -333,11 +332,11 @@ class MLForge:
         else:
             n_parameters = t_xz0.shape[1]
 
-        self.logger.info("Found %s samples with %s parameters and %s observables", n_samples, n_parameters, n_observables)
+        logger.info("Found %s samples with %s parameters and %s observables", n_samples, n_parameters, n_observables)
 
         # Scale features
         if scale_inputs:
-            self.logger.info("Rescaling inputs")
+            logger.info("Rescaling inputs")
             self.x_scaling_means = np.mean(x, axis=0)
             self.x_scaling_stds = np.maximum(np.std(x, axis=0), 1.0e-6)
             x[:] -= self.x_scaling_means
@@ -346,9 +345,9 @@ class MLForge:
             self.x_scaling_means = np.zeros(n_parameters)
             self.x_scaling_stds = np.ones(n_parameters)
 
-        self.logger.debug("Observable ranges:")
+        logger.debug("Observable ranges:")
         for i in range(n_observables):
-            self.logger.debug(
+            logger.debug(
                 "  x_%s: mean %s, std %s, range %s ... %s",
                 i + 1,
                 np.mean(x[:, i]),
@@ -359,13 +358,13 @@ class MLForge:
 
         # Shuffle labels
         if shuffle_labels:
-            self.logger.info("Shuffling labels")
+            logger.info("Shuffling labels")
             y, r_xz, t_xz0, t_xz1 = shuffle(y, r_xz, t_xz0, t_xz1)
 
         # Features
         if features is not None:
             x = x[:, features]
-            self.logger.info("Only using %s of %s observables", x.shape[1], n_observables)
+            logger.info("Only using %s of %s observables", x.shape[1], n_observables)
             n_observables = x.shape[1]
 
         # Save setup
@@ -380,7 +379,7 @@ class MLForge:
         self.features = features
 
         # Create model
-        self.logger.info("Creating model for method %s", method)
+        logger.info("Creating model for method %s", method)
         if method in ["carl", "rolr", "rascal", "alice", "alices"]:
             self.method_type = "parameterized"
             self.model = ParameterizedRatioEstimator(
@@ -479,7 +478,7 @@ class MLForge:
             raise NotImplementedError("Unknown method {}".format(method))
 
         # Train model
-        self.logger.info("Training model")
+        logger.info("Training model")
 
         if method in ["sally", "sallino"]:
             train_local_score_model(
@@ -622,7 +621,7 @@ class MLForge:
             raise ValueError("No model -- train or load model before evaluating it!")
 
         # Load training data
-        self.logger.debug("Loading evaluation data")
+        logger.debug("Loading evaluation data")
 
         theta0s = load_and_check(theta0_filename)
         theta1s = load_and_check(theta1_filename)
@@ -641,7 +640,7 @@ class MLForge:
 
         # SALLY evaluation
         if self.method in ["sally", "sallino"]:
-            self.logger.debug("Starting score evaluation")
+            logger.debug("Starting score evaluation")
 
             if return_grad_x:
                 all_t_hat, all_x_gradients = evaluate_local_score_model(model=self.model, xs=x, return_grad_x=True)
@@ -668,10 +667,10 @@ class MLForge:
         all_x_gradients = []
 
         if test_all_combinations:
-            self.logger.debug("Starting ratio evaluation for all combinations")
+            logger.debug("Starting ratio evaluation for all combinations")
 
             for i, (theta0, theta1) in enumerate(zip(theta0s, theta1s)):
-                self.logger.debug(
+                logger.debug(
                     "Starting ratio evaluation for thetas %s / %s: %s vs %s", i + 1, len(theta0s), theta0, theta1
                 )
 
@@ -716,7 +715,7 @@ class MLForge:
                 all_x_gradients = np.array(all_x_gradients)
 
         else:
-            self.logger.debug("Starting ratio evaluation")
+            logger.debug("Starting ratio evaluation")
 
             if self.method in ["nde", "scandal"]:
                 _, all_log_r_hat, t_hat0 = evaluate_flow_model(
@@ -746,7 +745,7 @@ class MLForge:
                     )
                     all_x_gradients = None
 
-        self.logger.debug("Evaluation done")
+        logger.debug("Evaluation done")
 
         if return_grad_x:
             return all_log_r_hat, all_t_hat0, all_t_hat1, all_x_gradients
@@ -782,7 +781,7 @@ class MLForge:
             raise ValueError("No model -- train or load model before evaluating it!")
 
         # Load training data
-        self.logger.debug("Loading evaluation data")
+        logger.debug("Loading evaluation data")
         if isinstance(x, six.string_types):
             x = load_and_check(x)
         n_samples = x.shape[0]
@@ -798,7 +797,7 @@ class MLForge:
 
         # Estimate scores
         if self.method in ["sally", "sallino"]:
-            self.logger.debug("Starting score evaluation")
+            logger.debug("Starting score evaluation")
 
             t_hats = evaluate_local_score_model(model=self.model, xs=x)
         else:
@@ -814,7 +813,7 @@ class MLForge:
 
         # Calculate expected score
         expected_score = np.mean(t_hats, axis=0)
-        self.logger.info("Expected per-event score (should be close to zero): %s", expected_score)
+        logger.info("Expected per-event score (should be close to zero): %s", expected_score)
 
         return fisher_information
 
@@ -842,7 +841,7 @@ class MLForge:
         create_missing_folders([os.path.dirname(filename)])
 
         # Save settings
-        self.logger.debug("Saving settings to %s_settings.json", filename)
+        logger.debug("Saving settings to %s_settings.json", filename)
 
         settings = {
             "method": self.method,
@@ -859,12 +858,12 @@ class MLForge:
 
         # Save scaling
         if self.x_scaling_stds is not None and self.x_scaling_means is not None:
-            self.logger.debug("Saving input scaling information to %s_x_means.npy and %s_x_stds.npy", filename, filename)
+            logger.debug("Saving input scaling information to %s_x_means.npy and %s_x_stds.npy", filename, filename)
             np.save(filename + "_x_means.npy", self.x_scaling_means)
             np.save(filename + "_x_stds.npy", self.x_scaling_stds)
 
         # Save state dict
-        self.logger.debug("Saving state dictionary to %s_state_dict.pt", filename)
+        logger.debug("Saving state dictionary to %s_state_dict.pt", filename)
         torch.save(self.model.state_dict(), filename + "_state_dict.pt")
 
     def load(self, filename):
@@ -884,7 +883,7 @@ class MLForge:
         """
 
         # Load settings
-        self.logger.debug("Loading settings from %s_settings.json", filename)
+        logger.debug("Loading settings from %s_settings.json", filename)
 
         with open(filename + "_settings.json", "r") as f:
             settings = json.load(f)
@@ -901,7 +900,7 @@ class MLForge:
         if self.features is not None:
             self.features = list([int(item) for item in self.features])
 
-        self.logger.debug(
+        logger.debug(
             "  Found method %s, %s observables, %s parameters, %s hidden layers, %s activation function, "
             "features %s",
             self.method,
@@ -916,11 +915,11 @@ class MLForge:
         try:
             self.x_scaling_means = np.load(filename + "_x_means.npy")
             self.x_scaling_stds = np.load(filename + "_x_stds.npy")
-            self.logger.debug(
+            logger.debug(
                 "  Found input scaling information: means %s, stds %s", self.x_scaling_means, self.x_scaling_stds
             )
         except FileNotFoundError:
-            self.logger.warning("Scaling information not found in %s", filename)
+            logger.warning("Scaling information not found in %s", filename)
             self.x_scaling_means = None
             self.x_scaling_stds = None
 
@@ -953,7 +952,7 @@ class MLForge:
             raise NotImplementedError("Unknown method {}".format(self.method))
 
         # Load state dict
-        self.logger.debug("Loading state dictionary from %s_state_dict.pt", filename)
+        logger.debug("Loading state dictionary from %s_state_dict.pt", filename)
         self.model.load_state_dict(torch.load(filename + "_state_dict.pt"))
 
 
@@ -1002,7 +1001,6 @@ class EnsembleForge:
     """
 
     def __init__(self, estimators=None, debug=False):
-        self.logger = general_init(debug=debug)
         self.debug = debug
         self.n_parameters = None
         self.n_observables = None
@@ -1097,7 +1095,7 @@ class EnsembleForge:
             None
 
         """
-        self.logger.info("Training %s estimators in ensemble", self.n_estimators)
+        logger.info("Training %s estimators in ensemble", self.n_estimators)
 
         for key, value in six.iteritems(kwargs):
             if not isinstance(value, list):
@@ -1112,7 +1110,7 @@ class EnsembleForge:
             for key, value in six.iteritems(kwargs):
                 kwargs_this_estimator[key] = value[i]
 
-            self.logger.info("Training estimator %s / %s in ensemble", i + 1, self.n_estimators)
+            logger.info("Training estimator %s / %s in ensemble", i + 1, self.n_estimators)
             estimator.train(**kwargs_this_estimator)
 
     def calculate_expectation(self, x_filename, theta0_filename=None, theta1_filename=None):
@@ -1144,13 +1142,13 @@ class EnsembleForge:
 
         """
 
-        self.logger.info("Calculating expectation for %s estimators in ensemble", self.n_estimators)
+        logger.info("Calculating expectation for %s estimators in ensemble", self.n_estimators)
 
         self.expectations = []
         method_type = self._check_consistency()
 
         for i, estimator in enumerate(self.estimators):
-            self.logger.info("Starting evaluation for estimator %s / %s in ensemble", i + 1, self.n_estimators)
+            logger.info("Starting evaluation for estimator %s / %s in ensemble", i + 1, self.n_estimators)
 
             # Calculate expected score / ratio
             if method_type == "local_score":
@@ -1240,7 +1238,7 @@ class EnsembleForge:
             Only returned if return_individual_predictions is True. The individual estimator predictions.
 
         """
-        self.logger.info("Evaluating %s estimators in ensemble", self.n_estimators)
+        logger.info("Evaluating %s estimators in ensemble", self.n_estimators)
 
         # Calculate weights of each estimator in vote
         if self.expectations is None or vote_expectation_weight is None:
@@ -1265,12 +1263,12 @@ class EnsembleForge:
                 these_weights /= np.sum(these_weights)
                 weights.append(these_weights)
 
-        self.logger.debug("  Estimator weights: %s", weights)
+        logger.debug("  Estimator weights: %s", weights)
 
         # Calculate estimator predictions
         predictions = []
         for i, estimator in enumerate(self.estimators):
-            self.logger.info("Starting evaluation for estimator %s / %s in ensemble", i + 1, self.n_estimators)
+            logger.info("Starting evaluation for estimator %s / %s in ensemble", i + 1, self.n_estimators)
 
             predictions.append(
                 estimator.evaluate(
@@ -1384,7 +1382,7 @@ class EnsembleForge:
             Only returned if return_individual_predictions is True. The individual estimator predictions.
 
         """
-        self.logger.debug("Evaluating Fisher information for %s estimators in ensemble", self.n_estimators)
+        logger.debug("Evaluating Fisher information for %s estimators in ensemble", self.n_estimators)
 
         # Check input
         if mode not in ["score", "information"]:
@@ -1422,14 +1420,14 @@ class EnsembleForge:
                 these_weights /= np.sum(these_weights)
                 estimator_weights.append(these_weights)
 
-        self.logger.debug("  Estimator estimator_weights: %s", estimator_weights)
+        logger.debug("  Estimator estimator_weights: %s", estimator_weights)
 
         # "information" mode
         if mode == "information":
             # Calculate estimator predictions
             predictions = []
             for i, estimator in enumerate(self.estimators):
-                self.logger.debug("Starting evaluation for estimator %s / %s in ensemble", i + 1, self.n_estimators)
+                logger.debug("Starting evaluation for estimator %s / %s in ensemble", i + 1, self.n_estimators)
 
                 predictions.append(estimator.calculate_fisher_information(x=x, weights=obs_weights, n_events=n_events))
             predictions = np.array(predictions)
@@ -1464,7 +1462,7 @@ class EnsembleForge:
             # Calculate score predictions
             score_predictions = []
             for i, estimator in enumerate(self.estimators):
-                self.logger.debug("Starting evaluation for estimator %s / %s in ensemble", i + 1, self.n_estimators)
+                logger.debug("Starting evaluation for estimator %s / %s in ensemble", i + 1, self.n_estimators)
 
                 score_predictions.append(estimator.evaluate(x=x))
             score_predictions = np.array(score_predictions)  # (n_estimators, n_events, n_parameters)
@@ -1481,9 +1479,9 @@ class EnsembleForge:
                 * np.einsum("eni,enj->nij", score_pred_minus_ens_mean, score_pred_minus_ens_mean)
             )
 
-            self.logger.debug("Individual score predictions for first event:\n %s", score_predictions[:,0,:])
-            self.logger.debug("Mean:\n%s", score_mean[0,:])
-            self.logger.debug("Covariance:\n%s", score_cov[0,:,:])
+            logger.debug("Individual score predictions for first event:\n %s", score_predictions[:,0,:])
+            logger.debug("Mean:\n%s", score_mean[0,:])
+            logger.debug("Covariance:\n%s", score_cov[0,:,:])
 
             # Event-wise Fisher info
             event_information_mean = np.einsum("ni,nj->nij", score_mean, score_mean)
@@ -1508,7 +1506,7 @@ class EnsembleForge:
             # Let's check the expected score
             expected_score = [np.einsum("n,ni->i", obs_weights, score_mean)]
             expected_score_cov = [np.einsum("n,nij->ij", obs_weights, score_cov)]
-            self.logger.info("Expected per-event score (should be close to zero):\n%s\nwith covariance matrix\n%s",
+            logger.info("Expected per-event score (should be close to zero):\n%s\nwith covariance matrix\n%s",
                          expected_score, expected_score_cov)
 
 
@@ -1562,7 +1560,7 @@ class EnsembleForge:
         create_missing_folders([folder])
 
         # Save ensemble settings
-        self.logger.debug("Saving ensemble setup to %s/ensemble.json", folder)
+        logger.debug("Saving ensemble setup to %s/ensemble.json", folder)
 
         if self.expectations is None:
             expectations = "None"
@@ -1594,7 +1592,7 @@ class EnsembleForge:
         """
 
         # Load ensemble settings
-        self.logger.debug("Loading ensemble setup from %s/ensemble.json", folder)
+        logger.debug("Loading ensemble setup from %s/ensemble.json", folder)
 
         with open(folder + "/ensemble.json", "r") as f:
             settings = json.load(f)
@@ -1606,7 +1604,7 @@ class EnsembleForge:
         if self.expectations is not None:
             self.expectations = np.array(self.expectations)
 
-        self.logger.info("Found ensemble with %s estimators and expectations %s", self.n_estimators, self.expectations)
+        logger.info("Found ensemble with %s estimators and expectations %s", self.n_estimators, self.expectations)
 
         # Load estimators
         self.estimators = []

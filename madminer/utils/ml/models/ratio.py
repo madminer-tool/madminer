@@ -4,9 +4,9 @@ import torch
 import torch.nn as nn
 from torch.autograd import grad
 from madminer.utils.ml.utils import get_activation_function
-from madminer.utils.various import general_init
+import logging
 
-logger = general_init(debug=None)
+logger = logging.getLogger(__name__)
 
 
 class ParameterizedRatioEstimator(nn.Module):

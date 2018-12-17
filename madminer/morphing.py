@@ -6,6 +6,8 @@ import numpy as np
 from collections import OrderedDict
 import itertools
 
+logger = logging.getLogger(__name__)
+
 
 class Morpher:
     """

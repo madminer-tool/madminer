@@ -1,14 +1,15 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
-import six
 
+import six
 import numpy as np
 from collections import OrderedDict
 import skhep.math
 import os
+import logging
 
-from madminer.utils.various import call_command, general_init
+from madminer.utils.various import call_command
 
-logger = general_init(debug=None)
+logger = logging.getLogger(__name__)
 
 
 def extract_weights_from_lhe_file(filename, sampling_benchmark, is_background, rescale_factor=1.0):

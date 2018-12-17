@@ -9,9 +9,9 @@ from torch.utils.data.sampler import SubsetRandomSampler
 from torch.nn.utils import clip_grad_norm_
 
 from madminer.utils.ml.models.ratio import ParameterizedRatioEstimator, DoublyParameterizedRatioEstimator
-from madminer.utils.various import general_init
+import logging
 
-logger = general_init(debug=None)
+logger = logging.getLogger(__name__)
 
 class GoldDataset(torch.utils.data.Dataset):
     """ """

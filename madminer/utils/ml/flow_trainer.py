@@ -10,9 +10,9 @@ from torch.utils.data.sampler import SubsetRandomSampler
 from torch.nn.utils import clip_grad_norm_
 
 from madminer.utils.ml.utils import check_for_nans_in_parameters
-from madminer.utils.various import general_init
+import logging
 
-logger = general_init(debug=None)
+logger = logging.getLogger(__name__)
 
 
 class SmallGoldDataset(torch.utils.data.Dataset):

@@ -10,7 +10,9 @@ from madminer.utils.interfaces.madminer_hdf5 import save_preformatted_events_to_
 from madminer.utils.analysis import get_theta_value, get_theta_benchmark_matrix, get_dtheta_benchmark_matrix
 from madminer.utils.analysis import calculate_augmented_data, parse_theta, mdot
 from madminer.morphing import Morpher
-from madminer.utils.various import general_init, format_benchmark, create_missing_folders, shuffle, balance_thetas
+from madminer.utils.various import format_benchmark, create_missing_folders, shuffle, balance_thetas
+
+logger = logging.getLogger(__name__)
 
 
 def combine_and_shuffle(input_filenames, output_filename, k_factors=None, overwrite_existing_file=True, debug=False):
@@ -44,8 +46,6 @@ def combine_and_shuffle(input_filenames, output_filename, k_factors=None, overwr
         None
 
     """
-
-    logger = general_init(debug=debug)
 
     logger.debug("Combining and shuffling samples")
 
@@ -262,14 +262,11 @@ class SampleAugmenter:
     """
 
     def __init__(self, filename, disable_morphing=False, include_nuisance_parameters=True, debug=False):
-
-        self.logger = general_init(debug=debug)
-
         # Save setup
         self.include_nuisance_parameters = include_nuisance_parameters
         self.madminer_filename = filename
 
-        self.logger.info("Loading data from %s", filename)
+        logger.info("Loading data from %s", filename)
 
         # Load data
         (
@@ -289,9 +286,9 @@ class SampleAugmenter:
         self.n_benchmarks_phys = np.sum(np.logical_not(self.benchmark_is_nuisance))
         self.n_nuisance_parameters = self.n_benchmarks - self.n_benchmarks_phys
 
-        self.logger.info("Found %s parameters:", self.n_parameters)
+        logger.info("Found %s parameters:", self.n_parameters)
         for key, values in six.iteritems(self.parameters):
-            self.logger.info(
+            logger.info(
                 "   %s (LHA: %s %s, maximal power in squared ME: %s, range: %s)",
                 key,
                 values[0],
@@ -300,15 +297,15 @@ class SampleAugmenter:
                 values[3],
             )
 
-        self.logger.info("Found %s benchmarks, of which %s physical:", self.n_benchmarks, self.n_benchmarks_phys)
+        logger.info("Found %s benchmarks, of which %s physical:", self.n_benchmarks, self.n_benchmarks_phys)
         for (key, values), is_nuisance in zip(six.iteritems(self.benchmarks), self.benchmark_is_nuisance):
             if is_nuisance:
-                self.logger.info("   %s: nuisance parameter", key)
+                logger.info("   %s: nuisance parameter", key)
             else:
-                self.logger.info("   %s: %s", key, format_benchmark(values))
+                logger.info("   %s: %s", key, format_benchmark(values))
 
-        self.logger.info("Found %s observables: %s", len(self.observables), ", ".join(self.observables))
-        self.logger.info("Found %s events", self.n_samples)
+        logger.info("Found %s observables: %s", len(self.observables), ", ".join(self.observables))
+        logger.info("Found %s events", self.n_samples)
 
         # Morphing
         self.morpher = None
@@ -317,10 +314,10 @@ class SampleAugmenter:
             self.morpher.set_components(self.morphing_components)
             self.morpher.set_basis(self.benchmarks, morphing_matrix=self.morphing_matrix)
 
-            self.logger.info("Found morphing setup with %s components", len(self.morphing_components))
+            logger.info("Found morphing setup with %s components", len(self.morphing_components))
 
         else:
-            self.logger.info("Did not find morphing setup.")
+            logger.info("Did not find morphing setup.")
 
     def extract_samples_train_plain(
         self, theta, n_samples, folder, filename, test_split=0.5, switch_train_test_events=False
@@ -367,7 +364,7 @@ class SampleAugmenter:
 
         """
 
-        self.logger.info("Extracting plain training sample. Sampling according to %s", theta)
+        logger.info("Extracting plain training sample. Sampling according to %s", theta)
 
         create_missing_folders([folder])
 
@@ -458,7 +455,7 @@ class SampleAugmenter:
         """
 
         if log_message:
-            self.logger.info(
+            logger.info(
                 "Extracting training sample for local score regression. Sampling and score evaluation according to %s",
                 theta,
             )
@@ -495,7 +492,7 @@ class SampleAugmenter:
             t_xz_nuisance = augmented_data[1]
             t_xz = np.hstack([t_xz_physics, t_xz_nuisance])
 
-            self.logger.debug(
+            logger.debug(
                 "Found physical score with shape %s, nuisance score with shape %s, combined shape %s",
                 t_xz_physics.shape,
                 t_xz_nuisance.shape,
@@ -560,7 +557,7 @@ class SampleAugmenter:
 
         """
 
-        self.logger.info(
+        logger.info(
             "Extracting training sample for non-local score-based methods. Sampling and score evaluation according "
             "to %s",
             theta,
@@ -642,7 +639,7 @@ class SampleAugmenter:
 
         """
 
-        self.logger.info(
+        logger.info(
             "Extracting training sample for ratio-based methods. Numerator hypothesis: %s, denominator "
             "hypothesis: %s",
             theta0,
@@ -807,7 +804,7 @@ class SampleAugmenter:
 
         """
 
-        self.logger.info(
+        logger.info(
             "Extracting training sample for ratio-based methods. Numerator hypothesis: %s, denominator "
             "hypothesis: %s",
             theta0,
@@ -962,7 +959,7 @@ class SampleAugmenter:
         y[x_0.shape[0] :] = 1.0
 
         if n_additional_thetas > 0:
-            self.logger.info(
+            logger.info(
                 "Oversampling: created %s training samples from %s original unweighted events",
                 x.shape[0],
                 n_actual_samples,
@@ -1027,7 +1024,7 @@ class SampleAugmenter:
 
         """
 
-        self.logger.info("Extracting evaluation sample. Sampling according to %s", theta)
+        logger.info("Extracting evaluation sample. Sampling according to %s", theta)
 
         create_missing_folders([folder])
 
@@ -1079,7 +1076,7 @@ class SampleAugmenter:
 
         """
 
-        self.logger.info("Starting cross-section calculation")
+        logger.info("Starting cross-section calculation")
 
         # Total xsecs for benchmarks
         xsecs_benchmarks = None
@@ -1117,7 +1114,7 @@ class SampleAugmenter:
             all_xsecs.append(xsec_theta)
             all_xsec_uncertainties.append(rms_xsec_theta)
 
-            self.logger.debug("theta %s: xsec = (%s +/- %s) pb", theta, xsec_theta, rms_xsec_theta)
+            logger.debug("theta %s: xsec = (%s +/- %s) pb", theta, xsec_theta, rms_xsec_theta)
 
         # Return
         all_thetas = np.array(all_thetas)
@@ -1234,16 +1231,16 @@ class SampleAugmenter:
 
         """
 
-        self.logger.debug("Starting sample extraction")
+        logger.debug("Starting sample extraction")
 
         assert n_samples_per_theta > 0, "Requested {} samples per theta!".format(n_samples_per_theta)
 
         if augmented_data_definitions is None:
             augmented_data_definitions = []
 
-        self.logger.debug("Augmented data requested:")
+        logger.debug("Augmented data requested:")
         for augmented_data_definition in augmented_data_definitions:
-            self.logger.debug("  %s", augmented_data_definition)
+            logger.debug("  %s", augmented_data_definition)
 
         # Nuisance parameters?
         include_nuisance_parameters = self.include_nuisance_parameters and nuisance_score
@@ -1252,7 +1249,7 @@ class SampleAugmenter:
         if self.reference_benchmark is not None:
             i_ref_benchmark = list(self.benchmarks.keys()).index(self.reference_benchmark)
         elif include_nuisance_parameters:
-            self.logger.warning("No reference benchmark found. Using first benchmark.")
+            logger.warning("No reference benchmark found. Using first benchmark.")
 
         # Calculate total xsecs for benchmarks
         xsecs_benchmarks = None
@@ -1280,7 +1277,7 @@ class SampleAugmenter:
 
             n_observables = obs.shape[1]
 
-        self.logger.debug("Benchmark cross sections [pb]: %s", xsecs_benchmarks)
+        logger.debug("Benchmark cross sections [pb]: %s", xsecs_benchmarks)
 
         # Balance thetas
         theta_sets_types, theta_sets_values = balance_thetas(theta_sets_types, theta_sets_values)
@@ -1341,7 +1338,7 @@ class SampleAugmenter:
             theta_matrices = []
             theta_gradient_matrices = []
 
-            self.logger.debug("Drawing %s events for the following thetas:", n_samples)
+            logger.debug("Drawing %s events for the following thetas:", n_samples)
 
             for i_theta, (theta_type, theta_value) in enumerate(zip(theta_types, theta_values)):
                 theta = get_theta_value(theta_type, theta_value, self.benchmarks)
@@ -1355,7 +1352,7 @@ class SampleAugmenter:
                     get_dtheta_benchmark_matrix(theta_type, theta_value, self.benchmarks, self.morpher)
                 )
 
-                self.logger.debug(
+                logger.debug(
                     "  theta %s = %s%s", i_theta, theta[0, :], " (sampling)" if i_theta == sampling_theta_index else ""
                 )
 
@@ -1368,7 +1365,7 @@ class SampleAugmenter:
             ) ** 0.5
 
             if rms_xsec_sampling_theta > 0.1 * xsec_sampling_theta:
-                self.logger.warning(
+                logger.warning(
                     "Warning: large statistical uncertainty on the total cross section for theta = %s: "
                     "(%s +/- %s) pb",
                     thetas[sampling_theta_index][0],
@@ -1409,7 +1406,7 @@ class SampleAugmenter:
                     # Handle negative weights (should be rare)
                     n_negative_weights = np.sum(p_theta < 0.0)
                     if n_negative_weights > 0:
-                        self.logger.warning(
+                        logger.warning(
                             "%s negative weights (%s)", n_negative_weights, n_negative_weights / p_theta.size
                         )
                     p_theta[p_theta < 0.0] = 0.0
@@ -1455,11 +1452,11 @@ class SampleAugmenter:
                         break
 
                 # Cross-check cumulative probabilities at end
-                self.logger.debug("  Cumulative probability (should be close to 1): %s", cumulative_p[-1])
+                logger.debug("  Cumulative probability (should be close to 1): %s", cumulative_p[-1])
 
                 # Check that we got 'em all, otherwise repeat
                 if not np.all(samples_done):
-                    self.logger.debug(
+                    logger.debug(
                         "  After full pass through event files, {} / {} samples not found, u = {}".format(
                             np.sum(np.invert(samples_done)), samples_done.size, u[np.invert(samples_done)]
                         )
@@ -1482,15 +1479,15 @@ class SampleAugmenter:
 
         # Report effective number of samples
         if n_sets > 1:
-            self.logger.info(
+            logger.info(
                 "Effective number of samples: mean %s, with individual thetas ranging from %s to %s",
                 np.mean(all_effective_n_samples),
                 np.min(all_effective_n_samples),
                 np.max(all_effective_n_samples),
             )
-            self.logger.debug("Effective number of samples for all thetas: %s", all_effective_n_samples)
+            logger.debug("Effective number of samples for all thetas: %s", all_effective_n_samples)
         else:
-            self.logger.info("Effective number of samples: %s", all_effective_n_samples[0])
+            logger.info("Effective number of samples: %s", all_effective_n_samples[0])
 
         return all_x, all_augmented_data, all_thetas
 

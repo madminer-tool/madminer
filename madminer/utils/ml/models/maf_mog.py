@@ -5,9 +5,9 @@ from madminer.utils.ml.models.base import BaseConditionalFlow
 from madminer.utils.ml.models.made import ConditionalGaussianMADE
 from madminer.utils.ml.models.batch_norm import BatchNorm
 from madminer.utils.ml.models.made_mog import ConditionalMixtureMADE
-from madminer.utils.various import general_init
+import logging
 
-logger = general_init(debug=None)
+logger = logging.getLogger(__name__)
 
 
 class ConditionalMixtureMaskedAutoregressiveFlow(BaseConditionalFlow):

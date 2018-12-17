@@ -1,9 +1,11 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import os
-from madminer.utils.various import general_init, call_command
+import logging
 
-logger = general_init(debug=None)
+from madminer.various.utils import call_command
+
+logger = logging.getLogger(__name__)
 
 
 def run_delphes(

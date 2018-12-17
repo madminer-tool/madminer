@@ -8,40 +8,10 @@ from subprocess import Popen, PIPE
 import io
 import numpy as np
 import shutil
-from madminer import __version__
 
-printed_splash = False
+logger = logging.getLogger(__name__)
 
-
-def general_init(debug=False):
-    global printed_splash
-
-    logger = logging.getLogger("madminer")
-    formatter = logging.Formatter(fmt="%(asctime)s %(message)s", datefmt="%H:%M")
-    handler = logging.StreamHandler()
-    handler.setFormatter(formatter)
-    logger.addHandler(handler)
-
-    if debug is not None:
-        logger.setLevel(level=logging.DEBUG if debug else logging.INFO)
-
-    if not printed_splash:
-        logger.info("")
-        logger.info("------------------------------------------------------------")
-        logger.info("|                                                          |")
-        logger.info("|  MadMiner v{}|".format(__version__.ljust(46)))
-        logger.info("|                                                          |")
-        logger.info("|           Johann Brehmer, Kyle Cranmer, and Felix Kling  |")
-        logger.info("|                                                          |")
-        logger.info("------------------------------------------------------------")
-        logger.info("")
-
-        printed_splash = True
-
-    return logger
-
-
-logger = general_init(debug=None)
+initialized = False
 
 
 def call_command(cmd, log_file=None):
@@ -202,42 +172,18 @@ def math_commands():
     ]
 
     mathdefinitions = {}
-    for function in functions:
-        mathdefinitions[function] = locals().get(function, None)
+    for f in functions:
+        mathdefinitions[f] = locals().get(f, None)
 
     return mathdefinitions
 
 
 def make_file_executable(filename):
-    """
-
-    Parameters
-    ----------
-    filename :
-        
-
-    Returns
-    -------
-
-    """
     st = os.stat(filename)
     os.chmod(filename, st.st_mode | stat.S_IEXEC)
 
 
 def copy_file(source, destination):
-    """
-
-    Parameters
-    ----------
-    source :
-        
-    destination :
-        
-
-    Returns
-    -------
-
-    """
     if source is None:
         return
 

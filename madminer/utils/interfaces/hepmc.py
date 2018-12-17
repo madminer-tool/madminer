@@ -2,9 +2,10 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import os
 from io import open
-from madminer.utils.various import call_command, general_init
+import logging
+from madminer.utils.various import call_command
 
-logger = general_init(debug=None)
+logger = logging.getLogger(__name__)
 
 
 def extract_weight_order(filename, default_weight_label=None):

@@ -4,9 +4,9 @@ import numpy as np
 import numpy.random as rng
 from torch import tensor
 import torch.nn as nn
-from madminer.utils.various import general_init
+import logging
 
-logger = general_init(debug=None)
+logger = logging.getLogger(__name__)
 
 
 def create_degrees(n_inputs, n_hiddens, input_order, mode):

@@ -1,12 +1,11 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-import os
 import numpy as np
 from matplotlib import pyplot as plt
 import matplotlib
 import logging
 
-from madminer.utils.various import create_missing_folders
+logger = logging.getLogger(__name__)
 
 
 def plot_2d_morphing_basis(

@@ -8,9 +8,9 @@ import torch.nn.functional as F
 from madminer.utils.ml.models.base import BaseConditionalFlow
 from madminer.utils.ml.models.masks import create_degrees, create_masks, create_weights_conditional
 from madminer.utils.ml.utils import get_activation_function
-from madminer.utils.various import general_init
+import logging
 
-logger = general_init(debug=None)
+logger = logging.getLogger(__name__)
 
 
 class ConditionalMixtureMADE(BaseConditionalFlow):

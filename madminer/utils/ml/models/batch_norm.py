@@ -2,13 +2,12 @@ from __future__ import absolute_import, division, print_function
 
 import logging
 import numpy.random as rng
-
 import torch
 from torch import tensor
 
 from madminer.utils.ml.models.base import BaseFlow
 
-
+logger = logging.getLogger(__name__)
 
 
 class BatchNorm(BaseFlow):

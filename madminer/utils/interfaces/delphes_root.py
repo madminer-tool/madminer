@@ -5,10 +5,12 @@ import numpy as np
 from collections import OrderedDict
 import uproot
 import os
-from madminer.utils.particle import MadMinerParticle
-from madminer.utils.various import math_commands, general_init
+import logging
 
-logger = general_init(debug=None)
+from madminer.utils.particle import MadMinerParticle
+from madminer.utils.various import math_commands
+
+logger = logging.getLogger(__name__)
 
 
 def parse_delphes_root_file(

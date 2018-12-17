@@ -5,9 +5,9 @@ import shutil
 import h5py
 import numpy as np
 from collections import OrderedDict
-from madminer.utils.various import general_init
+import logging
 
-logger = general_init(debug=None)
+logger = logging.getLogger(__name__)
 
 
 def save_madminer_settings(

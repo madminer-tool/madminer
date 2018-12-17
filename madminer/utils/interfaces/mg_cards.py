@@ -1,9 +1,9 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import six
-from madminer.utils.various import copy_file, general_init
+import logging
 
-logger = general_init(debug=None)
+logger = logging.getLogger(__name__)
 
 
 def export_param_card(benchmark, parameters, param_card_template_file, mg_process_directory, param_card_filename=None):

@@ -2,9 +2,11 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import os
 import shutil
-from madminer.utils.various import call_command, make_file_executable, create_missing_folders, general_init
+import logging
 
-logger = general_init(debug=None)
+from madminer.utils.various import call_command, make_file_executable, create_missing_folders
+
+logger = logging.getLogger(__name__)
 
 def generate_mg_process(
     mg_directory,
