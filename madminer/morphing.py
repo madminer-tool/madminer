@@ -620,3 +620,34 @@ class Morpher:
         thetas = self.parameter_range[:, 0] + u * (self.parameter_range[:, 1] - self.parameter_range[:, 0])
 
         return thetas
+
+
+def calculate_nuisance_factors(nuisance_parameters, reference_benchmark_weights, nuisance_benchmark_weights):
+    """
+    Calculates the rescaling of the event weights from non-central values of nuisance parameters.
+
+    Parameters
+    ----------
+    nuisance_parameters : ndarray
+        Values of the nuisance parameters `nu`, with shape `(n_events, n_nuisance_parameters)`.
+
+    reference_benchmark_weights : ndarray
+        Event weights `dsigma(x |  theta_reference, 0)`. Has shape `(n_events, )`.
+
+    nuisance_benchmark_weights : ndarray
+        Event weights `dsigma(x |  theta_reference, nu_i)` where `nu_i` is 0 except for the `i`th component, which is 1.
+        Has shape `(n_events, n_nuisance_parameters)`.
+
+    Returns
+    -------
+    nuisance_factors : ndarray
+        Nuisance factor `dsigma(x |  theta, nu) / dsigma(x | theta, 0)` with shape `(n_events,)`.
+
+    """
+
+    log_nuisance_ratio = np.log(nuisance_benchmark_weights / reference_benchmark_weights[:, np.newaxis])
+    # Shape (n_events, n_nuisance_parameters)
+
+    exponent = np.sum(log_nuisance_ratio * nuisance_parameters, axis=1)
+
+    return np.exp(exponent)

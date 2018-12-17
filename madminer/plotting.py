@@ -8,6 +8,39 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+def plot_distributions(madminer_file, observables=None, parameter_points=None, nuisance_points=False):
+    """
+    Plots one-dimensional histograms of observables in a MadMiner file for a given set of benchmarks.
+
+    Parameters
+    ----------
+    madminer_file : str
+        Filename of a MadMiner HDF5 file.
+
+    observables : list of str or None.
+        Which observables to plot, given by a list of their names. If None, all observables in the file
+        are plotted. Default value: None.
+
+    parameter_points : list of (str or ndarray) or None.
+        Which parameter points to use for histogramming the data. Given by a list, each element can either be the name
+        of a benchmark in the MadMiner file, or an ndarray specifying any parameter point in a morphing setup. If None,
+        all physics (non-nuisance) benchmarks defined in the MadMiner file are plotted. Default value: None.
+
+    nuisance_points : list of (str or ndarray) or None.
+        Sets the value of the nuisance parameters for histogramming the data. Given by a list, each element can either
+        be the name of a nuisance benchmark in the MadMiner file, or an ndarray specifying all nuisance parameters. If
+        None, all nuisance parameters are assumed to be at their nominal (central) value.  Default value: None.
+
+    Returns
+    -------
+    figure : Figure
+        Plot as Matplotlib Figure instance.
+
+    """
+
+    return NotImplementedError
+
+
 def plot_2d_morphing_basis(
     morpher,
     xlabel=r"$\theta_0$",
