@@ -3,7 +3,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import os
 import logging
 
-from madminer.various.utils import call_command
+from madminer.utils.various import call_command
 
 logger = logging.getLogger(__name__)
 
