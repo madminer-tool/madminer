@@ -632,12 +632,14 @@ class MLForge:
 
         # Scale observables
         if self.x_scaling_means is not None and self.x_scaling_stds is not None:
-            x[:] -= self.x_scaling_means
-            x[:] /= self.x_scaling_stds
+            x_scaled = x - self.x_scaling_means
+            x_scaled /= self.x_scaling_stds
+        else:
+            x_scaled = x
 
         # Restrict featuers
         if self.features is not None:
-            x = x[:, self.features]
+            x_scaled = x_scaled[:, self.features]
 
         # SALLY evaluation
         if self.method in ["sally", "sallino"]:
@@ -648,7 +650,7 @@ class MLForge:
 
                 return all_t_hat, all_x_gradients
 
-            all_t_hat = evaluate_local_score_model(model=self.model, xs=x)
+            all_t_hat = evaluate_local_score_model(model=self.model, xs=x_scaled)
 
             return all_t_hat
 
@@ -677,7 +679,7 @@ class MLForge:
 
                 if self.method in ["nde", "scandal"]:
                     _, log_r_hat, t_hat0 = evaluate_flow_model(
-                        model=self.model, theta0s=[theta0], xs=x, evaluate_score=evaluate_score
+                        model=self.model, theta0s=[theta0], xs=x_scaled, evaluate_score=evaluate_score
                     )
                     t_hat1 = None
 
@@ -688,7 +690,7 @@ class MLForge:
                             method_type=self.method_type,
                             theta0s=[theta0],
                             theta1s=[theta1] if theta1 is not None else None,
-                            xs=x,
+                            xs=x_scaled,
                             evaluate_score=evaluate_score,
                             return_grad_x=True,
                         )
@@ -698,7 +700,7 @@ class MLForge:
                             method_type=self.method_type,
                             theta0s=[theta0],
                             theta1s=[theta1] if theta1 is not None else None,
-                            xs=x,
+                            xs=x_scaled,
                             evaluate_score=evaluate_score,
                         )
                         x_gradient = None
@@ -720,7 +722,7 @@ class MLForge:
 
             if self.method in ["nde", "scandal"]:
                 _, all_log_r_hat, t_hat0 = evaluate_flow_model(
-                    model=self.model, theta0s=theta0s, xs=x, evaluate_score=evaluate_score
+                    model=self.model, theta0s=theta0s, xs=x_scaled, evaluate_score=evaluate_score
                 )
                 all_t_hat1 = None
 
@@ -731,7 +733,7 @@ class MLForge:
                         method_type=self.method_type,
                         theta0s=theta0s,
                         theta1s=None if None in theta1s else theta1s,
-                        xs=x,
+                        xs=x_scaled,
                         evaluate_score=evaluate_score,
                         return_grad_x=True,
                     )
@@ -741,7 +743,7 @@ class MLForge:
                         method_type=self.method_type,
                         theta0s=theta0s,
                         theta1s=None if None in theta1s else theta1s,
-                        xs=x,
+                        xs=x_scaled,
                         evaluate_score=evaluate_score,
                     )
                     all_x_gradients = None
@@ -789,18 +791,20 @@ class MLForge:
 
         # Scale observables
         if self.x_scaling_means is not None and self.x_scaling_stds is not None:
-            x[:] -= self.x_scaling_means
-            x[:] /= self.x_scaling_stds
+            x_scaled = x - self.x_scaling_means
+            x_scaled /= self.x_scaling_stds
+        else:
+            x_scaled = x
 
         # Restrict featuers
         if self.features is not None:
-            x = x[:, self.features]
+            x_scaled = x_scaled[:, self.features]
 
         # Estimate scores
         if self.method in ["sally", "sallino"]:
             logger.debug("Starting score evaluation")
 
-            t_hats = evaluate_local_score_model(model=self.model, xs=x)
+            t_hats = evaluate_local_score_model(model=self.model, xs=x_scaled)
         else:
             raise NotImplementedError("Fisher information calculation only implemented for SALLY estimators")
 
@@ -1267,7 +1271,7 @@ class EnsembleForge:
         logger.debug("Estimator weights: %s", weights)
 
         # Calculate estimator predictions
-        logging.debug("Individual estimator predictions:")
+        logger.debug("Individual estimator predictions:")
         predictions = []
         for i, estimator in enumerate(self.estimators):
             logger.info("Starting evaluation for estimator %s / %s in ensemble", i + 1, self.n_estimators)
@@ -1278,7 +1282,7 @@ class EnsembleForge:
                 )
             )
 
-            logging.debug("Estimator %s predicts %s", i, predictions[-1][0,:])
+            logger.debug("Estimator %s predicts %s", i, predictions[-1][0, :])
         predictions = np.array(predictions)
 
         # Calculate weighted means and covariance matrices
@@ -1465,13 +1469,15 @@ class EnsembleForge:
 
             # Calculate score predictions
             score_predictions = []
-            logger.debug("Evaluating estimators for x = %s", x[0,:])
+            logger.debug("Evaluating estimators for x = %s", x[0, :])
             for i, estimator in enumerate(self.estimators):
                 logger.debug("Starting evaluation for estimator %s / %s in ensemble", i + 1, self.n_estimators)
 
                 score_predictions.append(estimator.evaluate(x=x))
-                logger.debug("Estimator %s predicts t(x) = %s", i, score_predictions[-1][0,:])
+                logger.debug("Estimator %s predicts t(x) = %s", i, score_predictions[-1][0, :])
             score_predictions = np.array(score_predictions)  # (n_estimators, n_events, n_parameters)
+
+            logger.debug("Now x = %s", x[0, :])
 
             # Get ensemble mean and ensemble covariance
             score_mean = np.mean(score_predictions, axis=0)  # (n_events, n_parameters)

@@ -147,7 +147,15 @@ def plot_distributions(
 
         for x, lw, color, label, ls in zip(samples, linewidths, colors, line_labels, linestyles):
             plt.hist(
-                x[:, i], histtype="step", range=x_range, bins=n_bins, lw=lw, ls=ls, color=color, label=label, density=True
+                x[:, i],
+                histtype="step",
+                range=x_range,
+                bins=n_bins,
+                lw=lw,
+                ls=ls,
+                color=color,
+                label=label,
+                density=True,
             )
 
         plt.legend()
