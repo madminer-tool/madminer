@@ -286,9 +286,9 @@ class SampleAugmenter:
         self.n_benchmarks_phys = np.sum(np.logical_not(self.benchmark_is_nuisance))
         self.n_nuisance_parameters = self.n_benchmarks - self.n_benchmarks_phys
 
-        logger.info("Found %s parameters:", self.n_parameters)
+        logger.info("Found %s parameters", self.n_parameters)
         for key, values in six.iteritems(self.parameters):
-            logger.info(
+            logger.debug(
                 "   %s (LHA: %s %s, maximal power in squared ME: %s, range: %s)",
                 key,
                 values[0],
@@ -297,14 +297,16 @@ class SampleAugmenter:
                 values[3],
             )
 
-        logger.info("Found %s benchmarks, of which %s physical:", self.n_benchmarks, self.n_benchmarks_phys)
+        logger.info("Found %s benchmarks, of which %s physical", self.n_benchmarks, self.n_benchmarks_phys)
         for (key, values), is_nuisance in zip(six.iteritems(self.benchmarks), self.benchmark_is_nuisance):
             if is_nuisance:
-                logger.info("   %s: nuisance parameter", key)
+                logger.debug("   %s: nuisance parameter", key)
             else:
-                logger.info("   %s: %s", key, format_benchmark(values))
+                logger.debug("   %s: %s", key, format_benchmark(values))
 
-        logger.info("Found %s observables: %s", len(self.observables), ", ".join(self.observables))
+        logger.info("Found %s observables")
+        for i, obs in enumerate(self.observables):
+            logger.debug("  %2.2s %s", i, obs)
         logger.info("Found %s events", self.n_samples)
 
         # Morphing
@@ -1130,9 +1132,10 @@ class SampleAugmenter:
 
         Parameters
         ----------
-        theta : None or ndarray, optional
-            If None, the function returns the benchmark weights. Otherwise it uses morphing to calculate the weights for
-            this value of theta. Default value: None.
+        theta : None or ndarray or str, optional
+            If None, the function returns all benchmark weights. If str, the function returns the weights for a given
+            benchmark name. If ndarray, it uses morphing to calculate the weights for this value of theta. Default
+            value: None.
 
         derivative : bool, optional
             If True and if theta is not None, the derivative of the weights with respect to theta are returned. Default
@@ -1153,22 +1156,27 @@ class SampleAugmenter:
 
         x, weights_benchmarks = next(madminer_event_loader(self.madminer_filename, batch_size=None))
 
-        if theta is not None and derivative:
+        if theta is None:
+            return x, weights_benchmarks
+
+        elif isinstance(theta, six.string_types):
+            i_benchmark = list(self.benchmarks.keys()).index(theta)
+            return x, weights_benchmarks[:, i_benchmark]
+
+        elif derivative:
             dtheta_matrix = get_dtheta_benchmark_matrix("morphing", theta, self.benchmarks, self.morpher)
 
-            gradients_theta = dtheta_matrix.dot(weights_benchmarks.T)  # (n_gradients, n_samples)
+            gradients_theta = mdot(dtheta_matrix, weights_benchmarks)  # (n_gradients, n_samples)
             gradients_theta = gradients_theta.T
 
             return x, gradients_theta
 
-        elif theta is not None:
+        else:
             theta_matrix = get_theta_benchmark_matrix("morphing", theta, self.benchmarks, self.morpher)
 
-            weights_theta = theta_matrix.dot(weights_benchmarks.T)
+            weights_theta = mdot(theta_matrix, weights_benchmarks)
 
             return x, weights_theta
-
-        return x, weights_benchmarks
 
     def _extract_sample(
         self,

@@ -6,7 +6,10 @@ from matplotlib import pyplot as plt
 import matplotlib
 import logging
 
-from madminer.sampling import SampleAugmenter, constant_benchmark_theta, constant_morphing_theta
+from madminer.sampling import SampleAugmenter
+from madminer.utils.analysis import mdot, get_theta_benchmark_matrix
+from madminer.morphing import calculate_nuisance_factors
+from madminer.utils.various import weighted_quantile
 
 logger = logging.getLogger(__name__)
 
@@ -15,14 +18,14 @@ def plot_distributions(
     filename,
     observables=None,
     parameter_points=None,
-    nuisance_points=None,
-    n_samples=10000,
+    uncertainties="nuisance",
     observable_labels=None,
     n_bins=50,
     line_labels=None,
     colors=None,
     linestyles=None,
     linewidths=1.5,
+    alpha=0.4,
 ):
     """
     Plots one-dimensional histograms of observables in a MadMiner file for a given set of benchmarks.
@@ -41,13 +44,33 @@ def plot_distributions(
         of a benchmark in the MadMiner file, or an ndarray specifying any parameter point in a morphing setup. If None,
         all physics (non-nuisance) benchmarks defined in the MadMiner file are plotted. Default value: None.
 
-    nuisance_points : list of (str or ndarray) or None, optional
-        Sets the value of the nuisance parameters for histogramming the data. Given by a list, each element can either
-        be the name of a nuisance benchmark in the MadMiner file, or an ndarray specifying all nuisance parameters. If
-        None, all nuisance parameters are assumed to be at their nominal (central) value.  Default value: None.
+    uncertainties : {"nuisance", "none"}, optional
+        Defines how uncertainty bands are drawn. With "nuisance", the variation in cross section from all nuisance
+        parameters is added in quadrature. With "none", no error bands are drawn.
 
-    n_samples : int, optional
-        Number of unweighted samples drawn to draw the histogram. Default value: 10000.
+    observable_labels : None or list of (str or None), optional
+        x-axis labels naming the observables. If None, the observable names from the MadMiner file are used. Default
+        value: None.
+
+    n_bins : int, optional
+        Number of bins. Default value: 50.
+
+    line_labels : None or list of (str or None), optional
+        Labels for the different parameter points. If None and if parameter_points is None, the benchmark names from
+        the MadMiner file are used. Default value: None.
+
+    colors : None or str or list of str, optional
+        Matplotlib line (and error band) colors for the distributions. If None, uses default colors. Default value:
+        None.
+
+    linestyles : None or str or list of str, optional
+        Matplotlib line styles for the distributions. If None, uses default linestyles. Default value: None.
+
+    linewidths : float or list of float, optional
+        Line widths for the contours. Default value: 1.5.
+
+    alpha : float, optional
+        alpha value for the uncertainty bands. Default value: 0.4.
 
     Returns
     -------
@@ -55,9 +78,6 @@ def plot_distributions(
         Plot as Matplotlib Figure instance.
 
     """
-
-    if nuisance_points is not None:
-        return NotImplementedError("Sampling from non-zero nuisance parameters not implemented yet!")
 
     # Load data
     sa = SampleAugmenter(filename)
@@ -74,9 +94,6 @@ def plot_distributions(
             line_labels = parameter_points
 
     n_parameter_points = len(parameter_points)
-
-    if nuisance_points is None:
-        nuisance_points = [None for _ in range(n_parameter_points)]
 
     if colors is None:
         colors = ["C" + str(i) for i in range(10)] * (n_parameter_points // 10 + 1)
@@ -99,23 +116,51 @@ def plot_distributions(
         observable_labels = list(sa.observables.keys())
         observable_labels = [observable_labels[obs] for obs in observables]
 
-    # Get unweighted data for each hypothesis
-    samples = []
+    # Get event data (observations and weights)
+    x, weights_benchmarks = sa.extract_raw_data()
 
-    for theta_in, nu_in in zip(parameter_points, nuisance_points):
-
-        assert nu_in is None  # For now...
-
-        if isinstance(theta_in, six.string_types):
-            theta = constant_benchmark_theta(theta_in)
+    weights = []
+    for theta in parameter_points:
+        if isinstance(theta, six.string_types):
+            i_benchmark = list(sa.benchmarks.keys()).index(theta)
+            weights.append(weights_benchmarks[:, i_benchmark])
         else:
-            theta = constant_morphing_theta(theta)
+            theta_matrix = get_theta_benchmark_matrix("morphing", theta, sa.benchmarks, sa.morpher)
+            weights.append(mdot(theta_matrix, weights_benchmarks))
 
-        events, _ = sa.extract_samples_test(theta=theta, n_samples=n_samples, folder=None, filename=None)
-        samples.append(events)
+    # Nuisance parameters
+    nuisance_factors_min, nuisance_factors_max = None, None
 
-    if len(samples) == 0:
-        return
+    if uncertainties == "nuisance":
+        n_events = len(x)
+        n_nuisance_params = sa.n_nuisance_parameters
+        n_toys = 1000
+
+        nuisance_toys = np.random.normal(loc=0.0, scale=1.0, size=n_events * n_nuisance_params * n_toys)
+        nuisance_toys = nuisance_toys.reshape(n_toys, n_events, n_nuisance_params)
+
+        nuisance_filter = np.array(sa.benchmark_is_nuisance, dtype=np.bool)
+        weights_nuisance_benchmarks = weights_benchmarks[:, nuisance_filter]
+
+        i_ref_benchmark = 0
+        if sa.reference_benchmark is not None:
+            i_ref_benchmark = list(sa.benchmarks.keys()).index(sa.reference_benchmark)
+        weights_ref_benchmark = weights_benchmarks[:, i_ref_benchmark]
+
+        nuisance_toy_factors = np.array(
+            [
+                calculate_nuisance_factors(nuisance_toy, weights_ref_benchmark, weights_nuisance_benchmarks)
+                for nuisance_toy in nuisance_toys
+            ]
+        )  # Shape (n_toys, n_events,)
+
+        nuisance_factors_central = np.median(nuisance_toy_factors, axis=0)  # Shape (n_events,)
+        nuisance_factors_min = np.percentile(nuisance_toy_factors, 16.0, axis=0)  # Shape (n_events,)
+        nuisance_factors_max = np.percentile(nuisance_toy_factors, 84.0, axis=0)  # Shape (n_events,)
+
+        logging.debug("Median nuisance factors: %s", nuisance_factors_central)
+        logging.debug("-1 sigma nuisance factors: %s", nuisance_factors_min)
+        logging.debug("+1 sigma nuisance factors: %s", nuisance_factors_max)
 
     # Plot distributions
     n_cols = 3
@@ -127,9 +172,9 @@ def plot_distributions(
 
         # Figure out x range
         xmins, xmaxs = [], []
-        for x in samples:
-            xmin = np.percentile(x[:, i], 5.0)
-            xmax = np.percentile(x[:, i], 95.0)
+        for theta_weights in weights:
+            xmin = weighted_quantile(x[:, i], 0.05, theta_weights)
+            xmax = weighted_quantile(x[:, i], 0.95, theta_weights)
             xwidth = xmax - xmin
             xmin -= xwidth * 0.1
             xmax += xwidth * 0.1
@@ -145,9 +190,27 @@ def plot_distributions(
         # Plot
         plt.subplot(n_rows, n_cols, i + 1)
 
-        for x, lw, color, label, ls in zip(samples, linewidths, colors, line_labels, linestyles):
+        # Error bands
+        if uncertainties == "nuisance":
+            for theta_weights, lw, color, label, ls in zip(weights, linewidths, colors, line_labels, linestyles):
+                hist_upper, bin_edges = np.histogram(
+                    x[:, i], bins=n_bins, range=x_range, weights=theta_weights * nuisance_factors_max
+                )
+                hist_lower, _ = np.histogram(
+                    x[:, i], bins=n_bins, range=x_range, weights=theta_weights * nuisance_factors_min
+                )
+
+                bin_edges = np.repeat(bin_edges, 2)[1:-1]
+                hist_lower = np.repeat(hist_lower, 2)
+                hist_upper = np.repeat(hist_upper, 2)
+
+                plt.fill_between(bin_edges, hist_lower, hist_upper, lw=lw, ls=ls, color=color, alpha=alpha)
+
+        # Central lines
+        for theta_weights, lw, color, label, ls in zip(weights, linewidths, colors, line_labels, linestyles):
             plt.hist(
                 x[:, i],
+                weights=theta_weights,
                 histtype="step",
                 range=x_range,
                 bins=n_bins,
@@ -155,7 +218,7 @@ def plot_distributions(
                 ls=ls,
                 color=color,
                 label=label,
-                density=True,
+                density=False,
             )
 
         plt.legend()
