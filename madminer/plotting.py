@@ -15,7 +15,7 @@ def plot_distributions(
     filename,
     observables=None,
     parameter_points=None,
-    nuisance_points=False,
+    nuisance_points=None,
     n_samples=10000,
     observable_labels=None,
     n_bins=50,
@@ -96,7 +96,8 @@ def plot_distributions(
     n_observables = len(observables)
 
     if observable_labels is None:
-        observable_labels = list(sa.observables.keys())[observables]
+        observable_labels = list(sa.observables.keys())
+        observable_labels = [observable_labels[obs] for obs in observables]
 
     # Get unweighted data for each hypothesis
     samples = []
@@ -144,9 +145,9 @@ def plot_distributions(
         # Plot
         plt.subplot(n_rows, n_cols, i + 1)
 
-        for x, lw, color, label in zip(samples, linewidths, colors, line_labels):
+        for x, lw, color, label, ls in zip(samples, linewidths, colors, line_labels, linestyles):
             plt.hist(
-                x[:, i], histtype="step", range=x_range, bins=n_bins, lw=lw, color=color, label=label, density=True
+                x[:, i], histtype="step", range=x_range, bins=n_bins, lw=lw, ls=ls, color=color, label=label, density=True
             )
 
         plt.legend()

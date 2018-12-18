@@ -1264,9 +1264,10 @@ class EnsembleForge:
                 these_weights /= np.sum(these_weights)
                 weights.append(these_weights)
 
-        logger.debug("  Estimator weights: %s", weights)
+        logger.debug("Estimator weights: %s", weights)
 
         # Calculate estimator predictions
+        logging.debug("Individual estimator predictions:")
         predictions = []
         for i, estimator in enumerate(self.estimators):
             logger.info("Starting evaluation for estimator %s / %s in ensemble", i + 1, self.n_estimators)
@@ -1276,6 +1277,8 @@ class EnsembleForge:
                     x_filename, theta0_filename, theta1_filename, test_all_combinations, evaluate_score=False
                 )
             )
+
+            logging.debug("Estimator %s predicts %s", i, predictions[-1][0,:])
         predictions = np.array(predictions)
 
         # Calculate weighted means and covariance matrices
@@ -1462,10 +1465,12 @@ class EnsembleForge:
 
             # Calculate score predictions
             score_predictions = []
+            logger.debug("Evaluating estimators for x = %s", x[0,:])
             for i, estimator in enumerate(self.estimators):
                 logger.debug("Starting evaluation for estimator %s / %s in ensemble", i + 1, self.n_estimators)
 
                 score_predictions.append(estimator.evaluate(x=x))
+                logger.debug("Estimator %s predicts t(x) = %s", i, score_predictions[-1][0,:])
             score_predictions = np.array(score_predictions)  # (n_estimators, n_events, n_parameters)
 
             # Get ensemble mean and ensemble covariance
