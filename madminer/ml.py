@@ -1271,7 +1271,6 @@ class EnsembleForge:
         logger.debug("Estimator weights: %s", weights)
 
         # Calculate estimator predictions
-        logger.debug("Individual estimator predictions:")
         predictions = []
         for i, estimator in enumerate(self.estimators):
             logger.info("Starting evaluation for estimator %s / %s in ensemble", i + 1, self.n_estimators)
@@ -1282,7 +1281,7 @@ class EnsembleForge:
                 )
             )
 
-            logger.debug("Estimator %s predicts %s", i, predictions[-1][0, :])
+            logger.debug("Estimator %s predicts %s for first event", i + 1, predictions[-1][0, :])
         predictions = np.array(predictions)
 
         # Calculate weighted means and covariance matrices
@@ -1469,12 +1468,11 @@ class EnsembleForge:
 
             # Calculate score predictions
             score_predictions = []
-            logger.debug("Evaluating estimators for x = %s", x[0, :])
             for i, estimator in enumerate(self.estimators):
                 logger.debug("Starting evaluation for estimator %s / %s in ensemble", i + 1, self.n_estimators)
 
                 score_predictions.append(estimator.evaluate(x=x))
-                logger.debug("Estimator %s predicts t(x) = %s", i, score_predictions[-1][0, :])
+                logger.debug("Estimator %s predicts t(x) = %s for first event", i + 1, score_predictions[-1][0, :])
             score_predictions = np.array(score_predictions)  # (n_estimators, n_events, n_parameters)
 
             logger.debug("Now x = %s", x[0, :])
@@ -1491,8 +1489,7 @@ class EnsembleForge:
                 * np.einsum("eni,enj->nij", score_pred_minus_ens_mean, score_pred_minus_ens_mean)
             )
 
-            logger.debug("Individual score predictions for first event:\n %s", score_predictions[:, 0, :])
-            logger.debug("Mean:\n%s", score_mean[0, :])
+            logger.debug("Mean score for first event: %s", score_mean[0, :])
             logger.debug("Covariance:\n%s", score_cov[0, :, :])
 
             # Event-wise Fisher info
