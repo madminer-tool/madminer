@@ -111,10 +111,14 @@ def balance_thetas(theta_sets_types, theta_sets_values):
     return theta_sets_types, theta_sets_values
 
 
-def sanitize_array(array, replace_nan=0.0, replace_inf=0.0, replace_neg_inf=0.0):
+def sanitize_array(array, replace_nan=0.0, replace_inf=0.0, replace_neg_inf=0.0, min_value=None, max_value=None):
     array[np.isneginf(array)] = replace_neg_inf
     array[np.isinf(array)] = replace_inf
     array[np.isnan(array)] = replace_nan
+
+    if min_value is not None or max_value is not None:
+        array = np.clip(array, min_value, max_value)
+
     return array
 
 

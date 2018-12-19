@@ -9,7 +9,7 @@ import logging
 from madminer.sampling import SampleAugmenter
 from madminer.utils.analysis import mdot, get_theta_benchmark_matrix
 from madminer.morphing import calculate_nuisance_factors
-from madminer.utils.various import weighted_quantile
+from madminer.utils.various import weighted_quantile, sanitize_array
 
 logger = logging.getLogger(__name__)
 
@@ -183,7 +183,14 @@ def plot_distributions(
                 for nuisance_toy in nuisance_toys
             ]
         )  # Shape (n_toys, n_events)
-        logger.debug("Calculated nuisance toy factors with shape %s", nuisance_toy_factors.shape)
+        logger.debug(
+            "Calculated nuisance toy factors with shape %s and range %s - %s",
+            nuisance_toy_factors.shape,
+            np.min(nuisance_toy_factors),
+            np.max(nuisance_toy_factors),
+        )
+
+        nuisance_toy_factors = sanitize_array(nuisance_toy_factors, min_value=1.0e-2, max_value=100.0)
 
         # Normalize
         if normalize:
