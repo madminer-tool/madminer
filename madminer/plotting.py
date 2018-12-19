@@ -19,6 +19,7 @@ def plot_distributions(
     observables=None,
     parameter_points=None,
     uncertainties="nuisance",
+    normalize=False,
     observable_labels=None,
     n_bins=50,
     line_labels=None,
@@ -47,6 +48,9 @@ def plot_distributions(
     uncertainties : {"nuisance", "none"}, optional
         Defines how uncertainty bands are drawn. With "nuisance", the variation in cross section from all nuisance
         parameters is added in quadrature. With "none", no error bands are drawn.
+
+    normalize : bool, optional
+        Whether the distribution is normalized to the total cross section. Default value: False.
 
     observable_labels : None or list of (str or None), optional
         x-axis labels naming the observables. If None, the observable names from the MadMiner file are used. Default
@@ -119,25 +123,41 @@ def plot_distributions(
     # Get event data (observations and weights)
     x, weights_benchmarks = sa.extract_raw_data()
 
-    weights = []
+    logger.debug("Loaded raw data with shapes %s, %s", x.shape, weights_benchmarks.shape)
+
+    theta_matrices = []
     for theta in parameter_points:
         if isinstance(theta, six.string_types):
-            i_benchmark = list(sa.benchmarks.keys()).index(theta)
-            weights.append(weights_benchmarks[:, i_benchmark])
+            matrix = get_theta_benchmark_matrix("benchmark", theta, sa.benchmarks)
         else:
-            theta_matrix = get_theta_benchmark_matrix("morphing", theta, sa.benchmarks, sa.morpher)
-            weights.append(mdot(theta_matrix, weights_benchmarks))
+            matrix = get_theta_benchmark_matrix("morphing", theta, sa.benchmarks, sa.morpher)
+        theta_matrices.append(matrix)
+
+    logger.debug("Calculated %s theta matrices", len(theta_matrices))
+
+    # Total cross sections
+    normalizations = []
+    if normalize:
+        xsec_benchmarks = np.sum(weights_benchmarks, axis=0)
+        for theta_matrix in theta_matrices:
+            xsec_theta = np.sum(mdot(theta_matrix, xsec_benchmarks))
+            normalizations.append(1.0 / xsec_theta)
+    else:
+        normalizations = [1.0 for _ in theta_matrices]
 
     # Nuisance parameters
     nuisance_factors_min, nuisance_factors_max = None, None
 
     if uncertainties == "nuisance":
-        n_events = len(x)
         n_nuisance_params = sa.n_nuisance_parameters
         n_toys = 1000
 
-        nuisance_toys = np.random.normal(loc=0.0, scale=1.0, size=n_events * n_nuisance_params * n_toys)
-        nuisance_toys = nuisance_toys.reshape(n_toys, n_events, n_nuisance_params)
+        logger.debug("Calculating effect of nuisance parameters")
+
+        nuisance_toys = np.random.normal(loc=0.0, scale=1.0, size=n_nuisance_params * n_toys)
+        nuisance_toys = nuisance_toys.reshape(n_toys, n_nuisance_params)
+
+        logger.debug("Drew %s toy values for nuisance parameters", n_toys * n_nuisance_params)
 
         nuisance_filter = np.array(sa.benchmark_is_nuisance, dtype=np.bool)
         weights_nuisance_benchmarks = weights_benchmarks[:, nuisance_filter]
@@ -146,23 +166,71 @@ def plot_distributions(
         if sa.reference_benchmark is not None:
             i_ref_benchmark = list(sa.benchmarks.keys()).index(sa.reference_benchmark)
         weights_ref_benchmark = weights_benchmarks[:, i_ref_benchmark]
+        logger.debug("Extracted nuisance benchmark and reference weights")
 
         nuisance_toy_factors = np.array(
             [
                 calculate_nuisance_factors(nuisance_toy, weights_ref_benchmark, weights_nuisance_benchmarks)
                 for nuisance_toy in nuisance_toys
             ]
-        )  # Shape (n_toys, n_events,)
+        )  # Shape (n_toys, n_events)
+        logger.debug("Calculated nuisance toy factors with shape %s", nuisance_toy_factors.shape)
 
-        nuisance_factors_central = np.median(nuisance_toy_factors, axis=0)  # Shape (n_events,)
-        nuisance_factors_min = np.percentile(nuisance_toy_factors, 16.0, axis=0)  # Shape (n_events,)
-        nuisance_factors_max = np.percentile(nuisance_toy_factors, 84.0, axis=0)  # Shape (n_events,)
+        # Normalize
+        if normalize:
+            normalized_weights_syst_down = []
+            normalized_weights_syst_up = []
 
-        logging.debug("Median nuisance factors: %s", nuisance_factors_central)
-        logging.debug("-1 sigma nuisance factors: %s", nuisance_factors_min)
-        logging.debug("+1 sigma nuisance factors: %s", nuisance_factors_max)
+            for i_theta, theta_matrix in enumerate(theta_matrices):
+                logger.debug("Normalizing nuisance toy experiments for hypothesis %s", i_theta + 1)
+
+                # Theta weights
+                theta_weights = mdot(theta_matrix, weights_benchmarks)  # Shape (n_events,)
+
+                # Calculate total xsec for each nuisance toy
+                nuisance_toy_xsecs = []
+                for i_toy in range(n_toys):
+                    xsec = np.sum(nuisance_toy_factors[i_toy] * theta_weights, axis=0)
+                    nuisance_toy_xsecs.append(xsec)
+                nuisance_toy_xsecs = np.array(nuisance_toy_xsecs)  # Shape (n_toys,)
+
+                # Normalize weights
+                normalized_nuisance_toy_weights = (
+                    1.0 / nuisance_toy_xsecs[:, np.newaxis] * theta_weights[np.newaxis, :] * nuisance_toy_factors
+                )
+                # Shape (n_toys, n_events,)
+
+                # Percentiles over nuisance toys
+                nuisance_factors_central_this_theta = np.median(
+                    normalized_nuisance_toy_weights, axis=0
+                )  # Shape (n_events,)
+                logger.debug("Median nuisance factors: %s", nuisance_factors_central_this_theta)
+                nuisance_factors_min_this_theta = np.percentile(
+                    normalized_nuisance_toy_weights, 16.0, axis=0
+                )  # Shape (n_events,)
+                logger.debug("-1 sigma nuisance factors: %s", nuisance_factors_min_this_theta)
+                nuisance_factors_max_this_theta = np.percentile(
+                    normalized_nuisance_toy_weights, 84.0, axis=0
+                )  # Shape (n_events,)
+                logger.debug("+1 sigma nuisance factors: %s", nuisance_factors_max_this_theta)
+
+                normalized_weights_syst_down.append(nuisance_factors_min_this_theta)
+                normalized_weights_syst_up.append(nuisance_factors_max_this_theta)
+
+            normalized_weights_syst_down = np.array(normalized_weights_syst_down)  # Shape (n_hypotheses, n_events)
+            normalized_weights_syst_up = np.array(normalized_weights_syst_up)  # Shape (n_hypotheses, n_events)
+
+        else:
+            nuisance_factors_central = np.median(nuisance_toy_factors, axis=0)  # Shape (n_events,)
+            logger.debug("Median nuisance factors: %s", nuisance_factors_central)
+            nuisance_factors_min = np.percentile(nuisance_toy_factors, 16.0, axis=0)  # Shape (n_events,)
+            logger.debug("-1 sigma nuisance factors: %s", nuisance_factors_min)
+            nuisance_factors_max = np.percentile(nuisance_toy_factors, 84.0, axis=0)  # Shape (n_events,)
+            logger.debug("+1 sigma nuisance factors: %s", nuisance_factors_max)
 
     # Plot distributions
+    logger.debug("Plotting distributions")
+
     n_cols = 3
     n_rows = (n_observables + n_cols - 1) // n_cols
 
@@ -172,14 +240,20 @@ def plot_distributions(
 
         # Figure out x range
         xmins, xmaxs = [], []
-        for theta_weights in weights:
-            xmin = weighted_quantile(x[:, i], 0.05, theta_weights)
-            xmax = weighted_quantile(x[:, i], 0.95, theta_weights)
+        for theta_matrix in theta_matrices:
+            n_events_for_range = 10000
+            x_small = x[:n_events_for_range]
+            weights_small = mdot(theta_matrix, weights_benchmarks[:n_events_for_range])
+
+            xmin = weighted_quantile(x_small[:, i], 0.05, weights_small)
+            xmax = weighted_quantile(x_small[:, i], 0.95, weights_small)
             xwidth = xmax - xmin
             xmin -= xwidth * 0.1
             xmax += xwidth * 0.1
+
             xmin = max(xmin, np.min(x[:, i]))
             xmax = min(xmax, np.max(x[:, i]))
+
             xmins.append(xmin)
             xmaxs.append(xmax)
 
@@ -187,12 +261,31 @@ def plot_distributions(
         xmax = max(xmaxs)
         x_range = (xmin, xmax)
 
+        logger.debug("Ranges for observable %s: min = %s, max = %s", xlabel, xmins, xmaxs)
+
         # Plot
         plt.subplot(n_rows, n_cols, i + 1)
 
         # Error bands
-        if uncertainties == "nuisance":
-            for theta_weights, lw, color, label, ls in zip(weights, linewidths, colors, line_labels, linestyles):
+        if uncertainties == "nuisance" and normalize:
+            for weights_up, weights_down, lw, color, label, ls in zip(
+                normalized_weights_syst_up, normalized_weights_syst_down, linewidths, colors, line_labels, linestyles
+            ):
+
+                hist_upper, bin_edges = np.histogram(x[:, i], bins=n_bins, range=x_range, weights=weights_up)
+                hist_lower, _ = np.histogram(x[:, i], bins=n_bins, range=x_range, weights=weights_down)
+
+                bin_edges = np.repeat(bin_edges, 2)[1:-1]
+                hist_lower = np.repeat(hist_lower, 2)
+                hist_upper = np.repeat(hist_upper, 2)
+
+                plt.fill_between(bin_edges, hist_lower, hist_upper, lw=lw, color=color, alpha=alpha)
+
+        elif uncertainties == "nuisance" and not normalize:
+            for theta_matrix, lw, color, label, ls in zip(theta_matrices, linewidths, colors, line_labels, linestyles):
+
+                theta_weights = mdot(theta_matrix, weights_benchmarks)
+
                 hist_upper, bin_edges = np.histogram(
                     x[:, i], bins=n_bins, range=x_range, weights=theta_weights * nuisance_factors_max
                 )
@@ -204,10 +297,13 @@ def plot_distributions(
                 hist_lower = np.repeat(hist_lower, 2)
                 hist_upper = np.repeat(hist_upper, 2)
 
-                plt.fill_between(bin_edges, hist_lower, hist_upper, lw=lw, ls=ls, color=color, alpha=alpha)
+                plt.fill_between(bin_edges, hist_lower, hist_upper, lw=lw, color=color, alpha=alpha)
 
         # Central lines
-        for theta_weights, lw, color, label, ls in zip(weights, linewidths, colors, line_labels, linestyles):
+        for theta_matrix, lw, color, label, ls in zip(theta_matrices, linewidths, colors, line_labels, linestyles):
+
+            theta_weights = mdot(theta_matrix, weights_benchmarks)
+
             plt.hist(
                 x[:, i],
                 weights=theta_weights,
@@ -223,6 +319,10 @@ def plot_distributions(
 
         plt.legend()
         plt.xlabel(xlabel)
+        if normalize:
+            plt.ylabel("Normalized distribution")
+        else:
+            plt.ylabel(r"$\frac{d\sigma}{dx}$ [pb / bin]")
 
     plt.tight_layout()
 
@@ -594,7 +694,7 @@ def plot_fisher_information_contours_2d(
         uncertainties = (var ** 0.5).reshape((resolution, resolution))
         fisher_distances_squared_uncertainties.append(uncertainties)
 
-        logging.debug("Std: %s", uncertainties)
+        logger.debug("Std: %s", uncertainties)
 
     # Plot results
     fig = plt.figure(figsize=(5.0, 5.0))

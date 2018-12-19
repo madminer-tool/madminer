@@ -304,7 +304,7 @@ class SampleAugmenter:
             else:
                 logger.debug("   %s: %s", key, format_benchmark(values))
 
-        logger.info("Found %s observables")
+        logger.info("Found %s observables", len(self.observables))
         for i, obs in enumerate(self.observables):
             logger.debug("  %2.2s %s", i, obs)
         logger.info("Found %s events", self.n_samples)
