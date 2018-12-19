@@ -27,6 +27,7 @@ def plot_distributions(
     linestyles=None,
     linewidths=1.5,
     alpha=0.4,
+    n_events=None,
 ):
     """
     Plots one-dimensional histograms of observables in a MadMiner file for a given set of benchmarks.
@@ -76,6 +77,9 @@ def plot_distributions(
     alpha : float, optional
         alpha value for the uncertainty bands. Default value: 0.4.
 
+    n_events : None or int, optional
+        If not None, sets the number of events from the MadMiner file that will be analyzed and plotted.
+
     Returns
     -------
     figure : Figure
@@ -122,8 +126,13 @@ def plot_distributions(
 
     # Get event data (observations and weights)
     x, weights_benchmarks = sa.extract_raw_data()
-
     logger.debug("Loaded raw data with shapes %s, %s", x.shape, weights_benchmarks.shape)
+
+    if n_events is not None and n_events < x.shape[0]:
+        logger.debug("Only analyzing first %s / %s events", n_events, x.shape[0])
+
+        x = x[:n_events]
+        weights_benchmarks = weights_benchmarks[:n_events]
 
     theta_matrices = []
     for theta in parameter_points:
@@ -279,7 +288,7 @@ def plot_distributions(
                 hist_lower = np.repeat(hist_lower, 2)
                 hist_upper = np.repeat(hist_upper, 2)
 
-                plt.fill_between(bin_edges, hist_lower, hist_upper, lw=lw, color=color, alpha=alpha)
+                plt.fill_between(bin_edges, hist_lower, hist_upper, facecolor=color, edgecolor="none", alpha=alpha)
 
         elif uncertainties == "nuisance" and not normalize:
             for theta_matrix, lw, color, label, ls in zip(theta_matrices, linewidths, colors, line_labels, linestyles):
@@ -300,13 +309,15 @@ def plot_distributions(
                 plt.fill_between(bin_edges, hist_lower, hist_upper, lw=lw, color=color, alpha=alpha)
 
         # Central lines
-        for theta_matrix, lw, color, label, ls in zip(theta_matrices, linewidths, colors, line_labels, linestyles):
+        for theta_matrix, normalization, lw, color, label, ls in zip(
+            theta_matrices, normalizations, linewidths, colors, line_labels, linestyles
+        ):
 
             theta_weights = mdot(theta_matrix, weights_benchmarks)
 
             plt.hist(
                 x[:, i],
-                weights=theta_weights,
+                weights=normalization * theta_weights,
                 histtype="step",
                 range=x_range,
                 bins=n_bins,
@@ -318,11 +329,15 @@ def plot_distributions(
             )
 
         plt.legend()
+
         plt.xlabel(xlabel)
         if normalize:
             plt.ylabel("Normalized distribution")
         else:
             plt.ylabel(r"$\frac{d\sigma}{dx}$ [pb / bin]")
+
+        plt.xlim(x_range[0], x_range[1])
+        plt.ylim(0.0, None)
 
     plt.tight_layout()
 
