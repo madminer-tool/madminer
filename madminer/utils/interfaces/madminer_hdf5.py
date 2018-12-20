@@ -241,12 +241,7 @@ def load_madminer_settings(filename, include_nuisance_benchmarks=False):
 
 
 def madminer_event_loader(
-    filename,
-    start=0,
-    end=None,
-    batch_size=100000,
-    include_nuisance_parameters=True,
-    benchmark_is_nuisance=None,
+    filename, start=0, end=None, batch_size=100000, include_nuisance_parameters=True, benchmark_is_nuisance=None
 ):
     # Nuisance parameter filtering
     if not include_nuisance_parameters:
@@ -477,12 +472,7 @@ def save_nuisance_setup_to_madminer_file(
 
 
 def save_events_to_madminer_file(
-    filename,
-    observables,
-    observations,
-    weights,
-    copy_from=None,
-    overwrite_existing_samples=True,
+    filename, observables, observations, weights, copy_from=None, overwrite_existing_samples=True
 ):
     if copy_from is not None:
         try:

@@ -697,7 +697,6 @@ class DelphesProcessor:
                 assert key in this_observations, "Observable {} not found in Delphes sample!".format(key)
                 self.observations[key] = np.hstack([self.observations[key], this_observations[key]])
 
-
     def save(self, filename_out):
         """
         Saves the observable definitions, observable values, and event weights in a MadMiner file. The parameter,
@@ -734,9 +733,4 @@ class DelphesProcessor:
         )
 
         # Save events
-        save_events_to_madminer_file(
-            filename_out,
-            self.observables,
-            self.observations,
-            self.weights,
-        )
+        save_events_to_madminer_file(filename_out, self.observables, self.observations, self.weights)

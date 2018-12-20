@@ -7,7 +7,7 @@ import os
 
 from madminer.utils.interfaces.madminer_hdf5 import load_madminer_settings, madminer_event_loader
 from madminer.utils.analysis import get_theta_benchmark_matrix, get_dtheta_benchmark_matrix, mdot
-from madminer.morphing import Morpher
+from madminer.morphing import Morpher, NuisanceMorpher
 from madminer.utils.various import format_benchmark, math_commands, weighted_quantile, sanitize_array
 from madminer.ml import MLForge, EnsembleForge
 
@@ -201,12 +201,12 @@ class FisherInformation:
             self.n_samples,
             _,
             self.reference_benchmark,
-            _,
+            self.n_nuisance_parameters,
         ) = load_madminer_settings(filename, include_nuisance_benchmarks=include_nuisance_parameters)
         self.n_parameters = len(self.parameters)
         self.n_benchmarks = len(self.benchmarks)
         self.n_benchmarks_phys = np.sum(np.logical_not(self.benchmark_is_nuisance))
-        self.n_nuisance_parameters = self.n_benchmarks - self.n_benchmarks_phys
+        self.n_nuisance_parameters = len(self.n_nuisance_parameters)
 
         logger.info("Found %s parameters:", len(self.parameters))
         for key, values in six.iteritems(self.parameters):
@@ -218,6 +218,14 @@ class FisherInformation:
                 values[2],
                 values[3],
             )
+
+        if self.nuisance_parameters is not None and include_nuisance_parameters:
+            logger.info("Found %s nuisance parameters", self.n_nuisance_parameters)
+            for key, values in six.iteritems(self.nuisance_parameters):
+                logger.debug("   %s (%s)", key, values)
+        elif include_nuisance_parameters:
+            include_nuisance_parameters = False
+            logger.warning("Did not find nuisance parameters!")
 
         logger.info("Found %s benchmarks, of which %s physical:", self.n_benchmarks, self.n_benchmarks_phys)
         for (key, values), is_nuisance in zip(six.iteritems(self.benchmarks), self.benchmark_is_nuisance):
@@ -240,6 +248,14 @@ class FisherInformation:
 
         else:
             raise RuntimeError("Did not find morphing setup.")
+
+        # Nuisance morphing
+        self.nuisance_morpher = None
+        if include_nuisance_parameters:
+            self.nuisance_morpher = NuisanceMorpher(
+                self.nuisance_parameters, list(self.benchmarks.keys()), self.reference_benchmark
+            )
+            logger.info("Found nuisance morphing setup")
 
     def calculate_fisher_information_full_truth(
         self, theta, luminosity=300000.0, cuts=None, efficiency_functions=None, include_nuisance_parameters=True
@@ -1117,24 +1133,14 @@ class FisherInformation:
         fisher_info_phys = luminosity * np.einsum("n,in,jn->nij", inv_sigma, dsigma, dsigma)
 
         # Nuisance parameter Fisher info
-        if include_nuisance_parameters and self.n_nuisance_parameters > 0:
-            if self.reference_benchmark is None:
-                logger.warning("Reference benchmark unknown, using first benchmark")
-                i_ref_benchmark = 0
-            else:
-                i_ref_benchmark = list(self.benchmarks.keys()).index(self.reference_benchmark)
-            nuisance_weight_ratio = (
-                weights_benchmarks.T[self.benchmark_is_nuisance, :] / weights_benchmarks[np.newaxis, :, i_ref_benchmark]
-            )
-            # Shape (n_nuisance_parameters, n_events)
+        if include_nuisance_parameters and self.include_nuisance_parameters:
+            nuisance_a = self.nuisance_morpher.calculate_a(weights_benchmarks)  # Shape (n_nuisance_params, n_events)
 
             # grad_i dsigma(x), where i is a nuisance parameter, is given by
-            # sigma[np.newaxis, :] * np.log(nuisance_weight_ratio)
+            # sigma[np.newaxis, :] * a
 
-            fisher_info_nuisance = luminosity * np.einsum(
-                "n,in,jn->nij", sigma, np.log(nuisance_weight_ratio), np.log(nuisance_weight_ratio)
-            )
-            fisher_info_mix = luminosity * np.einsum("in,jn->nij", dsigma, np.log(nuisance_weight_ratio))
+            fisher_info_nuisance = luminosity * np.einsum("n,in,jn->nij", sigma, nuisance_a, nuisance_a)
+            fisher_info_mix = luminosity * np.einsum("in,jn->nij", dsigma, nuisance_a)
 
             n_all_parameters = self.n_parameters + self.n_nuisance_parameters
             fisher_info = np.zeros((fisher_info_phys.shape[0], n_all_parameters, n_all_parameters))
