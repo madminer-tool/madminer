@@ -152,7 +152,7 @@ class Morpher:
             this_max_overall_power = max_overall_power[i]
             powers_each_component = [range(max_power[i] + 1) for max_power in self.parameter_max_power]
 
-            logging.debug(
+            logger.debug(
                 "Region %s: max overall power %s, max individual powers %s",
                 i,
                 this_max_overall_power,
@@ -166,10 +166,10 @@ class Morpher:
                     continue
 
                 if not any((powers == x).all() for x in components):
-                    logging.debug("  Adding component %s", powers)
+                    logger.debug("  Adding component %s", powers)
                     components.append(np.copy(powers))
                 else:
-                    logging.debug("  Not adding component %s again", powers)
+                    logger.debug("  Not adding component %s again", powers)
 
         self.components = np.array(components, dtype=np.int)
         self.n_components = len(self.components)
