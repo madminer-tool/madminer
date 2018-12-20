@@ -215,8 +215,9 @@ def load_madminer_settings(filename, include_nuisance_benchmarks=False):
             nuisance_parameter_names = _decode(nuisance_parameter_names)
             nusiance_parameter_benchmarks_pos = _decode(nusiance_parameter_benchmarks_pos)
             nusiance_parameter_benchmarks_neg = _decode(nusiance_parameter_benchmarks_neg)
-            nusiance_parameter_benchmarks_neg = [None if val == "" else val for val in nusiance_parameter_benchmarks_neg]
-
+            nusiance_parameter_benchmarks_neg = [
+                None if val == "" else val for val in nusiance_parameter_benchmarks_neg
+            ]
 
             nuisance_parameters = OrderedDict(
                 zip(nuisance_parameter_names, zip(nusiance_parameter_benchmarks_pos, nusiance_parameter_benchmarks_neg))

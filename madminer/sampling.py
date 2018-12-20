@@ -9,7 +9,7 @@ from madminer.utils.interfaces.madminer_hdf5 import load_madminer_settings, madm
 from madminer.utils.interfaces.madminer_hdf5 import save_preformatted_events_to_madminer_file
 from madminer.utils.analysis import get_theta_value, get_theta_benchmark_matrix, get_dtheta_benchmark_matrix
 from madminer.utils.analysis import calculate_augmented_data, parse_theta, mdot
-from madminer.morphing import Morpher
+from madminer.morphing import Morpher, NuisanceMorpher
 from madminer.utils.various import format_benchmark, create_missing_folders, shuffle, balance_thetas
 
 logger = logging.getLogger(__name__)
@@ -298,6 +298,13 @@ class SampleAugmenter:
                 values[3],
             )
 
+        if self.nuisance_parameters is not None:
+            logger.info("Found %s nuisance parameters", self.n_nuisance_parameters)
+            for key, values in six.iteritems(self.nuisance_parameters):
+                logger.debug("   %s (%s)", key, values)
+        else:
+            logger.info("Did not find nuisance parameters")
+
         logger.info("Found %s benchmarks, of which %s physical", self.n_benchmarks, self.n_benchmarks_phys)
         for (key, values), is_nuisance in zip(six.iteritems(self.benchmarks), self.benchmark_is_nuisance):
             if is_nuisance:
@@ -321,6 +328,14 @@ class SampleAugmenter:
 
         else:
             logger.info("Did not find morphing setup.")
+
+        # Nuisance morphing
+        self.nuisance_morpher = None
+        if self.nuisance_parameters is not None:
+            self.nuisance_morpher = NuisanceMorpher(
+                self.nuisance_parameters, list(self.benchmarks.keys()), self.reference_benchmark
+            )
+            logger.info("Found nuisance morphing setup")
 
     def extract_samples_train_plain(
         self, theta, n_samples, folder, filename, test_split=0.5, switch_train_test_events=False
@@ -465,8 +480,12 @@ class SampleAugmenter:
 
         create_missing_folders([folder])
 
+        # Check setup
         if self.morpher is None:
             raise RuntimeError("No morphing setup loaded. Cannot calculate score.")
+
+        if self.nuisance_morpher is None and nuisance_score:
+            raise RuntimeError("No nuisance parameters defined. Cannot calculate nuisance score.")
 
         # Thetas
         theta_types, theta_values, n_samples_per_theta = parse_theta(theta, n_samples)
@@ -1253,12 +1272,6 @@ class SampleAugmenter:
 
         # Nuisance parameters?
         include_nuisance_parameters = self.include_nuisance_parameters and nuisance_score
-        nuisance_filter = np.array(self.benchmark_is_nuisance, dtype=np.bool)
-        i_ref_benchmark = 0
-        if self.reference_benchmark is not None:
-            i_ref_benchmark = list(self.benchmarks.keys()).index(self.reference_benchmark)
-        elif include_nuisance_parameters:
-            logger.warning("No reference benchmark found. Using first benchmark.")
 
         # Calculate total xsecs for benchmarks
         xsecs_benchmarks = None
@@ -1435,24 +1448,14 @@ class SampleAugmenter:
                     samples_done[found_now] = True
 
                     # Extract augmented data
-                    if include_nuisance_parameters:
-                        relevant_augmented_data = calculate_augmented_data(
-                            augmented_data_definitions,
-                            weights_benchmarks_batch[indices[found_now], :],
-                            xsecs_benchmarks,
-                            theta_matrices,
-                            theta_gradient_matrices,
-                            nuisance_filter=nuisance_filter,
-                            i_ref_benchmark=i_ref_benchmark,
-                        )
-                    else:
-                        relevant_augmented_data = calculate_augmented_data(
-                            augmented_data_definitions,
-                            weights_benchmarks_batch[indices[found_now], :],
-                            xsecs_benchmarks,
-                            theta_matrices,
-                            theta_gradient_matrices,
-                        )
+                    relevant_augmented_data = calculate_augmented_data(
+                        augmented_data_definitions,
+                        weights_benchmarks_batch[indices[found_now], :],
+                        xsecs_benchmarks,
+                        theta_matrices,
+                        theta_gradient_matrices,
+                        nuisance_morpher=self.nuisance_morpher,
+                    )
 
                     for i, this_relevant_augmented_data in enumerate(relevant_augmented_data):
                         samples_augmented_data[i][found_now] = this_relevant_augmented_data

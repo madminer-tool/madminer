@@ -28,7 +28,7 @@ def plot_distributions(
     linewidths=1.5,
     alpha=0.4,
     n_events=None,
-    n_toys=10000,
+    n_toys=1000,
 ):
     """
     Plots one-dimensional histograms of observables in a MadMiner file for a given set of benchmarks.
@@ -79,10 +79,11 @@ def plot_distributions(
         alpha value for the uncertainty bands. Default value: 0.4.
 
     n_events : None or int, optional
-        If not None, sets the number of events from the MadMiner file that will be analyzed and plotted.
+        If not None, sets the number of events from the MadMiner file that will be analyzed and plotted. Default value:
+        None.
 
     n_toys : int, optional
-        Number of toy nuisance parameter vectors used to estimate the systematic uncertainties.
+        Number of toy nuisance parameter vectors used to estimate the systematic uncertainties. Default value: 1000.
 
     Returns
     -------

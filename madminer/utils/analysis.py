@@ -70,10 +70,10 @@ def calculate_augmented_data(
     xsecs_benchmarks,
     theta_matrices,
     theta_gradient_matrices,
-    nuisance_filter=None,
-    i_ref_benchmark=None,
+    nuisance_morpher=None,
 ):
     """Extracts augmented data from benchmark weights"""
+
     augmented_data = []
 
     for definition in augmented_data_definitions:
@@ -108,16 +108,11 @@ def calculate_augmented_data(
             augmented_data.append(score)
 
         elif definition[0] == "nuisance_score":
-            assert i_ref_benchmark is not None, "i_ref_benchmark cannot be None when nuisance scores are calculated"
-            assert nuisance_filter is not None, "nuisance_filter cannot be None when nuisance scores are calculated"
+            a_weights = nuisance_morpher.calculate_a(weights_benchmarks)
+            a_xsec = nuisance_morpher.calculate_a(xsecs_benchmarks[np.newaxis, :])
 
-            weight_ratio = (
-                weights_benchmarks[:, nuisance_filter] / (weights_benchmarks[:, i_ref_benchmark])[:, np.newaxis]
-            )
-            xsec_ratio = xsecs_benchmarks[nuisance_filter] / xsecs_benchmarks[i_ref_benchmark]
-
-            nuisance_score = np.log(weight_ratio)  # Shape (n_samples, n_nuisance)
-            nuisance_score -= np.log(xsec_ratio)[np.newaxis, :]  # Shape (n_samples, n_nuisance)
+            nuisance_score = a_weights - a_xsec  # Shape (n_nuisance_parameters, n_samples)
+            nuisance_score = nuisance_score.T  # Shape (n_samples, n_nuisance_parameters)
 
             logger.debug("Nuisance score: shape %s, content %s", nuisance_score.shape, nuisance_score)
 
