@@ -279,13 +279,13 @@ class SampleAugmenter:
             self.n_samples,
             _,
             self.reference_benchmark,
-            self.nuisanca_parameters,
+            self.nuisance_parameters,
         ) = load_madminer_settings(filename, include_nuisance_benchmarks=include_nuisance_parameters)
 
         self.n_parameters = len(self.parameters)
         self.n_benchmarks = len(self.benchmarks)
         self.n_benchmarks_phys = np.sum(np.logical_not(self.benchmark_is_nuisance))
-        self.n_nuisance_parameters = self.n_benchmarks - self.n_benchmarks_phys
+        self.n_nuisance_parameters = len(self.nuisance_parameters)
 
         logger.info("Found %s parameters", self.n_parameters)
         for key, values in six.iteritems(self.parameters):

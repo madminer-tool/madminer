@@ -89,11 +89,12 @@ def plot_distributions(
 
     # Load data
     sa = SampleAugmenter(filename, include_nuisance_parameters=True)
-    morpher = NuisanceMorpher(
-        sa.nuisance_parameters, list(sa.benchmarks.keys()), reference_benchmark=sa.reference_benchmark
-    )
+    if uncertainties == "nuisance":
+        nuisance_morpher = NuisanceMorpher(
+            sa.nuisance_parameters, list(sa.benchmarks.keys()), reference_benchmark=sa.reference_benchmark
+        )
 
-    # Default parameters
+    # Default settings
     if parameter_points is None:
         parameter_points = []
 
@@ -171,18 +172,9 @@ def plot_distributions(
 
         logger.debug("Drew %s toy values for nuisance parameters", n_toys * n_nuisance_params)
 
-        nuisance_filter = np.array(sa.benchmark_is_nuisance, dtype=np.bool)
-        weights_nuisance_benchmarks = weights_benchmarks[:, nuisance_filter]
-
-        i_ref_benchmark = 0
-        if sa.reference_benchmark is not None:
-            i_ref_benchmark = list(sa.benchmarks.keys()).index(sa.reference_benchmark)
-        weights_ref_benchmark = weights_benchmarks[:, i_ref_benchmark]
-        logger.debug("Extracted nuisance benchmark and reference weights")
-
         nuisance_toy_factors = np.array(
             [
-                calculate_nuisance_factors(nuisance_toy, weights_ref_benchmark, weights_nuisance_benchmarks)
+                nuisance_morpher.calculate_nuisance_factors(nuisance_toy, weights_benchmarks)
                 for nuisance_toy in nuisance_toys
             ]
         )  # Shape (n_toys, n_events)
