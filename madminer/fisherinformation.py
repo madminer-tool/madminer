@@ -107,9 +107,9 @@ def profile_information(
     # Profile
     def _profile(information_in):
         # Separate Fisher information parts
-        information_phys = information_in[remaining_components, remaining_components]
-        information_mix = information_in[profiled_components, remaining_components]
-        information_nuisance = information_in[profiled_components, profiled_components]
+        information_phys = information_in[remaining_components, :][:, remaining_components]
+        information_mix = information_in[profiled_components, :][:, remaining_components]
+        information_nuisance = information_in[profiled_components, :][:, profiled_components]
 
         # Calculate profiled information
         inverse_information_nuisance = np.linalg.inv(information_nuisance)
@@ -168,6 +168,9 @@ class FisherInformation:
       histogram of two (parton-level or detector-level) observables.
     * `FisherInformation.histogram_of_fisher_information()` calculates the full truth-level Fisher information in
       different slices of one observable (the "distribution of the Fisher information").
+
+    Finally, don't forget that in the presence of nuisance parameters the constraint terms also affect the Fisher
+    information. This term is given by `FisherInformation.calculate_fisher_information_nuisance_constraints()`.
 
     Parameters
     ----------
@@ -572,9 +575,16 @@ class FisherInformation:
                     fisher_info_rate + this_fisher_info_kin for this_fisher_info_kin in fisher_info_kin
                 ]
                 covariance_results = [rate_covariance + this_covariance for this_covariance in covariance]
+
+                if include_nuisance_parameters:
+                    fisher_info_results = [info + self._gaussian_constraint_term() for info in fisher_info_results]
+
                 return fisher_info_results, covariance_results
 
             else:
+                if include_nuisance_parameters:
+                    fisher_info_kin += self._gaussian_constraint_term()
+
                 return fisher_info_rate + fisher_info_kin, rate_covariance + covariance
 
         return fisher_info_rate + fisher_info_kin, rate_covariance
@@ -1001,6 +1011,12 @@ class FisherInformation:
         )
 
         return bin_boundaries, sigma_bins, fisher_info_rate_bins, fisher_info_full_bins
+
+    def calculate_fisher_information_nuisance_constraints(self):
+        """ Builds the Fisher information term representing the Gaussian constraints on the nuisance parameters """
+
+        diagonal = np.array([0. for _ in range(self.n_parameters)] + [1. for _ in range(self.n_nuisance_parameters)])
+        return np.diag(diagonal)
 
     def extract_raw_data(self, theta=None):
 
