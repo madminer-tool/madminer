@@ -4,6 +4,7 @@ import six
 from collections import OrderedDict
 import numpy as np
 import logging
+import os
 
 from madminer.utils.interfaces.madminer_hdf5 import (
     save_events_to_madminer_file,
@@ -199,7 +200,7 @@ class DelphesProcessor:
         for i, (delphes_filename, hepmc_filename) in enumerate(
             zip(self.delphes_sample_filenames, self.hepmc_sample_filenames)
         ):
-            if delphes_filename is not None:
+            if delphes_filename is not None and os.path.isfile(delphes_filename):
                 logger.debug("Delphes already run for event sample %s", hepmc_filename)
                 continue
 
