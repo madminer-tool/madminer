@@ -997,7 +997,7 @@ class FisherInformation:
             Observables with shape `(n_unweighted_samples, n_observables)`.
 
         weights : ndarray
-            If theta is None, benchmark weights with shape  `(n_unweighted_samples, n_benchmarks)` in pb. Otherwise,
+            If theta is None, benchmark weights with shape  `(n_unweighted_samples, n_benchmarks_phys)` in pb. Otherwise,
             weights for the given parameter theta with shape `(n_unweighted_samples,)` in pb.
 
         """
@@ -1100,10 +1100,12 @@ class FisherInformation:
         """
 
         # Get morphing matrices
-        theta_matrix = get_theta_benchmark_matrix("morphing", theta, self.benchmarks, self.morpher)  # (n_benchmarks,)
+        theta_matrix = get_theta_benchmark_matrix(
+            "morphing", theta, self.benchmarks, self.morpher
+        )  # (n_benchmarks_phys,)
         dtheta_matrix = get_dtheta_benchmark_matrix(
             "morphing", theta, self.benchmarks, self.morpher
-        )  # (n_parameters, n_benchmarks)
+        )  # (n_parameters, n_benchmarks_phys)
 
         # Get differential xsec per event, and the derivative wrt to theta
         sigma = mdot(theta_matrix, weights_benchmarks)  # Shape (n_events,)
@@ -1153,7 +1155,7 @@ class FisherInformation:
 
             # Input uncertainties
             if weights_benchmark_uncertainties is None:
-                weights_benchmark_uncertainties = weights_benchmarks_phys  # Shape (n_events, n_benchmarks)
+                weights_benchmark_uncertainties = weights_benchmarks_phys  # Shape (n_events, n_benchmarks_phys)
 
             # Build covariance matrix of inputs
             # We assume full correlation between weights_benchmarks[i, b1] and weights_benchmarks[i, b2]
@@ -1177,7 +1179,7 @@ class FisherInformation:
 
             temp1, temp2, temp3 = sanitize_array(temp1), sanitize_array(temp2), sanitize_array(temp3)
 
-            jacobian = luminosity * (temp1 + temp2 + temp3)  # (n_parameters, n_parameters, n_events, n_benchmarks)
+            jacobian = luminosity * (temp1 + temp2 + temp3)  # (n_parameters, n_parameters, n_events, n_benchmarks_phys)
 
             # Covariance of information
             covariance_information_phys = np.einsum("ijnb,nbc,klnc->ijkl", jacobian, covariance_inputs, jacobian)

@@ -1148,7 +1148,7 @@ class SampleAugmenter:
 
         weights : ndarray
             If theta is None and derivative is False, benchmark weights with shape
-            `(n_unweighted_samples, n_benchmarks)` in pb. If theta is not None and derivative is True, the gradient of
+            `(n_unweighted_samples, n_benchmarks_phys)` in pb. If theta is not None and derivative is True, the gradient of
             the weight for the given parameter with respect to theta with shape `(n_unweighted_samples, n_gradients)`
             in pb. Otherwise, weights for the given parameter theta with shape `(n_unweighted_samples,)` in pb.
 
@@ -1273,7 +1273,7 @@ class SampleAugmenter:
             include_sampling_information=True,
         ):
             # obs has shape (n_events, n_observables)
-            # weights has shape (n_events, n_benchmarks)
+            # weights has shape (n_events, n_benchmarks_phys)
             # sampled_from_benchmark has shape (n_events,)
 
             if xsecs_benchmarks is None:

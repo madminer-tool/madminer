@@ -9,7 +9,7 @@ import os
 from madminer.utils.interfaces.madminer_hdf5 import (
     save_events_to_madminer_file,
     load_madminer_settings,
-    save_nuisance_benchmarks_to_madminer_file,
+    save_nuisance_setup_to_madminer_file,
 )
 from madminer.utils.interfaces.delphes import run_delphes
 from madminer.utils.interfaces.delphes_root import parse_delphes_root_file
@@ -89,13 +89,16 @@ class DelphesProcessor:
         self.weights = None
         self.sampled_from_benchmark = None
 
+        # Initialize nuisance parameters
+        self.nuisance_parameters = None
+
         # Information from .h5 file
         self.filename = filename
         (parameters, benchmarks, _, _, _, _, _, self.systematics, _) = load_madminer_settings(
             filename, include_nuisance_benchmarks=False
         )
-        self.benchmark_names = list(benchmarks.keys())
-        self.n_benchmarks = len(benchmarks)
+        self.benchmark_names_phys = list(benchmarks.keys())
+        self.n_benchmarks_phys = len(benchmarks)
 
     def add_sample(
         self,
@@ -529,13 +532,14 @@ class DelphesProcessor:
 
         # Input
         if reference_benchmark is None:
-            reference_benchmark = self.benchmark_names[0]
+            reference_benchmark = self.benchmark_names_phys[0]
         self.reference_benchmark = reference_benchmark
 
         # Reset observations
         self.observations = None
         self.weights = None
         self.sampled_from_benchmark = None
+        self.nuisance_parameters = None
 
         for (
             delphes_file,
@@ -557,9 +561,22 @@ class DelphesProcessor:
             logger.info("Analysing Delphes sample %s", delphes_file)
 
             # Read systematics setup from LHE file
+            logger.debug("Extracting nuisance parameter definitions from LHE file")
             nuisance_parameters = extract_nuisance_parameters_from_lhe_file(lhe_file, self.systematics)
+            logger.debug("Found %s nuisance parameters with matching benchmarks:", len(nuisance_parameters))
+            for key, value in six.iteritems(nuisance_parameters):
+                logger.debug("  %s: %s", key, value)
 
-            # TODO: from here
+            # Compare to existing data
+            if self.nuisance_parameters is None:
+                self.nuisance_parameters == nuisance_parameters
+            else:
+                if dict(self.nuisance_parameters) != dict(nuisance_parameters):
+                    raise RuntimeError(
+                        "Different LHE files have different definitions of nuisance parameters / benchmarks!\nPrevious: {}\nNew:{}".format(
+                            self.nuisance_parameters, nuisance_parameters
+                        )
+                    )
 
             # Calculate observables and weights in Delphes ROOT file
             this_observations, this_weights, cut_filter = parse_delphes_root_file(
@@ -642,7 +659,7 @@ class DelphesProcessor:
                 logger.debug("Sample is background")
                 benchmarks_weight = list(six.itervalues(this_weights))[0]
 
-                for benchmark_name in self.benchmark_names:
+                for benchmark_name in self.benchmark_names_phys:
                     this_weights[benchmark_name] = benchmarks_weight
 
             # Rescale nuisance parameters to reference benchmark
@@ -650,7 +667,7 @@ class DelphesProcessor:
             sampling_weights = this_weights[sampling_benchmark]
 
             for key in this_weights:
-                if not key in self.benchmark_names:  # Only rescale nuisance benchmarks
+                if key not in self.benchmark_names_phys:  # Only rescale nuisance benchmarks
                     this_weights[key] = reference_weights / sampling_weights * this_weights[key]
 
             # First results
@@ -708,12 +725,16 @@ class DelphesProcessor:
 
         logger.debug("Loading HDF5 data from %s and saving file to %s", self.filename, filename_out)
 
-        # Save nuisance benchmarks
+        # Save nuisance parameters and benchmarks
         weight_names = list(self.weights.keys())
         logger.debug("Weight names: %s", weight_names)
 
-        save_nuisance_benchmarks_to_madminer_file(
-            filename_out, weight_names, reference_benchmark=self.reference_benchmark, copy_from=self.filename
+        save_nuisance_setup_to_madminer_file(
+            filename_out,
+            weight_names,
+            self.nuisance_parameters,
+            reference_benchmark=self.reference_benchmark,
+            copy_from=self.filename,
         )
 
         # Save events

@@ -365,7 +365,7 @@ class Morpher:
         n_bases = n_benchmarks // self.n_components
         assert n_bases * self.n_components == n_benchmarks, "Basis and number of components incompatible!"
 
-        # Full morphing matrix. Will have shape (n_components, n_benchmarks) (note transposition later)
+        # Full morphing matrix. Will have shape (n_components, n_benchmarks_phys) (note transposition later)
         morphing_matrix = np.zeros((n_benchmarks, self.n_components))
 
         # Morphing submatrix for each basis
@@ -518,7 +518,9 @@ class Morpher:
                 component_weight_gradients[c, i] = factor
 
         # Transform to basis weights
-        weight_gradients = morphing_matrix.T.dot(component_weight_gradients).T  # Shape (n_parameters, n_benchmarks)
+        weight_gradients = morphing_matrix.T.dot(
+            component_weight_gradients
+        ).T  # Shape (n_parameters, n_benchmarks_phys)
 
         return weight_gradients
 

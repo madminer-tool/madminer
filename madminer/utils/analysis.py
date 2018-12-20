@@ -54,7 +54,9 @@ def get_dtheta_benchmark_matrix(theta_type, theta_value, benchmarks, morpher=Non
         if morpher is None:
             raise RuntimeError("Cannot calculate score without morphing")
 
-        dtheta_matrix = morpher.calculate_morphing_weight_gradient(theta_value)  # Shape (n_parameters, n_benchmarks)
+        dtheta_matrix = morpher.calculate_morphing_weight_gradient(
+            theta_value
+        )  # Shape (n_parameters, n_benchmarks_phys)
 
     else:
         raise ValueError("Unknown theta {}".format(theta_type))
@@ -179,7 +181,7 @@ def parse_theta(theta, n_samples):
         n_samples_per_theta = int(round(n_samples / n_benchmarks, 0))
 
         logger.debug(
-            "Total n_samples: %s, n_benchmarks: %s, n_samples_per_theta: %s",
+            "Total n_samples: %s, n_benchmarks_phys: %s, n_samples_per_theta: %s",
             n_samples,
             n_benchmarks,
             n_samples_per_theta,

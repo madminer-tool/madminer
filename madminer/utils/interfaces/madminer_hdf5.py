@@ -365,8 +365,14 @@ def save_preformatted_events_to_madminer_file(
         f.create_dataset("samples/observations", data=observations)
 
 
-def save_nuisance_benchmarks_to_madminer_file(
-    filename, weight_names, reference_benchmark=None, sort=True, copy_from=None
+def save_nuisance_setup_to_madminer_file(
+    filename,
+    weight_names,
+    nuisance_parameters,
+    reference_benchmark=None,
+    sort=True,
+    copy_from=None,
+    overwrite_existing_nuisance_parameters=True,
 ):
     """ Saves the names of nuisance-defined benchmarks in an HDF5 file """
 
@@ -384,6 +390,43 @@ def save_nuisance_benchmarks_to_madminer_file(
     io_tag = "a"  # Read-write if file exists, otherwise create
 
     with h5py.File(filename, io_tag) as f:
+        # Make space for nuisance params
+        if overwrite_existing_nuisance_parameters:
+            try:
+                del f["nuisance_parameters"]
+            except Exception:
+                pass
+
+        if nuisance_parameters is not None:
+            # Prepare nuisance parameters
+            nuisance_names = [pname for pname in nuisance_parameters]
+            n_nuisance_params = len(nuisance_names)
+            nuisance_names_ascii = _encode(nuisance_names)
+
+            nuisance_benchmarks_pos = [
+                "" if nuisance_parameters[key][0] is None else nuisance_parameters[key][0] for key in nuisance_names
+            ]
+            nuisance_benchmarks_pos = _encode(nuisance_benchmarks_pos)
+
+            nuisance_benchmarks_neg = [
+                "" if nuisance_parameters[key][1] is None else nuisance_parameters[key][1] for key in nuisance_names
+            ]
+            nuisance_benchmarks_neg = _encode(nuisance_benchmarks_neg)
+
+            # Save nuisance parameters
+            f.create_dataset("nuisance_parameters/names", (n_nuisance_params,), dtype="S256", data=nuisance_names_ascii)
+            f.create_dataset(
+                "nuisance_parameters/benchmark_positive",
+                (n_nuisance_params,),
+                dtype="S256",
+                data=nuisance_benchmarks_pos,
+            )
+            f.create_dataset(
+                "nuisance_parameters/benchmark_negative",
+                (n_nuisance_params,),
+                dtype="S256",
+                data=nuisance_benchmarks_neg,
+            )
 
         # Load existing benchmarks
         try:
@@ -406,7 +449,7 @@ def save_nuisance_benchmarks_to_madminer_file(
         # Add weights not found before
         for weight_name in weight_names:
             if weight_name in benchmark_names:
-                logger.debug("Benchmark %s already in benchmark_names", weight_name)
+                logger.debug("Benchmark %s already in benchmark_names_phys", weight_name)
                 continue
 
             logger.debug("Adding nuisance benchmark %s", weight_name)
