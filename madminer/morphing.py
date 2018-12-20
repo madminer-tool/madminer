@@ -6,6 +6,8 @@ import numpy as np
 from collections import OrderedDict
 import itertools
 
+from madminer.utils.various import sanitize_array
+
 logger = logging.getLogger(__name__)
 
 
@@ -695,6 +697,7 @@ class NuisanceMorpher:
                 a.append(0.5 * np.log(benchmark_weights[:, i_pos] / benchmark_weights[:, i_neg]))
 
         a = np.array(a)  # Shape (n_nuisance_parameters, n_events)
+        a = sanitize_array(a, min_value=-10., max_value=10.)
         return a
 
     def calculate_b(self, benchmark_weights):
@@ -732,6 +735,7 @@ class NuisanceMorpher:
                 )
 
         b = np.array(b)  # Shape (n_nuisance_parameters, n_events)
+        b = sanitize_array(b, min_value=-10., max_value=10.)
         return b
 
     def calculate_nuisance_factors(self, nuisance_parameters, benchmark_weights):
