@@ -29,6 +29,7 @@ def plot_distributions(
     alpha=0.4,
     n_events=None,
     n_toys=1000,
+    n_cols=3,
 ):
     """
     Plots one-dimensional histograms of observables in a MadMiner file for a given set of benchmarks.
@@ -84,6 +85,9 @@ def plot_distributions(
 
     n_toys : int, optional
         Number of toy nuisance parameter vectors used to estimate the systematic uncertainties. Default value: 1000.
+
+    n_cols : int, optional
+        Number of columns in the plot.
 
     Returns
     -------
@@ -246,7 +250,6 @@ def plot_distributions(
     # Plot distributions
     logger.debug("Plotting distributions")
 
-    n_cols = 3
     n_rows = (n_observables + n_cols - 1) // n_cols
 
     fig = plt.figure(figsize=(4.0 * n_cols, 4.0 * n_rows))
