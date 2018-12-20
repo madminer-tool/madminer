@@ -576,15 +576,9 @@ class FisherInformation:
                 ]
                 covariance_results = [rate_covariance + this_covariance for this_covariance in covariance]
 
-                if include_nuisance_parameters:
-                    fisher_info_results = [info + self._gaussian_constraint_term() for info in fisher_info_results]
-
                 return fisher_info_results, covariance_results
 
             else:
-                if include_nuisance_parameters:
-                    fisher_info_kin += self._gaussian_constraint_term()
-
                 return fisher_info_rate + fisher_info_kin, rate_covariance + covariance
 
         return fisher_info_rate + fisher_info_kin, rate_covariance
