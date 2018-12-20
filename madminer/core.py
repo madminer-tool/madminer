@@ -886,8 +886,7 @@ class MadMiner:
                     export_run_card(
                         template_filename=run_card_file,
                         run_card_filename=mg_process_directory + "/" + new_run_card_file,
-                        run_systematics=self.run_systematics,
-                        systematics_arguments=self.systematics_arguments,
+                        systematics=self.systematics,
                     )
 
                 # Copy Pythia card
