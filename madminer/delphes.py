@@ -94,7 +94,7 @@ class DelphesProcessor:
 
         # Information from .h5 file
         self.filename = filename
-        (parameters, benchmarks, _, _, _, _, _, self.systematics, _) = load_madminer_settings(
+        (parameters, benchmarks, _, _, _, _, _, self.systematics, _, _) = load_madminer_settings(
             filename, include_nuisance_benchmarks=False
         )
         self.benchmark_names_phys = list(benchmarks.keys())
@@ -569,7 +569,7 @@ class DelphesProcessor:
 
             # Compare to existing data
             if self.nuisance_parameters is None:
-                self.nuisance_parameters == nuisance_parameters
+                self.nuisance_parameters = nuisance_parameters
             else:
                 if dict(self.nuisance_parameters) != dict(nuisance_parameters):
                     raise RuntimeError(

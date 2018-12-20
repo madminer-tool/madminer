@@ -8,7 +8,7 @@ import logging
 
 from madminer.sampling import SampleAugmenter
 from madminer.utils.analysis import mdot, get_theta_benchmark_matrix
-from madminer.morphing import calculate_nuisance_factors
+from madminer.morphing import NuisanceMorpher
 from madminer.utils.various import weighted_quantile, sanitize_array
 
 logger = logging.getLogger(__name__)
@@ -88,7 +88,10 @@ def plot_distributions(
     """
 
     # Load data
-    sa = SampleAugmenter(filename)
+    sa = SampleAugmenter(filename, include_nuisance_parameters=True)
+    morpher = NuisanceMorpher(
+        sa.nuisance_parameters, list(sa.benchmarks.keys()), reference_benchmark=sa.reference_benchmark
+    )
 
     # Default parameters
     if parameter_points is None:

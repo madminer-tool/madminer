@@ -113,7 +113,8 @@ def extract_nuisance_parameters_from_lhe_file(filename, systematics):
     # In some cases, the LHE file can contain non-ascii characters
     with open(filename, "r") as file:
         lhe_content = file.read()
-    lhe_content.encode("ascii", errors="ignore").decode()
+    lhe_content.replace("\a", r"\a")
+    # TODO: replace with better solution: avoid run_card messing up \a and \a in the first place
 
     # Parse XML tree
     root = ET.fromstring(lhe_content)

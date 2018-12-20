@@ -194,17 +194,6 @@ def load_madminer_settings(filename, include_nuisance_benchmarks=False):
             n_samples = 0
 
         # Systematics setup
-
-        # # Prepare and store systematics setup
-        # if systematics is not None:
-        #     systematics_names = [key for key in systematics]
-        #     n_systematics = len(systematics_names)
-        #     systematics_names_ascii = _encode(systematics_names)
-        #     systematics_values = _encode([systematics[key] for key in systematics_names])
-        #
-        #     f.create_dataset("systematics/names", (n_systematics,), dtype="S256", data=systematics_names_ascii)
-        #     f.create_dataset("systematics/values", (n_systematics,), dtype="S256", data=systematics_values)
-
         try:
             systematics_names = f["systematics/names"][()]
             systematics_values = f["systematics/values"][()]
@@ -217,6 +206,23 @@ def load_madminer_settings(filename, include_nuisance_benchmarks=False):
         except KeyError:
             systematics = None
 
+        # Nuisance parameters
+        try:
+            nuisance_parameter_names = f["nuisance_parameters/names"][()]
+            nusiance_parameter_benchmarks_pos = f["nuisance_parameters/benchmark_positive"][()]
+            nusiance_parameter_benchmarks_neg = f["nuisance_parameters/benchmark_negative"][()]
+
+            nuisance_parameter_names = _decode(nuisance_parameter_names)
+            nusiance_parameter_benchmarks_pos = _decode(nusiance_parameter_benchmarks_pos)
+            nusiance_parameter_benchmarks_neg = _decode(nusiance_parameter_benchmarks_neg)
+
+            nuisance_parameters = OrderedDict(
+                zip(nuisance_parameter_names, zip(nusiance_parameter_benchmarks_pos, nusiance_parameter_benchmarks_neg))
+            )
+
+        except KeyError:
+            nuisance_parameters = None
+
         return (
             parameters,
             benchmarks,
@@ -227,6 +233,7 @@ def load_madminer_settings(filename, include_nuisance_benchmarks=False):
             n_samples,
             systematics,
             reference_benchmark,
+            nuisance_parameters,
         )
 
 

@@ -435,6 +435,7 @@ class MadMiner:
             _,
             self.systematics,
             _,
+            _,
         ) = load_madminer_settings(filename, include_nuisance_benchmarks=False)
 
         logger.info("Found %s parameters:", len(self.parameters))

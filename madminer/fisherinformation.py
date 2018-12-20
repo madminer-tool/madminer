@@ -201,6 +201,7 @@ class FisherInformation:
             self.n_samples,
             _,
             self.reference_benchmark,
+            _,
         ) = load_madminer_settings(filename, include_nuisance_benchmarks=include_nuisance_parameters)
         self.n_parameters = len(self.parameters)
         self.n_benchmarks = len(self.benchmarks)
