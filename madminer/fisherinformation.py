@@ -123,16 +123,16 @@ def profile_information(
         # Draw toys
         information_toys = np.random.multivariate_normal(
             mean=fisher_information.reshape((-1,)),
-            cov=error_propagation_factor * covariance.reshape((n_components ** 2, n_components ** 2)),
+            cov=error_propagation_factor * covariance.reshape(n_components ** 2, n_components ** 2),
             size=error_propagation_n_ensemble,
         )
-        information_toys.reshape((-1, n_components, n_components))
+        information_toys = information_toys.reshape(-1, n_components, n_components)
 
         # Profile each toy
         profiled_information_toys = np.array([_profile(info) for info in information_toys])
 
         # Calculate ensemble covariance
-        toy_covariance = np.cov(profiled_information_toys.reshape((-1, n_remaining_components ** 2)).T)
+        toy_covariance = np.cov(profiled_information_toys.reshape(-1, n_remaining_components ** 2).T)
         toy_covariance = toy_covariance.reshape(
             (n_remaining_components, n_remaining_components, n_remaining_components, n_remaining_components)
         )
@@ -516,7 +516,7 @@ class FisherInformation:
             ):
                 logger.info("Evaluating kinematic Fisher information on batch %s / %s", i_batch + 1, n_batches)
 
-                weights_theta = theta_matrix.dot(weights_benchmarks.T)
+                weights_theta = mdot(theta_matrix, weights_benchmarks)
 
                 # Calculate Fisher info on this batch
                 if model_is_ensemble:
@@ -738,7 +738,7 @@ class FisherInformation:
 
             # Weights at theta
             theta_matrix = get_theta_benchmark_matrix("morphing", theta, self.benchmarks, self.morpher)
-            weight_theta_pilot = theta_matrix.dot(weights_pilot.T)
+            weight_theta_pilot = mdot(theta_matrix, weights_pilot)
 
             # Bin boundaries
             bin_boundaries = weighted_quantile(histo_observables_pilot, quantile_values, weight_theta_pilot)
@@ -1003,7 +1003,7 @@ class FisherInformation:
 
         # Calculate xsecs in bins
         theta_matrix = get_theta_benchmark_matrix("morphing", theta, self.benchmarks, self.morpher)
-        sigma_bins = theta_matrix.dot(weights_benchmarks_bins.T)  # (n_bins,)
+        sigma_bins = mdot(theta_matrix, weights_benchmarks_bins)  # (n_bins,)
 
         # Calculate rate-only Fisher informations in bins
         fisher_info_rate_bins = self._calculate_fisher_information(
@@ -1045,7 +1045,7 @@ class FisherInformation:
         if theta is not None:
             theta_matrix = get_theta_benchmark_matrix("morphing", theta, self.benchmarks, self.morpher)
 
-            weights_theta = theta_matrix.dot(weights_benchmarks.T)
+            weights_theta = mdot(theta_matrix, weights_benchmarks)
 
             return x, weights_theta
 
@@ -1075,7 +1075,7 @@ class FisherInformation:
         weights_thetas = []
         for theta in thetas:
             theta_matrix = get_theta_benchmark_matrix("morphing", theta, self.benchmarks, self.morpher)
-            weights_thetas.append(theta_matrix.dot(weights_benchmarks.T))
+            weights_thetas.append(mdot(theta_matrix, weights_benchmarks))
 
         weights_thetas = np.array(weights_thetas)
 
@@ -1436,8 +1436,8 @@ class FisherInformation:
 
         # Translate to xsec for theta
         theta_matrix = get_theta_benchmark_matrix("morphing", theta, self.benchmarks, self.morpher)
-        xsec = theta_matrix.dot(xsecs_benchmarks)
-        xsec_error = theta_matrix.dot(xsecs_uncertainty_benchmarks)
+        xsec = mdot(theta_matrix, xsecs_benchmarks)
+        xsec_error = mdot(theta_matrix, xsecs_uncertainty_benchmarks)
 
         if return_error:
             return xsec, xsec_error
