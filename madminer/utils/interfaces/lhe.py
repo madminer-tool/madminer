@@ -110,11 +110,15 @@ def extract_nuisance_parameters_from_lhe_file(filename, systematics):
             call_command("gunzip -k {}".format(filename))
         filename = new_filename
 
-    # In some cases, the LHE file can contain non-ascii characters
+    # In some cases, the LHE comments can contain bad characters
     with open(filename, "r") as file:
         lhe_content = file.read()
-    lhe_content.replace("\a", r"\a")
-    # TODO: replace with better solution: avoid run_card messing up \a and \a in the first place
+    lhe_lines = lhe_content.split("\n")
+    for i, line in enumerate(lhe_lines):
+        comment_pos = line.find("#")
+        if comment_pos >= 0:
+            lhe_lines[i] = line[:comment_pos]
+    lhe_content = "\n".join(lhe_lines)
 
     # Parse XML tree
     root = ET.fromstring(lhe_content)

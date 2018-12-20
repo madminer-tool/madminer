@@ -123,7 +123,7 @@ def export_run_card(template_filename, run_card_filename, systematics=None):
     # Remove old entries
     for i, line in enumerate(run_card_lines):
         comment_pos = line.find("#")
-        if i >= 0:
+        if comment_pos >= 0:
             line = line[:comment_pos]
 
         try:
