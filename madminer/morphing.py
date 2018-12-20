@@ -11,8 +11,8 @@ logger = logging.getLogger(__name__)
 
 class Morpher:
     """
-    Morphing functionality. Morphing is a technique that allows MadMax to infer the full probability distribution
-    `p(x_i | theta)` for each simulated event `x_i` and any `theta`, not just the benchmarks.
+    Morphing functionality for theory parameters. Morphing is a technique that allows MadMax to infer the full
+    probability distribution `p(x_i | theta)` for each simulated event `x_i` and any `theta`, not just the benchmarks.
 
     For a typical MadMiner application, it is not necessary to use the morphing classes directly. The other MadMiner
     classes use the morphing functions "under the hood" when needed. Only for an isolated study of the morphing setup
@@ -38,8 +38,8 @@ class Morpher:
       such that `p(theta) = sum_b w_b(theta) p(theta_b)`.
     * `calculate_morphing_weight_gradient()` calculates the gradient of the morphing weights, `grad_theta w_b(theta)`.
 
-    Note that this class only implements the "physics morphing", and does not handle nuisance parameters modelling
-    systematioc uncertainties.
+    Note that this class only implements the "theory morphing" (or, more specifically, "EFT morphing") of the physics
+    parameters of interest. Nuisance parameter morphing is implemented in the NuisanceMorpher class.
 
     Parameters
     ----------
@@ -62,7 +62,7 @@ class Morpher:
 
     def __init__(self, parameters_from_madminer=None, parameter_max_power=None, parameter_range=None):
 
-        # GoldMine interface
+        # MadMiner interface
         if parameters_from_madminer is not None:
             self.use_madminer_interface = True
             self.n_parameters = len(parameters_from_madminer)
@@ -624,32 +624,143 @@ class Morpher:
         return thetas
 
 
-def calculate_nuisance_factors(nuisance_parameters, reference_benchmark_weights, nuisance_benchmark_weights):
+class NuisanceMorpher:
     """
-    Calculates the rescaling of the event weights from non-central values of nuisance parameters.
+    Morphing functionality for nuisance parameters.
+
+    For a typical MadMiner application, it is not necessary to use the morphing classes directly. The other MadMiner
+    classes use the morphing functions "under the hood" when needed.
 
     Parameters
     ----------
-    nuisance_parameters : ndarray
-        Values of the nuisance parameters `nu`, with shape `(n_events, n_nuisance_parameters)`.
+    nuisance_parameters_from_madminer : OrderedDict
+        Nuisance parameters defined in the form {name: (benchmark_name_pos, benchmark_name_neg)}. Here
+        benchmark_name_pos refers to the name of the benchmark with nu_i = 1, while benchmark_name_neg is either None
+        or refers to the name of the benchmark with nu_i = -1.
 
-    reference_benchmark_weights : ndarray
-        Event weights `dsigma(x |  theta_reference, 0)`. Has shape `(n_events, )`.
+    benchmark_names : list
+        The names of the benchmarks.
 
-    nuisance_benchmark_weights : ndarray
-        Event weights `dsigma(x |  theta_reference, nu_i)` where `nu_i` is 0 except for the `i`th component, which is 1.
-        Has shape `(n_events, n_nuisance_parameters)`.
-
-    Returns
-    -------
-    nuisance_factors : ndarray
-        Nuisance factor `dsigma(x |  theta, nu) / dsigma(x | theta, 0)` with shape `(n_events,)`.
-
+    reference_benchmark : str
+        Name of the reference benchmark.
     """
 
-    log_nuisance_ratio = np.log(nuisance_benchmark_weights / reference_benchmark_weights[:, np.newaxis])
-    # Shape (n_events, n_nuisance_parameters)
+    def __init__(self, nuisance_parameters_from_madminer, benchmark_names, reference_benchmark):
 
-    exponent = np.sum(log_nuisance_ratio * nuisance_parameters, axis=1)
+        # Benchmarks
+        self.benchmark_names = benchmark_names
+        self.i_benchmark_ref = benchmark_names.index(reference_benchmark)
 
-    return np.exp(exponent)
+        # Nuisance parameters
+        self.nuisance_parameters = nuisance_parameters_from_madminer
+        self.n_nuisance_parameters = len(self.nuisance_parameters)
+
+        self.i_benchmarks_pos = []
+        self.i_benchmarks_neg = []
+        self.degrees = []
+        for key, value in six.iteritems(self.nuisance_parameters):
+            self.i_benchmarks_pos.append(benchmark_names.index(value[0]))
+            if value[1] is None:
+                self.degrees.append(1)
+                self.i_benchmarks_neg.append(None)
+            else:
+                self.degrees.append(2)
+                self.i_benchmarks_neg.append(benchmark_names.index(value[1]))
+
+    def calculate_a(self, benchmark_weights):
+        """
+        Calculates the first-order coefficients a_i(x) in
+        `dsigma(x |  theta, nu) / dsigma(x | theta, 0) = exp[ sum_i (a_i(x) nu_i + b_i(x) nu_i(x)^2 )]`.
+
+        Parameters
+        ----------
+        benchmark_weights : ndarray
+            Event weights `dsigma(x | theta_i, nu_i)` with shape `(n_events, n_benchmarks)`. The benchmarks are expected
+            to be sorted in the same order as the keyword benchmark_names used during initialization, and the
+            nuisance benchmarks are expected to be rescaled to have the same physics parameters theta as the
+            reference_benchmark given during initialization.
+
+        Returns
+        -------
+        a : ndarray
+            Coefficients a_i(x) with shape `(n_nuisance_parameters, n_events)`.
+
+        """
+        a = []
+
+        for i_pos, i_neg, degree in zip(self.i_benchmarks_pos, self.i_benchmarks_neg, self.degrees):
+            if degree == 1:
+                a.append(np.log(benchmark_weights[:, i_pos] / benchmark_weights[:, self.i_benchmark_ref]))
+            elif degree == 2:
+                a.append(0.5 * np.log(benchmark_weights[:, i_pos] / benchmark_weights[:, i_neg]))
+
+        a = np.array(a)  # Shape (n_nuisance_parameters, n_events)
+        return a
+
+    def calculate_b(self, benchmark_weights):
+        """
+        Calculates the second-order coefficients b_i(x) in
+        `dsigma(x |  theta, nu) / dsigma(x | theta, 0) = exp[ sum_i (a_i(x) nu_i + b_i(x) nu_i(x)^2 )]`.
+
+        Parameters
+        ----------
+        benchmark_weights : ndarray
+            Event weights `dsigma(x | theta_i, nu_i)` with shape `(n_events, n_benchmarks)`. The benchmarks are expected
+            to be sorted in the same order as the keyword benchmark_names used during initialization, and the
+            nuisance benchmarks are expected to be rescaled to have the same physics parameters theta as the
+            reference_benchmark given during initialization.
+
+        Returns
+        -------
+        b : ndarray
+            Coefficients b_i(x) with shape `(n_nuisance_parameters, n_events)`.
+
+        """
+        b = []
+
+        for i_pos, i_neg, degree in zip(self.i_benchmarks_pos, self.i_benchmarks_neg, self.degrees):
+            if degree == 1:
+                b.append(0.0)
+            elif degree == 2:
+                b.append(
+                    0.5
+                    * np.log(
+                        benchmark_weights[:, i_pos]
+                        * benchmark_weights[:, i_neg]
+                        / benchmark_weights[:, self.i_benchmark_ref] ** 2
+                    )
+                )
+
+        b = np.array(b)  # Shape (n_nuisance_parameters, n_events)
+        return b
+
+    def calculate_nuisance_factors(self, nuisance_parameters, benchmark_weights):
+        """
+        Calculates the rescaling of the event weights from non-central values of nuisance parameters.
+
+        Parameters
+        ----------
+        nuisance_parameters : ndarray
+            Values of the nuisance parameters `nu`, with shape `(n_nuisance_parameters,)`.
+
+        benchmark_weights : ndarray
+            Event weights `dsigma(x | theta_i, nu_i)` with shape `(n_events, n_benchmarks)`. The benchmarks are expected
+            to be sorted in the same order as the keyword benchmark_names used during initialization, and the
+            nuisance benchmarks are expected to be rescaled to have the same physics parameters theta as the
+            reference_benchmark given during initialization.
+
+        Returns
+        -------
+        nuisance_factors : ndarray
+            Nuisance factor `dsigma(x |  theta, nu) / dsigma(x | theta, 0)` with shape `(n_events,)`.
+
+        """
+
+        a = self.calculate_a(benchmark_weights)  # Shape (n_nuisance_parameters, n_events)
+        b = self.calculate_b(benchmark_weights)  # Shape (n_nuisance_parameters, n_events)
+
+        exponent = np.sum(a * nuisance_parameters[:, np.newaxis] + b * nuisance_parameters[:, np.newaxis] ** 2, axis=0)
+
+        nuisance_factors = np.exp(exponent)
+
+        return nuisance_factors

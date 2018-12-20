@@ -110,9 +110,13 @@ def extract_nuisance_parameters_from_lhe_file(filename, systematics):
             call_command("gunzip -k {}".format(filename))
         filename = new_filename
 
+    # In some cases, the LHE file can contain non-ascii characters
+    with open(filename, "r") as file:
+        lhe_content = file.read()
+    lhe_content.encode("ascii", errors="ignore").decode()
+
     # Parse XML tree
-    tree = ET.parse(filename)
-    root = tree.getroot()
+    root = ET.fromstring(lhe_content)
 
     # Find weight groups
     try:
