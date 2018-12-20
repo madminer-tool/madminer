@@ -1,8 +1,6 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-import logging
 import numpy as np
-
 import torch
 from torch import tensor
 import torch.optim as optim
@@ -11,6 +9,9 @@ from torch.utils.data.sampler import SubsetRandomSampler
 from torch.nn.utils import clip_grad_norm_
 
 from madminer.utils.ml.models.ratio import ParameterizedRatioEstimator, DoublyParameterizedRatioEstimator
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class GoldDataset(torch.utils.data.Dataset):
@@ -270,7 +271,7 @@ def train_ratio_model(
         # Validation
         if validation_split is None:
             if n_epochs_verbose is not None and n_epochs_verbose > 0 and (epoch + 1) % n_epochs_verbose == 0:
-                logging.info(
+                logger.info(
                     "  Epoch %d: train loss %.2f (%s)"
                     % (epoch + 1, total_losses_train[-1], individual_losses_train[-1])
                 )
@@ -339,7 +340,7 @@ def train_ratio_model(
         # Print out information
         if n_epochs_verbose is not None and n_epochs_verbose > 0 and (epoch + 1) % n_epochs_verbose == 0:
             if early_stopping and epoch == early_stopping_epoch:
-                logging.info(
+                logger.info(
                     "  Epoch %d: train loss %.2f (%s), validation loss %.2f (%s) (*)"
                     % (
                         epoch + 1,
@@ -350,7 +351,7 @@ def train_ratio_model(
                     )
                 )
             else:
-                logging.info(
+                logger.info(
                     "  Epoch %d: train loss %.2f (%s), validation loss %.2f (%s)"
                     % (
                         epoch + 1,
@@ -364,13 +365,13 @@ def train_ratio_model(
         # Early stopping: actually stop training
         if early_stopping and early_stopping_patience is not None:
             if epoch - early_stopping_epoch >= early_stopping_patience > 0:
-                logging.info("No improvement for %s epochs, stopping training", epoch - early_stopping_epoch)
+                logger.info("No improvement for %s epochs, stopping training", epoch - early_stopping_epoch)
                 break
 
     # Early stopping: back to best state
     if early_stopping:
         if early_stopping_best_val_loss < total_val_loss:
-            logging.info(
+            logger.info(
                 "Early stopping after epoch %s, with loss %.2f compared to final loss %.2f",
                 early_stopping_epoch + 1,
                 early_stopping_best_val_loss,
@@ -378,7 +379,7 @@ def train_ratio_model(
             )
             model.load_state_dict(early_stopping_best_model)
         else:
-            logging.info("Early stopping did not improve performance")
+            logger.info("Early stopping did not improve performance")
 
     # Save learning curve
     if learning_curve_folder is not None and learning_curve_filename is not None:
@@ -402,7 +403,7 @@ def train_ratio_model(
                         individual_losses_val[:, i],
                     )
 
-    logging.info("Finished training")
+    logger.info("Finished training")
 
     return total_losses_train, total_losses_val
 

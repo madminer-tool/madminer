@@ -5,6 +5,8 @@ import logging
 
 from madminer.utils.various import call_command
 
+logger = logging.getLogger(__name__)
+
 
 def run_delphes(
     delphes_directory,
@@ -22,7 +24,7 @@ def run_delphes(
     filename, extension = os.path.splitext(hepmc_sample_filename)
     to_delete = None
     if extension == ".gz":
-        logging.debug("Unzipping %s", hepmc_sample_filename)
+        logger.debug("Unzipping %s", hepmc_sample_filename)
         if not os.path.exists(filename):
             call_command("gunzip -k {}".format(hepmc_sample_filename))
         if delete_unzipped_file:
@@ -67,7 +69,7 @@ def run_delphes(
 
     # Delete untarred file
     if to_delete is not None:
-        logging.debug("Deleting %s", to_delete)
+        logger.debug("Deleting %s", to_delete)
         os.remove(to_delete)
 
     return delphes_sample_filename

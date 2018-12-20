@@ -2,11 +2,12 @@ from __future__ import absolute_import, division, print_function
 
 import logging
 import numpy.random as rng
-
 import torch
 from torch import tensor
 
 from madminer.utils.ml.models.base import BaseFlow
+
+logger = logging.getLogger(__name__)
 
 
 class BatchNorm(BaseFlow):
@@ -71,7 +72,7 @@ class BatchNorm(BaseFlow):
         return x
 
     def to(self, *args, **kwargs):
-        logging.debug('Transforming BatchNorm to %s', args)
+        logger.debug('Transforming BatchNorm to %s', args)
 
         self = super().to(*args, **kwargs)
 

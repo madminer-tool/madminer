@@ -2,9 +2,11 @@ from __future__ import absolute_import, division, print_function
 
 import numpy as np
 import numpy.random as rng
-
 from torch import tensor
 import torch.nn as nn
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def create_degrees(n_inputs, n_hiddens, input_order, mode):

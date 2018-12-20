@@ -1,9 +1,11 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import numpy as np
-
 import torch
 from torch.nn import BCELoss, MSELoss
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def ratio_mse_num(s_hat, log_r_hat, t0_hat, t1_hat, y_true, r_true, t0_true, t1_true, log_r_clip=10.0):

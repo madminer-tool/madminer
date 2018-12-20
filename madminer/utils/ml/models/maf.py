@@ -1,14 +1,14 @@
 from __future__ import absolute_import, division, print_function
 
 import numpy.random as rng
-import logging
-
 import torch.nn as nn
 from torch import tensor
-
 from madminer.utils.ml.models.base import BaseFlow, BaseConditionalFlow
 from madminer.utils.ml.models.made import GaussianMADE, ConditionalGaussianMADE
 from madminer.utils.ml.models.batch_norm import BatchNorm
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class MaskedAutoregressiveFlow(BaseFlow):
@@ -160,10 +160,10 @@ class ConditionalMaskedAutoregressiveFlow(BaseConditionalFlow):
 
         """
         if x.shape[1] != self.n_inputs:
-            logging.error('x has wrong shape: %s', x.shape)
-            logging.debug('theta shape: %s', theta.shape)
-            logging.debug('theta content: %s', theta)
-            logging.debug('x content: %s', x)
+            logger.error('x has wrong shape: %s', x.shape)
+            logger.debug('theta shape: %s', theta.shape)
+            logger.debug('theta content: %s', theta)
+            logger.debug('x content: %s', x)
 
             raise ValueError('Wrong x shape')
 

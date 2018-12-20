@@ -2,15 +2,15 @@ from __future__ import absolute_import, division, print_function
 
 import numpy as np
 import numpy.random as rng
-import logging
-
 import torch
 from torch import tensor
 import torch.nn.functional as F
-
 from madminer.utils.ml.models.base import BaseConditionalFlow
 from madminer.utils.ml.models.masks import create_degrees, create_masks, create_weights_conditional
 from madminer.utils.ml.utils import get_activation_function
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class ConditionalMixtureMADE(BaseConditionalFlow):
@@ -31,7 +31,7 @@ class ConditionalMixtureMADE(BaseConditionalFlow):
         # create network's parameters
         self.degrees = create_degrees(n_inputs, n_hiddens, input_order, mode)
         self.Ms, self.Mmp = create_masks(self.degrees)
-        logging.debug('Mmp shape: %s', self.Mmp.shape)
+        logger.debug('Mmp shape: %s', self.Mmp.shape)
         (self.Wx, self.Ws, self.bs, self.Wm, self.bm, self.Wp, self.bp, self.Wa,
          self.ba) = create_weights_conditional(
             n_conditionals,
@@ -79,15 +79,15 @@ class ConditionalMixtureMADE(BaseConditionalFlow):
             h = self.activation_function(
                 F.linear(theta, torch.t(self.Wx)) + F.linear(x, torch.t(self.Ms[0] * self.Ws[0]), self.bs[0]))
         except RuntimeError:
-            logging.error('Abort! Abort!')
-            logging.info('MADE settings: n_inputs = %s, n_conditionals = %s', self.n_inputs, self.n_conditionals)
-            logging.info('Shapes: theta %s, Wx %s, x %s, Ms %s, Ws %s, bs %s',
+            logger.error('Abort! Abort!')
+            logger.info('MADE settings: n_inputs = %s, n_conditionals = %s', self.n_inputs, self.n_conditionals)
+            logger.info('Shapes: theta %s, Wx %s, x %s, Ms %s, Ws %s, bs %s',
                          theta.shape, self.Wx.shape, x.shape, self.Ms[0].shape, self.Ws[0].shape, self.bs[0].shape)
-            logging.info('dtypes: theta %s, Wx %s, x %s, Ms %s, Ws %s, bs %s',
+            logger.info('dtypes: theta %s, Wx %s, x %s, Ms %s, Ws %s, bs %s',
                          theta.dtype, self.Wx.dtype, x.dtype, self.Ms[0].dtype, self.Ws[0].dtype, self.bs[0].dtype)
-            logging.info('Types: theta %s, Wx %s, x %s, Ms %s, Ws %s, bs %s',
+            logger.info('Types: theta %s, Wx %s, x %s, Ms %s, Ws %s, bs %s',
                          type(theta), type(self.Wx), type(x), type(self.Ms[0]), type(self.Ws[0]), type(self.bs[0]))
-            logging.info('CUDA: theta %s, Wx %s, x %s, Ms %s, Ws %s, bs %s',
+            logger.info('CUDA: theta %s, Wx %s, x %s, Ms %s, Ws %s, bs %s',
                          theta.is_cuda, self.Wx.is_cuda, x.is_cuda, self.Ms[0].is_cuda, self.Ws[0].is_cuda,
                          self.bs[0].is_cuda)
             raise

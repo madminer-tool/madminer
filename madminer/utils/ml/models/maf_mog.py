@@ -1,13 +1,13 @@
 from __future__ import absolute_import, division, print_function
 
-import logging
-
 import torch.nn as nn
-
 from madminer.utils.ml.models.base import BaseConditionalFlow
 from madminer.utils.ml.models.made import ConditionalGaussianMADE
 from madminer.utils.ml.models.batch_norm import BatchNorm
 from madminer.utils.ml.models.made_mog import ConditionalMixtureMADE
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class ConditionalMixtureMaskedAutoregressiveFlow(BaseConditionalFlow):
@@ -55,10 +55,10 @@ class ConditionalMixtureMaskedAutoregressiveFlow(BaseConditionalFlow):
 
     def forward(self, theta, x, fix_batch_norm=None):
         if x.shape[1] != self.n_inputs:
-            logging.error('x has wrong shape: %s', x.shape)
-            logging.debug('theta shape: %s', theta.shape)
-            logging.debug('theta content: %s', theta)
-            logging.debug('x content: %s', x)
+            logger.error('x has wrong shape: %s', x.shape)
+            logger.debug('theta shape: %s', theta.shape)
+            logger.debug('theta content: %s', theta)
+            logger.debug('x content: %s', x)
 
             raise ValueError('Wrong x shape')
 

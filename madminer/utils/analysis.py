@@ -4,6 +4,8 @@ import numpy as np
 import six
 import logging
 
+logger = logging.getLogger(__name__)
+
 
 def get_theta_value(theta_type, theta_value, benchmarks):
     if theta_type == "benchmark":
@@ -52,7 +54,9 @@ def get_dtheta_benchmark_matrix(theta_type, theta_value, benchmarks, morpher=Non
         if morpher is None:
             raise RuntimeError("Cannot calculate score without morphing")
 
-        dtheta_matrix = morpher.calculate_morphing_weight_gradient(theta_value)  # Shape (n_parameters, n_benchmarks)
+        dtheta_matrix = morpher.calculate_morphing_weight_gradient(
+            theta_value
+        )  # Shape (n_parameters, n_benchmarks_phys)
 
     else:
         raise ValueError("Unknown theta {}".format(theta_type))
@@ -60,10 +64,16 @@ def get_dtheta_benchmark_matrix(theta_type, theta_value, benchmarks, morpher=Non
     return dtheta_matrix
 
 
-def extract_augmented_data(
-    augmented_data_definitions, weights_benchmarks, xsecs_benchmarks, theta_matrices, theta_gradient_matrices
+def calculate_augmented_data(
+    augmented_data_definitions,
+    weights_benchmarks,
+    xsecs_benchmarks,
+    theta_matrices,
+    theta_gradient_matrices,
+    nuisance_morpher=None,
 ):
     """Extracts augmented data from benchmark weights"""
+
     augmented_data = []
 
     for definition in augmented_data_definitions:
@@ -72,10 +82,10 @@ def extract_augmented_data(
             i_num = definition[1]
             i_den = definition[2]
 
-            dsigma_num = theta_matrices[i_num].dot(weights_benchmarks.T)
-            sigma_num = theta_matrices[i_num].dot(xsecs_benchmarks.T)
-            dsigma_den = theta_matrices[i_den].dot(weights_benchmarks.T)
-            sigma_den = theta_matrices[i_den].dot(xsecs_benchmarks.T)
+            dsigma_num = mdot(theta_matrices[i_num], weights_benchmarks)
+            sigma_num = mdot(theta_matrices[i_num], xsecs_benchmarks)
+            dsigma_den = mdot(theta_matrices[i_den], weights_benchmarks)
+            sigma_den = mdot(theta_matrices[i_den], xsecs_benchmarks)
 
             ratio = (dsigma_num / sigma_num) / (dsigma_den / sigma_den)
             ratio = ratio.reshape((-1, 1))
@@ -85,17 +95,28 @@ def extract_augmented_data(
         elif definition[0] == "score":
             i = definition[1]
 
-            gradient_dsigma = theta_gradient_matrices[i].dot(weights_benchmarks.T)  # (n_gradients, n_samples)
-            gradient_sigma = theta_gradient_matrices[i].dot(xsecs_benchmarks.T)  # (n_gradients,)
+            gradient_dsigma = mdot(theta_gradient_matrices[i], weights_benchmarks)  # (n_gradients, n_samples)
+            gradient_sigma = mdot(theta_gradient_matrices[i], xsecs_benchmarks)  # (n_gradients,)
 
-            dsigma = theta_matrices[i].dot(weights_benchmarks.T)  # (n_samples,)
-            sigma = theta_matrices[i].dot(xsecs_benchmarks.T)  # scalar
+            dsigma = mdot(theta_matrices[i], weights_benchmarks)  # (n_samples,)
+            sigma = mdot(theta_matrices[i], xsecs_benchmarks)  # scalar
 
             score = gradient_dsigma / dsigma  # (n_gradients, n_samples)
             score = score.T  # (n_samples, n_gradients)
             score = score - np.broadcast_to(gradient_sigma / sigma, score.shape)  # (n_samples, n_gradients)
 
             augmented_data.append(score)
+
+        elif definition[0] == "nuisance_score":
+            a_weights = nuisance_morpher.calculate_a(weights_benchmarks)
+            a_xsec = nuisance_morpher.calculate_a(xsecs_benchmarks[np.newaxis, :])
+
+            nuisance_score = a_weights - a_xsec  # Shape (n_nuisance_parameters, n_samples)
+            nuisance_score = nuisance_score.T  # Shape (n_samples, n_nuisance_parameters)
+
+            logger.debug("Nuisance score: shape %s, content %s", nuisance_score.shape, nuisance_score)
+
+            augmented_data.append(nuisance_score)
 
         else:
             raise ValueError("Unknown augmented data type {}".format(definition[0]))
@@ -154,8 +175,8 @@ def parse_theta(theta, n_samples):
         theta_values = np.array(theta_values).T
         n_samples_per_theta = int(round(n_samples / n_benchmarks, 0))
 
-        logging.debug(
-            "Total n_samples: %s, n_benchmarks: %s, n_samples_per_theta: %s",
+        logger.debug(
+            "Total n_samples: %s, n_benchmarks_phys: %s, n_samples_per_theta: %s",
             n_samples,
             n_benchmarks,
             n_samples_per_theta,
@@ -165,3 +186,16 @@ def parse_theta(theta, n_samples):
         raise ValueError("Unknown theta {}".format(theta))
 
     return theta_types, theta_values, n_samples_per_theta
+
+
+def mdot(matrix, benchmark_information):
+    """ Calculates a product between a matrix with shape (a, n1) and a weight list with shape (?, n2) with n1 <= n2 """
+
+    n_benchmarks_matrix = matrix.shape[-1]
+    weights_benchmarks_T = benchmark_information.T
+    n_benchmarks_in = weights_benchmarks_T.shape[0]
+
+    if n_benchmarks_matrix == n_benchmarks_in:
+        return matrix.dot(weights_benchmarks_T)
+
+    return matrix.dot(weights_benchmarks_T[:n_benchmarks_matrix])

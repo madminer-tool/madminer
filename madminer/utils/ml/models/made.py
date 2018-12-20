@@ -2,8 +2,6 @@ from __future__ import absolute_import, division, print_function
 
 import numpy as np
 import numpy.random as rng
-import logging
-
 import torch
 from torch import tensor
 import torch.nn as nn
@@ -12,6 +10,9 @@ import torch.nn.functional as F
 from madminer.utils.ml.models.base import BaseFlow, BaseConditionalFlow
 from madminer.utils.ml.models.masks import create_degrees, create_masks, create_weights, create_weights_conditional
 from madminer.utils.ml.utils import get_activation_function
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class GaussianMADE(BaseFlow):
@@ -63,13 +64,13 @@ class GaussianMADE(BaseFlow):
             try:
                 h = self.activation_function(F.linear(h, torch.t(M * W), b))
             except (RuntimeError, AttributeError):
-                logging.error('Abort! Abort!')
-                logging.info('MADE settings: n_inputs = %s', self.n_inputs)
-                logging.info('Shapes: x %s, h %s, M %s, W %s, b %s',
+                logger.error('Abort! Abort!')
+                logger.info('MADE settings: n_inputs = %s', self.n_inputs)
+                logger.info('Shapes: x %s, h %s, M %s, W %s, b %s',
                              x.shape, h.shape, M.shape, W.shape, b.shape)
-                logging.info('Types: x %s, h %s, M %s, W %s, b %s',
+                logger.info('Types: x %s, h %s, M %s, W %s, b %s',
                              type(x), type(h), type(M), type(W), type(b))
-                logging.info('CUDA: x %s, h %s, M %s, W %s, b %s',
+                logger.info('CUDA: x %s, h %s, M %s, W %s, b %s',
                              x.is_cuda, h.is_cuda, M.is_cuda, W.is_cuda, b.is_cuda)
                 raise
 
@@ -209,13 +210,13 @@ class ConditionalGaussianMADE(BaseConditionalFlow):
             h = self.activation_function(
                 F.linear(theta, torch.t(self.Wx)) + F.linear(x, torch.t(self.Ms[0] * self.Ws[0]), self.bs[0]))
         except RuntimeError:
-            logging.error('Abort! Abort!')
-            logging.info('MADE settings: n_inputs = %s, n_conditionals = %s', self.n_inputs, self.n_conditionals)
-            logging.info('Shapes: theta %s, Wx %s, x %s, Ms %s, Ws %s, bs %s',
+            logger.error('Abort! Abort!')
+            logger.info('MADE settings: n_inputs = %s, n_conditionals = %s', self.n_inputs, self.n_conditionals)
+            logger.info('Shapes: theta %s, Wx %s, x %s, Ms %s, Ws %s, bs %s',
                          theta.shape, self.Wx.shape, x.shape, self.Ms[0].shape, self.Ws[0].shape, self.bs[0].shape)
-            logging.info('Types: theta %s, Wx %s, x %s, Ms %s, Ws %s, bs %s',
+            logger.info('Types: theta %s, Wx %s, x %s, Ms %s, Ws %s, bs %s',
                          type(theta), type(self.Wx), type(x), type(self.Ms[0]), type(self.Ws[0]), type(self.bs[0]))
-            logging.info('CUDA: theta %s, Wx %s, x %s, Ms %s, Ws %s, bs %s',
+            logger.info('CUDA: theta %s, Wx %s, x %s, Ms %s, Ws %s, bs %s',
                          theta.is_cuda, self.Wx.is_cuda, x.is_cuda, self.Ms[0].is_cuda, self.Ws[0].is_cuda,
                          self.bs[0].is_cuda)
             raise

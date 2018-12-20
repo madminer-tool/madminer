@@ -1,7 +1,7 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-import logging
 import six
+import logging
 import os
 import stat
 from subprocess import Popen, PIPE
@@ -9,34 +9,12 @@ import io
 import numpy as np
 import shutil
 
-from madminer import __version__
+logger = logging.getLogger(__name__)
 
-printed_splash = False
-
-
-def general_init(debug=False):
-    global printed_splash
-
-    logging.basicConfig(format="%(asctime)s  %(message)s", datefmt="%H:%M")
-    logging.getLogger().setLevel(logging.DEBUG if debug else logging.INFO)
-
-    if not printed_splash:
-        logging.info("")
-        logging.info("------------------------------------------------------------")
-        logging.info("|                                                          |")
-        logging.info("|  MadMiner v{}|".format(__version__.ljust(46)))
-        logging.info("|                                                          |")
-        logging.info("|           Johann Brehmer, Kyle Cranmer, and Felix Kling  |")
-        logging.info("|                                                          |")
-        logging.info("------------------------------------------------------------")
-        logging.info("")
-
-        printed_splash = True
+initialized = False
 
 
 def call_command(cmd, log_file=None):
-    logging.debug("Calling %s > %s", cmd, log_file)
-
     if log_file is not None:
         with io.open(log_file, "wb") as log:
             proc = Popen(cmd, stdout=log, stderr=log, shell=True)
@@ -133,10 +111,14 @@ def balance_thetas(theta_sets_types, theta_sets_values):
     return theta_sets_types, theta_sets_values
 
 
-def sanitize_array(array, replace_nan=0.0, replace_inf=0.0, replace_neg_inf=0.0):
+def sanitize_array(array, replace_nan=0.0, replace_inf=0.0, replace_neg_inf=0.0, min_value=None, max_value=None):
     array[np.isneginf(array)] = replace_neg_inf
     array[np.isinf(array)] = replace_inf
     array[np.isnan(array)] = replace_nan
+
+    if min_value is not None or max_value is not None:
+        array = np.clip(array, min_value, max_value)
+
     return array
 
 
@@ -151,7 +133,7 @@ def load_and_check(filename, warning_threshold=1.0e9):
     n_finite = np.sum(np.isfinite(data))
 
     if n_nans + n_infs > 0:
-        logging.warning(
+        logger.warning(
             "Warning: file %s contains %s NaNs and %s Infs, compared to %s finite numbers!",
             filename,
             n_nans,
@@ -163,7 +145,7 @@ def load_and_check(filename, warning_threshold=1.0e9):
     largest = np.nanmax(data)
 
     if np.abs(smallest) > warning_threshold or np.abs(largest) > warning_threshold:
-        logging.warning("Warning: file %s has some large numbers, rangin from %s to %s", filename, smallest, largest)
+        logger.warning("Warning: file %s has some large numbers, rangin from %s to %s", filename, smallest, largest)
 
     return data
 
@@ -194,42 +176,18 @@ def math_commands():
     ]
 
     mathdefinitions = {}
-    for function in functions:
-        mathdefinitions[function] = locals().get(function, None)
+    for f in functions:
+        mathdefinitions[f] = locals().get(f, None)
 
     return mathdefinitions
 
 
 def make_file_executable(filename):
-    """
-
-    Parameters
-    ----------
-    filename :
-        
-
-    Returns
-    -------
-
-    """
     st = os.stat(filename)
     os.chmod(filename, st.st_mode | stat.S_IEXEC)
 
 
 def copy_file(source, destination):
-    """
-
-    Parameters
-    ----------
-    source :
-        
-    destination :
-        
-
-    Returns
-    -------
-
-    """
     if source is None:
         return
 
@@ -237,7 +195,6 @@ def copy_file(source, destination):
 
 
 def weighted_quantile(values, quantiles, sample_weight=None, values_sorted=False, old_style=False):
-
     """
     Calculates quantiles (similar to np.percentile), but supports weights.
 
@@ -287,3 +244,7 @@ def weighted_quantile(values, quantiles, sample_weight=None, values_sorted=False
         weighted_quantiles /= np.sum(sample_weight)
 
     return np.interp(quantiles, weighted_quantiles, values)
+
+
+def approx_equal(a, b, epsilon=1.0e-6):
+    return abs(a - b) < epsilon

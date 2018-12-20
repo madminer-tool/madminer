@@ -4,12 +4,19 @@ import six
 from collections import OrderedDict
 import numpy as np
 import logging
+import os
 
-from madminer.utils.interfaces.hdf5 import save_events_to_madminer_file, load_benchmarks_from_madminer_file
+from madminer.utils.interfaces.madminer_hdf5 import (
+    save_events_to_madminer_file,
+    load_madminer_settings,
+    save_nuisance_setup_to_madminer_file,
+)
 from madminer.utils.interfaces.delphes import run_delphes
-from madminer.utils.interfaces.root import extract_observables_from_delphes_file
+from madminer.utils.interfaces.delphes_root import parse_delphes_root_file
 from madminer.utils.interfaces.hepmc import extract_weight_order
-from madminer.utils.various import general_init
+from madminer.utils.interfaces.lhe import extract_weights_from_lhe_file, extract_nuisance_parameters_from_lhe_file
+
+logger = logging.getLogger(__name__)
 
 
 class DelphesProcessor:
@@ -24,8 +31,8 @@ class DelphesProcessor:
     This class provides an example implementation based on Delphes. Its workflow consists of the following steps:
 
     * Initializing the class with the filename of a MadMiner HDF5 file (the output of `madminer.core.MadMiner.save()`)
-    * Adding one or multiple HepMC samples produced by Pythia in `DelphesProcessor.add_hepmc_sample()`
-    * Running Delphes on these samples through `DelphesProcessor.run_delphes()`
+    * Adding one or multiple event samples produced by MadGraph and Pythia in `DelphesProcessor.add_sample()`.
+    * Running Delphes on the samples that require it through `DelphesProcessor.run_delphes()`
     * Optionally, acceptance cuts for all visible particles can be defined with `DelphesProcessor.set_acceptance()`.
     * Defining observables through `DelphesProcessor.add_observable()` or
       `DelphesProcessor.add_observable_from_function()`. A simple set of default observables is provided in
@@ -46,14 +53,16 @@ class DelphesProcessor:
 
     """
 
-    def __init__(self, filename=None, debug=False):
-        general_init(debug=debug)
-
+    def __init__(self, filename, debug=False):
         # Initialize samples
         self.hepmc_sample_filenames = []
-        self.delphes_sample_filenames = []
         self.hepmc_sample_weight_labels = []
         self.hepmc_sampled_from_benchmark = []
+        self.hepmc_is_backgrounds = []
+        self.lhe_sample_filenames = []
+        self.lhe_sample_filenames_for_weights = []
+        self.delphes_sample_filenames = []
+        self.sample_k_factors = []
 
         # Initialize observables
         self.observables = OrderedDict()
@@ -75,28 +84,71 @@ class DelphesProcessor:
         self.acceptance_eta_max_j = None
 
         # Initialize samples
+        self.reference_benchmark = None
         self.observations = None
         self.weights = None
 
+        # Initialize nuisance parameters
+        self.nuisance_parameters = None
+
         # Information from .h5 file
         self.filename = filename
-        if self.filename is None:
-            self.benchmark_names = None
-        else:
-            self.benchmark_names = load_benchmarks_from_madminer_file(self.filename)
+        (parameters, benchmarks, _, _, _, _, _, self.systematics, _, _) = load_madminer_settings(
+            filename, include_nuisance_benchmarks=False
+        )
+        self.benchmark_names_phys = list(benchmarks.keys())
+        self.n_benchmarks_phys = len(benchmarks)
 
-    def add_hepmc_sample(self, filename, sampled_from_benchmark):
+    def add_sample(
+        self,
+        hepmc_filename,
+        sampled_from_benchmark,
+        is_background=False,
+        delphes_filename=None,
+        lhe_filename=None,
+        k_factor=1.0,
+        weights="delphes",
+    ):
         """
-        Adds simulated events in the HepMC format.
+        Adds a sample of simulated events. A HepMC file (from Pythia) has to be provided always, since some relevant
+        information is only stored in this file. The user can optionally provide a Delphes file, in this case
+        run_delphes() does not have to be called.
+
+        By default, the weights are read out from the Delphes file and their names from the HepMC file. There are some
+        issues with current MadGraph versions that lead to Pythia not storing the weights. As work-around, MadMiner
+        supports reading weights from the LHE file (the observables still come from the Delphes file). To enable this,
+        use weights="lhe".
 
         Parameters
         ----------
-        filename : str
+        hepmc_filename : str
             Path to the HepMC event file (with extension '.hepmc' or '.hepmc.gz').
-            
+
         sampled_from_benchmark : str
             Name of the benchmark that was used for sampling in this event file (the keyword `sample_benchmark`
             of `madminer.core.MadMiner.run()`).
+
+        is_background : bool, optional
+            Whether the sample is a background sample (i.e. without benchmark reweighting).
+
+        delphes_filename : str or None, optional
+            Path to the Delphes event file (with extension '.root'). If None, the user has to call run_delphes(), which
+            will create this file. Default value: None.
+
+        lhe_filename : None or str, optional
+            Path to the LHE event file (with extension '.lhe' or '.lhe.gz'). This is only needed if weights is "lhe".
+
+        k_factor : float, optional
+            Multiplies the cross sections found in the sample. Default value: 1.
+
+        weights : {"delphes", "lhe"}, optional
+            If "delphes", the weights are read out from the Delphes ROOT file, and their names are taken from the
+            HepMC file. If "lhe" (and lhe_filename is not None), the weights are taken from the LHE file (and matched
+            with the observables from the Delphes ROOT file). The "delphes" behaviour is generally better as it
+            minimizes the risk of mismatching observables and weights, but for some MadGraph and Delphes versions
+            there are issues with weights not being saved in the HepMC and Delphes ROOT files. In this case, setting
+            weights to "lhe" and providing the unweighted LHE file from MadGraph may be an easy fix. Default value:
+            "delphes".
 
         Returns
         -------
@@ -104,14 +156,31 @@ class DelphesProcessor:
 
         """
 
-        logging.debug("Adding HepMC sample at %s", filename)
+        logger.debug("Adding event sample %s", hepmc_filename)
 
-        self.hepmc_sample_filenames.append(filename)
-        self.hepmc_sample_weight_labels.append(extract_weight_order(filename, sampled_from_benchmark))
+        # Check inputs
+        assert weights in ["delphes", "lhe"], "Unknown setting for weights: %s. Has to be 'delphes' or 'lhe'."
+
+        if self.systematics is not None:
+            if lhe_filename is None:
+                raise ValueError("With systematic uncertainties, a LHE event file has to be provided.")
+
+        self.hepmc_sample_filenames.append(hepmc_filename)
+        self.hepmc_sample_weight_labels.append(extract_weight_order(hepmc_filename, sampled_from_benchmark))
+        self.hepmc_sampled_from_benchmark.append(sampled_from_benchmark)
+        self.hepmc_is_backgrounds.append(is_background)
+        self.sample_k_factors.append(k_factor)
+        self.delphes_sample_filenames.append(delphes_filename)
+        self.lhe_sample_filenames.append(lhe_filename)
+
+        if weights == "lhe" and lhe_filename is not None:
+            self.lhe_sample_filenames_for_weights.append(lhe_filename)
+        else:
+            self.lhe_sample_filenames_for_weights.append(None)
 
     def run_delphes(self, delphes_directory, delphes_card, initial_command=None, log_file=None):
         """
-        Runs the fast detector simulation on all HepMC samples added so far.
+        Runs the fast detector simulation Delphes on all HepMC samples added so far for which it hasn't been run yet.
 
         Parameters
         ----------
@@ -137,16 +206,25 @@ class DelphesProcessor:
         if log_file is None:
             log_file = "./logs/delphes.log"
 
-        for hepmc_sample_filename in self.hepmc_sample_filenames:
-            logging.info("Running Delphes (%s) on event sample at %s", delphes_directory, hepmc_sample_filename)
+        for i, (delphes_filename, hepmc_filename) in enumerate(
+            zip(self.delphes_sample_filenames, self.hepmc_sample_filenames)
+        ):
+            if delphes_filename is not None and os.path.isfile(delphes_filename):
+                logger.debug("Delphes already run for event sample %s", hepmc_filename)
+                continue
+            elif delphes_filename is not None:
+                logger.debug(
+                    "Given Delphes file %s does not exist, running Delphes again on HepMC sample at %s",
+                    delphes_filename,
+                    hepmc_filename,
+                )
+            else:
+                logger.info("Running Delphes on HepMC sample at %s", delphes_directory, hepmc_filename)
+
             delphes_sample_filename = run_delphes(
-                delphes_directory,
-                delphes_card,
-                hepmc_sample_filename,
-                initial_command=initial_command,
-                log_file=log_file,
+                delphes_directory, delphes_card, hepmc_filename, initial_command=initial_command, log_file=log_file
             )
-            self.delphes_sample_filenames.append(delphes_sample_filename)
+            self.delphes_sample_filenames[i] = delphes_sample_filename
 
     def set_acceptance(
         self,
@@ -243,9 +321,9 @@ class DelphesProcessor:
         """
 
         if required:
-            logging.debug("Adding required observable %s = %s", name, definition)
+            logger.debug("Adding required observable %s = %s", name, definition)
         else:
-            logging.debug("Adding optional observable %s = %s with default %s", name, definition, default)
+            logger.debug("Adding optional observable %s = %s with default %s", name, definition, default)
 
         self.observables[name] = definition
         self.observables_required[name] = required
@@ -282,9 +360,9 @@ class DelphesProcessor:
         """
 
         if required:
-            logging.debug("Adding required observable %s defined through external function", name)
+            logger.debug("Adding required observable %s defined through external function", name)
         else:
-            logging.debug(
+            logger.debug(
                 "Adding optional observable %s defined through external function with default %s", name, default
             )
 
@@ -334,6 +412,8 @@ class DelphesProcessor:
             None
 
         """
+        logger.debug("Adding default observables")
+
         # ETMiss
         if include_met:
             self.add_observable("et_miss", "met.pt", required=True)
@@ -400,22 +480,29 @@ class DelphesProcessor:
             None
 
         """
-        logging.debug("Adding cut %s", definition)
+        logger.debug("Adding cut %s", definition)
+
         self.cuts.append(definition)
         self.cuts_default_pass.append(pass_if_not_parsed)
 
     def reset_observables(self):
         """ Resets all observables. """
+
+        logger.debug("Resetting observables")
+
         self.observables = OrderedDict()
         self.observables_required = OrderedDict()
         self.observables_defaults = OrderedDict()
 
     def reset_cuts(self):
         """ Resets all cuts. """
+
+        logger.debug("Resetting cuts")
+
         self.cuts = []
         self.cuts_default_pass = []
 
-    def analyse_delphes_samples(self, generator_truth=False, delete_delphes_files=False):
+    def analyse_delphes_samples(self, generator_truth=False, delete_delphes_files=False, reference_benchmark=None):
         """
         Main function that parses the Delphes samples (ROOT files), checks acceptance and cuts, and extracts
         the observables and weights.
@@ -430,24 +517,67 @@ class DelphesProcessor:
             If True, the Delphes ROOT files will be deleted after extracting the information from them. Default value:
             False.
 
+        reference_benchmark : str or None, optional
+            The weights at the nuisance benchmarks will be rescaled to some reference theta benchmark:
+            `dsigma(x|theta_sampling(x),nu) -> dsigma(x|theta_ref,nu) = dsigma(x|theta_sampling(x),nu)
+            * dsigma(x|theta_ref,0) / dsigma(x|theta_sampling(x),0)`. This sets the name of the reference benchmark.
+            If None, the first one will be used. Default value: None.
+
         Returns
         -------
             None
 
         """
 
+        # Input
+        if reference_benchmark is None:
+            reference_benchmark = self.benchmark_names_phys[0]
+        self.reference_benchmark = reference_benchmark
+
         # Reset observations
         self.observations = None
         self.weights = None
+        self.nuisance_parameters = None
 
-        n_benchmarks = None if self.benchmark_names is None else len(self.benchmark_names)
+        for (
+            delphes_file,
+            weight_labels,
+            is_background,
+            sampling_benchmark,
+            lhe_file,
+            lhe_file_for_weights,
+            k_factor,
+        ) in zip(
+            self.delphes_sample_filenames,
+            self.hepmc_sample_weight_labels,
+            self.hepmc_is_backgrounds,
+            self.hepmc_sampled_from_benchmark,
+            self.lhe_sample_filenames,
+            self.lhe_sample_filenames_for_weights,
+            self.sample_k_factors,
+        ):
+            logger.info("Analysing Delphes sample %s", delphes_file)
 
-        for delphes_file, weight_labels in zip(self.delphes_sample_filenames, self.hepmc_sample_weight_labels):
+            # Read systematics setup from LHE file
+            logger.debug("Extracting nuisance parameter definitions from LHE file")
+            nuisance_parameters = extract_nuisance_parameters_from_lhe_file(lhe_file, self.systematics)
+            logger.debug("Found %s nuisance parameters with matching benchmarks:", len(nuisance_parameters))
+            for key, value in six.iteritems(nuisance_parameters):
+                logger.debug("  %s: %s", key, value)
 
-            logging.info("Analysing Delphes sample %s", delphes_file)
+            # Compare to existing data
+            if self.nuisance_parameters is None:
+                self.nuisance_parameters = nuisance_parameters
+            else:
+                if dict(self.nuisance_parameters) != dict(nuisance_parameters):
+                    raise RuntimeError(
+                        "Different LHE files have different definitions of nuisance parameters / benchmarks!\nPrevious: {}\nNew:{}".format(
+                            self.nuisance_parameters, nuisance_parameters
+                        )
+                    )
 
             # Calculate observables and weights in Delphes ROOT file
-            this_observations, this_weights = extract_observables_from_delphes_file(
+            this_observations, this_weights, cut_filter = parse_delphes_root_file(
                 delphes_file,
                 self.observables,
                 self.observables_required,
@@ -468,20 +598,75 @@ class DelphesProcessor:
             )
 
             # No events found?
-            if this_observations is None or this_weights is None:
+            if this_observations is None:
+                logger.debug("No observations in this Delphes file, skipping it")
                 continue
 
-            # Number of benchmarks
-            if n_benchmarks is None:
-                n_benchmarks = len(this_weights)
+            logger.debug("Found weights %s in Delphes file", list(this_weights.keys()))
+
+            # Check number of events in observables
+            n_events = None
+            for key, obs in six.iteritems(this_observations):
+                this_n_events = len(obs)
+                if n_events is None:
+                    n_events = this_n_events
+                    logger.debug("Found %s events", n_events)
+
+                if this_n_events != n_events:
+                    raise RuntimeError(
+                        "Mismatching number of events in Delphes observations for {}: {} vs {}".format(
+                            key, n_events, this_n_events
+                        )
+                    )
+
+            # Find weights in LHE file
+            if lhe_file_for_weights is not None:
+                logger.debug("Extracting weights from LHE file")
+                this_weights = extract_weights_from_lhe_file(
+                    lhe_file_for_weights, sampling_benchmark=sampling_benchmark, is_background=is_background
+                )
+
+                logger.debug("Found weights %s in LHE file", list(this_weights.keys()))
+
+                # Apply cuts
+                logger.debug("Applying Delphes-based cuts to LHE weights")
+                for key, weights in six.iteritems(this_weights):
+                    this_weights[key] = weights[cut_filter]
+
+                logger.debug("Found weights %s in LHE file", list(this_weights.keys()))
+
+            # Check number of events in weights
+            for key, weights in six.iteritems(this_weights):
+                this_n_events = len(weights)
+                if n_events is None:
+                    n_events = this_n_events
+                    logger.debug("Found %s events", n_events)
+
+                if this_n_events != n_events:
+                    raise RuntimeError(
+                        "Mismatching number of events in weights {}: {} vs {}".format(key, n_events, this_n_events)
+                    )
+
+            # k factors
+            if k_factor is not None:
+                for key in this_weights:
+                    this_weights[key] = k_factor * this_weights[key]
 
             # Background scenario: we only have one set of weights, but these should be true for all benchmarks
-            if len(this_weights) == 1 and self.benchmark_names is not None:
-                original_weights = list(six.itervalues(this_weights))[0]
+            if is_background:
+                logger.debug("Sample is background")
+                benchmarks_weight = list(six.itervalues(this_weights))[0]
 
-                this_weights = OrderedDict()
-                for benchmark_name in self.benchmark_names:
-                    this_weights[benchmark_name] = original_weights
+                for benchmark_name in self.benchmark_names_phys:
+                    this_weights[benchmark_name] = benchmarks_weight
+
+            # Rescale nuisance parameters to reference benchmark
+            reference_weights = this_weights[reference_benchmark]
+            sampling_weights = this_weights[sampling_benchmark]
+
+            for key in this_weights:
+                if key not in self.benchmark_names_phys:  # Only rescale nuisance benchmarks
+                    this_weights[key] = reference_weights / sampling_weights * this_weights[key]
 
             # First results
             if self.observations is None and self.weights is None:
@@ -492,7 +677,7 @@ class DelphesProcessor:
             # Following results: check consistency with previous results
             if len(self.weights) != len(this_weights):
                 raise ValueError(
-                    "Number of weights in different Delphes files incompatible: {} vs {}".format(
+                    "Number of weights in different files incompatible: {} vs {}".format(
                         len(self.weights), len(this_weights)
                     )
                 )
@@ -505,7 +690,7 @@ class DelphesProcessor:
 
             # Merge results with previous
             for key in self.weights:
-                assert key in this_weights, "Weight label {} not found in Delphes sample!".format(key)
+                assert key in this_weights, "Weight label {} not found in sample!".format(key)
                 self.weights[key] = np.hstack([self.weights[key], this_weights[key]])
 
             for key in self.observations:
@@ -515,13 +700,13 @@ class DelphesProcessor:
     def save(self, filename_out):
         """
         Saves the observable definitions, observable values, and event weights in a MadMiner file. The parameter,
-        benchmark, and morphing setup is copied from the file provided during initialization.
+        benchmark, and morphing setup is copied from the file provided during initialization. Nuisance benchmarks found
+        in the HepMC file are added.
 
         Parameters
         ----------
         filename_out : str
-            Path to where the results should be saved. If the class was initialized with `filename=None`, this file is
-            assumed to exist and contain the correct parameter, benchmark, and morphing setup.
+            Path to where the results should be saved.
 
         Returns
         -------
@@ -529,11 +714,23 @@ class DelphesProcessor:
 
         """
 
-        if self.filename is None:
-            logging.debug("Saving HDF5 file to %s", filename_out)
-        else:
-            logging.debug("Loading HDF5 data from %s and saving file to %s", self.filename, filename_out)
+        if self.observations is None or self.weights is None:
+            logger.warning("No observations to save!")
+            return
 
-        save_events_to_madminer_file(
-            filename_out, self.observables, self.observations, self.weights, copy_from=self.filename
+        logger.debug("Loading HDF5 data from %s and saving file to %s", self.filename, filename_out)
+
+        # Save nuisance parameters and benchmarks
+        weight_names = list(self.weights.keys())
+        logger.debug("Weight names: %s", weight_names)
+
+        save_nuisance_setup_to_madminer_file(
+            filename_out,
+            weight_names,
+            self.nuisance_parameters,
+            reference_benchmark=self.reference_benchmark,
+            copy_from=self.filename,
         )
+
+        # Save events
+        save_events_to_madminer_file(filename_out, self.observables, self.observations, self.weights)

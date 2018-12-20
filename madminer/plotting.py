@@ -1,12 +1,367 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-import os
+import six
 import numpy as np
 from matplotlib import pyplot as plt
 import matplotlib
 import logging
 
-from madminer.utils.various import create_missing_folders
+from madminer.sampling import SampleAugmenter
+from madminer.utils.analysis import mdot, get_theta_benchmark_matrix
+from madminer.morphing import NuisanceMorpher
+from madminer.utils.various import weighted_quantile, sanitize_array
+
+logger = logging.getLogger(__name__)
+
+
+def plot_distributions(
+    filename,
+    observables=None,
+    parameter_points=None,
+    uncertainties="nuisance",
+    nuisance_parameters=None,
+    normalize=False,
+    observable_labels=None,
+    n_bins=50,
+    line_labels=None,
+    colors=None,
+    linestyles=None,
+    linewidths=1.5,
+    alpha=0.4,
+    n_events=None,
+    n_toys=1000,
+    n_cols=3,
+):
+    """
+    Plots one-dimensional histograms of observables in a MadMiner file for a given set of benchmarks.
+
+    Parameters
+    ----------
+    filename : str
+        Filename of a MadMiner HDF5 file.
+
+    observables : list of str or None, optional
+        Which observables to plot, given by a list of their names. If None, all observables in the file
+        are plotted. Default value: None.
+
+    parameter_points : list of (str or ndarray) or None, optional
+        Which parameter points to use for histogramming the data. Given by a list, each element can either be the name
+        of a benchmark in the MadMiner file, or an ndarray specifying any parameter point in a morphing setup. If None,
+        all physics (non-nuisance) benchmarks defined in the MadMiner file are plotted. Default value: None.
+
+    uncertainties : {"nuisance", "none"}, optional
+        Defines how uncertainty bands are drawn. With "nuisance", the variation in cross section from all nuisance
+        parameters is added in quadrature. With "none", no error bands are drawn.
+
+    nuisance_parameters : None or list of int, optional
+        If uncertainties is "nuisance", this can restrict which nuisance parameters are used to draw the uncertainty
+        bands. Each entry of this list is the index of one nuisance parameter (same order as in the MadMiner file).
+
+    normalize : bool, optional
+        Whether the distribution is normalized to the total cross section. Default value: False.
+
+    observable_labels : None or list of (str or None), optional
+        x-axis labels naming the observables. If None, the observable names from the MadMiner file are used. Default
+        value: None.
+
+    n_bins : int, optional
+        Number of bins. Default value: 50.
+
+    line_labels : None or list of (str or None), optional
+        Labels for the different parameter points. If None and if parameter_points is None, the benchmark names from
+        the MadMiner file are used. Default value: None.
+
+    colors : None or str or list of str, optional
+        Matplotlib line (and error band) colors for the distributions. If None, uses default colors. Default value:
+        None.
+
+    linestyles : None or str or list of str, optional
+        Matplotlib line styles for the distributions. If None, uses default linestyles. Default value: None.
+
+    linewidths : float or list of float, optional
+        Line widths for the contours. Default value: 1.5.
+
+    alpha : float, optional
+        alpha value for the uncertainty bands. Default value: 0.4.
+
+    n_events : None or int, optional
+        If not None, sets the number of events from the MadMiner file that will be analyzed and plotted. Default value:
+        None.
+
+    n_toys : int, optional
+        Number of toy nuisance parameter vectors used to estimate the systematic uncertainties. Default value: 1000.
+
+    n_cols : int, optional
+        Number of columns in the plot.
+
+    Returns
+    -------
+    figure : Figure
+        Plot as Matplotlib Figure instance.
+
+    """
+
+    # Load data
+    sa = SampleAugmenter(filename, include_nuisance_parameters=True)
+    if uncertainties == "nuisance":
+        nuisance_morpher = NuisanceMorpher(
+            sa.nuisance_parameters, list(sa.benchmarks.keys()), reference_benchmark=sa.reference_benchmark
+        )
+
+    # Default settings
+    if parameter_points is None:
+        parameter_points = []
+
+        for key, is_nuisance in zip(sa.benchmarks, sa.benchmark_is_nuisance):
+            if not is_nuisance:
+                parameter_points.append(key)
+
+        if line_labels is None:
+            line_labels = parameter_points
+
+    n_parameter_points = len(parameter_points)
+
+    if colors is None:
+        colors = ["C" + str(i) for i in range(10)] * (n_parameter_points // 10 + 1)
+    elif not isinstance(colors, list):
+        colors = [colors for _ in range(n_parameter_points)]
+
+    if linestyles is None:
+        linestyles = ["solid", "dashed", "dotted", "dashdot"] * (n_parameter_points // 4 + 1)
+    elif not isinstance(linestyles, list):
+        linestyles = [linestyles for _ in range(n_parameter_points)]
+
+    if not isinstance(linewidths, list):
+        linewidths = [linewidths for _ in range(n_parameter_points)]
+
+    if observables is None:
+        observables = list(range(len(sa.observables)))
+    n_observables = len(observables)
+
+    if observable_labels is None:
+        observable_labels = list(sa.observables.keys())
+        observable_labels = [observable_labels[obs] for obs in observables]
+
+    # Get event data (observations and weights)
+    x, weights_benchmarks = sa.extract_raw_data()
+    logger.debug("Loaded raw data with shapes %s, %s", x.shape, weights_benchmarks.shape)
+
+    if n_events is not None and n_events < x.shape[0]:
+        logger.debug("Only analyzing first %s / %s events", n_events, x.shape[0])
+
+        x = x[:n_events]
+        weights_benchmarks = weights_benchmarks[:n_events]
+
+    theta_matrices = []
+    for theta in parameter_points:
+        if isinstance(theta, six.string_types):
+            matrix = get_theta_benchmark_matrix("benchmark", theta, sa.benchmarks)
+        else:
+            matrix = get_theta_benchmark_matrix("morphing", theta, sa.benchmarks, sa.morpher)
+        theta_matrices.append(matrix)
+
+    logger.debug("Calculated %s theta matrices", len(theta_matrices))
+
+    # Total cross sections
+    normalizations = []
+    if normalize:
+        xsec_benchmarks = np.sum(weights_benchmarks, axis=0)
+        for theta_matrix in theta_matrices:
+            xsec_theta = np.sum(mdot(theta_matrix, xsec_benchmarks))
+            normalizations.append(1.0 / xsec_theta)
+    else:
+        normalizations = [1.0 for _ in theta_matrices]
+
+    # Nuisance parameters
+    nuisance_factors_min, nuisance_factors_max = None, None
+
+    if uncertainties == "nuisance":
+        n_nuisance_params = sa.n_nuisance_parameters
+
+        logger.debug("Calculating effect of nuisance parameters")
+
+        nuisance_toys = np.random.normal(loc=0.0, scale=1.0, size=n_nuisance_params * n_toys)
+        nuisance_toys = nuisance_toys.reshape(n_toys, n_nuisance_params)
+
+        # Restrict nuisance parameters
+        if nuisance_parameters is not None:
+            for i in range(n_nuisance_params):
+                if i not in nuisance_parameters:
+                    nuisance_toys[:,i] = 1.
+
+        logger.debug("Drew %s toy values for nuisance parameters", n_toys * n_nuisance_params)
+
+        nuisance_toy_factors = np.array(
+            [
+                nuisance_morpher.calculate_nuisance_factors(nuisance_toy, weights_benchmarks)
+                for nuisance_toy in nuisance_toys
+            ]
+        )  # Shape (n_toys, n_events)
+        logger.debug(
+            "Calculated nuisance toy factors with shape %s and range %s - %s",
+            nuisance_toy_factors.shape,
+            np.min(nuisance_toy_factors),
+            np.max(nuisance_toy_factors),
+        )
+
+        nuisance_toy_factors = sanitize_array(nuisance_toy_factors, min_value=1.0e-2, max_value=100.0)
+
+        # Normalize
+        if normalize:
+            normalized_weights_syst_down = []
+            normalized_weights_syst_up = []
+
+            for i_theta, theta_matrix in enumerate(theta_matrices):
+                logger.debug("Normalizing nuisance toy experiments for hypothesis %s", i_theta + 1)
+
+                # Theta weights
+                theta_weights = mdot(theta_matrix, weights_benchmarks)  # Shape (n_events,)
+
+                # Calculate total xsec for each nuisance toy
+                nuisance_toy_xsecs = []
+                for i_toy in range(n_toys):
+                    xsec = np.sum(nuisance_toy_factors[i_toy] * theta_weights, axis=0)
+                    nuisance_toy_xsecs.append(xsec)
+                nuisance_toy_xsecs = np.array(nuisance_toy_xsecs)  # Shape (n_toys,)
+
+                # Normalize weights
+                normalized_nuisance_toy_weights = (
+                    1.0 / nuisance_toy_xsecs[:, np.newaxis] * theta_weights[np.newaxis, :] * nuisance_toy_factors
+                )
+                # Shape (n_toys, n_events,)
+
+                # Percentiles over nuisance toys
+                nuisance_factors_central_this_theta = np.median(
+                    normalized_nuisance_toy_weights, axis=0
+                )  # Shape (n_events,)
+                logger.debug("Median nuisance factors: %s", nuisance_factors_central_this_theta)
+                nuisance_factors_min_this_theta = np.percentile(
+                    normalized_nuisance_toy_weights, 16.0, axis=0
+                )  # Shape (n_events,)
+                logger.debug("-1 sigma nuisance factors: %s", nuisance_factors_min_this_theta)
+                nuisance_factors_max_this_theta = np.percentile(
+                    normalized_nuisance_toy_weights, 84.0, axis=0
+                )  # Shape (n_events,)
+                logger.debug("+1 sigma nuisance factors: %s", nuisance_factors_max_this_theta)
+
+                normalized_weights_syst_down.append(nuisance_factors_min_this_theta)
+                normalized_weights_syst_up.append(nuisance_factors_max_this_theta)
+
+            normalized_weights_syst_down = np.array(normalized_weights_syst_down)  # Shape (n_hypotheses, n_events)
+            normalized_weights_syst_up = np.array(normalized_weights_syst_up)  # Shape (n_hypotheses, n_events)
+
+        else:
+            nuisance_factors_central = np.median(nuisance_toy_factors, axis=0)  # Shape (n_events,)
+            logger.debug("Median nuisance factors: %s", nuisance_factors_central)
+            nuisance_factors_min = np.percentile(nuisance_toy_factors, 16.0, axis=0)  # Shape (n_events,)
+            logger.debug("-1 sigma nuisance factors: %s", nuisance_factors_min)
+            nuisance_factors_max = np.percentile(nuisance_toy_factors, 84.0, axis=0)  # Shape (n_events,)
+            logger.debug("+1 sigma nuisance factors: %s", nuisance_factors_max)
+
+    # Plot distributions
+    logger.debug("Plotting distributions")
+
+    n_rows = (n_observables + n_cols - 1) // n_cols
+
+    fig = plt.figure(figsize=(4.0 * n_cols, 4.0 * n_rows))
+
+    for i, xlabel in enumerate(observable_labels):
+
+        # Figure out x range
+        xmins, xmaxs = [], []
+        for theta_matrix in theta_matrices:
+            n_events_for_range = 10000
+            x_small = x[:n_events_for_range]
+            weights_small = mdot(theta_matrix, weights_benchmarks[:n_events_for_range])
+
+            xmin = weighted_quantile(x_small[:, i], 0.05, weights_small)
+            xmax = weighted_quantile(x_small[:, i], 0.95, weights_small)
+            xwidth = xmax - xmin
+            xmin -= xwidth * 0.1
+            xmax += xwidth * 0.1
+
+            xmin = max(xmin, np.min(x[:, i]))
+            xmax = min(xmax, np.max(x[:, i]))
+
+            xmins.append(xmin)
+            xmaxs.append(xmax)
+
+        xmin = min(xmins)
+        xmax = max(xmaxs)
+        x_range = (xmin, xmax)
+
+        logger.debug("Ranges for observable %s: min = %s, max = %s", xlabel, xmins, xmaxs)
+
+        # Plot
+        plt.subplot(n_rows, n_cols, i + 1)
+
+        # Error bands
+        if uncertainties == "nuisance" and normalize:
+            for weights_up, weights_down, lw, color, label, ls in zip(
+                normalized_weights_syst_up, normalized_weights_syst_down, linewidths, colors, line_labels, linestyles
+            ):
+
+                hist_upper, bin_edges = np.histogram(x[:, i], bins=n_bins, range=x_range, weights=weights_up)
+                hist_lower, _ = np.histogram(x[:, i], bins=n_bins, range=x_range, weights=weights_down)
+
+                bin_edges = np.repeat(bin_edges, 2)[1:-1]
+                hist_lower = np.repeat(hist_lower, 2)
+                hist_upper = np.repeat(hist_upper, 2)
+
+                plt.fill_between(bin_edges, hist_lower, hist_upper, facecolor=color, edgecolor="none", alpha=alpha)
+
+        elif uncertainties == "nuisance" and not normalize:
+            for theta_matrix, lw, color, label, ls in zip(theta_matrices, linewidths, colors, line_labels, linestyles):
+
+                theta_weights = mdot(theta_matrix, weights_benchmarks)
+
+                hist_upper, bin_edges = np.histogram(
+                    x[:, i], bins=n_bins, range=x_range, weights=theta_weights * nuisance_factors_max
+                )
+                hist_lower, _ = np.histogram(
+                    x[:, i], bins=n_bins, range=x_range, weights=theta_weights * nuisance_factors_min
+                )
+
+                bin_edges = np.repeat(bin_edges, 2)[1:-1]
+                hist_lower = np.repeat(hist_lower, 2)
+                hist_upper = np.repeat(hist_upper, 2)
+
+                plt.fill_between(bin_edges, hist_lower, hist_upper, lw=lw, color=color, alpha=alpha)
+
+        # Central lines
+        for theta_matrix, normalization, lw, color, label, ls in zip(
+            theta_matrices, normalizations, linewidths, colors, line_labels, linestyles
+        ):
+
+            theta_weights = mdot(theta_matrix, weights_benchmarks)
+
+            plt.hist(
+                x[:, i],
+                weights=normalization * theta_weights,
+                histtype="step",
+                range=x_range,
+                bins=n_bins,
+                lw=lw,
+                ls=ls,
+                color=color,
+                label=label,
+                density=False,
+            )
+
+        plt.legend()
+
+        plt.xlabel(xlabel)
+        if normalize:
+            plt.ylabel("Normalized distribution")
+        else:
+            plt.ylabel(r"$\frac{d\sigma}{dx}$ [pb / bin]")
+
+        plt.xlim(x_range[0], x_range[1])
+        plt.ylim(0.0, None)
+
+    plt.tight_layout()
+
+    return fig
 
 
 def plot_2d_morphing_basis(
@@ -374,7 +729,7 @@ def plot_fisher_information_contours_2d(
         uncertainties = (var ** 0.5).reshape((resolution, resolution))
         fisher_distances_squared_uncertainties.append(uncertainties)
 
-        logging.debug("Std: %s", uncertainties)
+        logger.debug("Std: %s", uncertainties)
 
     # Plot results
     fig = plt.figure(figsize=(5.0, 5.0))

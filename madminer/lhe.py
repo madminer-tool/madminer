@@ -4,9 +4,10 @@ from collections import OrderedDict
 import numpy as np
 import logging
 
-from madminer.utils.interfaces.hdf5 import load_benchmarks_from_madminer_file, save_madminer_file_from_lhe
+from madminer.utils.interfaces.madminer_hdf5 import load_benchmarks_from_madminer_file, save_madminer_file_from_lhe
 from madminer.utils.interfaces.lhe import extract_observables_from_lhe_file
-from madminer.utils.various import general_init
+
+logger = logging.getLogger(__name__)
 
 
 class LHEProcessor:
@@ -15,11 +16,9 @@ class LHEProcessor:
     def __init__(self, debug=False):
         """ Constructor """
 
-        general_init(debug=debug)
-
         # Initialize samples
         self.lhe_sample_filenames = []
-        self.is_background=[]
+        self.is_background = []
         self.sampling_benchmarks = []
         self.rescale_factor = []
 
@@ -37,14 +36,9 @@ class LHEProcessor:
     def read_benchmark_names(self, filename):
         self.benchmark_names = load_benchmarks_from_madminer_file(filename)
 
-    def add_lhe_sample(self,
-            filename,
-            sampling_benchmark,
-            is_background=False,
-            rescale_factor=1
-            ):
-        logging.info("Adding LHE sample at %s", filename)
-        
+    def add_lhe_sample(self, filename, sampling_benchmark, is_background=False, rescale_factor=1.0):
+        logger.info("Adding LHE sample at %s", filename)
+
         self.lhe_sample_filenames.append(filename)
         self.is_background.append(is_background)
         self.sampling_benchmarks.append(sampling_benchmark)
@@ -52,9 +46,9 @@ class LHEProcessor:
 
     def add_observable(self, name, definition, required=False):
         if required:
-            logging.info("Adding required observable %s = %s", name, definition)
+            logger.info("Adding required observable %s = %s", name, definition)
         else:
-            logging.info("Adding (not required) observable %s = %s", name, definition)
+            logger.info("Adding (not required) observable %s = %s", name, definition)
 
         self.observables[name] = definition
         self.observables_required[name] = required
@@ -81,9 +75,9 @@ class LHEProcessor:
         """
 
         if required:
-            logging.info("Adding required observable %s ", name)
+            logger.info("Adding required observable %s ", name)
         else:
-            logging.info("Adding (not required) observable %s ", name)
+            logger.info("Adding (not required) observable %s ", name)
 
         self.observables[name] = fn
         self.observables_required[name] = required
@@ -92,14 +86,15 @@ class LHEProcessor:
         raise NotImplementedError
 
     def analyse_lhe_samples(self):
-        for lhe_file, sampling_benchmark, is_background, rescale_factor in zip(self.lhe_sample_filenames, self.sampling_benchmarks,self.is_background,self.rescale_factor):
+        for lhe_file, sampling_benchmark, is_background, rescale_factor in zip(
+            self.lhe_sample_filenames, self.sampling_benchmarks, self.is_background, self.rescale_factor
+        ):
 
-            logging.info("Analysing LHE sample %s", lhe_file)
+            logger.info("Analysing LHE sample %s", lhe_file)
 
             # Calculate observables and weights
             this_observations, this_weights = extract_observables_from_lhe_file(
-                lhe_file, sampling_benchmark, is_background, rescale_factor,
-                self.observables, self.benchmark_names
+                lhe_file, sampling_benchmark, is_background, rescale_factor, self.observables, self.benchmark_names
             )
 
             # Merge
@@ -133,9 +128,9 @@ class LHEProcessor:
         ), "Nothing to save!"
 
         if filename_in is None:
-            logging.info("Saving HDF5 file to %s", filename_out)
+            logger.info("Saving HDF5 file to %s", filename_out)
         else:
-            logging.info("Loading HDF5 data from %s and saving file to %s", filename_in, filename_out)
+            logger.info("Loading HDF5 data from %s and saving file to %s", filename_in, filename_out)
 
         save_madminer_file_from_lhe(
             filename_out, self.observables, self.observations, self.weights, copy_from=filename_in

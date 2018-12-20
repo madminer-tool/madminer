@@ -4,14 +4,16 @@ import six
 import numpy as np
 from collections import OrderedDict
 import uproot
-from madminer.utils.particle import MadMinerParticle
-import logging
 import os
+import logging
 
+from madminer.utils.particle import MadMinerParticle
 from madminer.utils.various import math_commands
 
+logger = logging.getLogger(__name__)
 
-def extract_observables_from_delphes_file(
+
+def parse_delphes_root_file(
     delphes_sample_file,
     observables,
     observables_required,
@@ -32,6 +34,9 @@ def extract_observables_from_delphes_file(
 ):
     """ Extracts observables and weights from a Delphes ROOT file """
 
+    logger.debug("Parsing Delphes file %s", delphes_sample_file)
+    logger.debug("Expected weight labels: %s", weight_labels)
+
     # Delphes ROOT file
     root_file = uproot.open(delphes_sample_file)
 
@@ -39,14 +44,16 @@ def extract_observables_from_delphes_file(
     tree = root_file["Delphes"]
 
     # Weights
-    ar_weights = tree.array("Weight.Weight")
+    weights = tree.array("Weight.Weight")
 
-    n_weights = len(ar_weights[0])
-    n_events = len(ar_weights)
+    n_weights = len(weights[0])
+    n_events = len(weights)
+
+    logger.debug("Found %s events, %s weights", n_events, n_weights)
 
     assert n_weights == len(weight_labels)
 
-    weights = np.array(ar_weights).reshape((n_events, n_weights)).T
+    weights = np.array(weights).reshape((n_events, n_weights)).T
 
     # Get all particle properties
     if use_generator_truth:
@@ -128,7 +135,7 @@ def extract_observables_from_delphes_file(
                             met_all_events[event][0],
                         )
                     )
-                except RuntimeError:  # (SyntaxError, NameError, TypeError, ZeroDivisionError, IndexError, RuntimeError):
+                except RuntimeError:
                     default = observables_defaults[obs_name]
                     if default is None:
                         default = np.nan
@@ -137,7 +144,7 @@ def extract_observables_from_delphes_file(
         values_this_observable = np.array(values_this_observable, dtype=np.float)
         observable_values[obs_name] = values_this_observable
 
-        logging.debug("  First 10 values for observable %s:\n%s", obs_name, values_this_observable[:10])
+        logger.debug("  First 10 values for observable %s:\n%s", obs_name, values_this_observable[:10])
 
     # Cuts
     cut_values = []
@@ -169,7 +176,7 @@ def extract_observables_from_delphes_file(
             n_pass = np.sum(this_filter)
             n_fail = np.sum(np.invert(this_filter))
 
-            logging.debug("  %s / %s events pass required observable %s", n_pass, n_pass + n_fail, obs_name)
+            logger.debug("  %s / %s events pass required observable %s", n_pass, n_pass + n_fail, obs_name)
 
             if combined_filter is None:
                 combined_filter = this_filter
@@ -181,10 +188,10 @@ def extract_observables_from_delphes_file(
         n_pass = np.sum(values_this_cut)
         n_fail = np.sum(np.invert(values_this_cut))
 
-        logging.debug("  %s / %s events pass cut %s", n_pass, n_pass + n_fail, cut)
+        logger.debug("  %s / %s events pass cut %s", n_pass, n_pass + n_fail, cut)
 
         if combined_filter is None:
-            combined_filter = values_this_cut
+            combined_filteparse_delphes_root_filer = values_this_cut
         else:
             combined_filter = np.logical_and(combined_filter, values_this_cut)
 
@@ -194,11 +201,11 @@ def extract_observables_from_delphes_file(
         n_fail = np.sum(np.invert(combined_filter))
 
         if n_pass == 0:
-            logging.warning("  No observations remainining!")
+            logger.warning("  No observations remainining!")
 
-            return None, None
+            return None, None, combined_filter
 
-        logging.info("  %s / %s events pass everything", n_pass, n_pass + n_fail)
+        logger.info("  %s / %s events pass everything", n_pass, n_pass + n_fail)
 
         for obs_name in observable_values:
             observable_values[obs_name] = observable_values[obs_name][combined_filter]
@@ -212,10 +219,10 @@ def extract_observables_from_delphes_file(
 
     # Delete Delphes file
     if delete_delphes_sample_file:
-        logging.debug("  Deleting %s", delphes_sample_file)
+        logger.debug("  Deleting %s", delphes_sample_file)
         os.remove(delphes_sample_file)
 
-    return observable_values, weights_dict
+    return observable_values, weights_dict, combined_filter
 
 
 def _get_particles_truth(tree, pt_min, eta_max, included_pdgids=None):
@@ -331,7 +338,7 @@ def _get_particles_leptons(tree, pt_min_e, eta_max_e, pt_min_mu, eta_max_mu):
                     continue
 
             else:
-                logging.warning("Delphes ROOT file has lepton with PDG ID %s, ignoring it", pdgid)
+                logger.warning("Delphes ROOT file has lepton with PDG ID %s, ignoring it", pdgid)
                 continue
 
             particle = MadMinerParticle()

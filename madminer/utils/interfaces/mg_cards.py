@@ -1,5 +1,10 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
+
 import six
+import logging
+from collections import OrderedDict
+
+logger = logging.getLogger(__name__)
 
 
 def export_param_card(benchmark, parameters, param_card_template_file, mg_process_directory, param_card_filename=None):
@@ -98,3 +103,77 @@ def export_reweight_card(sample_benchmark, benchmarks, parameters, mg_process_di
     # Save param_card.dat
     with open(reweight_card_filename, "w") as file:
         file.write(reweight_card)
+
+
+def export_run_card(template_filename, run_card_filename, systematics=None):
+    # Open parameter card template
+    with open(template_filename) as file:
+        run_card_template = file.read()
+
+    run_card_lines = run_card_template.split("\n")
+
+    # Changes to be made
+    settings = OrderedDict()
+    settings["use_syst"] = "False"
+    if systematics is not None:
+        settings["use_syst"] = "True"
+        settings["systematics_program"] = "systematics"
+        settings["systematics_arguments"] = create_systematics_arguments(systematics)
+
+    # Remove old entries
+    for i, line in enumerate(run_card_lines):
+        comment_pos = line.find("#")
+        if comment_pos >= 0:
+            line = line[:comment_pos]
+
+        try:
+            line_value, line_key = line.split("=")
+        except ValueError:
+            continue
+        line_key = line_key.strip()
+
+        if line_key in settings:
+            del run_card_lines[i]
+            break
+
+    # Add new entries
+    run_card_lines.append("")
+    run_card_lines.append("#*********************************************************************")
+    run_card_lines.append("# MadMiner systematics setup                                         *")
+    run_card_lines.append("#*********************************************************************")
+    for key, value in six.iteritems(settings):
+        run_card_lines.append("{} = {}".format(value, key))
+    run_card_lines.append("")
+
+    # Write new run card
+    new_run_card = "\n".join(run_card_lines)
+    with open(run_card_filename, "w") as file:
+        file.write(new_run_card)
+
+
+def create_systematics_arguments(systematics):
+    """ Put together systematics_arguments string for MadGraph run card """
+
+    if systematics is None:
+        return ""
+
+    systematics_arguments = []
+
+    if "mu" in systematics:
+        systematics_arguments.append("'--mur={}'".format(systematics["mu"]))
+        systematics_arguments.append("'--muf={}'".format(systematics["mu"]))
+        systematics_arguments.append("'--together=mur,muf'")
+
+    elif "mur" in systematics:
+        systematics_arguments.append("'--mur={}'".format(systematics["mur"]))
+
+    elif "muf" in systematics:
+        systematics_arguments.append("'--muf={}'".format(systematics["muf"]))
+
+    if "pdf" in systematics:
+        systematics_arguments.append("'--pdf={}'".format(systematics["pdf"]))
+
+    if len(systematics_arguments) > 0:
+        return "[" + ", ".join(systematics_arguments) + "]"
+
+    return ""
