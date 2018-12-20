@@ -201,16 +201,21 @@ class FisherInformation:
             self.n_samples,
             _,
             self.reference_benchmark,
-            self.n_nuisance_parameters,
+            self.nuisance_parameters,
         ) = load_madminer_settings(filename, include_nuisance_benchmarks=include_nuisance_parameters)
         self.n_parameters = len(self.parameters)
         self.n_benchmarks = len(self.benchmarks)
         self.n_benchmarks_phys = np.sum(np.logical_not(self.benchmark_is_nuisance))
-        self.n_nuisance_parameters = len(self.n_nuisance_parameters)
 
-        logger.info("Found %s parameters:", len(self.parameters))
+        self.n_nuisance_parameters = 0
+        if self.nuisance_parameters is not None and include_nuisance_parameters:
+            self.n_nuisance_parameters = len(self.nuisance_parameters)
+        else:
+            self.nuisance_parameters = None
+
+        logger.info("Found %s parameters", len(self.parameters))
         for key, values in six.iteritems(self.parameters):
-            logger.info(
+            logger.debug(
                 "   %s (LHA: %s %s, maximal power in squared ME: %s, range: %s)",
                 key,
                 values[0],
@@ -224,15 +229,15 @@ class FisherInformation:
             for key, values in six.iteritems(self.nuisance_parameters):
                 logger.debug("   %s (%s)", key, values)
         elif include_nuisance_parameters:
-            include_nuisance_parameters = False
+            self.include_nuisance_parameters = False
             logger.warning("Did not find nuisance parameters!")
 
-        logger.info("Found %s benchmarks, of which %s physical:", self.n_benchmarks, self.n_benchmarks_phys)
+        logger.info("Found %s benchmarks, of which %s physical", self.n_benchmarks, self.n_benchmarks_phys)
         for (key, values), is_nuisance in zip(six.iteritems(self.benchmarks), self.benchmark_is_nuisance):
             if is_nuisance:
-                logger.info("   %s: nuisance parameter", key)
+                logger.debug("   %s: nuisance parameter", key)
             else:
-                logger.info("   %s: %s", key, format_benchmark(values))
+                logger.debug("   %s: %s", key, format_benchmark(values))
 
         logger.info("Found %s observables: %s", len(self.observables), ", ".join(self.observables))
         logger.info("Found %s events", self.n_samples)
@@ -251,7 +256,7 @@ class FisherInformation:
 
         # Nuisance morphing
         self.nuisance_morpher = None
-        if include_nuisance_parameters:
+        if self.include_nuisance_parameters:
             self.nuisance_morpher = NuisanceMorpher(
                 self.nuisance_parameters, list(self.benchmarks.keys()), self.reference_benchmark
             )
@@ -1141,12 +1146,13 @@ class FisherInformation:
 
             fisher_info_nuisance = luminosity * np.einsum("n,in,jn->nij", sigma, nuisance_a, nuisance_a)
             fisher_info_mix = luminosity * np.einsum("in,jn->nij", dsigma, nuisance_a)
+            fisher_info_mix_transposed = luminosity * np.einsum("in,jn->nji", dsigma, nuisance_a)
 
             n_all_parameters = self.n_parameters + self.n_nuisance_parameters
             fisher_info = np.zeros((fisher_info_phys.shape[0], n_all_parameters, n_all_parameters))
             fisher_info[:, : self.n_parameters, : self.n_parameters] = fisher_info_phys
             fisher_info[:, : self.n_parameters, self.n_parameters :] = fisher_info_mix
-            fisher_info[:, self.n_parameters :, : self.n_parameters] = fisher_info_mix.T
+            fisher_info[:, self.n_parameters :, : self.n_parameters] = fisher_info_mix_transposed
             fisher_info[:, self.n_parameters :, self.n_parameters :] = fisher_info_nuisance
 
         else:

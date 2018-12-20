@@ -285,7 +285,12 @@ class SampleAugmenter:
         self.n_parameters = len(self.parameters)
         self.n_benchmarks = len(self.benchmarks)
         self.n_benchmarks_phys = np.sum(np.logical_not(self.benchmark_is_nuisance))
-        self.n_nuisance_parameters = len(self.nuisance_parameters)
+
+        self.n_nuisance_parameters = 0
+        if self.nuisance_parameters is not None and include_nuisance_parameters:
+            self.n_nuisance_parameters = len(self.nuisance_parameters)
+        else:
+            self.nuisance_parameters = None
 
         logger.info("Found %s parameters", self.n_parameters)
         for key, values in six.iteritems(self.parameters):
@@ -1129,8 +1134,8 @@ class SampleAugmenter:
             theta_matrix = get_theta_benchmark_matrix(theta_type, theta_value, self.benchmarks, self.morpher)
 
             # Total xsec for this theta
-            xsec_theta = theta_matrix.dot(xsecs_benchmarks)
-            rms_xsec_theta = ((theta_matrix * theta_matrix).dot(squared_weight_sum_benchmarks)) ** 0.5
+            xsec_theta = mdot(theta_matrix, xsecs_benchmarks)
+            rms_xsec_theta = mdot(theta_matrix * theta_matrix, squared_weight_sum_benchmarks) ** 0.5
 
             all_thetas.append(theta)
             all_xsecs.append(xsec_theta)

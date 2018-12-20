@@ -19,6 +19,7 @@ def plot_distributions(
     observables=None,
     parameter_points=None,
     uncertainties="nuisance",
+    nuisance_parameters=None,
     normalize=False,
     observable_labels=None,
     n_bins=50,
@@ -51,6 +52,10 @@ def plot_distributions(
     uncertainties : {"nuisance", "none"}, optional
         Defines how uncertainty bands are drawn. With "nuisance", the variation in cross section from all nuisance
         parameters is added in quadrature. With "none", no error bands are drawn.
+
+    nuisance_parameters : None or list of int, optional
+        If uncertainties is "nuisance", this can restrict which nuisance parameters are used to draw the uncertainty
+        bands. Each entry of this list is the index of one nuisance parameter (same order as in the MadMiner file).
 
     normalize : bool, optional
         Whether the distribution is normalized to the total cross section. Default value: False.
@@ -177,6 +182,12 @@ def plot_distributions(
 
         nuisance_toys = np.random.normal(loc=0.0, scale=1.0, size=n_nuisance_params * n_toys)
         nuisance_toys = nuisance_toys.reshape(n_toys, n_nuisance_params)
+
+        # Restrict nuisance parameters
+        if nuisance_parameters is not None:
+            for i in range(n_nuisance_params):
+                if i not in nuisance_parameters:
+                    nuisance_toys[:,i] = 1.
 
         logger.debug("Drew %s toy values for nuisance parameters", n_toys * n_nuisance_params)
 
