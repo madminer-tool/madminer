@@ -147,3 +147,24 @@ def export_run_card(template_filename, run_card_filename, run_systematics=False,
     new_run_card = "\n".join(run_card_lines)
     with open(run_card_filename, "w") as file:
         file.write(new_run_card)
+
+
+def create_systematics_arguments(systematics):
+    # Put together systematics string for MadGraph
+    systematics_arguments = []
+
+    if self.run_scale_variation:
+        scale_variation_string = ",".join([str(factor) for factor in scale_variation])
+        if scales == "together" or scales == "independent" or scales == "mur":
+            systematics_arguments.append("'--mur={}'".format(scale_variation_string))
+        if scales == "together" or scales == "independent" or scales == "muf":
+            systematics_arguments.append("'--muf={}'".format(scale_variation_string))
+        if scales == "together":
+            systematics_arguments.append("'--together=mur,muf'")
+
+    if self.run_pdf_variation:
+        systematics_arguments.append("'--pdf={}'".format(pdf_variation.strip()))
+
+    self.systematics_arguments = ""
+    if len(systematics_arguments) > 0:
+        self.systematics_arguments = "[" + ", ".join(systematics_arguments) + "]"

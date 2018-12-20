@@ -44,10 +44,7 @@ class MadMiner:
         self.default_benchmark = None
         self.morpher = None
         self.export_morphing = False
-        self.run_systematics = False
-        self.run_scale_variation = False
-        self.run_pdf_variation = False
-        self.systematics_arguments = ""
+        self.systematics = None
 
     def add_parameter(
         self,
@@ -386,28 +383,27 @@ class MadMiner:
         if scales not in ["together", "independent", "mur", "muf"]:
             raise ValueError("Unknown value {} for argument scales".format(scales))
 
-        self.run_systematics = scale_variation is not None or pdf_variation is not None
-        self.run_scale_variation = scale_variation is not None
-        self.run_pdf_variation = pdf_variation is not None
+        # Save systematics setup
+        self.systematics = OrderedDict()
 
-        # Put together systematics string for MadGraph
-        systematics_arguments = []
-
-        if self.run_scale_variation:
+        if scale_variation is not None:
             scale_variation_string = ",".join([str(factor) for factor in scale_variation])
-            if scales == "together" or scales == "independent" or scales == "mur":
-                systematics_arguments.append("'--mur={}'".format(scale_variation_string))
-            if scales == "together" or scales == "independent" or scales == "muf":
-                systematics_arguments.append("'--muf={}'".format(scale_variation_string))
+
             if scales == "together":
-                systematics_arguments.append("'--together=mur,muf'")
+                self.systematics["mu"] = scale_variation_string
+            elif scales == "independent":
+                self.systematics["muf"] = scale_variation_string
+                self.systematics["mur"] = scale_variation_string
+            elif scales == "mur":
+                self.systematics["mur"] = scale_variation_string
+            elif scales == "muf":
+                self.systematics["muf"] = scale_variation_string
 
-        if self.run_pdf_variation:
-            systematics_arguments.append("'--pdf={}'".format(pdf_variation.strip()))
+        if pdf_variation is not None:
+            self.systematics["pdf"] = pdf_variation
 
-        self.systematics_arguments = ""
-        if len(systematics_arguments) > 0:
-            self.systematics_arguments = "[" + ", ".join(systematics_arguments) + "]"
+        if len(self.systematics) == 0:
+            self.systematics = None
 
     def load(self, filename, disable_morphing=False):
         """
@@ -437,7 +433,7 @@ class MadMiner:
             morphing_matrix,
             _,
             _,
-            systematics_arguments,
+            self.systematics,
             _,
         ) = load_madminer_settings(filename, include_nuisance_benchmarks=False)
 
@@ -475,19 +471,13 @@ class MadMiner:
             logger.info("Did not find morphing setup.")
 
         # Systematics setup
-        self.run_systematics = False
-        self.run_scale_variation = False
-        self.run_pdf_variation = False
-        self.systematics_arguments = ""
-
-        if systematics_arguments is None or systematics_arguments == "":
+        if self.systematics is None:
             logger.info("Did not find systematics setup.")
         else:
-            self.run_systematics = True
-            self.run_scale_variation = "--muf" in systematics_arguments or "--mur" in systematics_arguments
-            self.run_pdf_variation = "--pdf" in systematics_arguments
+            logger.info("Found systematics setup with %s nuisance parameter groups", len(self.systematics))
 
-            logger.info("Found systematics setup with options %s", systematics_arguments)
+            for key, value in six.iteritems(self.systematics):
+                logger.debug("  %s: %s", key, value)
 
     def save(self, filename):
         """
@@ -527,7 +517,7 @@ class MadMiner:
                 benchmarks=self.benchmarks,
                 morphing_components=self.morpher.components,
                 morphing_matrix=self.morpher.morphing_matrix,
-                systematics_arguments=self.systematics_arguments if self.run_systematics else None,
+                systematics=self.systematics,
                 overwrite_existing_files=True,
             )
         else:
@@ -537,7 +527,7 @@ class MadMiner:
                 filename=filename,
                 parameters=self.parameters,
                 benchmarks=self.benchmarks,
-                systematics_arguments=self.systematics_arguments if self.run_systematics else None,
+                systematics=self.systematics,
                 overwrite_existing_files=True,
             )
 

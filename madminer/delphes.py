@@ -7,7 +7,7 @@ import logging
 
 from madminer.utils.interfaces.madminer_hdf5 import (
     save_events_to_madminer_file,
-    load_benchmarks_from_madminer_file,
+    load_madminer_settings,
     save_nuisance_benchmarks_to_madminer_file,
 )
 from madminer.utils.interfaces.delphes import run_delphes
@@ -89,8 +89,11 @@ class DelphesProcessor:
 
         # Information from .h5 file
         self.filename = filename
-        self.benchmark_names = load_benchmarks_from_madminer_file(self.filename)
-        self.n_benchmarks = len(self.benchmark_names)
+        (parameters, benchmarks, _, _, _, _, _, self.systematics, _) = load_madminer_settings(
+            filename, include_nuisance_benchmarks=False
+        )
+        self.benchmark_names = list(benchmarks.keys())
+        self.n_benchmarks = len(benchmarks)
 
     def add_sample(
         self,

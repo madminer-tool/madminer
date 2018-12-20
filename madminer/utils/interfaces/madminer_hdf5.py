@@ -17,7 +17,7 @@ def save_madminer_settings(
     benchmarks_is_nuisance=None,
     morphing_components=None,
     morphing_matrix=None,
-    systematics_arguments=None,
+    systematics=None,
     overwrite_existing_files=True,
 ):
     """Saves all MadMiner settings into an HDF5 file."""
@@ -29,8 +29,8 @@ def save_madminer_settings(
         # Prepare parameters
         parameter_names = [pname for pname in parameters]
         n_parameters = len(parameter_names)
-        parameter_names_ascii = [pname.encode("ascii", "ignore") for pname in parameter_names]
-        parameter_lha_blocks = [parameters[key][0].encode("ascii", "ignore") for key in parameter_names]
+        parameter_names_ascii = _encode(parameter_names)
+        parameter_lha_blocks = _encode([parameters[key][0] for key in parameter_names])
         parameter_lha_ids = np.array([parameters[key][1] for key in parameter_names], dtype=np.int)
         parameter_max_power = np.array([parameters[key][2] for key in parameter_names], dtype=np.int)
 
@@ -53,7 +53,7 @@ def save_madminer_settings(
         # Prepare benchmarks
         benchmark_names = [bname for bname in benchmarks]
         n_benchmarks = len(benchmark_names)
-        benchmark_names_ascii = [bname.encode("ascii", "ignore") for bname in benchmark_names]
+        benchmark_names_ascii = _encode(benchmark_names)
         benchmark_values = np.array(
             [[benchmarks[bname][pname] for pname in parameter_names] for bname in benchmark_names]
         )
@@ -75,9 +75,14 @@ def save_madminer_settings(
             f.create_dataset("morphing/morphing_matrix", data=morphing_matrix.astype(np.float))
 
         # Prepare and store systematics setup
-        if systematics_arguments is not None:
-            systematics_arguments_ascii = [systematics_arguments.encode("ascii", "ignore")]
-            f.create_dataset("systematics/arguments", dtype="S256", data=systematics_arguments_ascii)
+        if systematics is not None:
+            systematics_names = [key for key in systematics]
+            n_systematics = len(systematics_names)
+            systematics_names_ascii = _encode(systematics_names)
+            systematics_values = _encode([systematics[key] for key in systematics_names])
+
+            f.create_dataset("systematics/names", (n_systematics,), dtype="S256", data=systematics_names_ascii)
+            f.create_dataset("systematics/values", (n_systematics,), dtype="S256", data=systematics_values)
 
 
 def load_madminer_settings(filename, include_nuisance_benchmarks=False):
@@ -189,10 +194,28 @@ def load_madminer_settings(filename, include_nuisance_benchmarks=False):
             n_samples = 0
 
         # Systematics setup
+
+        # # Prepare and store systematics setup
+        # if systematics is not None:
+        #     systematics_names = [key for key in systematics]
+        #     n_systematics = len(systematics_names)
+        #     systematics_names_ascii = _encode(systematics_names)
+        #     systematics_values = _encode([systematics[key] for key in systematics_names])
+        #
+        #     f.create_dataset("systematics/names", (n_systematics,), dtype="S256", data=systematics_names_ascii)
+        #     f.create_dataset("systematics/values", (n_systematics,), dtype="S256", data=systematics_values)
+
         try:
-            systematics_arguments = f["systematics/arguments"][0].decode("ascii")
+            systematics_names = f["systematics/names"][()]
+            systematics_values = f["systematics/names"][()]
+
+            systematics_names = _decode(systematics_names)
+            systematics_values = _decode(systematics_values)
+
+            systematics = OrderedDict(zip(systematics_names, systematics_values))
+
         except KeyError:
-            systematics_arguments = None
+            systematics = None
 
         return (
             parameters,
@@ -202,7 +225,7 @@ def load_madminer_settings(filename, include_nuisance_benchmarks=False):
             morphing_matrix,
             observables,
             n_samples,
-            systematics_arguments,
+            systematics,
             reference_benchmark,
         )
 
@@ -561,3 +584,11 @@ def save_madminer_file_from_lhe(
         # Prepare observable values
         observations = np.array([observations[oname] for oname in observable_names]).T
         f.create_dataset("samples/observations", data=observations)
+
+
+def _encode(inputs):
+    return [key.encode("ascii", "ignore") for key in inputs]
+
+
+def _decode(inputs):
+    return [key.decode("ascii") for key in inputs]
