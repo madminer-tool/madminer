@@ -1278,13 +1278,12 @@ class SampleAugmenter:
         squared_weight_sum_benchmarks = None
         n_observables = 0
 
-        for obs, weights, sampled_from_benchmark in madminer_event_loader(
+        for obs, weights in madminer_event_loader(
             self.madminer_filename,
             start=start_event,
             end=end_event,
             include_nuisance_parameters=include_nuisance_parameters,
             benchmark_is_nuisance=self.benchmark_is_nuisance,
-            include_sampling_information=True,
         ):
             # obs has shape (n_events, n_observables)
             # weights has shape (n_events, n_benchmarks_phys)
@@ -1418,8 +1417,8 @@ class SampleAugmenter:
                 # Loop over weighted events
                 cumulative_p = np.array([0.0])
 
-                for x_batch, weights_benchmarks_batch, sampled_from_benchmark_batch in madminer_event_loader(
-                    self.madminer_filename, start=start_event, end=end_event, include_sampling_information=True
+                for x_batch, weights_benchmarks_batch in madminer_event_loader(
+                    self.madminer_filename, start=start_event, end=end_event
                 ):
                     # Evaluate p(x | sampling theta)
                     weights_theta = mdot(sampling_theta_matrix, weights_benchmarks_batch)  # Shape (n_batch_size,)
