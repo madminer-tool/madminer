@@ -207,7 +207,7 @@ def load_madminer_settings(filename, include_nuisance_benchmarks=False):
 
         try:
             systematics_names = f["systematics/names"][()]
-            systematics_values = f["systematics/names"][()]
+            systematics_values = f["systematics/values"][()]
 
             systematics_names = _decode(systematics_names)
             systematics_values = _decode(systematics_values)

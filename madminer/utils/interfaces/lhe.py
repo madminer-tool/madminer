@@ -87,7 +87,7 @@ def extract_nuisance_parameters_from_lhe_file(filename, systematics):
     systematics_scales = []
     for key, value in six.iteritems(systematics):
         if key in ["mur", "muf", "mu"]:
-            scale_factors = key.split(",")
+            scale_factors = value.split(",")
             scale_factors = [float(sf) for sf in scale_factors]
 
             if len(scale_factors) == 0:
@@ -101,7 +101,7 @@ def extract_nuisance_parameters_from_lhe_file(filename, systematics):
             systematics_scales.append(None)
 
     # Nuisance parameters (output)
-    nuisance_params = OrderedDict
+    nuisance_params = OrderedDict()
 
     # Untar event file
     new_filename, extension = os.path.splitext(filename)
@@ -116,7 +116,7 @@ def extract_nuisance_parameters_from_lhe_file(filename, systematics):
 
     # Find weight groups
     try:
-        weight_groups = root.findall("header")[0].findall("initrwgtx")[0].findall("weightgroup")
+        weight_groups = root.findall("header")[0].findall("initrwgt")[0].findall("weightgroup")
     except KeyError as e:
         raise RuntimeError("Could not find weight groups in LHE file!\n%s", e)
 
@@ -127,11 +127,11 @@ def extract_nuisance_parameters_from_lhe_file(filename, systematics):
     systematics_scale_done = []
     for val in systematics_scales:
         if val is None:
-            systematics_scale_done.append((True, True))
+            systematics_scale_done.append([True, True])
         elif len(val) == 1:
-            systematics_scale_done.append((False, True))
+            systematics_scale_done.append([False, True])
         else:
-            systematics_scale_done.append((False, False))
+            systematics_scale_done.append([False, False])
 
     systematics_pdf_done = False
 
@@ -178,9 +178,14 @@ def extract_nuisance_parameters_from_lhe_file(filename, systematics):
                                 and approx_equal(weight_mur, syst_scales[k])
                                 and approx_equal(weight_muf, 1.0)
                             ):
-                                benchmarks = nuisance_params.get(syst_name, (None, None))
+                                try:
+                                    benchmarks = nuisance_params[syst_name]
+                                except KeyError:
+                                    benchmarks = [None, None]
+
                                 benchmarks[k] = weight_id
                                 nuisance_params[syst_name] = benchmarks
+
                                 systematics_scale_done[i][k] = True
                                 break
 
@@ -191,9 +196,14 @@ def extract_nuisance_parameters_from_lhe_file(filename, systematics):
                                 and approx_equal(weight_mur, 1.0)
                                 and approx_equal(weight_muf, syst_scales[k])
                             ):
-                                benchmarks = nuisance_params.get(syst_name, (None, None))
+                                try:
+                                    benchmarks = nuisance_params[syst_name]
+                                except KeyError:
+                                    benchmarks = [None, None]
+
                                 benchmarks[k] = weight_id
                                 nuisance_params[syst_name] = benchmarks
+
                                 systematics_scale_done[i][k] = True
                                 break
 
@@ -204,9 +214,14 @@ def extract_nuisance_parameters_from_lhe_file(filename, systematics):
                                 and approx_equal(weight_mur, syst_scales[k])
                                 and approx_equal(weight_muf, syst_scales[k])
                             ):
-                                benchmarks = nuisance_params.get(syst_name, (None, None))
+                                try:
+                                    benchmarks = nuisance_params[syst_name]
+                                except KeyError:
+                                    benchmarks = [None, None]
+
                                 benchmarks[k] = weight_id
                                 nuisance_params[syst_name] = benchmarks
+
                                 systematics_scale_done[i][k] = True
                                 break
 
