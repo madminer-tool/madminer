@@ -14,7 +14,7 @@ from madminer.utils.interfaces.madminer_hdf5 import (
 from madminer.utils.interfaces.delphes import run_delphes
 from madminer.utils.interfaces.delphes_root import parse_delphes_root_file
 from madminer.utils.interfaces.hepmc import extract_weight_order
-from madminer.utils.interfaces.lhe import extract_weights_from_lhe_file
+from madminer.utils.interfaces.lhe import extract_weights_from_lhe_file, extract_nuisance_parameters_from_lhe_file
 
 logger = logging.getLogger(__name__)
 
@@ -59,6 +59,7 @@ class DelphesProcessor:
         self.hepmc_sample_weight_labels = []
         self.hepmc_sampled_from_benchmark = []
         self.hepmc_is_backgrounds = []
+        self.lhe_sample_filenames = []
         self.lhe_sample_filenames_for_weights = []
         self.delphes_sample_filenames = []
         self.sample_k_factors = []
@@ -155,7 +156,12 @@ class DelphesProcessor:
 
         logger.debug("Adding event sample %s", hepmc_filename)
 
+        # Check inputs
         assert weights in ["delphes", "lhe"], "Unknown setting for weights: %s. Has to be 'delphes' or 'lhe'."
+
+        if self.systematics is not None:
+            if lhe_filename is None:
+                raise ValueError("With systematic uncertainties, a LHE event file has to be provided.")
 
         self.hepmc_sample_filenames.append(hepmc_filename)
         self.hepmc_sample_weight_labels.append(extract_weight_order(hepmc_filename, sampled_from_benchmark))
@@ -163,6 +169,7 @@ class DelphesProcessor:
         self.hepmc_is_backgrounds.append(is_background)
         self.sample_k_factors.append(k_factor)
         self.delphes_sample_filenames.append(delphes_filename)
+        self.lhe_sample_filenames.append(lhe_filename)
 
         if weights == "lhe" and lhe_filename is not None:
             self.lhe_sample_filenames_for_weights.append(lhe_filename)
@@ -203,8 +210,15 @@ class DelphesProcessor:
             if delphes_filename is not None and os.path.isfile(delphes_filename):
                 logger.debug("Delphes already run for event sample %s", hepmc_filename)
                 continue
+            elif delphes_filename is not None:
+                logger.debug(
+                    "Given Delphes file %s does not exist, running Delphes again on HepMC sample at %s",
+                    delphes_filename,
+                    hepmc_filename,
+                )
+            else:
+                logger.info("Running Delphes on HepMC sample at %s", delphes_directory, hepmc_filename)
 
-            logger.info("Running Delphes (%s) on event sample at %s", delphes_directory, hepmc_filename)
             delphes_sample_filename = run_delphes(
                 delphes_directory, delphes_card, hepmc_filename, initial_command=initial_command, log_file=log_file
             )
@@ -523,16 +537,29 @@ class DelphesProcessor:
         self.weights = None
         self.sampled_from_benchmark = None
 
-        for delphes_file, weight_labels, is_background, sampling_benchmark, lhe_file, k_factor in zip(
+        for (
+            delphes_file,
+            weight_labels,
+            is_background,
+            sampling_benchmark,
+            lhe_file,
+            lhe_file_for_weights,
+            k_factor,
+        ) in zip(
             self.delphes_sample_filenames,
             self.hepmc_sample_weight_labels,
             self.hepmc_is_backgrounds,
             self.hepmc_sampled_from_benchmark,
+            self.lhe_sample_filenames,
             self.lhe_sample_filenames_for_weights,
             self.sample_k_factors,
         ):
-
             logger.info("Analysing Delphes sample %s", delphes_file)
+
+            # Read systematics setup from LHE file
+            nuisance_parameters = extract_nuisance_parameters_from_lhe_file(lhe_file, self.systematics)
+
+            # TODO: from here
 
             # Calculate observables and weights in Delphes ROOT file
             this_observations, this_weights, cut_filter = parse_delphes_root_file(
@@ -578,10 +605,10 @@ class DelphesProcessor:
                     )
 
             # Find weights in LHE file
-            if lhe_file is not None:
+            if lhe_file_for_weights is not None:
                 logger.debug("Extracting weights from LHE file")
                 this_weights = extract_weights_from_lhe_file(
-                    lhe_file, sampling_benchmark=sampling_benchmark, is_background=is_background
+                    lhe_file_for_weights, sampling_benchmark=sampling_benchmark, is_background=is_background
                 )
 
                 logger.debug("Found weights %s in LHE file", list(this_weights.keys()))

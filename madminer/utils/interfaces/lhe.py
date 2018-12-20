@@ -6,8 +6,9 @@ from collections import OrderedDict
 import skhep.math
 import os
 import logging
+import xml.etree.ElementTree as ET
 
-from madminer.utils.various import call_command
+from madminer.utils.various import call_command, approx_equal
 
 logger = logging.getLogger(__name__)
 
@@ -15,7 +16,7 @@ logger = logging.getLogger(__name__)
 def extract_weights_from_lhe_file(filename, sampling_benchmark, is_background, rescale_factor=1.0):
     """ Extracts weights from a LHE file and returns them as a dict with entries benchmark_name:values """
 
-    # Untar Event file
+    # Untar event file
     new_filename, extension = os.path.splitext(filename)
     if extension == ".gz":
         if not os.path.exists(new_filename):
@@ -79,10 +80,168 @@ def extract_weights_from_lhe_file(filename, sampling_benchmark, is_background, r
     return weights
 
 
+def extract_nuisance_parameters_from_lhe_file(filename, systematics):
+    """ Extracts the definition of nuisance parameters from the LHE file """
+
+    # Parse scale factors from strings in systematics
+    systematics_scales = []
+    for key, value in six.iteritems(systematics):
+        if key in ["mur", "muf", "mu"]:
+            scale_factors = key.split(",")
+            scale_factors = [float(sf) for sf in scale_factors]
+
+            if len(scale_factors) == 0:
+                raise RuntimeError("Cannot parse scale factor string %s", value)
+            elif len(scale_factors) == 1:
+                scale_factors = (scale_factors[0],)
+            else:
+                scale_factors = (scale_factors[-1], scale_factors[0])
+            systematics_scales.append(scale_factors)
+        else:
+            systematics_scales.append(None)
+
+    # Nuisance parameters (output)
+    nuisance_params = OrderedDict
+
+    # Untar event file
+    new_filename, extension = os.path.splitext(filename)
+    if extension == ".gz":
+        if not os.path.exists(new_filename):
+            call_command("gunzip -k {}".format(filename))
+        filename = new_filename
+
+    # Parse XML tree
+    tree = ET.parse(filename)
+    root = tree.getroot()
+
+    # Find weight groups
+    try:
+        weight_groups = root.findall("header")[0].findall("initrwgtx")[0].findall("weightgroup")
+    except KeyError as e:
+        raise RuntimeError("Could not find weight groups in LHE file!\n%s", e)
+
+    if len(weight_groups) == 0:
+        raise RuntimeError("Zero weight groups in LHE file!")
+
+    # What have we already found?
+    systematics_scale_done = []
+    for val in systematics_scales:
+        if val is None:
+            systematics_scale_done.append((True, True))
+        elif len(val) == 1:
+            systematics_scale_done.append((False, True))
+        else:
+            systematics_scale_done.append((False, False))
+
+    systematics_pdf_done = False
+
+    # Loop over weight groups and weights and identify benchmarks
+    for wg in weight_groups:
+        try:
+            wg_name = wg.attrib["name"]
+        except KeyError:
+            logging.warning("Weight group does not have name attribute")
+            continue
+
+        if "mg_reweighting" in wg_name.lower():  # Physics reweighting
+            continue
+
+        elif (
+            "mu" in systematics or "muf" in systematics or "mur" in systematics
+        ) and "scale variation" in wg_name.lower():  # Found scale variation weight group
+            weights = wg.findall("weight")
+
+            for weight in weights:
+                try:
+                    weight_id = str(weight.attrib["id"])
+                    weight_muf = float(weight.attrib["MUF"])
+                    weight_mur = float(weight.attrib["MUR"])
+                except KeyError:
+                    logging.warning("Scale variation weight does not have all expected attributes")
+                    continue
+
+                # Let's skip the entries with a varied dynamical scale for now
+                try:
+                    weight_dynscale = int(weight.attrib["dynscale"])
+                    continue
+                except KeyError:
+                    pass
+
+                # Matching time!
+                for i, (syst_name, syst_scales, syst_done) in enumerate(
+                    zip(systematics.keys(), systematics_scales, systematics_scale_done)
+                ):
+                    if syst_name == "mur":
+                        for k in [0, 1]:
+                            if (
+                                not syst_done[k]
+                                and approx_equal(weight_mur, syst_scales[k])
+                                and approx_equal(weight_muf, 1.0)
+                            ):
+                                benchmarks = nuisance_params.get(syst_name, (None, None))
+                                benchmarks[k] = weight_id
+                                nuisance_params[syst_name] = benchmarks
+                                systematics_scale_done[i][k] = True
+                                break
+
+                    if syst_name == "muf":
+                        for k in [0, 1]:
+                            if (
+                                not syst_done[k]
+                                and approx_equal(weight_mur, 1.0)
+                                and approx_equal(weight_muf, syst_scales[k])
+                            ):
+                                benchmarks = nuisance_params.get(syst_name, (None, None))
+                                benchmarks[k] = weight_id
+                                nuisance_params[syst_name] = benchmarks
+                                systematics_scale_done[i][k] = True
+                                break
+
+                    if syst_name == "mu":
+                        for k in [0, 1]:
+                            if (
+                                not syst_done[k]
+                                and approx_equal(weight_mur, syst_scales[k])
+                                and approx_equal(weight_muf, syst_scales[k])
+                            ):
+                                benchmarks = nuisance_params.get(syst_name, (None, None))
+                                benchmarks[k] = weight_id
+                                nuisance_params[syst_name] = benchmarks
+                                systematics_scale_done[i][k] = True
+                                break
+
+        elif "pdf" in systematics and systematics["pdf"].lower() in wg_name.lower():  # PDF reweighting
+            weights = wg.findall("weight")
+
+            for i, weight in enumerate(weights):
+                try:
+                    weight_id = str(weight.attrib["id"])
+                    weight_pdf = int(weight.attrib["PDF"])
+                except KeyError:
+                    logging.warning("Scale variation weight does not have all expected attributes")
+                    continue
+
+                # Add every PDF Hessian direction to nuisance parameters
+                nuisance_params["pdf_{}".format(i)] = (weight_id, None)
+
+                systematics_pdf_done = True
+
+    # Check that everything was found
+    if "pdf" in systematics.keys() and not systematics_pdf_done:
+        logging.warning("Did not find benchmarks representing PDF uncertainties in LHE file!")
+
+    for syst_name, (done1, done2) in zip(systematics.keys(), systematics_scale_done):
+        if not (done1 and done2):
+            logging.warning(
+                "Did not find benchmarks representing scale variation uncertainty %s in LHE file!", syst_name
+            )
+
+    return nuisance_params
+
+
 def extract_observables_from_lhe_file(
     filename, sampling_benchmark, is_background, rescale_factor, observables, benchmark_names
 ):
-
     """ Extracts observables and weights from a LHE file """
 
     # Untar Event file

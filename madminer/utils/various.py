@@ -244,3 +244,7 @@ def weighted_quantile(values, quantiles, sample_weight=None, values_sorted=False
         weighted_quantiles /= np.sum(sample_weight)
 
     return np.interp(quantiles, weighted_quantiles, values)
+
+
+def approx_equal(a, b, epsilon=1.0e-6):
+    return abs(a - b) < epsilon
