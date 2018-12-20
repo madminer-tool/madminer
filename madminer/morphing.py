@@ -720,7 +720,7 @@ class NuisanceMorpher:
 
         for i_pos, i_neg, degree in zip(self.i_benchmarks_pos, self.i_benchmarks_neg, self.degrees):
             if degree == 1:
-                b.append(0.0)
+                b.append(np.zeros(benchmark_weights.shape[0]))
             elif degree == 2:
                 b.append(
                     0.5
