@@ -1363,7 +1363,8 @@ class EnsembleForge:
             estimators are treated equal. Default value: None.
 
         return_individual_predictions : bool, optional
-            Whether the individual estimator predictions are returned. Default value: False.
+            If mode is "information", sets whether the individual estimator predictions are returned. Default value:
+            False.
 
         Returns
         -------
@@ -1429,10 +1430,11 @@ class EnsembleForge:
 
         logger.debug("  Estimator estimator_weights: %s", estimator_weights)
 
+        predictions = []
+
         # "information" mode
         if mode == "information":
             # Calculate estimator predictions
-            predictions = []
             for i, estimator in enumerate(self.estimators):
                 logger.debug("Starting evaluation for estimator %s / %s in ensemble", i + 1, self.n_estimators)
 
@@ -1544,11 +1546,11 @@ class EnsembleForge:
 
         # Returns
         if len(estimator_weights) == 1:
-            if return_individual_predictions:
+            if return_individual_predictions and mode == "information":
                 return means[0], covariances[0], estimator_weights[0], predictions
             return means[0], covariances[0]
 
-        if return_individual_predictions:
+        if return_individual_predictions and mode == "information":
             return means, covariances, estimator_weights, predictions
         return means, covariances
 
