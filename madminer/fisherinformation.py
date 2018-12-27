@@ -504,7 +504,9 @@ class FisherInformation:
             fisher_info_kin = None
             covariance = None
 
+            # Number of batches
             n_batches = int(np.ceil((self.n_samples - start_event) / batch_size))
+            n_batches_verbose = max(int(round(n_batches / 10, 0)), 1)
 
             for i_batch, (observations, weights_benchmarks) in enumerate(
                 madminer_event_loader(
@@ -514,7 +516,10 @@ class FisherInformation:
                     include_nuisance_parameters=include_nuisance_parameters,
                 )
             ):
-                logger.info("Evaluating kinematic Fisher information on batch %s / %s", i_batch + 1, n_batches)
+                if (i_batch + 1) % n_batches_verbose == 0:
+                    logger.info("Evaluating kinematic Fisher information on batch %s / %s", i_batch + 1, n_batches)
+                else:
+                    logger.debug("Evaluating kinematic Fisher information on batch %s / %s", i_batch + 1, n_batches)
 
                 weights_theta = mdot(theta_matrix, weights_benchmarks)
 
