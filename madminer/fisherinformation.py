@@ -1014,7 +1014,7 @@ class FisherInformation:
     def calculate_fisher_information_nuisance_constraints(self):
         """ Builds the Fisher information term representing the Gaussian constraints on the nuisance parameters """
 
-        diagonal = np.array([0. for _ in range(self.n_parameters)] + [1. for _ in range(self.n_nuisance_parameters)])
+        diagonal = np.array([0.0 for _ in range(self.n_parameters)] + [1.0 for _ in range(self.n_nuisance_parameters)])
         return np.diag(diagonal)
 
     def extract_raw_data(self, theta=None):

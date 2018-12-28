@@ -1500,38 +1500,62 @@ class EnsembleForge:
             # Fisher information
             information_mean = float(n_events) * np.sum(
                 obs_weights[:, np.newaxis, np.newaxis] * score_mean[:, :, np.newaxis] * score_mean[:, np.newaxis, :],
-                axis=0
+                axis=0,
             )
             means = [information_mean]
 
             # Covariance. Calculating this in a vectorized way uses too much RAM...
-            information_cov = 0.
+            information_cov = 0.0
             cov_batch_size = 100
             n_cov_batches = int(ceil(n_samples / cov_batch_size))
             for i in range(n_cov_batches):
-                information_cov += float(n_events) * obs_weights[i] * np.sum(
-                    score_mean[i*cov_batch_size:(i+1)*cov_batch_size, :, np.newaxis, np.newaxis, np.newaxis]
-                    * score_cov[i*cov_batch_size:(i+1)*cov_batch_size, np.newaxis, :, :, np.newaxis]
-                    * score_mean[i*cov_batch_size:(i+1)*cov_batch_size, np.newaxis, np.newaxis, np.newaxis, :],
-                    axis=0
+                information_cov += (
+                    float(n_events)
+                    * obs_weights[i]
+                    * np.sum(
+                        score_mean[i * cov_batch_size : (i + 1) * cov_batch_size, :, np.newaxis, np.newaxis, np.newaxis]
+                        * score_cov[i * cov_batch_size : (i + 1) * cov_batch_size, np.newaxis, :, :, np.newaxis]
+                        * score_mean[
+                            i * cov_batch_size : (i + 1) * cov_batch_size, np.newaxis, np.newaxis, np.newaxis, :
+                        ],
+                        axis=0,
+                    )
                 )
-                information_cov += float(n_events) * obs_weights[i] * np.sum(
-                    score_mean[i*cov_batch_size:(i+1)*cov_batch_size, :, np.newaxis, np.newaxis, np.newaxis]
-                    * score_cov[i*cov_batch_size:(i+1)*cov_batch_size, np.newaxis, :, np.newaxis, :]
-                    * score_mean[i*cov_batch_size:(i+1)*cov_batch_size, np.newaxis, np.newaxis, :, np.newaxis],
-                    axis=0
+                information_cov += (
+                    float(n_events)
+                    * obs_weights[i]
+                    * np.sum(
+                        score_mean[i * cov_batch_size : (i + 1) * cov_batch_size, :, np.newaxis, np.newaxis, np.newaxis]
+                        * score_cov[i * cov_batch_size : (i + 1) * cov_batch_size, np.newaxis, :, np.newaxis, :]
+                        * score_mean[
+                            i * cov_batch_size : (i + 1) * cov_batch_size, np.newaxis, np.newaxis, :, np.newaxis
+                        ],
+                        axis=0,
+                    )
                 )
-                information_cov += float(n_events) * obs_weights[i] * np.sum(
-                    score_mean[i*cov_batch_size:(i+1)*cov_batch_size, np.newaxis, :, np.newaxis, np.newaxis]
-                    * score_cov[i*cov_batch_size:(i+1)*cov_batch_size, :, np.newaxis, :, np.newaxis]
-                    * score_mean[i*cov_batch_size:(i+1)*cov_batch_size, np.newaxis, np.newaxis, np.newaxis, :],
-                    axis=0
+                information_cov += (
+                    float(n_events)
+                    * obs_weights[i]
+                    * np.sum(
+                        score_mean[i * cov_batch_size : (i + 1) * cov_batch_size, np.newaxis, :, np.newaxis, np.newaxis]
+                        * score_cov[i * cov_batch_size : (i + 1) * cov_batch_size, :, np.newaxis, :, np.newaxis]
+                        * score_mean[
+                            i * cov_batch_size : (i + 1) * cov_batch_size, np.newaxis, np.newaxis, np.newaxis, :
+                        ],
+                        axis=0,
+                    )
                 )
-                information_cov += float(n_events) * obs_weights[i] * np.sum(
-                    score_mean[i*cov_batch_size:(i+1)*cov_batch_size, np.newaxis, :, np.newaxis, np.newaxis]
-                    * score_cov[i*cov_batch_size:(i+1)*cov_batch_size, :, np.newaxis, np.newaxis, :]
-                    * score_mean[i*cov_batch_size:(i+1)*cov_batch_size, np.newaxis, np.newaxis, :, np.newaxis],
-                    axis=0
+                information_cov += (
+                    float(n_events)
+                    * obs_weights[i]
+                    * np.sum(
+                        score_mean[i * cov_batch_size : (i + 1) * cov_batch_size, np.newaxis, :, np.newaxis, np.newaxis]
+                        * score_cov[i * cov_batch_size : (i + 1) * cov_batch_size, :, np.newaxis, np.newaxis, :]
+                        * score_mean[
+                            i * cov_batch_size : (i + 1) * cov_batch_size, np.newaxis, np.newaxis, :, np.newaxis
+                        ],
+                        axis=0,
+                    )
                 )
             ensemble_covariances = [information_cov]
 
