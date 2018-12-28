@@ -5,7 +5,7 @@ import logging
 import os
 import json
 import numpy as np
-
+from math import ceil
 import torch
 
 from madminer.utils.ml import ratio_losses, flow_losses
@@ -1506,26 +1506,32 @@ class EnsembleForge:
 
             # Covariance. Calculating this in a vectorized way uses too much RAM...
             information_cov = 0.
-            for i in range(n_samples):
-                information_cov += float(n_events) * obs_weights[i] * (
-                    score_mean[i, :, np.newaxis, np.newaxis, np.newaxis]
-                    * score_cov[i, np.newaxis, :, :, np.newaxis]
-                    * score_mean[i, np.newaxis, np.newaxis, np.newaxis :]
+            cov_batch_size = 1000
+            n_cov_batches = int(ceil(n_samples / cov_batch_size))
+            for i in range(n_cov_batches):
+                information_cov += float(n_events) * obs_weights[i] * np.sum(
+                    score_mean[i*cov_batch_size:(i+1)*cov_batch_size, :, np.newaxis, np.newaxis, np.newaxis]
+                    * score_cov[i*cov_batch_size:(i+1)*cov_batch_size, np.newaxis, :, :, np.newaxis]
+                    * score_mean[i*cov_batch_size:(i+1)*cov_batch_size, np.newaxis, np.newaxis, np.newaxis :],
+                    axis=0
                 )
-                information_cov += float(n_events) * obs_weights[i] * (
-                    score_mean[i, :, np.newaxis, np.newaxis, np.newaxis]
-                    * score_cov[i, np.newaxis, :, np.newaxis, :]
-                    * score_mean[i, np.newaxis, np.newaxis, :, np.newaxis]
+                information_cov += float(n_events) * obs_weights[i] * np.sum(
+                    score_mean[i*cov_batch_size:(i+1)*cov_batch_size, :, np.newaxis, np.newaxis, np.newaxis]
+                    * score_cov[i*cov_batch_size:(i+1)*cov_batch_size, np.newaxis, :, np.newaxis, :]
+                    * score_mean[i*cov_batch_size:(i+1)*cov_batch_size, np.newaxis, np.newaxis, :, np.newaxis],
+                    axis=0
                 )
-                information_cov += float(n_events) * obs_weights[i] * (
-                    score_mean[i, np.newaxis, :, np.newaxis, np.newaxis]
-                    * score_cov[i, :, np.newaxis, :, np.newaxis]
-                    * score_mean[i, np.newaxis, np.newaxis, np.newaxis, :]
+                information_cov += float(n_events) * obs_weights[i] * np.sum(
+                    score_mean[i*cov_batch_size:(i+1)*cov_batch_size, np.newaxis, :, np.newaxis, np.newaxis]
+                    * score_cov[i*cov_batch_size:(i+1)*cov_batch_size, :, np.newaxis, :, np.newaxis]
+                    * score_mean[i*cov_batch_size:(i+1)*cov_batch_size, np.newaxis, np.newaxis, np.newaxis, :],
+                    axis=0
                 )
-                information_cov += float(n_events) * obs_weights[i] * (
-                    score_mean[i, np.newaxis, :, np.newaxis, np.newaxis]
-                    * score_cov[i, :, np.newaxis, np.newaxis, :]
-                    * score_mean[i, np.newaxis, np.newaxis, :, np.newaxis]
+                information_cov += float(n_events) * obs_weights[i] * np.sum(
+                    score_mean[i*cov_batch_size:(i+1)*cov_batch_size, np.newaxis, :, np.newaxis, np.newaxis]
+                    * score_cov[i*cov_batch_size:(i+1)*cov_batch_size, :, np.newaxis, np.newaxis, :]
+                    * score_mean[i*cov_batch_size:(i+1)*cov_batch_size, np.newaxis, np.newaxis, :, np.newaxis],
+                    axis=0
                 )
             ensemble_covariances = [information_cov]
 
