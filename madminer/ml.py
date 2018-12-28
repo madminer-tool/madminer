@@ -1477,8 +1477,6 @@ class EnsembleForge:
                 logger.debug("Estimator %s predicts t(x) = %s for first event", i + 1, score_predictions[-1][0, :])
             score_predictions = np.array(score_predictions)  # (n_estimators, n_events, n_parameters)
 
-            logger.debug("Now x = %s", x[0, :])
-
             # Get ensemble mean and ensemble covariance
             score_mean = np.mean(score_predictions, axis=0)  # (n_events, n_parameters)
 
@@ -1494,25 +1492,60 @@ class EnsembleForge:
             logger.debug("Mean score for first event: %s", score_mean[0, :])
             logger.debug("Covariance:\n%s", score_cov[0, :, :])
 
-            # Event-wise Fisher info
-            event_information_mean = np.einsum("ni,nj->nij", score_mean, score_mean)
-            event_information_cov = (
-                np.einsum("ni,njk,nl->nijkl", score_mean, score_cov, score_mean)
-                + np.einsum("ni,njl,nk->nijkl", score_mean, score_cov, score_mean)
-                + np.einsum("nj,nik,nl->nijkl", score_mean, score_cov, score_mean)
-                + np.einsum("nj,nil,nk->nijkl", score_mean, score_cov, score_mean)
-            )  # (n_events, n_parameters, n_parameters, n_parameters, n_parameters)
-
-            # Weights
+            # Event weights
             if obs_weights is None:
                 obs_weights = np.ones(n_samples)
             obs_weights /= np.sum(obs_weights)
 
-            # Mean Fisher information
-            means = [float(n_events) * np.einsum("n,nij->ij", obs_weights, event_information_mean)]
+            # Fisher information
+            information_mean = float(n_events) * np.sum(
+                obs_weights[:, np.newaxis, np.newaxis] * score_mean[:, :, np.newaxis] * score_mean[:, np.newaxis, :],
+                axis=0
+            )
+            means = [information_mean]
 
-            # Propagate uncertainty to Fisher information
-            ensemble_covariances = [float(n_events) * np.einsum("n,nijkl->ijkl", obs_weights, event_information_cov)]
+            # Covariance. Calculating this in a vectorized way uses too much RAM...
+            information_cov = 0.
+            for i in range(n_samples):
+                information_cov += float(n_events) * obs_weights[i] * (
+                    score_mean[i, :, np.newaxis, np.newaxis, np.newaxis]
+                    * score_cov[i, np.newaxis, :, :, np.newaxis]
+                    * score_mean[i, np.newaxis, np.newaxis, np.newaxis :]
+                )
+                information_cov += float(n_events) * obs_weights[i] * (
+                    score_mean[i, :, np.newaxis, np.newaxis, np.newaxis]
+                    * score_cov[i, np.newaxis, :, np.newaxis, :]
+                    * score_mean[i, np.newaxis, np.newaxis, :, np.newaxis]
+                )
+                information_cov += float(n_events) * obs_weights[i] * (
+                    score_mean[i, np.newaxis, :, np.newaxis, np.newaxis]
+                    * score_cov[i, :, np.newaxis, :, np.newaxis]
+                    * score_mean[i, np.newaxis, np.newaxis, np.newaxis, :]
+                )
+                information_cov += float(n_events) * obs_weights[i] * (
+                    score_mean[i, np.newaxis, :, np.newaxis, np.newaxis]
+                    * score_cov[i, :, np.newaxis, np.newaxis, :]
+                    * score_mean[i, np.newaxis, np.newaxis, :, np.newaxis]
+                )
+            ensemble_covariances = [information_cov]
+
+            # # Old code:
+            # # Event-wise Fisher info
+            # event_information_mean = np.einsum("ni,nj->nij", score_mean, score_mean)
+            # logging.debug("Calculated event information mean")
+            # event_information_cov = (
+            #     np.einsum("ni,njk,nl->nijkl", score_mean, score_cov, score_mean)
+            #     + np.einsum("ni,njl,nk->nijkl", score_mean, score_cov, score_mean)
+            #     + np.einsum("nj,nik,nl->nijkl", score_mean, score_cov, score_mean)
+            #     + np.einsum("nj,nil,nk->nijkl", score_mean, score_cov, score_mean)
+            # )  # (n_events, n_parameters, n_parameters, n_parameters, n_parameters)
+            # logging.debug("Calculated event information covariance")
+            #
+            # # Mean Fisher information
+            # means = [float(n_events) * np.einsum("n,nij->ij", obs_weights, event_information_mean)]
+            #
+            # # Propagate uncertainty to Fisher information
+            # ensemble_covariances = [float(n_events) * np.einsum("n,nijkl->ijkl", obs_weights, event_information_cov)]
 
             # Let's check the expected score
             expected_score = [np.einsum("n,ni->i", obs_weights, score_mean)]
