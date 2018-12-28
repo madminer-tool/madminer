@@ -1390,6 +1390,8 @@ class FisherInformation:
 
         """
 
+        logger.debug("Calculating total cross section for theta = %s", theta)
+
         # Input
         if cuts is None:
             cuts = []
@@ -1428,6 +1430,8 @@ class FisherInformation:
 
         xsecs_uncertainty_benchmarks = xsecs_uncertainty_benchmarks ** 0.5
 
+        logger.debug("Benchmarks xsecs [pb]: %s", xsecs_benchmarks)
+
         if return_benchmark_xsecs:
             if return_error:
                 return xsecs_benchmarks, xsecs_uncertainty_benchmarks
@@ -1437,6 +1441,9 @@ class FisherInformation:
         theta_matrix = get_theta_benchmark_matrix("morphing", theta, self.benchmarks, self.morpher)
         xsec = mdot(theta_matrix, xsecs_benchmarks)
         xsec_error = mdot(theta_matrix, xsecs_uncertainty_benchmarks)
+
+        logger.debug("Theta matrix: %s", theta_matrix)
+        logger.debug("Cross section at theta: %s pb", xsec)
 
         if return_error:
             return xsec, xsec_error

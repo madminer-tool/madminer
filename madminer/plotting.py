@@ -20,6 +20,7 @@ def plot_distributions(
     parameter_points=None,
     uncertainties="nuisance",
     nuisance_parameters=None,
+    draw_nuisance_toys=None,
     normalize=False,
     observable_labels=None,
     n_bins=50,
@@ -27,7 +28,9 @@ def plot_distributions(
     colors=None,
     linestyles=None,
     linewidths=1.5,
-    alpha=0.4,
+    toy_linewidths=1.,
+    alpha=0.25,
+    toy_alpha=0.75,
     n_events=None,
     n_toys=1000,
     n_cols=3,
@@ -57,6 +60,10 @@ def plot_distributions(
         If uncertainties is "nuisance", this can restrict which nuisance parameters are used to draw the uncertainty
         bands. Each entry of this list is the index of one nuisance parameter (same order as in the MadMiner file).
 
+    draw_nuisance_toys : None or int, optional
+        If not None and uncertainties is "nuisance", sets the number of nuisance toy distributions that are drawn
+        (in addition to the error bands).
+
     normalize : bool, optional
         Whether the distribution is normalized to the total cross section. Default value: False.
 
@@ -65,7 +72,7 @@ def plot_distributions(
         value: None.
 
     n_bins : int, optional
-        Number of bins. Default value: 50.
+        Number of histogram bins. Default value: 50.
 
     line_labels : None or list of (str or None), optional
         Labels for the different parameter points. If None and if parameter_points is None, the benchmark names from
@@ -81,8 +88,16 @@ def plot_distributions(
     linewidths : float or list of float, optional
         Line widths for the contours. Default value: 1.5.
 
+    toy_linewidths : float or list of float or None, optional
+        Line widths for the toy replicas, if uncertainties is "nuisance" and draw_nuisance_toys is not None. If None,
+        linewidths is used. Default value: 1.
+
     alpha : float, optional
-        alpha value for the uncertainty bands. Default value: 0.4.
+        alpha value for the uncertainty bands. Default value: 0.25.
+
+    toy_alpha : float, optional
+        alpha value for the toy replicas, if uncertainties is "nuisance" and draw_nuisance_toys is not None. Default
+        value: 0.75.
 
     n_events : None or int, optional
         If not None, sets the number of events from the MadMiner file that will be analyzed and plotted. Default value:
@@ -92,7 +107,7 @@ def plot_distributions(
         Number of toy nuisance parameter vectors used to estimate the systematic uncertainties. Default value: 1000.
 
     n_cols : int, optional
-        Number of columns in the plot.
+        Number of columns of subfigures in the plot. Default value: 3.
 
     Returns
     -------
@@ -133,6 +148,11 @@ def plot_distributions(
 
     if not isinstance(linewidths, list):
         linewidths = [linewidths for _ in range(n_parameter_points)]
+
+    if toy_linewidths is None:
+        toy_linewidths = linewidths
+    if not isinstance(toy_linewidths, list):
+        toy_linewidths = [toy_linewidths for _ in range(n_parameter_points)]
 
     if observables is None:
         observables = list(range(len(sa.observables)))
@@ -210,6 +230,8 @@ def plot_distributions(
         if normalize:
             normalized_weights_syst_down = []
             normalized_weights_syst_up = []
+            if draw_nuisance_toys is not None:
+                normalized_weights_syst_toys = [[] for _ in range(draw_nuisance_toys)]
 
             for i_theta, theta_matrix in enumerate(theta_matrices):
                 logger.debug("Normalizing nuisance toy experiments for hypothesis %s", i_theta + 1)
@@ -246,9 +268,17 @@ def plot_distributions(
 
                 normalized_weights_syst_down.append(nuisance_factors_min_this_theta)
                 normalized_weights_syst_up.append(nuisance_factors_max_this_theta)
+                if draw_nuisance_toys is not None:
+                    for i in range(draw_nuisance_toys):
+                        normalized_weights_syst_toys[i].append(normalized_nuisance_toy_weights[i,:])
 
             normalized_weights_syst_down = np.array(normalized_weights_syst_down)  # Shape (n_hypotheses, n_events)
             normalized_weights_syst_up = np.array(normalized_weights_syst_up)  # Shape (n_hypotheses, n_events)
+            if draw_nuisance_toys is not None:
+                normalized_weights_syst_toys = np.array(normalized_weights_syst_toys)
+                normalized_weights_syst_toys = np.transpose(normalized_weights_syst_toys, axes=[1,0,2])
+                # Shape (n_hypotheses, draw_nuisance_toys, n_events)
+                logging.debug("Normalized nuisance toy weights have shape %s", normalized_weights_syst_toys.shape)
 
         else:
             nuisance_factors_central = np.median(nuisance_toy_factors, axis=0)  # Shape (n_events,)
@@ -327,6 +357,28 @@ def plot_distributions(
                 hist_upper = np.repeat(hist_upper, 2)
 
                 plt.fill_between(bin_edges, hist_lower, hist_upper, lw=lw, color=color, alpha=alpha)
+
+        # Toy replicas
+        if uncertainties == "nuisance" and draw_nuisance_toys is not None and normalize:
+            for weights, lw, color, label, ls in zip(
+                normalized_weights_syst_toys, toy_linewidths, colors, line_labels, linestyles
+            ):
+                for k in range(draw_nuisance_toys):
+
+                    plt.hist(
+                        x[:, i],
+                        weights=weights[k],
+                        histtype="step",
+                        range=x_range,
+                        bins=n_bins,
+                        lw=lw,
+                        alpha=toy_alpha,
+                        ls=ls,
+                        color=color,
+                        density=False,
+                    )
+        elif uncertainties == "nuisance" and draw_nuisance_toys is not None and not normalize:
+            raise NotImplementedError
 
         # Central lines
         for theta_matrix, normalization, lw, color, label, ls in zip(

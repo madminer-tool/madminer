@@ -202,7 +202,7 @@ def train_local_score_model(
                     individual_loss_string += "{}: {:.4f}".format(label, value)
 
                 logger.info(
-                    "  Epoch %d: train loss %.4f (%s)" % (epoch + 1, total_losses_train[-1], individual_loss_string)
+                    "  Epoch %-2.2d: train loss %.4f (%s)" % (epoch + 1, total_losses_train[-1], individual_loss_string)
                 )
             continue
 
@@ -255,12 +255,12 @@ def train_local_score_model(
 
             if early_stopping and epoch == early_stopping_epoch:
                 logger.info(
-                    "  Epoch %d: train loss %.4f (%s)", epoch + 1, total_losses_train[-1], individual_loss_string_train
+                    "  Epoch %-2.2d: train loss %.4f (%s)", epoch + 1, total_losses_train[-1], individual_loss_string_train
                 )
                 logger.info("            val. loss  %.4f (%s) (*)", total_losses_val[-1], individual_loss_string_val)
             else:
                 logger.info(
-                    "  Epoch %d: train loss %.4f (%s)", epoch + 1, total_losses_train[-1], individual_loss_string_train
+                    "  Epoch %-2.2d: train loss %.4f (%s)", epoch + 1, total_losses_train[-1], individual_loss_string_train
                 )
                 logger.info("            val. loss  %.4f (%s)", total_losses_val[-1], individual_loss_string_val)
 
