@@ -28,7 +28,7 @@ def plot_distributions(
     colors=None,
     linestyles=None,
     linewidths=1.5,
-    toy_linewidths=1.,
+    toy_linewidths=1.0,
     alpha=0.25,
     toy_alpha=0.75,
     n_events=None,
@@ -172,6 +172,13 @@ def plot_distributions(
         x = x[:n_events]
         weights_benchmarks = weights_benchmarks[:n_events]
 
+    if uncertainties != "nuisance":
+        n_toys = 0
+
+    n_nuisance_toys_drawn = 0
+    if draw_nuisance_toys is not None:
+        n_nuisance_toys_drawn = draw_nuisance_toys
+
     theta_matrices = []
     for theta in parameter_points:
         if isinstance(theta, six.string_types):
@@ -182,23 +189,13 @@ def plot_distributions(
 
     logger.debug("Calculated %s theta matrices", len(theta_matrices))
 
-    # Total cross sections
-    normalizations = []
-    if normalize:
-        xsec_benchmarks = np.sum(weights_benchmarks, axis=0)
-        for theta_matrix in theta_matrices:
-            xsec_theta = np.sum(mdot(theta_matrix, xsec_benchmarks))
-            normalizations.append(1.0 / xsec_theta)
-    else:
-        normalizations = [1.0 for _ in theta_matrices]
-
     # Nuisance parameters
-    nuisance_factors_min, nuisance_factors_max = None, None
+    nuisance_toy_factors = []
 
     if uncertainties == "nuisance":
         n_nuisance_params = sa.n_nuisance_parameters
 
-        logger.debug("Calculating effect of nuisance parameters")
+        logger.debug("Drawing nuisance toys")
 
         nuisance_toys = np.random.normal(loc=0.0, scale=1.0, size=n_nuisance_params * n_toys)
         nuisance_toys = nuisance_toys.reshape(n_toys, n_nuisance_params)
@@ -207,7 +204,7 @@ def plot_distributions(
         if nuisance_parameters is not None:
             for i in range(n_nuisance_params):
                 if i not in nuisance_parameters:
-                    nuisance_toys[:,i] = 1.
+                    nuisance_toys[:, i] = 1.0
 
         logger.debug("Drew %s toy values for nuisance parameters", n_toys * n_nuisance_params)
 
@@ -217,80 +214,11 @@ def plot_distributions(
                 for nuisance_toy in nuisance_toys
             ]
         )  # Shape (n_toys, n_events)
-        logger.debug(
-            "Calculated nuisance toy factors with shape %s and range %s - %s",
-            nuisance_toy_factors.shape,
-            np.min(nuisance_toy_factors),
-            np.max(nuisance_toy_factors),
-        )
 
         nuisance_toy_factors = sanitize_array(nuisance_toy_factors, min_value=1.0e-2, max_value=100.0)
+        # Shape (n_toys, n_events)
 
-        # Normalize
-        if normalize:
-            normalized_weights_syst_down = []
-            normalized_weights_syst_up = []
-            if draw_nuisance_toys is not None:
-                normalized_weights_syst_toys = [[] for _ in range(draw_nuisance_toys)]
-
-            for i_theta, theta_matrix in enumerate(theta_matrices):
-                logger.debug("Normalizing nuisance toy experiments for hypothesis %s", i_theta + 1)
-
-                # Theta weights
-                theta_weights = mdot(theta_matrix, weights_benchmarks)  # Shape (n_events,)
-
-                # Calculate total xsec for each nuisance toy
-                nuisance_toy_xsecs = []
-                for i_toy in range(n_toys):
-                    xsec = np.sum(nuisance_toy_factors[i_toy] * theta_weights, axis=0)
-                    nuisance_toy_xsecs.append(xsec)
-                nuisance_toy_xsecs = np.array(nuisance_toy_xsecs)  # Shape (n_toys,)
-
-                # Normalize weights
-                normalized_nuisance_toy_weights = (
-                    1.0 / nuisance_toy_xsecs[:, np.newaxis] * theta_weights[np.newaxis, :] * nuisance_toy_factors
-                )
-                # Shape (n_toys, n_events,)
-
-                # Percentiles over nuisance toys
-                nuisance_factors_central_this_theta = np.median(
-                    normalized_nuisance_toy_weights, axis=0
-                )  # Shape (n_events,)
-                logger.debug("Median nuisance factors: %s", nuisance_factors_central_this_theta)
-                nuisance_factors_min_this_theta = np.percentile(
-                    normalized_nuisance_toy_weights, 16.0, axis=0
-                )  # Shape (n_events,)
-                logger.debug("-1 sigma nuisance factors: %s", nuisance_factors_min_this_theta)
-                nuisance_factors_max_this_theta = np.percentile(
-                    normalized_nuisance_toy_weights, 84.0, axis=0
-                )  # Shape (n_events,)
-                logger.debug("+1 sigma nuisance factors: %s", nuisance_factors_max_this_theta)
-
-                normalized_weights_syst_down.append(nuisance_factors_min_this_theta)
-                normalized_weights_syst_up.append(nuisance_factors_max_this_theta)
-                if draw_nuisance_toys is not None:
-                    for i in range(draw_nuisance_toys):
-                        normalized_weights_syst_toys[i].append(normalized_nuisance_toy_weights[i,:])
-
-            normalized_weights_syst_down = np.array(normalized_weights_syst_down)  # Shape (n_hypotheses, n_events)
-            normalized_weights_syst_up = np.array(normalized_weights_syst_up)  # Shape (n_hypotheses, n_events)
-            if draw_nuisance_toys is not None:
-                normalized_weights_syst_toys = np.array(normalized_weights_syst_toys)
-                normalized_weights_syst_toys = np.transpose(normalized_weights_syst_toys, axes=[1,0,2])
-                # Shape (n_hypotheses, draw_nuisance_toys, n_events)
-                logging.debug("Normalized nuisance toy weights have shape %s", normalized_weights_syst_toys.shape)
-
-        else:
-            nuisance_factors_central = np.median(nuisance_toy_factors, axis=0)  # Shape (n_events,)
-            logger.debug("Median nuisance factors: %s", nuisance_factors_central)
-            nuisance_factors_min = np.percentile(nuisance_toy_factors, 16.0, axis=0)  # Shape (n_events,)
-            logger.debug("-1 sigma nuisance factors: %s", nuisance_factors_min)
-            nuisance_factors_max = np.percentile(nuisance_toy_factors, 84.0, axis=0)  # Shape (n_events,)
-            logger.debug("+1 sigma nuisance factors: %s", nuisance_factors_max)
-
-    # Plot distributions
-    logger.debug("Plotting distributions")
-
+    # Preparing plot
     n_rows = (n_observables + n_cols - 1) // n_cols
 
     fig = plt.figure(figsize=(4.0 * n_cols, 4.0 * n_rows))
@@ -322,83 +250,64 @@ def plot_distributions(
 
         logger.debug("Ranges for observable %s: min = %s, max = %s", xlabel, xmins, xmaxs)
 
-        # Plot
+        # Subfigure
         plt.subplot(n_rows, n_cols, i + 1)
 
-        # Error bands
-        if uncertainties == "nuisance" and normalize:
-            for weights_up, weights_down, lw, color, label, ls in zip(
-                normalized_weights_syst_up, normalized_weights_syst_down, linewidths, colors, line_labels, linestyles
-            ):
+        # Calculate histograms
+        bin_edges = None
+        histos = []
+        histos_up = []
+        histos_down = []
+        histos_toys = []
 
-                hist_upper, bin_edges = np.histogram(x[:, i], bins=n_bins, range=x_range, weights=weights_up)
-                hist_lower, _ = np.histogram(x[:, i], bins=n_bins, range=x_range, weights=weights_down)
+        for i_theta, theta_matrix in enumerate(theta_matrices):
+            theta_weights = mdot(theta_matrix, weights_benchmarks)  # Shape (n_events,)
 
-                bin_edges = np.repeat(bin_edges, 2)[1:-1]
-                hist_lower = np.repeat(hist_lower, 2)
-                hist_upper = np.repeat(hist_upper, 2)
-
-                plt.fill_between(bin_edges, hist_lower, hist_upper, facecolor=color, edgecolor="none", alpha=alpha)
-
-        elif uncertainties == "nuisance" and not normalize:
-            for theta_matrix, lw, color, label, ls in zip(theta_matrices, linewidths, colors, line_labels, linestyles):
-
-                theta_weights = mdot(theta_matrix, weights_benchmarks)
-
-                hist_upper, bin_edges = np.histogram(
-                    x[:, i], bins=n_bins, range=x_range, weights=theta_weights * nuisance_factors_max
-                )
-                hist_lower, _ = np.histogram(
-                    x[:, i], bins=n_bins, range=x_range, weights=theta_weights * nuisance_factors_min
-                )
-
-                bin_edges = np.repeat(bin_edges, 2)[1:-1]
-                hist_lower = np.repeat(hist_lower, 2)
-                hist_upper = np.repeat(hist_upper, 2)
-
-                plt.fill_between(bin_edges, hist_lower, hist_upper, lw=lw, color=color, alpha=alpha)
-
-        # Toy replicas
-        if uncertainties == "nuisance" and draw_nuisance_toys is not None and normalize:
-            for weights, lw, color, label, ls in zip(
-                normalized_weights_syst_toys, toy_linewidths, colors, line_labels, linestyles
-            ):
-                for k in range(draw_nuisance_toys):
-
-                    plt.hist(
-                        x[:, i],
-                        weights=weights[k],
-                        histtype="step",
-                        range=x_range,
-                        bins=n_bins,
-                        lw=lw,
-                        alpha=toy_alpha,
-                        ls=ls,
-                        color=color,
-                        density=False,
-                    )
-        elif uncertainties == "nuisance" and draw_nuisance_toys is not None and not normalize:
-            raise NotImplementedError
-
-        # Central lines
-        for theta_matrix, normalization, lw, color, label, ls in zip(
-            theta_matrices, normalizations, linewidths, colors, line_labels, linestyles
-        ):
-
-            theta_weights = mdot(theta_matrix, weights_benchmarks)
-
-            plt.hist(
-                x[:, i],
-                weights=normalization * theta_weights,
-                histtype="step",
-                range=x_range,
-                bins=n_bins,
-                lw=lw,
-                ls=ls,
-                color=color,
-                label=label,
-                density=False,
+            histo, bin_edges = np.histogram(
+                x[:, i], bins=n_bins, range=x_range, weights=theta_weights, density=normalize
             )
+            histos.append(histo)
+
+            histos_toys_this_theta = []
+            for i_toy, nuisance_toy_factors_this_toy in enumerate(nuisance_toy_factors):
+                toy_histo, _ = np.histogram(
+                    x[:, i],
+                    bins=n_bins,
+                    range=x_range,
+                    weights=theta_weights * nuisance_toy_factors_this_toy,
+                    density=normalize,
+                )
+                histos_toys_this_theta.append(toy_histo)
+
+            histos_up.append(np.percentile(histos_toys_this_theta, 84.0, axis=0))
+            histos_down.append(np.percentile(histos_toys_this_theta, 16.0, axis=0))
+            histos_toys.append(histos_toys_this_theta[:n_nuisance_toys_drawn])
+
+        # Draw error bands
+        if uncertainties == "nuisance":
+            for histo_up, histo_down, lw, color, label, ls in zip(
+                histos_up, histos_down, linewidths, colors, line_labels, linestyles
+            ):
+                bin_edges_ = np.repeat(bin_edges, 2)[1:-1]
+                histo_down_ = np.repeat(histo_down, 2)
+                histo_up_ = np.repeat(histo_up, 2)
+
+                plt.fill_between(bin_edges_, histo_down_, histo_up_, facecolor=color, edgecolor="none", alpha=alpha)
+
+            # Draw some toys
+            for histo_toys, lw, color, ls in zip(histos_toys, toy_linewidths, colors, linestyles):
+                for k in range(n_nuisance_toys_drawn):
+                    bin_edges_ = np.repeat(bin_edges, 2)[1:-1]
+                    histo_ = np.repeat(histo_toys[k], 2)
+
+                    plt.plot(bin_edges_, histo_, color=color, alpha=alpha, lw=lw, ls=ls)
+
+        # Draw central lines
+        for histo, lw, color, label, ls in zip(histos, linewidths, colors, line_labels, linestyles):
+            bin_edges_ = np.repeat(bin_edges, 2)[1:-1]
+            histo_ = np.repeat(histo, 2)
+
+            plt.plot(bin_edges_, histo_, color=color, lw=lw, ls=ls, label=label)
 
         plt.legend()
 
