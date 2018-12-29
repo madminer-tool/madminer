@@ -1352,9 +1352,10 @@ class EnsembleForge:
 
         uncertainty : {"ensemble", "expectation", "sum"}, optional
             How the covariance matrix of the Fisher information estimate is calculate. With "ensemble", the ensemble
-            covariance is used. With "expectation", the expectation of the score is used as a measure of the uncertainty
-            of the score estimator, and this uncertainty is propagated through to the covariance matrix. With "sum",
-            both terms are summed. Default value: "ensemble".
+            covariance is used (only supported if mode is "information"). With "expectation", the expectation of the
+            score is used as a measure of the uncertainty of the score estimator, and this uncertainty is propagated
+            through to the covariance matrix. With "sum", both terms are summed (only supported if mode is
+            "information"). Default value: "ensemble".
 
         vote_expectation_weight : float or list of float or None, optional
             If mode is "information", this factor determines how much more weight is given to those estimators with
@@ -1377,8 +1378,8 @@ class EnsembleForge:
 
         covariance : ndarray or list of ndarray
             The covariance matrix of the Fisher information estimate. Its definition depends on the value of
-            uncertainty; by default, the covariance is defined as the ensemble covariance. This object
-            has four indices, `cov_(ij)(i'j')`, ordered as i j i' j'. It has shape
+            uncertainty; by default, the covariance is defined as the ensemble covariance (only supported if mode is
+            "information"). This object has four indices, `cov_(ij)(i'j')`, ordered as i j i' j'. It has shape
             `(n_parameters, n_parameters, n_parameters, n_parameters)`. If more then one value vote_expectation_weight
             is given, this is a list with results for all entries in vote_expectation_weight.
 
@@ -1480,17 +1481,17 @@ class EnsembleForge:
             # Get ensemble mean and ensemble covariance
             score_mean = np.mean(score_predictions, axis=0)  # (n_events, n_parameters)
 
-            score_pred_minus_ens_mean = (
-                score_predictions[:, :, :] - score_mean[np.newaxis, :, :]
-            )  # (n_estimators, n_events, n_parameters)
-            score_cov = (
-                1.0
-                / (self.n_estimators - 1.0)
-                * np.einsum("eni,enj->nij", score_pred_minus_ens_mean, score_pred_minus_ens_mean)
-            )
+            # score_pred_minus_ens_mean = (
+            #     score_predictions[:, :, :] - score_mean[np.newaxis, :, :]
+            # )  # (n_estimators, n_events, n_parameters)
+            # score_cov = (
+            #     1.0
+            #     / (self.n_estimators - 1.0)
+            #     * np.einsum("eni,enj->nij", score_pred_minus_ens_mean, score_pred_minus_ens_mean)
+            # )
 
             logger.debug("Mean score for first event: %s", score_mean[0, :])
-            logger.debug("Covariance:\n%s", score_cov[0, :, :])
+            # logger.debug("Covariance:\n%s", score_cov[0, :, :])
 
             # Event weights
             if obs_weights is None:
@@ -1504,59 +1505,64 @@ class EnsembleForge:
             )
             means = [information_mean]
 
-            # Covariance. Calculating this in a vectorized way uses too much RAM...
-            information_cov = 0.0
-            cov_batch_size = 100
-            n_cov_batches = int(ceil(n_samples / cov_batch_size))
-            for i in range(n_cov_batches):
-                information_cov += (
-                    float(n_events)
-                    * obs_weights[i]
-                    * np.sum(
-                        score_mean[i * cov_batch_size : (i + 1) * cov_batch_size, :, np.newaxis, np.newaxis, np.newaxis]
-                        * score_cov[i * cov_batch_size : (i + 1) * cov_batch_size, np.newaxis, :, :, np.newaxis]
-                        * score_mean[
-                            i * cov_batch_size : (i + 1) * cov_batch_size, np.newaxis, np.newaxis, np.newaxis, :
-                        ],
-                        axis=0,
-                    )
-                )
-                information_cov += (
-                    float(n_events)
-                    * obs_weights[i]
-                    * np.sum(
-                        score_mean[i * cov_batch_size : (i + 1) * cov_batch_size, :, np.newaxis, np.newaxis, np.newaxis]
-                        * score_cov[i * cov_batch_size : (i + 1) * cov_batch_size, np.newaxis, :, np.newaxis, :]
-                        * score_mean[
-                            i * cov_batch_size : (i + 1) * cov_batch_size, np.newaxis, np.newaxis, :, np.newaxis
-                        ],
-                        axis=0,
-                    )
-                )
-                information_cov += (
-                    float(n_events)
-                    * obs_weights[i]
-                    * np.sum(
-                        score_mean[i * cov_batch_size : (i + 1) * cov_batch_size, np.newaxis, :, np.newaxis, np.newaxis]
-                        * score_cov[i * cov_batch_size : (i + 1) * cov_batch_size, :, np.newaxis, :, np.newaxis]
-                        * score_mean[
-                            i * cov_batch_size : (i + 1) * cov_batch_size, np.newaxis, np.newaxis, np.newaxis, :
-                        ],
-                        axis=0,
-                    )
-                )
-                information_cov += (
-                    float(n_events)
-                    * obs_weights[i]
-                    * np.sum(
-                        score_mean[i * cov_batch_size : (i + 1) * cov_batch_size, np.newaxis, :, np.newaxis, np.newaxis]
-                        * score_cov[i * cov_batch_size : (i + 1) * cov_batch_size, :, np.newaxis, np.newaxis, :]
-                        * score_mean[
-                            i * cov_batch_size : (i + 1) * cov_batch_size, np.newaxis, np.newaxis, :, np.newaxis
-                        ],
-                        axis=0,
-                    )
-                )
+            # # Covariance. Calculating this in a fully vectorized way uses too much RAM...
+            # information_cov = 0.0
+            # cov_batch_size = 100
+            # n_cov_batches = int(ceil(n_samples / cov_batch_size))
+            # for i in range(n_cov_batches):
+            #     information_cov += (
+            #         float(n_events)
+            #         * obs_weights[i]
+            #         * np.sum(
+            #             score_mean[i * cov_batch_size : (i + 1) * cov_batch_size, :, np.newaxis, np.newaxis, np.newaxis]
+            #             * score_cov[i * cov_batch_size : (i + 1) * cov_batch_size, np.newaxis, :, :, np.newaxis]
+            #             * score_mean[
+            #                 i * cov_batch_size : (i + 1) * cov_batch_size, np.newaxis, np.newaxis, np.newaxis, :
+            #             ],
+            #             axis=0,
+            #         )
+            #     )
+            #     information_cov += (
+            #         float(n_events)
+            #         * obs_weights[i]
+            #         * np.sum(
+            #             score_mean[i * cov_batch_size : (i + 1) * cov_batch_size, :, np.newaxis, np.newaxis, np.newaxis]
+            #             * score_cov[i * cov_batch_size : (i + 1) * cov_batch_size, np.newaxis, :, np.newaxis, :]
+            #             * score_mean[
+            #                 i * cov_batch_size : (i + 1) * cov_batch_size, np.newaxis, np.newaxis, :, np.newaxis
+            #             ],
+            #             axis=0,
+            #         )
+            #     )
+            #     information_cov += (
+            #         float(n_events)
+            #         * obs_weights[i]
+            #         * np.sum(
+            #             score_mean[i * cov_batch_size : (i + 1) * cov_batch_size, np.newaxis, :, np.newaxis, np.newaxis]
+            #             * score_cov[i * cov_batch_size : (i + 1) * cov_batch_size, :, np.newaxis, :, np.newaxis]
+            #             * score_mean[
+            #                 i * cov_batch_size : (i + 1) * cov_batch_size, np.newaxis, np.newaxis, np.newaxis, :
+            #             ],
+            #             axis=0,
+            #         )
+            #     )
+            #     information_cov += (
+            #         float(n_events)
+            #         * obs_weights[i]
+            #         * np.sum(
+            #             score_mean[i * cov_batch_size : (i + 1) * cov_batch_size, np.newaxis, :, np.newaxis, np.newaxis]
+            #             * score_cov[i * cov_batch_size : (i + 1) * cov_batch_size, :, np.newaxis, np.newaxis, :]
+            #             * score_mean[
+            #                 i * cov_batch_size : (i + 1) * cov_batch_size, np.newaxis, np.newaxis, :, np.newaxis
+            #             ],
+            #             axis=0,
+            #         )
+            #     )
+            # ensemble_covariances = [information_cov]
+
+            # Dummy way for now
+            n_params = score_mean.shape[1]
+            information_cov = np.zeros((n_params, n_params, n_params, n_params))
             ensemble_covariances = [information_cov]
 
             # # Old code:
@@ -1579,11 +1585,10 @@ class EnsembleForge:
 
             # Let's check the expected score
             expected_score = [np.einsum("n,ni->i", obs_weights, score_mean)]
-            expected_score_cov = [np.einsum("n,nij->ij", obs_weights, score_cov)]
+            # expected_score_cov = [np.einsum("n,nij->ij", obs_weights, score_cov)]
             logger.debug(
-                "Expected per-event score (should be close to zero):\n%s\nwith covariance matrix\n%s",
-                expected_score,
-                expected_score_cov,
+                "Expected per-event score (should be close to zero):\n%s",
+                expected_score
             )
 
         # Calculate ensemble expectation
