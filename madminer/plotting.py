@@ -32,7 +32,7 @@ def plot_distributions(
     alpha=0.25,
     toy_alpha=0.75,
     n_events=None,
-    n_toys=1000,
+    n_toys=100,
     n_cols=3,
 ):
     """
@@ -104,7 +104,7 @@ def plot_distributions(
         None.
 
     n_toys : int, optional
-        Number of toy nuisance parameter vectors used to estimate the systematic uncertainties. Default value: 1000.
+        Number of toy nuisance parameter vectors used to estimate the systematic uncertainties. Default value: 100.
 
     n_cols : int, optional
         Number of columns of subfigures in the plot. Default value: 3.
@@ -300,14 +300,14 @@ def plot_distributions(
                     bin_edges_ = np.repeat(bin_edges, 2)[1:-1]
                     histo_ = np.repeat(histo_toys[k], 2)
 
-                    plt.plot(bin_edges_, histo_, color=color, alpha=alpha, lw=lw, ls=ls)
+                    plt.plot(bin_edges_, histo_, color=color, alpha=toy_alpha, lw=lw, ls=ls)
 
         # Draw central lines
         for histo, lw, color, label, ls in zip(histos, linewidths, colors, line_labels, linestyles):
             bin_edges_ = np.repeat(bin_edges, 2)[1:-1]
             histo_ = np.repeat(histo, 2)
 
-            plt.plot(bin_edges_, histo_, color=color, lw=lw, ls=ls, label=label)
+            plt.plot(bin_edges_, histo_, color=color, lw=lw, ls=ls, label=label, alpha=1.)
 
         plt.legend()
 
