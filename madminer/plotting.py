@@ -22,6 +22,7 @@ def plot_distributions(
     nuisance_parameters=None,
     draw_nuisance_toys=None,
     normalize=False,
+    log=False,
     observable_labels=None,
     n_bins=50,
     line_labels=None,
@@ -66,6 +67,9 @@ def plot_distributions(
 
     normalize : bool, optional
         Whether the distribution is normalized to the total cross section. Default value: False.
+
+    log : bool, optional
+        Whether to draw the y axes on a logarithmic scale. Defaul value: False.
 
     observable_labels : None or list of (str or None), optional
         x-axis labels naming the observables. If None, the observable names from the MadMiner file are used. Default
@@ -251,7 +255,7 @@ def plot_distributions(
         logger.debug("Ranges for observable %s: min = %s, max = %s", xlabel, xmins, xmaxs)
 
         # Subfigure
-        plt.subplot(n_rows, n_cols, i + 1)
+        ax = plt.subplot(n_rows, n_cols, i + 1)
 
         # Calculate histograms
         bin_edges = None
@@ -318,7 +322,10 @@ def plot_distributions(
             plt.ylabel(r"$\frac{d\sigma}{dx}$ [pb / bin]")
 
         plt.xlim(x_range[0], x_range[1])
-        plt.ylim(0.0, None)
+        if log:
+            ax.set_yscale("log", nonposy='clip')
+        else:
+            plt.ylim(0.0, None)
 
     plt.tight_layout()
 
