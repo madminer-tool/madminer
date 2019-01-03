@@ -145,7 +145,7 @@ def train_local_score_model(
     elif verbose == "some":  # Print output after 10%, 20%, ..., 100% progress
         n_epochs_verbose = max(int(round(n_epochs / 10, 0)), 1)
 
-    logging.debug("Beginning main training loop")
+    logger.debug("Beginning main training loop")
 
     # Loop over epochs
     for epoch in range(n_epochs):
@@ -309,7 +309,7 @@ def train_local_score_model(
                 logger.info("No improvement for %s epochs, stopping training", epoch - early_stopping_epoch)
                 break
 
-    logging.debug("Main training loop finished")
+    logger.debug("Main training loop finished")
 
     # Early stopping: back to best state
     if early_stopping:
@@ -327,7 +327,7 @@ def train_local_score_model(
     # Save learning curve
     if learning_curve_folder is not None and learning_curve_filename is not None:
 
-        logging.debug("Saving learning curve")
+        logger.debug("Saving learning curve")
 
         np.save(learning_curve_folder + "/loss_train" + learning_curve_filename + ".npy", total_losses_train)
         if validation_split is not None:
