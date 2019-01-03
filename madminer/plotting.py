@@ -22,6 +22,7 @@ def plot_distributions(
     nuisance_parameters=None,
     draw_nuisance_toys=None,
     normalize=False,
+    log=False,
     observable_labels=None,
     n_bins=50,
     line_labels=None,
@@ -66,6 +67,9 @@ def plot_distributions(
 
     normalize : bool, optional
         Whether the distribution is normalized to the total cross section. Default value: False.
+
+    log : bool, optional
+        Whether to draw the y axes on a logarithmic scale. Defaul value: False.
 
     observable_labels : None or list of (str or None), optional
         x-axis labels naming the observables. If None, the observable names from the MadMiner file are used. Default
@@ -228,7 +232,7 @@ def plot_distributions(
         # Figure out x range
         xmins, xmaxs = [], []
         for theta_matrix in theta_matrices:
-            n_events_for_range = 10000
+            n_events_for_range = min(10000, n_events)
             x_small = x[:n_events_for_range]
             weights_small = mdot(theta_matrix, weights_benchmarks[:n_events_for_range])
 
@@ -251,7 +255,7 @@ def plot_distributions(
         logger.debug("Ranges for observable %s: min = %s, max = %s", xlabel, xmins, xmaxs)
 
         # Subfigure
-        plt.subplot(n_rows, n_cols, i + 1)
+        ax = plt.subplot(n_rows, n_cols, i + 1)
 
         # Calculate histograms
         bin_edges = None
@@ -307,7 +311,7 @@ def plot_distributions(
             bin_edges_ = np.repeat(bin_edges, 2)[1:-1]
             histo_ = np.repeat(histo, 2)
 
-            plt.plot(bin_edges_, histo_, color=color, lw=lw, ls=ls, label=label, alpha=1.)
+            plt.plot(bin_edges_, histo_, color=color, lw=lw, ls=ls, label=label, alpha=1.0)
 
         plt.legend()
 
@@ -318,7 +322,10 @@ def plot_distributions(
             plt.ylabel(r"$\frac{d\sigma}{dx}$ [pb / bin]")
 
         plt.xlim(x_range[0], x_range[1])
-        plt.ylim(0.0, None)
+        if log:
+            ax.set_yscale("log", nonposy="clip")
+        else:
+            plt.ylim(0.0, None)
 
     plt.tight_layout()
 

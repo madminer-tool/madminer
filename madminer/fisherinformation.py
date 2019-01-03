@@ -680,9 +680,9 @@ class FisherInformation:
         nbins : int
             Number of bins in the histogram, excluding overflow bins.
 
-        histrange : tuple of float or None
+        histrange : tuple of float or None, optional
             Minimum and maximum value of the histogram in the form `(min, max)`. Overflow bins are always added. If
-            None, variable-width bins with equal cross section are constructed automatically
+            None, variable-width bins with equal cross section are constructed automatically. Default value: None.
 
         cuts : None or list of str, optional
             Cuts. Each entry is a parseable Python expression that returns a bool (True if the event should pass a cut,
@@ -691,6 +691,9 @@ class FisherInformation:
         efficiency_functions : list of str or None
             Efficiencies. Each entry is a parseable Python expression that returns a float for the efficiency of one
             component. Default value: None.
+
+        n_events_dynamic_binning : int, optional
+            Number of events used to calculate the dynamic binning (if histrange is None). Default value: 100000.
 
         Returns
         -------
@@ -710,42 +713,14 @@ class FisherInformation:
         if efficiency_functions is None:
             efficiency_functions = []
 
-        # Automatic dynamic binning
+        # Binning
         dynamic_binning = histrange is None
         if dynamic_binning:
             n_bins_total = nbins
-
-            # Quantile values
-            quantile_values = np.linspace(0.0, 1.0, nbins + 1)
-
-            # Get data
-            x_pilot, weights_pilot = next(
-                madminer_event_loader(self.madminer_filename, batch_size=n_events_dynamic_binning)
+            bin_boundaries = self._calculate_dynamic_binning(
+                observable, theta, nbins, n_events_dynamic_binning, cuts, efficiency_functions
             )
-
-            # Cuts
-            cut_filter = [self._pass_cuts(x, cuts) for x in x_pilot]
-            x_pilot = x_pilot[cut_filter]
-            weights_pilot = weights_pilot[cut_filter]
-
-            # Efficiencies
-            efficiencies = np.array([self._eval_efficiency(x, efficiency_functions) for x in x_pilot])
-            weights_pilot *= efficiencies[:, np.newaxis]
-
-            # Evaluate histogrammed observable
-            histo_observables_pilot = np.asarray([self._eval_observable(x, observable) for x in x_pilot])
-
-            # Weights at theta
-            theta_matrix = get_theta_benchmark_matrix("morphing", theta, self.benchmarks, self.morpher)
-            weight_theta_pilot = mdot(theta_matrix, weights_pilot)
-
-            # Bin boundaries
-            bin_boundaries = weighted_quantile(histo_observables_pilot, quantile_values, weight_theta_pilot)
-            bin_boundaries = bin_boundaries[1:-1]
-
             logger.debug("Automatic dynamic binning: bin boundaries %s", bin_boundaries)
-
-        # Manual binning
         else:
             n_bins_total = nbins + 2
             bin_boundaries = np.linspace(histrange[0], histrange[1], num=nbins + 1)
@@ -798,12 +773,13 @@ class FisherInformation:
         luminosity,
         observable1,
         nbins1,
-        histrange1,
         observable2,
         nbins2,
-        histrange2,
+        histrange1=None,
+        histrange2=None,
         cuts=None,
         efficiency_functions=None,
+        n_events_dynamic_binning=100000,
     ):
 
         """
@@ -825,10 +801,6 @@ class FisherInformation:
         nbins1 : int
             Number of bins along the first axis in the histogram, excluding overflow bins.
 
-        histrange1 : tuple of float
-            Minimum and maximum value of the first axis of the histogram in the form `(min, max)`. Overflow bins are
-            always added.
-
         observable2 : str
             Expression for the first observable to be histogrammed. The str will be parsed by Python's `eval()` function
             and can use the names of the observables in the MadMiner files.
@@ -836,9 +808,15 @@ class FisherInformation:
         nbins2 : int
             Number of bins along the first axis in the histogram, excluding overflow bins.
 
-        histrange2 : tuple of float
+        histrange1 : tuple of float or None, optional
             Minimum and maximum value of the first axis of the histogram in the form `(min, max)`. Overflow bins are
-            always added.
+            always added. If None, variable-width bins with equal cross section are constructed automatically. Default
+            value: None.
+
+        histrange2 : tuple of float or None, optional
+            Minimum and maximum value of the first axis of the histogram in the form `(min, max)`. Overflow bins are
+            always added. If None, variable-width bins with equal cross section are constructed automatically. Default
+            value: None.
 
         cuts : None or list of str, optional
             Cuts. Each entry is a parseable Python expression that returns a bool (True if the event should pass a cut,
@@ -848,10 +826,18 @@ class FisherInformation:
             Efficiencies. Each entry is a parseable Python expression that returns a float for the efficiency of one
             component. Default value: None.
 
+        n_events_dynamic_binning : int, optional
+            Number of events used to calculate the dynamic binning (if histrange is None). Default value: 100000.
+
         Returns
         -------
         fisher_information : ndarray
             Expected Fisher information in the histogram with shape `(n_parameters, n_parameters)`.
+
+        fisher_information_uncertainty : ndarray
+            Covariance matrix of the Fisher information matrix with shape
+            `(n_parameters, n_parameters, n_parameters, n_parameters)`, calculated with plain Gaussian error
+            propagation.
 
         """
 
@@ -861,14 +847,32 @@ class FisherInformation:
         if efficiency_functions is None:
             efficiency_functions = []
 
-        # Number of bins
-        n_bins1_total = nbins1 + 2
-        bin1_boundaries = np.linspace(histrange1[0], histrange1[1], num=nbins1 + 1)
-        n_bins2_total = nbins1 + 2
-        bin2_boundaries = np.linspace(histrange2[0], histrange2[1], num=nbins2 + 1)
+        # Binning
+        dynamic_binning1 = histrange1 is None
+        if dynamic_binning1:
+            n_bins1_total = nbins1
+            bin1_boundaries = self._calculate_dynamic_binning(
+                observable1, theta, nbins1, n_events_dynamic_binning, cuts, efficiency_functions
+            )
+            logger.debug("Automatic dynamic binning for observable 1: bin boundaries %s", bin1_boundaries)
+        else:
+            n_bins1_total = nbins1 + 2
+            bin1_boundaries = np.linspace(histrange1[0], histrange1[1], num=nbins1 + 1)
+
+        dynamic_binning2 = histrange2 is None
+        if dynamic_binning2:
+            n_bins2_total = nbins2
+            bin2_boundaries = self._calculate_dynamic_binning(
+                observable2, theta, nbins2, n_events_dynamic_binning, cuts, efficiency_functions
+            )
+            logger.debug("Automatic dynamic binning for observable 2: bin boundaries %s", bin2_boundaries)
+        else:
+            n_bins2_total = nbins1 + 2
+            bin2_boundaries = np.linspace(histrange2[0], histrange2[1], num=nbins2 + 1)
 
         # Loop over batches
         weights_benchmarks = np.zeros((n_bins1_total, n_bins2_total, self.n_benchmarks))
+        weights_squared_benchmarks = np.zeros((n_bins1_total, n_bins2_total, self.n_benchmarks))
 
         for observations, weights in madminer_event_loader(self.madminer_filename):
             # Cuts
@@ -902,12 +906,24 @@ class FisherInformation:
                 for j in range(n_bins2_total):
                     if len(weights[(bins1 == i) & (bins2 == j)]) > 0:
                         weights_benchmarks[i, j] += np.sum(weights[(bins1 == i) & (bins2 == j)], axis=0)
+                        weights_squared_benchmarks[i, j] += np.sum(weights[(bins1 == i) & (bins2 == j)] ** 2, axis=0)
+
+        weights_benchmark_uncertainties = weights_squared_benchmarks ** 0.5
 
         # Calculate Fisher information in histogram
         weights_benchmarks = weights_benchmarks.reshape(-1, self.n_benchmarks)
-        fisher_info = self._calculate_fisher_information(theta, weights_benchmarks, luminosity, sum_events=True)
+        weights_benchmark_uncertainties = weights_benchmark_uncertainties.reshape(-1, self.n_benchmarks)
 
-        return fisher_info
+        fisher_info, covariance = self._calculate_fisher_information(
+            theta,
+            weights_benchmarks,
+            luminosity,
+            sum_events=True,
+            weights_benchmark_uncertainties=weights_benchmark_uncertainties,
+            calculate_uncertainty=True,
+        )
+
+        return fisher_info, covariance
 
     def histogram_of_fisher_information(
         self, theta, luminosity, observable, nbins, histrange, cuts=None, efficiency_functions=None
@@ -1448,3 +1464,40 @@ class FisherInformation:
         if return_error:
             return xsec, xsec_error
         return xsec
+
+    def _calculate_dynamic_binning(
+        self, observable, theta, n_bins, n_events=None, cuts=None, efficiency_functions=None
+    ):
+
+        if cuts is None:
+            cuts = []
+        if efficiency_functions is None:
+            efficiency_functions = []
+
+        # Quantile values
+        quantile_values = np.linspace(0.0, 1.0, n_bins + 1)
+
+        # Get data
+        x_pilot, weights_pilot = next(madminer_event_loader(self.madminer_filename, batch_size=n_events))
+
+        # Cuts
+        cut_filter = [self._pass_cuts(x, cuts) for x in x_pilot]
+        x_pilot = x_pilot[cut_filter]
+        weights_pilot = weights_pilot[cut_filter]
+
+        # Efficiencies
+        efficiencies = np.array([self._eval_efficiency(x, efficiency_functions) for x in x_pilot])
+        weights_pilot *= efficiencies[:, np.newaxis]
+
+        # Evaluate histogrammed observable
+        histo_observables_pilot = np.asarray([self._eval_observable(x, observable) for x in x_pilot])
+
+        # Weights at theta
+        theta_matrix = get_theta_benchmark_matrix("morphing", theta, self.benchmarks, self.morpher)
+        weight_theta_pilot = mdot(theta_matrix, weights_pilot)
+
+        # Bin boundaries
+        bin_boundaries = weighted_quantile(histo_observables_pilot, quantile_values, weight_theta_pilot)
+        bin_boundaries = bin_boundaries[1:-1]
+
+        return bin_boundaries
