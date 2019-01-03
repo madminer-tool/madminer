@@ -4,7 +4,7 @@ import numpy as np
 import torch
 from torch import tensor
 import torch.optim as optim
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import TensorDataset, DataLoader
 from torch.utils.data.sampler import SubsetRandomSampler
 from torch.nn.utils import clip_grad_norm_
 
@@ -12,48 +12,6 @@ from madminer.utils.ml.models.ratio import ParameterizedRatioEstimator, DoublyPa
 import logging
 
 logger = logging.getLogger(__name__)
-
-
-class GoldDataset(torch.utils.data.Dataset):
-    """ """
-
-    def __init__(self, theta0=None, theta1=None, x=None, y=None, r_xz=None, t_xz0=None, t_xz1=None):
-        self.n = theta0.shape[0]
-
-        placeholder = torch.stack([tensor([0.0]) for _ in range(self.n)])
-
-        assert x is not None
-        assert theta0 is not None
-
-        self.theta0 = theta0
-        self.theta1 = placeholder if theta1 is None else theta1
-        self.x = x
-        self.y = placeholder if y is None else y
-        self.r_xz = placeholder if r_xz is None else r_xz
-        self.t_xz0 = placeholder if t_xz0 is None else t_xz0
-        self.t_xz1 = placeholder if t_xz1 is None else t_xz1
-
-        assert len(self.theta0) == self.n
-        assert len(self.theta1) == self.n
-        assert len(self.x) == self.n
-        assert len(self.y) == self.n
-        assert len(self.r_xz) == self.n
-        assert len(self.t_xz0) == self.n
-        assert len(self.t_xz1) == self.n
-
-    def __getitem__(self, index):
-        return (
-            self.theta0[index],
-            self.theta1[index],
-            self.x[index],
-            self.y[index],
-            self.r_xz[index],
-            self.t_xz0[index],
-            self.t_xz1[index],
-        )
-
-    def __len__(self):
-        return self.n
 
 
 def train_ratio_model(
@@ -97,26 +55,29 @@ def train_ratio_model(
     # Move model to device
     model = model.to(device, dtype)
 
+    # Prepare data
     logger.debug("Preparing data")
+
+    data = []
 
     # Convert to Tensor
     if theta0s is not None:
-        theta0s = torch.stack([tensor(i, requires_grad=True) for i in theta0s])
+        data.append(torch.stack([tensor(i, requires_grad=True) for i in theta0s]))
     if theta1s is not None:
-        theta1s = torch.stack([tensor(i, requires_grad=True) for i in theta1s])
+        data.append(torch.stack([tensor(i, requires_grad=True) for i in theta1s]))
     if xs is not None:
-        xs = torch.stack([tensor(i) for i in xs])
+        data.append(torch.stack([tensor(i) for i in xs]))
     if ys is not None:
-        ys = torch.stack([tensor(i) for i in ys])
+        data.append(torch.stack([tensor(i) for i in ys]))
     if r_xzs is not None:
-        r_xzs = torch.stack([tensor(i) for i in r_xzs])
+        data.append(torch.stack([tensor(i) for i in r_xzs]))
     if t_xz0s is not None:
-        t_xz0s = torch.stack([tensor(i) for i in t_xz0s])
+        data.append(torch.stack([tensor(i) for i in t_xz0s]))
     if t_xz1s is not None:
-        t_xz1s = torch.stack([tensor(i) for i in t_xz1s])
+        data.append(torch.stack([tensor(i) for i in t_xz1s]))
 
     # Dataset
-    dataset = GoldDataset(theta0s, theta1s, xs, ys, r_xzs, t_xz0s, t_xz1s)
+    dataset = TensorDataset(*data)
 
     # Train / validation split
     if validation_split is not None:
@@ -208,26 +169,37 @@ def train_ratio_model(
                 param_group["lr"] = lr
 
         # Loop over batches
-        for i_batch, (theta0, theta1, x, y, r_xz, t_xz0, t_xz1) in enumerate(train_loader):
-            theta0 = theta0.to(device, dtype)
-            x = x.to(device, dtype)
-            y = y.to(device, dtype)
-            try:
-                theta1 = theta1.to(device, dtype)
-            except NameError:
-                pass
-            try:
-                r_xz = r_xz.to(device, dtype)
-            except NameError:
-                pass
-            try:
-                t_xz0 = t_xz0.to(device, dtype)
-            except NameError:
-                pass
-            try:
-                t_xz1 = t_xz1.to(device, dtype)
-            except NameError:
-                pass
+        for i_batch, batch_data in enumerate(train_loader):
+            theta0 = None
+            theta1 = None
+            x = None
+            y = None
+            r_xz = None
+            t_xz0 = None
+            t_xz1 = None
+
+            k = 0
+            if theta0s is not None:
+                theta0 = batch_data[k].to(device, dtype)
+                k += 1
+            if theta1s is not None:
+                theta1 = batch_data[k].to(device, dtype)
+                k += 1
+            if xs is not None:
+                x = batch_data[k].to(device, dtype)
+                k += 1
+            if ys is not None:
+                y = batch_data[k].to(device, dtype)
+                k += 1
+            if r_xzs is not None:
+                r_xz = batch_data[k].to(device, dtype)
+                k += 1
+            if t_xz0s is not None:
+                t_xz0 = batch_data[k].to(device, dtype)
+                k += 1
+            if t_xz1s is not None:
+                t_xz1 = batch_data[k].to(device, dtype)
+                k += 1
 
             optimizer.zero_grad()
 
