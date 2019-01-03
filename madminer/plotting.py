@@ -232,7 +232,7 @@ def plot_distributions(
         # Figure out x range
         xmins, xmaxs = [], []
         for theta_matrix in theta_matrices:
-            n_events_for_range = 10000
+            n_events_for_range = min(10000, n_events)
             x_small = x[:n_events_for_range]
             weights_small = mdot(theta_matrix, weights_benchmarks[:n_events_for_range])
 
@@ -311,7 +311,7 @@ def plot_distributions(
             bin_edges_ = np.repeat(bin_edges, 2)[1:-1]
             histo_ = np.repeat(histo, 2)
 
-            plt.plot(bin_edges_, histo_, color=color, lw=lw, ls=ls, label=label, alpha=1.)
+            plt.plot(bin_edges_, histo_, color=color, lw=lw, ls=ls, label=label, alpha=1.0)
 
         plt.legend()
 
@@ -323,7 +323,7 @@ def plot_distributions(
 
         plt.xlim(x_range[0], x_range[1])
         if log:
-            ax.set_yscale("log", nonposy='clip')
+            ax.set_yscale("log", nonposy="clip")
         else:
             plt.ylim(0.0, None)
 

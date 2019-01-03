@@ -1586,10 +1586,7 @@ class EnsembleForge:
             # Let's check the expected score
             expected_score = [np.einsum("n,ni->i", obs_weights, score_mean)]
             # expected_score_cov = [np.einsum("n,nij->ij", obs_weights, score_cov)]
-            logger.debug(
-                "Expected per-event score (should be close to zero):\n%s",
-                expected_score
-            )
+            logger.debug("Expected per-event score (should be close to zero):\n%s", expected_score)
 
         # Calculate ensemble expectation
         expectation_covariances = None
