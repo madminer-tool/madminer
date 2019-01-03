@@ -73,7 +73,7 @@ has all these dependencies and the needed patches installed.
 
 To install the MadMiner package with all its Python dependencies, run `pip install madminer`.
 
-To get the [examples](examples/), including the tutorials, and the documentation, clone this repository.
+To get the [examples](examples/), including the tutorials, clone this repository.
 
 ## Using MadMiner
 
