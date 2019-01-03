@@ -4,30 +4,12 @@ import numpy as np
 import torch
 from torch import tensor
 import torch.optim as optim
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import TensorDataset, DataLoader
 from torch.utils.data.sampler import SubsetRandomSampler
 from torch.nn.utils import clip_grad_norm_
 import logging
 
 logger = logging.getLogger(__name__)
-
-
-class LocalScoreDataset(torch.utils.data.Dataset):
-    """ """
-
-    def __init__(self, x, t_xz):
-        self.n = x.shape[0]
-
-        self.x = x
-        self.t_xz = t_xz
-
-        assert len(self.t_xz) == self.n
-
-    def __getitem__(self, index):
-        return (self.x[index], self.t_xz[index])
-
-    def __len__(self):
-        return self.n
 
 
 def train_local_score_model(
@@ -65,6 +47,7 @@ def train_local_score_model(
     # Move model to device
     model = model.to(device, dtype)
 
+    # Prepare data
     logger.debug("Preparing data")
 
     # Convert to Tensor
@@ -72,7 +55,7 @@ def train_local_score_model(
     t_xzs = torch.stack([tensor(i) for i in t_xzs])
 
     # Dataset
-    dataset = LocalScoreDataset(xs, t_xzs)
+    dataset = TensorDataset(xs, t_xzs)
 
     # Train / validation split
     if validation_split is not None:
@@ -192,11 +175,13 @@ def train_local_score_model(
 
             # Calculate gradient and update optimizer
             loss.backward()
-            optimizer.step()
 
             # Clip gradients
             if clip_gradient is not None:
                 clip_grad_norm_(model.parameters(), clip_gradient)
+
+            # Optimizer step
+            optimizer.step()
 
         individual_train_loss /= len(train_loader)
         total_train_loss /= len(train_loader)

@@ -240,11 +240,13 @@ def train_ratio_model(
 
             # Calculate gradient and update optimizer
             loss.backward()
-            optimizer.step()
 
             # Clip gradients
             if clip_gradient is not None:
                 clip_grad_norm_(model.parameters(), clip_gradient)
+
+            # Optimizer step
+            optimizer.step()
 
         individual_train_loss /= len(train_loader)
         total_train_loss /= len(train_loader)
@@ -274,26 +276,37 @@ def train_ratio_model(
         model.eval()
         individual_val_loss = np.zeros(n_losses)
 
-        for i_batch, (theta0, theta1, x, y, r_xz, t_xz0, t_xz1) in enumerate(validation_loader):
-            theta0 = theta0.to(device, dtype)
-            x = x.to(device, dtype)
-            y = y.to(device, dtype)
-            try:
-                theta1 = theta1.to(device, dtype)
-            except NameError:
-                pass
-            try:
-                r_xz = r_xz.to(device, dtype)
-            except NameError:
-                pass
-            try:
-                t_xz0 = t_xz0.to(device, dtype)
-            except NameError:
-                pass
-            try:
-                t_xz1 = t_xz1.to(device, dtype)
-            except NameError:
-                pass
+        for i_batch, batch_data in enumerate(validation_loader):
+            theta0 = None
+            theta1 = None
+            x = None
+            y = None
+            r_xz = None
+            t_xz0 = None
+            t_xz1 = None
+
+            k = 0
+            if theta0s is not None:
+                theta0 = batch_data[k].to(device, dtype)
+                k += 1
+            if theta1s is not None:
+                theta1 = batch_data[k].to(device, dtype)
+                k += 1
+            if xs is not None:
+                x = batch_data[k].to(device, dtype)
+                k += 1
+            if ys is not None:
+                y = batch_data[k].to(device, dtype)
+                k += 1
+            if r_xzs is not None:
+                r_xz = batch_data[k].to(device, dtype)
+                k += 1
+            if t_xz0s is not None:
+                t_xz0 = batch_data[k].to(device, dtype)
+                k += 1
+            if t_xz1s is not None:
+                t_xz1 = batch_data[k].to(device, dtype)
+                k += 1
 
             # Evaluate loss
             if method_type == "parameterized":

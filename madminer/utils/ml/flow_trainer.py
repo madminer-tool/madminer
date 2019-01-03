@@ -1,11 +1,10 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import numpy as np
-
 import torch
 from torch import tensor
 import torch.optim as optim
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import TensorDataset, DataLoader
 from torch.utils.data.sampler import SubsetRandomSampler
 from torch.nn.utils import clip_grad_norm_
 
@@ -71,19 +70,27 @@ def train_flow_model(
     device = torch.device("cuda" if run_on_gpu else "cpu")
     dtype = torch.double if double_precision else torch.float
 
+    logger.debug("Training on %s with %s precision", "GPU" if run_on_gpu else "CPU",
+                 "double" if double_precision else "single")
+
     # Move model to device
     model = model.to(device, dtype)
 
+    # Prepare data
+    logger.debug("Preparing data")
+
+    data = []
+
     # Convert to Tensor
     if theta0s is not None:
-        theta0s = torch.stack([tensor(i, requires_grad=True) for i in theta0s])
+        data.append(torch.stack([tensor(i, requires_grad=True) for i in theta0s]))
     if xs is not None:
-        xs = torch.stack([tensor(i) for i in xs])
+        data.append(torch.stack([tensor(i) for i in xs]))
     if t_xz0s is not None:
-        t_xz0s = torch.stack([tensor(i) for i in t_xz0s])
+        data.append(torch.stack([tensor(i) for i in t_xz0s]))
 
     # Dataset
-    dataset = SmallGoldDataset(theta0s, xs, t_xz0s)
+    dataset = TensorDataset(*data)
 
     # Train / validation split
     if validation_split is not None:
@@ -104,6 +111,8 @@ def train_flow_model(
         )
     else:
         train_loader = DataLoader(dataset, batch_size=batch_size, shuffle=True, pin_memory=run_on_gpu)
+
+    logger.debug("Preparing optimizer %s", trainer)
 
     # Optimizer
     if trainer == "adam":
@@ -141,7 +150,9 @@ def train_flow_model(
     individual_losses_val = []
     total_losses_train = []
     total_losses_val = []
-    total_val_loss = None
+
+    total_val_loss = 0.0
+    total_train_loss = 0.0
 
     # Verbosity
     n_epochs_verbose = None
@@ -149,6 +160,8 @@ def train_flow_model(
         n_epochs_verbose = 1
     elif verbose == "some":  # Print output after 10%, 20%, ..., 100% progress
         n_epochs_verbose = max(int(round(n_epochs / 10, 0)), 1)
+
+    logger.debug("Beginning main training loop")
 
     # Loop over epochs
     for epoch in range(n_epochs):
@@ -167,13 +180,21 @@ def train_flow_model(
                 param_group["lr"] = lr
 
         # Loop over batches
-        for i_batch, (theta0, x, t_xz0) in enumerate(train_loader):
-            theta0 = theta0.to(device, dtype)
-            x = x.to(device, dtype)
-            try:
-                t_xz0 = t_xz0.to(device, dtype)
-            except NameError:
-                pass
+        for i_batch, batch_data in enumerate(train_loader):
+            theta0 = None
+            x = None
+            t_xz0 = None
+
+            k = 0
+            if theta0s is not None:
+                theta0 = batch_data[k].to(device, dtype)
+                k += 1
+            if xs is not None:
+                x = batch_data[k].to(device, dtype)
+                k += 1
+            if t_xz0s is not None:
+                t_xz0 = batch_data[k].to(device, dtype)
+                k += 1
 
             optimizer.zero_grad()
 
@@ -215,27 +236,43 @@ def train_flow_model(
         total_losses_train.append(total_train_loss)
         individual_losses_train.append(individual_train_loss)
 
-        # Validation
+        # If no validation, print out loss and continue loop
         if validation_split is None:
+            individual_loss_string = ""
+            for i, (label, value) in enumerate(zip(loss_labels, individual_losses_train[-1])):
+                if i > 0:
+                    individual_loss_string += ", "
+                individual_loss_string += "{}: {:.4f}".format(label, value)
+
             if n_epochs_verbose is not None and n_epochs_verbose > 0 and (epoch + 1) % n_epochs_verbose == 0:
                 logger.info(
-                    "  Epoch %d: train loss %.2f (%s)"
-                    % (epoch + 1, total_losses_train[-1], individual_losses_train[-1])
+                    "  Epoch %-2.2d: train loss %.4f (%s)" % (epoch + 1, total_losses_train[-1], individual_loss_string)
+                )
+            else:
+                logger.debug(
+                    "  Epoch %-2.2d: train loss %.4f (%s)" % (epoch + 1, total_losses_train[-1], individual_loss_string)
                 )
             continue
 
         # with torch.no_grad():
         model.eval()
         individual_val_loss = np.zeros(n_losses)
-        total_val_loss = 0.0
 
-        for i_batch, (theta0, x, t_xz0) in enumerate(validation_loader):
-            theta0 = theta0.to(device, dtype)
-            x = x.to(device, dtype)
-            try:
-                t_xz0 = t_xz0.to(device, dtype)
-            except NameError:
-                pass
+        for i_batch, batch_data in enumerate(validation_loader):
+            theta0 = None
+            x = None
+            t_xz0 = None
+
+            k = 0
+            if theta0s is not None:
+                theta0 = batch_data[k].to(device, dtype)
+                k += 1
+            if xs is not None:
+                x = batch_data[k].to(device, dtype)
+                k += 1
+            if t_xz0s is not None:
+                t_xz0 = batch_data[k].to(device, dtype)
+                k += 1
 
             # Forward pass
             if t_xz0 is not None:
@@ -268,35 +305,59 @@ def train_flow_model(
                 early_stopping_epoch = epoch
 
         # Print out information
+        individual_loss_string_train = ""
+        individual_loss_string_val = ""
+        for i, (label, value_train, value_val) in enumerate(
+            zip(loss_labels, individual_losses_train[-1], individual_losses_val[-1])
+        ):
+            if i > 0:
+                individual_loss_string_train += ", "
+                individual_loss_string_val += ", "
+            individual_loss_string_train += "{}: {:.4f}".format(label, value_train)
+            individual_loss_string_val += "{}: {:.4f}".format(label, value_val)
+
         if n_epochs_verbose is not None and n_epochs_verbose > 0 and (epoch + 1) % n_epochs_verbose == 0:
             if early_stopping and epoch == early_stopping_epoch:
                 logger.info(
-                    "  Epoch %d: train loss %.2f (%s), validation loss %.2f (%s) (*)"
-                    % (
-                        epoch + 1,
-                        total_losses_train[-1],
-                        individual_losses_train[-1],
-                        total_losses_val[-1],
-                        individual_losses_val[-1],
-                    )
+                    "  Epoch %-2.2d: train loss %.4f (%s)",
+                    epoch + 1,
+                    total_losses_train[-1],
+                    individual_loss_string_train,
                 )
+                logger.info("            val. loss  %.4f (%s) (*)", total_losses_val[-1], individual_loss_string_val)
             else:
                 logger.info(
-                    "  Epoch %d: train loss %.2f (%s), validation loss %.2f (%s)"
-                    % (
-                        epoch + 1,
-                        total_losses_train[-1],
-                        individual_losses_train[-1],
-                        total_losses_val[-1],
-                        individual_losses_val[-1],
-                    )
+                    "  Epoch %-2.2d: train loss %.4f (%s)",
+                    epoch + 1,
+                    total_losses_train[-1],
+                    individual_loss_string_train,
                 )
+                logger.info("            val. loss  %.4f (%s)", total_losses_val[-1], individual_loss_string_val)
+        else:
+            if early_stopping and epoch == early_stopping_epoch:
+                logger.debug(
+                    "  Epoch %-2.2d: train loss %.4f (%s)",
+                    epoch + 1,
+                    total_losses_train[-1],
+                    individual_loss_string_train,
+                )
+                logger.debug("            val. loss  %.4f (%s) (*)", total_losses_val[-1], individual_loss_string_val)
+            else:
+                logger.debug(
+                    "  Epoch %-2.2d: train loss %.4f (%s)",
+                    epoch + 1,
+                    total_losses_train[-1],
+                    individual_loss_string_train,
+                )
+                logger.debug("            val. loss  %.4f (%s)", total_losses_val[-1], individual_loss_string_val)
 
         # Early stopping: actually stop training
         if early_stopping and early_stopping_patience is not None:
             if epoch - early_stopping_epoch >= early_stopping_patience > 0:
                 logger.info("No improvement for %s epochs, stopping training", epoch - early_stopping_epoch)
                 break
+
+    logger.debug("Main training loop finished")
 
     # Early stopping: back to best state
     if early_stopping:
@@ -313,6 +374,8 @@ def train_flow_model(
 
     # Save learning curve
     if learning_curve_folder is not None and learning_curve_filename is not None:
+
+        logger.debug("Saving learning curve")
 
         np.save(learning_curve_folder + "/loss_train" + learning_curve_filename + ".npy", total_losses_train)
         if validation_split is not None:
