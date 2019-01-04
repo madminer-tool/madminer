@@ -62,6 +62,7 @@ class ParameterizedRatioEstimator(nn.Module):
                 log_r_hat,
                 theta,
                 grad_outputs=torch.ones_like(log_r_hat.data),
+                # grad_outputs=log_r_hat.data.new(log_r_hat.shape).fill_(1),
                 only_inputs=True,
                 create_graph=create_gradient_graph,
             )

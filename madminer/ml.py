@@ -5,7 +5,6 @@ import logging
 import os
 import json
 import numpy as np
-from math import ceil
 import torch
 
 from madminer.utils.ml import ratio_losses, flow_losses
@@ -851,7 +850,7 @@ class MLForge:
 
         return fisher_information
 
-    def save(self, filename):
+    def save(self, filename, save_model=False):
 
         """
         Saves the trained model to four files: a JSON file with the settings, a pickled pyTorch state dict
@@ -861,6 +860,10 @@ class MLForge:
         ----------
         filename : str
             Path to the files. '_settings.json' and '_state_dict.pl' will be added.
+
+        save_model : bool, optional
+            If True, the whole model is saved in addition to the state dict. This is not necessary for loading it
+            again with MLForge.load(), but can be useful for debugging, for instance to plot the computational graph.
 
         Returns
         -------
@@ -899,6 +902,11 @@ class MLForge:
         # Save state dict
         logger.debug("Saving state dictionary to %s_state_dict.pt", filename)
         torch.save(self.model.state_dict(), filename + "_state_dict.pt")
+
+        # Save model
+        if save_model:
+            logger.debug("Saving model to %s_model.pt", filename)
+            torch.save(self.model, filename + "_model.pt")
 
     def load(self, filename):
 
@@ -1648,7 +1656,7 @@ class EnsembleForge:
             return means, covariances, estimator_weights, predictions
         return means, covariances
 
-    def save(self, folder):
+    def save(self, folder, save_model=False):
         """
         Saves the estimator ensemble to a folder.
 
@@ -1656,6 +1664,11 @@ class EnsembleForge:
         ----------
         folder : str
             Path to the folder.
+
+        save_model : bool, optional
+            If True, the whole model is saved in addition to the state dict. This is not necessary for loading it
+            again with EnsembleForge.load(), but can be useful for debugging, for instance to plot the computational
+            graph.
 
         Returns
         -------
@@ -1681,7 +1694,7 @@ class EnsembleForge:
 
         # Save estimators
         for i, estimator in enumerate(self.estimators):
-            estimator.save(folder + "/estimator_" + str(i))
+            estimator.save(folder + "/estimator_" + str(i), save_model=save_model)
 
     def load(self, folder):
         """
