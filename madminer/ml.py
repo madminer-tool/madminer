@@ -91,6 +91,7 @@ class MLForge:
         scale_inputs=True,
         shuffle_labels=False,
         grad_x_regularization=None,
+        limit_samplesize=None,
     ):
 
         """
@@ -218,7 +219,7 @@ class MLForge:
         scale_inputs : bool, optional
             Scale the observables to zero mean and unit variance. Default value: True.
 
-        shuffle_labels : bool optional
+        shuffle_labels : bool, optional
             If True, the labels (`y`, `r_xz`, `t_xz`) are shuffled, while the observations (`x`) remain in their
             normal order. This serves as a closure test, in particular as cross-check against overfitting: an estimator
             trained with shuffle_labels=True should predict to likelihood ratios around 1 and scores around 0.
@@ -226,6 +227,9 @@ class MLForge:
         grad_x_regularization : float or None, optional
             If not None, a term of the form `grad_x_regularization * |grad_x f(x)|^2` is added to the loss, where `f(x)`
             is the neural network output (the estimated log likelihood ratio or score). Default value: None.
+
+        limit_samplesize : int or None, optional
+            If not None, only this number of samples (events) is used to train the estimator. Default value: None.
 
         Returns
         -------
@@ -279,6 +283,10 @@ class MLForge:
             logger.info("  Regularization:         None")
         else:
             logger.info("  Regularization:         %s * |grad_x f(x)|^2", grad_x_regularization)
+        if limit_samplesize is None:
+            logger.info("  Samples:                all")
+        else:
+            logger.info("  Samples:                %s", limit_samplesize)
 
         # Load training data
         logger.info("Loading training data")
@@ -334,6 +342,24 @@ class MLForge:
             n_parameters = t_xz0.shape[1]
 
         logger.info("Found %s samples with %s parameters and %s observables", n_samples, n_parameters, n_observables)
+
+        # Limit sample size
+        if limit_samplesize is not None and limit_samplesize < n_samples:
+            logger.info('Only using %s of %s training samples', limit_samplesize, n_samples)
+
+            x = x[:limit_samplesize]
+            if theta0 is not None:
+                theta0 = theta0[:limit_samplesize]
+            if theta1 is not None:
+                theta1 = theta1[:limit_samplesize]
+            if y is not None:
+                y = y[:limit_samplesize]
+            if r_xz is not None:
+                r_xz = r_xz[:limit_samplesize]
+            if t_xz0 is not None:
+                t_xz0 = t_xz0[:limit_samplesize]
+            if t_xz1 is not None:
+                t_xz1 = t_xz1[:limit_samplesize]
 
         # Scale features
         if scale_inputs:
