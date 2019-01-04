@@ -37,7 +37,7 @@ class ParameterizedRatioEstimator(nn.Module):
             nn.Linear(n_last, 1)
         )
 
-    def forward(self, theta, x, track_score=True, return_grad_x=False):
+    def forward(self, theta, x, track_score=True, return_grad_x=False, create_gradient_graph=True):
 
         """ Calculates estimated log likelihood ratio and the derived score. """
 
@@ -64,7 +64,7 @@ class ParameterizedRatioEstimator(nn.Module):
         if track_score:
             t_hat = grad(log_r_hat, theta,
                          grad_outputs=torch.ones_like(log_r_hat.data),
-                         only_inputs=True, create_graph=True)[0]
+                         only_inputs=True, create_graph=create_gradient_graph)[0]
         else:
             t_hat = None
 
@@ -72,7 +72,7 @@ class ParameterizedRatioEstimator(nn.Module):
         if return_grad_x:
             x_gradient = grad(log_r_hat, x,
                           grad_outputs=torch.ones_like(log_r_hat.data),
-                          only_inputs=True, create_graph=True)[0]
+                          only_inputs=True, create_graph=create_gradient_graph)[0]
 
             return s_hat, log_r_hat, t_hat, x_gradient
 
@@ -115,7 +115,7 @@ class DoublyParameterizedRatioEstimator(nn.Module):
             nn.Linear(n_last, 1)
         )
 
-    def forward(self, theta0, theta1, x, track_score=True, return_grad_x=False):
+    def forward(self, theta0, theta1, x, track_score=True, return_grad_x=False, create_gradient_graph=True):
 
         """ Calculates estimated log likelihood ratio and the derived score. """
 
@@ -155,10 +155,10 @@ class DoublyParameterizedRatioEstimator(nn.Module):
         if track_score:
             t_hat0 = grad(log_r_hat, theta0,
                           grad_outputs=torch.ones_like(log_r_hat.data),
-                          only_inputs=True, create_graph=True)[0]
+                          only_inputs=True, create_graph=create_gradient_graph)[0]
             t_hat1 = grad(log_r_hat, theta1,
                           grad_outputs=torch.ones_like(log_r_hat.data),
-                          only_inputs=True, create_graph=True)[0]
+                          only_inputs=True, create_graph=create_gradient_graph)[0]
             # NOTE: this is a factor of 4 slower than the simple parameterized version (2 gradients * 2 times
             #       slower calculation each)
         else:
@@ -169,7 +169,7 @@ class DoublyParameterizedRatioEstimator(nn.Module):
         if return_grad_x:
             x_gradient = grad(log_r_hat, x,
                           grad_outputs=torch.ones_like(log_r_hat.data),
-                          only_inputs=True, create_graph=True)[0]
+                          only_inputs=True, create_graph=create_gradient_graph)[0]
 
             return s_hat, log_r_hat, t_hat0, t_hat1, x_gradient
 

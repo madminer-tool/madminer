@@ -333,6 +333,8 @@ class MLForge:
         if method in ["nde", "scandal"]:
             assert nde_type in ["maf", "mafmog"]
 
+        calculate_model_score = method in ["rascal", "cascal", "alices", "scandal", "rascal2", "cascal2", "alices2"]
+
         # Infer dimensions of problem
         n_samples = x.shape[0]
         n_observables = x.shape[1]
@@ -560,6 +562,7 @@ class MLForge:
                 r_xzs=r_xz,
                 t_xz0s=t_xz0,
                 t_xz1s=t_xz1,
+                calculate_model_score=calculate_model_score,
                 batch_size=batch_size,
                 n_epochs=n_epochs,
                 initial_learning_rate=initial_lr,
