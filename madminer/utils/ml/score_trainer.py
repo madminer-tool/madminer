@@ -1,13 +1,13 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import numpy as np
+import logging
 import torch
 from torch import tensor
 import torch.optim as optim
 from torch.utils.data import TensorDataset, DataLoader
 from torch.utils.data.sampler import SubsetRandomSampler
 from torch.nn.utils import clip_grad_norm_
-import logging
 
 logger = logging.getLogger(__name__)
 
