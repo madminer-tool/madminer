@@ -50,8 +50,9 @@ def train_ratio_model(
     device = torch.device("cuda" if run_on_gpu else "cpu")
     dtype = torch.double if double_precision else torch.float
 
-    logger.debug("Training on %s with %s precision", "GPU" if run_on_gpu else "CPU",
-                 "double" if double_precision else "single")
+    logger.debug(
+        "Training on %s with %s precision", "GPU" if run_on_gpu else "CPU", "double" if double_precision else "single"
+    )
 
     # Move model to device
     model = model.to(device, dtype)
@@ -225,10 +226,14 @@ def train_ratio_model(
                     raise ValueError("Unknown method type {}".format(method_type))
             else:
                 if method_type == "parameterized":
-                    s_hat, log_r_hat, t_hat0, x_gradient = model(theta0, x, track_score=calculate_model_score, return_grad_x=True)
+                    s_hat, log_r_hat, t_hat0, x_gradient = model(
+                        theta0, x, track_score=calculate_model_score, return_grad_x=True
+                    )
                     t_hat1 = None
                 elif method_type == "doubly_parameterized":
-                    s_hat, log_r_hat, t_hat0, t_hat1, x_gradient = model(theta0, theta1, x, track_score=calculate_model_score, return_grad_x=True)
+                    s_hat, log_r_hat, t_hat0, t_hat1, x_gradient = model(
+                        theta0, theta1, x, track_score=calculate_model_score, return_grad_x=True
+                    )
                 else:
                     raise ValueError("Unknown method type {}".format(method_type))
 
@@ -320,10 +325,14 @@ def train_ratio_model(
 
             # Evaluate loss
             if method_type == "parameterized":
-                s_hat, log_r_hat, t_hat0 = model(theta0, x, track_score=calculate_model_score, create_gradient_graph=False)
+                s_hat, log_r_hat, t_hat0 = model(
+                    theta0, x, track_score=calculate_model_score, create_gradient_graph=False
+                )
                 t_hat1 = None
             elif method_type == "doubly_parameterized":
-                s_hat, log_r_hat, t_hat0, t_hat1 = model(theta0, theta1, x, track_score=calculate_model_score, create_gradient_graph=False)
+                s_hat, log_r_hat, t_hat0, t_hat1 = model(
+                    theta0, theta1, x, track_score=calculate_model_score, create_gradient_graph=False
+                )
             else:
                 raise ValueError("Unknown method type %s", method_type)
 
@@ -503,16 +512,22 @@ def evaluate_ratio_model(
 
         if method_type == "parameterized":
             if return_grad_x:
-                s_hat, log_r_hat, t_hat0, x_gradients = model(theta0s, xs, return_grad_x=True, track_score=evaluate_score, create_gradient_graph=False)
+                s_hat, log_r_hat, t_hat0, x_gradients = model(
+                    theta0s, xs, return_grad_x=True, track_score=evaluate_score, create_gradient_graph=False
+                )
             else:
                 s_hat, log_r_hat, t_hat0 = model(theta0s, xs, track_score=evaluate_score, create_gradient_graph=False)
                 x_gradients = None
             t_hat1 = None
         elif method_type == "doubly_parameterized":
             if return_grad_x:
-                s_hat, log_r_hat, t_hat0, t_hat1, x_gradients = model(theta0s, theta1s, xs, return_grad_x=True, track_score=evaluate_score, create_gradient_graph=False)
+                s_hat, log_r_hat, t_hat0, t_hat1, x_gradients = model(
+                    theta0s, theta1s, xs, return_grad_x=True, track_score=evaluate_score, create_gradient_graph=False
+                )
             else:
-                s_hat, log_r_hat, t_hat0, t_hat1 = model(theta0s, theta1s, xs, track_score=evaluate_score, create_gradient_graph=False)
+                s_hat, log_r_hat, t_hat0, t_hat1 = model(
+                    theta0s, theta1s, xs, track_score=evaluate_score, create_gradient_graph=False
+                )
                 x_gradients = None
         else:
             raise ValueError("Unknown method type %s", method_type)

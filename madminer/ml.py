@@ -347,7 +347,7 @@ class MLForge:
 
         # Limit sample size
         if limit_samplesize is not None and limit_samplesize < n_samples:
-            logger.info('Only using %s of %s training samples', limit_samplesize, n_samples)
+            logger.info("Only using %s of %s training samples", limit_samplesize, n_samples)
 
             x = x[:limit_samplesize]
             if theta0 is not None:

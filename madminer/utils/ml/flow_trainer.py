@@ -70,8 +70,9 @@ def train_flow_model(
     device = torch.device("cuda" if run_on_gpu else "cpu")
     dtype = torch.double if double_precision else torch.float
 
-    logger.debug("Training on %s with %s precision", "GPU" if run_on_gpu else "CPU",
-                 "double" if double_precision else "single")
+    logger.debug(
+        "Training on %s with %s precision", "GPU" if run_on_gpu else "CPU", "double" if double_precision else "single"
+    )
 
     # Move model to device
     model = model.to(device, dtype)

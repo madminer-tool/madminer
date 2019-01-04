@@ -62,17 +62,17 @@ class ParameterizedRatioEstimator(nn.Module):
 
         # Score t
         if track_score:
-            t_hat = grad(log_r_hat, theta,
+            t_hat, = grad(log_r_hat, theta,
                          grad_outputs=torch.ones_like(log_r_hat.data),
-                         only_inputs=True, create_graph=create_gradient_graph)[0]
+                         only_inputs=True, create_graph=create_gradient_graph)
         else:
             t_hat = None
 
         # Calculate gradient wrt x
         if return_grad_x:
-            x_gradient = grad(log_r_hat, x,
+            x_gradient, = grad(log_r_hat, x,
                           grad_outputs=torch.ones_like(log_r_hat.data),
-                          only_inputs=True, create_graph=create_gradient_graph)[0]
+                          only_inputs=True, create_graph=create_gradient_graph)
 
             return s_hat, log_r_hat, t_hat, x_gradient
 
@@ -153,12 +153,12 @@ class DoublyParameterizedRatioEstimator(nn.Module):
 
         # Score t
         if track_score:
-            t_hat0 = grad(log_r_hat, theta0,
+            t_hat0,  = grad(log_r_hat, theta0,
                           grad_outputs=torch.ones_like(log_r_hat.data),
-                          only_inputs=True, create_graph=create_gradient_graph)[0]
-            t_hat1 = grad(log_r_hat, theta1,
+                          only_inputs=True, create_graph=create_gradient_graph)
+            t_hat1,  = grad(log_r_hat, theta1,
                           grad_outputs=torch.ones_like(log_r_hat.data),
-                          only_inputs=True, create_graph=create_gradient_graph)[0]
+                          only_inputs=True, create_graph=create_gradient_graph)
             # NOTE: this is a factor of 4 slower than the simple parameterized version (2 gradients * 2 times
             #       slower calculation each)
         else:
@@ -167,9 +167,9 @@ class DoublyParameterizedRatioEstimator(nn.Module):
 
         # Calculate gradient wrt x
         if return_grad_x:
-            x_gradient = grad(log_r_hat, x,
+            x_gradient,  = grad(log_r_hat, x,
                           grad_outputs=torch.ones_like(log_r_hat.data),
-                          only_inputs=True, create_graph=create_gradient_graph)[0]
+                          only_inputs=True, create_graph=create_gradient_graph)
 
             return s_hat, log_r_hat, t_hat0, t_hat1, x_gradient
 
