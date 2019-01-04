@@ -58,7 +58,7 @@ def train_ratio_model(
 
     # Whether we need to calculate the score of the surrogate model
     if calculate_model_score == "auto":
-        calculate_model_score = not (theta0s is None and theta1s is None)
+        calculate_model_score = not (t_xz0s is None and t_xz1s is None)
 
     if calculate_model_score:
         logger.debug("Model score will be calculated")
