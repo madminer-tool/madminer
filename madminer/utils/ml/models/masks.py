@@ -36,36 +36,36 @@ def create_degrees(n_inputs, n_hiddens, input_order, mode):
     # create degrees for inputs
     if isinstance(input_order, str):
 
-        if input_order == 'random':
+        if input_order == "random":
             degrees_0 = np.arange(1, n_inputs + 1)
             rng.shuffle(degrees_0)
 
-        elif input_order == 'sequential':
+        elif input_order == "sequential":
             degrees_0 = np.arange(1, n_inputs + 1)
 
         else:
-            raise ValueError('invalid input order')
+            raise ValueError("invalid input order")
 
     else:
         input_order = np.array(input_order)
-        assert np.all(np.sort(input_order) == np.arange(1, n_inputs + 1)), 'invalid input order'
+        assert np.all(np.sort(input_order) == np.arange(1, n_inputs + 1)), "invalid input order"
         degrees_0 = input_order
     degrees.append(degrees_0)
 
     # create degrees for hiddens
-    if mode == 'random':
+    if mode == "random":
         for n in n_hiddens:
             min_prev_degree = min(np.min(degrees[-1]), n_inputs - 1)
             degrees_l = rng.randint(min_prev_degree, n_inputs, n)
             degrees.append(degrees_l)
 
-    elif mode == 'sequential':
+    elif mode == "sequential":
         for n in n_hiddens:
             degrees_l = np.arange(n) % max(1, n_inputs - 1) + min(1, n_inputs - 1)
             degrees.append(degrees_l)
 
     else:
-        raise ValueError('invalid mode')
+        raise ValueError("invalid mode")
 
     return degrees
 

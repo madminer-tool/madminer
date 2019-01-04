@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 class GaussianMADE(BaseFlow):
     """ """
 
-    def __init__(self, n_inputs, n_hiddens, activation='relu', input_order='sequential', mode='sequential'):
+    def __init__(self, n_inputs, n_hiddens, activation="relu", input_order="sequential", mode="sequential"):
         super(GaussianMADE, self).__init__(n_inputs)
 
         # save input arguments
@@ -64,14 +64,11 @@ class GaussianMADE(BaseFlow):
             try:
                 h = self.activation_function(F.linear(h, torch.t(M * W), b))
             except (RuntimeError, AttributeError):
-                logger.error('Abort! Abort!')
-                logger.info('MADE settings: n_inputs = %s', self.n_inputs)
-                logger.info('Shapes: x %s, h %s, M %s, W %s, b %s',
-                             x.shape, h.shape, M.shape, W.shape, b.shape)
-                logger.info('Types: x %s, h %s, M %s, W %s, b %s',
-                             type(x), type(h), type(M), type(W), type(b))
-                logger.info('CUDA: x %s, h %s, M %s, W %s, b %s',
-                             x.is_cuda, h.is_cuda, M.is_cuda, W.is_cuda, b.is_cuda)
+                logger.error("Abort! Abort!")
+                logger.info("MADE settings: n_inputs = %s", self.n_inputs)
+                logger.info("Shapes: x %s, h %s, M %s, W %s, b %s", x.shape, h.shape, M.shape, W.shape, b.shape)
+                logger.info("Types: x %s, h %s, M %s, W %s, b %s", type(x), type(h), type(M), type(W), type(b))
+                logger.info("CUDA: x %s, h %s, M %s, W %s, b %s", x.is_cuda, h.is_cuda, M.is_cuda, W.is_cuda, b.is_cuda)
                 raise
 
         # Gaussian parameters
@@ -119,9 +116,9 @@ class GaussianMADE(BaseFlow):
             if self.to_args is not None or self.to_kwargs is not None:
                 mask = mask.to(*self.to_args, **self.to_kwargs)
 
-            mask[:, idx] = 1.
+            mask[:, idx] = 1.0
 
-            x = (1. - mask) * x + mask * (self.m + torch.exp(torch.clamp(-0.5 * self.logp, -10., 10.)) * u)
+            x = (1.0 - mask) * x + mask * (self.m + torch.exp(torch.clamp(-0.5 * self.logp, -10.0, 10.0)) * u)
 
         return x
 
@@ -160,8 +157,10 @@ class GaussianMADE(BaseFlow):
 
 class ConditionalGaussianMADE(BaseConditionalFlow):
     """ """
-    def __init__(self, n_conditionals, n_inputs, n_hiddens, activation='relu', input_order='sequential',
-                 mode='sequential'):
+
+    def __init__(
+        self, n_conditionals, n_inputs, n_hiddens, activation="relu", input_order="sequential", mode="sequential"
+    ):
         super(ConditionalGaussianMADE, self).__init__(n_conditionals, n_inputs)
 
         # save input arguments
@@ -174,9 +173,9 @@ class ConditionalGaussianMADE(BaseConditionalFlow):
         # create network's parameters
         self.degrees = create_degrees(n_inputs, n_hiddens, input_order, mode)
         self.Ms, self.Mmp = create_masks(self.degrees)
-        self.Wx, self.Ws, self.bs, self.Wm, self.bm, self.Wp, self.bp = create_weights_conditional(n_conditionals,
-                                                                                                   n_inputs,
-                                                                                                   n_hiddens, None)
+        self.Wx, self.Ws, self.bs, self.Wm, self.bm, self.Wp, self.bp = create_weights_conditional(
+            n_conditionals, n_inputs, n_hiddens, None
+        )
         self.input_order = self.degrees[0]
 
         self.activation_function = get_activation_function(activation)
@@ -208,17 +207,38 @@ class ConditionalGaussianMADE(BaseConditionalFlow):
         # Conditioner
         try:
             h = self.activation_function(
-                F.linear(theta, torch.t(self.Wx)) + F.linear(x, torch.t(self.Ms[0] * self.Ws[0]), self.bs[0]))
+                F.linear(theta, torch.t(self.Wx)) + F.linear(x, torch.t(self.Ms[0] * self.Ws[0]), self.bs[0])
+            )
         except RuntimeError:
-            logger.error('Abort! Abort!')
-            logger.info('MADE settings: n_inputs = %s, n_conditionals = %s', self.n_inputs, self.n_conditionals)
-            logger.info('Shapes: theta %s, Wx %s, x %s, Ms %s, Ws %s, bs %s',
-                         theta.shape, self.Wx.shape, x.shape, self.Ms[0].shape, self.Ws[0].shape, self.bs[0].shape)
-            logger.info('Types: theta %s, Wx %s, x %s, Ms %s, Ws %s, bs %s',
-                         type(theta), type(self.Wx), type(x), type(self.Ms[0]), type(self.Ws[0]), type(self.bs[0]))
-            logger.info('CUDA: theta %s, Wx %s, x %s, Ms %s, Ws %s, bs %s',
-                         theta.is_cuda, self.Wx.is_cuda, x.is_cuda, self.Ms[0].is_cuda, self.Ws[0].is_cuda,
-                         self.bs[0].is_cuda)
+            logger.error("Abort! Abort!")
+            logger.info("MADE settings: n_inputs = %s, n_conditionals = %s", self.n_inputs, self.n_conditionals)
+            logger.info(
+                "Shapes: theta %s, Wx %s, x %s, Ms %s, Ws %s, bs %s",
+                theta.shape,
+                self.Wx.shape,
+                x.shape,
+                self.Ms[0].shape,
+                self.Ws[0].shape,
+                self.bs[0].shape,
+            )
+            logger.info(
+                "Types: theta %s, Wx %s, x %s, Ms %s, Ws %s, bs %s",
+                type(theta),
+                type(self.Wx),
+                type(x),
+                type(self.Ms[0]),
+                type(self.Ws[0]),
+                type(self.bs[0]),
+            )
+            logger.info(
+                "CUDA: theta %s, Wx %s, x %s, Ms %s, Ws %s, bs %s",
+                theta.is_cuda,
+                self.Wx.is_cuda,
+                x.is_cuda,
+                self.Ms[0].is_cuda,
+                self.Ws[0].is_cuda,
+                self.bs[0].is_cuda,
+            )
             raise
 
         for M, W, b in zip(self.Ms[1:], self.Ws[1:], self.bs[1:]):
@@ -271,9 +291,9 @@ class ConditionalGaussianMADE(BaseConditionalFlow):
             if self.to_args is not None or self.to_kwargs is not None:
                 mask = mask.to(*self.to_args, **self.to_kwargs)
 
-            mask[:, idx] = 1.
+            mask[:, idx] = 1.0
 
-            x = (1. - mask) * x + mask * (self.m + torch.exp(torch.clamp(-0.5 * self.logp, -10., 10.)) * u)
+            x = (1.0 - mask) * x + mask * (self.m + torch.exp(torch.clamp(-0.5 * self.logp, -10.0, 10.0)) * u)
 
         return x
 

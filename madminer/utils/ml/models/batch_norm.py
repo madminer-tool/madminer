@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 class BatchNorm(BaseFlow):
     """BatchNorm implementation"""
 
-    def __init__(self, n_inputs, alpha=0.1, eps=1.e-5):
+    def __init__(self, n_inputs, alpha=0.1, eps=1.0e-5):
 
         super(BatchNorm, self).__init__(n_inputs)
 
@@ -43,15 +43,15 @@ class BatchNorm(BaseFlow):
                 self.running_mean = mean
                 self.running_var = var
             else:
-                self.running_mean = (1. - self.alpha) * self.running_mean + self.alpha * mean
-                self.running_var = (1. - self.alpha) * self.running_var + self.alpha * var
+                self.running_mean = (1.0 - self.alpha) * self.running_mean + self.alpha * mean
+                self.running_var = (1.0 - self.alpha) * self.running_var + self.alpha * var
                 self.calculated_running_mean = True
 
         # transformation
         u = (x - mean) / torch.sqrt(var)
 
         # log det du / dx
-        logdet = - 0.5 * torch.sum(torch.log(var))
+        logdet = -0.5 * torch.sum(torch.log(var))
 
         return u, logdet
 
@@ -72,7 +72,7 @@ class BatchNorm(BaseFlow):
         return x
 
     def to(self, *args, **kwargs):
-        logger.debug('Transforming BatchNorm to %s', args)
+        logger.debug("Transforming BatchNorm to %s", args)
 
         self = super().to(*args, **kwargs)
 

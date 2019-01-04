@@ -13,8 +13,18 @@ logger = logging.getLogger(__name__)
 
 class MaskedAutoregressiveFlow(BaseFlow):
     """ """
-    def __init__(self, n_inputs, n_hiddens, n_mades, activation='relu', batch_norm=True,
-                 input_order='sequential', mode='sequential', alpha=0.1):
+
+    def __init__(
+        self,
+        n_inputs,
+        n_hiddens,
+        n_mades,
+        activation="relu",
+        batch_norm=True,
+        input_order="sequential",
+        mode="sequential",
+        alpha=0.1,
+    ):
 
         super(MaskedAutoregressiveFlow, self).__init__(n_inputs)
 
@@ -36,7 +46,7 @@ class MaskedAutoregressiveFlow(BaseFlow):
         for i in range(n_mades):
             made = GaussianMADE(n_inputs, n_hiddens, activation=activation, input_order=input_order, mode=mode)
             self.mades.append(made)
-            if not (isinstance(input_order, str) and input_order == 'random'):
+            if not (isinstance(input_order, str) and input_order == "random"):
                 input_order = made.input_order[::-1]
 
         # Batch normalization
@@ -107,8 +117,19 @@ class MaskedAutoregressiveFlow(BaseFlow):
 
 class ConditionalMaskedAutoregressiveFlow(BaseConditionalFlow):
     """ """
-    def __init__(self, n_conditionals, n_inputs, n_hiddens, n_mades, activation='relu', batch_norm=True,
-                 input_order='sequential', mode='sequential', alpha=0.1):
+
+    def __init__(
+        self,
+        n_conditionals,
+        n_inputs,
+        n_hiddens,
+        n_mades,
+        activation="relu",
+        batch_norm=True,
+        input_order="sequential",
+        mode="sequential",
+        alpha=0.1,
+    ):
 
         super(ConditionalMaskedAutoregressiveFlow, self).__init__(n_conditionals, n_inputs)
 
@@ -129,10 +150,11 @@ class ConditionalMaskedAutoregressiveFlow(BaseConditionalFlow):
         # Build MADEs
         self.mades = nn.ModuleList()
         for i in range(n_mades):
-            made = ConditionalGaussianMADE(n_conditionals, n_inputs, n_hiddens, activation=activation,
-                                           input_order=input_order, mode=mode)
+            made = ConditionalGaussianMADE(
+                n_conditionals, n_inputs, n_hiddens, activation=activation, input_order=input_order, mode=mode
+            )
             self.mades.append(made)
-            if not (isinstance(input_order, str) and input_order != 'random'):
+            if not (isinstance(input_order, str) and input_order != "random"):
                 input_order = made.input_order[::-1]
 
         # Batch normalizatino
@@ -160,12 +182,12 @@ class ConditionalMaskedAutoregressiveFlow(BaseConditionalFlow):
 
         """
         if x.shape[1] != self.n_inputs:
-            logger.error('x has wrong shape: %s', x.shape)
-            logger.debug('theta shape: %s', theta.shape)
-            logger.debug('theta content: %s', theta)
-            logger.debug('x content: %s', x)
+            logger.error("x has wrong shape: %s", x.shape)
+            logger.debug("theta shape: %s", theta.shape)
+            logger.debug("theta content: %s", theta)
+            logger.debug("x content: %s", x)
 
-            raise ValueError('Wrong x shape')
+            raise ValueError("Wrong x shape")
 
         # Change batch norm means only while training
         if fix_batch_norm is None:

@@ -25,7 +25,7 @@ class BaseFlow(nn.Module):
 
         u, logdet_dudx = self.forward(x, **kwargs)
 
-        constant = float(- 0.5 * self.n_inputs * np.log(2. * np.pi))
+        constant = float(-0.5 * self.n_inputs * np.log(2.0 * np.pi))
         log_likelihood = constant - 0.5 * torch.sum(u ** 2, dim=1) + logdet_dudx
 
         return u, log_likelihood
@@ -56,7 +56,7 @@ class BaseConditionalFlow(nn.Module):
 
         u, logdet_dudx = self.forward(theta, x, **kwargs)
 
-        constant = float(- 0.5 * self.n_inputs * np.log(2. * np.pi))
+        constant = float(-0.5 * self.n_inputs * np.log(2.0 * np.pi))
         log_likelihood = constant - 0.5 * torch.sum(u ** 2, dim=1) + logdet_dudx
 
         return u, log_likelihood
@@ -72,8 +72,12 @@ class BaseConditionalFlow(nn.Module):
 
         u, log_likelihood = self.log_likelihood(theta, x, **kwargs)
 
-        score = grad(log_likelihood, theta,
-                     grad_outputs=torch.ones_like(log_likelihood.data),
-                     only_inputs=True, create_graph=True)[0]
+        score = grad(
+            log_likelihood,
+            theta,
+            grad_outputs=torch.ones_like(log_likelihood.data),
+            only_inputs=True,
+            create_graph=True,
+        )[0]
 
         return u, log_likelihood, score

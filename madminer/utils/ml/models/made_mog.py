@@ -15,9 +15,17 @@ logger = logging.getLogger(__name__)
 
 class ConditionalMixtureMADE(BaseConditionalFlow):
     """ """
-    def __init__(self, n_conditionals, n_inputs, n_hiddens, n_components=10, activation='relu',
-                 input_order='sequential',
-                 mode='sequential'):
+
+    def __init__(
+        self,
+        n_conditionals,
+        n_inputs,
+        n_hiddens,
+        n_components=10,
+        activation="relu",
+        input_order="sequential",
+        mode="sequential",
+    ):
         super(ConditionalMixtureMADE, self).__init__(n_conditionals, n_inputs)
 
         # save input arguments
@@ -31,13 +39,9 @@ class ConditionalMixtureMADE(BaseConditionalFlow):
         # create network's parameters
         self.degrees = create_degrees(n_inputs, n_hiddens, input_order, mode)
         self.Ms, self.Mmp = create_masks(self.degrees)
-        logger.debug('Mmp shape: %s', self.Mmp.shape)
-        (self.Wx, self.Ws, self.bs, self.Wm, self.bm, self.Wp, self.bp, self.Wa,
-         self.ba) = create_weights_conditional(
-            n_conditionals,
-            n_inputs,
-            n_hiddens,
-            n_components
+        logger.debug("Mmp shape: %s", self.Mmp.shape)
+        (self.Wx, self.Ws, self.bs, self.Wm, self.bm, self.Wp, self.bp, self.Wa, self.ba) = create_weights_conditional(
+            n_conditionals, n_inputs, n_hiddens, n_components
         )
         self.input_order = self.degrees[0]
 
@@ -77,19 +81,47 @@ class ConditionalMixtureMADE(BaseConditionalFlow):
         # Conditioner
         try:
             h = self.activation_function(
-                F.linear(theta, torch.t(self.Wx)) + F.linear(x, torch.t(self.Ms[0] * self.Ws[0]), self.bs[0]))
+                F.linear(theta, torch.t(self.Wx)) + F.linear(x, torch.t(self.Ms[0] * self.Ws[0]), self.bs[0])
+            )
         except RuntimeError:
-            logger.error('Abort! Abort!')
-            logger.info('MADE settings: n_inputs = %s, n_conditionals = %s', self.n_inputs, self.n_conditionals)
-            logger.info('Shapes: theta %s, Wx %s, x %s, Ms %s, Ws %s, bs %s',
-                         theta.shape, self.Wx.shape, x.shape, self.Ms[0].shape, self.Ws[0].shape, self.bs[0].shape)
-            logger.info('dtypes: theta %s, Wx %s, x %s, Ms %s, Ws %s, bs %s',
-                         theta.dtype, self.Wx.dtype, x.dtype, self.Ms[0].dtype, self.Ws[0].dtype, self.bs[0].dtype)
-            logger.info('Types: theta %s, Wx %s, x %s, Ms %s, Ws %s, bs %s',
-                         type(theta), type(self.Wx), type(x), type(self.Ms[0]), type(self.Ws[0]), type(self.bs[0]))
-            logger.info('CUDA: theta %s, Wx %s, x %s, Ms %s, Ws %s, bs %s',
-                         theta.is_cuda, self.Wx.is_cuda, x.is_cuda, self.Ms[0].is_cuda, self.Ws[0].is_cuda,
-                         self.bs[0].is_cuda)
+            logger.error("Abort! Abort!")
+            logger.info("MADE settings: n_inputs = %s, n_conditionals = %s", self.n_inputs, self.n_conditionals)
+            logger.info(
+                "Shapes: theta %s, Wx %s, x %s, Ms %s, Ws %s, bs %s",
+                theta.shape,
+                self.Wx.shape,
+                x.shape,
+                self.Ms[0].shape,
+                self.Ws[0].shape,
+                self.bs[0].shape,
+            )
+            logger.info(
+                "dtypes: theta %s, Wx %s, x %s, Ms %s, Ws %s, bs %s",
+                theta.dtype,
+                self.Wx.dtype,
+                x.dtype,
+                self.Ms[0].dtype,
+                self.Ws[0].dtype,
+                self.bs[0].dtype,
+            )
+            logger.info(
+                "Types: theta %s, Wx %s, x %s, Ms %s, Ws %s, bs %s",
+                type(theta),
+                type(self.Wx),
+                type(x),
+                type(self.Ms[0]),
+                type(self.Ws[0]),
+                type(self.bs[0]),
+            )
+            logger.info(
+                "CUDA: theta %s, Wx %s, x %s, Ms %s, Ws %s, bs %s",
+                theta.is_cuda,
+                self.Wx.is_cuda,
+                x.is_cuda,
+                self.Ms[0].is_cuda,
+                self.Ws[0].is_cuda,
+                self.bs[0].is_cuda,
+            )
             raise
 
         for M, W, b in zip(self.Ms[1:], self.Ws[1:], self.bs[1:]):
@@ -123,7 +155,7 @@ class ConditionalMixtureMADE(BaseConditionalFlow):
 
         u, logdet_dudx, log_a = self.forward(theta, x, **kwargs)
 
-        constant = float(- 0.5 * self.n_inputs * np.log(2. * np.pi))
+        constant = float(-0.5 * self.n_inputs * np.log(2.0 * np.pi))
         # log_likelihood = torch.log(torch.sum(torch.exp(log_a - 0.5 * u ** 2 + logdet_dudx), dim=2))
         log_likelihood = torch.logsumexp(log_a - 0.5 * u ** 2 + logdet_dudx, dim=2)
         log_likelihood = constant + torch.sum(log_likelihood, dim=1)
@@ -151,7 +183,7 @@ class ConditionalMixtureMADE(BaseConditionalFlow):
                 mask = torch.zeros([n_samples, self.n_inputs])
                 if self.to_args is not None or self.to_kwargs is not None:
                     mask = mask.to(*self.to_args, **self.to_kwargs)
-                mask[i_sample, ix] = 1.
+                mask[i_sample, ix] = 1.0
 
                 # Mixture component
                 p_components = np.exp(self.loga[i_sample, ix].detach().numpy())
@@ -159,8 +191,9 @@ class ConditionalMixtureMADE(BaseConditionalFlow):
                 r = np.random.rand(1)
                 c = np.sum((r > cum_p_components).astype(int))
 
-                x = ((1. - mask) * x
-                     + mask * (self.m[:, :, c] + torch.exp(torch.clamp(-0.5 * self.logp[:, :, c], -10., 10.)) * u))
+                x = (1.0 - mask) * x + mask * (
+                    self.m[:, :, c] + torch.exp(torch.clamp(-0.5 * self.logp[:, :, c], -10.0, 10.0)) * u
+                )
 
         return x
 
