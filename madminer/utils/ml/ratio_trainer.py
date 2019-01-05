@@ -43,6 +43,7 @@ def train_ratio_model(
     grad_x_regularization=None,
     learning_curve_folder=None,
     learning_curve_filename=None,
+    return_first_loss=False,
     verbose="some",
 ):
     # CPU or GPU?
@@ -73,19 +74,26 @@ def train_ratio_model(
 
     # Convert to Tensor
     if theta0s is not None:
-        data.append(torch.stack([tensor(i, requires_grad=calculate_model_score) for i in theta0s]))
+        # data.append(torch.stack([tensor(i, requires_grad=calculate_model_score) for i in theta0s]))
+        data.append(torch.from_numpy(theta0s, requires_grad=calculate_model_score))
     if theta1s is not None:
-        data.append(torch.stack([tensor(i, requires_grad=calculate_model_score) for i in theta1s]))
+        # data.append(torch.stack([tensor(i, requires_grad=calculate_model_score) for i in theta1s]))
+        data.append(torch.from_numpy(theta1s, requires_grad=calculate_model_score))
     if xs is not None:
-        data.append(torch.stack([tensor(i) for i in xs]))
+        # data.append(torch.stack([tensor(i) for i in xs]))
+        data.append(torch.from_numpy(xs))
     if ys is not None:
-        data.append(torch.stack([tensor(i) for i in ys]))
+        # data.append(torch.stack([tensor(i) for i in ys]))
+        data.append(torch.from_numpy(ys))
     if r_xzs is not None:
-        data.append(torch.stack([tensor(i) for i in r_xzs]))
+        # data.append(torch.stack([tensor(i) for i in r_xzs]))
+        data.append(torch.from_numpy(r_xzs))
     if t_xz0s is not None:
-        data.append(torch.stack([tensor(i) for i in t_xz0s]))
+        # data.append(torch.stack([tensor(i) for i in t_xz0s]))
+        data.append(torch.from_numpy(t_xz0s))
     if t_xz1s is not None:
-        data.append(torch.stack([tensor(i) for i in t_xz1s]))
+        # data.append(torch.stack([tensor(i) for i in t_xz1s]))
+        data.append(torch.from_numpy(t_xz1s))
 
     # Dataset
     dataset = TensorDataset(*data)
@@ -252,6 +260,17 @@ def train_ratio_model(
             for i, individual_loss in enumerate(losses):
                 individual_train_loss[i] += individual_loss.item()
             total_train_loss += loss.item()
+
+            # For debugging, perhaps stop here
+            if return_first_loss:
+                logger.info("As requested, cancelling training and returning first loss")
+                params = dict(model.named_parameters())
+
+                if theta0s is not None:
+                    params["theta0"] = data[0]
+                if theta1s is not None:
+                    params["theta1"] = data[1]
+                return loss, params
 
             # Calculate gradient and update optimizer
             loss.backward()

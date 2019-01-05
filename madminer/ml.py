@@ -91,6 +91,7 @@ class MLForge:
         shuffle_labels=False,
         grad_x_regularization=None,
         limit_samplesize=None,
+        return_first_loss=False,
     ):
 
         """
@@ -229,6 +230,11 @@ class MLForge:
 
         limit_samplesize : int or None, optional
             If not None, only this number of samples (events) is used to train the estimator. Default value: None.
+
+        return_first_loss : bool, optional
+            If True, the training routine only proceeds until the loss is calculated for the first time, at which point
+            the loss tensor is returned. This can be useful for debugging or visualization purposes (but of course not
+            for training a model).
 
         Returns
         -------
@@ -509,7 +515,7 @@ class MLForge:
         logger.info("Training model")
 
         if method in ["sally", "sallino"]:
-            train_local_score_model(
+            result = train_local_score_model(
                 model=self.model,
                 loss_functions=loss_functions,
                 loss_weights=loss_weights,
@@ -526,9 +532,10 @@ class MLForge:
                 nesterov_momentum=nesterov_momentum,
                 verbose="all" if self.debug else "some",
                 grad_x_regularization=grad_x_regularization,
+                return_first_loss=return_first_loss,
             )
         elif method in ["nde", "scandal"]:
-            train_flow_model(
+            result = train_flow_model(
                 model=self.model,
                 loss_functions=loss_functions,
                 loss_weights=loss_weights,
@@ -536,6 +543,7 @@ class MLForge:
                 xs=x,
                 theta0s=theta0,
                 t_xz0s=t_xz0,
+                calculate_model_score=calculate_model_score,
                 batch_size=batch_size,
                 n_epochs=n_epochs,
                 initial_learning_rate=initial_lr,
@@ -546,9 +554,10 @@ class MLForge:
                 nesterov_momentum=nesterov_momentum,
                 verbose="all" if self.debug else "some",
                 grad_x_regularization=grad_x_regularization,
+                return_first_loss=return_first_loss,
             )
         else:
-            train_ratio_model(
+            result = train_ratio_model(
                 model=self.model,
                 method_type=self.method_type,
                 loss_functions=loss_functions,
@@ -572,7 +581,10 @@ class MLForge:
                 nesterov_momentum=nesterov_momentum,
                 verbose="all" if self.debug else "some",
                 grad_x_regularization=grad_x_regularization,
+                return_first_loss=return_first_loss,
             )
+
+        return result
 
     def evaluate(
         self,
