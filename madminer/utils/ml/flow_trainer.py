@@ -70,7 +70,7 @@ def train_flow_model(
     # Convert to Tensor
     if theta0s is not None:
         # data.append(torch.stack([tensor(i, requires_grad=calculate_model_score) for i in theta0s]))
-        data.append(torch.from_numpy(theta0s, requires_grad=calculate_model_score))
+        data.append(torch.tensor(theta0s, requires_grad=calculate_model_score))
     if xs is not None:
         # data.append(torch.stack([tensor(i) for i in xs]))
         data.append(torch.from_numpy(xs))
