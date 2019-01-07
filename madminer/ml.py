@@ -1371,12 +1371,17 @@ class EnsembleForge:
         return_individual_predictions=False,
     ):
         """
-        Calculates the expected Fisher information matrices for each estimator, and then returns the ensemble mean and
-        variance.
+        Calculates expected Fisher information matrices for an ensemble of SALLY estimators.
 
-        The user has the option to treat all estimators equally ('committee method') or to give those with expected
-        score / ratio close to zero (as calculated by `calculate_expectation()`) a higher weight. In the latter case,
-        the ensemble mean `I` is calculated as `I  =  sum_i w_i I_i` with weights
+        There are two ways of calculating the ensemble average. In the default "score" mode, the ensemble average for
+        the score is calculated for each event, and the Fisher information is calculated based on these mean scores. In
+        the "information" mode, the Fisher information is calculated for each estimator separately and the ensemble
+        mean is calculated only for the final Fisher information matrix. The "score" mode is more precise, but the
+        "information" mode provides access to the ensemble variance, which can serve as a notion of uncertainty.
+
+        In the "information" mode, the user has the option to treat all estimators equally ('committee method') or to
+        give those with expected score close to zero (as calculated by `calculate_expectation()`) a higher weight. In
+        this case, the ensemble mean `I` is calculated as `I  =  sum_i w_i I_i` with weights
         `w_i  =  exp(-vote_expectation_weight |E[t_i]|) / sum_j exp(-vote_expectation_weight |E[t_k]|)`. Here `I_i`
         are the individual estimators and `E[t_i]` is the expectation value calculated by `calculate_expectation()`.
 
