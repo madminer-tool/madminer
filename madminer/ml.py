@@ -1365,7 +1365,7 @@ class EnsembleForge:
         x,
         obs_weights=None,
         n_events=1,
-        mode="information",
+        mode="score",
         uncertainty="ensemble",
         vote_expectation_weight=None,
         return_individual_predictions=False,
@@ -1397,7 +1397,7 @@ class EnsembleForge:
             If mode is "information", the Fisher information for each estimator is calculated individually and only then
             are the sample mean and covariance calculated. If mode is "score", the sample mean and covariance are
             calculated for the score for each event, and the covariance is then propagated through to the final Fisher
-            information uncertainty (neglecting the correlation between events). Default value: "information".
+            information uncertainty (neglecting the correlation between events). Default value: "score".
 
         uncertainty : {"ensemble", "expectation", "sum"}, optional
             How the covariance matrix of the Fisher information estimate is calculate. With "ensemble", the ensemble
