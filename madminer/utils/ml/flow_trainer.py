@@ -1,6 +1,7 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import numpy as np
+import logging
 import torch
 from torch import tensor
 import torch.optim as optim
@@ -9,35 +10,8 @@ from torch.utils.data.sampler import SubsetRandomSampler
 from torch.nn.utils import clip_grad_norm_
 
 from madminer.utils.ml.utils import check_for_nans_in_parameters
-import logging
 
 logger = logging.getLogger(__name__)
-
-
-class SmallGoldDataset(torch.utils.data.Dataset):
-    """ """
-
-    def __init__(self, theta0=None, x=None, t_xz0=None):
-        self.n = theta0.shape[0]
-
-        placeholder = torch.stack([tensor([0.0]) for _ in range(self.n)])
-
-        assert x is not None
-        assert theta0 is not None
-
-        self.theta0 = theta0
-        self.x = x
-        self.t_xz0 = placeholder if t_xz0 is None else t_xz0
-
-        assert len(self.theta0) == self.n
-        assert len(self.x) == self.n
-        assert len(self.t_xz0) == self.n
-
-    def __getitem__(self, index):
-        return (self.theta0[index], self.x[index], self.t_xz0[index])
-
-    def __len__(self):
-        return self.n
 
 
 def train_flow_model(
@@ -48,7 +22,8 @@ def train_flow_model(
     t_xz0s=None,
     loss_weights=None,
     loss_labels=None,
-    batch_size=64,
+    calculate_model_score="auto",
+    batch_size=128,
     trainer="adam",
     initial_learning_rate=0.001,
     final_learning_rate=0.0001,
@@ -63,6 +38,7 @@ def train_flow_model(
     grad_x_regularization=None,
     learning_curve_folder=None,
     learning_curve_filename=None,
+    return_first_loss=False,
     verbose="some",
 ):
     # CPU or GPU?
@@ -70,11 +46,21 @@ def train_flow_model(
     device = torch.device("cuda" if run_on_gpu else "cpu")
     dtype = torch.double if double_precision else torch.float
 
-    logger.debug("Training on %s with %s precision", "GPU" if run_on_gpu else "CPU",
-                 "double" if double_precision else "single")
+    logger.debug(
+        "Training on %s with %s precision", "GPU" if run_on_gpu else "CPU", "double" if double_precision else "single"
+    )
 
     # Move model to device
     model = model.to(device, dtype)
+
+    # Whether we need to calculate the score of the surrogate model
+    if calculate_model_score == "auto":
+        calculate_model_score = not (t_xz0s is None and t_xz1s is None)
+
+    if calculate_model_score:
+        logger.debug("Model score will be calculated")
+    else:
+        logger.debug("Model score will not be calculated")
 
     # Prepare data
     logger.debug("Preparing data")
@@ -83,11 +69,14 @@ def train_flow_model(
 
     # Convert to Tensor
     if theta0s is not None:
-        data.append(torch.stack([tensor(i, requires_grad=True) for i in theta0s]))
+        # data.append(torch.stack([tensor(i, requires_grad=calculate_model_score) for i in theta0s]))
+        data.append(torch.tensor(theta0s, requires_grad=calculate_model_score))
     if xs is not None:
-        data.append(torch.stack([tensor(i) for i in xs]))
+        # data.append(torch.stack([tensor(i) for i in xs]))
+        data.append(torch.from_numpy(xs))
     if t_xz0s is not None:
-        data.append(torch.stack([tensor(i) for i in t_xz0s]))
+        # data.append(torch.stack([tensor(i) for i in t_xz0s]))
+        data.append(torch.from_numpy(t_xz0s))
 
     # Dataset
     dataset = TensorDataset(*data)
@@ -112,9 +101,9 @@ def train_flow_model(
     else:
         train_loader = DataLoader(dataset, batch_size=batch_size, shuffle=True, pin_memory=run_on_gpu)
 
+    # Optimizer
     logger.debug("Preparing optimizer %s", trainer)
 
-    # Optimizer
     if trainer == "adam":
         optimizer = optim.Adam(model.parameters(), lr=initial_learning_rate)
     elif trainer == "amsgrad":
@@ -215,6 +204,15 @@ def train_flow_model(
                 individual_train_loss[i] += individual_loss.item()
             total_train_loss += loss.item()
 
+            # For debugging, perhaps stop here
+            if return_first_loss:
+                logger.info("As requested, cancelling training and returning first loss")
+                params = dict(model.named_parameters())
+
+                if theta0s is not None:
+                    params["theta0"] = data[0]
+                return loss, params
+
             # Calculate gradient and update optimizer
             loss.backward()
 
@@ -275,7 +273,7 @@ def train_flow_model(
                 k += 1
 
             # Forward pass
-            if t_xz0 is not None:
+            if calculate_model_score:
                 _, log_likelihood, score = model.log_likelihood_and_score(theta0, x)
             else:
                 _, log_likelihood = model.log_likelihood(theta0, x)
@@ -402,27 +400,6 @@ def train_flow_model(
 
 
 def evaluate_flow_model(model, theta0s=None, xs=None, evaluate_score=False, run_on_gpu=True, double_precision=False):
-    """
-
-    Parameters
-    ----------
-    model :
-        
-    theta0s :
-         (Default value = None)
-    xs :
-         (Default value = None)
-    evaluate_score :
-         (Default value = False)
-    run_on_gpu :
-         (Default value = True)
-    double_precision :
-         (Default value = False)
-
-    Returns
-    -------
-
-    """
     # CPU or GPU?
     run_on_gpu = run_on_gpu and torch.cuda.is_available()
     device = torch.device("cuda" if run_on_gpu else "cpu")

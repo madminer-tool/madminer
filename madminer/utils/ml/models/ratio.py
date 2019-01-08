@@ -13,7 +13,7 @@ class ParameterizedRatioEstimator(nn.Module):
     """ Module that implements agnostic parameterized likelihood estimators such as RASCAL or ALICES. Only the
     numerator of the ratio is parameterized. """
 
-    def __init__(self, n_observables, n_parameters, n_hidden, activation='tanh'):
+    def __init__(self, n_observables, n_parameters, n_hidden, activation="tanh"):
 
         super(ParameterizedRatioEstimator, self).__init__()
 
@@ -27,15 +27,11 @@ class ParameterizedRatioEstimator(nn.Module):
 
         # Hidden layers
         for n_hidden_units in n_hidden:
-            self.layers.append(
-                nn.Linear(n_last, n_hidden_units)
-            )
+            self.layers.append(nn.Linear(n_last, n_hidden_units))
             n_last = n_hidden_units
 
         # Log r layer
-        self.layers.append(
-            nn.Linear(n_last, 1)
-        )
+        self.layers.append(nn.Linear(n_last, 1))
 
     def forward(self, theta, x, track_score=True, return_grad_x=False, create_gradient_graph=True):
 
@@ -58,21 +54,30 @@ class ParameterizedRatioEstimator(nn.Module):
             log_r_hat = layer(log_r_hat)
 
         # Bayes-optimal s
-        s_hat = 1. / (1. + torch.exp(log_r_hat))
+        s_hat = 1.0 / (1.0 + torch.exp(log_r_hat))
 
         # Score t
         if track_score:
-            t_hat = grad(log_r_hat, theta,
-                         grad_outputs=torch.ones_like(log_r_hat.data),
-                         only_inputs=True, create_graph=create_gradient_graph)[0]
+            t_hat, = grad(
+                log_r_hat,
+                theta,
+                grad_outputs=torch.ones_like(log_r_hat.data),
+                # grad_outputs=log_r_hat.data.new(log_r_hat.shape).fill_(1),
+                only_inputs=True,
+                create_graph=create_gradient_graph,
+            )
         else:
             t_hat = None
 
         # Calculate gradient wrt x
         if return_grad_x:
-            x_gradient = grad(log_r_hat, x,
-                          grad_outputs=torch.ones_like(log_r_hat.data),
-                          only_inputs=True, create_graph=create_gradient_graph)[0]
+            x_gradient, = grad(
+                log_r_hat,
+                x,
+                grad_outputs=torch.ones_like(log_r_hat.data),
+                only_inputs=True,
+                create_graph=create_gradient_graph,
+            )
 
             return s_hat, log_r_hat, t_hat, x_gradient
 
@@ -91,7 +96,7 @@ class DoublyParameterizedRatioEstimator(nn.Module):
     """ Module that implements agnostic parameterized likelihood estimators such as RASCAL or ALICES. Both
     numerator and denominator of the ratio are parameterized. """
 
-    def __init__(self, n_observables, n_parameters, n_hidden, activation='tanh'):
+    def __init__(self, n_observables, n_parameters, n_hidden, activation="tanh"):
 
         super(DoublyParameterizedRatioEstimator, self).__init__()
 
@@ -105,15 +110,11 @@ class DoublyParameterizedRatioEstimator(nn.Module):
 
         # Hidden layers
         for n_hidden_units in n_hidden:
-            self.layers.append(
-                nn.Linear(n_last, n_hidden_units)
-            )
+            self.layers.append(nn.Linear(n_last, n_hidden_units))
             n_last = n_hidden_units
 
         # Log r layer
-        self.layers.append(
-            nn.Linear(n_last, 1)
-        )
+        self.layers.append(nn.Linear(n_last, 1))
 
     def forward(self, theta0, theta1, x, track_score=True, return_grad_x=False, create_gradient_graph=True):
 
@@ -149,16 +150,24 @@ class DoublyParameterizedRatioEstimator(nn.Module):
         log_r_hat = f_th0_th1 - f_th1_th0
 
         # Bayes-optimal s
-        s_hat = 1. / (1. + torch.exp(log_r_hat))
+        s_hat = 1.0 / (1.0 + torch.exp(log_r_hat))
 
         # Score t
         if track_score:
-            t_hat0 = grad(log_r_hat, theta0,
-                          grad_outputs=torch.ones_like(log_r_hat.data),
-                          only_inputs=True, create_graph=create_gradient_graph)[0]
-            t_hat1 = grad(log_r_hat, theta1,
-                          grad_outputs=torch.ones_like(log_r_hat.data),
-                          only_inputs=True, create_graph=create_gradient_graph)[0]
+            t_hat0, = grad(
+                log_r_hat,
+                theta0,
+                grad_outputs=torch.ones_like(log_r_hat.data),
+                only_inputs=True,
+                create_graph=create_gradient_graph,
+            )
+            t_hat1, = grad(
+                log_r_hat,
+                theta1,
+                grad_outputs=torch.ones_like(log_r_hat.data),
+                only_inputs=True,
+                create_graph=create_gradient_graph,
+            )
             # NOTE: this is a factor of 4 slower than the simple parameterized version (2 gradients * 2 times
             #       slower calculation each)
         else:
@@ -167,9 +176,13 @@ class DoublyParameterizedRatioEstimator(nn.Module):
 
         # Calculate gradient wrt x
         if return_grad_x:
-            x_gradient = grad(log_r_hat, x,
-                          grad_outputs=torch.ones_like(log_r_hat.data),
-                          only_inputs=True, create_graph=create_gradient_graph)[0]
+            x_gradient, = grad(
+                log_r_hat,
+                x,
+                grad_outputs=torch.ones_like(log_r_hat.data),
+                only_inputs=True,
+                create_graph=create_gradient_graph,
+            )
 
             return s_hat, log_r_hat, t_hat0, t_hat1, x_gradient
 

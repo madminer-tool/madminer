@@ -43,6 +43,7 @@ def train_ratio_model(
     grad_x_regularization=None,
     learning_curve_folder=None,
     learning_curve_filename=None,
+    return_first_loss=False,
     verbose="some",
 ):
     # CPU or GPU?
@@ -50,8 +51,9 @@ def train_ratio_model(
     device = torch.device("cuda" if run_on_gpu else "cpu")
     dtype = torch.double if double_precision else torch.float
 
-    logger.debug("Training on %s with %s precision", "GPU" if run_on_gpu else "CPU",
-                 "double" if double_precision else "single")
+    logger.debug(
+        "Training on %s with %s precision", "GPU" if run_on_gpu else "CPU", "double" if double_precision else "single"
+    )
 
     # Move model to device
     model = model.to(device, dtype)
@@ -72,19 +74,26 @@ def train_ratio_model(
 
     # Convert to Tensor
     if theta0s is not None:
-        data.append(torch.stack([tensor(i, requires_grad=calculate_model_score) for i in theta0s]))
+        # data.append(torch.stack([tensor(i, requires_grad=calculate_model_score) for i in theta0s]))
+        data.append(torch.tensor(theta0s, requires_grad=calculate_model_score))
     if theta1s is not None:
-        data.append(torch.stack([tensor(i, requires_grad=calculate_model_score) for i in theta1s]))
+        # data.append(torch.stack([tensor(i, requires_grad=calculate_model_score) for i in theta1s]))
+        data.append(torch.tensor(theta1s, requires_grad=calculate_model_score))
     if xs is not None:
-        data.append(torch.stack([tensor(i) for i in xs]))
+        # data.append(torch.stack([tensor(i) for i in xs]))
+        data.append(torch.from_numpy(xs))
     if ys is not None:
-        data.append(torch.stack([tensor(i) for i in ys]))
+        # data.append(torch.stack([tensor(i) for i in ys]))
+        data.append(torch.from_numpy(ys))
     if r_xzs is not None:
-        data.append(torch.stack([tensor(i) for i in r_xzs]))
+        # data.append(torch.stack([tensor(i) for i in r_xzs]))
+        data.append(torch.from_numpy(r_xzs))
     if t_xz0s is not None:
-        data.append(torch.stack([tensor(i) for i in t_xz0s]))
+        # data.append(torch.stack([tensor(i) for i in t_xz0s]))
+        data.append(torch.from_numpy(t_xz0s))
     if t_xz1s is not None:
-        data.append(torch.stack([tensor(i) for i in t_xz1s]))
+        # data.append(torch.stack([tensor(i) for i in t_xz1s]))
+        data.append(torch.from_numpy(t_xz1s))
 
     # Dataset
     dataset = TensorDataset(*data)
@@ -225,10 +234,14 @@ def train_ratio_model(
                     raise ValueError("Unknown method type {}".format(method_type))
             else:
                 if method_type == "parameterized":
-                    s_hat, log_r_hat, t_hat0, x_gradient = model(theta0, x, track_score=calculate_model_score, return_grad_x=True)
+                    s_hat, log_r_hat, t_hat0, x_gradient = model(
+                        theta0, x, track_score=calculate_model_score, return_grad_x=True
+                    )
                     t_hat1 = None
                 elif method_type == "doubly_parameterized":
-                    s_hat, log_r_hat, t_hat0, t_hat1, x_gradient = model(theta0, theta1, x, track_score=calculate_model_score, return_grad_x=True)
+                    s_hat, log_r_hat, t_hat0, t_hat1, x_gradient = model(
+                        theta0, theta1, x, track_score=calculate_model_score, return_grad_x=True
+                    )
                 else:
                     raise ValueError("Unknown method type {}".format(method_type))
 
@@ -247,6 +260,17 @@ def train_ratio_model(
             for i, individual_loss in enumerate(losses):
                 individual_train_loss[i] += individual_loss.item()
             total_train_loss += loss.item()
+
+            # For debugging, perhaps stop here
+            if return_first_loss:
+                logger.info("As requested, cancelling training and returning first loss")
+                params = dict(model.named_parameters())
+
+                if theta0s is not None:
+                    params["theta0"] = data[0]
+                if theta1s is not None:
+                    params["theta1"] = data[1]
+                return loss, params
 
             # Calculate gradient and update optimizer
             loss.backward()
@@ -320,10 +344,14 @@ def train_ratio_model(
 
             # Evaluate loss
             if method_type == "parameterized":
-                s_hat, log_r_hat, t_hat0 = model(theta0, x, track_score=calculate_model_score, create_gradient_graph=False)
+                s_hat, log_r_hat, t_hat0 = model(
+                    theta0, x, track_score=calculate_model_score, create_gradient_graph=False
+                )
                 t_hat1 = None
             elif method_type == "doubly_parameterized":
-                s_hat, log_r_hat, t_hat0, t_hat1 = model(theta0, theta1, x, track_score=calculate_model_score, create_gradient_graph=False)
+                s_hat, log_r_hat, t_hat0, t_hat1 = model(
+                    theta0, theta1, x, track_score=calculate_model_score, create_gradient_graph=False
+                )
             else:
                 raise ValueError("Unknown method type %s", method_type)
 
@@ -503,16 +531,22 @@ def evaluate_ratio_model(
 
         if method_type == "parameterized":
             if return_grad_x:
-                s_hat, log_r_hat, t_hat0, x_gradients = model(theta0s, xs, return_grad_x=True, track_score=evaluate_score, create_gradient_graph=False)
+                s_hat, log_r_hat, t_hat0, x_gradients = model(
+                    theta0s, xs, return_grad_x=True, track_score=evaluate_score, create_gradient_graph=False
+                )
             else:
                 s_hat, log_r_hat, t_hat0 = model(theta0s, xs, track_score=evaluate_score, create_gradient_graph=False)
                 x_gradients = None
             t_hat1 = None
         elif method_type == "doubly_parameterized":
             if return_grad_x:
-                s_hat, log_r_hat, t_hat0, t_hat1, x_gradients = model(theta0s, theta1s, xs, return_grad_x=True, track_score=evaluate_score, create_gradient_graph=False)
+                s_hat, log_r_hat, t_hat0, t_hat1, x_gradients = model(
+                    theta0s, theta1s, xs, return_grad_x=True, track_score=evaluate_score, create_gradient_graph=False
+                )
             else:
-                s_hat, log_r_hat, t_hat0, t_hat1 = model(theta0s, theta1s, xs, track_score=evaluate_score, create_gradient_graph=False)
+                s_hat, log_r_hat, t_hat0, t_hat1 = model(
+                    theta0s, theta1s, xs, track_score=evaluate_score, create_gradient_graph=False
+                )
                 x_gradients = None
         else:
             raise ValueError("Unknown method type %s", method_type)

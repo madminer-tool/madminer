@@ -353,7 +353,7 @@ class FisherInformation:
         unweighted_x_sample_file=None,
         luminosity=300000.0,
         include_xsec_info=True,
-        mode="information",
+        mode="score",
         uncertainty="ensemble",
         ensemble_vote_expectation_weight=None,
         batch_size=100000,
@@ -388,9 +388,8 @@ class FisherInformation:
         mode : {"score", "information"}, optional
             How the ensemble uncertainty on the kinematic Fisher information is calculated. If mode is "information",
             the Fisher information for each estimator is calculated individually and only then
-            are the sample mean and covariance calculated. If mode is "score", the sample mean and covariance are
-            calculated for the score for each event, and the covariance is then propagated through to the final Fisher
-            information uncertainty (neglecting the correlation between events). Default value: "information".
+            are the sample mean and covariance calculated. If mode is "score", the sample mean is
+            calculated for the score for each event. Default value: "score".
 
         uncertainty : {"ensemble", "expectation", "sum"}, optional
             How the covariance matrix of the Fisher information estimate is calculated. With "ensemble", the ensemble

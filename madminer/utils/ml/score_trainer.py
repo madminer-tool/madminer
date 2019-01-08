@@ -34,6 +34,7 @@ def train_local_score_model(
     grad_x_regularization=None,
     learning_curve_folder=None,
     learning_curve_filename=None,
+    return_first_loss=False,
     verbose="some",
 ):
     # CPU or GPU?
@@ -41,8 +42,9 @@ def train_local_score_model(
     device = torch.device("cuda" if run_on_gpu else "cpu")
     dtype = torch.double if double_precision else torch.float
 
-    logger.debug("Training on %s with %s precision", "GPU" if run_on_gpu else "CPU",
-                 "double" if double_precision else "single")
+    logger.debug(
+        "Training on %s with %s precision", "GPU" if run_on_gpu else "CPU", "double" if double_precision else "single"
+    )
 
     # Move model to device
     model = model.to(device, dtype)
@@ -51,8 +53,10 @@ def train_local_score_model(
     logger.debug("Preparing data")
 
     # Convert to Tensor
-    xs = torch.stack([tensor(i) for i in xs])
-    t_xzs = torch.stack([tensor(i) for i in t_xzs])
+    # xs = torch.stack([tensor(i) for i in xs])
+    xs = torch.from_numpy(xs)
+    # t_xzs = torch.stack([tensor(i) for i in t_xzs])
+    t_xzs = torch.from_numpy(t_xzs)
 
     # Dataset
     dataset = TensorDataset(xs, t_xzs)
@@ -77,9 +81,9 @@ def train_local_score_model(
     else:
         train_loader = DataLoader(dataset, batch_size=batch_size, shuffle=True, pin_memory=run_on_gpu)
 
+    # Optimizer
     logger.debug("Preparing optimizer %s", trainer)
 
-    # Optimizer
     if trainer == "adam":
         optimizer = optim.Adam(model.parameters(), lr=initial_learning_rate)
     elif trainer == "amsgrad":
@@ -172,6 +176,12 @@ def train_local_score_model(
             for i, individual_loss in enumerate(losses):
                 individual_train_loss[i] += individual_loss.item()
             total_train_loss += loss.item()
+
+            # For debugging, perhaps stop here
+            if return_first_loss:
+                logger.info("As requested, cancelling training and returning first loss")
+                params = dict(model.named_parameters())
+                return loss, params
 
             # Calculate gradient and update optimizer
             loss.backward()

@@ -5,7 +5,6 @@ import logging
 import os
 import json
 import numpy as np
-from math import ceil
 import torch
 
 from madminer.utils.ml import ratio_losses, flow_losses
@@ -92,6 +91,7 @@ class MLForge:
         shuffle_labels=False,
         grad_x_regularization=None,
         limit_samplesize=None,
+        return_first_loss=False,
     ):
 
         """
@@ -231,6 +231,11 @@ class MLForge:
         limit_samplesize : int or None, optional
             If not None, only this number of samples (events) is used to train the estimator. Default value: None.
 
+        return_first_loss : bool, optional
+            If True, the training routine only proceeds until the loss is calculated for the first time, at which point
+            the loss tensor is returned. This can be useful for debugging or visualization purposes (but of course not
+            for training a model).
+
         Returns
         -------
             None
@@ -347,7 +352,7 @@ class MLForge:
 
         # Limit sample size
         if limit_samplesize is not None and limit_samplesize < n_samples:
-            logger.info('Only using %s of %s training samples', limit_samplesize, n_samples)
+            logger.info("Only using %s of %s training samples", limit_samplesize, n_samples)
 
             x = x[:limit_samplesize]
             if theta0 is not None:
@@ -510,7 +515,7 @@ class MLForge:
         logger.info("Training model")
 
         if method in ["sally", "sallino"]:
-            train_local_score_model(
+            result = train_local_score_model(
                 model=self.model,
                 loss_functions=loss_functions,
                 loss_weights=loss_weights,
@@ -527,9 +532,10 @@ class MLForge:
                 nesterov_momentum=nesterov_momentum,
                 verbose="all" if self.debug else "some",
                 grad_x_regularization=grad_x_regularization,
+                return_first_loss=return_first_loss,
             )
         elif method in ["nde", "scandal"]:
-            train_flow_model(
+            result = train_flow_model(
                 model=self.model,
                 loss_functions=loss_functions,
                 loss_weights=loss_weights,
@@ -537,6 +543,7 @@ class MLForge:
                 xs=x,
                 theta0s=theta0,
                 t_xz0s=t_xz0,
+                calculate_model_score=calculate_model_score,
                 batch_size=batch_size,
                 n_epochs=n_epochs,
                 initial_learning_rate=initial_lr,
@@ -547,9 +554,10 @@ class MLForge:
                 nesterov_momentum=nesterov_momentum,
                 verbose="all" if self.debug else "some",
                 grad_x_regularization=grad_x_regularization,
+                return_first_loss=return_first_loss,
             )
         else:
-            train_ratio_model(
+            result = train_ratio_model(
                 model=self.model,
                 method_type=self.method_type,
                 loss_functions=loss_functions,
@@ -573,7 +581,10 @@ class MLForge:
                 nesterov_momentum=nesterov_momentum,
                 verbose="all" if self.debug else "some",
                 grad_x_regularization=grad_x_regularization,
+                return_first_loss=return_first_loss,
             )
+
+        return result
 
     def evaluate(
         self,
@@ -851,7 +862,7 @@ class MLForge:
 
         return fisher_information
 
-    def save(self, filename):
+    def save(self, filename, save_model=False):
 
         """
         Saves the trained model to four files: a JSON file with the settings, a pickled pyTorch state dict
@@ -861,6 +872,10 @@ class MLForge:
         ----------
         filename : str
             Path to the files. '_settings.json' and '_state_dict.pl' will be added.
+
+        save_model : bool, optional
+            If True, the whole model is saved in addition to the state dict. This is not necessary for loading it
+            again with MLForge.load(), but can be useful for debugging, for instance to plot the computational graph.
 
         Returns
         -------
@@ -899,6 +914,11 @@ class MLForge:
         # Save state dict
         logger.debug("Saving state dictionary to %s_state_dict.pt", filename)
         torch.save(self.model.state_dict(), filename + "_state_dict.pt")
+
+        # Save model
+        if save_model:
+            logger.debug("Saving model to %s_model.pt", filename)
+            torch.save(self.model, filename + "_model.pt")
 
     def load(self, filename):
 
@@ -1345,18 +1365,23 @@ class EnsembleForge:
         x,
         obs_weights=None,
         n_events=1,
-        mode="information",
+        mode="score",
         uncertainty="ensemble",
         vote_expectation_weight=None,
         return_individual_predictions=False,
     ):
         """
-        Calculates the expected Fisher information matrices for each estimator, and then returns the ensemble mean and
-        variance.
+        Calculates expected Fisher information matrices for an ensemble of SALLY estimators.
 
-        The user has the option to treat all estimators equally ('committee method') or to give those with expected
-        score / ratio close to zero (as calculated by `calculate_expectation()`) a higher weight. In the latter case,
-        the ensemble mean `I` is calculated as `I  =  sum_i w_i I_i` with weights
+        There are two ways of calculating the ensemble average. In the default "score" mode, the ensemble average for
+        the score is calculated for each event, and the Fisher information is calculated based on these mean scores. In
+        the "information" mode, the Fisher information is calculated for each estimator separately and the ensemble
+        mean is calculated only for the final Fisher information matrix. The "score" mode is more precise, but the
+        "information" mode provides access to the ensemble variance, which can serve as a notion of uncertainty.
+
+        In the "information" mode, the user has the option to treat all estimators equally ('committee method') or to
+        give those with expected score close to zero (as calculated by `calculate_expectation()`) a higher weight. In
+        this case, the ensemble mean `I` is calculated as `I  =  sum_i w_i I_i` with weights
         `w_i  =  exp(-vote_expectation_weight |E[t_i]|) / sum_j exp(-vote_expectation_weight |E[t_k]|)`. Here `I_i`
         are the individual estimators and `E[t_i]` is the expectation value calculated by `calculate_expectation()`.
 
@@ -1375,9 +1400,8 @@ class EnsembleForge:
 
         mode : {"score", "information"}, optional
             If mode is "information", the Fisher information for each estimator is calculated individually and only then
-            are the sample mean and covariance calculated. If mode is "score", the sample mean and covariance are
-            calculated for the score for each event, and the covariance is then propagated through to the final Fisher
-            information uncertainty (neglecting the correlation between events). Default value: "information".
+            are the sample mean and covariance calculated. If mode is "score", the sample mean is
+            calculated for the score for each event. Default value: "score".
 
         uncertainty : {"ensemble", "expectation", "sum"}, optional
             How the covariance matrix of the Fisher information estimate is calculate. With "ensemble", the ensemble
@@ -1648,7 +1672,7 @@ class EnsembleForge:
             return means, covariances, estimator_weights, predictions
         return means, covariances
 
-    def save(self, folder):
+    def save(self, folder, save_model=False):
         """
         Saves the estimator ensemble to a folder.
 
@@ -1656,6 +1680,11 @@ class EnsembleForge:
         ----------
         folder : str
             Path to the folder.
+
+        save_model : bool, optional
+            If True, the whole model is saved in addition to the state dict. This is not necessary for loading it
+            again with EnsembleForge.load(), but can be useful for debugging, for instance to plot the computational
+            graph.
 
         Returns
         -------
@@ -1681,7 +1710,7 @@ class EnsembleForge:
 
         # Save estimators
         for i, estimator in enumerate(self.estimators):
-            estimator.save(folder + "/estimator_" + str(i))
+            estimator.save(folder + "/estimator_" + str(i), save_model=save_model)
 
     def load(self, folder):
         """
