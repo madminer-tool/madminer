@@ -385,7 +385,7 @@ def save_nuisance_setup_to_madminer_file(
             except Exception:
                 pass
 
-        if nuisance_parameters is not None:
+        if nuisance_parameters is not None and len(nuisance_parameters) > 0:
             # Prepare nuisance parameters
             nuisance_names = [pname for pname in nuisance_parameters]
             n_nuisance_params = len(nuisance_names)

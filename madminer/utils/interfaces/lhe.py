@@ -41,8 +41,8 @@ def extract_weights_from_lhe_file(filename, sampling_benchmark, is_background, r
         rescale_factor = rescale_factor / number_events_runcard
 
     # Sampling benchmark default for is_background=True
-    if is_background:
-        sampling_benchmark = "default"
+    # if is_background:
+    #     sampling_benchmark = "default"
 
     # Read and process weights, event by event
     weights = None
