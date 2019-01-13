@@ -219,7 +219,7 @@ class DelphesProcessor:
                     hepmc_filename,
                 )
             else:
-                logger.info("Running Delphes on HepMC sample at %s", delphes_directory, hepmc_filename)
+                logger.info("Running Delphes on HepMC sample at %s", hepmc_filename)
 
             delphes_sample_filename = run_delphes(
                 delphes_directory, delphes_card, hepmc_filename, initial_command=initial_command, log_file=log_file

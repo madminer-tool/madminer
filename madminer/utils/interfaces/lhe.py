@@ -83,6 +83,13 @@ def extract_weights_from_lhe_file(filename, sampling_benchmark, is_background, r
 def extract_nuisance_parameters_from_lhe_file(filename, systematics):
     """ Extracts the definition of nuisance parameters from the LHE file """
 
+    # Nuisance parameters (output)
+    nuisance_params = OrderedDict()
+
+    # When no systematics setup is defined
+    if systematics is None:
+        return nuisance_params
+
     # Parse scale factors from strings in systematics
     systematics_scales = []
     for key, value in six.iteritems(systematics):
@@ -99,9 +106,6 @@ def extract_nuisance_parameters_from_lhe_file(filename, systematics):
             systematics_scales.append(scale_factors)
         else:
             systematics_scales.append(None)
-
-    # Nuisance parameters (output)
-    nuisance_params = OrderedDict()
 
     # Untar event file
     new_filename, extension = os.path.splitext(filename)
