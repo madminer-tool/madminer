@@ -199,6 +199,9 @@ def plot_distributions(
     if uncertainties == "nuisance":
         n_nuisance_params = sa.n_nuisance_parameters
 
+        if not n_nuisance_params > 0:
+            raise RuntimeError("Cannot draw systematic uncertainties -- no nuisance parameters found!")
+
         logger.debug("Drawing nuisance toys")
 
         nuisance_toys = np.random.normal(loc=0.0, scale=1.0, size=n_nuisance_params * n_toys)
@@ -272,20 +275,21 @@ def plot_distributions(
             )
             histos.append(histo)
 
-            histos_toys_this_theta = []
-            for i_toy, nuisance_toy_factors_this_toy in enumerate(nuisance_toy_factors):
-                toy_histo, _ = np.histogram(
-                    x[:, i],
-                    bins=n_bins,
-                    range=x_range,
-                    weights=theta_weights * nuisance_toy_factors_this_toy,
-                    density=normalize,
-                )
-                histos_toys_this_theta.append(toy_histo)
+            if uncertainties == "nuisance":
+                histos_toys_this_theta = []
+                for i_toy, nuisance_toy_factors_this_toy in enumerate(nuisance_toy_factors):
+                    toy_histo, _ = np.histogram(
+                        x[:, i],
+                        bins=n_bins,
+                        range=x_range,
+                        weights=theta_weights * nuisance_toy_factors_this_toy,
+                        density=normalize,
+                    )
+                    histos_toys_this_theta.append(toy_histo)
 
-            histos_up.append(np.percentile(histos_toys_this_theta, 84.0, axis=0))
-            histos_down.append(np.percentile(histos_toys_this_theta, 16.0, axis=0))
-            histos_toys.append(histos_toys_this_theta[:n_nuisance_toys_drawn])
+                histos_up.append(np.percentile(histos_toys_this_theta, 84.0, axis=0))
+                histos_down.append(np.percentile(histos_toys_this_theta, 16.0, axis=0))
+                histos_toys.append(histos_toys_this_theta[:n_nuisance_toys_drawn])
 
         # Draw error bands
         if uncertainties == "nuisance":
