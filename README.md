@@ -46,20 +46,15 @@ estimators are implemented.
 Make sure the following tools are installed and running:
 - MadGraph (we've tested our setup with MG5_aMC v2.6.2 and have received reports about issues with newer versions).
 - Pythia8 and the MG-Pythia interface installed from the MadGraph interface.
-- The MadGraph-Pythia interface has issues
-with the treatment of multiple weights. Until this is fixed in the official release, the user has to install a patch
-manually. These files are available upon request.
 - For the analysis of systematic uncertainties, LHAPDF6 has to be installed with Python support (see also
-[the MadGraph systematics tool](https://cp3.irmp.ucl.ac.be/projects/madgraph/wiki/Systematics)).
+[the documentation of MadGraph's systematics tool](https://cp3.irmp.ucl.ac.be/projects/madgraph/wiki/Systematics)).
 
 For the detector simulation part, there are different options. For simple parton-level analyses, we provide a bare-bones
 option to calculate truth-level observables which do not require any additional packages.
 
 We have also implemented a fast detector simulation based on Delphes with a flexible framework to calculate observables.
 Using this adds another requirement:
-- Delphes, for instance installed from the MadGraph interface. Delphes has issues with the treatment of multiple
-weights. Until this is fixed in the official releases, the user has to install a patch manually. These files are also
-available upon request.
+- Delphes, for instance installed from the MadGraph interface.
 
 Finally, Delphes can be replaced with another detector simulation, for instance a full detector simulation based
 with Geant4. In this case, the user has to implement code that runs the detector simulation, calculates the observables,
