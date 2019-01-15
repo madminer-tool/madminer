@@ -244,19 +244,19 @@ class MLForge:
 
         logger.info("Starting training")
         logger.info("  Method:                 %s", method)
-        logger.info("  Training data: x at %s", x_filename)
+        logger.info("  Training data:          x at %s", x_filename)
         if theta0_filename is not None:
-            logger.info("                 theta0 at %s", theta0_filename)
+            logger.info("                          theta0 at %s", theta0_filename)
         if theta1_filename is not None:
-            logger.info("                 theta1 at %s", theta1_filename)
+            logger.info("                          theta1 at %s", theta1_filename)
         if y_filename is not None:
-            logger.info("                 y at %s", y_filename)
+            logger.info("                          y at %s", y_filename)
         if r_xz_filename is not None:
-            logger.info("                 r_xz at %s", r_xz_filename)
+            logger.info("                          r_xz at %s", r_xz_filename)
         if t_xz0_filename is not None:
-            logger.info("                 t_xz (theta0) at  %s", t_xz0_filename)
+            logger.info("                          t_xz (theta0) at %s", t_xz0_filename)
         if t_xz1_filename is not None:
-            logger.info("                 t_xz (theta1) at  %s", t_xz1_filename)
+            logger.info("                          t_xz (theta1) at %s", t_xz1_filename)
         if features is None:
             logger.info("  Features:               all")
         else:
@@ -272,7 +272,7 @@ class MLForge:
             logger.info("  MAF, BN alpha:          %s", maf_batch_norm_alpha)
             logger.info("  MAF MoG, components:    %s", maf_mog_n_components)
         logger.info("  Activation function:    %s", activation)
-        if method in ["cascal", "cascal2", "rascal", "rascal2", "scandal"]:
+        if method in ["cascal", "cascal2", "rascal", "rascal2", "scandal", "alices"]:
             logger.info("  alpha:                  %s", alpha)
         logger.info("  Batch size:             %s", batch_size)
         logger.info("  Trainer:                %s", trainer)
@@ -597,7 +597,7 @@ class MLForge:
     ):
 
         """
-        Evaluates a trained estimator of the likelihood ratio (or, if method is 'sally' or 'sallino', the score).
+        Evaluates a trained estimator of the log likelihood ratio (or, if method is 'sally' or 'sallino', the score).
 
         Parameters
         ----------
@@ -637,8 +637,8 @@ class MLForge:
 
         log_likelihood_ratio : ndarray
             Only returned if the network was trained with neither `method='sally'` nor `method='sallino'`. The estimated
-            likelihood ratio. If test_all_combinations is True, the result has shape `(n_thetas, n_x)`. Otherwise, it
-            has shape `(n_samples,)`.
+            log likelihood ratio. If test_all_combinations is True, the result has shape `(n_thetas, n_x)`. Otherwise,
+            it has shape `(n_samples,)`.
 
         score_theta0 : ndarray or None
             Only returned if the network was trained with neither `method='sally'` nor `method='sallino'`. None if

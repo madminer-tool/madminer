@@ -153,6 +153,9 @@ examples/example2_wbf/py.py
 examples/example2_wbf/models
 examples/example2_wbf/figures
 
+examples/toy_example/data
+examples/toy_example/models
+
 # MG / Pythia / Delphes patch
 patches/
 

@@ -79,13 +79,16 @@ To get the [examples](examples/), including the tutorials, clone this repository
 
 ### Tutorials
 
+As a starting point, we recommend the [toy example](examples/toy_example/toy_example.ipynb), which demonstrates
+inference with MadMinier without spending much time on the more technical steps of running the simulation.
+
 In [tutorial_1.ipynb](examples/tutorial/tutorial_1.ipynb) we provide a detailed tutorial that goes through the main
 steps of a detector-level analysis.
 
 After that, we recommend going through [tutorial_2.ipynb](examples/tutorial/tutorial_1.ipynb), which explains local
 score methods, how to estimate the Fisher information, and introduces some convenient ensemble methods.
 
-We're currently working on a significantly extended and improved series of tutorials.
+[Other provided examples](examples/) show MadMiner in action in different processes.
 
 ### Package structure
 
