@@ -379,7 +379,7 @@ def evaluate_local_score_model(model, xs=None, run_on_gpu=True, double_precision
     t_hat = t_hat.detach().numpy()
 
     if return_grad_x:
-        x_gradients = x_gradients.cpu().detach().numpy()
+        x_gradients = x_gradients.detach().numpy()
         return t_hat, x_gradients
 
     return t_hat
