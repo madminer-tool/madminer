@@ -572,8 +572,12 @@ def evaluate_ratio_model(
                 raise ValueError("Unknown method type %s", method_type)
 
             # Get data and return
-            s_hat = s_hat.detach().numpy().flatten()
-            log_r_hat = log_r_hat.detach().numpy().flatten()
+            if run_on_gpu:
+              s_hat = s_hat.cpu().detach().numpy().flatten()
+              log_r_hat = log_r_hat.cpu().detach().numpy().flatten()
+            else:
+              s_hat = s_hat.detach().numpy().flatten()
+              log_r_hat = log_r_hat.detach().numpy().flatten()
             t_hat0, t_hat1 = None, None
 
     if return_grad_x:
