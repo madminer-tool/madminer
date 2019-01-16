@@ -5,7 +5,7 @@ import numpy as np
 import logging
 
 from madminer.utils.interfaces.madminer_hdf5 import load_benchmarks_from_madminer_file, save_madminer_file_from_lhe
-from madminer.utils.interfaces.lhe import extract_observables_from_lhe_file
+from madminer.utils.interfaces.lhe import parse_lhe_file
 
 logger = logging.getLogger(__name__)
 
@@ -93,7 +93,7 @@ class LHEProcessor:
             logger.info("Analysing LHE sample %s", lhe_file)
 
             # Calculate observables and weights
-            this_observations, this_weights = extract_observables_from_lhe_file(
+            this_observations, this_weights = parse_lhe_file(
                 lhe_file, sampling_benchmark, is_background, rescale_factor, self.observables, self.benchmark_names
             )
 

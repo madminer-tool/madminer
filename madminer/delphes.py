@@ -14,7 +14,7 @@ from madminer.utils.interfaces.madminer_hdf5 import (
 from madminer.utils.interfaces.delphes import run_delphes
 from madminer.utils.interfaces.delphes_root import parse_delphes_root_file
 from madminer.utils.interfaces.hepmc import extract_weight_order
-from madminer.utils.interfaces.lhe import extract_weights_from_lhe_file, extract_nuisance_parameters_from_lhe_file
+from madminer.utils.interfaces.lhe import parse_lhe_file, extract_nuisance_parameters_from_lhe_file
 
 logger = logging.getLogger(__name__)
 
@@ -622,8 +622,8 @@ class DelphesProcessor:
             # Find weights in LHE file
             if lhe_file_for_weights is not None:
                 logger.debug("Extracting weights from LHE file")
-                this_weights = extract_weights_from_lhe_file(
-                    lhe_file_for_weights, sampling_benchmark=sampling_benchmark, is_background=is_background
+                _, this_weights = parse_lhe_file(
+                    filename=lhe_file_for_weights, sampling_benchmark=sampling_benchmark, observables=OrderedDict(), return_dict=True
                 )
 
                 logger.debug("Found weights %s in LHE file", list(this_weights.keys()))

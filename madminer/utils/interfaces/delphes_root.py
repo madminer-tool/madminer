@@ -85,7 +85,7 @@ def parse_delphes_root_file(
             electrons_all_events[ievent]
             + jets_all_events[ievent]
             + muons_all_events[ievent]
-            + leptons_all_events[ievent]
+            + photons_all_events[ievent]
         ):
             visible_momentum += p
         all_momentum = visible_momentum + met_all_events[ievent][0]
