@@ -423,6 +423,11 @@ def evaluate_flow_model(model, theta0s=None, xs=None, evaluate_score=False, run_
 
         _, log_p_hat, t_hat = model.log_likelihood_and_score(theta0s, xs)
 
+        # Copy back tensors to CPU
+        if run_on_gpu:
+            log_p_hat = log_p_hat.cpu()
+            t_hat = t_hat.cpu()
+
         log_p_hat = log_p_hat.detach().numpy().flatten()
         t_hat = t_hat.detach().numpy().flatten()
 
@@ -432,6 +437,10 @@ def evaluate_flow_model(model, theta0s=None, xs=None, evaluate_score=False, run_
             model.eval()
 
             _, log_p_hat = model.log_likelihood(theta0s, xs)
+
+            # Copy back tensors to CPU
+            if run_on_gpu:
+                log_p_hat = log_p_hat.cpu()
 
             log_p_hat = log_p_hat.detach().numpy().flatten()
             t_hat = None

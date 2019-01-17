@@ -372,8 +372,9 @@ def evaluate_local_score_model(model, xs=None, run_on_gpu=True, double_precision
 
     # Copy back tensors to CPU
     if run_on_gpu:
-      t_hat = t_hat.cpu()
-      x_gradients = x_gradients.cpu()
+        t_hat = t_hat.cpu()
+        if x_gradients is not None:
+            x_gradients = x_gradients.cpu()
 
     # Get data and return
     t_hat = t_hat.detach().numpy()
