@@ -571,7 +571,7 @@ def _smear_variable(true_value, resolutions, id):
 
         return true_value + np.random.normal(0.0, res, 1)
 
-    except TypeError, KeyError:
+    except (TypeError, KeyError):
         return true_value
 
 
