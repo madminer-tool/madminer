@@ -551,6 +551,15 @@ def evaluate_ratio_model(
         else:
             raise ValueError("Unknown method type %s", method_type)
 
+        # Copy back tensors to CPU
+        if run_on_gpu:
+            s_hat = s_hat.cpu()
+            log_r_hat = log_r_hat.cpu()
+            if t_hat0 is not None:
+                t_hat0 = t_hat0.cpu()
+            if t_hat1 is not None:
+                t_hat1 = t_hat1.cpu()
+
         # Get data and return
         s_hat = s_hat.detach().numpy().flatten()
         log_r_hat = log_r_hat.detach().numpy().flatten()
