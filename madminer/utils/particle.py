@@ -16,18 +16,6 @@ class MadMinerParticle(LorentzVector):
         self.pdgid = None
 
     def set_pdgid(self, pdgid):
-        """
-
-        Parameters
-        ----------
-        pdgid :
-            
-
-        Returns
-        -------
-
-        """
-
         self.pdgid = int(pdgid)
         self.charge = 0.0
 

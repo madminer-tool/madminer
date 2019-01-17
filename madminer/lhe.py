@@ -1,137 +1,838 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+import six
 from collections import OrderedDict
 import numpy as np
 import logging
 
-from madminer.utils.interfaces.madminer_hdf5 import load_benchmarks_from_madminer_file, save_madminer_file_from_lhe
-from madminer.utils.interfaces.lhe import extract_observables_from_lhe_file
+from madminer.utils.interfaces.madminer_hdf5 import (
+    save_events_to_madminer_file,
+    load_madminer_settings,
+    save_nuisance_setup_to_madminer_file,
+)
+from madminer.utils.interfaces.lhe import parse_lhe_file, extract_nuisance_parameters_from_lhe_file
 
 logger = logging.getLogger(__name__)
 
 
 class LHEProcessor:
-    """ Parton-level observable calculation """
+    """
+    Detector simulation with smearing functions and simple calculation of observables.
 
-    def __init__(self, debug=False):
-        """ Constructor """
+    After setting up the parameter space and benchmarks and running MadGraph and Pythia, all of which is organized
+    in the madminer.core.MadMiner class, the next steps are the simulation of detector effects and the calculation of
+    observables. Different tools can be used for these tasks, please feel free to implement the detector simulation and
+    analysis routine of your choice.
 
+    This class provides a simple implementation in which detector effects are modeled with smearing functions. Its
+    workflow consists of the following steps:
+
+    * Initializing the class with the filename of a MadMiner HDF5 file (the output of `madminer.core.MadMiner.save()`)
+    * Adding one or multiple event samples produced by MadGraph and Pythia in `LHEProcessor.add_sample()`.
+    * Running Delphes on the samples that require it through `LHEProcessor.run_delphes()`.
+    * Optionally, smearing functions for all visible particles can be defined with
+      `LHEProcessor.set_smearing_functions()`.
+    * Defining observables through `LHEProcessor.add_observable()` or
+      `LHEProcessor.add_observable_from_function()`. A simple set of default observables is provided in
+      `LHEProcessor.add_default_observables()`
+    * Optionally, cuts can be set with `LHEProcessor.add_cut()`
+    * Calculating the observables from the Delphes ROOT files with `LHEProcessor.analyse_delphes_samples()`
+    * Saving the results with `LHEProcessor.save()`
+
+    Please see the tutorial for a detailed walk-through.
+
+    Parameters
+    ----------
+    filename : str or None, optional
+        Path to MadMiner file (the output of `madminer.core.MadMiner.save()`). Default value: None.
+
+    """
+
+    def __init__(self, filename):
         # Initialize samples
         self.lhe_sample_filenames = []
-        self.is_background = []
+        self.sample_k_factors = []
+        self.sample_is_backgrounds = []
         self.sampling_benchmarks = []
-        self.rescale_factor = []
 
         # Initialize observables
         self.observables = OrderedDict()
         self.observables_required = OrderedDict()
+        self.observables_defaults = OrderedDict()
+
+        # Initialize cuts
+        self.cuts = []
+        self.cuts_default_pass = []
+
+        # Smearing function parameters
+        self.energy_resolution = {}
+        self.pt_resolution = {}
+        self.eta_resolution = {}
+        self.phi_resolution = {}
+
+        pdgids = [
+            1,
+            -1,
+            2,
+            -2,
+            3,
+            -3,
+            4,
+            -4,
+            5,
+            -5,
+            6,
+            -6,
+            9,
+            11,
+            -11,
+            12,
+            -12,
+            13,
+            -13,
+            14,
+            -14,
+            15,
+            -15,
+            16,
+            -16,
+            21,
+            22,
+            23,
+            -23,
+            24,
+            25,
+        ]
+        for pdgid in pdgids:
+            self.energy_resolution[pdgid] = (0.0, 0.0)
+            self.pt_resolution[pdgid] = (0.0, 0.0)
+            self.eta_resolution[pdgid] = (0.0, 0.0)
+            self.phi_resolution[pdgid] = (0.0, 0.0)
 
         # Initialize samples
+        self.reference_benchmark = None
         self.observations = None
         self.weights = None
 
-        # Initialze Benchmark Names
-        self.benchmark_names = None
+        # Initialize nuisance parameters
+        self.nuisance_parameters = None
 
-    def read_benchmark_names(self, filename):
-        self.benchmark_names = load_benchmarks_from_madminer_file(filename)
+        # Information from .h5 file
+        self.filename = filename
+        (parameters, benchmarks, _, _, _, _, _, self.systematics, _, _) = load_madminer_settings(
+            filename, include_nuisance_benchmarks=False
+        )
+        self.benchmark_names_phys = list(benchmarks.keys())
+        self.n_benchmarks_phys = len(benchmarks)
 
-    def add_lhe_sample(self, filename, sampling_benchmark, is_background=False, rescale_factor=1.0):
-        logger.info("Adding LHE sample at %s", filename)
-
-        self.lhe_sample_filenames.append(filename)
-        self.is_background.append(is_background)
-        self.sampling_benchmarks.append(sampling_benchmark)
-        self.rescale_factor.append(rescale_factor)
-
-    def add_observable(self, name, definition, required=False):
-        if required:
-            logger.info("Adding required observable %s = %s", name, definition)
-        else:
-            logger.info("Adding (not required) observable %s = %s", name, definition)
-
-        self.observables[name] = definition
-        self.observables_required[name] = required
-
-    def add_observable_from_function(self, name, fn, required=False):
+    def add_sample(self, lhe_filename, sampled_from_benchmark, is_background=False, k_factor=1.0):
         """
-        Adds an observable defined through a function.
-        
+        Adds an LHE sample of simulated events.
+
         Parameters
         ----------
-        name : str
-            Name of the observable. Since this name will be used in `eval()` calls for cuts, this should not contain spaces or special characters.
-        
-        fn : function
-            A function with signature `observable(p)` where the input arguments are lists of ndarrays and a float is returned. The function should raise a `RuntimeError` to signal that it is not defined.
-        
-        required : bool, optional
-            Whether the observable is required. If True, an event will only be retained if this observable is successfully parsed. For instance, any observable involving `"p[1]"` will only be parsed if there are at least two particles passing the acceptance cuts. Default value: False.
+        lhe_filename : str
+            Path to the LHE event file (with extension '.lhe' or '.lhe.gz').
+
+        sampled_from_benchmark : str
+            Name of the benchmark that was used for sampling in this event file (the keyword `sample_benchmark`
+            of `madminer.core.MadMiner.run()`).
+
+        is_background : bool, optional
+            Whether the sample is a background sample (i.e. without benchmark reweighting).
+
+        k_factor : float, optional
+            Multiplies the cross sections found in the sample. Default value: 1.
 
         Returns
         -------
-        None
-        
+            None
+
+        """
+
+        logger.debug("Adding event sample %s", lhe_filename)
+
+        # Check inputs
+        self.sampling_benchmarks.append(sampled_from_benchmark)
+        self.sample_is_backgrounds.append(is_background)
+        self.sample_k_factors.append(k_factor)
+        self.lhe_sample_filenames.append(lhe_filename)
+
+    def set_smearing(
+        self,
+        pdgids=None,
+        energy_resolution_abs=0.0,
+        energy_resolution_rel=0.0,
+        pt_resolution_abs=0.0,
+        pt_resolution_rel=0.0,
+        eta_resolution_abs=0.0,
+        eta_resolution_rel=0.0,
+        phi_resolution_abs=0.0,
+        phi_resolution_rel=0.0,
+    ):
+        """
+        Sets up the smearing of measured momenta from shower and detector effects.
+
+        This function can be called with pdgids=None, in which case the settinigs are used for all visible particles,
+        or with pdgids set to a list of PDG ids representing particles, for instance [11, -11] for electrons (and
+        positrons).
+
+        For all particles of this type, and for the energy, pT, phi, and eta, the measurement error is drawn from a
+        Gaussian with mean 0 and standard deviation given by `(X_resolution_abs + X * X_resolution_rel)`. Here `X` is
+        the quantity (E, pT, phi, eta) of interest and X_resolution_abs and X_resolution_rel are the corresponding
+        keywords. the corresponding resolution keyword. In the case of energy and pT, values smaller than 0  will lead
+        to a re-drawing of the measurement error.
+
+        Parameters
+        ----------
+        pdgids : None or list of int, optional
+            Defines the particles these smearing functions affect. If None, all particles are affected. Note that if
+            set_smearing() is called multiple times for a given particle, the earlier calls will be forgotten and only
+            the last smearing function will take effect. Default value: None.
+
+        energy_resolution_abs : float, optional
+            Absolute measurement uncertainty for the energy in GeV. Default value: 0.
+
+        energy_resolution_rel : float, optional
+            Relative measurement uncertainty for the energy. Default value: 0.
+
+        pt_resolution_abs : float, optional
+            Absolute measurement uncertainty for the pT in GeV. Default value: 0.
+
+        pt_resolution_rel : float, optional
+            Relative measurement uncertainty for the pT. Default value: 0.
+
+        eta_resolution_abs : float, optional
+            Absolute measurement uncertainty for eta. Default value: 0.
+
+        eta_resolution_rel : float, optional
+            Relative measurement uncertainty for eta. Default value: 0.
+
+        phi_resolution_abs : float, optional
+            Absolute measurement uncertainty for phi. Default value: 0.
+
+        phi_resolution_rel : float, optional
+            Relative measurement uncertainty for phi. Default value: 0.
+
+        Returns
+        -------
+            None
+
+        """
+
+        if pdgids is None:
+            pdgids = [
+                1,
+                -1,
+                2,
+                -2,
+                3,
+                -3,
+                4,
+                -4,
+                5,
+                -5,
+                6,
+                -6,
+                9,
+                11,
+                -11,
+                12,
+                -12,
+                13,
+                -13,
+                14,
+                -14,
+                15,
+                -15,
+                16,
+                -16,
+                21,
+                22,
+                23,
+                -23,
+                24,
+                25,
+            ]
+
+        for pdgid in pdgids:
+            self.energy_resolution[pdgid] = (energy_resolution_abs, energy_resolution_rel)
+            self.pt_resolution[pdgid] = (pt_resolution_abs, pt_resolution_rel)
+            self.eta_resolution[pdgid] = (eta_resolution_abs, eta_resolution_rel)
+            self.phi_resolution[pdgid] = (phi_resolution_abs, phi_resolution_rel)
+
+    def add_observable(self, name, definition, required=False, default=None):
+        """
+        Adds an observable as a string that can be parsed by Python's `eval()` function.
+
+        Parameters
+        ----------
+        name : str
+            Name of the observable. Since this name will be used in `eval()` calls for cuts, this should not contain
+            spaces or special characters.
+
+        definition : str
+            An expression that can be parsed by Python's `eval()` function. As objects, all particles can be
+            used: `e`, `mu`, `j`, `a`, `l`, `v` provide lists of electrons, muons, jets, photons, leptons (electrons
+            and muons combined), and neutrinos, in each case sorted by descending transverse momentum. `met` provides a
+            missing ET object. `p` gives all particles in the same order as in the LHE file (i.e. in the same order as
+            defined in the MadGraph process card). All these objects are instances of `MadMinerParticle`, which
+            inherits from scikit-hep's [LorentzVector](http://scikit-hep.org/api/math.html#vector-classes). See the link
+            for a documentation of their properties. In addition, `MadMinerParticle` have  properties `charge` and
+            `pdg_id`, which return the charge in units of elementary charges (i.e. an electron has `e[0].charge = -1.`),
+            and the PDG particle ID. For instance, `"abs(j[0].phi() - j[1].phi())"` defines the azimuthal angle between
+            the two hardest jets.
+
+        required : bool, optional
+            Whether the observable is required. If True, an event will only be retained if this observable is
+            successfully parsed. For instance, any observable involving `"j[1]"` will only be parsed if there are at
+            least two jets passing the acceptance cuts. Default value: False.
+
+        default : float or None, optional
+            If `required=False`, this is the placeholder value for observables that cannot be parsed. None is replaced
+            with `np.nan`. Default value: None.
+
+        Returns
+        -------
+            None
+
         """
 
         if required:
-            logger.info("Adding required observable %s ", name)
+            logger.debug("Adding required observable %s = %s", name, definition)
         else:
-            logger.info("Adding (not required) observable %s ", name)
+            logger.debug("Adding optional observable %s = %s with default %s", name, definition, default)
+
+        self.observables[name] = definition
+        self.observables_required[name] = required
+        self.observables_defaults[name] = default
+
+    def add_observable_from_function(self, name, fn, required=False, default=None):
+        """
+        Adds an observable defined through a function.
+
+        Parameters
+        ----------
+        name : str
+            Name of the observable. Since this name will be used in `eval()` calls for cuts, this should not contain
+            spaces or special characters.
+
+        fn : function
+            A function with signature `observable(particles)` where the input arguments are lists of
+            MadMinerParticle instances (ordered in the same way as in the LHE file) and a float is returned. The
+            function should raise a `RuntimeError` to signal that it is not defined.
+
+        required : bool, optional
+            Whether the observable is required. If True, an event will only be retained if this observable is
+            successfully parsed. For instance, any observable involving `"j[1]"` will only be parsed if there are at
+            least two jets passing the acceptance cuts. Default value: False.
+
+        default : float or None, optional
+            If `required=False`, this is the placeholder value for observables that cannot be parsed. None is replaced
+            with `np.nan`. Default value: None.
+
+        Returns
+        -------
+            None
+
+        """
+
+        if required:
+            logger.debug("Adding required observable %s defined through external function", name)
+        else:
+            logger.debug(
+                "Adding optional observable %s defined through external function with default %s", name, default
+            )
 
         self.observables[name] = fn
         self.observables_required[name] = required
+        self.observables_defaults[name] = default
 
-    def set_default_observables(self):
-        raise NotImplementedError
+    def add_default_observables(
+        self,
+        n_leptons_max=2,
+        n_photons_max=2,
+        n_jets_max=2,
+        include_met=True,
+        include_visible_sum=True,
+        include_numbers=True,
+        include_charge=True,
+    ):
+        """
+        Adds a set of simple standard observables: the four-momenta (parameterized as E, pT, eta, phi) of the hardest
+        visible particles, and the missing transverse energy.
 
-    def analyse_lhe_samples(self):
-        for lhe_file, sampling_benchmark, is_background, rescale_factor in zip(
-            self.lhe_sample_filenames, self.sampling_benchmarks, self.is_background, self.rescale_factor
+        Parameters
+        ----------
+        n_leptons_max : int, optional
+            Number of hardest leptons for which the four-momenta are saved. Default value: 2.
+
+        n_photons_max : int, optional
+            Number of hardest photons for which the four-momenta are saved. Default value: 2.
+
+        n_jets_max : int, optional
+            Number of hardest jets for which the four-momenta are saved. Default value: 2.
+
+        include_met : bool, optional
+            Whether the missing energy observables are stored. Default value: True.
+
+        include_visible_sum : bool, optional
+            Whether observables characterizing the sum of all particles are stored. Default value: True.
+
+        include_numbers : bool, optional
+            Whether the number of leptons, photons, and jets is saved as observable. Default value: True.
+
+        include_charge : bool, optional
+            Whether the lepton charge is saved as observable. Default value: True.
+
+        Returns
+        -------
+            None
+
+        """
+        logger.debug("Adding default observables")
+
+        # ETMiss
+        if include_met:
+            self.add_observable("et_miss", "met.pt", required=True)
+            self.add_observable("phi_miss", "met.phi()", required=True)
+
+        # Sum of visible particles
+        if include_visible_sum:
+            self.add_observable("e_visible", "visible.e", required=True)
+            self.add_observable("eta_visible", "visible.eta", required=True)
+
+        # Individual observed particles
+        for n, symbol, include_this_charge in zip(
+            [n_leptons_max, n_photons_max, n_jets_max], ["l", "a", "j"], [False, False, include_charge]
         ):
+            if include_numbers:
+                self.add_observable("n_{}s".format(symbol), "len({})".format(symbol), required=True)
 
+            for i in range(n):
+                self.add_observable(
+                    "e_{}{}".format(symbol, i + 1), "{}[{}].e".format(symbol, i), required=False, default=0.0
+                )
+                self.add_observable(
+                    "pt_{}{}".format(symbol, i + 1), "{}[{}].pt".format(symbol, i), required=False, default=0.0
+                )
+                self.add_observable(
+                    "eta_{}{}".format(symbol, i + 1), "{}[{}].eta".format(symbol, i), required=False, default=0.0
+                )
+                self.add_observable(
+                    "phi_{}{}".format(symbol, i + 1), "{}[{}].phi()".format(symbol, i), required=False, default=0.0
+                )
+                if include_this_charge and symbol == "l":
+                    self.add_observable(
+                        "charge_{}{}".format(symbol, i + 1),
+                        "{}[{}].charge".format(symbol, i),
+                        required=False,
+                        default=0.0,
+                    )
+
+    def add_cut(self, definition, pass_if_not_parsed=False):
+
+        """
+        Adds a cut as a string that can be parsed by Python's `eval()` function and returns a bool.
+
+        Parameters
+        ----------
+        definition : str
+            An expression that can be parsed by Python's `eval()` function and returns a bool: True for the event
+            to pass this cut, False for it to be rejected. In the definition, all visible particles can be
+            used: `e`, `mu`, `j`, `a`, and `l` provide lists of electrons, muons, jets, photons, and leptons (electrons
+            and muons combined), in each case sorted by descending transverse momentum. `met` provides a missing ET
+            object. `visible` and `all` provide access to the sum of all visible particles and the sum of all visible
+            particles plus MET, respectively. All these objects are instances of `MadMinerParticle`, which inherits from
+            scikit-hep's [LorentzVector](http://scikit-hep.org/api/math.html#vector-classes). See the link for a
+            documentation of their properties. In addition, `MadMinerParticle` have  properties `charge` and `pdg_id`,
+            which return the charge in units of elementary charges (i.e. an electron has `e[0].charge = -1.`), and the
+            PDG particle ID. For instance, `"len(e) >= 2"` requires at least two electrons passing the cuts,
+            while `"mu[0].charge > 0."` specifies that the hardest muon is positively charged.
+
+        pass_if_not_parsed : bool, optional
+            Whether the cut is passed if the observable cannot be parsed. Default value: False.
+
+        Returns
+        -------
+            None
+
+        """
+        logger.debug("Adding cut %s", definition)
+
+        self.cuts.append(definition)
+        self.cuts_default_pass.append(pass_if_not_parsed)
+
+    def reset_observables(self):
+        """ Resets all observables. """
+
+        logger.debug("Resetting observables")
+
+        self.observables = OrderedDict()
+        self.observables_required = OrderedDict()
+        self.observables_defaults = OrderedDict()
+
+    def reset_cuts(self):
+        """ Resets all cuts. """
+
+        logger.debug("Resetting cuts")
+
+        self.cuts = []
+        self.cuts_default_pass = []
+
+    def analyse_samples(self, reference_benchmark=None):
+        """
+        Main function that parses the LHE samples, applies detector effects, checks cuts, and extracts
+        the observables and weights.
+
+        Parameters
+        ----------
+        reference_benchmark : str or None, optional
+            The weights at the nuisance benchmarks will be rescaled to some reference theta benchmark:
+            `dsigma(x|theta_sampling(x),nu) -> dsigma(x|theta_ref,nu) = dsigma(x|theta_sampling(x),nu)
+            * dsigma(x|theta_ref,0) / dsigma(x|theta_sampling(x),0)`. This sets the name of the reference benchmark.
+            If None, the first one will be used. Default value: None.
+
+        Returns
+        -------
+            None
+
+        """
+
+        # Input
+        if reference_benchmark is None:
+            reference_benchmark = self.benchmark_names_phys[0]
+        self.reference_benchmark = reference_benchmark
+
+        # Reset observations
+        self.observations = None
+        self.weights = None
+        self.nuisance_parameters = None
+
+        for lhe_file, is_background, sampling_benchmark, k_factor in zip(
+            self.lhe_sample_filenames, self.sample_is_backgrounds, self.sampling_benchmarks, self.sample_k_factors
+        ):
             logger.info("Analysing LHE sample %s", lhe_file)
 
-            # Calculate observables and weights
-            this_observations, this_weights = extract_observables_from_lhe_file(
-                lhe_file, sampling_benchmark, is_background, rescale_factor, self.observables, self.benchmark_names
+            # Read systematics setup from LHE file
+            logger.debug("Extracting nuisance parameter definitions from LHE file")
+            nuisance_parameters = extract_nuisance_parameters_from_lhe_file(lhe_file, self.systematics)
+            logger.debug("Found %s nuisance parameters with matching benchmarks:", len(nuisance_parameters))
+            for key, value in six.iteritems(nuisance_parameters):
+                logger.debug("  %s: %s", key, value)
+
+            # Compare to existing data
+            if self.nuisance_parameters is None:
+                self.nuisance_parameters = nuisance_parameters
+            else:
+                if dict(self.nuisance_parameters) != dict(nuisance_parameters):
+                    raise RuntimeError(
+                        "Different LHE files have different definitions of nuisance parameters / benchmarks!\nPrevious: {}\nNew:{}".format(
+                            self.nuisance_parameters, nuisance_parameters
+                        )
+                    )
+
+            # Calculate observables and weights in LHE file
+            this_observations, this_weights = parse_lhe_file(
+                filename=lhe_file,
+                sampling_benchmark=sampling_benchmark,
+                benchmark_names=self.benchmark_names_phys,
+                is_background=is_background,
+                observables=self.observables,
+                observables_required=self.observables_required,
+                observables_defaults=self.observables_defaults,
+                cuts=self.cuts,
+                cuts_default_pass=self.cuts_default_pass,
+                energy_resolutions=self.energy_resolution,
+                pt_resolutions=self.pt_resolution,
+                eta_resolutions=self.eta_resolution,
+                phi_resolutions=self.phi_resolution,
+                k_factor=k_factor,
             )
 
-            # Merge
+            # No events found?
+            if this_observations is None:
+                logger.debug("No observations in this LHE file, skipping it")
+                continue
+
+            logger.debug("Found weights %s in LHE file", list(this_weights.keys()))
+
+            # Check number of events in observables
+            n_events = None
+            for key, obs in six.iteritems(this_observations):
+                this_n_events = len(obs)
+                if n_events is None:
+                    n_events = this_n_events
+                    logger.debug("Found %s events", n_events)
+
+                if this_n_events != n_events:
+                    raise RuntimeError(
+                        "Mismatching number of events in LHE observations for {}: {} vs {}".format(
+                            key, n_events, this_n_events
+                        )
+                    )
+
+            # Check number of events in weights
+            for key, weights in six.iteritems(this_weights):
+                this_n_events = len(weights)
+                if n_events is None:
+                    n_events = this_n_events
+                    logger.debug("Found %s events", n_events)
+
+                if this_n_events != n_events:
+                    raise RuntimeError(
+                        "Mismatching number of events in weights {}: {} vs {}".format(key, n_events, this_n_events)
+                    )
+
+            # Rescale nuisance parameters to reference benchmark
+            reference_weights = this_weights[reference_benchmark]
+            sampling_weights = this_weights[sampling_benchmark]
+
+            for key in this_weights:
+                if key not in self.benchmark_names_phys:  # Only rescale nuisance benchmarks
+                    this_weights[key] = reference_weights / sampling_weights * this_weights[key]
+
+            # First results
             if self.observations is None and self.weights is None:
                 self.observations = this_observations
                 self.weights = this_weights
                 continue
 
+            # Following results: check consistency with previous results
             if len(self.weights) != len(this_weights):
                 raise ValueError(
-                    "Number of weights in different LHE files incompatible: {} vs {}".format(
+                    "Number of weights in different files incompatible: {} vs {}".format(
                         len(self.weights), len(this_weights)
                     )
                 )
             if len(self.observations) != len(this_observations):
                 raise ValueError(
-                    "Number of observations in different LHE files incompatible: {} vs {}".format(
+                    "Number of observations in different Delphes files incompatible: {} vs {}".format(
                         len(self.observations), len(this_observations)
                     )
                 )
 
-            self.weights = np.hstack([self.weights, this_weights])
+            # Merge results with previous
+            for key in self.weights:
+                assert key in this_weights, "Weight label {} not found in sample!".format(key)
+                self.weights[key] = np.hstack([self.weights[key], this_weights[key]])
 
             for key in self.observations:
-                assert key in this_observations, "Observable {} not found in LHE sample!".format(key)
+                assert key in this_observations, "Observable {} not found in Delphes sample!".format(key)
                 self.observations[key] = np.hstack([self.observations[key], this_observations[key]])
 
-    def save(self, filename_out, filename_in=None):
-        assert (
-            self.observables is not None and self.observations is not None and self.weights is not None
-        ), "Nothing to save!"
+    def save(self, filename_out):
+        """
+        Saves the observable definitions, observable values, and event weights in a MadMiner file. The parameter,
+        benchmark, and morphing setup is copied from the file provided during initialization. Nuisance benchmarks found
+        in the LHE file are added.
 
-        if filename_in is None:
-            logger.info("Saving HDF5 file to %s", filename_out)
-        else:
-            logger.info("Loading HDF5 data from %s and saving file to %s", filename_in, filename_out)
+        Parameters
+        ----------
+        filename_out : str
+            Path to where the results should be saved.
 
-        save_madminer_file_from_lhe(
-            filename_out, self.observables, self.observations, self.weights, copy_from=filename_in
+        Returns
+        -------
+            None
+
+        """
+
+        if self.observations is None or self.weights is None:
+            logger.warning("No observations to save!")
+            return
+
+        logger.debug("Loading HDF5 data from %s and saving file to %s", self.filename, filename_out)
+
+        # Save nuisance parameters and benchmarks
+        weight_names = list(self.weights.keys())
+        logger.debug("Weight names: %s", weight_names)
+
+        save_nuisance_setup_to_madminer_file(
+            filename_out,
+            weight_names,
+            self.nuisance_parameters,
+            reference_benchmark=self.reference_benchmark,
+            copy_from=self.filename,
         )
+
+        # Save events
+        save_events_to_madminer_file(filename_out, self.observables, self.observations, self.weights)
+
+
+# from __future__ import absolute_import, division, print_function, unicode_literals
+#
+# from collections import OrderedDict
+# import numpy as np
+# import logging
+#
+# from madminer.utils.interfaces.madminer_hdf5 import load_benchmarks_from_madminer_file, save_madminer_file_from_lhe, load_madminer_settings
+# from madminer.utils.interfaces.lhe import parse_lhe_file
+#
+# logger = logging.getLogger(__name__)
+#
+#
+# class LHEProcessor:
+#     """
+#     Detector simulation with smearing functions and simple calculation of observables, based on parton-level LHE
+#     samples.
+#
+#     After setting up the parameter space and benchmarks and running MadGraph and Pythia, all of which is organized
+#     in the madminer.core.MadMiner class, the next steps are the simulation of detector effects and the calculation of
+#     observables. Different tools can be used for these tasks, please feel free to implement the detector simulation and
+#     analysis routine of your choice.
+#
+#     This class provides a simple implementation in which detector effects are modeled with simple smearing functions.
+#     Its workflow consists of the following steps:
+#
+#     * Initializing the class with the filename of a MadMiner HDF5 file (the output of `madminer.core.MadMiner.save()`)
+#     * Adding one or multiple event samples produced by MadGraph in `LHEProcessor.add_sample()`.
+#     * Defining observables through `LHEProcessor.add_observable()` or
+#       `LHEProcessor.add_observable_from_function()`. A simple set of default observables is provided in
+#       `LHEProcessor.add_default_observables()`.
+#     * Calculating the observables with `LHEProcessor.analyse()`
+#     * Saving the results with `LHEProcessor.save()`
+#
+#     Please see the tutorial for a detailed walk-through.
+#
+#     Parameters
+#     ----------
+#     filename : str or None, optional
+#         Path to MadMiner file (the output of `madminer.core.MadMiner.save()`). Default value: None.
+#
+#     debug : bool, optional
+#         If True, additional detailed debugging output is printed. Default value: False.
+#
+#     """
+#
+#     def __init__(self, filename):
+#         """ Constructor """
+#
+#         # Initialize samples
+#         self.lhe_sample_filenames = []
+#         self.is_background = []
+#         self.sampling_benchmarks = []
+#         self.sample_k_factors = []
+#
+#         # Initialize observables
+#         self.observables = OrderedDict()
+#         self.observables_required = OrderedDict()
+#         self.observables_defaults = OrderedDict()
+#
+#         # Initialize samples
+#         self.observations = None
+#         self.weights = None
+#
+#         # Initialize nuisance parameters
+#         self.nuisance_parameters = None
+#
+#         # Information from .h5 file
+#         self.filename = filename
+#         (parameters, benchmarks, _, _, _, _, _, self.systematics, _, _) = load_madminer_settings(
+#             filename, include_nuisance_benchmarks=False
+#         )
+#         self.benchmark_names_phys = list(benchmarks.keys())
+#         self.n_benchmarks_phys = len(benchmarks)
+#
+#     def read_benchmark_names(self, filename):
+#         self.benchmark_names = load_benchmarks_from_madminer_file(filename)
+#
+#     def add_lhe_sample(self, filename, sampling_benchmark, is_background=False, rescale_factor=1.0):
+#         logger.info("Adding LHE sample at %s", filename)
+#
+#         self.lhe_sample_filenames.append(filename)
+#         self.is_background.append(is_background)
+#         self.sampling_benchmarks.append(sampling_benchmark)
+#         self.sample_k_factors.append(rescale_factor)
+#
+#     def add_observable(self, name, definition, required=False):
+#         if required:
+#             logger.info("Adding required observable %s = %s", name, definition)
+#         else:
+#             logger.info("Adding (not required) observable %s = %s", name, definition)
+#
+#         self.observables[name] = definition
+#         self.observables_required[name] = required
+#
+#     def add_observable_from_function(self, name, fn, required=False):
+#         """
+#         Adds an observable defined through a function.
+#
+#         Parameters
+#         ----------
+#         name : str
+#             Name of the observable. Since this name will be used in `eval()` calls for cuts, this should not contain spaces or special characters.
+#
+#         fn : function
+#             A function with signature `observable(p)` where the input arguments are lists of ndarrays and a float is returned. The function should raise a `RuntimeError` to signal that it is not defined.
+#
+#         required : bool, optional
+#             Whether the observable is required. If True, an event will only be retained if this observable is successfully parsed. For instance, any observable involving `"p[1]"` will only be parsed if there are at least two particles passing the acceptance cuts. Default value: False.
+#
+#         Returns
+#         -------
+#         None
+#
+#         """
+#
+#         if required:
+#             logger.info("Adding required observable %s ", name)
+#         else:
+#             logger.info("Adding (not required) observable %s ", name)
+#
+#         self.observables[name] = fn
+#         self.observables_required[name] = required
+#
+#     def set_default_observables(self):
+#         raise NotImplementedError
+#
+#     def analyse_lhe_samples(self):
+#         for lhe_file, sampling_benchmark, is_background, rescale_factor in zip(
+#             self.lhe_sample_filenames, self.sampling_benchmarks, self.is_background, self.sample_k_factors
+#         ):
+#
+#             logger.info("Analysing LHE sample %s", lhe_file)
+#
+#             # Calculate observables and weights
+#             this_observations, this_weights = parse_lhe_file(
+#                 lhe_file, sampling_benchmark, is_background, rescale_factor, self.observables, self.benchmark_names
+#             )
+#
+#             # Merge
+#             if self.observations is None and self.weights is None:
+#                 self.observations = this_observations
+#                 self.weights = this_weights
+#                 continue
+#
+#             if len(self.weights) != len(this_weights):
+#                 raise ValueError(
+#                     "Number of weights in different LHE files incompatible: {} vs {}".format(
+#                         len(self.weights), len(this_weights)
+#                     )
+#                 )
+#             if len(self.observations) != len(this_observations):
+#                 raise ValueError(
+#                     "Number of observations in different LHE files incompatible: {} vs {}".format(
+#                         len(self.observations), len(this_observations)
+#                     )
+#                 )
+#
+#             self.weights = np.hstack([self.weights, this_weights])
+#
+#             for key in self.observations:
+#                 assert key in this_observations, "Observable {} not found in LHE sample!".format(key)
+#                 self.observations[key] = np.hstack([self.observations[key], this_observations[key]])
+#
+#     def save(self, filename_out, filename_in=None):
+#         assert (
+#             self.observables is not None and self.observations is not None and self.weights is not None
+#         ), "Nothing to save!"
+#
+#         if filename_in is None:
+#             logger.info("Saving HDF5 file to %s", filename_out)
+#         else:
+#             logger.info("Loading HDF5 data from %s and saving file to %s", filename_in, filename_out)
+#
+#         save_madminer_file_from_lhe(
+#             filename_out, self.observables, self.observations, self.weights, copy_from=filename_in
+#         )

@@ -512,7 +512,7 @@ def save_events_to_madminer_file(
 
         if weights is not None and observations is not None:
             # Try to find benchmarks in file
-            logger.debug("Weight names found in Delphes files: %s", [key for key in weights])
+            logger.debug("Weight names found in event file: %s", [key for key in weights])
             try:
                 benchmark_names = f["benchmarks/names"][()]
                 benchmark_names = [bname.decode("ascii") for bname in benchmark_names]

@@ -3,81 +3,190 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import six
 import numpy as np
 from collections import OrderedDict
-import skhep.math
 import os
 import logging
 import xml.etree.ElementTree as ET
 
-from madminer.utils.various import call_command, approx_equal
+from madminer.utils.various import call_command, approx_equal, math_commands
+from madminer.utils.particle import MadMinerParticle
 
 logger = logging.getLogger(__name__)
 
 
-def extract_weights_from_lhe_file(filename, sampling_benchmark, is_background, rescale_factor=1.0):
-    """ Extracts weights from a LHE file and returns them as a dict with entries benchmark_name:values """
+def parse_lhe_file(
+    filename,
+    sampling_benchmark,
+    observables,
+    observables_required=None,
+    observables_defaults=None,
+    cuts=None,
+    cuts_default_pass=None,
+    benchmark_names=None,
+    is_background=False,
+    energy_resolutions=None,
+    pt_resolutions=None,
+    eta_resolutions=None,
+    phi_resolutions=None,
+    k_factor=1.0,
+):
+    """ Extracts observables and weights from a LHE file """
 
-    # Untar event file
-    new_filename, extension = os.path.splitext(filename)
-    if extension == ".gz":
-        if not os.path.exists(new_filename):
-            call_command("gunzip -k {}".format(filename))
-        filename = new_filename
+    logger.debug("Parsing LHE file %s", filename)
 
-    # Load LHE file
-    file = open(filename, "r")
+    # Inputs
+    if k_factor is None:
+        k_factor = 1.
 
-    # Go to first event, also check if sum or avg
-    is_average = False
-    for line in file:
-        if len(line.split()) > 2 and line.split()[1] == "=" and line.split()[2] == "nevents":
-            number_events_runcard = float(line.split()[0])
-        if len(line.split()) > 2 and line.split()[2] == "event_norm" and line.split()[0] == "average":
-            is_average = True
-        if line.strip() == "</init>":
-            break
+    if observables_required is None:
+        observables_required = {key: False for key in six.iterkeys(observables)}
 
-    # Rescale by nevent if average
-    if is_average:
-        rescale_factor = rescale_factor / number_events_runcard
+    if observables_defaults is None:
+        observables_defaults = {key: None for key in six.iterkeys(observables)}
 
-    # Sampling benchmark default for is_background=True
-    # if is_background:
-    #     sampling_benchmark = "default"
+    if is_background and benchmark_names is None:
+        raise RuntimeError("Parsing background LHE files required benchmark names to be provided.")
 
-    # Read and process weights, event by event
-    weights = None
+    # Untar and open LHE file
+    root = _untar_and_parse_lhe_file(filename)
 
-    while True:
-        end_of_file, _, this_weights = _read_lhe_event(file, sampling_benchmark)
-        if end_of_file:
-            break
+    # Figure out event weighting
+    run_card = root.find("header").find("MGRunCard").text
 
-        # First results
-        if weights is None:
-            weights = OrderedDict()
-            for key in this_weights:
-                weights[key] = [this_weights[key] * rescale_factor]
+    weight_norm_is_average = None
+    n_events_runcard = None
+    for line in run_card.splitlines():
+        # Remove run card comments
+        try:
+            line, _ = line.split("!")
+        except:
+            pass
 
+        # Separate in keys and values
+        try:
+            value, key = line.split("=")
+        except:
             continue
 
-        # Following results: check consistency with previous results
-        if len(weights) != len(this_weights):
-            raise ValueError(
-                "Number of weights in different LHE events incompatible: {} vs {}".format(
-                    len(weights), len(this_weights)
-                )
+        # Remove spaces
+        value = value.strip()
+        key = key.strip()
+
+        # Parse entries
+        if key == "nevents":
+            n_events_runcard = float(value)
+        if key == "event_norm":
+            weight_norm_is_average = value == "average"
+
+            logger.debug(
+                "Found entry event_norm = %s in LHE header. Interpreting this as weight_norm_is_average " "= %s.",
+                value,
+                weight_norm_is_average,
             )
 
-        # Merge results with previous
-        for key in weights:
-            assert key in this_weights, "Weight label {} not found in LHE event".format(key)
-            weights[key].append(this_weights[key] * rescale_factor)
+    if weight_norm_is_average is None:
+        logger.warning(
+            "Cannot read weight normalization mode (entry 'event_norm') from LHE file header. MadMiner "
+            "will continue assuming that events are properly normalized. Please check this!"
+        )
 
-    # Vectorize
-    for key in weights:
-        weights[key] = np.array(weights[key])
+    # If necessary, rescale by number of events
+    if weight_norm_is_average is not None:
+        if n_events_runcard is None:
+            raise RuntimeError(
+                "LHE weights have to be normalized, but MadMiner cannot read number of events (entry "
+                "'nevents') from LHE file header."
+            )
 
-    return weights
+        k_factor = k_factor / n_events_runcard
+
+    # Loop over events
+    observations_all_events = None
+    weights_all_events = None
+
+    events = root.findall("event")
+
+    for event in events:
+        # Parse event
+        particles, weights = _parse_event(event, sampling_benchmark)
+
+        # Apply smearing
+        particles = _smear_particles(particles, energy_resolutions, pt_resolutions, eta_resolutions, phi_resolutions)
+
+        # Objects in event
+        variables = _get_objects(particles)
+
+        # Calculate observables
+        observations = OrderedDict()
+        for obs_name, obs_definition in six.iteritems(observables):
+            if isinstance(obs_definition, six.string_types):
+                try:
+                    observations[obs_name] = eval(obs_definition, variables)
+                except (SyntaxError, NameError, TypeError, ZeroDivisionError, IndexError):
+                    if observables_required[obs_name]:
+                        continue
+
+                    default = observables_defaults[obs_name]
+                    if default is None:
+                        default = np.nan
+                    observations[obs_name] = default
+            else:
+                try:
+                    observations[obs_name] = obs_definition(particles)
+                except RuntimeError:
+                    if observables_required[obs_name]:
+                        continue
+
+                    default = observables_defaults[obs_name]
+                    if default is None:
+                        default = np.nan
+                    observations[obs_name] = default
+
+        # Objects for cuts
+        for obs_name, obs_value in six.iteritems(observations):
+            variables[obs_name] = obs_value
+
+        # Check cuts
+        for cut, default_pass in zip(cuts, cuts_default_pass):
+            try:
+                cut_result = eval(cut, variables)
+                if not cut_result:
+                    continue
+
+            except (SyntaxError, NameError, TypeError, ZeroDivisionError, IndexError):
+                if not default_pass:
+                    continue
+
+        # Reformat data
+        for key, value in six.iteritems(weights):
+            weights[key] = [value]
+        for key, value in six.iteritems(observations):
+            observations[key] = [value]
+
+        # Store results
+        if observations_all_events is None:
+            observations_all_events = observations
+        else:
+            for key in observations_all_events:
+                assert key in observations, "Observable {} not found in event".format(key)
+                observations_all_events[key] = observations_all_events[key] + observations[key]
+
+        if weights_all_events is None:
+            weights_all_events = weights
+        else:
+            for key in weights_all_events:
+                assert key in weights, "Weight {} not found in event".format(key)
+                weights_all_events[key] = weights_all_events[key] + weights[key]
+
+    # Background events
+    if is_background:
+        for benchmark_name in benchmark_names:
+            weights_all_events[benchmark_name] = weights_all_events[sampling_benchmark]
+
+    # k factor
+    for key, value in six.iteritems(weights_all_events):
+        weights_all_events[key] = k_factor * np.array(value)
+
+    return observations_all_events, weights_all_events
 
 
 def extract_nuisance_parameters_from_lhe_file(filename, systematics):
@@ -107,25 +216,8 @@ def extract_nuisance_parameters_from_lhe_file(filename, systematics):
         else:
             systematics_scales.append(None)
 
-    # Untar event file
-    new_filename, extension = os.path.splitext(filename)
-    if extension == ".gz":
-        if not os.path.exists(new_filename):
-            call_command("gunzip -k {}".format(filename))
-        filename = new_filename
-
-    # In some cases, the LHE comments can contain bad characters
-    with open(filename, "r") as file:
-        lhe_content = file.read()
-    lhe_lines = lhe_content.split("\n")
-    for i, line in enumerate(lhe_lines):
-        comment_pos = line.find("#")
-        if comment_pos >= 0:
-            lhe_lines[i] = line[:comment_pos]
-    lhe_content = "\n".join(lhe_lines)
-
-    # Parse XML tree
-    root = ET.fromstring(lhe_content)
+    # Untar and parse LHE file
+    root = _untar_and_parse_lhe_file(filename)
 
     # Find weight groups
     try:
@@ -153,7 +245,7 @@ def extract_nuisance_parameters_from_lhe_file(filename, systematics):
         try:
             wg_name = wg.attrib["name"]
         except KeyError:
-            logging.warning("Weight group does not have name attribute")
+            logger.warning("Weight group does not have name attribute")
             continue
 
         if "mg_reweighting" in wg_name.lower():  # Physics reweighting
@@ -170,7 +262,7 @@ def extract_nuisance_parameters_from_lhe_file(filename, systematics):
                     weight_muf = float(weight.attrib["MUF"])
                     weight_mur = float(weight.attrib["MUR"])
                 except KeyError:
-                    logging.warning("Scale variation weight does not have all expected attributes")
+                    logger.warning("Scale variation weight does not have all expected attributes")
                     continue
 
                 # Let's skip the entries with a varied dynamical scale for now
@@ -246,7 +338,7 @@ def extract_nuisance_parameters_from_lhe_file(filename, systematics):
                     weight_id = str(weight.attrib["id"])
                     weight_pdf = int(weight.attrib["PDF"])
                 except KeyError:
-                    logging.warning("Scale variation weight does not have all expected attributes")
+                    logger.warning("Scale variation weight does not have all expected attributes")
                     continue
 
                 # Add every PDF Hessian direction to nuisance parameters
@@ -256,174 +348,259 @@ def extract_nuisance_parameters_from_lhe_file(filename, systematics):
 
     # Check that everything was found
     if "pdf" in systematics.keys() and not systematics_pdf_done:
-        logging.warning("Did not find benchmarks representing PDF uncertainties in LHE file!")
+        logger.warning("Did not find benchmarks representing PDF uncertainties in LHE file!")
 
     for syst_name, (done1, done2) in zip(systematics.keys(), systematics_scale_done):
         if not (done1 and done2):
-            logging.warning(
+            logger.warning(
                 "Did not find benchmarks representing scale variation uncertainty %s in LHE file!", syst_name
             )
 
     return nuisance_params
 
 
-def extract_observables_from_lhe_file(
-    filename, sampling_benchmark, is_background, rescale_factor, observables, benchmark_names
-):
-    """ Extracts observables and weights from a LHE file """
+def _parse_event(event, sampling_benchmark):
+    # Initialize weights and momenta
+    weights = OrderedDict()
+    particles = []
 
-    # Untar Event file
+    # Split kinematics part in tag line and momenta
+    event_text = event.text
+    tag_line = None
+    particle_lines = []
+    for line in event_text.splitlines():
+        elements = line.split()
+        if len(elements) < 2:
+            continue
+        if tag_line is None:
+            tag_line = elements
+        else:
+            particle_lines.append(elements)
+
+    # Parse tag
+    assert tag_line is not None
+    weights[sampling_benchmark] = float(tag_line[2])
+
+    # Parse momenta
+    for elements in particle_lines:
+        if len(elements) < 10:
+            continue
+        status = int(elements[1])
+
+        if status == 1:
+            pdgid = int(elements[0])
+            px = float(elements[6])
+            py = float(elements[7])
+            pz = float(elements[8])
+            e = float(elements[9])
+            particle = MadMinerParticle()
+            particle.setpxpypze(px, py, pz, e)
+            particle.set_pdgid(pdgid)
+            particles.append(particle)
+
+    # Weights
+    if event.find("rwgt") is not None:
+        for weight in event.find("rwgt").findall("wgt"):
+            weight_id, weight_value = weight.attrib["id"], float(weight.text)
+            weights[weight_id] = weight_value
+
+    return particles, weights
+
+
+# def _read_lhe_event(file, sampling_benchmark):
+#     # Initialize Weights and Momenta
+#     event_weights = OrderedDict()
+#     event_momenta = []
+#
+#     # Some tags so that we know where in the event we are
+#     do_tag = False
+#     do_momenta = False
+#     do_reweight = False
+#     do_wait_for_reweight = False
+#
+#     # Loop through lines in Event
+#     for line in file:
+#         # Skip empty/commented out lines
+#         if len(line) == 0:
+#             continue
+#         if line.split()[0] == "#":
+#             continue
+#         if line.strip() == "</LesHouchesEvents>":
+#             return True, event_momenta, event_weights
+#         if line.strip() == "<event>":
+#             do_tag = True
+#             continue
+#
+#         # Read Tag -> first weight
+#         if do_tag:
+#             event_weights[sampling_benchmark] = float(line.split()[2])
+#             do_tag = False
+#             do_momenta = True
+#             continue
+#
+#         # Read Momenta and store as 4-vector
+#         if do_momenta:
+#             if line.strip() == "</event>":
+#                 return False, event_momenta, event_weights
+#             if line.strip() == "<mgrwt>":
+#                 do_momenta = False
+#                 do_wait_for_reweight = True
+#                 continue
+#             if line.strip() == "<rwgt>":
+#                 do_momenta = False
+#                 do_reweight = True
+#                 continue
+#             status = int(line.split()[1])
+#             if status == 1:
+#                 px = float(line.split()[6])
+#                 py = float(line.split()[7])
+#                 pz = float(line.split()[8])
+#                 en = float(line.split()[9])
+#                 vec = skhep.math.vectors.LorentzVector()
+#                 vec.setpxpypze(px, py, pz, en)
+#                 event_momenta.append(vec)
+#             continue
+#
+#         # Wait for reweight block
+#         if do_wait_for_reweight:
+#             if line.strip() == "<rwgt>":
+#                 do_wait_for_reweight = False
+#                 do_reweight = True
+#                 continue
+#
+#         # Read Reweighted weights
+#         if do_reweight:
+#             if line.strip() == "</rwgt>" or line.strip() == "</mgrwt>":
+#                 do_reweight = False
+#                 continue
+#             rwgtid = line[line.find("<") + 1 : line.find(">")].split("=")[1][1:-1]
+#             rwgtval = float(line[line.find(">") + 1 : line.find("<", line.find("<") + 1)])
+#             event_weights[rwgtid] = rwgtval
+#             continue
+#
+#         # End of Event -> return
+#         if line.strip() == "</event>":
+#             return False, event_momenta, event_weights
+
+
+def _untar_and_parse_lhe_file(filename):
+    # Untar event file
     new_filename, extension = os.path.splitext(filename)
     if extension == ".gz":
         if not os.path.exists(new_filename):
             call_command("gunzip -k {}".format(filename))
         filename = new_filename
 
-    # Load LHE file
-    file = open(filename, "r")
+    # In some cases, the LHE comments can contain bad characters
+    with open(filename, "r") as file:
+        lhe_content = file.read()
+    lhe_lines = lhe_content.split("\n")
+    for i, line in enumerate(lhe_lines):
+        comment_pos = line.find("#")
+        if comment_pos >= 0:
+            lhe_lines[i] = line[:comment_pos]
+    lhe_content = "\n".join(lhe_lines)
 
-    # Go to first event, also check if sum or avg
-    is_average = False
-    for line in file:
-        if len(line.split()) > 2 and line.split()[1] == "=" and line.split()[2] == "nevents":
-            number_events_runcard = float(line.split()[0])
-        if len(line.split()) > 2 and line.split()[2] == "event_norm" and line.split()[0] == "average":
-            is_average = True
-        if line.strip() == "</init>":
-            break
+    # Parse XML tree
+    root = ET.fromstring(lhe_content)
 
-    # Rescale by nevent if average
-    if is_average:
-        rescale_factor = rescale_factor / number_events_runcard
-
-    # Sampling benchmark default for is_background=True
-    if is_background:
-        sampling_benchmark = "default"
-
-    # Read events
-    partons_all_events = []
-    weights_all_events = []
-    while True:
-        end_of_file, event_partons, event_weights = _read_lhe_event(file, sampling_benchmark)
-        if end_of_file:
-            break
-        weights_all_events.append(event_weights)
-        partons_all_events.append(event_partons)
-
-    # Rewrite weights
-    weights = []
-    if is_background:
-        for benchmarkname in benchmark_names:
-            key_weights = []
-            for weight_event in weights_all_events:
-                key_weights.append(weight_event["default"] * rescale_factor)
-            weights.append(key_weights)
-        weights = np.array(weights)
-    else:
-        for benchmarkname in benchmark_names:
-            key_weights = []
-            for weight_event in weights_all_events:
-                key_weights.append(weight_event[benchmarkname] * rescale_factor)
-            weights.append(key_weights)
-        weights = np.array(weights)
-
-    # Obtain values for each observable in each event
-    observable_values = OrderedDict()
-    n_events = len(partons_all_events)
-    for obs_name, obs_definition in six.iteritems(observables):
-        values_this_observable = []
-
-        for event in range(n_events):
-            variables = {"p": partons_all_events[event]}
-
-            if isinstance(obs_definition, six.string_types):
-                try:
-                    values_this_observable.append(eval(obs_definition, variables))
-                except Exception:
-                    values_this_observable.append(np.nan)
-            else:
-                try:
-                    values_this_observable.append(obs_definition(partons_all_events[event]))
-                except RuntimeError:  # (SyntaxError, NameError, TypeError, ZeroDivisionError, IndexError, RuntimeError):
-                    values_this_observable.append(np.nan)
-
-        values_this_observable = np.array(values_this_observable, dtype=np.float)
-        observable_values[obs_name] = values_this_observable
-
-    return observable_values, weights
+    return root
 
 
-def _read_lhe_event(file, sampling_benchmark):
-    # Initialize Weights and Momenta
-    event_weights = OrderedDict()
-    event_momenta = []
+def _get_objects(particles):
+    # Find visible particles
+    electrons = []
+    muons = []
+    photons = []
+    jets = []
+    leptons = []
+    neutrinos = []
+    unstables = []
+    invisibles = []
 
-    # Some tags so that we know where in the event we are
-    do_tag = False
-    do_momenta = False
-    do_reweight = False
-    do_wait_for_reweight = False
+    for particle in particles:
+        pdgid = abs(particle.pdgid)
+        if pdgid in [1, 2, 3, 4, 5, 6, 9, 22]:
+            jets.append(particle)
+        elif pdgid == 11:
+            electrons.append(particle)
+            leptons.append(particle)
+        elif pdgid == 13:
+            muons.append(particle)
+            leptons.append(particle)
+        elif pdgid == 21:
+            photons.append(particle)
+        elif pdgid in [12, 14, 16]:
+            neutrinos.append(particle)
+            invisibles.append(particle)
+        elif pdgid in [15, 23, 24, 25]:
+            unstables.append(particle)
+        else:
+            logger.warning("Unknown particle with PDG id %s, treating as invisible!")
+            invisibles.append(particle)
 
-    # Loop through lines in Event
-    for line in file:
-        # Skip empty/commented out lines
-        if len(line) == 0:
-            continue
-        if line.split()[0] == "#":
-            continue
-        if line.strip() == "</LesHouchesEvents>":
-            return True, event_momenta, event_weights
-        if line.strip() == "<event>":
-            do_tag = True
-            continue
+    # Sort by pT
+    electrons = sorted(electrons, reverse=True, key=lambda x: x.pt)
+    muons = sorted(muons, reverse=True, key=lambda x: x.pt)
+    photons = sorted(photons, reverse=True, key=lambda x: x.pt)
+    leptons = sorted(leptons, reverse=True, key=lambda x: x.pt)
+    neutrinos = sorted(neutrinos, reverse=True, key=lambda x: x.pt)
+    jets = sorted(jets, reverse=True, key=lambda x: x.pt)
 
-        # Read Tag -> first weight
-        if do_tag:
-            event_weights[sampling_benchmark] = float(line.split()[2])
-            do_tag = False
-            do_momenta = True
-            continue
+    # MET
+    met = MadMinerParticle()
+    for p in invisibles:
+        met += p
 
-        # Read Momenta and store as 4-vector
-        if do_momenta:
-            if line.strip() == "</event>":
-                return False, event_momenta, event_weights
-            if line.strip() == "<mgrwt>":
-                do_momenta = False
-                do_wait_for_reweight = True
-                continue
-            if line.strip() == "<rwgt>":
-                do_momenta = False
-                do_reweight = True
-                continue
-            status = int(line.split()[1])
-            if status == 1:
-                px = float(line.split()[6])
-                py = float(line.split()[7])
-                pz = float(line.split()[8])
-                en = float(line.split()[9])
-                vec = skhep.math.vectors.LorentzVector()
-                vec.setpxpypze(px, py, pz, en)
-                event_momenta.append(vec)
-            continue
+    # Build objects
+    objects = math_commands()
+    objects.update(
+        {"p": particles, "e": electrons, "j": jets, "a": photons, "mu": muons, "l": leptons, "met": met, "v": neutrinos}
+    )
 
-        # Wait for reweight block
-        if do_wait_for_reweight:
-            if line.strip() == "<rwgt>":
-                do_wait_for_reweight = False
-                do_reweight = True
-                continue
+    return objects
 
-        # Read Reweighted weights
-        if do_reweight:
-            if line.strip() == "</rwgt>" or line.strip() == "</mgrwt>":
-                do_reweight = False
-                continue
-            rwgtid = line[line.find("<") + 1 : line.find(">")].split("=")[1][1:-1]
-            rwgtval = float(line[line.find(">") + 1 : line.find("<", line.find("<") + 1)])
-            event_weights[rwgtid] = rwgtval
-            continue
 
-        # End of Event -> return
-        if line.strip() == "</event>":
-            return False, event_momenta, event_weights
+def _smear_variable(true_value, resolutioms, id):
+    """ Adds Gaussian nose to a variable """
+    try:
+        res = resolutioms[id][0] + resolutioms[id][1] * true_value
+
+        if res <= 0.0:
+            return true_value
+
+        return true_value + np.random.normal(0.0, res, 1)
+
+    except KeyError:
+        return true_value
+
+
+def _smear_particles(particles, energy_resolutions, pt_resolutions, eta_resolutions, phi_resolutions):
+    """ Applies smearing function to particles of one event """
+
+    smeared_particles = []
+
+    for particle in particles:
+        pdgid = particle.pdgid
+
+        e = -1.0
+        while e < 0:
+            e = _smear_variable(particle.e, energy_resolutions, pdgid)
+        pt = -1.0
+        while pt < 0:
+            pt = _smear_variable(particle.pt, pt_resolutions, pdgid)
+        eta = _smear_variable(particle.eta, eta_resolutions, pdgid)
+        phi = _smear_variable(particle.phi(), phi_resolutions, pdgid)
+
+        while phi > 2.0 * np.pi:
+            phi -= 2.0 * np.pi
+        while phi < 0.0:
+            phi += 2.0 * np.pi
+
+        smeared_particle = MadMinerParticle()
+        smeared_particle.setptetaphie(pt, eta, phi, e)
+        smeared_particle.set_pdgid(pdgid)
+
+        smeared_particles.append(smeared_particle)
+
+    return smeared_particles
