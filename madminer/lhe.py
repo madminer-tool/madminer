@@ -31,7 +31,7 @@ class LHEProcessor:
     * Adding one or multiple event samples produced by MadGraph and Pythia in `LHEProcessor.add_sample()`.
     * Running Delphes on the samples that require it through `LHEProcessor.run_delphes()`.
     * Optionally, smearing functions for all visible particles can be defined with
-      `LHEProcessor.set_smearing_functions()`.
+      `LHEProcessor.set_smearing()`.
     * Defining observables through `LHEProcessor.add_observable()` or
       `LHEProcessor.add_observable_from_function()`. A simple set of default observables is provided in
       `LHEProcessor.add_default_observables()`
@@ -180,8 +180,17 @@ class LHEProcessor:
         For all particles of this type, and for the energy, pT, phi, and eta, the measurement error is drawn from a
         Gaussian with mean 0 and standard deviation given by `(X_resolution_abs + X * X_resolution_rel)`. Here `X` is
         the quantity (E, pT, phi, eta) of interest and X_resolution_abs and X_resolution_rel are the corresponding
-        keywords. the corresponding resolution keyword. In the case of energy and pT, values smaller than 0  will lead
-        to a re-drawing of the measurement error.
+        keywords. In the case of energy and pT, values smaller than 0  will lead to a re-drawing of the measurement
+        error.
+
+        Instead of such numerical values, either the energy or pT resolution (but not both!) may be set to None. In
+        this case, this quantity is calculated from the mass of the particle and all other smeared particles. For
+        instance, when pt_resolution_abs is None or pt_resolution_rel is None, for the given particles the energy,
+        phi, and eta are smeared (according to their respective resolutions). Then the transverse momentum is calculated
+        from the on-shell condition `p^2 = m^2`, or `pT = sqrt(E^2 - m^2) / cosh(eta)`. When this does not have a
+        solution, the pT is set to zero. On the other hand, when energy_resolution_abs is None or energy_resolution_abs
+        is None, for the given particles the pT, phi, and eta are smeared, and then the energy is calculated as
+        `E = sqrt(pT * cosh(eta))^2 + m^2)`.
 
         Parameters
         ----------
@@ -190,17 +199,21 @@ class LHEProcessor:
             set_smearing() is called multiple times for a given particle, the earlier calls will be forgotten and only
             the last smearing function will take effect. Default value: None.
 
-        energy_resolution_abs : float, optional
-            Absolute measurement uncertainty for the energy in GeV. Default value: 0.
+        energy_resolution_abs : float or None, optional
+            Absolute measurement uncertainty for the energy in GeV. None means that the pT is not smeared directly, but
+            calculated from the on-shell condition. Default value: 0.
 
-        energy_resolution_rel : float, optional
-            Relative measurement uncertainty for the energy. Default value: 0.
+        energy_resolution_rel : float or None, optional
+            Relative measurement uncertainty for the energy. None means that the pT is not smeared directly, but
+            calculated from the on-shell condition. Default value: 0.
 
-        pt_resolution_abs : float, optional
-            Absolute measurement uncertainty for the pT in GeV. Default value: 0.
+        pt_resolution_abs : float or None, optional
+            Absolute measurement uncertainty for the pT in GeV. None means that the pT is not smeared directly, but
+            calculated from the on-shell condition. Default value: 0.
 
-        pt_resolution_rel : float, optional
-            Relative measurement uncertainty for the pT. Default value: 0.
+        pt_resolution_rel : float or None, optional
+            Relative measurement uncertainty for the pT. None means that the pT is not smeared directly, but
+            calculated from the on-shell condition. Default value: 0.
 
         eta_resolution_abs : float, optional
             Absolute measurement uncertainty for eta. Default value: 0.
