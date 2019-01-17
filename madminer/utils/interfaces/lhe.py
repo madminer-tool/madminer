@@ -34,6 +34,9 @@ def parse_lhe_file(
     logger.debug("Parsing LHE file %s", filename)
 
     # Inputs
+    if k_factor is None:
+        k_factor = 1.
+
     if observables_required is None:
         observables_required = {key: False for key in six.iterkeys(observables)}
 
@@ -47,32 +50,41 @@ def parse_lhe_file(
     root = _untar_and_parse_lhe_file(filename)
 
     # Figure out event weighting
-    run_card = root.find("header").findall("MGRunCard").text
+    run_card = root.find("header").find("MGRunCard").text
 
     weight_norm_is_average = None
     n_events_runcard = None
     for line in run_card.splitlines():
+        # Remove run card comments
+        try:
+            line, _ = line.split("!")
+        except:
+            pass
+
+        # Separate in keys and values
         try:
             value, key = line.split("=")
         except:
             continue
 
+        # Remove spaces
         value = value.strip()
         key = key.strip()
 
+        # Parse entries
         if key == "nevents":
             n_events_runcard = float(value)
         if key == "event_norm":
             weight_norm_is_average = value == "average"
 
-            logging.debug(
+            logger.debug(
                 "Found entry event_norm = %s in LHE header. Interpreting this as weight_norm_is_average " "= %s.",
                 value,
                 weight_norm_is_average,
             )
 
     if weight_norm_is_average is None:
-        logging.warning(
+        logger.warning(
             "Cannot read weight normalization mode (entry 'event_norm') from LHE file header. MadMiner "
             "will continue assuming that events are properly normalized. Please check this!"
         )
@@ -172,7 +184,7 @@ def parse_lhe_file(
 
     # k factor
     for key, value in six.iteritems(weights_all_events):
-        weights_all_events = k_factor * np.array(value)
+        weights_all_events[key] = k_factor * np.array(value)
 
     return observations_all_events, weights_all_events
 
@@ -233,7 +245,7 @@ def extract_nuisance_parameters_from_lhe_file(filename, systematics):
         try:
             wg_name = wg.attrib["name"]
         except KeyError:
-            logging.warning("Weight group does not have name attribute")
+            logger.warning("Weight group does not have name attribute")
             continue
 
         if "mg_reweighting" in wg_name.lower():  # Physics reweighting
@@ -250,7 +262,7 @@ def extract_nuisance_parameters_from_lhe_file(filename, systematics):
                     weight_muf = float(weight.attrib["MUF"])
                     weight_mur = float(weight.attrib["MUR"])
                 except KeyError:
-                    logging.warning("Scale variation weight does not have all expected attributes")
+                    logger.warning("Scale variation weight does not have all expected attributes")
                     continue
 
                 # Let's skip the entries with a varied dynamical scale for now
@@ -326,7 +338,7 @@ def extract_nuisance_parameters_from_lhe_file(filename, systematics):
                     weight_id = str(weight.attrib["id"])
                     weight_pdf = int(weight.attrib["PDF"])
                 except KeyError:
-                    logging.warning("Scale variation weight does not have all expected attributes")
+                    logger.warning("Scale variation weight does not have all expected attributes")
                     continue
 
                 # Add every PDF Hessian direction to nuisance parameters
@@ -336,11 +348,11 @@ def extract_nuisance_parameters_from_lhe_file(filename, systematics):
 
     # Check that everything was found
     if "pdf" in systematics.keys() and not systematics_pdf_done:
-        logging.warning("Did not find benchmarks representing PDF uncertainties in LHE file!")
+        logger.warning("Did not find benchmarks representing PDF uncertainties in LHE file!")
 
     for syst_name, (done1, done2) in zip(systematics.keys(), systematics_scale_done):
         if not (done1 and done2):
-            logging.warning(
+            logger.warning(
                 "Did not find benchmarks representing scale variation uncertainty %s in LHE file!", syst_name
             )
 
@@ -387,9 +399,10 @@ def _parse_event(event, sampling_benchmark):
             particles.append(particle)
 
     # Weights
-    for weight in event.fing("rwgt").findall("wgt"):
-        weight_id, weight_value = weight.attrib["id"], float(weight.text)
-        weights[weight_id] = weight_value
+    if event.find("rwgt") is not None:
+        for weight in event.find("rwgt").findall("wgt"):
+            weight_id, weight_value = weight.attrib["id"], float(weight.text)
+            weights[weight_id] = weight_value
 
     return particles, weights
 
@@ -523,16 +536,16 @@ def _get_objects(particles):
         elif pdgid in [15, 23, 24, 25]:
             unstables.append(particle)
         else:
-            logging.warning("Unknown particle with PDG id %s, treating as invisible!")
+            logger.warning("Unknown particle with PDG id %s, treating as invisible!")
             invisibles.append(particle)
 
     # Sort by pT
-    electrons = sorted(electrons, lambda x: x.pt, reverse=True)
-    muons = sorted(muons, lambda x: x.pt, reverse=True)
-    photons = sorted(photons, lambda x: x.pt, reverse=True)
-    leptons = sorted(leptons, lambda x: x.pt, reverse=True)
-    neutrinos = sorted(neutrinos, lambda x: x.pt, reverse=True)
-    jets = sorted(jets, lambda x: x.pt, reverse=True)
+    electrons = sorted(electrons, reverse=True, key=lambda x: x.pt)
+    muons = sorted(muons, reverse=True, key=lambda x: x.pt)
+    photons = sorted(photons, reverse=True, key=lambda x: x.pt)
+    leptons = sorted(leptons, reverse=True, key=lambda x: x.pt)
+    neutrinos = sorted(neutrinos, reverse=True, key=lambda x: x.pt)
+    jets = sorted(jets, reverse=True, key=lambda x: x.pt)
 
     # MET
     met = MadMinerParticle()
@@ -572,19 +585,19 @@ def _smear_particles(particles, energy_resolutions, pt_resolutions, eta_resoluti
 
         e = -1.0
         while e < 0:
-            e = _smear_variable(particle.e, energy_resolutions, pdgid, True)
+            e = _smear_variable(particle.e, energy_resolutions, pdgid)
         pt = -1.0
         while pt < 0:
-            pt = _smear_variable(particle.pt, pt_resolutions, pdgid, True)
-        eta = _smear_variable(particle.eta, eta_resolutions, pdgid, False)
-        phi = _smear_variable(particle.phi(), phi_resolutions, pdgid, False)
+            pt = _smear_variable(particle.pt, pt_resolutions, pdgid)
+        eta = _smear_variable(particle.eta, eta_resolutions, pdgid)
+        phi = _smear_variable(particle.phi(), phi_resolutions, pdgid)
 
         while phi > 2.0 * np.pi:
             phi -= 2.0 * np.pi
         while phi < 0.0:
             phi += 2.0 * np.pi
 
-        smeared_particle = MadMinerParticle
+        smeared_particle = MadMinerParticle()
         smeared_particle.setptetaphie(pt, eta, phi, e)
         smeared_particle.set_pdgid(pdgid)
 
