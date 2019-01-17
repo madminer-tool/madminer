@@ -74,14 +74,16 @@ To get the [examples](examples/), including the tutorials, clone this repository
 
 ### Tutorials
 
-As a starting point, we recommend the [toy example](examples/toy_example/toy_example.ipynb), which demonstrates
+As a starting point, we recommend to look at a 
+[tutorial based on a toy example](examples/tutorial_toy_simulator/tutorial_toy_simulator.ipynb). It demonstrates
 inference with MadMinier without spending much time on the more technical steps of running the simulation.
 
-In [tutorial_1.ipynb](examples/tutorial/tutorial_1.ipynb) we provide a detailed tutorial that goes through the main
-steps of a detector-level analysis.
-
-After that, we recommend going through [tutorial_2.ipynb](examples/tutorial/tutorial_1.ipynb), which explains local
-score methods, how to estimate the Fisher information, and introduces some convenient ensemble methods.
+We then provide two sets of tutorials for the same real-world particle physics process. The difference between them is
+that the [parton-level tutorial](examples/tutorial_parton_level/) only requires running MadGraph. Instead of a proper
+shower and detector simulation, we describe detector effects through simple smearing functions. This reduces the runtime
+of the scripts quite a bit. In the [Delphes tutorial](examples/tutorial_delphes), we finally switch to Pythia and
+Delphes; this tutorial is probably best suited as a starting point for phenomenological research projects. In most
+other aspects, the two tutorials are identical.
 
 [Other provided examples](examples/) show MadMiner in action in different processes.
 
@@ -89,7 +91,7 @@ score methods, how to estimate the Fisher information, and introduces some conve
 
 - `madminer.core` contains the functions to set up the process, parameter space, morphing, and to steer MadGraph and
    Pythia.
-- `madminer.delphes` and `madminer.lhe` contain two example implementations of a detector simulation and observable
+- `madminer.lhe` and `madminer.delphes` contain two example implementations of a detector simulation and observable
    calculation. This part can easily be swapped out depending on the use case.
 - In `madminer.sampling`, train and test samples for the machine learning part are generated and augmented with the
   joint score and joint ratio.

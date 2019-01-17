@@ -13,6 +13,7 @@ Welcome to MadMiner's documentation!
    madminer.core
    madminer.delphes
    madminer.fisherinformation
+   madminer.lhe
    madminer.ml
    madminer.morphing
    madminer.plotting

@@ -120,16 +120,29 @@ py.py
 # Data
 examples/morphing_basis/animations
 
-examples/tutorial/temp
-examples/tutorial/nsqso_born.inc
-examples/tutorial/data
-examples/tutorial/datasave
-examples/tutorial/logs
-examples/tutorial/ME5_debug
-examples/tutorial/MG_Process
-examples/tutorial/mg_processes
-examples/tutorial/py.py
-examples/tutorial/models
+examples/tutorial_delphes/temp
+examples/tutorial_delphes/nsqso_born.inc
+examples/tutorial_delphes/data
+examples/tutorial_delphes/logs
+examples/tutorial_delphes/ME5_debug
+examples/tutorial_delphes/MG_Process
+examples/tutorial_delphes/mg_processes
+examples/tutorial_delphes/py.py
+examples/tutorial_delphes/models
+
+examples/tutorial_parton_level/temp
+examples/tutorial_parton_level/nsqso_born.inc
+examples/tutorial_parton_level/data
+examples/tutorial_parton_level/datasave
+examples/tutorial_parton_level/logs
+examples/tutorial_parton_level/ME5_debug
+examples/tutorial_parton_level/MG_Process
+examples/tutorial_parton_level/mg_processes
+examples/tutorial_parton_level/py.py
+examples/tutorial_parton_level/models
+
+examples/tutorial_toy_simulator/data
+examples/tutorial_toy_simulator/models
 
 examples/example1_wgamma/temp
 examples/example1_wgamma/nsqso_born.inc
@@ -152,9 +165,6 @@ examples/example2_wbf/mg_processes
 examples/example2_wbf/py.py
 examples/example2_wbf/models
 examples/example2_wbf/figures
-
-examples/toy_example/data
-examples/toy_example/models
 
 # MG / Pythia / Delphes patch
 patches/

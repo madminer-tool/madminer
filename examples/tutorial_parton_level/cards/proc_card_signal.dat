@@ -1,0 +1,2 @@
+import model EWdim6-full
+generate u d > u d h / a z QCD=0 QED=99 NP=2, h > a a QCD=0 QED=99 NP=0
