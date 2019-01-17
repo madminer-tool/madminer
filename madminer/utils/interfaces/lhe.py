@@ -23,11 +23,11 @@ def parse_lhe_file(
     cuts_default_pass=None,
     benchmark_names=None,
     is_background=False,
-    energy_resolutions = None,
-    pt_resolutions = None,
-    eta_resolutions = None,
-    phi_resolutions = None,
-    k_factor=1.,
+    energy_resolutions=None,
+    pt_resolutions=None,
+    eta_resolutions=None,
+    phi_resolutions=None,
+    k_factor=1.0,
 ):
     """ Extracts observables and weights from a LHE file """
 
@@ -63,20 +63,27 @@ def parse_lhe_file(
         if key == "nevents":
             n_events_runcard = float(value)
         if key == "event_norm":
-            weight_norm_is_average = (value == "average")
+            weight_norm_is_average = value == "average"
 
-            logging.debug("Found entry event_norm = %s in LHE header. Interpreting this as weight_norm_is_average "
-                          "= %s.", value, weight_norm_is_average)
+            logging.debug(
+                "Found entry event_norm = %s in LHE header. Interpreting this as weight_norm_is_average " "= %s.",
+                value,
+                weight_norm_is_average,
+            )
 
     if weight_norm_is_average is None:
-        logging.warning("Cannot read weight normalization mode (entry 'event_norm') from LHE file header. MadMiner "
-                        "will continue assuming that events are properly normalized. Please check this!")
+        logging.warning(
+            "Cannot read weight normalization mode (entry 'event_norm') from LHE file header. MadMiner "
+            "will continue assuming that events are properly normalized. Please check this!"
+        )
 
     # If necessary, rescale by number of events
     if weight_norm_is_average is not None:
         if n_events_runcard is None:
-            raise RuntimeError("LHE weights have to be normalized, but MadMiner cannot read number of events (entry "
-                               "'nevents') from LHE file header.")
+            raise RuntimeError(
+                "LHE weights have to be normalized, but MadMiner cannot read number of events (entry "
+                "'nevents') from LHE file header."
+            )
 
         k_factor = k_factor / n_events_runcard
 
@@ -386,6 +393,7 @@ def _parse_event(event, sampling_benchmark):
 
     return particles, weights
 
+
 # def _read_lhe_event(file, sampling_benchmark):
 #     # Initialize Weights and Momenta
 #     event_weights = OrderedDict()
@@ -499,7 +507,7 @@ def _get_objects(particles):
 
     for particle in particles:
         pdgid = abs(particle.pdgid)
-        if pdgid in [1,2,3,4,5,6,9,22]:
+        if pdgid in [1, 2, 3, 4, 5, 6, 9, 22]:
             jets.append(particle)
         elif pdgid == 11:
             electrons.append(particle)
@@ -509,22 +517,22 @@ def _get_objects(particles):
             leptons.append(particle)
         elif pdgid == 21:
             photons.append(particle)
-        elif pdgid in [12,14,16]:
+        elif pdgid in [12, 14, 16]:
             neutrinos.append(particle)
             invisibles.append(particle)
-        elif pdgid in [15,23,24,25]:
+        elif pdgid in [15, 23, 24, 25]:
             unstables.append(particle)
         else:
             logging.warning("Unknown particle with PDG id %s, treating as invisible!")
             invisibles.append(particle)
 
     # Sort by pT
-    electrons = sorted(electrons, lambda x : x.pt, reverse=True)
-    muons = sorted(muons, lambda x : x.pt, reverse=True)
-    photons = sorted(photons, lambda x : x.pt, reverse=True)
-    leptons = sorted(leptons, lambda x : x.pt, reverse=True)
-    neutrinos = sorted(neutrinos, lambda x : x.pt, reverse=True)
-    jets = sorted(jets, lambda x : x.pt, reverse=True)
+    electrons = sorted(electrons, lambda x: x.pt, reverse=True)
+    muons = sorted(muons, lambda x: x.pt, reverse=True)
+    photons = sorted(photons, lambda x: x.pt, reverse=True)
+    leptons = sorted(leptons, lambda x: x.pt, reverse=True)
+    neutrinos = sorted(neutrinos, lambda x: x.pt, reverse=True)
+    jets = sorted(jets, lambda x: x.pt, reverse=True)
 
     # MET
     met = MadMinerParticle()
@@ -534,16 +542,7 @@ def _get_objects(particles):
     # Build objects
     objects = math_commands()
     objects.update(
-        {
-            "p": particles,
-            "e": electrons,
-            "j": jets,
-            "a": photons,
-            "mu": muons,
-            "l": leptons,
-            "met": met,
-            "v": neutrinos,
-        }
+        {"p": particles, "e": electrons, "j": jets, "a": photons, "mu": muons, "l": leptons, "met": met, "v": neutrinos}
     )
 
     return objects
@@ -554,10 +553,10 @@ def _smear_variable(true_value, resolutioms, id):
     try:
         res = resolutioms[id][0] + resolutioms[id][1] * true_value
 
-        if res <= 0.:
+        if res <= 0.0:
             return true_value
 
-        return true_value + np.random.normal(0., res, 1)
+        return true_value + np.random.normal(0.0, res, 1)
 
     except KeyError:
         return true_value
@@ -571,22 +570,22 @@ def _smear_particles(particles, energy_resolutions, pt_resolutions, eta_resoluti
     for particle in particles:
         pdgid = particle.pdgid
 
-        e = -1.
+        e = -1.0
         while e < 0:
             e = _smear_variable(particle.e, energy_resolutions, pdgid, True)
-        pt = -1.
+        pt = -1.0
         while pt < 0:
             pt = _smear_variable(particle.pt, pt_resolutions, pdgid, True)
         eta = _smear_variable(particle.eta, eta_resolutions, pdgid, False)
         phi = _smear_variable(particle.phi(), phi_resolutions, pdgid, False)
 
-        while phi > 2. * np.pi:
-            phi -= 2. * np.pi
-        while phi < 0.:
-            phi += 2. * np.pi
+        while phi > 2.0 * np.pi:
+            phi -= 2.0 * np.pi
+        while phi < 0.0:
+            phi += 2.0 * np.pi
 
         smeared_particle = MadMinerParticle
-        smeared_particle.setptetaphie(pt,eta,phi, e)
+        smeared_particle.setptetaphie(pt, eta, phi, e)
         smeared_particle.set_pdgid(pdgid)
 
         smeared_particles.append(smeared_particle)
