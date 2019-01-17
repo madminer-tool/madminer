@@ -160,7 +160,7 @@ def parse_lhe_file(
         for key, value in six.iteritems(weights):
             weights[key] = [value]
         for key, value in six.iteritems(observations):
-            observations[key] = [observations]
+            observations[key] = [value]
 
         # Store results
         if observations_all_events is None:
