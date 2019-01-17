@@ -14,11 +14,29 @@ logger = logging.getLogger(__name__)
 
 
 def parse_lhe_file(
-    filename, sampling_benchmark, observables, benchmark_names=None, is_background=False, k_factor=1., observables_defaults=None, return_dict=False
+    filename,
+    sampling_benchmark,
+    observables,
+    observables_required=None,
+    observables_defaults=None,
+    cuts=None,
+    cuts_default_pass=None,
+    benchmark_names=None,
+    is_background=False,
+    energy_resolutions = None,
+    pt_resolutions = None,
+    eta_resolutions = None,
+    phi_resolutions = None,
+    k_factor=1.,
 ):
     """ Extracts observables and weights from a LHE file """
 
+    logger.debug("Parsing LHE file %s", filename)
+
     # Inputs
+    if observables_required is None:
+        observables_required = {key: False for key in six.iterkeys(observables)}
+
     if observables_defaults is None:
         observables_defaults = {key: None for key in six.iterkeys(observables)}
 
@@ -72,6 +90,9 @@ def parse_lhe_file(
         # Parse event
         particles, weights = _parse_event(event, sampling_benchmark)
 
+        # Apply smearing
+        particles = _smear_particles(particles, energy_resolutions, pt_resolutions, eta_resolutions, phi_resolutions)
+
         # Objects in event
         variables = _get_objects(particles)
 
@@ -82,6 +103,9 @@ def parse_lhe_file(
                 try:
                     observations[obs_name] = eval(obs_definition, variables)
                 except (SyntaxError, NameError, TypeError, ZeroDivisionError, IndexError):
+                    if observables_required[obs_name]:
+                        continue
+
                     default = observables_defaults[obs_name]
                     if default is None:
                         default = np.nan
@@ -90,10 +114,28 @@ def parse_lhe_file(
                 try:
                     observations[obs_name] = obs_definition(particles)
                 except RuntimeError:
+                    if observables_required[obs_name]:
+                        continue
+
                     default = observables_defaults[obs_name]
                     if default is None:
                         default = np.nan
                     observations[obs_name] = default
+
+        # Objects for cuts
+        for obs_name, obs_value in six.iteritems(observations):
+            variables[obs_name] = obs_value
+
+        # Check cuts
+        for cut, default_pass in zip(cuts, cuts_default_pass):
+            try:
+                cut_result = eval(cut, variables)
+                if not cut_result:
+                    continue
+
+            except (SyntaxError, NameError, TypeError, ZeroDivisionError, IndexError):
+                if not default_pass:
+                    continue
 
         # Reformat data
         for key, value in six.iteritems(weights):
@@ -119,15 +161,11 @@ def parse_lhe_file(
     # Background events
     if is_background:
         for benchmark_name in benchmark_names:
-            weights[benchmark_name] = weights[sampling_benchmark]
+            weights_all_events[benchmark_name] = weights_all_events[sampling_benchmark]
 
     # k factor
     for key, value in six.iteritems(weights_all_events):
         weights_all_events = k_factor * np.array(value)
-
-    # Reformat weights and apply k factor
-    if not return_dict:
-        weights_all_events = np.array(weights_all_events).T  # Shape (n_weights, n_events)
 
     return observations_all_events, weights_all_events
 
@@ -509,3 +547,48 @@ def _get_objects(particles):
     )
 
     return objects
+
+
+def _smear_variable(true_value, resolutioms, id):
+    """ Adds Gaussian nose to a variable """
+    try:
+        res = resolutioms[id][0] + resolutioms[id][1] * true_value
+
+        if res <= 0.:
+            return true_value
+
+        return true_value + np.random.normal(0., res, 1)
+
+    except KeyError:
+        return true_value
+
+
+def _smear_particles(particles, energy_resolutions, pt_resolutions, eta_resolutions, phi_resolutions):
+    """ Applies smearing function to particles of one event """
+
+    smeared_particles = []
+
+    for particle in particles:
+        pdgid = particle.pdgid
+
+        e = -1.
+        while e < 0:
+            e = _smear_variable(particle.e, energy_resolutions, pdgid, True)
+        pt = -1.
+        while pt < 0:
+            pt = _smear_variable(particle.pt, pt_resolutions, pdgid, True)
+        eta = _smear_variable(particle.eta, eta_resolutions, pdgid, False)
+        phi = _smear_variable(particle.phi(), phi_resolutions, pdgid, False)
+
+        while phi > 2. * np.pi:
+            phi -= 2. * np.pi
+        while phi < 0.:
+            phi += 2. * np.pi
+
+        smeared_particle = MadMinerParticle
+        smeared_particle.setptetaphie(pt,eta,phi, e)
+        smeared_particle.set_pdgid(pdgid)
+
+        smeared_particles.append(smeared_particle)
+
+    return smeared_particles

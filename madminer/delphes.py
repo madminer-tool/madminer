@@ -32,7 +32,7 @@ class DelphesProcessor:
 
     * Initializing the class with the filename of a MadMiner HDF5 file (the output of `madminer.core.MadMiner.save()`)
     * Adding one or multiple event samples produced by MadGraph and Pythia in `DelphesProcessor.add_sample()`.
-    * Running Delphes on the samples that require it through `DelphesProcessor.run_delphes()`
+    * Running Delphes on the samples that require it through `DelphesProcessor.run_delphes()`.
     * Optionally, acceptance cuts for all visible particles can be defined with `DelphesProcessor.set_acceptance()`.
     * Defining observables through `DelphesProcessor.add_observable()` or
       `DelphesProcessor.add_observable_from_function()`. A simple set of default observables is provided in
@@ -48,12 +48,9 @@ class DelphesProcessor:
     filename : str or None, optional
         Path to MadMiner file (the output of `madminer.core.MadMiner.save()`). Default value: None.
 
-    debug : bool, optional
-        If True, additional detailed debugging output is printed. Default value: False.
-
     """
 
-    def __init__(self, filename, debug=False):
+    def __init__(self, filename):
         # Initialize samples
         self.hepmc_sample_filenames = []
         self.hepmc_sample_weight_labels = []
@@ -341,7 +338,7 @@ class DelphesProcessor:
 
         fn : function
             A function with signature `observable(leptons, photons, jets, met)` where the input arguments are lists of
-            ndarrays and a float is returned. The function should raise a `RuntimeError` to signal
+            MadMinerParticle instances and a float is returned. The function should raise a `RuntimeError` to signal
             that it is not defined.
 
         required : bool, optional
