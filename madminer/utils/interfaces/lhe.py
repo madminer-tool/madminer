@@ -561,17 +561,17 @@ def _get_objects(particles):
     return objects
 
 
-def _smear_variable(true_value, resolutioms, id):
+def _smear_variable(true_value, resolutions, id):
     """ Adds Gaussian nose to a variable """
     try:
-        res = resolutioms[id][0] + resolutioms[id][1] * true_value
+        res = resolutions[id][0] + resolutions[id][1] * true_value
 
         if res <= 0.0:
             return true_value
 
         return true_value + np.random.normal(0.0, res, 1)
 
-    except KeyError:
+    except TypeError, KeyError:
         return true_value
 
 
@@ -583,17 +583,17 @@ def _smear_particles(particles, energy_resolutions, pt_resolutions, eta_resoluti
     for particle in particles:
         pdgid = particle.pdgid
 
-        if None in energy_resolutions and None in pt_resolutions:
+        if None in energy_resolutions[pdgid] and None in pt_resolutions[pdgid]:
             raise RuntimeError("Cannot derive both pT and energy from on-shell conditions!")
 
         # Smear four-momenta
         e = None
-        if None not in energy_resolutions:
+        if None not in energy_resolutions[pdgid]:
             e = -1.0
             while e < 0:
                 e = _smear_variable(particle.e, energy_resolutions, pdgid)
         pt = None
-        if None not in energy_resolutions:
+        if None not in pt_resolutions[pdgid]:
             pt = -1.0
             while pt < 0:
                 pt = _smear_variable(particle.pt, pt_resolutions, pdgid)
@@ -607,11 +607,11 @@ def _smear_particles(particles, energy_resolutions, pt_resolutions, eta_resoluti
         # Construct particle
         smeared_particle = MadMinerParticle()
 
-        if None in energy_resolutions:
+        if None in energy_resolutions[pdgid]:
             # Calculate E from on-shell conditions
             smeared_particle.setptetaphim(pt, eta, phi, particle.m)
 
-        elif None in pt_resolutions:
+        elif None in pt_resolutions[pdgid]:
             # Calculate pT from on-shell conditions
             if e > particle.m:
                 pt = (e**2 - particle.m**2) / np.cosh(eta)
