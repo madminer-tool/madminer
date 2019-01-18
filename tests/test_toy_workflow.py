@@ -138,5 +138,4 @@ def run_test():
     return rmse
 
 
-def test_ansert():
-    assert run_test() < 1000.
+assert run_test() < 1000.
