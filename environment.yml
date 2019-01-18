@@ -11,6 +11,7 @@ dependencies:
 - scikit-learn=0.19.*
 - six
 - pytorch=0.4.*
+- pyteest
 - pip
 - pip:
   - uproot

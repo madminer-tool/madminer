@@ -34,7 +34,8 @@ REQUIRED = [
     "bqplot",
     "uproot",
     "matplotlib>=2.0.0",
-    "numpydoc"
+    "numpydoc",
+    "pytest"
 ]
 
 # What packages are optional?
