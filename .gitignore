@@ -117,6 +117,9 @@ ME5_debug
 nsqso_born.inc
 py.py
 
+# Teests
+tests/data
+
 # Data
 examples/morphing_basis/animations
 
