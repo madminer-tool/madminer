@@ -10,18 +10,6 @@ from madminer.ml import MLForge
 if not os.path.exists('tests/data'):
     os.makedirs('tests/data')
 
-# MadMiner output
-logging.basicConfig(
-    format='%(asctime)-5.5s %(name)-20.20s %(levelname)-7.7s %(message)s',
-    datefmt='%H:%M',
-    level=logging.INFO
-)
-
-# Output of all other modules (e.g. matplotlib)
-for key in logging.Logger.manager.loggerDict:
-    if "madminer" not in key:
-        logging.getLogger(key).setLevel(logging.WARNING)
-
 
 # Simulator settings
 def z_mean(theta):
@@ -133,10 +121,12 @@ def run_test():
     # Calculate error
     rmse = np.mean((log_r_test_true - log_r_tests_alices) ** 2) ** 0.5
 
-    logging.info("Root mean squared error of true log r vs ALICES log r: %s", rmse)
-
     return rmse
 
 
 def test_toy_workflow():
-    assert run_test() < 1000.
+    rmse = run_test()
+
+    print("Root mean squared error of true log r vs ALICES log r: {}".format(rmse))
+
+    assert rmse < 1000.

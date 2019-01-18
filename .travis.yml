@@ -7,4 +7,4 @@ install:
   - pip install -q --no-cache-dir -e .
 script:
   - pytest tests/test_imports.py
-  - pytest tests/test_toy_workflow.py
+  - pytest -s tests/test_toy_workflow.py
