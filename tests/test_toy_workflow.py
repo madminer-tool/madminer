@@ -138,4 +138,5 @@ def run_test():
     return rmse
 
 
-assert run_test() < 1000.
+def test_toy_workflow():
+    assert run_test() < 1000.

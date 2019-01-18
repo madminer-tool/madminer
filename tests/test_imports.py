@@ -7,3 +7,7 @@ from madminer.plotting import plot_2d_morphing_basis, plot_distribution_of_infor
 from madminer.plotting import plot_fisher_information_contours_2d, plot_fisherinfo_barplot
 from madminer.plotting import plot_nd_morphing_basis_scatter, plot_2d_morphing_basis
 from madminer.sampling import SampleAugmenter
+
+
+def test_imports():
+    assert True
