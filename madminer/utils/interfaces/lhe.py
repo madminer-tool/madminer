@@ -407,82 +407,6 @@ def _parse_event(event, sampling_benchmark):
     return particles, weights
 
 
-# def _read_lhe_event(file, sampling_benchmark):
-#     # Initialize Weights and Momenta
-#     event_weights = OrderedDict()
-#     event_momenta = []
-#
-#     # Some tags so that we know where in the event we are
-#     do_tag = False
-#     do_momenta = False
-#     do_reweight = False
-#     do_wait_for_reweight = False
-#
-#     # Loop through lines in Event
-#     for line in file:
-#         # Skip empty/commented out lines
-#         if len(line) == 0:
-#             continue
-#         if line.split()[0] == "#":
-#             continue
-#         if line.strip() == "</LesHouchesEvents>":
-#             return True, event_momenta, event_weights
-#         if line.strip() == "<event>":
-#             do_tag = True
-#             continue
-#
-#         # Read Tag -> first weight
-#         if do_tag:
-#             event_weights[sampling_benchmark] = float(line.split()[2])
-#             do_tag = False
-#             do_momenta = True
-#             continue
-#
-#         # Read Momenta and store as 4-vector
-#         if do_momenta:
-#             if line.strip() == "</event>":
-#                 return False, event_momenta, event_weights
-#             if line.strip() == "<mgrwt>":
-#                 do_momenta = False
-#                 do_wait_for_reweight = True
-#                 continue
-#             if line.strip() == "<rwgt>":
-#                 do_momenta = False
-#                 do_reweight = True
-#                 continue
-#             status = int(line.split()[1])
-#             if status == 1:
-#                 px = float(line.split()[6])
-#                 py = float(line.split()[7])
-#                 pz = float(line.split()[8])
-#                 en = float(line.split()[9])
-#                 vec = skhep.math.vectors.LorentzVector()
-#                 vec.setpxpypze(px, py, pz, en)
-#                 event_momenta.append(vec)
-#             continue
-#
-#         # Wait for reweight block
-#         if do_wait_for_reweight:
-#             if line.strip() == "<rwgt>":
-#                 do_wait_for_reweight = False
-#                 do_reweight = True
-#                 continue
-#
-#         # Read Reweighted weights
-#         if do_reweight:
-#             if line.strip() == "</rwgt>" or line.strip() == "</mgrwt>":
-#                 do_reweight = False
-#                 continue
-#             rwgtid = line[line.find("<") + 1 : line.find(">")].split("=")[1][1:-1]
-#             rwgtval = float(line[line.find(">") + 1 : line.find("<", line.find("<") + 1)])
-#             event_weights[rwgtid] = rwgtval
-#             continue
-#
-#         # End of Event -> return
-#         if line.strip() == "</event>":
-#             return False, event_momenta, event_weights
-
-
 def _untar_and_parse_lhe_file(filename):
     # Untar event file
     new_filename, extension = os.path.splitext(filename)
@@ -577,6 +501,10 @@ def _smear_variable(true_value, resolutions, id):
 
 def _smear_particles(particles, energy_resolutions, pt_resolutions, eta_resolutions, phi_resolutions):
     """ Applies smearing function to particles of one event """
+
+    # No smearing if any argument is None
+    if energy_resolutions is None or pt_resolutions is None or eta_resolutions is None or phi_resolutions is None:
+        return particles
 
     smeared_particles = []
 
