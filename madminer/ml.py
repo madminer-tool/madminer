@@ -858,7 +858,7 @@ class MLForge:
 
         # Calculate expected score
         expected_score = np.mean(t_hats, axis=0)
-        logger.info("Expected per-event score (should be close to zero): %s", expected_score)
+        logger.debug("Expected per-event score (should be close to zero): %s", expected_score)
 
         return fisher_information
 
