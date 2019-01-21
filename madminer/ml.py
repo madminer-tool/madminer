@@ -1376,8 +1376,19 @@ class EnsembleForge:
         There are two ways of calculating the ensemble average. In the default "score" mode, the ensemble average for
         the score is calculated for each event, and the Fisher information is calculated based on these mean scores. In
         the "information" mode, the Fisher information is calculated for each estimator separately and the ensemble
-        mean is calculated only for the final Fisher information matrix. The "score" mode is more precise, but the
-        "information" mode provides access to the ensemble variance, which can serve as a notion of uncertainty.
+        mean is calculated only for the final Fisher information matrix. The "score" mode is generally assumed to be
+        more precise and is the default.
+
+        In the "score" mode, the covariance matrix of the final result is calculated in the following way:
+        - For each event `x` and each estimator `a`, the "shifted" predicted score is calculated as
+          `t_a'(x) = t(x) + 1/sqrt(n) * (t_a(x) - t(x))`. Here `t(x)` is the mean score (averaged over the ensemble)
+          for this event, `t_a(x)` is the prediction of estimator `a` for this event, and `n` is the number of
+          estimators. The ensemble variance of these shifted score predictions is equal to the uncertainty on the mean
+          of the ensemble of original predictions.
+        - For each estimator `a`, the shifted Fisher information matrix `I_a'` is calculated  from the shifted predicted
+          scores.
+        - The ensemble covariance between all Fisher information matrices `I_a'` is calculated and taken as the
+          measure of uncertainty on the Fisher information calculated from the mean scores.
 
         In the "information" mode, the user has the option to treat all estimators equally ('committee method') or to
         give those with expected score close to zero (as calculated by `calculate_expectation()`) a higher weight. In
@@ -1536,8 +1547,8 @@ class EnsembleForge:
 
             # For uncertainty calculation: calculate points betweeen mean and original predictions with same mean and
             # variance / n compared to the original predictions
-            score_shifted_predictions = (self.n_estimators - 1.0) / self.n_estimators * score_mean[np.newaxis, :, :]
-            score_shifted_predictions = score_shifted_predictions + 1.0 / self.n_estimators * score_predictions[:, :, :]
+            score_shifted_predictions = (score_predictions - score_mean[np.newaxis, :, :]) / self.n_estimators ** 0.5
+            score_shifted_predictions = score_mean[np.newaxis, :, :] + score_shifted_predictions
 
             # Event weights
             if obs_weights is None:
