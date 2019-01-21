@@ -35,7 +35,7 @@ def parse_lhe_file(
 
     # Inputs
     if k_factor is None:
-        k_factor = 1.
+        k_factor = 1.0
 
     if observables_required is None:
         observables_required = {key: False for key in six.iterkeys(observables)}
@@ -614,9 +614,9 @@ def _smear_particles(particles, energy_resolutions, pt_resolutions, eta_resoluti
         elif None in pt_resolutions[pdgid]:
             # Calculate pT from on-shell conditions
             if e > particle.m:
-                pt = (e**2 - particle.m**2) / np.cosh(eta)
+                pt = (e ** 2 - particle.m ** 2) / np.cosh(eta)
             else:
-                pt = 0.
+                pt = 0.0
             smeared_particle.setptetaphie(pt, eta, phi, e)
 
         else:
