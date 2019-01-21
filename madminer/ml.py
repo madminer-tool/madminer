@@ -1537,7 +1537,7 @@ class EnsembleForge:
             # For uncertainty calculation: calculate points betweeen mean and original predictions with same mean and
             # variance / n compared to the original predictions
             score_shifted_predictions = (self.n_estimators - 1.0) / self.n_estimators * score_mean[np.newaxis, :, :]
-            score_shifted_predictions += 1.0 / self.n_estimators * score_predictions[:, :, :]
+            score_shifted_predictions = score_shifted_predictions + 1.0 / self.n_estimators * score_predictions[:, :, :]
 
             # Event weights
             if obs_weights is None:
@@ -1567,7 +1567,7 @@ class EnsembleForge:
             expected_score = [np.einsum("n,ni->i", obs_weights, score_mean)]
             logger.debug("Expected per-event score (should be close to zero):\n%s", expected_score)
 
-        # Calculate ensemble expectation
+        # Calculate uncertainty through non-zero score expectation
         expectation_covariances = None
         if uncertainty == "expectation" or uncertainty == "sum":
             expectation_covariances = []
