@@ -1553,7 +1553,7 @@ class EnsembleForge:
 
             # Fisher information predictions based on shifted scores
             informations_shifted = float(n_events) * np.sum(
-                obs_weights[np.newaxis, :, np.newaxis, np.newaxis] * score_shifted_predictions[:, , :, np.newaxis] * score_shifted_predictions[:, , np.newaxis, :],
+                obs_weights[np.newaxis, :, np.newaxis, np.newaxis] * score_shifted_predictions[:, :, :, np.newaxis] * score_shifted_predictions[:, :, np.newaxis, :],
                 axis=1,
             )  # (n_estimators, n_parameters, n_parameters)
 
