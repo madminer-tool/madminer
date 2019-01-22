@@ -46,6 +46,12 @@ def parse_lhe_file(
     if is_background and benchmark_names is None:
         raise RuntimeError("Parsing background LHE files required benchmark names to be provided.")
 
+    if cuts is None:
+        cuts = OrderedDict()
+
+    if cuts_default_pass is None:
+        cuts_default_pass = {key: False for key in six.iterkeys(cuts)}
+
     # Untar and open LHE file
     root = _untar_and_parse_lhe_file(filename)
 
@@ -192,6 +198,8 @@ def parse_lhe_file(
 def extract_nuisance_parameters_from_lhe_file(filename, systematics):
     """ Extracts the definition of nuisance parameters from the LHE file """
 
+    logger.debug("Parsing nuisance parameter setup from LHE file at %s", filename)
+
     # Nuisance parameters (output)
     nuisance_params = OrderedDict()
 
@@ -200,6 +208,8 @@ def extract_nuisance_parameters_from_lhe_file(filename, systematics):
         return nuisance_params
 
     # Parse scale factors from strings in systematics
+    logger.debug("Systematics setup: %s", systematics)
+
     systematics_scales = []
     for key, value in six.iteritems(systematics):
         if key in ["mur", "muf", "mu"]:
@@ -249,11 +259,14 @@ def extract_nuisance_parameters_from_lhe_file(filename, systematics):
             continue
 
         if "mg_reweighting" in wg_name.lower():  # Physics reweighting
+            logger.debug("Found physics reweighting weight group %s", wg_name)
             continue
 
         elif (
             "mu" in systematics or "muf" in systematics or "mur" in systematics
         ) and "scale variation" in wg_name.lower():  # Found scale variation weight group
+            logger.debug("Found scale variation weight group %s", wg_name)
+
             weights = wg.findall("weight")
 
             for weight in weights:
@@ -264,6 +277,8 @@ def extract_nuisance_parameters_from_lhe_file(filename, systematics):
                 except KeyError:
                     logger.warning("Scale variation weight does not have all expected attributes")
                     continue
+
+                logging.debug("Found scale variation weight %s / muf = %s, mur = %s", weight_id, weight_muf, weight_mur)
 
                 # Let's skip the entries with a varied dynamical scale for now
                 try:
@@ -330,7 +345,11 @@ def extract_nuisance_parameters_from_lhe_file(filename, systematics):
                                 systematics_scale_done[i][k] = True
                                 break
 
-        elif "pdf" in systematics and systematics["pdf"].lower() in wg_name.lower():  # PDF reweighting
+        elif "pdf" in systematics and (
+            systematics["pdf"] in wg_name.lower() or "pdf" in wg_name.lower() or "ct" in wg_name.lower()
+        ):  # PDF reweighting
+            logger.debug("Found PDF variation weight group %s", wg_name)
+
             weights = wg.findall("weight")
 
             for i, weight in enumerate(weights):
@@ -341,10 +360,15 @@ def extract_nuisance_parameters_from_lhe_file(filename, systematics):
                     logger.warning("Scale variation weight does not have all expected attributes")
                     continue
 
+                logger.debug("Found PDF weight %s / %s", weight_id, weight_pdf)
+
                 # Add every PDF Hessian direction to nuisance parameters
-                nuisance_params["pdf_{}".format(i)] = (weight_id, None)
+                nuisance_params["pdf_{}".format(i)] = [weight_id, None]
 
                 systematics_pdf_done = True
+
+        else:
+            logging.debug("Found other weight group %s", wg_name)
 
     # Check that everything was found
     if "pdf" in systematics.keys() and not systematics_pdf_done:

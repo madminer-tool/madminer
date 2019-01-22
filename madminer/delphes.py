@@ -620,9 +620,7 @@ class DelphesProcessor:
             if lhe_file_for_weights is not None:
                 logger.debug("Extracting weights from LHE file")
                 _, this_weights = parse_lhe_file(
-                    filename=lhe_file_for_weights,
-                    sampling_benchmark=sampling_benchmark,
-                    observables=OrderedDict()
+                    filename=lhe_file_for_weights, sampling_benchmark=sampling_benchmark, observables=OrderedDict()
                 )
 
                 logger.debug("Found weights %s in LHE file", list(this_weights.keys()))
