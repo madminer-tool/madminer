@@ -46,6 +46,12 @@ def parse_lhe_file(
     if is_background and benchmark_names is None:
         raise RuntimeError("Parsing background LHE files required benchmark names to be provided.")
 
+    if cuts is None:
+        cuts = OrderedDict()
+
+    if cuts_default_pass is None:
+        cuts_default_pass = {key: False for key in six.iterkeys(cuts)}
+
     # Untar and open LHE file
     root = _untar_and_parse_lhe_file(filename)
 
