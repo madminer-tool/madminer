@@ -605,8 +605,8 @@ class SampleAugmenter:
     ):
         """
         Extracts training samples `x ~ p(x|theta0)` and `x ~ p(x|theta1)` together with the class label `y`, the joint
-        likelihood ratio `r(x,z|theta0, theta1)`, and the joint score `t(x,z|theta0)`. This information can be used in
-        inference methods such as CARL, ROLR, CASCAL, and RASCAL.
+        likelihood ratio `r(x,z|theta0, theta1)`, and, if morphing is set up, the joint score `t(x,z|theta0)`. This
+        information can be used in inference methods such as CARL, ROLR, CASCAL, and RASCAL.
 
         Parameters
         ----------
@@ -660,9 +660,10 @@ class SampleAugmenter:
             Joint likelihood ratio with shape `(n_samples,)`. The same information is saved as a file in the given
             folder.
 
-        t_xz : ndarray
-            Joint score evaluated at theta0 with shape `(n_samples, n_parameters)`. The same information is saved as a
-            file in the given folder.
+        t_xz : ndarray or None
+            If morphing is set up, the joint score evaluated at theta0 with shape `(n_samples, n_parameters)`. The same
+            information is saved as a file in the given folder. If morphing is not set up, None is returned (and no
+            file is saved).
 
         """
 
@@ -674,12 +675,14 @@ class SampleAugmenter:
         )
 
         if self.morpher is None:
-            raise RuntimeError("No morphing setup loaded. Cannot calculate score.")
+            logging.warning("No morphing setup loaded. Cannot calculate joint score.")
 
         create_missing_folders([folder])
 
         # Augmented data (gold)
-        augmented_data_definitions = [("ratio", 0, 1), ("score", 0)]
+        augmented_data_definitions = [("ratio", 0, 1)]
+        if self.morpher is not None:
+            augmented_data_definitions.append(("score", 0))
 
         # Train / test split
         start_event, end_event = self._train_test_split(not switch_train_test_events, test_split)
@@ -691,15 +694,28 @@ class SampleAugmenter:
         n_samples_per_theta = min(n_samples_per_theta0, n_samples_per_theta1)
 
         # Start for theta0
-        x0, (r_xz0, t_xz0), (theta0_0, theta1_0) = self._extract_sample(
-            theta_sets_types=[theta0_types, theta1_types],
-            theta_sets_values=[theta0_values, theta1_values],
-            sampling_theta_index=0,
-            n_samples_per_theta=n_samples_per_theta,
-            augmented_data_definitions=augmented_data_definitions,
-            start_event=start_event,
-            end_event=end_event,
-        )
+
+        if self.morpher is None:
+            x0, (r_xz0,), (theta0_0, theta1_0) = self._extract_sample(
+                theta_sets_types=[theta0_types, theta1_types],
+                theta_sets_values=[theta0_values, theta1_values],
+                sampling_theta_index=0,
+                n_samples_per_theta=n_samples_per_theta,
+                augmented_data_definitions=augmented_data_definitions,
+                start_event=start_event,
+                end_event=end_event,
+            )
+            t_xz0 = None
+        else:
+            x0, (r_xz0, t_xz0), (theta0_0, theta1_0) = self._extract_sample(
+                theta_sets_types=[theta0_types, theta1_types],
+                theta_sets_values=[theta0_values, theta1_values],
+                sampling_theta_index=0,
+                n_samples_per_theta=n_samples_per_theta,
+                augmented_data_definitions=augmented_data_definitions,
+                start_event=start_event,
+                end_event=end_event,
+            )
 
         # Thetas for theta1 sampling (could be different if num or denom are random)
         theta0_types, theta0_values, n_samples_per_theta0 = parse_theta(theta0, n_samples // 2)
@@ -708,20 +724,35 @@ class SampleAugmenter:
         n_samples_per_theta = min(n_samples_per_theta0, n_samples_per_theta1)
 
         # Start for theta1
-        x1, (r_xz1, t_xz1), (theta0_1, theta1_1) = self._extract_sample(
-            theta_sets_types=[theta0_types, theta1_types],
-            theta_sets_values=[theta0_values, theta1_values],
-            sampling_theta_index=1,
-            n_samples_per_theta=n_samples_per_theta,
-            augmented_data_definitions=augmented_data_definitions,
-            start_event=start_event,
-            end_event=end_event,
-        )
+        if self.morpher is None:
+            x1, (r_xz1,), (theta0_1, theta1_1) = self._extract_sample(
+                theta_sets_types=[theta0_types, theta1_types],
+                theta_sets_values=[theta0_values, theta1_values],
+                sampling_theta_index=1,
+                n_samples_per_theta=n_samples_per_theta,
+                augmented_data_definitions=augmented_data_definitions,
+                start_event=start_event,
+                end_event=end_event,
+            )
+            t_xz1 = None
+        else:
+            x1, (r_xz1, t_xz1), (theta0_1, theta1_1) = self._extract_sample(
+                theta_sets_types=[theta0_types, theta1_types],
+                theta_sets_values=[theta0_values, theta1_values],
+                sampling_theta_index=1,
+                n_samples_per_theta=n_samples_per_theta,
+                augmented_data_definitions=augmented_data_definitions,
+                start_event=start_event,
+                end_event=end_event,
+            )
 
         # Combine
         x = np.vstack([x0, x1])
         r_xz = np.vstack([r_xz0, r_xz1])
-        t_xz = np.vstack([t_xz0, t_xz1])
+        if self.morpher is not None:
+            t_xz = np.vstack([t_xz0, t_xz1])
+        else:
+            t_xz = None
         theta0 = np.vstack([theta0_0, theta0_1])
         theta1 = np.vstack([theta1_0, theta1_1])
         y = np.zeros(x.shape[0])
@@ -740,7 +771,8 @@ class SampleAugmenter:
             np.save(folder + "/x_" + filename + ".npy", x)
             np.save(folder + "/y_" + filename + ".npy", y)
             np.save(folder + "/r_xz_" + filename + ".npy", r_xz)
-            np.save(folder + "/t_xz_" + filename + ".npy", t_xz)
+            if self.morpher is not None:
+                np.save(folder + "/t_xz_" + filename + ".npy", t_xz)
 
         return x, theta0, theta1, y, r_xz, t_xz
 
