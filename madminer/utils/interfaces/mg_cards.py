@@ -11,6 +11,7 @@ def export_param_card(benchmark, parameters, param_card_template_file, mg_proces
     # Open parameter card template
     with open(param_card_template_file) as file:
         param_card = file.read()
+    lines = param_card.splitlines()
 
     # Replace parameter values
     for parameter_name, parameter_value in six.iteritems(benchmark):
@@ -23,35 +24,45 @@ def export_param_card(benchmark, parameters, param_card_template_file, mg_proces
             variables = {"theta": parameter_value}
             parameter_value = eval(parameter_transform, variables)
 
-        block_begin = param_card.lower().find(("Block " + parameter_lha_block).lower())
-        if block_begin < 0:
-            raise ValueError("Could not find block {0} in param_card template!".format(parameter_lha_block))
-
-        block_end = param_card.lower().find("Block".lower(), block_begin + 20)
-        if block_end < 0:
-            block_end = len(param_card)
-
-        block = param_card[block_begin:block_end].split("\n")
+        # Find entry
+        current_block = None
         changed_line = False
-        for i, line in enumerate(block):
-            comment_pos = line.find("#")
-            if i >= 0:
-                line = line[:comment_pos]
-            line = line.strip()
+        for i, line in enumerate(lines):
+
+            # Remove comment
+            try:
+                line = line.split("#")[0]
+            except:
+                pass
+
             elements = line.split()
-            if len(elements) >= 2:
+
+            # See if block begin
+            if len(elements) == 2 and elements[0].lower() == "block":
+                current_block = elements[1].lower()
+
+            elif len(elements) == 2 and parameter_lha_block.lower() == current_block:
                 try:
-                    if int(elements[0]) == parameter_lha_id:
-                        block[i] = "    " + str(parameter_lha_id) + "    " + str(parameter_value) + "    # MadMiner"
-                        changed_line = True
-                        break
+                    lha_id = int(elements[0])
                 except ValueError:
-                    pass
+                    continue
+
+                if lha_id == parameter_lha_id:
+                    lines[i] = "    " + str(parameter_lha_id) + "    " + str(parameter_value) + "    # MadMiner"
+                    changed_line = True
+                    break
+
+            elif len(elements) == 3 and elements[0].lower() == parameter_lha_block:
+                current_block = None
+                if lha_id == parameter_lha_id:
+                    lines[i] = str(parameter_lha_block) + "    " + str(parameter_lha_id) + "    " + str(parameter_value) + "    # MadMiner"
+                    changed_line = True
+                    break
 
         if not changed_line:
             raise ValueError("Could not find LHA ID {0} in param_card template!".format(parameter_lha_id))
 
-        param_card = param_card[:block_begin] + "\n".join(block) + param_card[block_end:]
+        param_card = "\n".join(lines)
 
     # Output filename
     if param_card_filename is None:
