@@ -339,7 +339,9 @@ def extract_nuisance_parameters_from_lhe_file(filename, systematics):
                                 systematics_scale_done[i][k] = True
                                 break
 
-        elif "pdf" in systematics and systematics["pdf"].lower() in wg_name.lower():  # PDF reweighting
+        elif "pdf" in systematics and (
+            systematics["pdf"] in wg_name.lower() or "pdf" in wg_name.lower() or "ct" in wg_name.lower()
+        ):  # PDF reweighting
             logger.debug("Found PDF variation weight group %s", wg_name)
 
             weights = wg.findall("weight")
@@ -355,7 +357,7 @@ def extract_nuisance_parameters_from_lhe_file(filename, systematics):
                 logger.debug("Found PDF weight %s / %s", weight_id, weight_pdf)
 
                 # Add every PDF Hessian direction to nuisance parameters
-                nuisance_params["pdf_{}".format(i)] = (weight_id, None)
+                nuisance_params["pdf_{}".format(i)] = [weight_id, None]
 
                 systematics_pdf_done = True
 
