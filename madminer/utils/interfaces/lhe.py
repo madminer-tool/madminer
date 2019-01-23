@@ -534,7 +534,6 @@ def _parse_events_text(filename, sampling_benchmark):
     do_tag = False
     do_momenta = False
     do_reweight = False
-    do_wait_for_reweight = False
 
     # Event
     n_events = 0
@@ -542,6 +541,16 @@ def _parse_events_text(filename, sampling_benchmark):
     # Loop through lines in Event
     with open(filename, "r") as file:
         for line in file.readlines():
+
+            if reset_event:
+                # Initialize weights and momenta
+                weights = OrderedDict()
+                particles = []
+
+                # Some tags so that we know where in the event we are
+                do_tag = True
+                do_momenta = False
+                do_reweight = False
 
             # Clean up line
             try:
@@ -561,15 +570,7 @@ def _parse_events_text(filename, sampling_benchmark):
 
             # Beginning of event
             elif line == "<event>":
-                # Initialize weights and momenta
-                weights = OrderedDict()
-                particles = []
-
-                # Some tags so that we know where in the event we are
-                do_tag = True
-                do_momenta = False
-                do_reweight = False
-                do_wait_for_reweight = False
+                reset_event = True
 
             # End of event
             elif line == "</event>":
@@ -578,6 +579,7 @@ def _parse_events_text(filename, sampling_benchmark):
                     logger.debug("%s events parsed", n_events)
 
                 yield particles, weights
+                reset_event = True
 
             # Beginning of unimportant block
             elif line == "<mgrwt>":
