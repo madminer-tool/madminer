@@ -42,10 +42,10 @@ def parse_lhe_file(
 
     logger.debug("Parsing LHE file %s", filename)
 
-    if use_celementtree:
-        logger.debug("Using cElementTree")
+    if parse_events_as_xml:
+        logger.debug("Parsing header and events as XML with %sElementTree", "c" if use_celementtree else "")
     else:
-        logger.debug("Using ElementTree")
+        logger.debug("Parsing header as XML with %sElementTree and events as text file", "c" if use_celementtree else "")
 
     # Inputs
     if k_factor is None:
@@ -536,9 +536,13 @@ def _parse_events_text(filename, sampling_benchmark):
     do_reweight = False
     do_wait_for_reweight = False
 
+    # Event
+    n_events = 0
+
     # Loop through lines in Event
     with open(filename, "r") as file:
         for line in file.readlines():
+
             # Clean up line
             try:
                 line = line.split("#")[0]
@@ -569,27 +573,36 @@ def _parse_events_text(filename, sampling_benchmark):
 
             # End of event
             elif line == "</event>":
+                n_events += 1
+                if n_events % 10000 == 0:
+                    logger.debug("%s events parsed", n_events)
+
                 yield particles, weights
+
+            # Beginning of unimportant block
+            elif line == "<mgrwt>":
+                do_momenta = False
+                do_reweight = False
+
+            # Beginning of weight block
+            elif line == "<rwgt>":
+                do_momenta = False
+                do_reweight = True
+
+            # End of weight block
+            elif line == "</rwgt>":
+                do_momenta = False
+                do_reweight = False
 
             # Read tag -> first weight
             elif do_tag:
-                weights[sampling_benchmark] = float(line.split()[2])
+                weights[sampling_benchmark] = float(elements[2])
+
                 do_tag = False
                 do_momenta = True
 
             # Read Momenta and store as 4-vector
             elif do_momenta:
-                if line.strip() == "</event>":
-                    yield particles, weights
-                if line.strip() == "<mgrwt>":
-                    do_momenta = False
-                    do_wait_for_reweight = True
-                    continue
-                if line.strip() == "<rwgt>":
-                    do_momenta = False
-                    do_reweight = True
-                    continue
-
                 status = int(elements[1])
                 if status == 1:
                     pdgid = int(elements[0])
@@ -602,17 +615,8 @@ def _parse_events_text(filename, sampling_benchmark):
                     particle.set_pdgid(pdgid)
                     particles.append(particle)
 
-            # Wait for reweight block
-            elif do_wait_for_reweight:
-                if line.strip() == "<rwgt>":
-                    do_wait_for_reweight = False
-                    do_reweight = True
-
             # Read reweighted weights
             elif do_reweight:
-                if line.strip() == "</rwgt>" or line.strip() == "</mgrwt>":
-                    do_reweight = False
-                    continue
                 rwgtid = line[line.find("<") + 1 : line.find(">")].split("=")[1][1:-1]
                 rwgtval = float(line[line.find(">") + 1 : line.find("<", line.find("<") + 1)])
                 weights[rwgtid] = rwgtval
