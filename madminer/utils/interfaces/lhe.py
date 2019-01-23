@@ -17,11 +17,6 @@ from madminer.utils.particle import MadMinerParticle
 
 logger = logging.getLogger(__name__)
 
-if use_celementtree:
-    logger.debug("Using cElementTree to parse LHE files")
-else:
-    logger.debug("Using ElementTree to parse LHE files")
-
 
 def parse_lhe_file(
     filename,
@@ -38,10 +33,16 @@ def parse_lhe_file(
     eta_resolutions=None,
     phi_resolutions=None,
     k_factor=1.0,
+    parse_events_as_xml=True,
 ):
     """ Extracts observables and weights from a LHE file """
 
     logger.debug("Parsing LHE file %s", filename)
+
+    if use_celementtree:
+        logger.debug("Using cElementTree")
+    else:
+        logger.debug("Using ElementTree")
 
     # Inputs
     if k_factor is None:
@@ -63,7 +64,7 @@ def parse_lhe_file(
         cuts_default_pass = {key: False for key in six.iterkeys(cuts)}
 
     # Untar and open LHE file
-    root = _untar_and_parse_lhe_file(filename)
+    root, filename = _untar_and_parse_lhe_file(filename)
 
     # Figure out event weighting
     run_card = root.find("header").find("MGRunCard").text
@@ -119,79 +120,155 @@ def parse_lhe_file(
     observations_all_events = None
     weights_all_events = None
 
-    events = root.findall("event")
+    # Option one: XML parsing
+    if parse_events_as_xml:
+        events = root.findall("event")
 
-    for event in events:
-        # Parse event
-        particles, weights = _parse_event(event, sampling_benchmark)
+        for event in events:
+            # Parse event
+            particles, weights = _parse_event(event, sampling_benchmark)
 
-        # Apply smearing
-        particles = _smear_particles(particles, energy_resolutions, pt_resolutions, eta_resolutions, phi_resolutions)
+            # Apply smearing
+            particles = _smear_particles(particles, energy_resolutions, pt_resolutions, eta_resolutions, phi_resolutions)
 
-        # Objects in event
-        variables = _get_objects(particles)
+            # Objects in event
+            variables = _get_objects(particles)
 
-        # Calculate observables
-        observations = OrderedDict()
-        for obs_name, obs_definition in six.iteritems(observables):
-            if isinstance(obs_definition, six.string_types):
+            # Calculate observables
+            observations = OrderedDict()
+            for obs_name, obs_definition in six.iteritems(observables):
+                if isinstance(obs_definition, six.string_types):
+                    try:
+                        observations[obs_name] = eval(obs_definition, variables)
+                    except (SyntaxError, NameError, TypeError, ZeroDivisionError, IndexError):
+                        if observables_required[obs_name]:
+                            continue
+
+                        default = observables_defaults[obs_name]
+                        if default is None:
+                            default = np.nan
+                        observations[obs_name] = default
+                else:
+                    try:
+                        observations[obs_name] = obs_definition(particles)
+                    except RuntimeError:
+                        if observables_required[obs_name]:
+                            continue
+
+                        default = observables_defaults[obs_name]
+                        if default is None:
+                            default = np.nan
+                        observations[obs_name] = default
+
+            # Objects for cuts
+            for obs_name, obs_value in six.iteritems(observations):
+                variables[obs_name] = obs_value
+
+            # Check cuts
+            for cut, default_pass in zip(cuts, cuts_default_pass):
                 try:
-                    observations[obs_name] = eval(obs_definition, variables)
+                    cut_result = eval(cut, variables)
+                    if not cut_result:
+                        continue
+
                 except (SyntaxError, NameError, TypeError, ZeroDivisionError, IndexError):
-                    if observables_required[obs_name]:
+                    if not default_pass:
                         continue
 
-                    default = observables_defaults[obs_name]
-                    if default is None:
-                        default = np.nan
-                    observations[obs_name] = default
+            # Reformat data
+            for key, value in six.iteritems(weights):
+                weights[key] = [value]
+            for key, value in six.iteritems(observations):
+                observations[key] = [value]
+
+            # Store results
+            if observations_all_events is None:
+                observations_all_events = observations
             else:
+                for key in observations_all_events:
+                    assert key in observations, "Observable {} not found in event".format(key)
+                    observations_all_events[key] = observations_all_events[key] + observations[key]
+
+            if weights_all_events is None:
+                weights_all_events = weights
+            else:
+                for key in weights_all_events:
+                    assert key in weights, "Weight {} not found in event".format(key)
+                    weights_all_events[key] = weights_all_events[key] + weights[key]
+
+    # Option two: text parsing
+    else:
+
+        # Iterate over events in LHE file
+        for particles, weights in _parse_events_text(filename, sampling_benchmark):
+
+            # Apply smearing
+            particles = _smear_particles(particles, energy_resolutions, pt_resolutions, eta_resolutions, phi_resolutions)
+
+            # Objects in event
+            variables = _get_objects(particles)
+
+            # Calculate observables
+            observations = OrderedDict()
+            for obs_name, obs_definition in six.iteritems(observables):
+                if isinstance(obs_definition, six.string_types):
+                    try:
+                        observations[obs_name] = eval(obs_definition, variables)
+                    except (SyntaxError, NameError, TypeError, ZeroDivisionError, IndexError):
+                        if observables_required[obs_name]:
+                            continue
+
+                        default = observables_defaults[obs_name]
+                        if default is None:
+                            default = np.nan
+                        observations[obs_name] = default
+                else:
+                    try:
+                        observations[obs_name] = obs_definition(particles)
+                    except RuntimeError:
+                        if observables_required[obs_name]:
+                            continue
+
+                        default = observables_defaults[obs_name]
+                        if default is None:
+                            default = np.nan
+                        observations[obs_name] = default
+
+            # Objects for cuts
+            for obs_name, obs_value in six.iteritems(observations):
+                variables[obs_name] = obs_value
+
+            # Check cuts
+            for cut, default_pass in zip(cuts, cuts_default_pass):
                 try:
-                    observations[obs_name] = obs_definition(particles)
-                except RuntimeError:
-                    if observables_required[obs_name]:
+                    cut_result = eval(cut, variables)
+                    if not cut_result:
                         continue
 
-                    default = observables_defaults[obs_name]
-                    if default is None:
-                        default = np.nan
-                    observations[obs_name] = default
+                except (SyntaxError, NameError, TypeError, ZeroDivisionError, IndexError):
+                    if not default_pass:
+                        continue
 
-        # Objects for cuts
-        for obs_name, obs_value in six.iteritems(observations):
-            variables[obs_name] = obs_value
+            # Reformat data
+            for key, value in six.iteritems(weights):
+                weights[key] = [value]
+            for key, value in six.iteritems(observations):
+                observations[key] = [value]
 
-        # Check cuts
-        for cut, default_pass in zip(cuts, cuts_default_pass):
-            try:
-                cut_result = eval(cut, variables)
-                if not cut_result:
-                    continue
+            # Store results
+            if observations_all_events is None:
+                observations_all_events = observations
+            else:
+                for key in observations_all_events:
+                    assert key in observations, "Observable {} not found in event".format(key)
+                    observations_all_events[key] = observations_all_events[key] + observations[key]
 
-            except (SyntaxError, NameError, TypeError, ZeroDivisionError, IndexError):
-                if not default_pass:
-                    continue
-
-        # Reformat data
-        for key, value in six.iteritems(weights):
-            weights[key] = [value]
-        for key, value in six.iteritems(observations):
-            observations[key] = [value]
-
-        # Store results
-        if observations_all_events is None:
-            observations_all_events = observations
-        else:
-            for key in observations_all_events:
-                assert key in observations, "Observable {} not found in event".format(key)
-                observations_all_events[key] = observations_all_events[key] + observations[key]
-
-        if weights_all_events is None:
-            weights_all_events = weights
-        else:
-            for key in weights_all_events:
-                assert key in weights, "Weight {} not found in event".format(key)
-                weights_all_events[key] = weights_all_events[key] + weights[key]
+            if weights_all_events is None:
+                weights_all_events = weights
+            else:
+                for key in weights_all_events:
+                    assert key in weights, "Weight {} not found in event".format(key)
+                    weights_all_events[key] = weights_all_events[key] + weights[key]
 
     # Background events
     if is_background:
@@ -237,7 +314,7 @@ def extract_nuisance_parameters_from_lhe_file(filename, systematics):
             systematics_scales.append(None)
 
     # Untar and parse LHE file
-    root = _untar_and_parse_lhe_file(filename)
+    root, _ = _untar_and_parse_lhe_file(filename)
 
     # Find weight groups
     try:
@@ -441,6 +518,99 @@ def _parse_event(event, sampling_benchmark):
     return particles, weights
 
 
+def _parse_events_text(filename, sampling_benchmark):
+    # Initialize weights and momenta
+    weights = OrderedDict()
+    particles = []
+
+    # Some tags so that we know where in the event we are
+    do_tag = False
+    do_momenta = False
+    do_reweight = False
+    do_wait_for_reweight = False
+
+    # Loop through lines in Event
+    with open(filename, "r") as file:
+        for line in file.readlines():
+            # Clean up line
+            try:
+                line = line.split("#")[0]
+            except:
+                pass
+            line = line.strip()
+            elements = line.split()
+
+            # Skip empty/commented out lines
+            if len(line) == 0 or len(elements) == 0:
+                continue
+
+            # End of LHE file
+            elif line == "</LesHouchesEvents>":
+                return
+
+            # Beginning of event
+            elif line == "<event>":
+                # Initialize weights and momenta
+                weights = OrderedDict()
+                particles = []
+
+                # Some tags so that we know where in the event we are
+                do_tag = True
+                do_momenta = False
+                do_reweight = False
+                do_wait_for_reweight = False
+
+            # End of event
+            elif line == "</event>":
+                yield particles, weights
+
+            # Read tag -> first weight
+            elif do_tag:
+                weights[sampling_benchmark] = float(line.split()[2])
+                do_tag = False
+                do_momenta = True
+
+            # Read Momenta and store as 4-vector
+            elif do_momenta:
+                if line.strip() == "</event>":
+                    yield particles, weights
+                if line.strip() == "<mgrwt>":
+                    do_momenta = False
+                    do_wait_for_reweight = True
+                    continue
+                if line.strip() == "<rwgt>":
+                    do_momenta = False
+                    do_reweight = True
+                    continue
+
+                status = int(elements[1])
+                if status == 1:
+                    pdgid = int(elements[0])
+                    px = float(elements[6])
+                    py = float(elements[7])
+                    pz = float(elements[8])
+                    e = float(elements[9])
+                    particle = MadMinerParticle()
+                    particle.setpxpypze(px, py, pz, e)
+                    particle.set_pdgid(pdgid)
+                    particles.append(particle)
+
+            # Wait for reweight block
+            elif do_wait_for_reweight:
+                if line.strip() == "<rwgt>":
+                    do_wait_for_reweight = False
+                    do_reweight = True
+
+            # Read reweighted weights
+            elif do_reweight:
+                if line.strip() == "</rwgt>" or line.strip() == "</mgrwt>":
+                    do_reweight = False
+                    continue
+                rwgtid = line[line.find("<") + 1: line.find(">")].split("=")[1][1:-1]
+                rwgtval = float(line[line.find(">") + 1: line.find("<", line.find("<") + 1)])
+                weights[rwgtid] = rwgtval
+
+
 def _untar_and_parse_lhe_file(filename):
     # Untar event file
     new_filename, extension = os.path.splitext(filename)
@@ -462,7 +632,7 @@ def _untar_and_parse_lhe_file(filename):
     # Parse XML tree
     root = ET.fromstring(lhe_content)
 
-    return root
+    return root, filename
 
 
 def _get_objects(particles):
