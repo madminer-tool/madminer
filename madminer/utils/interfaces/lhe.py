@@ -5,12 +5,22 @@ import numpy as np
 from collections import OrderedDict
 import os
 import logging
-import xml.etree.ElementTree as ET
+try:
+    import xml.etree.cElementTree as ET
+    use_celementtree = True
+except ImportError:
+    import xml.etree.ElementTree as ET
+    use_celementtree = False
 
 from madminer.utils.various import call_command, approx_equal, math_commands
 from madminer.utils.particle import MadMinerParticle
 
 logger = logging.getLogger(__name__)
+
+if use_celementtree:
+    logger.debug("Using cElementTree to parse LHE files")
+else:
+    logger.debug("Using ElementTree to parse LHE files")
 
 
 def parse_lhe_file(
