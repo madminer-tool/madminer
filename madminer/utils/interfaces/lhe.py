@@ -36,7 +36,7 @@ def parse_lhe_file(
     eta_resolutions=None,
     phi_resolutions=None,
     k_factor=1.0,
-    parse_events_as_xml=False,
+    parse_events_as_xml=True,
 ):
     """ Extracts observables and weights from a LHE file """
 

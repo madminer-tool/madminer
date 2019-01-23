@@ -500,7 +500,7 @@ class DelphesProcessor:
         self.cuts_default_pass = []
 
     def analyse_delphes_samples(
-        self, generator_truth=False, delete_delphes_files=False, reference_benchmark=None, parse_lhe_events_as_xml=False
+        self, generator_truth=False, delete_delphes_files=False, reference_benchmark=None, parse_lhe_events_as_xml=True
     ):
         """
         Main function that parses the Delphes samples (ROOT files), checks acceptance and cuts, and extracts
@@ -524,7 +524,7 @@ class DelphesProcessor:
 
         parse_lhe_events_as_xml : bool, optional
             Decides whether the LHE events are parsed with an XML parser (more robust, but slower) or a text parser
-            (less robust, faster). Default value: False.
+            (less robust, faster). Default value: True.
 
         Returns
         -------
