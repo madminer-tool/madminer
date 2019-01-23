@@ -538,6 +538,8 @@ def _parse_events_text(filename, sampling_benchmark):
     # Event
     n_events = 0
 
+    reset_event = False
+
     # Loop through lines in Event
     with open(filename, "r") as file:
         for line in file.readlines():
