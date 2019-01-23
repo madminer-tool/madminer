@@ -55,7 +55,14 @@ def export_param_card(benchmark, parameters, param_card_template_file, mg_proces
             elif len(elements) == 3 and elements[0].lower() == parameter_lha_block:
                 current_block = None
                 if lha_id == parameter_lha_id:
-                    lines[i] = str(parameter_lha_block) + "    " + str(parameter_lha_id) + "    " + str(parameter_value) + "    # MadMiner"
+                    lines[i] = (
+                        str(parameter_lha_block)
+                        + "    "
+                        + str(parameter_lha_id)
+                        + "    "
+                        + str(parameter_value)
+                        + "    # MadMiner"
+                    )
                     changed_line = True
                     break
 

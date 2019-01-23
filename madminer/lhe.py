@@ -493,7 +493,7 @@ class LHEProcessor:
         self.cuts = []
         self.cuts_default_pass = []
 
-    def analyse_samples(self, reference_benchmark=None):
+    def analyse_samples(self, reference_benchmark=None, parse_events_as_xml=False):
         """
         Main function that parses the LHE samples, applies detector effects, checks cuts, and extracts
         the observables and weights.
@@ -505,6 +505,10 @@ class LHEProcessor:
             `dsigma(x|theta_sampling(x),nu) -> dsigma(x|theta_ref,nu) = dsigma(x|theta_sampling(x),nu)
             * dsigma(x|theta_ref,0) / dsigma(x|theta_sampling(x),0)`. This sets the name of the reference benchmark.
             If None, the first one will be used. Default value: None.
+
+        parse_events_as_xml : bool, optional
+            Decides whether the LHE events are parsed with an XML parser (more robust, but slower) or a text parser
+            (less robust, faster). Default value: False.
 
         Returns
         -------
@@ -561,6 +565,7 @@ class LHEProcessor:
                 eta_resolutions=self.eta_resolution,
                 phi_resolutions=self.phi_resolution,
                 k_factor=k_factor,
+                parse_events_as_xml=parse_events_as_xml,
             )
 
             # No events found?

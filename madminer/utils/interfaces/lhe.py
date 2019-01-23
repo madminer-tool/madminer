@@ -5,11 +5,14 @@ import numpy as np
 from collections import OrderedDict
 import os
 import logging
+
 try:
     import xml.etree.cElementTree as ET
+
     use_celementtree = True
 except ImportError:
     import xml.etree.ElementTree as ET
+
     use_celementtree = False
 
 from madminer.utils.various import call_command, approx_equal, math_commands
@@ -33,7 +36,7 @@ def parse_lhe_file(
     eta_resolutions=None,
     phi_resolutions=None,
     k_factor=1.0,
-    parse_events_as_xml=True,
+    parse_events_as_xml=False,
 ):
     """ Extracts observables and weights from a LHE file """
 
@@ -129,7 +132,9 @@ def parse_lhe_file(
             particles, weights = _parse_event(event, sampling_benchmark)
 
             # Apply smearing
-            particles = _smear_particles(particles, energy_resolutions, pt_resolutions, eta_resolutions, phi_resolutions)
+            particles = _smear_particles(
+                particles, energy_resolutions, pt_resolutions, eta_resolutions, phi_resolutions
+            )
 
             # Objects in event
             variables = _get_objects(particles)
@@ -203,7 +208,9 @@ def parse_lhe_file(
         for particles, weights in _parse_events_text(filename, sampling_benchmark):
 
             # Apply smearing
-            particles = _smear_particles(particles, energy_resolutions, pt_resolutions, eta_resolutions, phi_resolutions)
+            particles = _smear_particles(
+                particles, energy_resolutions, pt_resolutions, eta_resolutions, phi_resolutions
+            )
 
             # Objects in event
             variables = _get_objects(particles)
@@ -606,8 +613,8 @@ def _parse_events_text(filename, sampling_benchmark):
                 if line.strip() == "</rwgt>" or line.strip() == "</mgrwt>":
                     do_reweight = False
                     continue
-                rwgtid = line[line.find("<") + 1: line.find(">")].split("=")[1][1:-1]
-                rwgtval = float(line[line.find(">") + 1: line.find("<", line.find("<") + 1)])
+                rwgtid = line[line.find("<") + 1 : line.find(">")].split("=")[1][1:-1]
+                rwgtval = float(line[line.find(">") + 1 : line.find("<", line.find("<") + 1)])
                 weights[rwgtid] = rwgtval
 
 
