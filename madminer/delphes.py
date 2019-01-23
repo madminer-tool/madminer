@@ -499,7 +499,9 @@ class DelphesProcessor:
         self.cuts = []
         self.cuts_default_pass = []
 
-    def analyse_delphes_samples(self, generator_truth=False, delete_delphes_files=False, reference_benchmark=None):
+    def analyse_delphes_samples(
+        self, generator_truth=False, delete_delphes_files=False, reference_benchmark=None, parse_lhe_events_as_xml=True
+    ):
         """
         Main function that parses the Delphes samples (ROOT files), checks acceptance and cuts, and extracts
         the observables and weights.
@@ -519,6 +521,10 @@ class DelphesProcessor:
             `dsigma(x|theta_sampling(x),nu) -> dsigma(x|theta_ref,nu) = dsigma(x|theta_sampling(x),nu)
             * dsigma(x|theta_ref,0) / dsigma(x|theta_sampling(x),0)`. This sets the name of the reference benchmark.
             If None, the first one will be used. Default value: None.
+
+        parse_lhe_events_as_xml : bool, optional
+            Decides whether the LHE events are parsed with an XML parser (more robust, but slower) or a text parser
+            (less robust, faster). Default value: True.
 
         Returns
         -------
@@ -620,7 +626,10 @@ class DelphesProcessor:
             if lhe_file_for_weights is not None:
                 logger.debug("Extracting weights from LHE file")
                 _, this_weights = parse_lhe_file(
-                    filename=lhe_file_for_weights, sampling_benchmark=sampling_benchmark, observables=OrderedDict()
+                    filename=lhe_file_for_weights,
+                    sampling_benchmark=sampling_benchmark,
+                    observables=OrderedDict(),
+                    parse_events_as_xml=parse_lhe_events_as_xml,
                 )
 
                 logger.debug("Found weights %s in LHE file", list(this_weights.keys()))
