@@ -120,17 +120,23 @@ def parse_lhe_file(
         k_factor = k_factor / n_events_runcard
 
     # Loop over events
-    observations_all_events = None
-    weights_all_events = None
-
     # Option one: XML parsing
     if parse_events_as_xml:
+
+        observations_all_events = []
+        weights_all_events = []
+        weight_names_all_events = None
+
         events = root.findall("event")
 
         for event in events:
             # Parse event
             particles, weights = _parse_event(event, sampling_benchmark)
 
+            if weight_names_all_events is None:
+                weight_names_all_events = list(weights.keys())
+            weights = list(weights.values())
+
             # Apply smearing
             particles = _smear_particles(
                 particles, energy_resolutions, pt_resolutions, eta_resolutions, phi_resolutions
@@ -140,11 +146,11 @@ def parse_lhe_file(
             variables = _get_objects(particles)
 
             # Calculate observables
-            observations = OrderedDict()
+            observations = []
             for obs_name, obs_definition in six.iteritems(observables):
                 if isinstance(obs_definition, six.string_types):
                     try:
-                        observations[obs_name] = eval(obs_definition, variables)
+                        observations.append(eval(obs_definition, variables))
                     except (SyntaxError, NameError, TypeError, ZeroDivisionError, IndexError):
                         if observables_required[obs_name]:
                             continue
@@ -152,10 +158,10 @@ def parse_lhe_file(
                         default = observables_defaults[obs_name]
                         if default is None:
                             default = np.nan
-                        observations[obs_name] = default
+                        observations.append(default)
                 else:
                     try:
-                        observations[obs_name] = obs_definition(particles)
+                        observations.append(obs_definition(particles))
                     except RuntimeError:
                         if observables_required[obs_name]:
                             continue
@@ -163,10 +169,10 @@ def parse_lhe_file(
                         default = observables_defaults[obs_name]
                         if default is None:
                             default = np.nan
-                        observations[obs_name] = default
+                        observations.append(default)
 
             # Objects for cuts
-            for obs_name, obs_value in six.iteritems(observations):
+            for obs_name, obs_value in zip(observables.keys(), observations):
                 variables[obs_name] = obs_value
 
             # Check cuts
@@ -180,32 +186,25 @@ def parse_lhe_file(
                     if not default_pass:
                         continue
 
-            # Reformat data
-            for key, value in six.iteritems(weights):
-                weights[key] = [value]
-            for key, value in six.iteritems(observations):
-                observations[key] = [value]
-
             # Store results
-            if observations_all_events is None:
-                observations_all_events = observations
-            else:
-                for key in observations_all_events:
-                    assert key in observations, "Observable {} not found in event".format(key)
-                    observations_all_events[key] = observations_all_events[key] + observations[key]
-
-            if weights_all_events is None:
-                weights_all_events = weights
-            else:
-                for key in weights_all_events:
-                    assert key in weights, "Weight {} not found in event".format(key)
-                    weights_all_events[key] = weights_all_events[key] + weights[key]
+            observations_all_events.append(observations)
+            weights_all_events.append(weights)
 
     # Option two: text parsing
     else:
+        # Free up memory
+        del root
+
+        observations_all_events = []
+        weights_all_events = []
+        weight_names_all_events = None
 
         # Iterate over events in LHE file
-        for particles, weights in _parse_events_text(filename, sampling_benchmark):
+        for i_event, (particles, weights) in enumerate(_parse_events_text(filename, sampling_benchmark)):
+
+            if weight_names_all_events is None:
+                weight_names_all_events = list(weights.keys())
+            weights = list(weights.values())
 
             # Apply smearing
             particles = _smear_particles(
@@ -216,11 +215,11 @@ def parse_lhe_file(
             variables = _get_objects(particles)
 
             # Calculate observables
-            observations = OrderedDict()
+            observations = []
             for obs_name, obs_definition in six.iteritems(observables):
                 if isinstance(obs_definition, six.string_types):
                     try:
-                        observations[obs_name] = eval(obs_definition, variables)
+                        observations.append(eval(obs_definition, variables))
                     except (SyntaxError, NameError, TypeError, ZeroDivisionError, IndexError):
                         if observables_required[obs_name]:
                             continue
@@ -228,10 +227,10 @@ def parse_lhe_file(
                         default = observables_defaults[obs_name]
                         if default is None:
                             default = np.nan
-                        observations[obs_name] = default
+                        observations.append(default)
                 else:
                     try:
-                        observations[obs_name] = obs_definition(particles)
+                        observations.append(obs_definition(particles))
                     except RuntimeError:
                         if observables_required[obs_name]:
                             continue
@@ -239,10 +238,10 @@ def parse_lhe_file(
                         default = observables_defaults[obs_name]
                         if default is None:
                             default = np.nan
-                        observations[obs_name] = default
+                        observations.append(default)
 
             # Objects for cuts
-            for obs_name, obs_value in six.iteritems(observations):
+            for obs_name, obs_value in zip(observables.keys(), observations):
                 variables[obs_name] = obs_value
 
             # Check cuts
@@ -256,35 +255,25 @@ def parse_lhe_file(
                     if not default_pass:
                         continue
 
-            # Reformat data
-            for key, value in six.iteritems(weights):
-                weights[key] = [value]
-            for key, value in six.iteritems(observations):
-                observations[key] = [value]
-
             # Store results
-            if observations_all_events is None:
-                observations_all_events = observations
-            else:
-                for key in observations_all_events:
-                    assert key in observations, "Observable {} not found in event".format(key)
-                    observations_all_events[key] = observations_all_events[key] + observations[key]
+            observations_all_events.append(observations)
+            weights_all_events.append(weights)
 
-            if weights_all_events is None:
-                weights_all_events = weights
-            else:
-                for key in weights_all_events:
-                    assert key in weights, "Weight {} not found in event".format(key)
-                    weights_all_events[key] = weights_all_events[key] + weights[key]
+    # Reformat data
+    observations_all_events = np.array(observations_all_events)  # (n_events, n_observables)
+    weights_all_events = np.array(weights_all_events)  # (n_events, n_weights)
+
+    # k factor
+    weights_all_events = k_factor * weights_all_events
+
+    # Bring both to OrderedDicts with entries {name : (n_events,)}
+    weights_all_events = OrderedDict(zip(weight_names_all_events, weights_all_events.T))
+    observations_all_events = OrderedDict(zip(observables.keys(), observations_all_events.T))
 
     # Background events
     if is_background:
         for benchmark_name in benchmark_names:
             weights_all_events[benchmark_name] = weights_all_events[sampling_benchmark]
-
-    # k factor
-    for key, value in six.iteritems(weights_all_events):
-        weights_all_events[key] = k_factor * np.array(value)
 
     return observations_all_events, weights_all_events
 
@@ -543,17 +532,6 @@ def _parse_events_text(filename, sampling_benchmark):
     # Loop through lines in Event
     with open(filename, "r") as file:
         for line in file.readlines():
-
-            if reset_event:
-                # Initialize weights and momenta
-                weights = OrderedDict()
-                particles = []
-
-                # Some tags so that we know where in the event we are
-                do_tag = True
-                do_momenta = False
-                do_reweight = False
-
             # Clean up line
             try:
                 line = line.split("#")[0]
@@ -572,7 +550,14 @@ def _parse_events_text(filename, sampling_benchmark):
 
             # Beginning of event
             elif line == "<event>":
-                reset_event = True
+                # Initialize weights and momenta
+                weights = OrderedDict()
+                particles = []
+
+                # Some tags so that we know where in the event we are
+                do_tag = True
+                do_momenta = False
+                do_reweight = False
 
             # End of event
             elif line == "</event>":
@@ -581,20 +566,31 @@ def _parse_events_text(filename, sampling_benchmark):
                     logger.debug("%s events parsed", n_events)
 
                 yield particles, weights
-                reset_event = True
+
+                # Reset weights and momenta
+                weights = OrderedDict()
+                particles = []
+
+                # Some tags so that we know where in the event we are
+                do_tag = False
+                do_momenta = False
+                do_reweight = False
 
             # Beginning of unimportant block
             elif line == "<mgrwt>":
+                do_tag = False
                 do_momenta = False
                 do_reweight = False
 
             # Beginning of weight block
             elif line == "<rwgt>":
+                do_tag = False
                 do_momenta = False
                 do_reweight = True
 
             # End of weight block
             elif line == "</rwgt>":
+                do_tag = False
                 do_momenta = False
                 do_reweight = False
 
@@ -604,6 +600,7 @@ def _parse_events_text(filename, sampling_benchmark):
 
                 do_tag = False
                 do_momenta = True
+                do_reweight = False
 
             # Read Momenta and store as 4-vector
             elif do_momenta:
