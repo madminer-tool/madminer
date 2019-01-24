@@ -136,7 +136,7 @@ def parse_lhe_file(
             particles, weights = _parse_event(event, sampling_benchmark)
 
             # Negative weights?
-            n_negative_weights = (np.array(weights.keys()) < 0.0)
+            n_negative_weights = (np.array(list(weights.values())) < 0.0)
             if n_negative_weights > 0:
                 logger.warning("Found %s negative weights in event: %s", n_negative_weights, weights)
 
