@@ -1473,9 +1473,13 @@ class SampleAugmenter:
                             n_negative_benchmark_weights / weights_benchmarks_batch.size,
                         )
 
-                        i_negative_weights = (p_theta < 0.)
-                        for i in i_negative_weights:
-                            logger.debug("  weight(theta): %s, benchmark weights: %s", weights_theta[i], weights_benchmarks_batch[i])
+                        filter_negative_weights = p_theta < 0.0
+                        for weight_theta_neg, weight_benchmarks_neg in zip(
+                            weights_theta[filter_negative_weights], weights_benchmarks_batch[filter_negative_weights]
+                        ):
+                            logger.debug(
+                                "  weight(theta): %s, benchmark weights: %s", weight_theta_neg, weight_benchmarks_neg
+                            )
 
                     p_theta[p_theta < 0.0] = 0.0
 

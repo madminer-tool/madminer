@@ -45,7 +45,9 @@ def parse_lhe_file(
     if parse_events_as_xml:
         logger.debug("Parsing header and events as XML with %sElementTree", "c" if use_celementtree else "")
     else:
-        logger.debug("Parsing header as XML with %sElementTree and events as text file", "c" if use_celementtree else "")
+        logger.debug(
+            "Parsing header as XML with %sElementTree and events as text file", "c" if use_celementtree else ""
+        )
 
     # Inputs
     if k_factor is None:
