@@ -200,11 +200,11 @@ class LHEProcessor:
             the last smearing function will take effect. Default value: None.
 
         energy_resolution_abs : float or None, optional
-            Absolute measurement uncertainty for the energy in GeV. None means that the pT is not smeared directly, but
+            Absolute measurement uncertainty for the energy in GeV. None means that the energy is not smeared directly, but
             calculated from the on-shell condition. Default value: 0.
 
         energy_resolution_rel : float or None, optional
-            Relative measurement uncertainty for the energy. None means that the pT is not smeared directly, but
+            Relative measurement uncertainty for the energy. None means that the energy is not smeared directly, but
             calculated from the on-shell condition. Default value: 0.
 
         pt_resolution_abs : float or None, optional
