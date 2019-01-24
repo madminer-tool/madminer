@@ -1,6 +1,6 @@
 # MadMiner
 
-*Johann Brehmer, Felix Kling, and Kyle Cranmer*
+*Johann Brehmer, Felix Kling, Irina Espejo, and Kyle Cranmer*
 
 Mining gold from MadGraph to improve limit setting in particle physics.
 
@@ -45,17 +45,22 @@ estimators are implemented.
 ### Simulator dependencies
 
 Make sure the following tools are installed and running:
-- MadGraph (we've tested our setup with MG5_aMC v2.6.2 and have received reports about issues with newer versions).
-- Pythia8 and the MG-Pythia interface installed from the MadGraph interface.
+- MadGraph (we've tested our setup with MG5_aMC v2.6.2 and have received reports about issues with newer versions). See
+  [https://launchpad.net/mg5amcnlo](https://launchpad.net/mg5amcnlo) for installation instructions. Note that MadGraph
+  currently requires Python 2.6 or 2.7 (but not Python 3) as well as a Fortran compiler.
 - For the analysis of systematic uncertainties, LHAPDF6 has to be installed with Python support (see also
-[the documentation of MadGraph's systematics tool](https://cp3.irmp.ucl.ac.be/projects/madgraph/wiki/Systematics)).
+  [the documentation of MadGraph's systematics tool](https://cp3.irmp.ucl.ac.be/projects/madgraph/wiki/Systematics)).
 
 For the detector simulation part, there are different options. For simple parton-level analyses, we provide a bare-bones
 option to calculate truth-level observables which do not require any additional packages.
 
 We have also implemented a fast detector simulation based on Delphes with a flexible framework to calculate observables.
-Using this adds another requirement:
-- Delphes, for instance installed from the MadGraph interface.
+Using this adds additional requirements:
+- Pythia8 and the MG-Pythia interface, installed from within the MadGraph command line interface: execute
+ `<MadGraph5_directory>/bin/mg5_aMC`, and then inside the MadGraph interface, run `install pythia8` and
+ `install mg5amc_py8_interface`.
+- Delphes. Again, you can (but this time you don't have to) install it from the MadGraph command line interface with
+  `install Delphes`.
 
 Finally, Delphes can be replaced with another detector simulation, for instance a full detector simulation based
 with Geant4. In this case, the user has to implement code that runs the detector simulation, calculates the observables,
@@ -116,7 +121,18 @@ The [setup.py](setup.py) was adapted from
 
 ## References
 
-There are two main references for these inference methods applied to problems in particle physics:
+If you use MadMiner, please cite this code as
+```
+@misc{MadMiner,
+      author         = "Brehmer, Johann and Kling, Felix and Espejo, Irina and Cranmer, Kyle",
+      title          = "{MadMiner}",
+      doi            = "10.5281/zenodo.1489147",
+      url            = {https://github.com/johannbrehmer/madminer}
+}
+```
+
+For the inference methods, there are three main references. Two introduce most of the methods in a particle physics
+setting:
 ```
 @article{Brehmer:2018kdj,
       author         = "Brehmer, Johann and Cranmer, Kyle and Louppe, Gilles and
@@ -151,7 +167,7 @@ There are two main references for these inference methods applied to problems in
 }
 ```
 
-In addition, the inference techniques are discussed in a more abstract setting, and the SCANDAL family of methods is
+In addition, the inference techniques are discussed in a more general setting, and the SCANDAL family of methods is
 added in:
 ```
 @article{Brehmer:2018hga,
@@ -167,5 +183,5 @@ added in:
 }
 ```
 
-Individual inference methods are introduced in other papers, including [CARL](https://arxiv.org/abs/1506.02169),
+Some inference methods are introduced in other papers, including [CARL](https://arxiv.org/abs/1506.02169),
 [Masked Autoregressive Flows](https://arxiv.org/abs/1705.07057), and [ALICE(S)](https://arxiv.org/abs/1808.00973).
