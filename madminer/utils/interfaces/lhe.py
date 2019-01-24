@@ -135,6 +135,11 @@ def parse_lhe_file(
             # Parse event
             particles, weights = _parse_event(event, sampling_benchmark)
 
+            # Negative weights?
+            n_negative_weights = (np.array(weights.keys()) < 0.0)
+            if n_negative_weights > 0:
+                logger.warning("Found %s negative weights in event: %s", n_negative_weights, weights)
+
             if weight_names_all_events is None:
                 weight_names_all_events = list(weights.keys())
             weights = list(weights.values())
@@ -203,6 +208,11 @@ def parse_lhe_file(
 
         # Iterate over events in LHE file
         for i_event, (particles, weights) in enumerate(_parse_events_text(filename, sampling_benchmark)):
+
+            # Negative weights?
+            n_negative_weights = (np.array(weights.keys()) < 0.0)
+            if n_negative_weights > 0:
+                logger.warning("Found %s negative weights in event: %s", n_negative_weights, weights)
 
             if weight_names_all_events is None:
                 weight_names_all_events = list(weights.keys())
