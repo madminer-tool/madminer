@@ -14,7 +14,7 @@ from madminer.ml import MLForge, EnsembleForge
 logger = logging.getLogger(__name__)
 
 
-def project_information(fisher_information, remaining_components):
+def project_information(fisher_information, remaining_components, covariance=None):
     """
     Calculates projections of a Fisher information matrix, that is, "deletes" the rows and columns corresponding to
     some parameters not of interest.
@@ -28,19 +28,39 @@ def project_information(fisher_information, remaining_components):
         List with m entries, each an int with 0 <= remaining_compoinents[i] < n. Denotes which parameters are kept, and
         their new order. All other parameters or projected out.
 
+    covariance : ndarray or None, optional
+        The covariance matrix of the original Fisher information with shape (n, n, n, n). If None, the error on the
+        profiled information is not calculated. Default value: None.
+
     Returns
     -------
     projected_fisher_information : ndarray
         Projected m x m Fisher information, where the `i`-th row or column corresponds to the
         `remaining_components[i]`-th row or column of fisher_information.
 
+    profiled_fisher_information_covariance : ndarray
+        Covariance matrix of the projected Fisher information matrix with shape (m, m, m, m). Only returned if
+        covariance is not None.
+
     """
     n_new = len(remaining_components)
     fisher_information_new = np.zeros([n_new, n_new])
 
+    # Project information
     for xnew, xold in enumerate(remaining_components):
         for ynew, yold in enumerate(remaining_components):
             fisher_information_new[xnew, ynew] = fisher_information[xold, yold]
+
+    # Project covariance matrix
+    if covariance is not None:
+        covariance_new = np.zeros([n_new, n_new, n_new, n_new])
+        for xnew, xold in enumerate(remaining_components):
+            for ynew, yold in enumerate(remaining_components):
+                for znew, zold in enumerate(remaining_components):
+                    for zznew, zzold in enumerate(remaining_components):
+                        covariance_new[xnew, ynew, znew, zznew] = fisher_information[xold, yold, zold, zzold]
+
+        return fisher_information_new, covariance_new
 
     return fisher_information_new
 
