@@ -227,6 +227,7 @@ def plot_distributions(
 
     # Preparing plot
     n_rows = (n_observables + n_cols - 1) // n_cols
+    n_events_for_range = 10000 if n_events is None else min(10000, n_events)
 
     fig = plt.figure(figsize=(4.0 * n_cols, 4.0 * n_rows))
 
@@ -235,7 +236,6 @@ def plot_distributions(
         # Figure out x range
         xmins, xmaxs = [], []
         for theta_matrix in theta_matrices:
-            n_events_for_range = min(10000, n_events)
             x_small = x[:n_events_for_range]
             weights_small = mdot(theta_matrix, weights_benchmarks[:n_events_for_range])
 

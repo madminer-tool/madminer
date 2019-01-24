@@ -1464,9 +1464,19 @@ class SampleAugmenter:
                     # Handle negative weights (should be rare)
                     n_negative_weights = np.sum(p_theta < 0.0)
                     if n_negative_weights > 0:
+                        n_negative_benchmark_weights = np.sum(weights_benchmarks_batch < 0.0)
                         logger.warning(
-                            "%s negative weights (%s)", n_negative_weights, n_negative_weights / p_theta.size
+                            "%s negative weights for theta (%s), compared to %s negative benchmark weights (%s)",
+                            n_negative_weights,
+                            n_negative_weights / p_theta.size,
+                            n_negative_benchmark_weights,
+                            n_negative_benchmark_weights / weights_benchmarks_batch.size,
                         )
+
+                        i_negative_weights = (p_theta < 0.)
+                        for i in i_negative_weights:
+                            logger.debug("  weight(theta): %s, benchmark weights: %s", weights_theta[i], weights_benchmarks_batch[i])
+
                     p_theta[p_theta < 0.0] = 0.0
 
                     # Remember largest weights (to calculate effective number of samples)
