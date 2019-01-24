@@ -770,7 +770,7 @@ def _smear_particles(particles, energy_resolutions, pt_resolutions, eta_resoluti
         elif None in pt_resolutions[pdgid]:
             # Calculate pT from on-shell conditions
             if e > particle.m:
-                pt = (e ** 2 - particle.m ** 2) / np.cosh(eta)
+                pt = ((e ** 2 - particle.m ** 2) / np.cosh(eta))**0.5
             else:
                 pt = 0.0
             smeared_particle.setptetaphie(pt, eta, phi, e)
