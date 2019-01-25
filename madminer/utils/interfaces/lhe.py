@@ -112,7 +112,7 @@ def parse_lhe_file(
         )
 
     # If necessary, rescale by number of events
-    if weight_norm_is_average is not None:
+    if weight_norm_is_average:
         if n_events_runcard is None:
             raise RuntimeError(
                 "LHE weights have to be normalized, but MadMiner cannot read number of events (entry "
