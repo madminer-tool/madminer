@@ -58,7 +58,7 @@ def project_information(fisher_information, remaining_components, covariance=Non
             for ynew, yold in enumerate(remaining_components):
                 for znew, zold in enumerate(remaining_components):
                     for zznew, zzold in enumerate(remaining_components):
-                        covariance_new[xnew, ynew, znew, zznew] = fisher_information[xold, yold, zold, zzold]
+                        covariance_new[xnew, ynew, znew, zznew] = covariance[xold, yold, zold, zzold]
 
         return fisher_information_new, covariance_new
 
