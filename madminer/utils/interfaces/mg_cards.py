@@ -52,7 +52,12 @@ def export_param_card(benchmark, parameters, param_card_template_file, mg_proces
                     changed_line = True
                     break
 
-            elif len(elements) == 3 and elements[0].lower() == parameter_lha_block:
+            elif len(elements) == 3 and elements[0].lower() == parameter_lha_block.lower():
+                try:
+                    lha_id = int(elements[1])
+                except ValueError:
+                    continue
+
                 current_block = None
                 if lha_id == parameter_lha_id:
                     lines[i] = (
