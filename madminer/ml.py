@@ -34,17 +34,9 @@ class MLForge:
     * `MLForge.load()` to load the trained model from files.
 
     Please see the tutorial for a detailed walk-through.
-
-    Parameters
-    ----------
-    debug : bool, optional
-        If True, additional detailed debugging output is printed. Default value: False.
-
     """
 
-    def __init__(self, debug=False):
-        self.debug = debug
-
+    def __init__(self):
         self.method_type = None
         self.model = None
         self.method = None
@@ -92,6 +84,7 @@ class MLForge:
         grad_x_regularization=None,
         limit_samplesize=None,
         return_first_loss=False,
+        verbose=False,
     ):
 
         """
@@ -235,6 +228,9 @@ class MLForge:
             If True, the training routine only proceeds until the loss is calculated for the first time, at which point
             the loss tensor is returned. This can be useful for debugging or visualization purposes (but of course not
             for training a model).
+
+        verbose : bool, optional
+            If True, prints loss updates after every epoch.
 
         Returns
         -------
@@ -530,7 +526,7 @@ class MLForge:
                 early_stopping=early_stopping,
                 trainer=trainer,
                 nesterov_momentum=nesterov_momentum,
-                verbose="all" if self.debug else "some",
+                verbose="all" if verbose else "some",
                 grad_x_regularization=grad_x_regularization,
                 return_first_loss=return_first_loss,
             )
@@ -552,7 +548,7 @@ class MLForge:
                 early_stopping=early_stopping,
                 trainer=trainer,
                 nesterov_momentum=nesterov_momentum,
-                verbose="all" if self.debug else "some",
+                verbose="all" if verbose else "some",
                 grad_x_regularization=grad_x_regularization,
                 return_first_loss=return_first_loss,
             )
@@ -579,7 +575,7 @@ class MLForge:
                 early_stopping=early_stopping,
                 trainer=trainer,
                 nesterov_momentum=nesterov_momentum,
-                verbose="all" if self.debug else "some",
+                verbose="all" if verbose else "some",
                 grad_x_regularization=grad_x_regularization,
                 return_first_loss=return_first_loss,
             )
@@ -1048,14 +1044,9 @@ class EnsembleForge:
     ----------
     estimators : list of MLForge
         The estimators in the form of MLForge instances.
-
-    debug : bool, optional
-        If True, additional detailed debugging output is printed. Default value: False.
-
     """
 
-    def __init__(self, estimators=None, debug=False):
-        self.debug = debug
+    def __init__(self, estimators=None):
         self.n_parameters = None
         self.n_observables = None
 
@@ -1063,12 +1054,12 @@ class EnsembleForge:
         if estimators is None:
             self.estimators = []
         elif isinstance(estimators, int):
-            self.estimators = [MLForge(debug=debug) for _ in range(estimators)]
+            self.estimators = [MLForge() for _ in range(estimators)]
         else:
             self.estimators = []
             for estimator in estimators:
                 if isinstance(estimator, six.string_types):
-                    estimator_object = MLForge(debug=debug)
+                    estimator_object = MLForge()
                     estimator_object.load(estimator)
                 elif isinstance(estimator, MLForge):
                     estimator_object = estimator
@@ -1101,7 +1092,7 @@ class EnsembleForge:
 
         """
         if isinstance(estimator, six.string_types):
-            estimator_object = MLForge(debug=self.debug)
+            estimator_object = MLForge()
             estimator_object.load(estimator)
         elif isinstance(estimator, MLForge):
             estimator_object = estimator
@@ -1684,7 +1675,7 @@ class EnsembleForge:
         # Load estimators
         self.estimators = []
         for i in range(self.n_estimators):
-            estimator = MLForge(debug=self.debug)
+            estimator = MLForge()
             estimator.load(folder + "/estimator_" + str(i))
             self.estimators.append(estimator)
 

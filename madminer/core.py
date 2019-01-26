@@ -31,14 +31,9 @@ class MadMiner:
     
     Please see the tutorial for a hands-on introduction to its methods.
 
-    Parameters
-    ----------
-    debug : bool, optional
-        If True, additional detailed debugging output is printed. Default value: False.
-
     """
 
-    def __init__(self, debug=False):
+    def __init__(self):
         self.parameters = OrderedDict()
         self.benchmarks = OrderedDict()
         self.default_benchmark = None
