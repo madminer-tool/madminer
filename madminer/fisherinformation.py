@@ -477,13 +477,14 @@ class FisherInformation:
             )
             include_nuisance_parameters = True
         else:
-            logger.warning(
+            raise RuntimeError(
                 "Inconsistent numbers of parameters! Found %s in SALLY model, %s physical parameters in "
                 "MadMiner file, and %s nuisance parameters in MadMiner file.",
                 model.n_parameters,
                 self.n_parameters,
                 self.n_nuisance_parameters,
             )
+
         if include_nuisance_parameters:
             logger.debug("Including nuisance parameters")
         else:
