@@ -15,7 +15,7 @@ from madminer.utils.various import format_benchmark, create_missing_folders, shu
 logger = logging.getLogger(__name__)
 
 
-def combine_and_shuffle(input_filenames, output_filename, k_factors=None, overwrite_existing_file=True, debug=False):
+def combine_and_shuffle(input_filenames, output_filename, k_factors=None, overwrite_existing_file=True):
     """
     Combines multiple MadMiner files into one, and shuffles the order of the events.
 
@@ -37,9 +37,6 @@ def combine_and_shuffle(input_filenames, output_filename, k_factors=None, overwr
 
     overwrite_existing_file : bool, optional
         If True and if the output file exists, it is overwritten. Default value: True.
-
-    debug : bool, optional
-        If True, additional detailed debugging output is printed. Default value: False.
 
     Returns
     -------
@@ -256,12 +253,9 @@ class SampleAugmenter:
     include_nuisance_parameters : bool, optional
         If True, nuisance parameters are taken into account. Default value: True.
 
-    debug : bool, optional
-        If True, additional detailed debugging output is printed. Default value: False.
-
     """
 
-    def __init__(self, filename, disable_morphing=False, include_nuisance_parameters=True, debug=False):
+    def __init__(self, filename, disable_morphing=False, include_nuisance_parameters=True):
         # Save setup
         self.include_nuisance_parameters = include_nuisance_parameters
         self.madminer_filename = filename

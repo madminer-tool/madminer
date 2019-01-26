@@ -2,7 +2,7 @@ from madminer.__version__ import __version__
 
 import logging
 
-logging.getLogger('madminer').addHandler(logging.NullHandler())
+logging.getLogger("madminer").addHandler(logging.NullHandler())
 
 logger = logging.getLogger(__name__)
 

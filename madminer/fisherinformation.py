@@ -200,14 +200,10 @@ class FisherInformation:
     include_nuisance_parameters : bool, optional
         If True, nuisance parameters are taken into account. Default value: True.
 
-    debug : bool, optional
-        If True, additional detailed debugging output is printed. Default value: False.
-
     """
 
-    def __init__(self, filename, include_nuisance_parameters=True, debug=False):
+    def __init__(self, filename, include_nuisance_parameters=True):
         # Save settings
-        self.debug = debug
         self.madminer_filename = filename
         self.include_nuisance_parameters = include_nuisance_parameters
 
@@ -452,11 +448,11 @@ class FisherInformation:
         # Load SALLY model
         if os.path.isdir(model_file):
             model_is_ensemble = True
-            model = EnsembleForge(debug=self.debug)
+            model = EnsembleForge()
             model.load(model_file)
         else:
             model_is_ensemble = False
-            model = MLForge(debug=self.debug)
+            model = MLForge()
             model.load(model_file)
 
         # Nuisance parameters?
@@ -477,13 +473,14 @@ class FisherInformation:
             )
             include_nuisance_parameters = True
         else:
-            logger.warning(
+            raise RuntimeError(
                 "Inconsistent numbers of parameters! Found %s in SALLY model, %s physical parameters in "
                 "MadMiner file, and %s nuisance parameters in MadMiner file.",
                 model.n_parameters,
                 self.n_parameters,
                 self.n_nuisance_parameters,
             )
+
         if include_nuisance_parameters:
             logger.debug("Including nuisance parameters")
         else:

@@ -147,7 +147,7 @@ class Morpher:
                     )
                 )
 
-        # Go through regions and find components for each
+        # Go through regions and finds components for each
         components = []
 
         for i in range(n_regions):
