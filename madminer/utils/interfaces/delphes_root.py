@@ -38,7 +38,9 @@ def parse_delphes_root_file(
     logger.debug("Expected weight labels: %s", weight_labels)
 
     # Delphes ROOT file
-    root_file = uproot.open(delphes_sample_file)
+    root_file = uproot.open(str(delphes_sample_file))
+    # The str() call is important when using numpy 1.16.0 and Python 2.7. In this combination of versions, a unicode
+    # delphes_sample_file would lead to a crash.
 
     # Delphes tree
     tree = root_file["Delphes"]
