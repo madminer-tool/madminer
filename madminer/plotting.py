@@ -211,7 +211,7 @@ def plot_distributions(
         if nuisance_parameters is not None:
             for i in range(n_nuisance_params):
                 if i not in nuisance_parameters:
-                    nuisance_toys[:, i] = 1.0
+                    nuisance_toys[:, i] = 0.0
 
         logger.debug("Drew %s toy values for nuisance parameters", n_toys * n_nuisance_params)
 
