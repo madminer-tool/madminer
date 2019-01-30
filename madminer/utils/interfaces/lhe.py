@@ -663,6 +663,7 @@ def _get_objects(particles):
     # Find visible particles
     electrons = []
     muons = []
+    taus = []
     photons = []
     jets = []
     leptons = []
@@ -680,12 +681,14 @@ def _get_objects(particles):
         elif pdgid == 13:
             muons.append(particle)
             leptons.append(particle)
+        elif pdgid == 15:
+            taus.append(particle)
         elif pdgid == 21:
             photons.append(particle)
         elif pdgid in [12, 14, 16]:
             neutrinos.append(particle)
             invisibles.append(particle)
-        elif pdgid in [15, 23, 24, 25]:
+        elif pdgid in [23, 24, 25]:
             unstables.append(particle)
         else:
             logger.warning("Unknown particle with PDG id %s, treating as invisible!")
@@ -694,6 +697,7 @@ def _get_objects(particles):
     # Sort by pT
     electrons = sorted(electrons, reverse=True, key=lambda x: x.pt)
     muons = sorted(muons, reverse=True, key=lambda x: x.pt)
+    taus = sorted(taus, reverse=True, key=lambda x: x.pt)
     photons = sorted(photons, reverse=True, key=lambda x: x.pt)
     leptons = sorted(leptons, reverse=True, key=lambda x: x.pt)
     neutrinos = sorted(neutrinos, reverse=True, key=lambda x: x.pt)
@@ -707,7 +711,7 @@ def _get_objects(particles):
     # Build objects
     objects = math_commands()
     objects.update(
-        {"p": particles, "e": electrons, "j": jets, "a": photons, "mu": muons, "l": leptons, "met": met, "v": neutrinos}
+        {"p": particles, "e": electrons, "j": jets, "a": photons, "mu": muons, "tau": taus, "l": leptons, "met": met, "v": neutrinos}
     )
 
     return objects

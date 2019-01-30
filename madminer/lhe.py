@@ -286,8 +286,8 @@ class LHEProcessor:
 
         definition : str
             An expression that can be parsed by Python's `eval()` function. As objects, all particles can be
-            used: `e`, `mu`, `j`, `a`, `l`, `v` provide lists of electrons, muons, jets, photons, leptons (electrons
-            and muons combined), and neutrinos, in each case sorted by descending transverse momentum. `met` provides a
+            used: `e`, `mu`, `tau`, `j`, `a`, `l`, `v` provide lists of electrons, muons, taus, jets, photons, leptons (
+            electrons and muons combined), and neutrinos, in each case sorted by descending transverse momentum. `met` provides a
             missing ET object. `p` gives all particles in the same order as in the LHE file (i.e. in the same order as
             defined in the MadGraph process card). All these objects are instances of `MadMinerParticle`, which
             inherits from scikit-hep's [LorentzVector](http://scikit-hep.org/api/math.html#vector-classes). See the link
