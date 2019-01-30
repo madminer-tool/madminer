@@ -720,12 +720,12 @@ def _get_objects(particles):
 def _smear_variable(true_value, resolutions, id):
     """ Adds Gaussian nose to a variable """
     try:
-        res = resolutions[id][0] + resolutions[id][1] * true_value
+        res = float(resolutions[id][0] + resolutions[id][1] * true_value)
 
         if res <= 0.0:
             return true_value
 
-        return true_value + np.random.normal(0.0, res, 1)
+        return float(true_value + np.random.normal(0.0, float(res), None))
 
     except (TypeError, KeyError):
         return true_value
