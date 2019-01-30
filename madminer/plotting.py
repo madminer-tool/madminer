@@ -159,16 +159,18 @@ def plot_distributions(
         toy_linewidths = [toy_linewidths for _ in range(n_parameter_points)]
 
     # Observables
+    observable_indices = []
     if observables is None:
         observable_indices = list(range(len(sa.observables)))
     else:
         all_observables = list(sa.observables.keys())
-        observable_indices = []
         for obs in observables:
             try:
                 observable_indices.append(all_observables.index(str(obs)))
-            except KeyError:
+            except ValueError:
                 logging.warning("Ignoring unknown observable %s", obs)
+
+    logger.debug("Observable indices: %s", observable_indices)
 
     n_observables = len(observable_indices)
 
@@ -241,7 +243,8 @@ def plot_distributions(
 
     fig = plt.figure(figsize=(4.0 * n_cols, 4.0 * n_rows))
 
-    for i_panel, (i_obs, xlabel) in enumerate(zip(observables, observable_labels)):
+    for i_panel, (i_obs, xlabel) in enumerate(zip(observable_indices, observable_labels)):
+        logger.debug("Plotting panel %s: observable %s, label %s", i_panel, i_obs, xlabel)
 
         # Figure out x range
         xmins, xmaxs = [], []
