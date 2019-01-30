@@ -183,16 +183,20 @@ def parse_lhe_file(
                 variables[obs_name] = obs_value
 
             # Check cuts
+            pass_cut=True
             for cut, default_pass in zip(cuts, cuts_default_pass):
                 try:
                     cut_result = eval(cut, variables)
                     if not cut_result:
-                        continue
+                        pass_cut=False
 
                 except (SyntaxError, NameError, TypeError, ZeroDivisionError, IndexError):
                     if not default_pass:
-                        continue
+                        pass_cut=False
 
+            if not pass_cut:
+                continue
+            
             # Store results
             observations_all_events.append(observations)
             weights_all_events.append(weights)
@@ -257,15 +261,19 @@ def parse_lhe_file(
                 variables[obs_name] = obs_value
 
             # Check cuts
+            pass_cut=True
             for cut, default_pass in zip(cuts, cuts_default_pass):
                 try:
                     cut_result = eval(cut, variables)
                     if not cut_result:
-                        continue
-
+                        pass_cut=False
+            
                 except (SyntaxError, NameError, TypeError, ZeroDivisionError, IndexError):
                     if not default_pass:
-                        continue
+                        pass_cut=False
+
+            if not pass_cut:
+                continue
 
             # Store results
             observations_all_events.append(observations)
