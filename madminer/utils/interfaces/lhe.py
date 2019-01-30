@@ -742,16 +742,23 @@ def _smear_particles(particles, energy_resolutions, pt_resolutions, eta_resoluti
         if None in energy_resolutions[pdgid] and None in pt_resolutions[pdgid]:
             raise RuntimeError("Cannot derive both pT and energy from on-shell conditions!")
 
+        # Minimum energy and pT
+        m = particle.m
+        min_e = 0.
+        if None in pt_resolutions[pdgid]:
+            min_e = m
+        min_pt = 0.
+
         # Smear four-momenta
         e = None
         if None not in energy_resolutions[pdgid]:
-            e = -1.0
-            while e < 0.:
+            e = min_e - 1.0
+            while e < min_e:
                 e = _smear_variable(particle.e, energy_resolutions, pdgid)
         pt = None
         if None not in pt_resolutions[pdgid]:
-            pt = -1.0
-            while pt < 0.:
+            pt = min_pt - 1.0
+            while pt < min_pt:
                 pt = _smear_variable(particle.pt, pt_resolutions, pdgid)
         eta = _smear_variable(particle.eta, eta_resolutions, pdgid)
         phi = _smear_variable(particle.phi(), phi_resolutions, pdgid)
@@ -770,7 +777,7 @@ def _smear_particles(particles, energy_resolutions, pt_resolutions, eta_resoluti
         elif None in pt_resolutions[pdgid]:
             # Calculate pT from on-shell conditions
             if e > particle.m:
-                pt = (e ** 2 - particle.m ** 2)**0.5 / np.cosh(eta)
+                pt = (e ** 2 - m ** 2)**0.5 / np.cosh(eta)
             else:
                 pt = 0.0
             smeared_particle.setptetaphie(pt, eta, phi, e)
