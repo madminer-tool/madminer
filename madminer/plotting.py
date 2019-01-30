@@ -158,13 +158,25 @@ def plot_distributions(
     if not isinstance(toy_linewidths, list):
         toy_linewidths = [toy_linewidths for _ in range(n_parameter_points)]
 
+    # Observables
+    observable_indices = []
     if observables is None:
-        observables = list(range(len(sa.observables)))
-    n_observables = len(observables)
+        observable_indices = list(range(len(sa.observables)))
+    else:
+        all_observables = list(sa.observables.keys())
+        for obs in observables:
+            try:
+                observable_indices.append(all_observables.index(str(obs)))
+            except ValueError:
+                logging.warning("Ignoring unknown observable %s", obs)
+
+    logger.debug("Observable indices: %s", observable_indices)
+
+    n_observables = len(observable_indices)
 
     if observable_labels is None:
-        observable_labels = list(sa.observables.keys())
-        observable_labels = [observable_labels[obs] for obs in observables]
+        all_observables = list(sa.observables.keys())
+        observable_labels = [all_observables[obs] for obs in observable_indices]
 
     # Get event data (observations and weights)
     x, weights_benchmarks = sa.extract_raw_data()
@@ -231,7 +243,8 @@ def plot_distributions(
 
     fig = plt.figure(figsize=(4.0 * n_cols, 4.0 * n_rows))
 
-    for i, xlabel in enumerate(observable_labels):
+    for i_panel, (i_obs, xlabel) in enumerate(zip(observable_indices, observable_labels)):
+        logger.debug("Plotting panel %s: observable %s, label %s", i_panel, i_obs, xlabel)
 
         # Figure out x range
         xmins, xmaxs = [], []
@@ -239,14 +252,14 @@ def plot_distributions(
             x_small = x[:n_events_for_range]
             weights_small = mdot(theta_matrix, weights_benchmarks[:n_events_for_range])
 
-            xmin = weighted_quantile(x_small[:, i], 0.05, weights_small)
-            xmax = weighted_quantile(x_small[:, i], 0.95, weights_small)
+            xmin = weighted_quantile(x_small[:, i_obs], 0.05, weights_small)
+            xmax = weighted_quantile(x_small[:, i_obs], 0.95, weights_small)
             xwidth = xmax - xmin
             xmin -= xwidth * 0.1
             xmax += xwidth * 0.1
 
-            xmin = max(xmin, np.min(x[:, i]))
-            xmax = min(xmax, np.max(x[:, i]))
+            xmin = max(xmin, np.min(x[:, i_obs]))
+            xmax = min(xmax, np.max(x[:, i_obs]))
 
             xmins.append(xmin)
             xmaxs.append(xmax)
@@ -258,7 +271,7 @@ def plot_distributions(
         logger.debug("Ranges for observable %s: min = %s, max = %s", xlabel, xmins, xmaxs)
 
         # Subfigure
-        ax = plt.subplot(n_rows, n_cols, i + 1)
+        ax = plt.subplot(n_rows, n_cols, i_panel + 1)
 
         # Calculate histograms
         bin_edges = None
@@ -271,7 +284,7 @@ def plot_distributions(
             theta_weights = mdot(theta_matrix, weights_benchmarks)  # Shape (n_events,)
 
             histo, bin_edges = np.histogram(
-                x[:, i], bins=n_bins, range=x_range, weights=theta_weights, density=normalize
+                x[:, i_obs], bins=n_bins, range=x_range, weights=theta_weights, density=normalize
             )
             histos.append(histo)
 
@@ -279,7 +292,7 @@ def plot_distributions(
                 histos_toys_this_theta = []
                 for i_toy, nuisance_toy_factors_this_toy in enumerate(nuisance_toy_factors):
                     toy_histo, _ = np.histogram(
-                        x[:, i],
+                        x[:, i_obs],
                         bins=n_bins,
                         range=x_range,
                         weights=theta_weights * nuisance_toy_factors_this_toy,
