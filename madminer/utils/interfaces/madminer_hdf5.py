@@ -145,7 +145,7 @@ def load_madminer_settings(filename, include_nuisance_benchmarks=False):
                 if is_reference:
                     reference_benchmark = bname
         except KeyError:
-            logger.info("HDF5 file does not contain is_reference field.")
+            logger.debug("HDF5 file does not contain is_reference field.")
 
         benchmarks = OrderedDict()
 
