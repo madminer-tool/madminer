@@ -183,20 +183,20 @@ def parse_lhe_file(
                 variables[obs_name] = obs_value
 
             # Check cuts
-            pass_cut=True
+            pass_cut = True
             for cut, default_pass in zip(cuts, cuts_default_pass):
                 try:
                     cut_result = eval(cut, variables)
                     if not cut_result:
-                        pass_cut=False
+                        pass_cut = False
 
                 except (SyntaxError, NameError, TypeError, ZeroDivisionError, IndexError):
                     if not default_pass:
-                        pass_cut=False
+                        pass_cut = False
 
             if not pass_cut:
                 continue
-            
+
             # Store results
             observations_all_events.append(observations)
             weights_all_events.append(weights)
@@ -261,16 +261,16 @@ def parse_lhe_file(
                 variables[obs_name] = obs_value
 
             # Check cuts
-            pass_cut=True
+            pass_cut = True
             for cut, default_pass in zip(cuts, cuts_default_pass):
                 try:
                     cut_result = eval(cut, variables)
                     if not cut_result:
-                        pass_cut=False
-            
+                        pass_cut = False
+
                 except (SyntaxError, NameError, TypeError, ZeroDivisionError, IndexError):
                     if not default_pass:
-                        pass_cut=False
+                        pass_cut = False
 
             if not pass_cut:
                 continue
@@ -719,7 +719,17 @@ def _get_objects(particles):
     # Build objects
     objects = math_commands()
     objects.update(
-        {"p": particles, "e": electrons, "j": jets, "a": photons, "mu": muons, "tau": taus, "l": leptons, "met": met, "v": neutrinos}
+        {
+            "p": particles,
+            "e": electrons,
+            "j": jets,
+            "a": photons,
+            "mu": muons,
+            "tau": taus,
+            "l": leptons,
+            "met": met,
+            "v": neutrinos,
+        }
     )
 
     return objects
@@ -756,10 +766,10 @@ def _smear_particles(particles, energy_resolutions, pt_resolutions, eta_resoluti
 
         # Minimum energy and pT
         m = particle.m
-        min_e = 0.
+        min_e = 0.0
         if None in pt_resolutions[pdgid]:
             min_e = m
-        min_pt = 0.
+        min_pt = 0.0
 
         # Smear four-momenta
         e = None
@@ -789,7 +799,7 @@ def _smear_particles(particles, energy_resolutions, pt_resolutions, eta_resoluti
         elif None in pt_resolutions[pdgid]:
             # Calculate pT from on-shell conditions
             if e > particle.m:
-                pt = (e ** 2 - m ** 2)**0.5 / np.cosh(eta)
+                pt = (e ** 2 - m ** 2) ** 0.5 / np.cosh(eta)
             else:
                 pt = 0.0
             smeared_particle.setptetaphie(pt, eta, phi, e)
