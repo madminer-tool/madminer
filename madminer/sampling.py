@@ -1334,19 +1334,30 @@ class SampleAugmenter:
         # Balance thetas
         theta_sets_types, theta_sets_values = balance_thetas(theta_sets_types, theta_sets_values)
 
+        # Check whether we need to calculate scores (which will require the gradients of the morphing matrices)
+        needs_gradients = False
+        for augmented_data_definition in augmented_data_definitions:
+            if augmented_data_definition[0] == 'score':
+                needs_gradients = True
+
+                if self.morpher is None:
+                    raise RuntimeError("Cannot calculate score without morphing setup!")
+
         # Consistency checks
         n_benchmarks = xsecs_benchmarks.shape[0]
         expected_n_benchmarks = self.n_benchmarks if include_nuisance_parameters else self.n_benchmarks_phys
-        if n_benchmarks != expected_n_benchmarks and self.morphing_matrix is None:
-            raise ValueError(
-                "Inconsistent numbers of benchmarks: {} in observations,"
-                "{} in benchmark list".format(n_benchmarks, len(self.benchmarks))
-            )
-        elif n_benchmarks != expected_n_benchmarks or n_benchmarks < self.morphing_matrix.shape[0]:
-            raise ValueError(
-                "Inconsistent numbers of benchmarks: {} in observations, {} in benchmark list, "
-                "{} in morphing matrix".format(n_benchmarks, len(self.benchmarks), self.morphing_matrix.shape[0])
-            )
+        if self.morphing_matrix is None:
+            if n_benchmarks != expected_n_benchmarks:
+                raise ValueError(
+                    "Inconsistent numbers of benchmarks: {} in observations,"
+                    "{} in benchmark list".format(n_benchmarks, len(self.benchmarks))
+                )
+        else:
+            if n_benchmarks != expected_n_benchmarks or n_benchmarks < self.morphing_matrix.shape[0]:
+                raise ValueError(
+                    "Inconsistent numbers of benchmarks: {} in observations, {} in benchmark list, "
+                    "{} in morphing matrix".format(n_benchmarks, len(self.benchmarks), self.morphing_matrix.shape[0])
+                )
 
         if n_observables != len(self.observables):
             raise ValueError(
@@ -1400,9 +1411,10 @@ class SampleAugmenter:
                 theta_matrices.append(
                     get_theta_benchmark_matrix(theta_type, theta_value, self.benchmarks, self.morpher)
                 )
-                theta_gradient_matrices.append(
-                    get_dtheta_benchmark_matrix(theta_type, theta_value, self.benchmarks, self.morpher)
-                )
+                if needs_gradients:
+                    theta_gradient_matrices.append(
+                        get_dtheta_benchmark_matrix(theta_type, theta_value, self.benchmarks, self.morpher)
+                    )
 
                 logger.debug(
                     "  theta %s = %s%s", i_theta, theta[0, :], " (sampling)" if i_theta == sampling_theta_index else ""
