@@ -1414,12 +1414,12 @@ class EnsembleForge:
             are the sample mean and covariance calculated. If mode is "score", the sample mean is
             calculated for the score for each event. Default value: "score".
 
-        uncertainty : {"ensemble", "expectation", "sum"}, optional
+        uncertainty : {"ensemble", "expectation", "sum", "none"}, optional
             How the covariance matrix of the Fisher information estimate is calculate. With "ensemble", the ensemble
             covariance is used (only supported if mode is "information"). With "expectation", the expectation of the
             score is used as a measure of the uncertainty of the score estimator, and this uncertainty is propagated
             through to the covariance matrix. With "sum", both terms are summed (only supported if mode is
-            "information"). Default value: "ensemble".
+            "information"). With "none", no uncertainties are calculated. Default value: "ensemble".
 
         vote_expectation_weight : float or list of float or None, optional
             If mode is "information", this factor determines how much more weight is given to those estimators with
@@ -1610,6 +1610,8 @@ class EnsembleForge:
             covariances = expectation_covariances
         elif uncertainty == "sum":
             covariances = [cov1 + cov2 for cov1, cov2 in zip(ensemble_covariances, expectation_covariances)]
+        elif uncertainty == "none":
+            covariances = [None for cov in ensemble_covariances]
         else:
             raise ValueError("Unknown uncertainty mode {}".format(uncertainty))
 

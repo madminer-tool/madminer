@@ -953,8 +953,6 @@ class FisherInformation:
         luminosity=300000.0,
         cuts=None,
         efficiency_functions=None,
-        mode="score",
-        ensemble_vote_expectation_weight=None,
         batch_size=100000,
         test_split=0.5,
     ):
@@ -992,13 +990,6 @@ class FisherInformation:
         efficiency_functions : list of str or None
             Efficiencies. Each entry is a parseable Python expression that returns a float for the efficiency of one
             component. Default value: None.
-
-        ensemble_vote_expectation_weight : float or list of float or None, optional
-            If model_file is not None: For ensemble models, the factor that determines how much more weight is given to
-            those estimators with small
-            expectation value. If a list is given, results are returned for each element in the list. If None, or if
-            `EnsembleForge.calculate_expectation()` has not been called, all estimators are treated equal. Default
-            value: None.
 
         batch_size : int, optional
             If model_file is not None: Batch size. Default value: 100000.
@@ -1119,10 +1110,6 @@ class FisherInformation:
             else:
                 start_event = int(round((1.0 - test_split) * self.n_samples, 0)) + 1
 
-            # Prepare output
-            fisher_info_kin = None
-            covariance = None
-
             # Number of batches
             n_batches = int(np.ceil((self.n_samples - start_event) / batch_size))
             n_batches_verbose = max(int(round(n_batches / 10, 0)), 1)
@@ -1172,6 +1159,10 @@ class FisherInformation:
                         sum_events=False,
                     )
 
+                # Get rid of nuisance parameters
+                if include_nuisance_parameters:
+                    fisher_info_events = fisher_info_events[:, :self.n_parameters, :self.n_parameters]
+
                 # Evaluate histogrammed observable
                 histo_observables = np.asarray(
                     [self._eval_observable(obs_event, observable) for obs_event in observations]
@@ -1194,6 +1185,10 @@ class FisherInformation:
         fisher_info_rate_bins = self._calculate_fisher_information(
             theta, weights_benchmarks_bins, luminosity, sum_events=False
         )
+
+        # Get rid of nuisance parameters
+        if include_nuisance_parameters:
+            fisher_info_rate_bins = fisher_info_rate_bins[:, :self.n_parameters, :self.n_parameters]
 
         # If ML: full info is still missing right normalisation and xsec info!
         if model_file is not None:
