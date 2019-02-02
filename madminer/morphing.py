@@ -672,7 +672,7 @@ class NuisanceMorpher:
     def calculate_a(self, benchmark_weights):
         """
         Calculates the first-order coefficients a_i(x) in
-        `dsigma(x |  theta, nu) / dsigma(x | theta, 0) = exp[ sum_i (a_i(x) nu_i + b_i(x) nu_i(x)^2 )]`.
+        `dsigma(x |  theta, nu) / dsigma(x | theta, 0) = exp[ sum_i (a_i(x) nu_i + b_i(x) nu_i^2 )]`.
 
         Parameters
         ----------
@@ -703,7 +703,7 @@ class NuisanceMorpher:
     def calculate_b(self, benchmark_weights):
         """
         Calculates the second-order coefficients b_i(x) in
-        `dsigma(x |  theta, nu) / dsigma(x | theta, 0) = exp[ sum_i (a_i(x) nu_i + b_i(x) nu_i(x)^2 )]`.
+        `dsigma(x |  theta, nu) / dsigma(x | theta, 0) = exp[ sum_i (a_i(x) nu_i + b_i(x) nu_i^2 )]`.
 
         Parameters
         ----------
