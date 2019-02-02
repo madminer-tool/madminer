@@ -790,7 +790,7 @@ class MLForge:
             return all_log_r_hat, all_t_hat0, all_t_hat1, all_x_gradients
         return all_log_r_hat, all_t_hat0, all_t_hat1
 
-    def calculate_fisher_information(self, x, weights=None, n_events=1):
+    def calculate_fisher_information(self, x, weights=None, n_events=1, sum_events=True):
 
         """
         Calculates the expected Fisher information matrix based on the kinematic information in a given number of
@@ -809,10 +809,15 @@ class MLForge:
         n_events : float, optional
             Expected number of events for which the kinematic Fisher information should be calculated. Default value: 1.
 
+        sum_events : bool, optional
+            If True, the expected Fisher information summed over the events x is calculated. If False, the per-event
+            Fisher information for each event is returned. Default value: True.
+
         Returns
         -------
         fisher_information : ndarray
-            Expected kinematic Fisher information matrix with shape `(n_parameters, n_parameters)`.
+            Expected kinematic Fisher information matrix with shape `(n_events, n_parameters, n_parameters)` if
+            sum_events is False or `(n_parameters, n_parameters)` if sum_events is True.
 
         """
 
@@ -850,7 +855,10 @@ class MLForge:
         weights /= np.sum(weights)
 
         # Calculate Fisher information
-        fisher_information = float(n_events) * np.einsum("n,ni,nj->ij", weights, t_hats, t_hats)
+        if sum_events:
+            fisher_information = float(n_events) * np.einsum("n,ni,nj->ij", weights, t_hats, t_hats)
+        else:
+            fisher_information = float(n_events) * np.einsum("n,ni,nj->nij", weights, t_hats, t_hats)
 
         # Calculate expected score
         expected_score = np.mean(t_hats, axis=0)
@@ -1360,6 +1368,7 @@ class EnsembleForge:
         uncertainty="ensemble",
         vote_expectation_weight=None,
         return_individual_predictions=False,
+        sum_events=True,
     ):
         """
         Calculates expected Fisher information matrices for an ensemble of SALLY estimators.
@@ -1422,14 +1431,16 @@ class EnsembleForge:
             If mode is "information", sets whether the individual estimator predictions are returned. Default value:
             False.
 
+        sum_events : bool, optional
+            If True or mode is "information", the expected Fisher information summed over the events x is calculated.
+            If False and mode is "score", the per-event Fisher information for each event is returned. Default value:
+            True.
+
         Returns
         -------
         mean_prediction : ndarray or list of ndarray
-            The (weighted) ensemble mean of the estimators. If the estimators were trained with `method='sally'` or
-            `method='sallino'`, this is an array of the estimator for `t(x_i | theta_ref)` for all events `i`.
-            Otherwise, the estimated likelihood ratio (if test_all_combinations is True, the result has shape
-            `(n_thetas, n_x)`, otherwise, it has shape `(n_samples,)`). If more then one value vote_expectation_weight
-            is given, this is a list with results for all entries in vote_expectation_weight.
+            Expected kinematic Fisher information matrix with shape `(n_events, n_parameters, n_parameters)` if
+            sum_events is False and mode is "score", or `(n_parameters, n_parameters)` in any other case.
 
         covariance : ndarray or list of ndarray
             The covariance matrix of the Fisher information estimate. Its definition depends on the value of
@@ -1547,10 +1558,20 @@ class EnsembleForge:
             obs_weights /= np.sum(obs_weights)
 
             # Fisher information prediction (based on mean scores)
-            information_mean = float(n_events) * np.sum(
-                obs_weights[:, np.newaxis, np.newaxis] * score_mean[:, :, np.newaxis] * score_mean[:, np.newaxis, :],
-                axis=0,
-            )
+            if sum_events:
+                information_mean = float(n_events) * np.sum(
+                    obs_weights[:, np.newaxis, np.newaxis]
+                    * score_mean[:, :, np.newaxis]
+                    * score_mean[:, np.newaxis, :],
+                    axis=0,
+                )
+            else:
+                information_mean = (
+                    float(n_events)
+                    * obs_weights[:, np.newaxis, np.newaxis]
+                    * score_mean[:, :, np.newaxis]
+                    * score_mean[:, np.newaxis, :]
+                )
             means = [information_mean]
 
             # Fisher information predictions based on shifted scores

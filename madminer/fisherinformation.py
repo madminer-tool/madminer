@@ -551,7 +551,9 @@ class FisherInformation:
                     )
                 else:
                     this_fisher_info = model.calculate_fisher_information(
-                        x=observations, weights=weights_theta, n_events=luminosity * np.sum(weights_theta)
+                        x=observations,
+                        weights=weights_theta,
+                        n_events=luminosity * total_xsec * np.sum(weights_theta) / total_sum_weights_theta,
                     )
                     this_covariance = None
 
@@ -942,18 +944,29 @@ class FisherInformation:
         return fisher_info, covariance
 
     def histogram_of_fisher_information(
-        self, theta, luminosity, observable, nbins, histrange, cuts=None, efficiency_functions=None
+        self,
+        theta,
+        observable,
+        nbins,
+        histrange,
+        model_file=None,
+        luminosity=300000.0,
+        cuts=None,
+        efficiency_functions=None,
+        mode="score",
+        ensemble_vote_expectation_weight=None,
+        batch_size=100000,
+        test_split=0.5,
     ):
         """
-        Calculates the full and rate-only Fisher information in slices of one observable.
+        Calculates the full and rate-only Fisher information in slices of one observable. For the full
+        information, it will return the truth-level information if model_file is None, and otherwise the
+        detector-level information based on the SALLY-type score estimator saved in model_file.
 
         Parameters
         ----------
         theta : ndarray
             Parameter point `theta` at which the Fisher information matrix `I_ij(theta)` is evaluated.
-
-        luminosity : float
-            Luminosity in pb^-1.
 
         observable : str
             Expression for the observable to be sliced. The str will be parsed by Python's `eval()` function
@@ -965,6 +978,13 @@ class FisherInformation:
         histrange : tuple of float
             Minimum and maximum value of the slicing in the form `(min, max)`. Overflow bins are always added.
 
+        model_file : str or None, optional
+            If None, the truth-level Fisher information is calculated. If str, filename of a trained local score
+            regression model that was trained on samples from `theta` (see `madminer.ml.MLForge`). Default value: None.
+
+        luminosity : float, optional
+            Luminosity in pb^-1. Default value: 300000.
+
         cuts : None or list of str, optional
             Cuts. Each entry is a parseable Python expression that returns a bool (True if the event should pass a cut,
             False otherwise). Default value: None.
@@ -972,6 +992,22 @@ class FisherInformation:
         efficiency_functions : list of str or None
             Efficiencies. Each entry is a parseable Python expression that returns a float for the efficiency of one
             component. Default value: None.
+
+        ensemble_vote_expectation_weight : float or list of float or None, optional
+            If model_file is not None: For ensemble models, the factor that determines how much more weight is given to
+            those estimators with small
+            expectation value. If a list is given, results are returned for each element in the list. If None, or if
+            `EnsembleForge.calculate_expectation()` has not been called, all estimators are treated equal. Default
+            value: None.
+
+        batch_size : int, optional
+            If model_file is not None: Batch size. Default value: 100000.
+
+        test_split : float or None, optional
+            If model_file is not None: If unweighted_x_sample_file is None, this determines the fraction of weighted
+            events used for evaluation.
+            If None, all events are used (this will probably include events used during training!). Default value: 0.5.
+
 
         Returns
         -------
@@ -981,11 +1017,11 @@ class FisherInformation:
         sigma_bins : ndarray
             Cross section in pb in each of the slices.
 
-        rate_fisher_infos : ndarray
+        fisher_infos_rate : ndarray
             Expected rate-only Fisher information for each slice. Has shape `(n_slices, n_parameters, n_parameters)`.
 
-        full_fisher_infos_truth : ndarray
-            Expected full truth-level Fisher information for each slice. Has shape
+        fisher_infos_full : ndarray
+            Expected full Fisher information for each slice. Has shape
             `(n_slices, n_parameters, n_parameters)`.
 
         """
@@ -996,50 +1032,183 @@ class FisherInformation:
         if efficiency_functions is None:
             efficiency_functions = []
 
+        # Theta morphing matrix
+        theta_matrix = get_theta_benchmark_matrix("morphing", theta, self.benchmarks, self.morpher)
+
         # Number of bins
         n_bins_total = nbins + 2
         bin_boundaries = np.linspace(histrange[0], histrange[1], num=nbins + 1)
 
-        # Loop over batches
+        # Prepare output
         weights_benchmarks_bins = np.zeros((n_bins_total, self.n_benchmarks))
         fisher_info_full_bins = np.zeros((n_bins_total, self.n_parameters, self.n_parameters))
 
-        for observations, weights in madminer_event_loader(self.madminer_filename):
-            # Cuts
-            cut_filter = [self._pass_cuts(obs_event, cuts) for obs_event in observations]
-            observations = observations[cut_filter]
-            weights = weights[cut_filter]
+        # Main loop: truth-level case
+        if model_file is None:
+            for observations, weights in madminer_event_loader(self.madminer_filename):
+                # Cuts
+                cut_filter = [self._pass_cuts(obs_event, cuts) for obs_event in observations]
+                observations = observations[cut_filter]
+                weights = weights[cut_filter]
 
-            # Efficiencies
-            efficiencies = np.array(
-                [self._eval_efficiency(obs_event, efficiency_functions) for obs_event in observations]
-            )
-            weights *= efficiencies[:, np.newaxis]
+                # Efficiencies
+                efficiencies = np.array(
+                    [self._eval_efficiency(obs_event, efficiency_functions) for obs_event in observations]
+                )
+                weights *= efficiencies[:, np.newaxis]
 
-            # Fisher info per event
-            fisher_info_events = self._calculate_fisher_information(theta, weights, luminosity, sum_events=False)
+                # Fisher info per event
+                fisher_info_events = self._calculate_fisher_information(theta, weights, luminosity, sum_events=False)
 
-            # Evaluate histogrammed observable
-            histo_observables = np.asarray([self._eval_observable(obs_event, observable) for obs_event in observations])
+                # Evaluate histogrammed observable
+                histo_observables = np.asarray(
+                    [self._eval_observable(obs_event, observable) for obs_event in observations]
+                )
 
-            # Find bins
-            bins = np.searchsorted(bin_boundaries, histo_observables)
-            assert ((0 <= bins) & (bins < n_bins_total)).all(), "Wrong bin {}".format(bins)
+                # Find bins
+                bins = np.searchsorted(bin_boundaries, histo_observables)
+                assert ((0 <= bins) & (bins < n_bins_total)).all(), "Wrong bin {}".format(bins)
 
-            # Add up
-            for i in range(n_bins_total):
-                if len(weights[bins == i]) > 0:
-                    weights_benchmarks_bins[i] += np.sum(weights[bins == i], axis=0)
-                    fisher_info_full_bins[i] += np.sum(fisher_info_events[bins == i], axis=0)
+                # Add up
+                for i in range(n_bins_total):
+                    if len(weights[bins == i]) > 0:
+                        weights_benchmarks_bins[i] += np.sum(weights[bins == i], axis=0)
+                        fisher_info_full_bins[i] += np.sum(fisher_info_events[bins == i], axis=0)
+
+        # ML case
+        else:
+            # Load SALLY model
+            if os.path.isdir(model_file):
+                model_is_ensemble = True
+                model = EnsembleForge()
+                model.load(model_file)
+            else:
+                model_is_ensemble = False
+                model = MLForge()
+                model.load(model_file)
+
+            # Nuisance parameters?
+            if model.n_parameters == self.n_parameters:
+                logger.debug(
+                    "Found %s parameters in SALLY model, matching %s physical parameters in MadMiner file",
+                    model.n_parameters,
+                    self.n_parameters,
+                )
+                include_nuisance_parameters = False
+            elif model.n_parameters == self.n_parameters + self.n_nuisance_parameters:
+                logger.debug(
+                    "Found %s parameters in SALLY model, matching %s physical parameters + %s nuisance parameters"
+                    + " in MadMiner file",
+                    model.n_parameters,
+                    self.n_parameters,
+                    self.n_nuisance_parameters,
+                )
+                include_nuisance_parameters = True
+            else:
+                raise RuntimeError(
+                    "Inconsistent numbers of parameters! Found %s in SALLY model, %s physical parameters in "
+                    "MadMiner file, and %s nuisance parameters in MadMiner file.",
+                    model.n_parameters,
+                    self.n_parameters,
+                    self.n_nuisance_parameters,
+                )
+
+            # Which events to sum over
+            if test_split is None or test_split <= 0.0 or test_split >= 1.0:
+                start_event = 0
+            else:
+                start_event = int(round((1.0 - test_split) * self.n_samples, 0)) + 1
+
+            # Prepare output
+            fisher_info_kin = None
+            covariance = None
+
+            # Number of batches
+            n_batches = int(np.ceil((self.n_samples - start_event) / batch_size))
+            n_batches_verbose = max(int(round(n_batches / 10, 0)), 1)
+
+            # ML main loop
+            for i_batch, (observations, weights_benchmarks) in enumerate(
+                madminer_event_loader(
+                    self.madminer_filename,
+                    batch_size=batch_size,
+                    start=start_event,
+                    include_nuisance_parameters=include_nuisance_parameters,
+                )
+            ):
+                if (i_batch + 1) % n_batches_verbose == 0:
+                    logger.info("Evaluating kinematic Fisher information on batch %s / %s", i_batch + 1, n_batches)
+                else:
+                    logger.debug("Evaluating kinematic Fisher information on batch %s / %s", i_batch + 1, n_batches)
+
+                # Cuts
+                cut_filter = [self._pass_cuts(obs_event, cuts) for obs_event in observations]
+                observations = observations[cut_filter]
+                weights_benchmarks = weights_benchmarks[cut_filter]
+
+                # Efficiencies
+                efficiencies = np.array(
+                    [self._eval_efficiency(obs_event, efficiency_functions) for obs_event in observations]
+                )
+                weights_benchmarks *= efficiencies[:, np.newaxis]
+
+                weights_theta = mdot(theta_matrix, weights_benchmarks)
+
+                # Calculate Fisher info on this batch
+                if model_is_ensemble:
+                    fisher_info_events, _ = model.calculate_fisher_information(
+                        x=observations,
+                        obs_weights=weights_theta,
+                        n_events=luminosity * np.sum(weights_theta),
+                        mode="score",
+                        uncertainty="none",
+                        sum_events=False,
+                    )
+                else:
+                    fisher_info_events = model.calculate_fisher_information(
+                        x=observations,
+                        weights=weights_theta,
+                        n_events=luminosity * np.sum(weights_theta),
+                        sum_events=False,
+                    )
+
+                # Evaluate histogrammed observable
+                histo_observables = np.asarray(
+                    [self._eval_observable(obs_event, observable) for obs_event in observations]
+                )
+
+                # Find bins
+                bins = np.searchsorted(bin_boundaries, histo_observables)
+                assert ((0 <= bins) & (bins < n_bins_total)).all(), "Wrong bin {}".format(bins)
+
+                # Add up
+                for i in range(n_bins_total):
+                    if len(weights_benchmarks[bins == i]) > 0:
+                        weights_benchmarks_bins[i] += np.sum(weights_benchmarks[bins == i], axis=0)
+                        fisher_info_full_bins[i] += np.sum(fisher_info_events[bins == i], axis=0)
 
         # Calculate xsecs in bins
-        theta_matrix = get_theta_benchmark_matrix("morphing", theta, self.benchmarks, self.morpher)
         sigma_bins = mdot(theta_matrix, weights_benchmarks_bins)  # (n_bins,)
 
         # Calculate rate-only Fisher informations in bins
         fisher_info_rate_bins = self._calculate_fisher_information(
             theta, weights_benchmarks_bins, luminosity, sum_events=False
         )
+
+        # If ML: full info is still missing right normalisation and xsec info!
+        if model_file is not None:
+            # Normalization to total xsec
+            total_xsec = np.sum(sigma_bins)
+
+            if start_event > 0:
+                total_sum_weights_theta = self._calculate_xsec(theta=theta, start_event=start_event)
+            else:
+                total_sum_weights_theta = total_xsec
+
+            fisher_info_full_bins *= total_xsec / total_sum_weights_theta
+
+            # Add xsec part
+            fisher_info_full_bins += fisher_info_rate_bins
 
         return bin_boundaries, sigma_bins, fisher_info_rate_bins, fisher_info_full_bins
 
