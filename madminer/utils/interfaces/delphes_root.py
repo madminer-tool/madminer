@@ -53,8 +53,6 @@ def parse_delphes_root_file(
 
     logger.debug("Found %s events, %s weights", n_events, n_weights)
 
-    assert n_weights == len(weight_labels)
-
     weights = np.array(weights).reshape((n_events, n_weights)).T
 
     # Get all particle properties
@@ -193,7 +191,7 @@ def parse_delphes_root_file(
         logger.debug("  %s / %s events pass cut %s", n_pass, n_pass + n_fail, cut)
 
         if combined_filter is None:
-            combined_filteparse_delphes_root_filer = values_this_cut
+            combined_filter = values_this_cut
         else:
             combined_filter = np.logical_and(combined_filter, values_this_cut)
 

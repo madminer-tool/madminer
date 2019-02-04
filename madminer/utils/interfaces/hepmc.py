@@ -26,7 +26,12 @@ def extract_weight_order(filename, default_weight_label=None):
             logger.debug("Parsing HepMC line: %s", line)
 
             n_benchmarks = int(terms[1])
-            assert len(terms) == n_benchmarks + 2
+            if not len(terms) == n_benchmarks + 2:
+                logger.warning("Wrong number of weights in HepMC file. This is fine if the"
+                               " weights are parsed from the LHE file, but will lead to "
+                               "issues otherwise.")
+
+                return [default_weight_label]
 
             weight_labels = []
             for term in terms[2:]:
