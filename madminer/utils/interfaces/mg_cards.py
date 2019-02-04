@@ -190,11 +190,12 @@ def create_systematics_arguments(systematics):
         systematics_arguments.append("'--muf={}'".format(systematics["mu"]))
         systematics_arguments.append("'--together=mur,muf'")
 
-    elif "mur" in systematics:
-        systematics_arguments.append("'--mur={}'".format(systematics["mur"]))
+    else:
+        if "mur" in systematics:
+            systematics_arguments.append("'--mur={}'".format(systematics["mur"]))
 
-    elif "muf" in systematics:
-        systematics_arguments.append("'--muf={}'".format(systematics["muf"]))
+        if "muf" in systematics:
+            systematics_arguments.append("'--muf={}'".format(systematics["muf"]))
 
     if "pdf" in systematics:
         systematics_arguments.append("'--pdf={}'".format(systematics["pdf"]))
