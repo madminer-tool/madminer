@@ -193,9 +193,15 @@ def mdot(matrix, benchmark_information):
 
     n_benchmarks_matrix = matrix.shape[-1]
     weights_benchmarks_T = benchmark_information.T
-    n_benchmarks_in = weights_benchmarks_T.shape[0]
+    n_benchmarks_list = weights_benchmarks_T.shape[0]
+    n_smaller = min(n_benchmarks_matrix, n_benchmarks_list)
 
-    if n_benchmarks_matrix == n_benchmarks_in:
+    if n_benchmarks_matrix == n_benchmarks_list:
         return matrix.dot(weights_benchmarks_T)
 
-    return matrix.dot(weights_benchmarks_T[:n_benchmarks_matrix])
+    if n_benchmarks_matrix < n_benchmarks_list:
+        matrix = matrix.T
+        matrix = matrix[:n_smaller]
+        matrix = matrix.T
+
+    return matrix.dot(weights_benchmarks_T[:n_smaller])
