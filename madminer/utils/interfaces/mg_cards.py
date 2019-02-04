@@ -148,6 +148,9 @@ def export_run_card(template_filename, run_card_filename, systematics=None):
         comment_pos = line.find("#")
         if comment_pos >= 0:
             line = line[:comment_pos]
+        comment_pos = line.find("!")
+        if comment_pos >= 0:
+            line = line[:comment_pos]
 
         try:
             line_value, line_key = line.split("=")
@@ -157,9 +160,9 @@ def export_run_card(template_filename, run_card_filename, systematics=None):
 
         if line_key in settings:
             del run_card_lines[i]
-            break
+            continue
 
-    # Add new entries
+    # Add new entries - sytematics
     run_card_lines.append("")
     run_card_lines.append("#*********************************************************************")
     run_card_lines.append("# MadMiner systematics setup                                         *")
