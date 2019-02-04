@@ -309,8 +309,12 @@ def parse_lhe_file(
     for n_pass, n_fail, cut in zip(pass_cuts, fail_cuts, cuts):
         logger.debug("  %s / %s events pass cut %s", n_pass, n_pass + n_fail, cut)
     n_events_pass = len(observations_all_events)
-    logging.info("  %s events pass everything", n_events_pass)
-    logging.info("  Out of these, %s events contain negative weights", n_events_with_negative_weights)
+    logger.info("  %s events pass everything", n_events_pass)
+    logger.info("  Out of these, %s events contain negative weights", n_events_with_negative_weights)
+
+    if n_events_pass == 0:
+        logger.warning("  No observations remaining!")
+        return None, None
 
     # Reformat data
     observations_all_events = np.array(observations_all_events)  # (n_events, n_observables)
