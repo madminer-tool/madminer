@@ -1384,6 +1384,9 @@ class SampleAugmenter:
         all_thetas = [[] for _ in range(n_thetas)]
         all_effective_n_samples = []
 
+        n_statistics_warnings = 0
+        n_negative_weights_warnings = 0
+
         # Main loop over thetas
         for i_set in range(n_sets):
 
@@ -1429,13 +1432,16 @@ class SampleAugmenter:
             ) ** 0.5
 
             if rms_xsec_sampling_theta > 0.1 * xsec_sampling_theta:
-                logger.warning(
-                    "Warning: large statistical uncertainty on the total cross section for theta = %s: "
-                    "(%s +/- %s) pb",
-                    thetas[sampling_theta_index][0],
-                    xsec_sampling_theta,
-                    rms_xsec_sampling_theta,
-                )
+                n_statistics_warnings += 1
+
+                if n_statistics_warnings <= 1:
+                    logger.warning(
+                        "Large statistical uncertainty on the total cross section for theta = %s: "
+                        "(%4f +/- %4f) pb. Skipping these warnings in the future...",
+                        thetas[sampling_theta_index][0],
+                        xsec_sampling_theta,
+                        rms_xsec_sampling_theta,
+                    )
 
             # Prepare output
             samples_done = np.zeros(n_samples, dtype=np.bool)
@@ -1470,22 +1476,25 @@ class SampleAugmenter:
                     # Handle negative weights (should be rare)
                     n_negative_weights = np.sum(p_theta < 0.0)
                     if n_negative_weights > 0:
-                        n_negative_benchmark_weights = np.sum(weights_benchmarks_batch < 0.0)
-                        logger.warning(
-                            "%s negative weights for theta (%s), compared to %s negative benchmark weights (%s)",
-                            n_negative_weights,
-                            n_negative_weights / p_theta.size,
-                            n_negative_benchmark_weights,
-                            n_negative_benchmark_weights / weights_benchmarks_batch.size,
-                        )
+                        n_negative_weights_warnings += 1
+                        # n_negative_benchmark_weights = np.sum(weights_benchmarks_batch < 0.0)
 
-                        filter_negative_weights = p_theta < 0.0
-                        for weight_theta_neg, weight_benchmarks_neg in zip(
-                            weights_theta[filter_negative_weights], weights_benchmarks_batch[filter_negative_weights]
-                        ):
-                            logger.debug(
-                                "  weight(theta): %s, benchmark weights: %s", weight_theta_neg, weight_benchmarks_neg
+                        if n_negative_weights_warnings <= 3:
+                            logger.warning(
+                                "For this value of theta, %s / %s events have negative weight and will be ignored",
+                                n_negative_weights,
+                                p_theta.size
                             )
+                            if n_negative_weights_warnings == 3:
+                                logger.warning("Skipping warnings about negative weights in the future...")
+
+                        # filter_negative_weights = p_theta < 0.0
+                        # for weight_theta_neg, weight_benchmarks_neg in zip(
+                        #     weights_theta[filter_negative_weights], weights_benchmarks_batch[filter_negative_weights]
+                        # ):
+                        #     logger.debug(
+                        #         "  weight(theta): %s, benchmark weights: %s", weight_theta_neg, weight_benchmarks_neg
+                        #     )
 
                     p_theta[p_theta < 0.0] = 0.0
 

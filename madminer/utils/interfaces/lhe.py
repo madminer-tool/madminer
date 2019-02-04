@@ -143,11 +143,10 @@ def parse_lhe_file(
             n_negative_weights = np.sum(np.array(list(weights.values())) < 0.0)
             if n_negative_weights > 0:
                 n_events_with_negative_weights += 1
-                if n_events_with_negative_weights < 5:
+                if n_events_with_negative_weights <= 3:
                     logger.warning("Found %s negative weights in event. Weights: %s", n_negative_weights, weights)
-
-                    if n_events_with_negative_weights >= 5:
-                        logger.warning("Skipping warnings about negative weights from now on...")
+                if n_events_with_negative_weights == 3:
+                    logger.warning("Skipping warnings about negative weights from now on...")
 
             if weight_names_all_events is None:
                 weight_names_all_events = list(weights.keys())
@@ -232,11 +231,10 @@ def parse_lhe_file(
             n_negative_weights = np.sum(np.array(list(weights.values())) < 0.0)
             if n_negative_weights > 0:
                 n_events_with_negative_weights += 1
-                if n_events_with_negative_weights < 5:
+                if n_events_with_negative_weights <= 3:
                     logger.warning("Found %s negative weights in event. Weights: %s", n_negative_weights, weights)
-
-                    if n_events_with_negative_weights >= 5:
-                        logger.warning("Skipping warnings about negative weights from now on...")
+                if n_events_with_negative_weights == 3:
+                    logger.warning("Skipping warnings about negative weights from now on...")
 
             if weight_names_all_events is None:
                 weight_names_all_events = list(weights.keys())
