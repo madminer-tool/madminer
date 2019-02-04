@@ -26,7 +26,7 @@ Main:numberOfEvents      = -1
 ! -------------------------------------------------------------------
 !
 HEPMCoutput:file         = auto
-HEPMCoutput:useWeightIDs = on
+!HEPMCoutput:useWeightIDs = on
 !
 ! --------------------------------------------------------------------
 ! Parameters relevant only when performing MLM merging, which can be
