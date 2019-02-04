@@ -160,9 +160,8 @@ def export_run_card(template_filename, run_card_filename, systematics=None):
         elements = line_content.split("=")
         if len(elements) < 2:
             continue
-        line_value = elements[-1]
-        line_key = "=".join(elements[:-1])
-        line_key = line_key.strip()
+        line_value = "=".join(elements[:-1])
+        line_key = elements[-1].strip()
 
         if line_key in settings:
             run_card_lines[i] = "# {} # Commented out by MadMiner".format(line)
