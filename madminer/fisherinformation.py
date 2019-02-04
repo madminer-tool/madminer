@@ -1161,7 +1161,7 @@ class FisherInformation:
 
                 # Get rid of nuisance parameters
                 if include_nuisance_parameters:
-                    fisher_info_events = fisher_info_events[:, :self.n_parameters, :self.n_parameters]
+                    fisher_info_events = fisher_info_events[:, : self.n_parameters, : self.n_parameters]
 
                 # Evaluate histogrammed observable
                 histo_observables = np.asarray(
@@ -1188,7 +1188,7 @@ class FisherInformation:
 
         # Get rid of nuisance parameters
         if include_nuisance_parameters:
-            fisher_info_rate_bins = fisher_info_rate_bins[:, :self.n_parameters, :self.n_parameters]
+            fisher_info_rate_bins = fisher_info_rate_bins[:, : self.n_parameters, : self.n_parameters]
 
         # If ML: full info is still missing right normalisation and xsec info!
         if model_file is not None:

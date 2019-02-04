@@ -199,4 +199,4 @@ def mdot(matrix, benchmark_information):
     if n_benchmarks_matrix == n_benchmarks_list:
         return matrix.dot(weights_benchmarks_T)
 
-    return matrix[:,:n_smaller].dot(weights_benchmarks_T[:n_smaller])
+    return matrix[:, :n_smaller].dot(weights_benchmarks_T[:n_smaller])

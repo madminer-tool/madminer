@@ -183,7 +183,7 @@ def plot_distributions(
     logger.debug("Loaded raw data with shapes %s, %s", x.shape, weights_benchmarks.shape)
 
     # Remove negative weights
-    sane_event_filter = np.all(weights_benchmarks >= 0., axis=1)
+    sane_event_filter = np.all(weights_benchmarks >= 0.0, axis=1)
 
     n_events_before = weights_benchmarks.shape[0]
     x = x[sane_event_filter]
@@ -191,7 +191,7 @@ def plot_distributions(
     n_events_removed = n_events_before - weights_benchmarks.shape[0]
 
     if int(np.sum(sane_event_filter, dtype=np.int)) < len(sane_event_filter):
-        logger.info("Removed %s / %s events with negative weights", n_events_removed, n_events_before)
+        logger.warning("Removed %s / %s events with negative weights", n_events_removed, n_events_before)
 
     # Only analyze n_events
     if n_events is not None and n_events < x.shape[0]:
