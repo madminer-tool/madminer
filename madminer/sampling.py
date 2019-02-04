@@ -1483,7 +1483,7 @@ class SampleAugmenter:
                             logger.warning(
                                 "For this value of theta, %s / %s events have negative weight and will be ignored",
                                 n_negative_weights,
-                                p_theta.size
+                                p_theta.size,
                             )
                             if n_negative_weights_warnings == 3:
                                 logger.warning("Skipping warnings about negative weights in the future...")
