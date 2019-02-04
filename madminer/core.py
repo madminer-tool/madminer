@@ -923,6 +923,8 @@ class MadMiner:
 
                 i += 1
 
+        n_runs_total = i
+
         # Master shell script
         if only_prepare_script:
             master_script_filename = "{}/madminer/run.sh".format(mg_process_directory)
@@ -946,4 +948,14 @@ class MadMiner:
             logger.info(
                 "To generate events, please run:\n\n %s [MG_directory] [MG_process_directory] [log_dir]\n\n",
                 master_script_filename,
+            )
+
+        else:
+            expected_event_files = [
+                mg_process_directory + "/Events/run_{:02d}".format(i + 1) for i in range(n_runs_total)
+            ]
+            logger.info(
+                "Finished running MadGraph! Please check that events were succesfully generated in the following "
+                "folders:\n\n%s\n\n",
+                expected_event_files,
             )
