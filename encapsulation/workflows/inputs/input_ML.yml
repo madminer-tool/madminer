@@ -1,0 +1,27 @@
+#SAMPLING
+benchmark: sm
+
+prior:
+  n_thetas: 100
+  parameter_0:
+    prior_shape: gaussian
+    prior_param_0: 0. 
+    prior_param_1: 10. 
+  parameter_1:
+    prior_shape: gaussian
+    prior_param_0: 0. 
+    prior_param_1: 10. 
+#more pars
+n_samples:
+  train: 1000
+  test: 1000
+
+#TRAINING
+method: 'alices'
+test_split: 0.5
+batch_size: 100
+n_epochs: 2
+
+
+
+

@@ -1,0 +1,13 @@
+pip
+h5py
+scipy==1.0.*
+scikit-learn==0.19.*
+six
+torch==0.4.1
+pytest
+uproot
+scikit-hep
+pyyaml
+syspath
+madminer
+numpy==1.15.4

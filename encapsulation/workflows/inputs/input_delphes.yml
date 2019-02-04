@@ -1,0 +1,15 @@
+observables:
+  - name: 'pt_j1'
+    definition: 'j[0].pt'
+    required: False
+    default: 0. 
+
+  - name: 'delta_phi_jj'
+    definition: '(j[0].phi() - j[1].phi()) * (-1. + 2.*float(j[0].eta > j[1].eta))'
+    required: True
+    default:  
+
+cuts:
+  - cut: 1
+    expression: 'pt_j1 > 30.'
+

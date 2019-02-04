@@ -1,0 +1,35 @@
+stages:
+- name: sampling
+  dependencies: [init]
+  scheduler:
+    scheduler_type: singlestep-stage
+    parameters:
+      sampleworkdir: '{workdir}'
+      combined_file: {step: init, output: combinedfile}
+      input_file: {step: init, output: inputfile}
+      n_trainsamples: {step: init, output: ntrainsamples}
+      outputfile: '{workdir}/outputfile.txt'
+    step: {$ref: 'steps.yml#/sampling'}
+
+- name: training
+  dependencies: [sampling]
+  scheduler:
+    scheduler_type: multistep-stage
+    parameters:
+      trainworkdir: '{workdir}'
+      input_file: {step: init, output: inputfile}
+      trainfolder: {step: 'sampling', output: sampling_file, unwrap: true}
+      outputfile: '{workdir}/output.txt'
+    scatter:
+      method: zip
+      parameters: [trainfolder]
+    step: {$ref: 'steps.yml#/training'}
+
+#- name: evaluating
+#  dependencies: [training]
+#  scheduler:
+#    scheduler_type: 'singlestep-stage'
+#    parameters:
+#      input_file: {step: init, output: inputfile}
+#      outputfile: '{workdir}/output.txt'
+#    step: {$ref: 'steps.yml#/evaluating'}

@@ -1,0 +1,140 @@
+################# STEPS FOR PHYSICS PART
+
+common_env: &common_env
+    environment_type: 'docker-encapsulated'
+    image: irinahub/docker-madminer
+    imagetag: 'latest'
+    
+configurate:
+  environment: *common_env
+  process:
+    process_type: interpolated-script-cmd
+    script: |
+      mkdir /home/data/
+      python code/configurate.py {inputfile}
+      cp -R /home/data/* {workdir}
+  publisher:
+    publisher_type: 'fromglob-pub'
+    outputkey: config_file
+    globexpression: 'madminer_example.h5'
+  
+
+generate:
+  environment: *common_env
+  process:
+    process_type: interpolated-script-cmd
+    script: |
+      python code/generate.py {njobs} {configfile}
+      mkdir {madminer_dir_signal}/zips
+      for i in `seq 0 $(({njobs}-1))`; do tar -czvf {madminer_dir_signal}/zips/folder_$i.tar.gz {madminer_dir_signal}/scripts/run_$i.sh {madminer_dir_signal}/cards/*$i.dat; done
+      cp -R {madminer_dir_signal}/zips/* {workdir}
+  publisher:
+    publisher_type: 'fromglob-pub'
+    outputkey: script_files
+    globexpression: 'folder_*.tar.gz'
+
+
+mg_pythia:
+  environment: *common_env
+  process:
+    process_type: interpolated-script-cmd 
+    script: |
+      mkdir /home/extract
+      tar -xvf {eventfolder} -C /home/extract
+      cp /home/extract/home/code/mg_processes/signal/madminer/scripts/run*.sh {MG_process_directory}/signal/madminer/scripts
+      cp /home/extract/home/code/mg_processes/signal/madminer/cards/*.dat  {MG_process_directory}/signal/madminer/cards
+      mkdir {log_directory}
+      sh {MG_process_directory}/signal/madminer/scripts/run*.sh {MG_directory} {MG_process_directory}/signal {log_directory}
+      ls /home/ -l -R>{outputfile}
+      tar -czvf /home/code/mg_processes/signal/Events/Events.tar.gz /home/code/mg_processes/signal/Events/*/*  /home/code/mg_processes/signal/madminer/cards/benchmark_*.dat
+      cp /home/code/mg_processes/signal/Events/Events.tar.gz {mgworkdir} 
+  publisher:
+    publisher_type: 'fromglob-pub'
+    outputkey: postrun_file
+    globexpression: 'Events.tar.gz' 
+
+
+delphes:
+  environment: *common_env
+  process:
+    process_type: interpolated-script-cmd 
+    script: |
+      mkdir /home/extract
+      tar -xvf {eventfile} -C /home/extract
+      touch /home/log_delphes.log
+      mkdir /home/data
+      mv /home/extract/home/code/mg_processes/signal/madminer/cards/benchmark_*.dat /home/extract/home/code/mg_processes/signal/madminer/cards/benchmark.dat
+      python code/delphes.py {delphes_configfile} /home/extract/home/code/mg_processes/signal/Events/* {inputdelphes} /home/extract/home/code/mg_processes/signal/madminer/cards/benchmark.dat
+      cp  /home/data/madminer_example_with_data.h5 {dworkdir}
+  publisher:
+    publisher_type: 'fromglob-pub'
+    outputkey: dpostrun_file
+    globexpression: 'madminer_example_with_data.h5' 
+
+
+combine:
+  environment: *common_env
+  process:
+    process_type: interpolated-script-cmd
+    script: |
+#this step depends in what we want to do next
+  publisher:
+    publisher_type: interpolated-pub
+    publish:
+      merge_folder: '{inputfiles}'
+
+
+################# STEPS FOR MACHINE LEARNING - INFERENCE PART
+
+sampling:
+  process:
+    process_type: interpolated-script-cmd
+    script: |
+      mkdir /home/data
+      mkdir /home/data/samples
+      python code/configurate_ml.py {n_trainsamples} {combined_file} {input_file}
+      for i in `seq 0 $(({n_trainsamples}-1))`; do  tar -czvf /home/data/Samples_$i.tar.gz /home/data/Samples_$i/*; done 
+      cp -R /home/data/Samples*.tar.gz {sampleworkdir}
+  publisher:
+    publisher_type: 'fromglob-pub'
+    outputkey: sampling_file
+    globexpression: 'Samples_*.tar.gz'
+  environment:
+    environment_type: docker-encapsulated
+    image: irinahub/docker-madminer-ml
+    imagetag: 'latest'
+training:
+  process:
+    process_type: interpolated-script-cmd 
+    script: |
+      mkdir /home/extract
+      mkdir /home/models
+      tar -xvzf {trainfolder} -C /home/extract
+      mv /home/extract/home/data/Samples_*  /home/extract/home/data/Samples
+      ls -R /home > {outputfile}
+      python code/train.py /home/extract/home/data/Samples {input_file}
+      cp -R /home/models/*  {trainworkdir}
+  publisher:
+    publisher_type: interpolated-pub
+    publish:
+      training_file: '{outputfile}'
+  environment:
+    environment_type: docker-encapsulated
+    image: irinahub/docker-madminer-ml
+    imagetag: 'latest'
+
+
+#evaluating:
+#  process:
+#    process_type: interpolated-script-cmd
+#    script: |
+#this step depends in what we want to do next
+#  publisher:
+#    publisher_type: interpolated-pub
+#    publish:
+#      eval_folder: '{inputfiles}'
+#  environment:
+#    environment_type: docker-encapsulated
+#    image: irinahub/docker-madminer-ml
+#    imagetag: 'latest'
+

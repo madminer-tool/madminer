@@ -1,0 +1,54 @@
+digraph G {
+subgraph cluster_ {
+color=blue;
+label="";
+style=solid;
+subgraph cluster_init {
+color=grey;
+label=init;
+labeljust=l;
+style=dashed;
+}
+
+"18b28d74-fa2e-451a-85d7-89814d04a7e9" [color=blue, fixedsize=True, height=0.2, label="", shape=diamond, width=0.2];
+"18b28d74-fa2e-451a-85d7-89814d04a7e9__inputfile" [color=red, label="[inputfile]"];
+"18b28d74-fa2e-451a-85d7-89814d04a7e9" -> "18b28d74-fa2e-451a-85d7-89814d04a7e9__inputfile";
+"18b28d74-fa2e-451a-85d7-89814d04a7e9__ntrainsamples" [color=red, label="[ntrainsamples]"];
+"18b28d74-fa2e-451a-85d7-89814d04a7e9" -> "18b28d74-fa2e-451a-85d7-89814d04a7e9__ntrainsamples";
+"18b28d74-fa2e-451a-85d7-89814d04a7e9__combinedfile" [color=red, label="[combinedfile]"];
+"18b28d74-fa2e-451a-85d7-89814d04a7e9" -> "18b28d74-fa2e-451a-85d7-89814d04a7e9__combinedfile";
+subgraph cluster_training {
+color=grey;
+label=training;
+labeljust=l;
+style=dashed;
+"5effdee9-6a23-4c9f-a9a1-329cd10e77e7" [color=blue, label="training[0]", shape=box];
+"5effdee9-6a23-4c9f-a9a1-329cd10e77e7__training_file" [color=red, label="[training_file]"];
+"5effdee9-6a23-4c9f-a9a1-329cd10e77e7" -> "5effdee9-6a23-4c9f-a9a1-329cd10e77e7__training_file";
+"eb8bdb34-b22b-4979-b19f-d25cbb179503" [color=blue, label="training[1]", shape=box];
+"eb8bdb34-b22b-4979-b19f-d25cbb179503__training_file" [color=red, label="[training_file]"];
+"eb8bdb34-b22b-4979-b19f-d25cbb179503" -> "eb8bdb34-b22b-4979-b19f-d25cbb179503__training_file";
+}
+
+subgraph cluster_sampling {
+color=grey;
+label=sampling;
+labeljust=l;
+style=dashed;
+"2961f93a-00a4-4d91-bf16-73e7ba96bb28" [color=blue, label="sampling[0]", shape=box];
+"2961f93a-00a4-4d91-bf16-73e7ba96bb28__sampling_file_0" [color=red, label="[sampling_file][0]"];
+"2961f93a-00a4-4d91-bf16-73e7ba96bb28" -> "2961f93a-00a4-4d91-bf16-73e7ba96bb28__sampling_file_0";
+"2961f93a-00a4-4d91-bf16-73e7ba96bb28__sampling_file_1" [color=red, label="[sampling_file][1]"];
+"2961f93a-00a4-4d91-bf16-73e7ba96bb28" -> "2961f93a-00a4-4d91-bf16-73e7ba96bb28__sampling_file_1";
+}
+
+}
+
+"2961f93a-00a4-4d91-bf16-73e7ba96bb28__sampling_file_0" -> "5effdee9-6a23-4c9f-a9a1-329cd10e77e7";
+"18b28d74-fa2e-451a-85d7-89814d04a7e9__inputfile" -> "5effdee9-6a23-4c9f-a9a1-329cd10e77e7";
+"2961f93a-00a4-4d91-bf16-73e7ba96bb28__sampling_file_1" -> "eb8bdb34-b22b-4979-b19f-d25cbb179503";
+"18b28d74-fa2e-451a-85d7-89814d04a7e9__inputfile" -> "eb8bdb34-b22b-4979-b19f-d25cbb179503";
+"18b28d74-fa2e-451a-85d7-89814d04a7e9__ntrainsamples" -> "2961f93a-00a4-4d91-bf16-73e7ba96bb28";
+"18b28d74-fa2e-451a-85d7-89814d04a7e9__combinedfile" -> "2961f93a-00a4-4d91-bf16-73e7ba96bb28";
+"18b28d74-fa2e-451a-85d7-89814d04a7e9__inputfile" -> "2961f93a-00a4-4d91-bf16-73e7ba96bb28";
+}

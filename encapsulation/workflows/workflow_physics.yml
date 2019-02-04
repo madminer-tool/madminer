@@ -1,0 +1,63 @@
+stages:
+- name: configurate
+  dependencies: [init]
+  scheduler:
+    scheduler_type: singlestep-stage
+    parameters:
+      workdir: '{workdir}'
+      inputfile: {step: init, output: inputfile}
+      configfile: '{workdir}/output.txt'
+    step: {$ref: 'steps.yml#/configurate'}
+
+- name: generate
+  dependencies: [configurate]
+  scheduler:
+    scheduler_type: singlestep-stage
+    parameters:
+      workdir: '{workdir}'
+      njobs: {step: 'init', output: njobs}
+      configfile: {step: 'configurate', output: config_file}
+      madminer_dir_signal: '/home/code/mg_processes/signal/madminer'
+      madminer_dir_bkg: '/home/code/mg_processes/background/madminer'
+    step: {$ref: 'steps.yml#/generate'}
+
+- name: mgpythia
+  dependencies: [generate]
+  scheduler:
+    scheduler_type: multistep-stage
+    parameters:
+      mgworkdir: '{workdir}'
+      eventfolder: {step: 'generate', output: script_files, unwrap: true}
+      outputfile: '{workdir}/output.txt'
+      MG_directory: '/home/software/MG5_aMC_v2_6_2'
+      MG_process_directory: '/home/code/mg_processes'
+      log_directory: '/home/code/logs'
+    scatter:
+      method: zip
+      parameters: [eventfolder]
+    step: {$ref: 'steps.yml#/mg_pythia'}
+
+- name: delphes
+  dependencies: [mgpythia]
+  scheduler:
+    scheduler_type: multistep-stage
+    parameters:
+      dworkdir: '{workdir}'
+      inputdelphes: {step: init, output: inputdelphes}
+      delphes_configfile: {stages: 'configurate', output: config_file, unwrap: true}
+      eventfile: {stages: 'mgpythia', output: postrun_file, unwrap: true}
+      outputfile: '{workdir}/output.txt'
+    step: {$ref: steps.yml#/delphes}
+    scatter:
+      method: zip
+      parameters: [eventfile]
+
+
+- name: combine
+  dependencies: [delphes]
+  scheduler:
+    scheduler_type: 'singlestep-stage'
+    parameters:
+      inputfiles: {steps: 'delphes', output: dpostrun_file}
+      outputfile: '{workdir}/output.txt'
+    step: {$ref: 'steps.yml#/combine'}

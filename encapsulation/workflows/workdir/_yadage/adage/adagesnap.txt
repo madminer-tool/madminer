@@ -1,0 +1,11 @@
+========== ADAGE LOG BEGIN at 2019-02-04T17:10:13.330687 ==========
+---------- snapshot at 2019-02-04T17:10:13.330721
+---------- snapshot at 2019-02-04T17:10:13.746215
+name: init obj: </init:0|defined|known> submitted: True
+name: sampling obj: </sampling:0|defined|unknown> submitted: False
+---------- snapshot at 2019-02-04T17:10:27.700764
+name: init obj: </init:0|success|known> submitted: True
+name: sampling obj: </sampling:0|success|known> submitted: True
+name: training_1 obj: </training:1|success|known> submitted: True
+name: training_0 obj: </training:0|success|known> submitted: True
+========== ADAGE LOG END at 2019-02-04T17:10:27.700949 ==========
