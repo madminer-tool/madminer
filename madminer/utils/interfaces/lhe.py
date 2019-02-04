@@ -122,7 +122,7 @@ def parse_lhe_file(
         k_factor = k_factor / n_events_runcard
 
     # Loop over events
-    n_negative_weights_warnings = 0
+    n_events_with_negative_weights = 0
 
     # Option one: XML parsing
     if parse_events_as_xml:
@@ -140,11 +140,11 @@ def parse_lhe_file(
             # Negative weights?
             n_negative_weights = np.sum(np.array(list(weights.values())) < 0.0)
             if n_negative_weights > 0:
-                if n_negative_weights_warnings < 5:
-                    n_negative_weights_warnings += 1
-                    logger.warning("Found %s negative weights in event: %s", n_negative_weights, weights)
+                n_events_with_negative_weights += 1
+                if n_events_with_negative_weights < 5:
+                    logger.warning("Found %s negative weights in event. Weights: %s", n_negative_weights, weights)
 
-                    if n_negative_weights_warnings >= 5:
+                    if n_events_with_negative_weights >= 5:
                         logger.warning("Skipping warnings about negative weights from now on...")
 
             if weight_names_all_events is None:
@@ -223,11 +223,11 @@ def parse_lhe_file(
             # Negative weights?
             n_negative_weights = np.sum(np.array(list(weights.values())) < 0.0)
             if n_negative_weights > 0:
-                if n_negative_weights_warnings < 5:
-                    n_negative_weights_warnings += 1
-                    logger.warning("Found %s negative weights in event: %s", n_negative_weights, weights)
+                n_events_with_negative_weights += 1
+                if n_events_with_negative_weights < 5:
+                    logger.warning("Found %s negative weights in event. Weights: %s", n_negative_weights, weights)
 
-                    if n_negative_weights_warnings >= 5:
+                    if n_events_with_negative_weights >= 5:
                         logger.warning("Skipping warnings about negative weights from now on...")
 
             if weight_names_all_events is None:
@@ -290,6 +290,11 @@ def parse_lhe_file(
             # Store results
             observations_all_events.append(observations)
             weights_all_events.append(weights)
+
+    # Check results
+    n_events_pass = len(observations_all_events)
+    logging.info("%s events pass all cuts", n_events_pass)
+    logging.info("%s events contain negative weights", n_events_with_negative_weights)
 
     # Reformat data
     observations_all_events = np.array(observations_all_events)  # (n_events, n_observables)
