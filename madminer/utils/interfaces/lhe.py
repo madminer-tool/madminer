@@ -123,6 +123,8 @@ def parse_lhe_file(
 
     # Loop over events
     n_events_with_negative_weights = 0
+    pass_cuts = [0 for _ in cuts]
+    fail_cuts = [0 for _ in cuts]
 
     # Option one: XML parsing
     if parse_events_as_xml:
@@ -190,18 +192,24 @@ def parse_lhe_file(
                 variables[obs_name] = obs_value
 
             # Check cuts
-            pass_cut = True
-            for cut, default_pass in zip(cuts, cuts_default_pass):
+            pass_all_cuts = True
+            for i_cut, (cut, default_pass) in enumerate(zip(cuts, cuts_default_pass)):
                 try:
                     cut_result = eval(cut, variables)
-                    if not cut_result:
-                        pass_cut = False
+                    if cut_result:
+                        pass_cuts[i_cut] += 1
+                    else:
+                        fail_cuts[i_cut] += 1
+                        pass_all_cuts = False
 
                 except (SyntaxError, NameError, TypeError, ZeroDivisionError, IndexError):
-                    if not default_pass:
-                        pass_cut = False
+                    if default_pass:
+                        pass_cuts[i_cut] += 1
+                    else:
+                        fail_cuts[i_cut] += 1
+                        pass_all_cuts = False
 
-            if not pass_cut:
+            if not pass_all_cuts:
                 continue
 
             # Store results
@@ -273,18 +281,24 @@ def parse_lhe_file(
                 variables[obs_name] = obs_value
 
             # Check cuts
-            pass_cut = True
-            for cut, default_pass in zip(cuts, cuts_default_pass):
+            pass_all_cuts = True
+            for i_cut, (cut, default_pass) in enumerate(zip(cuts, cuts_default_pass)):
                 try:
                     cut_result = eval(cut, variables)
-                    if not cut_result:
-                        pass_cut = False
+                    if cut_result:
+                        pass_cuts[i_cut] += 1
+                    else:
+                        fail_cuts[i_cut] += 1
+                        pass_all_cuts = False
 
                 except (SyntaxError, NameError, TypeError, ZeroDivisionError, IndexError):
-                    if not default_pass:
-                        pass_cut = False
+                    if default_pass:
+                        pass_cuts[i_cut] += 1
+                    else:
+                        fail_cuts[i_cut] += 1
+                        pass_all_cuts = False
 
-            if not pass_cut:
+            if not pass_all_cuts:
                 continue
 
             # Store results
@@ -292,9 +306,11 @@ def parse_lhe_file(
             weights_all_events.append(weights)
 
     # Check results
+    for n_pass, n_fail, cut in zip(pass_cuts, fail_cuts, cuts):
+        logger.debug("  %s / %s events pass cut %s", n_pass, n_pass + n_fail, cut)
     n_events_pass = len(observations_all_events)
-    logging.info("%s events pass all cuts", n_events_pass)
-    logging.info("%s events contain negative weights", n_events_with_negative_weights)
+    logging.info("  %s events pass everything", n_events_pass)
+    logging.info("  Out of these, %s events contain negative weights", n_events_with_negative_weights)
 
     # Reformat data
     observations_all_events = np.array(observations_all_events)  # (n_events, n_observables)
