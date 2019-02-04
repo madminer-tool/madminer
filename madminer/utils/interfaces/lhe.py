@@ -698,7 +698,7 @@ def _get_objects(particles):
 
     for particle in particles:
         pdgid = abs(particle.pdgid)
-        if pdgid in [1, 2, 3, 4, 5, 6, 9, 22]:
+        if pdgid in [1, 2, 3, 4, 5, 6, 9, 21]:
             jets.append(particle)
         elif pdgid == 11:
             electrons.append(particle)
@@ -708,7 +708,7 @@ def _get_objects(particles):
             leptons.append(particle)
         elif pdgid == 15:
             taus.append(particle)
-        elif pdgid == 21:
+        elif pdgid == 22:
             photons.append(particle)
         elif pdgid in [12, 14, 16]:
             neutrinos.append(particle)
