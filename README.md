@@ -45,7 +45,7 @@ estimators are implemented.
 ### Simulator dependencies
 
 Make sure the following tools are installed and running:
-- MadGraph (we've tested our setup with MG5_aMC v2.6.2 and have received reports about issues with newer versions). See
+- MadGraph (we've tested our setup with MG5_aMC v2.6.2 and v2.6.4). See
   [https://launchpad.net/mg5amcnlo](https://launchpad.net/mg5amcnlo) for installation instructions. Note that MadGraph
   currently requires Python 2.6 or 2.7 (but not Python 3) as well as a Fortran compiler.
 - For the analysis of systematic uncertainties, LHAPDF6 has to be installed with Python support (see also
