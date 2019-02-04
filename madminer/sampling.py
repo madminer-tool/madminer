@@ -1337,7 +1337,7 @@ class SampleAugmenter:
         # Check whether we need to calculate scores (which will require the gradients of the morphing matrices)
         needs_gradients = False
         for augmented_data_definition in augmented_data_definitions:
-            if augmented_data_definition[0] == 'score':
+            if augmented_data_definition[0] == "score":
                 needs_gradients = True
 
                 if self.morpher is None:
