@@ -78,7 +78,9 @@ def generate_mg_process(
     # Explicitly call Python 2 if necessary
     python_call = "python2 " if explicit_python_call else ""
 
-    _ = call_command(initial_command + python_call + mg_directory + "/bin/mg5_aMC " + temp_proc_card_file, log_file=log_file)
+    _ = call_command(
+        initial_command + python_call + mg_directory + "/bin/mg5_aMC " + temp_proc_card_file, log_file=log_file
+    )
 
 
 def prepare_run_mg_pythia(
@@ -400,7 +402,9 @@ def run_mg_pythia(
 
     # Python 2 support
     python_call = "python2 " if explicit_python_call else ""
-    _ = call_command(initial_command + python_call + mg_directory + "/bin/mg5_aMC " + proc_card_filename, log_file=log_file)
+    _ = call_command(
+        initial_command + python_call + mg_directory + "/bin/mg5_aMC " + proc_card_filename, log_file=log_file
+    )
 
 
 def copy_ufo_model(ufo_directory, mg_directory):
