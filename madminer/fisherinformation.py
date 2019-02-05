@@ -1056,6 +1056,9 @@ class FisherInformation:
                     [self._eval_observable(obs_event, observable) for obs_event in observations]
                 )
 
+                # Get rid of nuisance parameters
+                fisher_info_events = fisher_info_events[:, : self.n_parameters, : self.n_parameters]
+
                 # Find bins
                 bins = np.searchsorted(bin_boundaries, histo_observables)
                 assert ((0 <= bins) & (bins < n_bins_total)).all(), "Wrong bin {}".format(bins)
