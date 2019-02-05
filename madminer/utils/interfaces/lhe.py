@@ -419,11 +419,14 @@ def extract_nuisance_parameters_from_lhe_file(filename, systematics):
                 logging.debug("Found scale variation weight %s / muf = %s, mur = %s", weight_id, weight_muf, weight_mur)
 
                 # Let's skip the entries with a varied dynamical scale for now
-                try:
-                    weight_dynscale = int(weight.attrib["dynscale"])
+                weight_dynscale = None
+                for key in ["dynscale", "dyn_scale", "DYNSCALE", "DYN_SCALE"]:
+                    try:
+                        weight_dynscale = int(weight.attrib["dynscale"])
+                    except KeyError:
+                        pass
+                if weight_dynscale is not None:
                     continue
-                except KeyError:
-                    pass
 
                 # Matching time!
                 for i, (syst_name, syst_scales, syst_done) in enumerate(
