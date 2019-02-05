@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 initialized = False
 
 
-def call_command(cmd, log_file=None):
+def call_command(cmd, log_file=None, return_std=False):
     if log_file is not None:
         with io.open(log_file, "wb") as log:
             proc = Popen(cmd, stdout=log, stderr=log, shell=True)
@@ -36,6 +36,9 @@ def call_command(cmd, log_file=None):
                     cmd, exitcode, out, err
                 )
             )
+
+        if return_std:
+            return out, err
 
     return exitcode
 
