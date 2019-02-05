@@ -212,6 +212,9 @@ def create_systematics_arguments(systematics):
         if "muf" in systematics:
             systematics_arguments.append("'--muf={}'".format(systematics["muf"]))
 
+    if "mu" in systematics or "mur" in systematics or "muf" in systematics:
+        systematics_arguments.append("'--dyn=-1'")
+
     if "pdf" in systematics:
         systematics_arguments.append("'--pdf={}'".format(systematics["pdf"]))
 
