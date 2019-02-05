@@ -104,7 +104,7 @@ class DelphesProcessor:
         delphes_filename=None,
         lhe_filename=None,
         k_factor=1.0,
-        weights="delphes",
+        weights="lhe",
     ):
         """
         Adds a sample of simulated events. A HepMC file (from Pythia) has to be provided always, since some relevant
@@ -145,7 +145,7 @@ class DelphesProcessor:
             minimizes the risk of mismatching observables and weights, but for some MadGraph and Delphes versions
             there are issues with weights not being saved in the HepMC and Delphes ROOT files. In this case, setting
             weights to "lhe" and providing the unweighted LHE file from MadGraph may be an easy fix. Default value:
-            "delphes".
+            "lhe".
 
         Returns
         -------
@@ -162,8 +162,11 @@ class DelphesProcessor:
             if lhe_filename is None:
                 raise ValueError("With systematic uncertainties, a LHE event file has to be provided.")
 
+        if weights == "lhe":
+            if lhe_filename is None:
+                raise ValueError("With weights = 'lhe', a LHE event file has to be provided.")
+
         self.hepmc_sample_filenames.append(hepmc_filename)
-        self.hepmc_sample_weight_labels.append(extract_weight_order(hepmc_filename, sampled_from_benchmark))
         self.hepmc_sampled_from_benchmark.append(sampled_from_benchmark)
         self.hepmc_is_backgrounds.append(is_background)
         self.sample_k_factors.append(k_factor)
@@ -171,8 +174,10 @@ class DelphesProcessor:
         self.lhe_sample_filenames.append(lhe_filename)
 
         if weights == "lhe" and lhe_filename is not None:
+            self.hepmc_sample_weight_labels.append(None)
             self.lhe_sample_filenames_for_weights.append(lhe_filename)
         else:
+            self.hepmc_sample_weight_labels.append(extract_weight_order(hepmc_filename, sampled_from_benchmark))
             self.lhe_sample_filenames_for_weights.append(None)
 
     def run_delphes(self, delphes_directory, delphes_card, initial_command=None, log_file=None):
@@ -574,9 +579,8 @@ class DelphesProcessor:
             else:
                 if dict(self.nuisance_parameters) != dict(nuisance_parameters):
                     raise RuntimeError(
-                        "Different LHE files have different definitions of nuisance parameters / benchmarks!\nPrevious: {}\nNew:{}".format(
-                            self.nuisance_parameters, nuisance_parameters
-                        )
+                        "Different LHE files have different definitions of nuisance parameters / benchmarks!\n"
+                        "Previous: {}\nNew:{}".format(self.nuisance_parameters, nuisance_parameters)
                     )
 
             # Calculate observables and weights in Delphes ROOT file
@@ -605,7 +609,10 @@ class DelphesProcessor:
                 logger.debug("No observations in this Delphes file, skipping it")
                 continue
 
-            logger.debug("Found weights %s in Delphes file", list(this_weights.keys()))
+            if this_weights is not None:
+                logger.debug("Found weights %s in Delphes file", list(this_weights.keys()))
+            else:
+                logger.debug("Did not extract weights from Delphes file")
 
             # Check number of events in observables
             n_events = None
@@ -639,7 +646,8 @@ class DelphesProcessor:
                 for key, weights in six.iteritems(this_weights):
                     this_weights[key] = weights[cut_filter]
 
-                logger.debug("Found weights %s in LHE file", list(this_weights.keys()))
+            if this_weights is None:
+                raise RuntimeError("Could not extract weights from Delphes ROOT file or LHE file.")
 
             # Check number of events in weights
             for key, weights in six.iteritems(this_weights):
