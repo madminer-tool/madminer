@@ -135,6 +135,17 @@ def export_run_card(template_filename, run_card_filename, systematics=None):
 
     run_card_lines = run_card_template.split("\n")
 
+    # Lines to be removed
+    entries_to_comment_out = [
+        "use_syst",
+        "systematics_program",
+        "systematics_argument",
+        "sys_scalefact",
+        "sys_alpsfact",
+        "sys_matchscale",
+        "sys_pdf",
+    ]
+
     # Changes to be made
     settings = OrderedDict()
     settings["use_syst"] = "False"
@@ -160,10 +171,9 @@ def export_run_card(template_filename, run_card_filename, systematics=None):
         elements = line_content.split("=")
         if len(elements) < 2:
             continue
-        line_value = "=".join(elements[:-1])
         line_key = elements[-1].strip()
 
-        if line_key in settings:
+        if line_key in entries_to_comment_out:
             run_card_lines[i] = "# {} # Commented out by MadMiner".format(line)
             continue
 

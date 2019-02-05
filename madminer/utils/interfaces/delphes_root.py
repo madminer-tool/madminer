@@ -252,7 +252,6 @@ def _get_n_events(tree):
     return n_events
 
 
-
 def _get_particles_truth(tree, pt_min, eta_max, included_pdgids=None):
     es = tree.array("Particle.E")
     pts = tree.array("Particle.PT")
