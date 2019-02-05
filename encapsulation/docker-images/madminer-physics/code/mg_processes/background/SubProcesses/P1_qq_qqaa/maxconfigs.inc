@@ -1,1 +1,0 @@
-../maxconfigs.inc
