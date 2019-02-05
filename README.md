@@ -62,6 +62,11 @@ Using this adds additional requirements:
  `install mg5amc_py8_interface`.
 - Delphes. Again, you can (but this time you don't have to) install it from the MadGraph command line interface with
   `install Delphes`.
+  
+*(These tools currently have a bug: the MG-Pythia interface and Delphes currently do not keep track of additional weights
+that are in the LHE file. This is not a big deal, MadMiner now offers an option to extract these weights from the
+LHE file. Alternatively, there is a unofficial patch for these tools that solves these issues. It is available upon
+request.)*
 
 Finally, Delphes can be replaced with another detector simulation, for instance a full detector simulation based
 with Geant4. In this case, the user has to implement code that runs the detector simulation, calculates the observables,
