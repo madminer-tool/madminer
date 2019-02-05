@@ -45,9 +45,10 @@ estimators are implemented.
 ### Simulator dependencies
 
 Make sure the following tools are installed and running:
-- MadGraph (we've tested our setup with MG5_aMC v2.6.2 and v2.6.4). See
+- MadGraph (we've tested our setup with MG5_aMC v2.6.2 and v2.6.5). See
   [https://launchpad.net/mg5amcnlo](https://launchpad.net/mg5amcnlo) for installation instructions. Note that MadGraph
-  currently requires Python 2.6 or 2.7 (but not Python 3) as well as a Fortran compiler.
+  requires a Fortran compiler as well as Python 2.6 or 2.7. (Note that you can still run MadMiner with Python 3, as long
+  as you have some Python 2 virtual environment set up.)
 - For the analysis of systematic uncertainties, LHAPDF6 has to be installed with Python support (see also
   [the documentation of MadGraph's systematics tool](https://cp3.irmp.ucl.ac.be/projects/madgraph/wiki/Systematics)).
 
@@ -61,6 +62,11 @@ Using this adds additional requirements:
  `install mg5amc_py8_interface`.
 - Delphes. Again, you can (but this time you don't have to) install it from the MadGraph command line interface with
   `install Delphes`.
+  
+*(These tools currently have a bug: the MG-Pythia interface and Delphes currently do not keep track of additional weights
+that are in the LHE file. This is not a big deal, MadMiner now offers an option to extract these weights from the
+LHE file. Alternatively, there is a unofficial patch for these tools that solves these issues. It is available upon
+request.)*
 
 Finally, Delphes can be replaced with another detector simulation, for instance a full detector simulation based
 with Geant4. In this case, the user has to implement code that runs the detector simulation, calculates the observables,

@@ -20,7 +20,7 @@ def parse_delphes_root_file(
     observables_defaults,
     cuts,
     cuts_default_pass,
-    weight_labels,
+    weight_labels=None,
     use_generator_truth=False,
     acceptance_pt_min_e=None,
     acceptance_pt_min_mu=None,
@@ -35,7 +35,11 @@ def parse_delphes_root_file(
     """ Extracts observables and weights from a Delphes ROOT file """
 
     logger.debug("Parsing Delphes file %s", delphes_sample_file)
-    logger.debug("Expected weight labels: %s", weight_labels)
+
+    if weight_labels is None:
+        logger.debug("Not extracting weights")
+    else:
+        logger.debug("Extracting weights %s", weight_labels)
 
     # Delphes ROOT file
     root_file = uproot.open(str(delphes_sample_file))
@@ -46,14 +50,27 @@ def parse_delphes_root_file(
     tree = root_file["Delphes"]
 
     # Weights
-    weights = tree.array("Weight.Weight")
+    n_weights = 0
+    weights = None
+    if weight_labels is not None:
+        try:
+            weights = tree.array("Weight.Weight")
 
-    n_weights = len(weights[0])
-    n_events = len(weights)
+            n_weights = len(weights[0])
+            n_events = len(weights)
 
-    logger.debug("Found %s events, %s weights", n_events, n_weights)
+            logger.debug("Found %s events, %s weights", n_events, n_weights)
 
-    weights = np.array(weights).reshape((n_events, n_weights)).T
+            weights = np.array(weights).reshape((n_events, n_weights)).T
+        except KeyError:
+            raise RuntimeError(
+                "Extracting weights from Delphes ROOT file failed. Please install inofficial patches"
+                " for the MG-Pythia interface and Delphes, available upong request, or parse weights"
+                " from the LHE file!"
+            )
+    else:
+        n_events = _get_n_events(tree)
+        logger.debug("Found %s events", n_events)
 
     # Get all particle properties
     if use_generator_truth:
@@ -210,12 +227,16 @@ def parse_delphes_root_file(
         for obs_name in observable_values:
             observable_values[obs_name] = observable_values[obs_name][combined_filter]
 
-        weights = weights[:, combined_filter]
+        if weights is not None:
+            weights = weights[:, combined_filter]
 
     # Wrap weights
-    weights_dict = OrderedDict()
-    for weight_label, this_weights in zip(weight_labels, weights):
-        weights_dict[weight_label] = this_weights
+    if weights is None:
+        weights_dict = None
+    else:
+        weights_dict = OrderedDict()
+        for weight_label, this_weights in zip(weight_labels, weights):
+            weights_dict[weight_label] = this_weights
 
     # Delete Delphes file
     if delete_delphes_sample_file:
@@ -223,6 +244,13 @@ def parse_delphes_root_file(
         os.remove(delphes_sample_file)
 
     return observable_values, weights_dict, combined_filter
+
+
+def _get_n_events(tree):
+    es = tree.array("Particle.E")
+    n_events = len(es)
+    return n_events
+
 
 
 def _get_particles_truth(tree, pt_min, eta_max, included_pdgids=None):
