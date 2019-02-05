@@ -68,6 +68,9 @@ def parse_delphes_root_file(
                 " for the MG-Pythia interface and Delphes, available upong request, or parse weights"
                 " from the LHE file!"
             )
+    else:
+        n_events = _get_n_events(tree)
+        logger.debug("Found %s events", n_events)
 
     # Get all particle properties
     if use_generator_truth:
@@ -241,6 +244,13 @@ def parse_delphes_root_file(
         os.remove(delphes_sample_file)
 
     return observable_values, weights_dict, combined_filter
+
+
+def _get_n_events(tree):
+    es = tree.array("Particle.E")
+    n_events = len(es)
+    return n_events
+
 
 
 def _get_particles_truth(tree, pt_min, eta_max, included_pdgids=None):
