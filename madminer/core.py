@@ -688,7 +688,8 @@ class MadMiner:
 
         python2_override : bool, optional
             If True, MadMiner explicitly calls "python2" instead of relying on the system Python version to be
-            Python 2.6 or Python 2.7. Default: False.
+            Python 2.6 or Python 2.7. If you use systematics, make sure that the python interface of LHAPDF was compiled
+            with the Python version you are using. Default: False.
 
         Returns
         -------
@@ -799,7 +800,8 @@ class MadMiner:
 
         python2_override : bool, optional
             If True, MadMiner explicitly calls "python2" instead of relying on the system Python version to be
-            Python 2.6 or Python 2.7. Default: False.
+            Python 2.6 or Python 2.7. If you use systematics, make sure that the python interface of LHAPDF was compiled
+            with the Python version you are using. Default: False.
 
         Returns
         -------
