@@ -1,10 +1,38 @@
+sudo: required
+
 language: python
+
 python:
-  - "2.7"
-  - "3.5"
-  - "3.6"
+- '2.7'
+- '3.5'
+- '3.6'
+
+services:
+- docker
+
+deploy: #run on branch != master
+  provider: script
+  script: bash docker_push
+  on:
+    branch: docker-travis-build
+
 install:
-  - pip install -q --no-cache-dir -e .
+- pip install -q --no-cache-dir -e .
+
 script:
-  - pytest tests/test_imports.py
-  - pytest -s tests/test_toy_workflow.py
+- pytest tests/test_imports.py
+- pytest -s tests/test_toy_workflow.py
+
+dd: #security
+  secure: CS3HlBrVMbCdkGYBRb/SxgxwKizmzXug6L0eTgrclc0lLvopP3nBZaTLG1Ubz38tu5FfV/HrTAkONPKY0tKWJTPmh7EZKzAINwRU82npAD4KS0tvYR88+tHR1cCQScO80iRdz7NjD/RWfySDV/5aEirCro2x4jdDuyuqYskb3kJVZPpNUBViKgmQrpbT+bKR3RGV7cBvlx6emzCuUOlEmYkeMyZmCekDGsS8JTazg1tD6b71fC+ARrdt2nnsuUxDr570CCkH4AaFLq90bHX8S8BaMsSF4mgmIswJyPbbYvTxUnxi4NOotdvCQQMsedb9V8toLVqD3Rb0vDz1t77vTgurkgtFXEb8ZzF5eIAiJ+GNlXPch/l+mbcN2uPGVx4LLpqY53yOnjszVnh0neIP3r8XjEleY1Zt9/0/0uv87zC2/A1An7j7lv54hZQzLN8TdtR6kNODZcQPXbwlUTMPTuJ+fFWFYzsLDzZbuGefhMEw89DIYvcKUBCIou3E+BfbwJ1C3MUUCKXYpn66Z2v6zUUx+1YIIsJL4lJ1pL/cTq0clivZVfVJ7YB7q0Kmff4+zTKMDp8+YwxnT/TCloEwWzUtCk8t1G9hpg55CIoe2fqliV1hKOcEYECr6Zo0xBzD80c8SFQ8Y/vn8gbZLqJruNmoxEitzrPYcqYc9smXYIs=
+
+env: #security
+  global:
+  - secure: bLeUxy0+KU2g2lOv/cdM5IdZMni4Ma79UYEaIwdZRWgO7G3y11bGMI1hLOmZefiE8SkC8ABgarxzYnebdwkIuFxozobkdU2zG/Mtt7vdtsp+9rUmJmB6aa8oLWYdkmuexM88bjbxf1TyUjrilJlQAToST67p2z9cvrKc6pr6AlpR4jKwSXuvtdkNDRy1xpdYHe/vTchdLzJjmCV4bCPHt5XVv2jwdpg5wRPdvZBLpQXS5N5EcIEfEpHHfXmzpJ1BCjZz93bqUmloUKWrY8a4PDhKhiXVf7wYyg0YlLlwwiccXkA6TFYjkcYbvYIjFy/OKajj8KMXCnv0dyIosiUFiuzsmJ/1VhlQKsp++yiQ64bQ0kyfS1HSQFRYXOoGVaximYe+kUHhBxkaHRyP7MA4CXtS6dMO4ZicI6ev0iU+z2WK8Cd4xzehzbBmJRZmwngFjYYGaZTMFcXf7JGkQ8Vd/2mcP9rKlOb1RKjFDwTlcFSwnfRRlwYqgMX7QU6Sfy9QCOtvuoT95y34NkTE0s7bDhxxaY3c/Jo9Hrt4arlwa4QImTdBKIocYX09qlh4NV1ExrWutoMhGC7v0N62/NNIdki0VH0oa7+zCByVq9vOqrMW/xcOdsgiRNv7UBF/MfpTW1dkf+X0D+9ySLbqrKGWY+hMfo5IQhUKRYNVJrseltw=
+  - secure: WAhSnrdQDtLapMhm6SqLL/FB73lSrzuMh8de5PIMtdacarpOVqHV/Kb6WG6zgChR75EbsdcBA1aa7+uIxfvduJpid7Y2tdS99opGmRHkiXZNaGNHE9Cf2yb5rLC4ayRux4vpRuCD4v8Nn1FQmCnNzCTqV6uNrobfDzyLHN0YY8n7W85gz/2cqKryfrPAPtOegH/TsfhTs97QjJDIc5t4am2Tkc8H8lP0fDU1lttCblWR+oqDhXW6vHoHlsXJmFhCEm/wCv6QxE4DdeULDF8hN62xst1mAawYQm0/WMn6sqctIrovysSTGZEUrOke9NfcGrsSJwi9Ehf4VMit7fkix+iFr3NemObDMmV5uKLblHeZutSgthNkiSBMbn9oRAC5wN1/KZN6ETHqEkbpIcIlSBE6Tl+Ya2cWHbzQpa78XQMFFqld0x4YibcDLBUSgl5CJJ7u/pz65LvZiy58Xr3LxDQbl4cfQ/fI78MYK/EOS9vdl3plrjD6yQeqXcw4XU1+KRv+DzYINWiMn0SA0KX6Rj8VaRVts4cHvgeEO7Qa7B4S1Zk8XUIclM1NczVtedOwQ/sJBDnPFup4l36yFLsVOPcY1mZZF2NDX3ymFqiNesrfweD/VVAK0wL4QJ+X7hEjLetcKeihB+8gSDgTuW9bgNQW31DgRqsTEUqF1U9gtdA=
+
+after_success: #build and push image
+  - docker login -e $DOCKER_EMAIL -u $DOCKER_USER -p $DOCKER_PASS
+  - export REPO=irinahub/docker-madminer-physics
+  - docker build -f Dockerfile -t $REPO .
+  - docker push $REPO
