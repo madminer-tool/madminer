@@ -5,7 +5,7 @@ import logging
 import numpy as np
 from scipy.stats import norm
 
-from madminer.ml import MLForge
+from madminer.ml import Estimator
 
 if not os.path.exists('tests/data'):
     os.makedirs('tests/data')
@@ -77,7 +77,7 @@ def run_test():
     np.save('tests/data/t_xz_train.npy', t_xz_train)
 
     # Train model
-    forge = MLForge()
+    forge = Estimator()
 
     forge.train(
         method='alices',

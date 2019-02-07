@@ -9,193 +9,10 @@ from madminer.utils.interfaces.madminer_hdf5 import load_madminer_settings, madm
 from madminer.utils.interfaces.madminer_hdf5 import save_preformatted_events_to_madminer_file
 from madminer.utils.analysis import get_theta_value, get_theta_benchmark_matrix, get_dtheta_benchmark_matrix
 from madminer.utils.analysis import calculate_augmented_data, parse_theta, mdot
-from madminer.morphing import Morpher, NuisanceMorpher
+from madminer.morphing import PhysicsMorpher, NuisanceMorpher
 from madminer.utils.various import format_benchmark, create_missing_folders, shuffle, balance_thetas
 
 logger = logging.getLogger(__name__)
-
-
-def combine_and_shuffle(input_filenames, output_filename, k_factors=None, overwrite_existing_file=True):
-    """
-    Combines multiple MadMiner files into one, and shuffles the order of the events.
-
-    Note that this function assumes that all samples are generated with the same setup, including identical benchmarks
-    (and thus morphing setup). If it is used with samples with different settings, there will be wrong results!
-    There are no explicit cross checks in place yet!
-
-    Parameters
-    ----------
-    input_filenames : list of str
-        List of paths to the input MadMiner files.
-
-    output_filename : str
-        Path to the combined MadMiner file.
-
-    k_factors : float or list of float, optional
-        Multiplies the weights in input_filenames with a universal factor (if k_factors is a float) or with independent
-        factors (if it is a list of float). Default value: None.
-
-    overwrite_existing_file : bool, optional
-        If True and if the output file exists, it is overwritten. Default value: True.
-
-    Returns
-    -------
-        None
-
-    """
-
-    logger.debug("Combining and shuffling samples")
-
-    if len(input_filenames) > 1:
-        logger.warning(
-            "Careful: this tool assumes that all samples are generated with the same setup, including"
-            " identical benchmarks (and thus morphing setup). If it is used with samples with different"
-            " settings, there will be wrong results! There are no explicit cross checks in place yet."
-        )
-
-    # k factors
-    if k_factors is None:
-        k_factors = [1.0 for _ in input_filenames]
-    elif isinstance(k_factors, float):
-        k_factors = [k_factors for _ in input_filenames]
-
-    # Copy first file to output_filename
-    logger.info("Copying setup from %s to %s", input_filenames[0], output_filename)
-
-    # TODO: More memory efficient strategy
-
-    # Load events
-    all_observations = None
-    all_weights = None
-
-    for i, (filename, k_factor) in enumerate(zip(input_filenames, k_factors)):
-        logger.info(
-            "Loading samples from file %s / %s at %s, multiplying weights with k factor %s",
-            i + 1,
-            len(input_filenames),
-            filename,
-            k_factor,
-        )
-
-        for observations, weights in madminer_event_loader(filename):
-            if all_observations is None:
-                all_observations = observations
-                all_weights = k_factor * weights
-            else:
-                all_observations = np.vstack((all_observations, observations))
-                all_weights = np.vstack((all_weights, k_factor * weights))
-
-    # Shuffle
-    all_observations, all_weights = shuffle(all_observations, all_weights)
-
-    # Save result
-    save_preformatted_events_to_madminer_file(
-        filename=output_filename,
-        observations=all_observations,
-        weights=all_weights,
-        copy_setup_from=input_filenames[0],
-        overwrite_existing_samples=overwrite_existing_file,
-    )
-
-
-def constant_benchmark_theta(benchmark_name):
-    """
-    Utility function to be used as input to various SampleAugmenter functions, specifying a single parameter benchmark.
-
-    Parameters
-    ----------
-    benchmark_name : str
-        Name of the benchmark (as in `madminer.core.MadMiner.add_benchmark`)
-        
-
-    Returns
-    -------
-    output : tuple
-        Input to various SampleAugmenter functions
-
-    """
-    return "benchmark", benchmark_name
-
-
-def multiple_benchmark_thetas(benchmark_names):
-    """
-    Utility function to be used as input to various SampleAugmenter functions, specifying multiple parameter benchmarks.
-
-    Parameters
-    ----------
-    benchmark_names : list of str
-        List of names of the benchmarks (as in `madminer.core.MadMiner.add_benchmark`)
-
-
-    Returns
-    -------
-    output : tuple
-        Input to various SampleAugmenter functions
-
-    """
-    return "benchmarks", benchmark_names
-
-
-def constant_morphing_theta(theta):
-    """
-    Utility function to be used as input to various SampleAugmenter functions, specifying a single parameter point theta
-    in a morphing setup.
-
-    Parameters
-    ----------
-    theta : ndarray or list
-        Parameter point with shape `(n_parameters,)`
-
-    Returns
-    -------
-    output : tuple
-        Input to various SampleAugmenter functions
-
-    """
-    return "theta", np.asarray(theta)
-
-
-def multiple_morphing_thetas(thetas):
-    """
-    Utility function to be used as input to various SampleAugmenter functions, specifying multiple parameter points
-    theta in a morphing setup.
-
-    Parameters
-    ----------
-    thetas : ndarray or list of lists or list of ndarrays
-        Parameter points with shape `(n_thetas, n_parameters)`
-
-    Returns
-    -------
-    output : tuple
-        Input to various SampleAugmenter functions
-
-    """
-    return "thetas", [np.asarray(theta) for theta in thetas]
-
-
-def random_morphing_thetas(n_thetas, priors):
-    """
-    Utility function to be used as input to various SampleAugmenter functions, specifying random parameter points
-    sampled from a prior in a morphing setup.
-
-    Parameters
-    ----------
-    n_thetas : int
-        Number of parameter points to be sampled
-
-    priors : list of tuples
-        Priors for each parameter is characterized by a tuple of the form `(prior_shape, prior_param_0, prior_param_1)`.
-        Currently, the supported prior_shapes are `flat`, in which case the two other parameters are the lower and upper
-        bound of the flat prior, and `gaussian`, in which case they are the mean and standard deviation of a Gaussian.
-
-    Returns
-    -------
-    output : tuple
-        Input to various SampleAugmenter functions
-
-    """
-    return "random", (n_thetas, priors)
 
 
 class SampleAugmenter:
@@ -319,7 +136,7 @@ class SampleAugmenter:
         # Morphing
         self.morpher = None
         if self.morphing_matrix is not None and self.morphing_components is not None and not disable_morphing:
-            self.morpher = Morpher(self.parameters)
+            self.morpher = PhysicsMorpher(self.parameters)
             self.morpher.set_components(self.morphing_components)
             self.morpher.set_basis(self.benchmarks, morphing_matrix=self.morphing_matrix)
 
@@ -1610,3 +1427,186 @@ class SampleAugmenter:
             end_event = None
 
         return start_event, end_event
+
+
+def combine_and_shuffle(input_filenames, output_filename, k_factors=None, overwrite_existing_file=True):
+    """
+    Combines multiple MadMiner files into one, and shuffles the order of the events.
+
+    Note that this function assumes that all samples are generated with the same setup, including identical benchmarks
+    (and thus morphing setup). If it is used with samples with different settings, there will be wrong results!
+    There are no explicit cross checks in place yet!
+
+    Parameters
+    ----------
+    input_filenames : list of str
+        List of paths to the input MadMiner files.
+
+    output_filename : str
+        Path to the combined MadMiner file.
+
+    k_factors : float or list of float, optional
+        Multiplies the weights in input_filenames with a universal factor (if k_factors is a float) or with independent
+        factors (if it is a list of float). Default value: None.
+
+    overwrite_existing_file : bool, optional
+        If True and if the output file exists, it is overwritten. Default value: True.
+
+    Returns
+    -------
+        None
+
+    """
+
+    logger.debug("Combining and shuffling samples")
+
+    if len(input_filenames) > 1:
+        logger.warning(
+            "Careful: this tool assumes that all samples are generated with the same setup, including"
+            " identical benchmarks (and thus morphing setup). If it is used with samples with different"
+            " settings, there will be wrong results! There are no explicit cross checks in place yet."
+        )
+
+    # k factors
+    if k_factors is None:
+        k_factors = [1.0 for _ in input_filenames]
+    elif isinstance(k_factors, float):
+        k_factors = [k_factors for _ in input_filenames]
+
+    # Copy first file to output_filename
+    logger.info("Copying setup from %s to %s", input_filenames[0], output_filename)
+
+    # TODO: More memory efficient strategy
+
+    # Load events
+    all_observations = None
+    all_weights = None
+
+    for i, (filename, k_factor) in enumerate(zip(input_filenames, k_factors)):
+        logger.info(
+            "Loading samples from file %s / %s at %s, multiplying weights with k factor %s",
+            i + 1,
+            len(input_filenames),
+            filename,
+            k_factor,
+        )
+
+        for observations, weights in madminer_event_loader(filename):
+            if all_observations is None:
+                all_observations = observations
+                all_weights = k_factor * weights
+            else:
+                all_observations = np.vstack((all_observations, observations))
+                all_weights = np.vstack((all_weights, k_factor * weights))
+
+    # Shuffle
+    all_observations, all_weights = shuffle(all_observations, all_weights)
+
+    # Save result
+    save_preformatted_events_to_madminer_file(
+        filename=output_filename,
+        observations=all_observations,
+        weights=all_weights,
+        copy_setup_from=input_filenames[0],
+        overwrite_existing_samples=overwrite_existing_file,
+    )
+
+
+def benchmark(benchmark_name):
+    """
+    Utility function to be used as input to various SampleAugmenter functions, specifying a single parameter benchmark.
+
+    Parameters
+    ----------
+    benchmark_name : str
+        Name of the benchmark (as in `madminer.core.MadMiner.add_benchmark`)
+
+
+    Returns
+    -------
+    output : tuple
+        Input to various SampleAugmenter functions
+
+    """
+    return "benchmark", benchmark_name
+
+
+def benchmarks(benchmark_names):
+    """
+    Utility function to be used as input to various SampleAugmenter functions, specifying multiple parameter benchmarks.
+
+    Parameters
+    ----------
+    benchmark_names : list of str
+        List of names of the benchmarks (as in `madminer.core.MadMiner.add_benchmark`)
+
+
+    Returns
+    -------
+    output : tuple
+        Input to various SampleAugmenter functions
+
+    """
+    return "benchmarks", benchmark_names
+
+
+def morphing_point(theta):
+    """
+    Utility function to be used as input to various SampleAugmenter functions, specifying a single parameter point theta
+    in a morphing setup.
+
+    Parameters
+    ----------
+    theta : ndarray or list
+        Parameter point with shape `(n_parameters,)`
+
+    Returns
+    -------
+    output : tuple
+        Input to various SampleAugmenter functions
+
+    """
+    return "theta", np.asarray(theta)
+
+
+def morphing_points(thetas):
+    """
+    Utility function to be used as input to various SampleAugmenter functions, specifying multiple parameter points
+    theta in a morphing setup.
+
+    Parameters
+    ----------
+    thetas : ndarray or list of lists or list of ndarrays
+        Parameter points with shape `(n_thetas, n_parameters)`
+
+    Returns
+    -------
+    output : tuple
+        Input to various SampleAugmenter functions
+
+    """
+    return "thetas", [np.asarray(theta) for theta in thetas]
+
+
+def random_morphing_points(n_thetas, priors):
+    """
+    Utility function to be used as input to various SampleAugmenter functions, specifying random parameter points
+    sampled from a prior in a morphing setup.
+
+    Parameters
+    ----------
+    n_thetas : int
+        Number of parameter points to be sampled
+
+    priors : list of tuples
+        Priors for each parameter is characterized by a tuple of the form `(prior_shape, prior_param_0, prior_param_1)`.
+        Currently, the supported prior_shapes are `flat`, in which case the two other parameters are the lower and upper
+        bound of the flat prior, and `gaussian`, in which case they are the mean and standard deviation of a Gaussian.
+
+    Returns
+    -------
+    output : tuple
+        Input to various SampleAugmenter functions
+
+    """
+    return "random", (n_thetas, priors)

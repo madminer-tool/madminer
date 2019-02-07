@@ -375,8 +375,8 @@ def plot_2d_morphing_basis(
 
     Parameters
     ----------
-    morpher : Morpher
-        Morpher instance with defined basis.
+    morpher : PhysicsMorpher
+        PhysicsMorpher instance with defined basis.
 
     xlabel : str, optional
         Label for the x axis. Default value: r'$\theta_0$'.
@@ -446,8 +446,8 @@ def plot_nd_morphing_basis_scatter(morpher, crange=(1.0, 100.0), n_test_thetas=1
 
     Parameters
     ----------
-    morpher : Morpher
-        Morpher instance with defined basis.
+    morpher : PhysicsMorpher
+        PhysicsMorpher instance with defined basis.
 
     crange : tuple of float, optional
         Range `(min, max)` for the color map. Default value: (1. 100.).
@@ -505,8 +505,8 @@ def plot_nd_morphing_basis_slices(morpher, crange=(1.0, 100.0), resolution=50):
 
     Parameters
     ----------
-    morpher : Morpher
-        Morpher instance with defined basis.
+    morpher : PhysicsMorpher
+        PhysicsMorpher instance with defined basis.
 
     crange : tuple of float, optional
         Range `(min, max)` for the color map.

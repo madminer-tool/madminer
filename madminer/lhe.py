@@ -15,7 +15,7 @@ from madminer.utils.interfaces.lhe import parse_lhe_file, extract_nuisance_param
 logger = logging.getLogger(__name__)
 
 
-class LHEProcessor:
+class LHEReader:
     """
     Detector simulation with smearing functions and simple calculation of observables.
 
