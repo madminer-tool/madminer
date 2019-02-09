@@ -1,14 +1,17 @@
+notifications:
+  email: false
+
 sudo: required
 
 language: python
 
 python:
-- '2.7'
-- '3.5'
-- '3.6'
+  - '2.7'
+  - '3.5'
+  - '3.6'
 
 services:
-- docker
+  - docker
 
 dd: #security
   secure: CS3HlBrVMbCdkGYBRb/SxgxwKizmzXug6L0eTgrclc0lLvopP3nBZaTLG1Ubz38tu5FfV/HrTAkONPKY0tKWJTPmh7EZKzAINwRU82npAD4KS0tvYR88+tHR1cCQScO80iRdz7NjD/RWfySDV/5aEirCro2x4jdDuyuqYskb3kJVZPpNUBViKgmQrpbT+bKR3RGV7cBvlx6emzCuUOlEmYkeMyZmCekDGsS8JTazg1tD6b71fC+ARrdt2nnsuUxDr570CCkH4AaFLq90bHX8S8BaMsSF4mgmIswJyPbbYvTxUnxi4NOotdvCQQMsedb9V8toLVqD3Rb0vDz1t77vTgurkgtFXEb8ZzF5eIAiJ+GNlXPch/l+mbcN2uPGVx4LLpqY53yOnjszVnh0neIP3r8XjEleY1Zt9/0/0uv87zC2/A1An7j7lv54hZQzLN8TdtR6kNODZcQPXbwlUTMPTuJ+fFWFYzsLDzZbuGefhMEw89DIYvcKUBCIou3E+BfbwJ1C3MUUCKXYpn66Z2v6zUUx+1YIIsJL4lJ1pL/cTq0clivZVfVJ7YB7q0Kmff4+zTKMDp8+YwxnT/TCloEwWzUtCk8t1G9hpg55CIoe2fqliV1hKOcEYECr6Zo0xBzD80c8SFQ8Y/vn8gbZLqJruNmoxEitzrPYcqYc9smXYIs=
@@ -21,13 +24,14 @@ env: #security
 branches: #run on branch != master
   only:
   - docker-travis-build
+  - master
 
 install:
-- pip install -q --no-cache-dir -e .
+  - pip install -q --no-cache-dir -e .
 
 script:
-- pytest tests/test_imports.py
-- pytest -s tests/test_toy_workflow.py
+  - pytest tests/test_imports.py
+  - pytest -s tests/test_toy_workflow.py
 
 
 after_success: #build and push image
