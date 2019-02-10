@@ -36,6 +36,6 @@ script:
 
 after_success: #build and push image
   - docker login -e $DOCKER_EMAIL -u $DOCKER_USER -p $DOCKER_PASS
-  - export REPO=irinahub/docker-madminer-physics
+  - export REPO=irinahub/docker-madminer
   - docker build -f Dockerfile -t $REPO .
   - docker push $REPO
