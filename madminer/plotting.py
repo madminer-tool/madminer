@@ -9,7 +9,7 @@ import logging
 from madminer.sampling import SampleAugmenter
 from madminer.utils.analysis import mdot, get_theta_benchmark_matrix
 from madminer.morphing import NuisanceMorpher
-from madminer.utils.various import weighted_quantile, sanitize_array
+from madminer.utils.various import weighted_quantile, sanitize_array, shuffle
 
 logger = logging.getLogger(__name__)
 
@@ -192,6 +192,9 @@ def plot_distributions(
 
     if int(np.sum(sane_event_filter, dtype=np.int)) < len(sane_event_filter):
         logger.warning("Removed %s / %s events with negative weights", n_events_removed, n_events_before)
+
+    # Shuffle events
+    x, weights_benchmarks = shuffle(x, weights_benchmarks)
 
     # Only analyze n_events
     if n_events is not None and n_events < x.shape[0]:
