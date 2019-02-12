@@ -106,6 +106,9 @@ def plot_uncertainty(
     weights_benchmarks = weights_benchmarks[weights >= 0.0]
     weights = weights[weights >= 0.0]
 
+    # Shuffle events
+    x, weights, weights_benchmarks = shuffle(x, weights, weights_benchmarks)
+
     # Only analyze n_events
     if n_events is not None and n_events < x.shape[0]:
         x = x[:n_events]
@@ -157,7 +160,7 @@ def plot_uncertainty(
     histos_toys_this_theta = []
     for i_toy, nuisance_toy_factors_this_toy in enumerate(nuisance_toy_factors):
         toy_histo, _ = np.histogram(
-            x, bins=n_bins, range=obs_range, weights=weights * nuisance_toy_factors_this_toy, density=False
+            x, bins=n_bins, range=obs_range, weights=weights * nuisance_toy_factors_this_toy, density=True
         )
         histos_toys_this_theta.append(toy_histo)
 
@@ -201,7 +204,6 @@ def plot_uncertainty(
     # MC, absolute
     ax = plt.subplot(gs[0], sharex=ax)
     plot_mc(bin_edges, histo, histo_minus2sigma, histo_minus1sigma, histo_plus1sigma, histo_plus2sigma)
-    plt.legend()
     plt.ylabel(r"Differential cross section [pb/bin]")
     plt.ylim(0.0, None)
     plt.setp(ax.get_xticklabels(), visible=False)
@@ -232,7 +234,6 @@ def plot_uncertainty(
         histo_plus1sigma_norm,
         histo_plus2sigma_norm,
     )
-    plt.legend()
     plt.ylabel(r"Normalized distribution")
     plt.ylim(0.0, None)
     plt.setp(ax.get_xticklabels(), visible=False)
