@@ -612,6 +612,7 @@ class MadMiner:
         log_directory=None,
         temp_directory=None,
         initial_command=None,
+        python2_override=False,
     ):
 
         """
@@ -685,6 +686,11 @@ class MadMiner:
             Initial shell commands that have to be executed before MG is run (e.g. to load a virtual environment).
             Default value: None.
 
+        python2_override : bool, optional
+            If True, MadMiner explicitly calls "python2" instead of relying on the system Python version to be
+            Python 2.6 or Python 2.7. If you use systematics, make sure that the python interface of LHAPDF was compiled
+            with the Python version you are using. Default: False.
+
         Returns
         -------
             None
@@ -708,6 +714,7 @@ class MadMiner:
             log_directory=log_directory,
             temp_directory=temp_directory,
             initial_command=initial_command,
+            python2_override=python2_override,
         )
 
     def run_multiple(
@@ -725,6 +732,7 @@ class MadMiner:
         log_directory=None,
         temp_directory=None,
         initial_command=None,
+        python2_override=False,
     ):
 
         """
@@ -790,6 +798,11 @@ class MadMiner:
             Initial shell commands that have to be executed before MG is run (e.g. to load a virtual environment).
             Default value: None.
 
+        python2_override : bool, optional
+            If True, MadMiner explicitly calls "python2" instead of relying on the system Python version to be
+            Python 2.6 or Python 2.7. If you use systematics, make sure that the python interface of LHAPDF was compiled
+            with the Python version you are using. Default: False.
+
         Returns
         -------
             None
@@ -820,6 +833,7 @@ class MadMiner:
             ufo_model_directory=ufo_model_directory,
             initial_command=initial_command,
             log_file=log_file_generate,
+            explicit_python_call=python2_override,
         )
 
         # Make MadMiner folders
@@ -905,6 +919,7 @@ class MadMiner:
                         initial_command=initial_command,
                         log_dir=log_directory,
                         log_file_from_logdir=log_file_run,
+                        explicit_python_call=python2_override,
                     )
                     results.append(result)
                 else:
@@ -919,6 +934,7 @@ class MadMiner:
                         is_background=is_background,
                         initial_command=initial_command,
                         log_file=log_directory + "/" + log_file_run,
+                        explicit_python_call=python2_override,
                     )
 
                 i += 1
