@@ -35,6 +35,7 @@ def plot_distributions(
     n_events=None,
     n_toys=100,
     n_cols=3,
+    quantiles_for_range=(0.025, 0.975),
 ):
     """
     Plots one-dimensional histograms of observables in a MadMiner file for a given set of benchmarks.
@@ -112,6 +113,10 @@ def plot_distributions(
 
     n_cols : int, optional
         Number of columns of subfigures in the plot. Default value: 3.
+
+    quantiles_for_range : tuple of two float, optional
+        Tuple `(min_quantile, max_quantile)` that defines how the observable range is determined for each panel.
+        Default: (0.025, 0.075).
 
     Returns
     -------
@@ -267,8 +272,8 @@ def plot_distributions(
             x_small = x[:n_events_for_range]
             weights_small = mdot(theta_matrix, weights_benchmarks[:n_events_for_range])
 
-            xmin = weighted_quantile(x_small[:, i_obs], 0.05, weights_small)
-            xmax = weighted_quantile(x_small[:, i_obs], 0.95, weights_small)
+            xmin = weighted_quantile(x_small[:, i_obs], quantiles_for_range[0], weights_small)
+            xmax = weighted_quantile(x_small[:, i_obs], quantiles_for_range[1], weights_small)
             xwidth = xmax - xmin
             xmin -= xwidth * 0.1
             xmax += xwidth * 0.1
