@@ -752,9 +752,16 @@ def _get_objects(particles):
     jets = sorted(jets, reverse=True, key=lambda x: x.pt)
 
     # MET
+    visible_sum = MadMinerParticle()
+    visible_sum.setpxpypze(0.0, 0.0, 0.0, 0.0)
+
+    for particle in particles:
+        pdgid = abs(particle.pdgid)
+        if pdgid in [1, 2, 3, 4, 5, 6, 9, 11, 13, 15, 21, 22, 23, 24, 25]:
+            visible_sum += particle
+
     met = MadMinerParticle()
-    for p in invisibles:
-        met += p
+    met.setpxpypze(-visible_sum.px, -visible_sum.px, 0.0, visible_sum.pt)
 
     # Build objects
     objects = math_commands()
