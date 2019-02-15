@@ -307,8 +307,10 @@ def parse_lhe_file(
     for n_pass, n_fail, cut in zip(pass_cuts, fail_cuts, cuts):
         logger.debug("  %s / %s events pass cut %s", n_pass, n_pass + n_fail, cut)
     n_events_pass = len(observations_all_events)
-    logger.info("  %s events pass everything", n_events_pass)
-    logger.info("  Out of these, %s events contain negative weights", n_events_with_negative_weights)
+    if len(cuts) > 0:
+        logger.info("  %s events pass all cuts", n_events_pass)
+    if n_events_with_negative_weights > 0:
+        logger.warning("  %s events contain negative weights", n_events_with_negative_weights)
 
     if n_events_pass == 0:
         logger.warning("  No observations remaining!")
@@ -750,9 +752,16 @@ def _get_objects(particles):
     jets = sorted(jets, reverse=True, key=lambda x: x.pt)
 
     # MET
+    visible_sum = MadMinerParticle()
+    visible_sum.setpxpypze(0.0, 0.0, 0.0, 0.0)
+
+    for particle in particles:
+        pdgid = abs(particle.pdgid)
+        if pdgid in [1, 2, 3, 4, 5, 6, 9, 11, 13, 15, 21, 22, 23, 24, 25]:
+            visible_sum += particle
+
     met = MadMinerParticle()
-    for p in invisibles:
-        met += p
+    met.setpxpypze(-visible_sum.px, -visible_sum.px, 0.0, visible_sum.pt)
 
     # Build objects
     objects = math_commands()
