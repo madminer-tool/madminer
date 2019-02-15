@@ -515,13 +515,26 @@ def extract_nuisance_parameters_from_lhe_file(filename, systematics):
 
     # Check that everything was found
     if "pdf" in systematics.keys() and not systematics_pdf_done:
-        logger.warning("Did not find benchmarks representing PDF uncertainties in LHE file!")
+        logger.warning("Could not find weights for the PDF uncertainties in LHE file! The most common source of this"
+                       " error is not having installed LHAPDF with its Python interface. Please make sure that you "
+                       " have installed this. You can also check the log file produced by MadGraph for a warning"
+                       " about this. If LHAPDF is correctly installed and you still get this warning, please check"
+                       " manually whether the LHE file at %s contains weights from PDF variation, and contact"
+                       " the MadMiner developer team about this. If you continue with the analysis, MadMiner"
+                       " will disregard PDF uncertainties.", filename)
 
     for syst_name, (done1, done2) in zip(systematics.keys(), systematics_scale_done):
         if not (done1 and done2):
             logger.warning(
                 "Did not find benchmarks representing scale variation uncertainty %s in LHE file!", syst_name
             )
+            logger.warning("Could not find weights for the scale uncertainty %s in LHE file! The most common source of "
+                           " this error is not having installed LHAPDF with its Python interface. Please make sure that"
+                           " you have installed this. You can also check the log file produced by MadGraph for a "
+                           "warning about this. If LHAPDF is correctly installed and you still get this warning, please"
+                           " check manually whether the LHE file at %s contains weights from PDF variation, and contact"
+                           " the MadMiner developer team about this. If you continue with the analysis, MadMiner"
+                           " will disregard PDF uncertainties.", syst_name, filename)
 
     return nuisance_params
 
