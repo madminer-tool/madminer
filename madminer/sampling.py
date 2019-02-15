@@ -15,7 +15,7 @@ from madminer.utils.various import format_benchmark, create_missing_folders, shu
 logger = logging.getLogger(__name__)
 
 
-def combine_and_shuffle(input_filenames, output_filename, k_factors=None, overwrite_existing_file=True):
+def combine_and_shuffle(input_filenames, output_filename, k_factors=None, overwrite_existing_file=True, shuffle_sample=True):
     """
     Combines multiple MadMiner files into one, and shuffles the order of the events.
 
@@ -37,6 +37,9 @@ def combine_and_shuffle(input_filenames, output_filename, k_factors=None, overwr
 
     overwrite_existing_file : bool, optional
         If True and if the output file exists, it is overwritten. Default value: True.
+
+    shuffle_sample : bool, optional
+        If True, the output shuffle will be shuffled. Default value: True.
 
     Returns
     -------
@@ -86,7 +89,8 @@ def combine_and_shuffle(input_filenames, output_filename, k_factors=None, overwr
                 all_weights = np.vstack((all_weights, k_factor * weights))
 
     # Shuffle
-    all_observations, all_weights = shuffle(all_observations, all_weights)
+    if shuffle_sample:
+        all_observations, all_weights = shuffle(all_observations, all_weights)
 
     # Save result
     save_preformatted_events_to_madminer_file(

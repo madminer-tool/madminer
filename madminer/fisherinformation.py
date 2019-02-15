@@ -1348,6 +1348,7 @@ class FisherInformation:
 
         # Get differential xsec per event, and the derivative wrt to theta
         sigma = mdot(theta_matrix, weights_benchmarks)  # Shape (n_events,)
+        total_xsec = np.sum(sigma)
         inv_sigma = sanitize_array(1.0 / sigma)  # Shape (n_events,)
         dsigma = mdot(dtheta_matrix, weights_benchmarks)  # Shape (n_parameters, n_events)
 
@@ -1357,13 +1358,15 @@ class FisherInformation:
         # Nuisance parameter Fisher info
         if include_nuisance_parameters and self.include_nuisance_parameters:
             nuisance_a = self.nuisance_morpher.calculate_a(weights_benchmarks)  # Shape (n_nuisance_params, n_events)
+            expected_a = np.einsum("vx,x->v", nuisance_a, sigma / total_xsec)
+            nuisance_scores = nuisance_a - expected_a[:, np.newaxis]  # Shape (n_nuisance_params, n_events)
 
             # grad_i dsigma(x), where i is a nuisance parameter, is given by
             # sigma[np.newaxis, :] * a
 
-            fisher_info_nuisance = luminosity * np.einsum("n,in,jn->nij", sigma, nuisance_a, nuisance_a)
-            fisher_info_mix = luminosity * np.einsum("in,jn->nij", dsigma, nuisance_a)
-            fisher_info_mix_transposed = luminosity * np.einsum("in,jn->nji", dsigma, nuisance_a)
+            fisher_info_nuisance = luminosity * np.einsum("n,in,jn->nij", sigma, nuisance_scores, nuisance_scores)
+            fisher_info_mix = luminosity * np.einsum("in,jn->nij", dsigma, nuisance_scores)
+            fisher_info_mix_transposed = luminosity * np.einsum("in,jn->nji", dsigma, nuisance_scores)
 
             n_all_parameters = self.n_parameters + self.n_nuisance_parameters
             fisher_info = np.zeros((fisher_info_phys.shape[0], n_all_parameters, n_all_parameters))
