@@ -15,7 +15,9 @@ from madminer.utils.various import format_benchmark, create_missing_folders, shu
 logger = logging.getLogger(__name__)
 
 
-def combine_and_shuffle(input_filenames, output_filename, k_factors=None, overwrite_existing_file=True, shuffle_sample=True):
+def combine_and_shuffle(
+    input_filenames, output_filename, k_factors=None, overwrite_existing_file=True, shuffle_sample=True
+):
     """
     Combines multiple MadMiner files into one, and shuffles the order of the events.
 
