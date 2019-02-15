@@ -40,7 +40,12 @@ class MadMinerParticle(LorentzVector):
         elif self.pdgid in [-2, -4, -6]:
             self.charge = 1.0 / 3.0
 
-        if self.pdgit in [5, -5]
+        if self.pdgid in [5, -5]:
+            self.b_tag = True
+        elif self.pdgid in [6, -6]:
+            self.t_tag = True
+        elif self.pdgid in [15, -15]:
+            self.tau_tag = True
 
     def __iadd__(self, other):
         super(MadMinerParticle, self).__iadd__(other)
