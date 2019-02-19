@@ -446,13 +446,25 @@ def _get_particles_jets(tree, pt_min, eta_max):
     etas = tree.array("Jet.Eta")
     phis = tree.array("Jet.Phi")
     masses = tree.array("Jet.Mass")
+    try:
+        tau_tags = tree.array("Jet.TauTag")
+    except:
+        logger.warning("Did not find tau-tag information in Delphes ROOT file.")
+        tau_tags = [0 for _ in range(len(pts))]
+    try:
+        b_tags = tree.array("Jet.BTag")
+    except:
+        logger.warning("Did not find b-tag information in Delphes ROOT file.")
+        b_tags = [0 for _ in range(len(pts))]
 
     all_particles = []
 
     for ievent in range(len(pts)):
         event_particles = []
 
-        for pt, eta, phi, mass in zip(pts[ievent], etas[ievent], phis[ievent], masses[ievent]):
+        for pt, eta, phi, mass, tau_tag, b_tag in zip(
+            pts[ievent], etas[ievent], phis[ievent], masses[ievent], tau_tags[ievent], b_tags[ievent]
+        ):
 
             if pt_min is not None and pt < pt_min:
                 continue
@@ -462,6 +474,7 @@ def _get_particles_jets(tree, pt_min, eta_max):
             particle = MadMinerParticle()
             particle.setptetaphim(pt, eta, phi, mass)
             particle.set_pdgid(9)
+            particle.set_tags(tau_tag >= 1, b_tag >= 1, False)
             event_particles.append(particle)
 
         all_particles.append(event_particles)
@@ -474,13 +487,25 @@ def _get_particles_truth_jets(tree, pt_min, eta_max):
     etas = tree.array("GenJet.Eta")
     phis = tree.array("GenJet.Phi")
     masses = tree.array("GenJet.Mass")
+    try:
+        tau_tags = tree.array("GenJet.TauTag")
+    except:
+        logger.warning("Did not find tau-tag information for GenJets in Delphes ROOT file.")
+        tau_tags = [0 for _ in range(len(pts))]
+    try:
+        b_tags = tree.array("GenJet.BTag")
+    except:
+        logger.warning("Did not find b-tag information for GenJets in Delphes ROOT file.")
+        b_tags = [0 for _ in range(len(pts))]
 
     all_particles = []
 
     for ievent in range(len(pts)):
         event_particles = []
 
-        for pt, eta, phi, mass in zip(pts[ievent], etas[ievent], phis[ievent], masses[ievent]):
+        for pt, eta, phi, mass, tau_tag, b_tag in zip(
+            pts[ievent], etas[ievent], phis[ievent], masses[ievent], tau_tags[ievent], b_tags[ievent]
+        ):
 
             if pt_min is not None and pt < pt_min:
                 continue
@@ -490,6 +515,7 @@ def _get_particles_truth_jets(tree, pt_min, eta_max):
             particle = MadMinerParticle()
             particle.setptetaphim(pt, eta, phi, mass)
             particle.set_pdgid(9)
+            particle.set_tags(tau_tag >= 1, b_tag >= 1, False)
             event_particles.append(particle)
 
         all_particles.append(event_particles)
