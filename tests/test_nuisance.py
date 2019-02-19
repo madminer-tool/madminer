@@ -105,7 +105,9 @@ def test_nuisance():
     print(header)
     print(len(header) * "-")
 
-    for systematic_effect_size, mm, gauss, rel in zip(systematic_effect_sizes, mm_limits, gaussian_limits, relative_diffs):
+    for systematic_effect_size, mm, gauss, rel in zip(
+        systematic_effect_sizes, mm_limits, gaussian_limits, relative_diffs
+    ):
         print(
             "{:>5d}  {:4.2f}  {:4.2f}  |  {:8.3f}  {:8.3f}  {:6.3f}".format(
                 n_expected_events, physical_effect_size, systematic_effect_size, mm, gauss, rel
