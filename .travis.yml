@@ -32,7 +32,7 @@ install:
 script:
   - pytest tests/test_imports.py
   - pytest -s tests/test_toy_workflow.py
-
+  - pytest -s tests/test_nuisance.py
 
 after_success: #build and push image
   - docker login -e $DOCKER_EMAIL -u $DOCKER_USER -p $DOCKER_PASS
