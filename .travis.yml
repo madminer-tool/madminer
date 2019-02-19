@@ -23,7 +23,7 @@ script: #tests
 - pytest -s tests/test_toy_workflow.py
 
 after_success: #docker build + login + push 
-- docker login  $DOCKER_EMAIL -u $DOCKER_USER -p $DOCKER_PASS
+- docker login  $DOCKER_EMAIL -u $DOCKER_USER --password-stdin $DOCKER_PASS
 - export REPO=irinahub/docker-madminer
 - docker build -f Dockerfile -t $REPO .
 - docker push $REPO
