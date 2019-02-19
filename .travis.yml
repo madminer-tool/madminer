@@ -27,7 +27,7 @@ branches: #run on branch != master
   - master
 
 install:
-  - pip install -q --no-cache-dir -e .
+  - travis_wait pip install -q --no-cache-dir -e .
 
 script:
   - pytest tests/test_imports.py
