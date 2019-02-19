@@ -40,7 +40,7 @@ def theta_limit_madminer(xsec=0.001, lumi=1000000.0, effect_phys=0.1, effect_sys
 
     # Calculate Fisher information
     fisher = FisherInformation("data.h5")
-    info, cov = fisher.calculate_fisher_information_full_truth(theta=[0.0], luminosity=lumi)
+    info, cov = fisher.calculate_fisher_information_full_truth(theta=np.array([0.0]), luminosity=lumi)
     constraint = fisher.calculate_fisher_information_nuisance_constraints()
     info = info + constraint
     profiled = profile_information(info, [0])
@@ -104,11 +104,10 @@ def test_nuisance():
     print(header)
     print(len(header) * "-")
 
-    for n_exp, phys_eff, sys_eff, mm, gauss, rel in zip(n_exps, phys_effs, sys_effs, limits_mm, relative_diffs):
-        rel_diff = (mm - gauss) / gauss
+    for systematic_effect_size, mm, gauss, rel in zip(systematic_effect_sizes, mm_limits, gaussian_limits, relative_diffs):
         print(
             "{:>5d}  {:4.2f}  {:4.2f}  |  {:8.3f}  {:8.3f}  {:5.2f}".format(
-                n_exp, phys_eff, sys_eff, mm, gauss, rel_diff
+                n_expected_events, physical_effect_size, systematic_effect_size, mm, gauss, rel
             )
         )
 
