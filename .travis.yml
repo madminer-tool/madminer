@@ -27,12 +27,12 @@ branches: #run on branch != master
   - master
 
 install:
-  - pip install -q --no-cache-dir -e .
+  - travis_wait pip install -q --no-cache-dir -e .
 
 script:
   - pytest tests/test_imports.py
   - pytest -s tests/test_toy_workflow.py
-
+  - pytest -s tests/test_nuisance.py
 
 after_success: #build and push image
   - docker login -e $DOCKER_EMAIL -u $DOCKER_USER -p $DOCKER_PASS

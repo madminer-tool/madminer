@@ -828,6 +828,14 @@ def _smear_particles(particles, energy_resolutions, pt_resolutions, eta_resoluti
     for particle in particles:
         pdgid = particle.pdgid
 
+        if (
+            pdgid not in six.iterkeys(energy_resolutions)
+            or pdgid not in six.iterkeys(pt_resolutions)
+            or pdgid not in six.iterkeys(eta_resolutions)
+            or pdgid not in six.iterkeys(phi_resolutions)
+        ):
+            continue
+
         if None in energy_resolutions[pdgid] and None in pt_resolutions[pdgid]:
             raise RuntimeError("Cannot derive both pT and energy from on-shell conditions!")
 
