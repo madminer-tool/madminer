@@ -74,7 +74,7 @@ def test_nuisance():
     n_expected_events = 10000
     physical_effect_size = 0.05
     systematic_effect_sizes = [0.0, 0.02, 0.05, 0.1]
-    tolerance = 0.05
+    tolerance = 0.10
 
     # Calculate limits
     mm_limits = []
