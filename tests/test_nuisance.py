@@ -67,8 +67,8 @@ def test_nuisance():
     # Settings
     lumi = 100000.0
     n_expected_events = 10000
-    physical_effect_size = 0.02
-    systematic_effect_sizes = [0.0, 0.01, 0.02, 0.04]
+    physical_effect_size = 0.05
+    systematic_effect_sizes = [0.0, 0.02, 0.05, 0.1]
     tolerance = 0.05
 
     # Calculate limits
@@ -98,15 +98,16 @@ def test_nuisance():
     relative_diffs = (mm_limits - gaussian_limits) / gaussian_limits
 
     # Print results
-    header = "{:>5s}  {:>4s}  {:>4s}  |  {:>8s}  {:>8s}  {:>5s}".format(
+    header = "{:>5s}  {:>4s}  {:>4s}  |  {:>8s}  {:>8s}  {:>6s}".format(
         "n_exp", "phys", "sys", "MadMiner", "Gauss", "diff"
     )
+    print("\n")
     print(header)
     print(len(header) * "-")
 
     for systematic_effect_size, mm, gauss, rel in zip(systematic_effect_sizes, mm_limits, gaussian_limits, relative_diffs):
         print(
-            "{:>5d}  {:4.2f}  {:4.2f}  |  {:8.3f}  {:8.3f}  {:5.2f}".format(
+            "{:>5d}  {:4.2f}  {:4.2f}  |  {:8.3f}  {:8.3f}  {:6.3f}".format(
                 n_expected_events, physical_effect_size, systematic_effect_size, mm, gauss, rel
             )
         )
