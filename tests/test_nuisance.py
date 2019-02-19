@@ -1,5 +1,6 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+import os
 import numpy as np
 from collections import OrderedDict
 from scipy.stats import chi2
@@ -22,10 +23,10 @@ def theta_limit_madminer(xsec=0.001, lumi=1000000.0, effect_phys=0.1, effect_sys
     miner.add_benchmark({"theta": 0.0})
     miner.add_benchmark({"theta": 1.0})
     miner.set_morphing(include_existing_benchmarks=True, max_overall_power=1)
-    miner.save("data.h5")
+    miner.save(".data.h5")
 
     # Set up observations
-    proc = LHEProcessor("data.h5")
+    proc = LHEProcessor(".data.h5")
     proc.add_observable("x", "no one cares")
     proc.reference_benchmark = "benchmark_0"
     proc.nuisance_parameters = OrderedDict()
@@ -36,10 +37,10 @@ def theta_limit_madminer(xsec=0.001, lumi=1000000.0, effect_phys=0.1, effect_sys
     proc.weights["benchmark_0"] = np.array([xsec])
     proc.weights["benchmark_1"] = np.array([xsec * (1.0 + effect_phys)])
     proc.weights["benchmark_nuisance"] = np.array([xsec * (1.0 + effect_sys)])
-    proc.save("data.h5")
+    proc.save(".data2.h5")
 
     # Calculate Fisher information
-    fisher = FisherInformation("data.h5")
+    fisher = FisherInformation(".data2.h5")
     info, cov = fisher.calculate_fisher_information_full_truth(theta=np.array([0.0]), luminosity=lumi)
     constraint = fisher.calculate_fisher_information_nuisance_constraints()
     info = info + constraint
@@ -47,6 +48,10 @@ def theta_limit_madminer(xsec=0.001, lumi=1000000.0, effect_phys=0.1, effect_sys
 
     # Uncertainty on theta
     theta_limit = profiled[0, 0] ** -0.5
+
+    # Remove file
+    os.remove(".data.h5")
+    os.remove(".data2.h5")
 
     return theta_limit
 
