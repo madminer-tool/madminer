@@ -25,16 +25,18 @@ script: #tests
 - pytest -s tests/test_toy_workflow.py
 
 
-after_success: #docker build + login + push 
-#only push image for master and docker travis branch
-if ([ "$TRAVIS_BRANCH" == "master" ] || [ "$TRAVIS_BRANCH" == "docker-travis-build)" ]) && 
-    [ "$TRAVIS_PULL_REQUEST" == "false" ]; then
-
+deploy: #docker build + login + push 
+  provider: script
+  script: 
     - echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
     - export REPO=irinahub/docker-madminer
     - docker build -f Dockerfile -t $REPO .
     - docker push $REPO
-  fi
+  on:
+    branch: #only on master & docker-travis-build branch
+      - master
+      - docker-travis-build
+    condition: "$TRAVIS_PULL_REQUEST = false" #only push docker image after merge
 
 
 env: #security
