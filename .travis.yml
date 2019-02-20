@@ -27,7 +27,7 @@ script: #tests
 
 after_success: #docker build + login + push 
 #only push image for master and docker travis branch
-if ([ "$TRAVIS_BRANCH" == "master" ] || [ "$TRAVIS_BRANCH" == "docker-travis build)" ]) && 
+if ([ "$TRAVIS_BRANCH" == "master" ] || [ "$TRAVIS_BRANCH" == "docker-travis-build)" ]) && 
     [ "$TRAVIS_PULL_REQUEST" == "false" ]; then
 
     - echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
