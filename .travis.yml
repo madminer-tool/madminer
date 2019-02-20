@@ -16,13 +16,12 @@ services:
 - docker
 
 install:
-  - pip install -q --no-cache-dir -e .
   - travis_wait pip install -q --no-cache-dir -e .
 
-script: #tests
-- pytest tests/test_imports.py
-- pytest -s tests/test_toy_workflow.py
-
+script:
+  - pytest tests/test_imports.py
+  - pytest -s tests/test_toy_workflow.py
+  - pytest -s tests/test_nuisance.py
 
 deploy: #docker build + login + push 
   provider: script

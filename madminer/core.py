@@ -184,7 +184,7 @@ class MadMiner:
         self.morpher = None
         self.export_morphing = False
 
-    def add_benchmark(self, parameter_values, benchmark_name=None):
+    def add_benchmark(self, parameter_values, benchmark_name=None, verbose=True):
         """
         Manually adds an individual benchmark, that is, a parameter point that will be evaluated by MadGraph.
 
@@ -197,6 +197,9 @@ class MadMiner:
 
         benchmark_name : str or None, optional
             Name of benchmark. If None, a default name is used. Default value: None.
+
+        verbose : bool, optional
+            If True, prints output about each benchmark. Default value: True.
 
         Returns
         -------
@@ -232,9 +235,12 @@ class MadMiner:
         if len(self.benchmarks) == 1:
             self.default_benchmark = benchmark_name
 
-        logger.info("Added benchmark %s: %s)", benchmark_name, format_benchmark(parameter_values))
+        if verbose:
+            logger.info("Added benchmark %s: %s)", benchmark_name, format_benchmark(parameter_values))
+        else:
+            logger.debug("Added benchmark %s: %s)", benchmark_name, format_benchmark(parameter_values))
 
-    def set_benchmarks(self, benchmarks=None):
+    def set_benchmarks(self, benchmarks=None, verbose=True):
         """
         Manually sets all benchmarks, that is, parameter points that will be evaluated by MadGraph. Calling this
         function overwrites all previously defined benchmarks.
@@ -245,6 +251,9 @@ class MadMiner:
             Specifies all benchmarks. If None, all benchmarks are reset. If dict, the keys are the benchmark names and
             the values are dicts of the form {parameter_name:value}. If list, the entries are dicts
             {parameter_name:value} (and the benchmark names are chosen automatically). Default value: None.
+
+        verbose : bool, optional
+            If True, prints output about each benchmark. Default value: True.
 
         Returns
         -------
@@ -260,7 +269,7 @@ class MadMiner:
 
         if isinstance(benchmarks, dict):
             for name, values in six.iteritems(benchmarks):
-                self.add_benchmark(values, name)
+                self.add_benchmark(values, name, verbose=verbose)
         else:
             for values in benchmarks:
                 self.add_benchmark(values)
@@ -331,6 +340,7 @@ class MadMiner:
         morpher.find_components(max_overall_power)
 
         if include_existing_benchmarks:
+            n_predefined_benchmarks = len(self.benchmarks)
             basis = morpher.optimize_basis(
                 n_bases=n_bases,
                 fixed_benchmarks_from_madminer=self.benchmarks,
@@ -338,15 +348,25 @@ class MadMiner:
                 n_test_thetas=n_test_thetas,
             )
         else:
+            n_predefined_benchmarks = 0
             basis = morpher.optimize_basis(
                 n_bases=n_bases, fixed_benchmarks_from_madminer=None, n_trials=n_trials, n_test_thetas=n_test_thetas
             )
 
             basis.update(self.benchmarks)
 
-        self.set_benchmarks(basis)
+        self.set_benchmarks(basis, verbose=False)
         self.morpher = morpher
         self.export_morphing = True
+
+        logger.info(
+            "Set up morphing with %s parameters, %s morphing components, %s predefined basis points, and %s "
+            "new basis points",
+            morpher.n_parameters,
+            morpher.n_components,
+            n_predefined_benchmarks,
+            morpher.n_components - n_predefined_benchmarks,
+        )
 
     def set_systematics(self, scale_variation=None, scales="together", pdf_variation=None):
         """
