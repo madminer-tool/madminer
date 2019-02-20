@@ -27,16 +27,12 @@ script: #tests
 
 deploy: #docker build + login + push 
   provider: script
-  script: 
-    - echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
-    - export REPO=irinahub/docker-madminer
-    - docker build -f Dockerfile -t $REPO .
-    - docker push $REPO
+  script: bash docker_push
   on:
     branch: #only on master & docker-travis-build branch
-      - master
-      - docker-travis-build
-    condition: "$TRAVIS_PULL_REQUEST = false" #only push docker image after merge
+    #  - master
+       - docker-travis-build
+    #condition: "$TRAVIS_PULL_REQUEST = false" #only push docker image after merge
 
 
 env: #security
