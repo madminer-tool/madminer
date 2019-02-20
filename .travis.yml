@@ -15,8 +15,6 @@ python:
 services:
 - docker
 
-
-
 install:
 - pip install -q --no-cache-dir -e .
 
@@ -30,8 +28,8 @@ deploy: #docker build + login + push
   script: bash docker_push
   on:
     branch: #only on master & docker-travis-build branch
-    #  - master
-       - docker-travis-build
+      - master
+      - docker-travis-build
     #condition: "$TRAVIS_PULL_REQUEST = false" #only push docker image after merge
 
 
