@@ -1,3 +1,8 @@
+notifications: # set notification options
+  email:
+    recipients:
+      - iem244@nyu.edu
+
 sudo: required
 
 language: python
@@ -10,10 +15,7 @@ python:
 services:
 - docker
 
-branches: #run travis.yml only in
-  only:
-  - docker-travis-build
-  - master
+
 
 install:
 - pip install -q --no-cache-dir -e .
@@ -22,11 +24,18 @@ script: #tests
 - pytest tests/test_imports.py
 - pytest -s tests/test_toy_workflow.py
 
+
 after_success: #docker build + login + push 
-- echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
-- export REPO=irinahub/docker-madminer
-- docker build -f Dockerfile -t $REPO .
-- docker push $REPO
+#only push image for master and docker travis branch
+if ([ "$TRAVIS_BRANCH" == "master" ] || [ "$TRAVIS_BRANCH" == "docker-travis build)" ]) && 
+    [ "$TRAVIS_PULL_REQUEST" == "false" ]; then
+
+    - echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+    - export REPO=irinahub/docker-madminer
+    - docker build -f Dockerfile -t $REPO .
+    - docker push $REPO
+  fi
+
 
 env: #security
   global:
