@@ -30,7 +30,7 @@ deploy: #docker build + login + push
     branch: #only on master & docker-travis-build branch
       - master
       - docker-travis-build
-    #condition: "$TRAVIS_PULL_REQUEST = false" #only push docker image after merge
+    condition: "$TRAVIS_PULL_REQUEST = false" #only push docker image after merge
 
 
 env: #security
