@@ -990,7 +990,7 @@ class MadMiner:
             expected_event_files = [
                 mg_process_directory + "/Events/run_{:02d}".format(i + 1) for i in range(n_runs_total)
             ]
-            expected_event_files = "/n".join(expected_event_files)
+            expected_event_files = "\n".join(expected_event_files)
             logger.info(
                 "Finished running MadGraph! Please check that events were succesfully generated in the following "
                 "folders:\n\n%s\n\n",
