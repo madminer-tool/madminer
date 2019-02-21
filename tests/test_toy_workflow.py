@@ -7,17 +7,17 @@ from scipy.stats import norm
 
 from madminer.ml import MLForge
 
-if not os.path.exists('tests/data'):
-    os.makedirs('tests/data')
+if not os.path.exists("tests/data"):
+    os.makedirs("tests/data")
 
 
 # Simulator settings
 def z_mean(theta):
-    return theta + 10.
+    return theta + 10.0
 
 
-z_std = 2.
-x_std = 1.
+z_std = 2.0
+x_std = 1.0
 
 
 # Simulator
@@ -43,7 +43,7 @@ def simulate(theta, theta0=None, theta1=None, theta_score=None, npoints=None):
 
 
 # True likeleihood ratio function
-def calculate_likelihood_ratio(x, theta0, theta1=0.):
+def calculate_likelihood_ratio(x, theta0, theta1=0.0):
     combined_std = (z_std ** 2 + x_std ** 2) ** 0.5
     r_x = norm(loc=z_mean(theta0), scale=combined_std).pdf(x) / norm(loc=z_mean(theta1), scale=combined_std).pdf(x)
     return r_x
@@ -70,22 +70,22 @@ def run_test():
     theta0_train = np.hstack((theta0, theta0)).reshape(-1, 1)
 
     # Save everything to files.
-    np.save('tests/data/theta0_train.npy', theta0_train)
-    np.save('tests/data/x_train.npy', x_train)
-    np.save('tests/data/y_train.npy', y_train)
-    np.save('tests/data/r_xz_train.npy', r_xz_train)
-    np.save('tests/data/t_xz_train.npy', t_xz_train)
+    np.save("tests/data/theta0_train.npy", theta0_train)
+    np.save("tests/data/x_train.npy", x_train)
+    np.save("tests/data/y_train.npy", y_train)
+    np.save("tests/data/r_xz_train.npy", r_xz_train)
+    np.save("tests/data/t_xz_train.npy", t_xz_train)
 
     # Train model
     forge = MLForge()
 
     forge.train(
-        method='alices',
-        x_filename='tests/data/x_train.npy',
-        y_filename='tests/data/y_train.npy',
-        theta0_filename='tests/data/theta0_train.npy',
-        r_xz_filename='tests/data/r_xz_train.npy',
-        t_xz0_filename='tests/data/t_xz_train.npy',
+        method="alices",
+        x_filename="tests/data/x_train.npy",
+        y_filename="tests/data/y_train.npy",
+        theta0_filename="tests/data/theta0_train.npy",
+        r_xz_filename="tests/data/r_xz_train.npy",
+        t_xz0_filename="tests/data/t_xz_train.npy",
         alpha=0.1,
         n_epochs=10,
         n_hidden=(20, 20),
@@ -97,13 +97,13 @@ def run_test():
     n_param_points_test = 100
     n_thetas_grid = 100
 
-    theta_test = 1. * np.ones(shape=n_param_points_test).reshape(-1, 1)
+    theta_test = 1.0 * np.ones(shape=n_param_points_test).reshape(-1, 1)
     x_test, _, _ = simulate(theta_test)
-    np.save('tests/data/x_test.npy', x_test)
+    np.save("tests/data/x_test.npy", x_test)
 
     # We want to evaluate the expected likelihood ratio on a range of parameter points
-    theta_grid = np.linspace(-4., 4., n_thetas_grid).reshape(-1, 1)
-    np.save('tests/data/theta_grid.npy', theta_grid)
+    theta_grid = np.linspace(-4.0, 4.0, n_thetas_grid).reshape(-1, 1)
+    np.save("tests/data/theta_grid.npy", theta_grid)
 
     # Ground truth
     log_r_test_true = []
@@ -113,9 +113,7 @@ def run_test():
 
     # Evaluation
     log_r_tests_alices, _, _ = forge.evaluate(
-        theta0_filename='tests/data/theta_grid.npy',
-        x='tests/data/x_test.npy',
-        evaluate_score=False
+        theta0_filename="tests/data/theta_grid.npy", x="tests/data/x_test.npy", evaluate_score=False
     )
 
     # Calculate error
@@ -129,4 +127,4 @@ def test_toy_workflow():
 
     print("Root mean squared error of true log r vs ALICES log r: {}".format(rmse))
 
-    assert rmse < 1000.
+    assert rmse < 1000.0
