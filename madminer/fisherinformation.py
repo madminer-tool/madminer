@@ -677,7 +677,7 @@ class FisherInformation:
         histrange=None,
         cuts=None,
         efficiency_functions=None,
-        n_events_dynamic_binning=100000,
+        n_events_dynamic_binning=None,
     ):
         """
         Calculates the Fisher information in the one-dimensional histogram of an (parton-level or detector-level,
@@ -710,8 +710,10 @@ class FisherInformation:
             Efficiencies. Each entry is a parseable Python expression that returns a float for the efficiency of one
             component. Default value: None.
 
-        n_events_dynamic_binning : int, optional
-            Number of events used to calculate the dynamic binning (if histrange is None). Default value: 100000.
+        n_events_dynamic_binning : int or None, optional
+            Number of events used to calculate the dynamic binning (if histrange is None). If None, all events are used.
+            Note that these events are not shuffled, so if the events in the MadMiner file are sorted, using a value
+            different from None can cause issues. Default value: None.
 
         Returns
         -------
@@ -797,7 +799,7 @@ class FisherInformation:
         histrange2=None,
         cuts=None,
         efficiency_functions=None,
-        n_events_dynamic_binning=100000,
+        n_events_dynamic_binning=None,
     ):
 
         """
@@ -844,8 +846,10 @@ class FisherInformation:
             Efficiencies. Each entry is a parseable Python expression that returns a float for the efficiency of one
             component. Default value: None.
 
-        n_events_dynamic_binning : int, optional
-            Number of events used to calculate the dynamic binning (if histrange is None). Default value: 100000.
+        n_events_dynamic_binning : int or None, optional
+            Number of events used to calculate the dynamic binning (if histrange is None). If None, all events are used.
+            Note that these events are not shuffled, so if the events in the MadMiner file are sorted, using a value
+            different from None can cause issues. Default value: None.
 
         Returns
         -------
@@ -1190,8 +1194,7 @@ class FisherInformation:
         )
 
         # Get rid of nuisance parameters
-        if include_nuisance_parameters:
-            fisher_info_rate_bins = fisher_info_rate_bins[:, : self.n_parameters, : self.n_parameters]
+        fisher_info_rate_bins = fisher_info_rate_bins[:, : self.n_parameters, : self.n_parameters]
 
         # If ML: full info is still missing right normalisation and xsec info!
         if model_file is not None:
@@ -1345,6 +1348,7 @@ class FisherInformation:
 
         # Get differential xsec per event, and the derivative wrt to theta
         sigma = mdot(theta_matrix, weights_benchmarks)  # Shape (n_events,)
+        total_xsec = np.sum(sigma)
         inv_sigma = sanitize_array(1.0 / sigma)  # Shape (n_events,)
         dsigma = mdot(dtheta_matrix, weights_benchmarks)  # Shape (n_parameters, n_events)
 
@@ -1354,7 +1358,6 @@ class FisherInformation:
         # Nuisance parameter Fisher info
         if include_nuisance_parameters and self.include_nuisance_parameters:
             nuisance_a = self.nuisance_morpher.calculate_a(weights_benchmarks)  # Shape (n_nuisance_params, n_events)
-
             # grad_i dsigma(x), where i is a nuisance parameter, is given by
             # sigma[np.newaxis, :] * a
 

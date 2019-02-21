@@ -1217,7 +1217,7 @@ class EnsembleForge:
 
     def evaluate(
         self,
-        x_filename,
+        x,
         theta0_filename=None,
         theta1_filename=None,
         test_all_combinations=True,
@@ -1238,8 +1238,10 @@ class EnsembleForge:
 
         Parameters
         ----------
-        x_filename : str
-            Path to an unweighted sample of observations, as saved by the `madminer.sampling.SampleAugmenter` functions.
+        x : str or ndarray
+            Sample of observations, or path to numpy file with observations, as saved by the
+            `madminer.sampling.SampleAugmenter` functions. Note that this sample has to be sampled from the reference
+            parameter where the score is estimated with the SALLY / SALLINO estimator!
 
         theta0_filename : str or None, optional
             Path to an unweighted sample of numerator parameters, as saved by the `madminer.sampling.SampleAugmenter`
@@ -1324,9 +1326,7 @@ class EnsembleForge:
             logger.info("Starting evaluation for estimator %s / %s in ensemble", i + 1, self.n_estimators)
 
             predictions.append(
-                estimator.evaluate(
-                    x_filename, theta0_filename, theta1_filename, test_all_combinations, evaluate_score=False
-                )
+                estimator.evaluate(x, theta0_filename, theta1_filename, test_all_combinations, evaluate_score=False)
             )
 
             logger.debug("Estimator %s predicts %s for first event", i + 1, predictions[-1][0, :])

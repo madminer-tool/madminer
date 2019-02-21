@@ -169,6 +169,10 @@ examples/example2_wbf/py.py
 examples/example2_wbf/models
 examples/example2_wbf/figures
 
+examples/example3_systematics/data
+examples/example3_systematics/mg_processes
+examples/example3_systematics/models
+
 # MG / Pythia / Delphes patch
 patches/
 

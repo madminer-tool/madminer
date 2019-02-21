@@ -99,8 +99,8 @@ class LHEProcessor:
             21,
             22,
             23,
-            -23,
             24,
+            -24,
             25,
         ]
         for pdgid in pdgids:
@@ -263,8 +263,8 @@ class LHEProcessor:
                 21,
                 22,
                 23,
-                -23,
                 24,
+                -24,
                 25,
             ]
 
