@@ -20,8 +20,9 @@ install:
 - travis_wait pip install -q --no-cache-dir -e .
 
 script: #tests
-- pytest tests/test_imports.py
-- pytest -s tests/test_toy_workflow.py
+  - pytest tests/test_imports.py
+  - pytest -s tests/test_toy_workflow.py
+  - pytest -s tests/test_nuisance.py
 
 deploy: #build+push under certain contidions
   provider: script
