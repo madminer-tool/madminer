@@ -3,7 +3,6 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import os
 import numpy as np
 from collections import OrderedDict
-from scipy.stats import chi2
 
 from madminer.core import MadMiner
 from madminer.lhe import LHEProcessor
@@ -56,14 +55,14 @@ def theta_limit_madminer(xsec=0.001, lumi=1000000.0, effect_phys=0.1, effect_sys
     return theta_limit
 
 
-def theta_limit_gaussian(n_expected_events, systematic_uncertainty, dsigma_dtheta, cl=0.68):
-    chi_squared = chi2.ppf(cl, df=1)
+def theta_limit_gaussian(n_expected_events, systematic_uncertainty, dsigma_dtheta):
+    chi_squared_threshold = 1.0
 
     var_phys = 1.0 / n_expected_events
     var_sys = (systematic_uncertainty) ** 2
     var = var_phys + var_sys
 
-    theta_limit = (chi_squared * var / dsigma_dtheta ** 2) ** 0.5
+    theta_limit = (chi_squared_threshold * var / dsigma_dtheta ** 2) ** 0.5
 
     return theta_limit
 
