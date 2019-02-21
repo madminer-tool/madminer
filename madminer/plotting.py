@@ -42,11 +42,10 @@ def plot_uncertainty(
         Which parameter points to use for histogramming the data.
 
     observable : str
-        Which observables to plot, given by a list of their names. If None, all observables in the file
-        are plotted. Default value: None.
+        Which observable to plot, given by its name in the MadMiner file.
 
     obs_label : str
-        x-axis labels naming the observables.
+        x-axis label naming the observable.
 
     obs_range : tuple of two float
         Range to be plotted for the observable.
