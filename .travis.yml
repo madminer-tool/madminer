@@ -24,14 +24,34 @@ script: #tests
   - pytest -s tests/test_toy_workflow.py
   - pytest -s tests/test_nuisance.py
 
-deploy: #build+push under certain contidions
-  provider: script
-  script: bash docker_push
-  on:
-    branch:
-    - master
-    - docker-travis-build
-    condition: "$TRAVIS_PULL_REQUEST = false" #push only if not a PR
+
+#build+push under certain contidions
+jobs:
+  include:
+    - stage: docker
+      install:
+        - echo none
+      script:
+        - echo none
+      deploy:
+        provider: script
+        script: "sh docker_push.sh"
+        on:
+          branch: 
+            - master
+          condition: $TRAVIS_PULL_REQUEST = false #push only if not a PR
+
+    - stage: docker
+      install:
+        - echo none
+      script:
+        - echo none
+      deploy:
+        provider: script
+        script: "sh docker_push.sh"
+        on:
+          branch: 
+            - docker-travis-build 
 
 env: #security
   global:
