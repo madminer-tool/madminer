@@ -37,11 +37,10 @@ jobs:
             provider: script
             script: ./docker_push.sh
             on:
-              tags: true
               branch: 
                 - master
                 - docker-travis-build
-              condition: "$TRAVIS_PULL_REQUEST = false" #push only if not a PR
+              condition: $TRAVIS_PULL_REQUEST = false #push only if not a PR
 
 env: #security
   global:
