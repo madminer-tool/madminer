@@ -39,8 +39,19 @@ jobs:
         on:
           branch: 
             - master
-            - docker-travis-build
-          #condition: $TRAVIS_PULL_REQUEST = false #push only if not a PR
+          condition: $TRAVIS_PULL_REQUEST = false #push only if not a PR
+
+    - stage: docker
+      install:
+        - echo none
+      script:
+        - echo none
+      deploy:
+        provider: script
+        script: "sh docker_push.sh"
+        on:
+          branch: 
+            - docker-travis-build 
 
 env: #security
   global:
