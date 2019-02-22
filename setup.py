@@ -35,7 +35,9 @@ REQUIRED = [
     "uproot",
     "matplotlib>=2.0.0",
     "numpydoc",
-    "pytest"
+    "pytest",
+    "sphinx_rtd_theme",
+    "recommonmark",
 ]
 
 # What packages are optional?
