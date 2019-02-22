@@ -36,7 +36,7 @@ REQUIRED = [
     "matplotlib>=2.0.0",
     "numpydoc",
     "pytest",
-    "sphinx",
+    "sphinx>=1.4",
     "sphinx_rtd_theme",
     "recommonmark",
 ]
