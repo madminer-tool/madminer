@@ -54,6 +54,13 @@ templates_path = ['_templates']
 source_suffix = ['.rst', '.md']
 #source_suffix = '.rst'
 
+# Markdown parsing
+from recommonmark.parser import CommonMarkParser
+
+source_parsers = {
+    '.md': CommonMarkParser,
+}
+
 # The master toctree document.
 master_doc = 'index'
 
@@ -71,7 +78,6 @@ exclude_patterns = []
 
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = None
-
 
 # -- Options for HTML output -------------------------------------------------
 
