@@ -26,22 +26,21 @@ script: #tests
 
 
 #build+push under certain contidions
-
-#jobs:
-#  include:
-#    - stage: docker
-#          install:
-#            - echo none
-#          script:
-#            - echo none
-#          deploy:
-#            provider: script
-#            script: ./docker_push.sh
-#            on:
-#              branch: 
-#                - master
-#                - docker-travis-build
-#              condition: $TRAVIS_PULL_REQUEST = false #push only if not a PR
+jobs:
+  include:
+    - stage: docker
+      install:
+        - echo none
+      script:
+        - echo none
+      deploy:
+        provider: script
+        script: ./docker_push.sh
+        on:
+          branch: 
+            - master
+            - docker-travis-build
+          condition: $TRAVIS_PULL_REQUEST = false #push only if not a PR
 
 env: #security
   global:
