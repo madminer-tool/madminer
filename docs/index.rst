@@ -10,8 +10,10 @@ MadMiner
 
 **An inference toolkit for LHC measurements**
 
-Note that this is an early development version. Do not reply on anything being stable. If you have any questions, please
-contact us at [johann.brehmer@nyu.edu](johann.brehmer@nyu.edu).
+Note that this is a development version. Do not reply on anything being stable. If you have any questions, please
+contact us at `johann.brehmer@nyu.edu`_.
+
+.. _`johann.brehmer@nyu.edu`: johann.brehmer@nyu.edu
 
 .. toctree::
    :maxdepth: 1
