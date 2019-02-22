@@ -51,8 +51,8 @@ templates_path = ['_templates']
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:
 #
-# source_suffix = ['.rst', '.md']
-source_suffix = '.rst'
+source_suffix = ['.rst', '.md']
+#source_suffix = '.rst'
 
 # The master toctree document.
 master_doc = 'index'
@@ -135,7 +135,7 @@ latex_elements = {
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
     (master_doc, 'MadMiner.tex', 'MadMiner Documentation',
-     'Johann Brehmer, Kyle Cranmer, and Felix Kling', 'manual'),
+     'Johann Brehmer, Felix Kling, Irina Espejo, and Kyle Cranmer', 'manual'),
 ]
 
 
