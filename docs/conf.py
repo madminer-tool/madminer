@@ -42,7 +42,7 @@ extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.viewcode',
     'numpydoc',
-    'recommonmark',
+    #'recommonmark',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -53,6 +53,13 @@ templates_path = ['_templates']
 #
 source_suffix = ['.rst', '.md']
 #source_suffix = '.rst'
+
+# Markdown support
+from recommonmark.parser import CommonMarkParser
+
+source_parsers = {
+    '.md': CommonMarkParser,
+}
 
 # The master toctree document.
 master_doc = 'index'
