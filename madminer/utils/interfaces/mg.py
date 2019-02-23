@@ -423,9 +423,9 @@ def create_master_script(log_directory, master_script_filename, mg_directory, mg
     placeholder_definition += r"mmlogdir=${3:-" + log_directory + r"}"
     commands = "\n".join(results)
     script = (
-            "#!/bin/bash\n\n# Master script to generate events for MadMiner\n\n"
-            + "# Usage: run.sh [MG_directory] [MG_process_directory] [log_directory]\n\n"
-            + "{}\n\n{}"
+        "#!/bin/bash\n\n# Master script to generate events for MadMiner\n\n"
+        + "# Usage: run.sh [MG_directory] [MG_process_directory] [log_directory]\n\n"
+        + "{}\n\n{}"
     ).format(placeholder_definition, commands)
     with open(master_script_filename, "w") as file:
         file.write(script)

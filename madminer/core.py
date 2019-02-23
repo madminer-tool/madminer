@@ -981,4 +981,3 @@ class MadMiner:
                 "folders:\n\n%s\n\n",
                 expected_event_files,
             )
-
