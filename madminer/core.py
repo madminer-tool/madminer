@@ -9,7 +9,7 @@ import tempfile
 from madminer.morphing import Morpher
 from madminer.utils.interfaces.madminer_hdf5 import save_madminer_settings, load_madminer_settings
 from madminer.utils.interfaces.mg_cards import export_param_card, export_reweight_card, export_run_card
-from madminer.utils.interfaces.mg import generate_mg_process, prepare_run_mg_pythia, run_mg_pythia
+from madminer.utils.interfaces.mg import generate_mg_process, setup_mg_with_scripts, run_mg, create_master_script
 from madminer.utils.various import create_missing_folders, format_benchmark, make_file_executable, copy_file
 
 logger = logging.getLogger(__name__)
@@ -867,7 +867,7 @@ class MadMiner:
 
         # Loop over settings
         i = 0
-        results = []
+        mg_scripts = []
 
         for run_card_file in run_card_files:
             for sample_benchmark in sample_benchmarks:
@@ -896,7 +896,7 @@ class MadMiner:
                 logger.info("  Log file:                %s", log_file_run)
 
                 # Check input
-                if run_card_file is None and self.run_systematics:
+                if run_card_file is None and self.systematics is not None:
                     logger.warning(
                         "Warning: No run card given, but systematics set up. The correct systematics"
                         " settings are not set automatically. Make sure to set them correctly!"
@@ -925,7 +925,7 @@ class MadMiner:
 
                 # Run MG and Pythia
                 if only_prepare_script:
-                    result = prepare_run_mg_pythia(
+                    mg_script = setup_mg_with_scripts(
                         mg_process_directory,
                         proc_card_filename_from_mgprocdir=mg_commands_filename,
                         run_card_file_from_mgprocdir=new_run_card_file,
@@ -941,9 +941,9 @@ class MadMiner:
                         log_file_from_logdir=log_file_run,
                         explicit_python_call=python2_override,
                     )
-                    results.append(result)
+                    mg_scripts.append(mg_script)
                 else:
-                    run_mg_pythia(
+                    run_mg(
                         mg_directory,
                         mg_process_directory,
                         mg_process_directory + "/" + mg_commands_filename,
@@ -964,22 +964,7 @@ class MadMiner:
         # Master shell script
         if only_prepare_script:
             master_script_filename = "{}/madminer/run.sh".format(mg_process_directory)
-
-            placeholder_definition = r"mgdir=${1:-" + mg_directory + r"}" + "\n"
-            placeholder_definition += r"mgprocdir=${2:-" + mg_process_directory + r"}" + "\n"
-            placeholder_definition += r"mmlogdir=${3:-" + log_directory + r"}"
-
-            commands = "\n".join(results)
-            script = (
-                "#!/bin/bash\n\n# Master script to generate events for MadMiner\n\n"
-                + "# Usage: run.sh [MG_directory] [MG_process_directory] [log_directory]\n\n"
-                + "{}\n\n{}"
-            ).format(placeholder_definition, commands)
-
-            with open(master_script_filename, "w") as file:
-                file.write(script)
-
-            make_file_executable(master_script_filename)
+            create_master_script(log_directory, master_script_filename, mg_directory, mg_process_directory, mg_scripts)
 
             logger.info(
                 "To generate events, please run:\n\n %s [MG_directory] [MG_process_directory] [log_dir]\n\n",
@@ -996,3 +981,4 @@ class MadMiner:
                 "folders:\n\n%s\n\n",
                 expected_event_files,
             )
+
