@@ -98,6 +98,19 @@ def shuffle(*arrays):
     return shuffled_arrays
 
 
+def restrict_samplesize(n, *arrays):
+    restricted_arrays = []
+
+    for i, a in enumerate(arrays):
+        if a is None:
+            restricted_arrays.append(None)
+            continue
+
+        restricted_arrays.append(a[:n])
+
+    return restricted_arrays
+
+
 def balance_thetas(theta_sets_types, theta_sets_values):
     """Repeats theta values such that all thetas lists have the same length """
 

@@ -7,15 +7,16 @@ import json
 import numpy as np
 import torch
 
-from madminer.utils.ml import ratio_losses, flow_losses
 from madminer.utils.ml.models.maf import ConditionalMaskedAutoregressiveFlow
 from madminer.utils.ml.models.maf_mog import ConditionalMixtureMaskedAutoregressiveFlow
 from madminer.utils.ml.models.ratio import ParameterizedRatioEstimator, DoublyParameterizedRatioEstimator
 from madminer.utils.ml.models.score import LocalScoreEstimator
-from madminer.utils.ml.flow_trainer import train_flow_model, evaluate_flow_model
-from madminer.utils.ml.ratio_trainer import train_ratio_model, evaluate_ratio_model
-from madminer.utils.ml.score_trainer import train_local_score_model, evaluate_local_score_model
-from madminer.utils.various import create_missing_folders, load_and_check, shuffle
+from madminer.utils.ml.flow_trainer import evaluate_flow_model
+from madminer.utils.ml.ratio_trainer import evaluate_ratio_model
+from madminer.utils.ml.score_trainer import evaluate_local_score_model
+from madminer.utils.ml.utils import check_required_data
+from madminer.utils.various import create_missing_folders, load_and_check, shuffle, restrict_samplesize
+from madminer.utils.ml.methods import get_training_function, get_loss
 
 logger = logging.getLogger(__name__)
 
@@ -48,6 +49,7 @@ class MLForge:
         self.maf_n_mades = None
         self.maf_batch_norm = None
         self.maf_batch_norm_alpha = None
+        self.maf_mog_n_components = None
         self.features = None
         self.x_scaling_means = None
         self.x_scaling_stds = None
@@ -303,36 +305,9 @@ class MLForge:
         if y is not None:
             y = y.reshape((-1, 1))
 
-        # Check necessary information is theere
-        assert x is not None
-        if method in [
-            "carl",
-            "carl2",
-            "nde",
-            "scandal",
-            "rolr",
-            "alice",
-            "rascal",
-            "alices",
-            "rolr2",
-            "alice2",
-            "rascal2",
-            "alices2",
-        ]:
-            assert theta0 is not None
-        if method in ["rolr", "alice", "rascal", "alices", "rolr2", "alice2", "rascal2", "alices2"]:
-            assert r_xz is not None
-        if method in ["carl", "carl2", "rolr", "alice", "rascal", "alices", "rolr2", "alice2", "rascal2", "alices2"]:
-            assert y is not None
-        if method in ["scandal", "rascal", "alices", "rascal2", "alices2", "sally", "sallino"]:
-            assert t_xz0 is not None
-        if method in ["carl2", "rolr2", "alice2", "rascal2", "alices2"]:
-            assert theta1 is not None
-        if method in ["rascal2", "alices2"]:
-            assert t_xz1 is not None
-
-        if method in ["nde", "scandal"]:
-            assert nde_type in ["maf", "mafmog"]
+        # Check necessary information is there
+        if not check_required_data(method, r_xz, t_xz0, t_xz1, theta0, theta1, x, y):
+            raise ValueError("Not all required data for method {} provided!".format(method))
 
         calculate_model_score = method in ["rascal", "cascal", "alices", "scandal", "rascal2", "cascal2", "alices2"]
 
@@ -349,31 +324,17 @@ class MLForge:
         # Limit sample size
         if limit_samplesize is not None and limit_samplesize < n_samples:
             logger.info("Only using %s of %s training samples", limit_samplesize, n_samples)
-
-            x = x[:limit_samplesize]
-            if theta0 is not None:
-                theta0 = theta0[:limit_samplesize]
-            if theta1 is not None:
-                theta1 = theta1[:limit_samplesize]
-            if y is not None:
-                y = y[:limit_samplesize]
-            if r_xz is not None:
-                r_xz = r_xz[:limit_samplesize]
-            if t_xz0 is not None:
-                t_xz0 = t_xz0[:limit_samplesize]
-            if t_xz1 is not None:
-                t_xz1 = t_xz1[:limit_samplesize]
+            x, theta0, theta1, y, r_xz, t_xz0, t_xz1 = restrict_samplesize(
+                limit_samplesize, x, theta0, theta1, y, r_xz, t_xz0, t_xz1
+            )
 
         # Scale features
         if scale_inputs:
             logger.info("Rescaling inputs")
-            self.x_scaling_means = np.mean(x, axis=0)
-            self.x_scaling_stds = np.maximum(np.std(x, axis=0), 1.0e-6)
-            x[:] -= self.x_scaling_means
-            x[:] /= self.x_scaling_stds
+            self._initialize_input_transform(x)
+            x = self._transform_inputs(x)
         else:
-            self.x_scaling_means = np.zeros(n_parameters)
-            self.x_scaling_stds = np.ones(n_parameters)
+            self._initialize_input_transform(x, False)
 
         logger.debug("Observable ranges:")
         for i in range(n_observables):
@@ -392,193 +353,61 @@ class MLForge:
             y, r_xz, t_xz0, t_xz1 = shuffle(y, r_xz, t_xz0, t_xz1)
 
         # Features
+        self.features = features
+
         if features is not None:
             x = x[:, features]
             logger.info("Only using %s of %s observables", x.shape[1], n_observables)
             n_observables = x.shape[1]
 
-        # Save setup
-        self.method = method
-        self.n_observables = n_observables
-        self.n_parameters = n_parameters
-        self.n_hidden = n_hidden
-        self.activation = activation
-        self.maf_n_mades = maf_n_mades
-        self.maf_batch_norm = maf_batch_norm
-        self.maf_batch_norm_alpha = maf_batch_norm_alpha
-        self.features = features
-
-        # Create model
+        # Create model and save settings
         logger.info("Creating model for method %s", method)
-        if method in ["carl", "rolr", "rascal", "alice", "alices"]:
-            self.method_type = "parameterized"
-            self.model = ParameterizedRatioEstimator(
-                n_observables=n_observables, n_parameters=n_parameters, n_hidden=n_hidden, activation=activation
-            )
-        elif method in ["carl2", "rolr2", "rascal2", "alice2", "alices2"]:
-            self.method_type = "doubly_parameterized"
-            self.model = DoublyParameterizedRatioEstimator(
-                n_observables=n_observables, n_parameters=n_parameters, n_hidden=n_hidden, activation=activation
-            )
-        elif method in ["sally", "sallino"]:
-            self.method_type = "local_score"
-            self.model = LocalScoreEstimator(
-                n_observables=n_observables, n_parameters=n_parameters, n_hidden=n_hidden, activation=activation
-            )
-        elif method in ["nde", "scandal"]:
-            self.method_type = "nde"
-            if nde_type == "maf":
-                self.model = ConditionalMaskedAutoregressiveFlow(
-                    n_conditionals=n_parameters,
-                    n_inputs=n_observables,
-                    n_hiddens=n_hidden,
-                    n_mades=maf_n_mades,
-                    activation=activation,
-                    batch_norm=maf_batch_norm,
-                    alpha=maf_batch_norm_alpha,
-                )
-            elif nde_type == "mafmog":
-                self.model = ConditionalMixtureMaskedAutoregressiveFlow(
-                    n_conditionals=n_parameters,
-                    n_inputs=n_observables,
-                    n_components=maf_mog_n_components,
-                    n_hiddens=n_hidden,
-                    n_mades=maf_n_mades,
-                    activation=activation,
-                    batch_norm=maf_batch_norm,
-                    alpha=maf_batch_norm_alpha,
-                )
-            else:
-                raise RuntimeError("Unknown NDE type {}".format(nde_type))
-        else:
-            raise RuntimeError("Unknown method {}".format(method))
+        self._create_model(
+            method,
+            n_observables,
+            n_parameters,
+            n_hidden,
+            activation,
+            nde_type,
+            maf_n_mades,
+            maf_batch_norm,
+            maf_batch_norm_alpha,
+            maf_mog_n_components,
+        )
 
-        # Loss fn
-        if method in ["carl", "carl2"]:
-            loss_functions = [ratio_losses.standard_cross_entropy]
-            loss_weights = [1.0]
-            loss_labels = ["xe"]
-
-        elif method in ["rolr", "rolr2"]:
-            loss_functions = [ratio_losses.ratio_mse]
-            loss_weights = [1.0]
-            loss_labels = ["mse_r"]
-
-        elif method == "rascal":
-            loss_functions = [ratio_losses.ratio_mse, ratio_losses.score_mse_num]
-            loss_weights = [1.0, alpha]
-            loss_labels = ["mse_r", "mse_score"]
-
-        elif method == "rascal2":
-            loss_functions = [ratio_losses.ratio_mse, ratio_losses.score_mse]
-            loss_weights = [1.0, alpha]
-            loss_labels = ["mse_r", "mse_score"]
-
-        elif method in ["alice", "alice2"]:
-            loss_functions = [ratio_losses.augmented_cross_entropy]
-            loss_weights = [1.0]
-            loss_labels = ["improved_xe"]
-
-        elif method == "alices":
-            loss_functions = [ratio_losses.augmented_cross_entropy, ratio_losses.score_mse_num]
-            loss_weights = [1.0, alpha]
-            loss_labels = ["improved_xe", "mse_score"]
-
-        elif method == "alices2":
-            loss_functions = [ratio_losses.augmented_cross_entropy, ratio_losses.score_mse]
-            loss_weights = [1.0, alpha]
-            loss_labels = ["improved_xe", "mse_score"]
-
-        elif method in ["sally", "sallino"]:
-            loss_functions = [ratio_losses.local_score_mse]
-            loss_weights = [1.0]
-            loss_labels = ["mse_score"]
-
-        elif method == "nde":
-            loss_functions = [flow_losses.negative_log_likelihood]
-            loss_weights = [1.0]
-            loss_labels = ["nll"]
-
-        elif method == "scandal":
-            loss_functions = [flow_losses.negative_log_likelihood, flow_losses.score_mse]
-            loss_weights = [1.0, alpha]
-            loss_labels = ["nll", "mse_score"]
-
-        else:
-            raise NotImplementedError("Unknown method {}".format(method))
+        # Losses
+        loss_functions, loss_labels, loss_weights = get_loss(method, alpha)
 
         # Train model
         logger.info("Training model")
-
-        if method in ["sally", "sallino"]:
-            result = train_local_score_model(
-                model=self.model,
-                loss_functions=loss_functions,
-                loss_weights=loss_weights,
-                loss_labels=loss_labels,
-                xs=x,
-                t_xzs=t_xz0,
-                batch_size=batch_size,
-                n_epochs=n_epochs,
-                initial_learning_rate=initial_lr,
-                final_learning_rate=final_lr,
-                validation_split=validation_split,
-                early_stopping=early_stopping,
-                trainer=trainer,
-                nesterov_momentum=nesterov_momentum,
-                verbose="all" if verbose else "some",
-                grad_x_regularization=grad_x_regularization,
-                return_first_loss=return_first_loss,
-            )
-        elif method in ["nde", "scandal"]:
-            result = train_flow_model(
-                model=self.model,
-                loss_functions=loss_functions,
-                loss_weights=loss_weights,
-                loss_labels=loss_labels,
-                xs=x,
-                theta0s=theta0,
-                t_xz0s=t_xz0,
-                calculate_model_score=calculate_model_score,
-                batch_size=batch_size,
-                n_epochs=n_epochs,
-                initial_learning_rate=initial_lr,
-                final_learning_rate=final_lr,
-                validation_split=validation_split,
-                early_stopping=early_stopping,
-                trainer=trainer,
-                nesterov_momentum=nesterov_momentum,
-                verbose="all" if verbose else "some",
-                grad_x_regularization=grad_x_regularization,
-                return_first_loss=return_first_loss,
-            )
-        else:
-            result = train_ratio_model(
-                model=self.model,
-                method_type=self.method_type,
-                loss_functions=loss_functions,
-                loss_weights=loss_weights,
-                loss_labels=loss_labels,
-                theta0s=theta0,
-                theta1s=theta1,
-                xs=x,
-                ys=y,
-                r_xzs=r_xz,
-                t_xz0s=t_xz0,
-                t_xz1s=t_xz1,
-                calculate_model_score=calculate_model_score,
-                batch_size=batch_size,
-                n_epochs=n_epochs,
-                initial_learning_rate=initial_lr,
-                final_learning_rate=final_lr,
-                validation_split=validation_split,
-                early_stopping=early_stopping,
-                trainer=trainer,
-                nesterov_momentum=nesterov_momentum,
-                verbose="all" if verbose else "some",
-                grad_x_regularization=grad_x_regularization,
-                return_first_loss=return_first_loss,
-            )
+        training_fn = get_training_function(method)
+        result = training_fn(
+            model=self.model,
+            method_type=self.method_type,
+            loss_functions=loss_functions,
+            loss_weights=loss_weights,
+            loss_labels=loss_labels,
+            theta0s=theta0,
+            theta1s=theta1,
+            xs=x,
+            ys=y,
+            r_xzs=r_xz,
+            t_xzs=t_xz0,
+            t_xz0s=t_xz0,
+            t_xz1s=t_xz1,
+            calculate_model_score=calculate_model_score,
+            batch_size=batch_size,
+            n_epochs=n_epochs,
+            initial_learning_rate=initial_lr,
+            final_learning_rate=final_lr,
+            validation_split=validation_split,
+            early_stopping=early_stopping,
+            trainer=trainer,
+            nesterov_momentum=nesterov_momentum,
+            verbose="all" if verbose else "some",
+            grad_x_regularization=grad_x_regularization,
+            return_first_loss=return_first_loss,
+        )
 
         return result
 
@@ -659,23 +488,17 @@ class MLForge:
 
         # Load training data
         logger.debug("Loading evaluation data")
-
         theta0s = load_and_check(theta0_filename)
         theta1s = load_and_check(theta1_filename)
-
         if isinstance(x, six.string_types):
             x = load_and_check(x)
 
         # Scale observables
-        if self.x_scaling_means is not None and self.x_scaling_stds is not None:
-            x_scaled = x - self.x_scaling_means
-            x_scaled /= self.x_scaling_stds
-        else:
-            x_scaled = x
+        x = self._transform_inputs(x)
 
         # Restrict featuers
         if self.features is not None:
-            x_scaled = x_scaled[:, self.features]
+            x = x[:, self.features]
 
         # SALLY evaluation
         if self.method in ["sally", "sallino"]:
@@ -686,7 +509,7 @@ class MLForge:
 
                 return all_t_hat, all_x_gradients
 
-            all_t_hat = evaluate_local_score_model(model=self.model, xs=x_scaled)
+            all_t_hat = evaluate_local_score_model(model=self.model, xs=x)
 
             return all_t_hat
 
@@ -715,7 +538,7 @@ class MLForge:
 
                 if self.method in ["nde", "scandal"]:
                     _, log_r_hat, t_hat0 = evaluate_flow_model(
-                        model=self.model, theta0s=[theta0], xs=x_scaled, evaluate_score=evaluate_score
+                        model=self.model, theta0s=[theta0], xs=x, evaluate_score=evaluate_score
                     )
                     t_hat1 = None
 
@@ -726,7 +549,7 @@ class MLForge:
                             method_type=self.method_type,
                             theta0s=[theta0],
                             theta1s=[theta1] if theta1 is not None else None,
-                            xs=x_scaled,
+                            xs=x,
                             evaluate_score=evaluate_score,
                             return_grad_x=True,
                         )
@@ -736,7 +559,7 @@ class MLForge:
                             method_type=self.method_type,
                             theta0s=[theta0],
                             theta1s=[theta1] if theta1 is not None else None,
-                            xs=x_scaled,
+                            xs=x,
                             evaluate_score=evaluate_score,
                         )
                         x_gradient = None
@@ -758,7 +581,7 @@ class MLForge:
 
             if self.method in ["nde", "scandal"]:
                 _, all_log_r_hat, t_hat0 = evaluate_flow_model(
-                    model=self.model, theta0s=theta0s, xs=x_scaled, evaluate_score=evaluate_score
+                    model=self.model, theta0s=theta0s, xs=x, evaluate_score=evaluate_score
                 )
                 all_t_hat1 = None
 
@@ -769,7 +592,7 @@ class MLForge:
                         method_type=self.method_type,
                         theta0s=theta0s,
                         theta1s=None if None in theta1s else theta1s,
-                        xs=x_scaled,
+                        xs=x,
                         evaluate_score=evaluate_score,
                         return_grad_x=True,
                     )
@@ -779,7 +602,7 @@ class MLForge:
                         method_type=self.method_type,
                         theta0s=theta0s,
                         theta1s=None if None in theta1s else theta1s,
-                        xs=x_scaled,
+                        xs=x,
                         evaluate_score=evaluate_score,
                     )
                     all_x_gradients = None
@@ -831,21 +654,17 @@ class MLForge:
         n_samples = x.shape[0]
 
         # Scale observables
-        if self.x_scaling_means is not None and self.x_scaling_stds is not None:
-            x_scaled = x - self.x_scaling_means
-            x_scaled /= self.x_scaling_stds
-        else:
-            x_scaled = x
+        x = self._transform_inputs(x)
 
         # Restrict featuers
         if self.features is not None:
-            x_scaled = x_scaled[:, self.features]
+            x = x[:, self.features]
 
         # Estimate scores
         if self.method in ["sally", "sallino"]:
             logger.debug("Starting score evaluation")
 
-            t_hats = evaluate_local_score_model(model=self.model, xs=x_scaled)
+            t_hats = evaluate_local_score_model(model=self.model, xs=x)
         else:
             raise NotImplementedError("Fisher information calculation only implemented for SALLY estimators")
 
@@ -904,6 +723,11 @@ class MLForge:
             "n_hidden": list(self.n_hidden),
             "activation": self.activation,
             "features": self.features,
+            "nde_type": self.nde_type,
+            "maf_n_mades": self.maf_n_mades,
+            "maf_batch_norm": self.maf_batch_norm,
+            "maf_batch_norm_alpha": self.maf_batch_norm_alpha,
+            "maf_mog_n_components": self.maf_mog_n_components,
         }
 
         with open(filename + "_settings.json", "w") as f:
@@ -946,28 +770,34 @@ class MLForge:
         with open(filename + "_settings.json", "r") as f:
             settings = json.load(f)
 
-        self.method = settings["method"]
-        self.method_type = settings["method_type"]
-        self.n_observables = int(settings["n_observables"])
-        self.n_parameters = int(settings["n_parameters"])
-        self.n_hidden = tuple([int(item) for item in settings["n_hidden"]])
-        self.activation = str(settings["activation"])
-        self.features = settings["features"]
-        if self.features == "None":
-            self.features = None
-        if self.features is not None:
-            self.features = list([int(item) for item in self.features])
+        method = settings["method"]
+        n_observables = int(settings["n_observables"])
+        n_parameters = int(settings["n_parameters"])
+        n_hidden = tuple([int(item) for item in settings["n_hidden"]])
+        activation = str(settings["activation"])
+        features = settings["features"]
+        nde_type = settings["nde_type"]
+        maf_n_mades = int(settings["maf_n_mades"])
+        maf_batch_norm = bool(settings["maf_batch_norm"])
+        maf_batch_norm_alpha = float(settings["maf_batch_norm_alpha"])
+        maf_mog_n_components = int(settings["maf_mog_n_components"])
 
         logger.debug(
             "  Found method %s, %s observables, %s parameters, %s hidden layers, %s activation function, "
             "features %s",
-            self.method,
-            self.n_observables,
-            self.n_parameters,
-            self.n_hidden,
-            self.activation,
-            self.features,
+            method,
+            n_observables,
+            n_parameters,
+            n_hidden,
+            activation,
+            features,
         )
+
+        # Features
+        if features == "None":
+            self.features = None
+        if features is not None:
+            self.features = list([int(item) for item in features])
 
         # Load scaling
         try:
@@ -981,37 +811,108 @@ class MLForge:
             self.x_scaling_means = None
             self.x_scaling_stds = None
 
-        # Create model
-        if self.method in ["carl", "rolr", "rascal", "alice", "alices"]:
-            assert self.method_type == "parameterized"
-            self.model = ParameterizedRatioEstimator(
-                n_observables=self.n_observables,
-                n_parameters=self.n_parameters,
-                n_hidden=self.n_hidden,
-                activation=self.activation,
-            )
-        elif self.method in ["carl2", "rolr2", "rascal2", "alice2", "alices2"]:
-            assert self.method_type == "doubly_parameterized"
-            self.model = DoublyParameterizedRatioEstimator(
-                n_observables=self.n_observables,
-                n_parameters=self.n_parameters,
-                n_hidden=self.n_hidden,
-                activation=self.activation,
-            )
-        elif self.method in ["sally", "sallino"]:
-            assert self.method_type == "local_score"
-            self.model = LocalScoreEstimator(
-                n_observables=self.n_observables,
-                n_parameters=self.n_parameters,
-                n_hidden=self.n_hidden,
-                activation=self.activation,
-            )
-        else:
-            raise NotImplementedError("Unknown method {}".format(self.method))
+        # Create model and save in self
+        self._create_model(
+            method,
+            n_observables,
+            n_parameters,
+            n_hidden,
+            activation,
+            nde_type,
+            maf_n_mades,
+            maf_batch_norm,
+            maf_batch_norm_alpha,
+            maf_mog_n_components,
+        )
 
         # Load state dict
         logger.debug("Loading state dictionary from %s_state_dict.pt", filename)
         self.model.load_state_dict(torch.load(filename + "_state_dict.pt"))
+
+    def _initialize_input_transform(self, x, transform=True):
+        if transform:
+            self.x_scaling_means = np.mean(x, axis=0)
+            self.x_scaling_stds = np.maximum(np.std(x, axis=0), 1.0e-6)
+        else:
+            n_parameters = x.shape[0]
+
+            self.x_scaling_means = np.zeros(n_parameters)
+            self.x_scaling_stds = np.ones(n_parameters)
+
+    def _transform_inputs(self, x):
+        if self.x_scaling_means is not None and self.x_scaling_stds is not None:
+            x_scaled = x - self.x_scaling_means
+            x_scaled /= self.x_scaling_stds
+        else:
+            x_scaled = x
+        return x_scaled
+
+    def _create_model(
+        self,
+        method,
+        n_observables,
+        n_parameters,
+        n_hidden,
+        activation,
+        nde_type=None,
+        maf_n_mades=None,
+        maf_batch_norm=None,
+        maf_batch_norm_alpha=None,
+        maf_mog_n_components=None,
+    ):
+
+        self.method = method
+        self.n_observables = n_observables
+        self.n_parameters = n_parameters
+        self.n_hidden = n_hidden
+        self.activation = activation
+        self.maf_n_mades = maf_n_mades
+        self.maf_batch_norm = maf_batch_norm
+        self.maf_batch_norm_alpha = maf_batch_norm_alpha
+        self.maf_mog_n_components = maf_mog_n_components
+
+        if method in ["carl", "rolr", "rascal", "alice", "alices"]:
+            self.method_type = "parameterized"
+            self.model = ParameterizedRatioEstimator(
+                n_observables=n_observables, n_parameters=n_parameters, n_hidden=n_hidden, activation=activation
+            )
+        elif method in ["carl2", "rolr2", "rascal2", "alice2", "alices2"]:
+            self.method_type = "doubly_parameterized"
+            self.model = DoublyParameterizedRatioEstimator(
+                n_observables=n_observables, n_parameters=n_parameters, n_hidden=n_hidden, activation=activation
+            )
+        elif method in ["sally", "sallino"]:
+            self.method_type = "local_score"
+            self.model = LocalScoreEstimator(
+                n_observables=n_observables, n_parameters=n_parameters, n_hidden=n_hidden, activation=activation
+            )
+        elif method in ["nde", "scandal"]:
+            self.method_type = "nde"
+            if nde_type == "maf":
+                self.model = ConditionalMaskedAutoregressiveFlow(
+                    n_conditionals=n_parameters,
+                    n_inputs=n_observables,
+                    n_hiddens=n_hidden,
+                    n_mades=maf_n_mades,
+                    activation=activation,
+                    batch_norm=maf_batch_norm,
+                    alpha=maf_batch_norm_alpha,
+                )
+            elif nde_type == "mafmog":
+                self.model = ConditionalMixtureMaskedAutoregressiveFlow(
+                    n_conditionals=n_parameters,
+                    n_inputs=n_observables,
+                    n_components=maf_mog_n_components,
+                    n_hiddens=n_hidden,
+                    n_mades=maf_n_mades,
+                    activation=activation,
+                    batch_norm=maf_batch_norm,
+                    alpha=maf_batch_norm_alpha,
+                )
+            else:
+                raise RuntimeError("Unknown NDE type {}".format(nde_type))
+        else:
+            raise RuntimeError("Unknown method {}".format(method))
 
 
 class EnsembleForge:
