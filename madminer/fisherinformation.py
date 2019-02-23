@@ -124,22 +124,13 @@ def profile_information(
 
     assert n_remaining_components == len(remaining_components_checked), "Inconsistent input"
 
-    # Profile
-    def _profile(information_in):
-        # Separate Fisher information parts
-        information_phys = information_in[remaining_components, :][:, remaining_components]
-        information_mix = information_in[profiled_components, :][:, remaining_components]
-        information_nuisance = information_in[profiled_components, :][:, profiled_components]
-
-        # Calculate profiled information
-        inverse_information_nuisance = np.linalg.inv(information_nuisance)
-        return information_phys - information_mix.T.dot(inverse_information_nuisance.dot(information_mix))
-
-    # Central value
-    profiled_information = _profile(fisher_information)
-
-    # Uncertainty propagation
+    # Error propagation
     if covariance is not None:
+        # Central value
+        profiled_information = profile_information(
+            fisher_information, remaining_components=remaining_components, covariance=None
+        )
+
         # Draw toys
         information_toys = np.random.multivariate_normal(
             mean=fisher_information.reshape((-1,)),
@@ -149,7 +140,12 @@ def profile_information(
         information_toys = information_toys.reshape(-1, n_components, n_components)
 
         # Profile each toy
-        profiled_information_toys = np.array([_profile(info) for info in information_toys])
+        profiled_information_toys = np.array(
+            [
+                profile_information(info, remaining_components=remaining_components, covariance=None)
+                for info in information_toys
+            ]
+        )
 
         # Calculate ensemble covariance
         toy_covariance = np.cov(profiled_information_toys.reshape(-1, n_remaining_components ** 2).T)
@@ -163,6 +159,15 @@ def profile_information(
         logger.debug("Central Fisher info:\n%s\nToy mean Fisher info:\n%s", profiled_information, toy_mean)
 
         return profiled_information, profiled_information_covariance
+
+    # Separate Fisher information parts
+    information_phys = fisher_information[remaining_components, :][:, remaining_components]
+    information_mix = fisher_information[profiled_components, :][:, remaining_components]
+    information_nuisance = fisher_information[profiled_components, :][:, profiled_components]
+
+    # Calculate profiled information
+    inverse_information_nuisance = np.linalg.inv(information_nuisance)
+    profiled_information = information_phys - information_mix.T.dot(inverse_information_nuisance.dot(information_mix))
 
     return profiled_information
 
