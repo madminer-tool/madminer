@@ -9,7 +9,7 @@ import tempfile
 from madminer.morphing import PhysicsMorpher
 from madminer.utils.interfaces.madminer_hdf5 import save_madminer_settings, load_madminer_settings
 from madminer.utils.interfaces.mg_cards import export_param_card, export_reweight_card, export_run_card
-from madminer.utils.interfaces.mg import generate_mg_process, prepare_run_mg_pythia, run_mg_pythia
+from madminer.utils.interfaces.mg import generate_mg_process, setup_mg_with_scripts, run_mg, create_master_script
 from madminer.utils.various import create_missing_folders, format_benchmark, make_file_executable, copy_file
 
 logger = logging.getLogger(__name__)
@@ -184,7 +184,7 @@ class MadMiner:
         self.morpher = None
         self.export_morphing = False
 
-    def add_benchmark(self, parameter_values, benchmark_name=None):
+    def add_benchmark(self, parameter_values, benchmark_name=None, verbose=True):
         """
         Manually adds an individual benchmark, that is, a parameter point that will be evaluated by MadGraph.
 
@@ -197,6 +197,9 @@ class MadMiner:
 
         benchmark_name : str or None, optional
             Name of benchmark. If None, a default name is used. Default value: None.
+
+        verbose : bool, optional
+            If True, prints output about each benchmark. Default value: True.
 
         Returns
         -------
@@ -232,9 +235,12 @@ class MadMiner:
         if len(self.benchmarks) == 1:
             self.default_benchmark = benchmark_name
 
-        logger.info("Added benchmark %s: %s)", benchmark_name, format_benchmark(parameter_values))
+        if verbose:
+            logger.info("Added benchmark %s: %s)", benchmark_name, format_benchmark(parameter_values))
+        else:
+            logger.debug("Added benchmark %s: %s)", benchmark_name, format_benchmark(parameter_values))
 
-    def set_benchmarks(self, benchmarks=None):
+    def set_benchmarks(self, benchmarks=None, verbose=True):
         """
         Manually sets all benchmarks, that is, parameter points that will be evaluated by MadGraph. Calling this
         function overwrites all previously defined benchmarks.
@@ -245,6 +251,9 @@ class MadMiner:
             Specifies all benchmarks. If None, all benchmarks are reset. If dict, the keys are the benchmark names and
             the values are dicts of the form {parameter_name:value}. If list, the entries are dicts
             {parameter_name:value} (and the benchmark names are chosen automatically). Default value: None.
+
+        verbose : bool, optional
+            If True, prints output about each benchmark. Default value: True.
 
         Returns
         -------
@@ -260,7 +269,7 @@ class MadMiner:
 
         if isinstance(benchmarks, dict):
             for name, values in six.iteritems(benchmarks):
-                self.add_benchmark(values, name)
+                self.add_benchmark(values, name, verbose=verbose)
         else:
             for values in benchmarks:
                 self.add_benchmark(values)
@@ -331,6 +340,7 @@ class MadMiner:
         morpher.find_components(max_overall_power)
 
         if include_existing_benchmarks:
+            n_predefined_benchmarks = len(self.benchmarks)
             basis = morpher.optimize_basis(
                 n_bases=n_bases,
                 fixed_benchmarks_from_madminer=self.benchmarks,
@@ -338,15 +348,25 @@ class MadMiner:
                 n_test_thetas=n_test_thetas,
             )
         else:
+            n_predefined_benchmarks = 0
             basis = morpher.optimize_basis(
                 n_bases=n_bases, fixed_benchmarks_from_madminer=None, n_trials=n_trials, n_test_thetas=n_test_thetas
             )
 
             basis.update(self.benchmarks)
 
-        self.set_benchmarks(basis)
+        self.set_benchmarks(basis, verbose=False)
         self.morpher = morpher
         self.export_morphing = True
+
+        logger.info(
+            "Set up morphing with %s parameters, %s morphing components, %s predefined basis points, and %s "
+            "new basis points",
+            morpher.n_parameters,
+            morpher.n_components,
+            n_predefined_benchmarks,
+            morpher.n_components - n_predefined_benchmarks,
+        )
 
     def set_systematics(self, scale_variation=None, scales="together", pdf_variation=None):
         """
@@ -847,7 +867,7 @@ class MadMiner:
 
         # Loop over settings
         i = 0
-        results = []
+        mg_scripts = []
 
         for run_card_file in run_card_files:
             for sample_benchmark in sample_benchmarks:
@@ -876,7 +896,7 @@ class MadMiner:
                 logger.info("  Log file:                %s", log_file_run)
 
                 # Check input
-                if run_card_file is None and self.run_systematics:
+                if run_card_file is None and self.systematics is not None:
                     logger.warning(
                         "Warning: No run card given, but systematics set up. The correct systematics"
                         " settings are not set automatically. Make sure to set them correctly!"
@@ -905,7 +925,7 @@ class MadMiner:
 
                 # Run MG and Pythia
                 if only_prepare_script:
-                    result = prepare_run_mg_pythia(
+                    mg_script = setup_mg_with_scripts(
                         mg_process_directory,
                         proc_card_filename_from_mgprocdir=mg_commands_filename,
                         run_card_file_from_mgprocdir=new_run_card_file,
@@ -921,9 +941,9 @@ class MadMiner:
                         log_file_from_logdir=log_file_run,
                         explicit_python_call=python2_override,
                     )
-                    results.append(result)
+                    mg_scripts.append(mg_script)
                 else:
-                    run_mg_pythia(
+                    run_mg(
                         mg_directory,
                         mg_process_directory,
                         mg_process_directory + "/" + mg_commands_filename,
@@ -944,22 +964,7 @@ class MadMiner:
         # Master shell script
         if only_prepare_script:
             master_script_filename = "{}/madminer/run.sh".format(mg_process_directory)
-
-            placeholder_definition = r"mgdir=${1:-" + mg_directory + r"}" + "\n"
-            placeholder_definition += r"mgprocdir=${2:-" + mg_process_directory + r"}" + "\n"
-            placeholder_definition += r"mmlogdir=${3:-" + log_directory + r"}"
-
-            commands = "\n".join(results)
-            script = (
-                "#!/bin/bash\n\n# Master script to generate events for MadMiner\n\n"
-                + "# Usage: run.sh [MG_directory] [MG_process_directory] [log_directory]\n\n"
-                + "{}\n\n{}"
-            ).format(placeholder_definition, commands)
-
-            with open(master_script_filename, "w") as file:
-                file.write(script)
-
-            make_file_executable(master_script_filename)
+            create_master_script(log_directory, master_script_filename, mg_directory, mg_process_directory, mg_scripts)
 
             logger.info(
                 "To generate events, please run:\n\n %s [MG_directory] [MG_process_directory] [log_dir]\n\n",
@@ -970,7 +975,7 @@ class MadMiner:
             expected_event_files = [
                 mg_process_directory + "/Events/run_{:02d}".format(i + 1) for i in range(n_runs_total)
             ]
-            expected_event_files = "/n".join(expected_event_files)
+            expected_event_files = "\n".join(expected_event_files)
             logger.info(
                 "Finished running MadGraph! Please check that events were succesfully generated in the following "
                 "folders:\n\n%s\n\n",

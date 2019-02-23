@@ -524,7 +524,7 @@ class FisherInformation:
         histrange=None,
         cuts=None,
         efficiency_functions=None,
-        n_events_dynamic_binning=100000,
+        n_events_dynamic_binning=None,
     ):
         """
         Calculates the Fisher information in the one-dimensional histogram of an (parton-level or detector-level,
@@ -557,8 +557,10 @@ class FisherInformation:
             Efficiencies. Each entry is a parseable Python expression that returns a float for the efficiency of one
             component. Default value: None.
 
-        n_events_dynamic_binning : int, optional
-            Number of events used to calculate the dynamic binning (if histrange is None). Default value: 100000.
+        n_events_dynamic_binning : int or None, optional
+            Number of events used to calculate the dynamic binning (if histrange is None). If None, all events are used.
+            Note that these events are not shuffled, so if the events in the MadMiner file are sorted, using a value
+            different from None can cause issues. Default value: None.
 
         Returns
         -------
@@ -644,7 +646,7 @@ class FisherInformation:
         histrange2=None,
         cuts=None,
         efficiency_functions=None,
-        n_events_dynamic_binning=100000,
+        n_events_dynamic_binning=None,
     ):
 
         """
@@ -691,8 +693,10 @@ class FisherInformation:
             Efficiencies. Each entry is a parseable Python expression that returns a float for the efficiency of one
             component. Default value: None.
 
-        n_events_dynamic_binning : int, optional
-            Number of events used to calculate the dynamic binning (if histrange is None). Default value: 100000.
+        n_events_dynamic_binning : int or None, optional
+            Number of events used to calculate the dynamic binning (if histrange is None). If None, all events are used.
+            Note that these events are not shuffled, so if the events in the MadMiner file are sorted, using a value
+            different from None can cause issues. Default value: None.
 
         Returns
         -------
@@ -1191,6 +1195,7 @@ class FisherInformation:
 
         # Get differential xsec per event, and the derivative wrt to theta
         sigma = mdot(theta_matrix, weights_benchmarks)  # Shape (n_events,)
+        total_xsec = np.sum(sigma)
         inv_sigma = sanitize_array(1.0 / sigma)  # Shape (n_events,)
         dsigma = mdot(dtheta_matrix, weights_benchmarks)  # Shape (n_parameters, n_events)
 
@@ -1200,7 +1205,6 @@ class FisherInformation:
         # Nuisance parameter Fisher info
         if include_nuisance_parameters and self.include_nuisance_parameters:
             nuisance_a = self.nuisance_morpher.calculate_a(weights_benchmarks)  # Shape (n_nuisance_params, n_events)
-
             # grad_i dsigma(x), where i is a nuisance parameter, is given by
             # sigma[np.newaxis, :] * a
 
@@ -1642,22 +1646,13 @@ def profile_information(
 
     assert n_remaining_components == len(remaining_components_checked), "Inconsistent input"
 
-    # Profile
-    def _profile(information_in):
-        # Separate Fisher information parts
-        information_phys = information_in[remaining_components, :][:, remaining_components]
-        information_mix = information_in[profiled_components, :][:, remaining_components]
-        information_nuisance = information_in[profiled_components, :][:, profiled_components]
-
-        # Calculate profiled information
-        inverse_information_nuisance = np.linalg.inv(information_nuisance)
-        return information_phys - information_mix.T.dot(inverse_information_nuisance.dot(information_mix))
-
-    # Central value
-    profiled_information = _profile(fisher_information)
-
-    # Uncertainty propagation
+    # Error propagation
     if covariance is not None:
+        # Central value
+        profiled_information = profile_information(
+            fisher_information, remaining_components=remaining_components, covariance=None
+        )
+
         # Draw toys
         information_toys = np.random.multivariate_normal(
             mean=fisher_information.reshape((-1,)),
@@ -1667,7 +1662,12 @@ def profile_information(
         information_toys = information_toys.reshape(-1, n_components, n_components)
 
         # Profile each toy
-        profiled_information_toys = np.array([_profile(info) for info in information_toys])
+        profiled_information_toys = np.array(
+            [
+                profile_information(info, remaining_components=remaining_components, covariance=None)
+                for info in information_toys
+            ]
+        )
 
         # Calculate ensemble covariance
         toy_covariance = np.cov(profiled_information_toys.reshape(-1, n_remaining_components ** 2).T)
@@ -1681,5 +1681,14 @@ def profile_information(
         logger.debug("Central Fisher info:\n%s\nToy mean Fisher info:\n%s", profiled_information, toy_mean)
 
         return profiled_information, profiled_information_covariance
+
+    # Separate Fisher information parts
+    information_phys = fisher_information[remaining_components, :][:, remaining_components]
+    information_mix = fisher_information[profiled_components, :][:, remaining_components]
+    information_nuisance = fisher_information[profiled_components, :][:, profiled_components]
+
+    # Calculate profiled information
+    inverse_information_nuisance = np.linalg.inv(information_nuisance)
+    profiled_information = information_phys - information_mix.T.dot(inverse_information_nuisance.dot(information_mix))
 
     return profiled_information

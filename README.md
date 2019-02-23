@@ -118,11 +118,12 @@ The madminer API is documented on [readthedocs](https://madminer.readthedocs.io/
 
 ## Acknowledgements
 
-We are immensely grateful to all contributors and bug reporters! In particular, we would like to thank Alexander Held
-and Duccio Pappadopulo. We are grateful to Lukas Heinrich for his help with workflows and Docker containers.
+We are immensely grateful to all contributors and bug reporters! In particular, we would like to thank Zubair Bhatti,
+Alexander Held, and Duccio Pappadopulo. A big thanks to Lukas Heinrich for his help with workflows and Docker
+containers.
 
-The SCANDAL inference method is based on [Masked Autoregressive Flows](https://arxiv.org/abs/1705.07057), and its
-implementation is a pyTorch port of the original code by George Papamakarios et al. available at
+The SCANDAL inference method is based on [Masked Autoregressive Flows](https://arxiv.org/abs/1705.07057), and our
+implementation is a pyTorch port of the original code by George Papamakarios et al., which is available at
 [https://github.com/gpapamak/maf](https://github.com/gpapamak/maf).
 
 The [setup.py](setup.py) was adapted from

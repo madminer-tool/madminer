@@ -20,7 +20,7 @@ URL = 'https://github.com/johannbrehmer/madminer'
 EMAIL = 'johann.brehmer@nyu.edu'
 AUTHOR = 'Johann Brehmer, Felix Kling, Irina Espejo, Kyle Cranmer'
 REQUIRES_PYTHON = '>=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*, <4'
-VERSION = '0.2.6'
+VERSION = '0.2.7'
 
 # What packages are required for this module to be executed?
 REQUIRED = [
@@ -35,7 +35,10 @@ REQUIRED = [
     "uproot",
     "matplotlib>=2.0.0",
     "numpydoc",
-    "pytest"
+    "pytest",
+    "sphinx>=1.4",
+    "sphinx_rtd_theme",
+    "recommonmark",
 ]
 
 # What packages are optional?

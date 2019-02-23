@@ -566,121 +566,23 @@ class DelphesReader:
         ):
             logger.info("Analysing Delphes sample %s", delphes_file)
 
-            # Read systematics setup from LHE file
-            logger.debug("Extracting nuisance parameter definitions from LHE file")
-            nuisance_parameters = extract_nuisance_parameters_from_lhe_file(lhe_file, self.systematics)
-            logger.debug("Found %s nuisance parameters with matching benchmarks:", len(nuisance_parameters))
-            for key, value in six.iteritems(nuisance_parameters):
-                logger.debug("  %s: %s", key, value)
-
-            # Compare to existing data
-            if self.nuisance_parameters is None:
-                self.nuisance_parameters = nuisance_parameters
-            else:
-                if dict(self.nuisance_parameters) != dict(nuisance_parameters):
-                    raise RuntimeError(
-                        "Different LHE files have different definitions of nuisance parameters / benchmarks!\n"
-                        "Previous: {}\nNew:{}".format(self.nuisance_parameters, nuisance_parameters)
-                    )
-
-            # Calculate observables and weights in Delphes ROOT file
-            this_observations, this_weights, cut_filter = parse_delphes_root_file(
+            this_observations, this_weights = self._analyse_delphes_sample(
+                delete_delphes_files,
                 delphes_file,
-                self.observables,
-                self.observables_required,
-                self.observables_defaults,
-                self.cuts,
-                self.cuts_default_pass,
+                generator_truth,
+                is_background,
+                k_factor,
+                lhe_file,
+                lhe_file_for_weights,
+                parse_lhe_events_as_xml,
+                reference_benchmark,
+                sampling_benchmark,
                 weight_labels,
-                use_generator_truth=generator_truth,
-                delete_delphes_sample_file=delete_delphes_files,
-                acceptance_eta_max_a=self.acceptance_eta_max_a,
-                acceptance_eta_max_e=self.acceptance_eta_max_e,
-                acceptance_eta_max_mu=self.acceptance_eta_max_mu,
-                acceptance_eta_max_j=self.acceptance_eta_max_j,
-                acceptance_pt_min_a=self.acceptance_pt_min_a,
-                acceptance_pt_min_e=self.acceptance_pt_min_e,
-                acceptance_pt_min_mu=self.acceptance_pt_min_mu,
-                acceptance_pt_min_j=self.acceptance_pt_min_j,
             )
 
-            # No events found?
+            # No events?
             if this_observations is None:
-                logger.debug("No observations in this Delphes file, skipping it")
                 continue
-
-            if this_weights is not None:
-                logger.debug("Found weights %s in Delphes file", list(this_weights.keys()))
-            else:
-                logger.debug("Did not extract weights from Delphes file")
-
-            # Check number of events in observables
-            n_events = None
-            for key, obs in six.iteritems(this_observations):
-                this_n_events = len(obs)
-                if n_events is None:
-                    n_events = this_n_events
-                    logger.debug("Found %s events", n_events)
-
-                if this_n_events != n_events:
-                    raise RuntimeError(
-                        "Mismatching number of events in Delphes observations for {}: {} vs {}".format(
-                            key, n_events, this_n_events
-                        )
-                    )
-
-            # Find weights in LHE file
-            if lhe_file_for_weights is not None:
-                logger.debug("Extracting weights from LHE file")
-                _, this_weights = parse_lhe_file(
-                    filename=lhe_file_for_weights,
-                    sampling_benchmark=sampling_benchmark,
-                    observables=OrderedDict(),
-                    parse_events_as_xml=parse_lhe_events_as_xml,
-                )
-
-                logger.debug("Found weights %s in LHE file", list(this_weights.keys()))
-
-                # Apply cuts
-                logger.debug("Applying Delphes-based cuts to LHE weights")
-                for key, weights in six.iteritems(this_weights):
-                    this_weights[key] = weights[cut_filter]
-
-            if this_weights is None:
-                raise RuntimeError("Could not extract weights from Delphes ROOT file or LHE file.")
-
-            # Check number of events in weights
-            for key, weights in six.iteritems(this_weights):
-                this_n_events = len(weights)
-                if n_events is None:
-                    n_events = this_n_events
-                    logger.debug("Found %s events", n_events)
-
-                if this_n_events != n_events:
-                    raise RuntimeError(
-                        "Mismatching number of events in weights {}: {} vs {}".format(key, n_events, this_n_events)
-                    )
-
-            # k factors
-            if k_factor is not None:
-                for key in this_weights:
-                    this_weights[key] = k_factor * this_weights[key]
-
-            # Background scenario: we only have one set of weights, but these should be true for all benchmarks
-            if is_background:
-                logger.debug("Sample is background")
-                benchmarks_weight = list(six.itervalues(this_weights))[0]
-
-                for benchmark_name in self.benchmark_names_phys:
-                    this_weights[benchmark_name] = benchmarks_weight
-
-            # Rescale nuisance parameters to reference benchmark
-            reference_weights = this_weights[reference_benchmark]
-            sampling_weights = this_weights[sampling_benchmark]
-
-            for key in this_weights:
-                if key not in self.benchmark_names_phys:  # Only rescale nuisance benchmarks
-                    this_weights[key] = reference_weights / sampling_weights * this_weights[key]
 
             # First results
             if self.observations is None and self.weights is None:
@@ -710,6 +612,136 @@ class DelphesReader:
             for key in self.observations:
                 assert key in this_observations, "Observable {} not found in Delphes sample!".format(key)
                 self.observations[key] = np.hstack([self.observations[key], this_observations[key]])
+
+    def _analyse_delphes_sample(
+        self,
+        delete_delphes_files,
+        delphes_file,
+        generator_truth,
+        is_background,
+        k_factor,
+        lhe_file,
+        lhe_file_for_weights,
+        parse_lhe_events_as_xml,
+        reference_benchmark,
+        sampling_benchmark,
+        weight_labels,
+    ):
+        # Read systematics setup from LHE file
+        logger.debug("Extracting nuisance parameter definitions from LHE file")
+        nuisance_parameters = extract_nuisance_parameters_from_lhe_file(lhe_file, self.systematics)
+        logger.debug("Found %s nuisance parameters with matching benchmarks:", len(nuisance_parameters))
+        for key, value in six.iteritems(nuisance_parameters):
+            logger.debug("  %s: %s", key, value)
+
+        # Compare to existing data
+        if self.nuisance_parameters is None:
+            self.nuisance_parameters = nuisance_parameters
+        else:
+            if dict(self.nuisance_parameters) != dict(nuisance_parameters):
+                raise RuntimeError(
+                    "Different LHE files have different definitions of nuisance parameters / benchmarks!\n"
+                    "Previous: {}\nNew:{}".format(self.nuisance_parameters, nuisance_parameters)
+                )
+
+        # Calculate observables and weights in Delphes ROOT file
+        this_observations, this_weights, cut_filter = parse_delphes_root_file(
+            delphes_file,
+            self.observables,
+            self.observables_required,
+            self.observables_defaults,
+            self.cuts,
+            self.cuts_default_pass,
+            weight_labels,
+            use_generator_truth=generator_truth,
+            delete_delphes_sample_file=delete_delphes_files,
+            acceptance_eta_max_a=self.acceptance_eta_max_a,
+            acceptance_eta_max_e=self.acceptance_eta_max_e,
+            acceptance_eta_max_mu=self.acceptance_eta_max_mu,
+            acceptance_eta_max_j=self.acceptance_eta_max_j,
+            acceptance_pt_min_a=self.acceptance_pt_min_a,
+            acceptance_pt_min_e=self.acceptance_pt_min_e,
+            acceptance_pt_min_mu=self.acceptance_pt_min_mu,
+            acceptance_pt_min_j=self.acceptance_pt_min_j,
+        )
+        # No events found?
+        if this_observations is None:
+            logger.debug("No observations in this Delphes file, skipping it")
+            return None, None
+
+        if this_weights is not None:
+            logger.debug("Found weights %s in Delphes file", list(this_weights.keys()))
+        else:
+            logger.debug("Did not extract weights from Delphes file")
+
+        # Check number of events in observables
+        n_events = None
+        for key, obs in six.iteritems(this_observations):
+            this_n_events = len(obs)
+            if n_events is None:
+                n_events = this_n_events
+                logger.debug("Found %s events", n_events)
+
+            if this_n_events != n_events:
+                raise RuntimeError(
+                    "Mismatching number of events in Delphes observations for {}: {} vs {}".format(
+                        key, n_events, this_n_events
+                    )
+                )
+
+        # Find weights in LHE file
+        if lhe_file_for_weights is not None:
+            logger.debug("Extracting weights from LHE file")
+            _, this_weights = parse_lhe_file(
+                filename=lhe_file_for_weights,
+                sampling_benchmark=sampling_benchmark,
+                observables=OrderedDict(),
+                parse_events_as_xml=parse_lhe_events_as_xml,
+            )
+
+            logger.debug("Found weights %s in LHE file", list(this_weights.keys()))
+
+            # Apply cuts
+            logger.debug("Applying Delphes-based cuts to LHE weights")
+            for key, weights in six.iteritems(this_weights):
+                this_weights[key] = weights[cut_filter]
+
+        if this_weights is None:
+            raise RuntimeError("Could not extract weights from Delphes ROOT file or LHE file.")
+
+        # Check number of events in weights
+        for key, weights in six.iteritems(this_weights):
+            this_n_events = len(weights)
+            if n_events is None:
+                n_events = this_n_events
+                logger.debug("Found %s events", n_events)
+
+            if this_n_events != n_events:
+                raise RuntimeError(
+                    "Mismatching number of events in weights {}: {} vs {}".format(key, n_events, this_n_events)
+                )
+
+        # k factors
+        if k_factor is not None:
+            for key in this_weights:
+                this_weights[key] = k_factor * this_weights[key]
+        # Background scenario: we only have one set of weights, but these should be true for all benchmarks
+
+        if is_background:
+            logger.debug("Sample is background")
+            benchmarks_weight = list(six.itervalues(this_weights))[0]
+
+            for benchmark_name in self.benchmark_names_phys:
+                this_weights[benchmark_name] = benchmarks_weight
+
+        # Rescale nuisance parameters to reference benchmark
+        reference_weights = this_weights[reference_benchmark]
+        sampling_weights = this_weights[sampling_benchmark]
+        for key in this_weights:
+            if key not in self.benchmark_names_phys:  # Only rescale nuisance benchmarks
+                this_weights[key] = reference_weights / sampling_weights * this_weights[key]
+
+        return this_observations, this_weights
 
     def save(self, filename_out):
         """

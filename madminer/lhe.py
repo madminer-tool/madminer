@@ -10,7 +10,11 @@ from madminer.utils.interfaces.madminer_hdf5 import (
     load_madminer_settings,
     save_nuisance_setup_to_madminer_file,
 )
-from madminer.utils.interfaces.lhe import parse_lhe_file, extract_nuisance_parameters_from_lhe_file
+from madminer.utils.interfaces.lhe import (
+    parse_lhe_file,
+    extract_nuisance_parameters_from_lhe_file,
+    get_elementary_pdg_ids,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -99,8 +103,8 @@ class LHEReader:
             21,
             22,
             23,
-            -23,
             24,
+            -24,
             25,
         ]
         for pdgid in pdgids:
@@ -234,39 +238,7 @@ class LHEReader:
         """
 
         if pdgids is None:
-            pdgids = [
-                1,
-                -1,
-                2,
-                -2,
-                3,
-                -3,
-                4,
-                -4,
-                5,
-                -5,
-                6,
-                -6,
-                9,
-                11,
-                -11,
-                12,
-                -12,
-                13,
-                -13,
-                14,
-                -14,
-                15,
-                -15,
-                16,
-                -16,
-                21,
-                22,
-                23,
-                -23,
-                24,
-                25,
-            ]
+            pdgids = get_elementary_pdg_ids()
 
         for pdgid in pdgids:
             self.energy_resolution[pdgid] = (energy_resolution_abs, energy_resolution_rel)
@@ -531,84 +503,13 @@ class LHEReader:
         ):
             logger.info("Analysing LHE sample %s", lhe_file)
 
-            # Read systematics setup from LHE file
-            logger.debug("Extracting nuisance parameter definitions from LHE file")
-            nuisance_parameters = extract_nuisance_parameters_from_lhe_file(lhe_file, self.systematics)
-            logger.debug("Found %s nuisance parameters with matching benchmarks:", len(nuisance_parameters))
-            for key, value in six.iteritems(nuisance_parameters):
-                logger.debug("  %s: %s", key, value)
-
-            # Compare to existing data
-            if self.nuisance_parameters is None:
-                self.nuisance_parameters = nuisance_parameters
-            else:
-                if dict(self.nuisance_parameters) != dict(nuisance_parameters):
-                    raise RuntimeError(
-                        "Different LHE files have different definitions of nuisance parameters / benchmarks!\nPrevious: {}\nNew:{}".format(
-                            self.nuisance_parameters, nuisance_parameters
-                        )
-                    )
-
-            # Calculate observables and weights in LHE file
-            this_observations, this_weights = parse_lhe_file(
-                filename=lhe_file,
-                sampling_benchmark=sampling_benchmark,
-                benchmark_names=self.benchmark_names_phys,
-                is_background=is_background,
-                observables=self.observables,
-                observables_required=self.observables_required,
-                observables_defaults=self.observables_defaults,
-                cuts=self.cuts,
-                cuts_default_pass=self.cuts_default_pass,
-                energy_resolutions=self.energy_resolution,
-                pt_resolutions=self.pt_resolution,
-                eta_resolutions=self.eta_resolution,
-                phi_resolutions=self.phi_resolution,
-                k_factor=k_factor,
-                parse_events_as_xml=parse_events_as_xml,
+            this_observations, this_weights = self._parse_sample(
+                is_background, k_factor, lhe_file, parse_events_as_xml, reference_benchmark, sampling_benchmark
             )
 
-            # No events found?
+            # No results?
             if this_observations is None:
-                logger.debug("No observations in this LHE file, skipping it")
                 continue
-
-            logger.debug("Found weights %s in LHE file", list(this_weights.keys()))
-
-            # Check number of events in observables
-            n_events = None
-            for key, obs in six.iteritems(this_observations):
-                this_n_events = len(obs)
-                if n_events is None:
-                    n_events = this_n_events
-                    logger.debug("Found %s events", n_events)
-
-                if this_n_events != n_events:
-                    raise RuntimeError(
-                        "Mismatching number of events in LHE observations for {}: {} vs {}".format(
-                            key, n_events, this_n_events
-                        )
-                    )
-
-            # Check number of events in weights
-            for key, weights in six.iteritems(this_weights):
-                this_n_events = len(weights)
-                if n_events is None:
-                    n_events = this_n_events
-                    logger.debug("Found %s events", n_events)
-
-                if this_n_events != n_events:
-                    raise RuntimeError(
-                        "Mismatching number of events in weights {}: {} vs {}".format(key, n_events, this_n_events)
-                    )
-
-            # Rescale nuisance parameters to reference benchmark
-            reference_weights = this_weights[reference_benchmark]
-            sampling_weights = this_weights[sampling_benchmark]
-
-            for key in this_weights:
-                if key not in self.benchmark_names_phys:  # Only rescale nuisance benchmarks
-                    this_weights[key] = reference_weights / sampling_weights * this_weights[key]
 
             # First results
             if self.observations is None and self.weights is None:
@@ -638,6 +539,84 @@ class LHEReader:
             for key in self.observations:
                 assert key in this_observations, "Observable {} not found in Delphes sample!".format(key)
                 self.observations[key] = np.hstack([self.observations[key], this_observations[key]])
+
+    def _parse_sample(
+        self, is_background, k_factor, lhe_file, parse_events_as_xml, reference_benchmark, sampling_benchmark
+    ):
+        # Read systematics setup from LHE file
+        logger.debug("Extracting nuisance parameter definitions from LHE file")
+        nuisance_parameters = extract_nuisance_parameters_from_lhe_file(lhe_file, self.systematics)
+        logger.debug("Found %s nuisance parameters with matching benchmarks:", len(nuisance_parameters))
+        for key, value in six.iteritems(nuisance_parameters):
+            logger.debug("  %s: %s", key, value)
+        # Compare to existing data
+        if self.nuisance_parameters is None:
+            self.nuisance_parameters = nuisance_parameters
+        else:
+            if dict(self.nuisance_parameters) != dict(nuisance_parameters):
+                raise RuntimeError(
+                    "Different LHE files have different definitions of nuisance parameters / benchmarks!\nPrevious: {}\nNew:{}".format(
+                        self.nuisance_parameters, nuisance_parameters
+                    )
+                )
+        # Calculate observables and weights in LHE file
+        this_observations, this_weights = parse_lhe_file(
+            filename=lhe_file,
+            sampling_benchmark=sampling_benchmark,
+            benchmark_names=self.benchmark_names_phys,
+            is_background=is_background,
+            observables=self.observables,
+            observables_required=self.observables_required,
+            observables_defaults=self.observables_defaults,
+            cuts=self.cuts,
+            cuts_default_pass=self.cuts_default_pass,
+            energy_resolutions=self.energy_resolution,
+            pt_resolutions=self.pt_resolution,
+            eta_resolutions=self.eta_resolution,
+            phi_resolutions=self.phi_resolution,
+            k_factor=k_factor,
+            parse_events_as_xml=parse_events_as_xml,
+        )
+        # No events found?
+        if this_observations is None:
+            logger.debug("No observations in this LHE file, skipping it")
+            return None, None
+        logger.debug("Found weights %s in LHE file", list(this_weights.keys()))
+
+        # Check number of events in observables
+        n_events = None
+        for key, obs in six.iteritems(this_observations):
+            this_n_events = len(obs)
+            if n_events is None:
+                n_events = this_n_events
+                logger.debug("Found %s events", n_events)
+
+            if this_n_events != n_events:
+                raise RuntimeError(
+                    "Mismatching number of events in LHE observations for {}: {} vs {}".format(
+                        key, n_events, this_n_events
+                    )
+                )
+
+        # Check number of events in weights
+        for key, weights in six.iteritems(this_weights):
+            this_n_events = len(weights)
+            if n_events is None:
+                n_events = this_n_events
+                logger.debug("Found %s events", n_events)
+
+            if this_n_events != n_events:
+                raise RuntimeError(
+                    "Mismatching number of events in weights {}: {} vs {}".format(key, n_events, this_n_events)
+                )
+
+        # Rescale nuisance parameters to reference benchmark
+        reference_weights = this_weights[reference_benchmark]
+        sampling_weights = this_weights[sampling_benchmark]
+        for key in this_weights:
+            if key not in self.benchmark_names_phys:  # Only rescale nuisance benchmarks
+                this_weights[key] = reference_weights / sampling_weights * this_weights[key]
+        return this_observations, this_weights
 
     def save(self, filename_out):
         """
