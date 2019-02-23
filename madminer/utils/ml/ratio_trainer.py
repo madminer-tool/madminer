@@ -45,7 +45,7 @@ def train_ratio_model(
     learning_curve_filename=None,
     return_first_loss=False,
     verbose="some",
-    **kwargs,
+    **kwargs
 ):
     # CPU or GPU?
     run_on_gpu = run_on_gpu and torch.cuda.is_available()
