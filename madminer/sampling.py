@@ -9,7 +9,7 @@ from madminer.utils.interfaces.madminer_hdf5 import load_madminer_settings, madm
 from madminer.utils.interfaces.madminer_hdf5 import save_preformatted_events_to_madminer_file
 from madminer.utils.analysis import get_theta_value, get_theta_benchmark_matrix, get_dtheta_benchmark_matrix
 from madminer.utils.analysis import calculate_augmented_data, parse_theta, mdot
-from madminer.morphing import PhysicsMorpher, NuisanceMorpher
+from madminer.utils.morphing import PhysicsMorpher, NuisanceMorpher
 from madminer.utils.various import format_benchmark, create_missing_folders, shuffle, balance_thetas
 
 logger = logging.getLogger(__name__)

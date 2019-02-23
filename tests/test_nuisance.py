@@ -25,7 +25,7 @@ def theta_limit_madminer(xsec=0.001, lumi=1000000.0, effect_phys=0.1, effect_sys
     miner.save(".data.h5")
 
     # Set up observations
-    proc = LHEProcessor(".data.h5")
+    proc = LHEReader(".data.h5")
     proc.add_observable("x", "no one cares")
     proc.reference_benchmark = "benchmark_0"
     proc.nuisance_parameters = OrderedDict()

@@ -9,7 +9,7 @@ import logging
 
 from madminer.sampling import SampleAugmenter
 from madminer.utils.analysis import mdot, get_theta_benchmark_matrix
-from madminer.morphing import NuisanceMorpher
+from madminer.utils.morphing import NuisanceMorpher
 from madminer.utils.various import weighted_quantile, sanitize_array, shuffle
 
 logger = logging.getLogger(__name__)
