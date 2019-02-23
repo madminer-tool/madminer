@@ -5,7 +5,7 @@ import numpy as np
 from collections import OrderedDict
 
 from madminer.core import MadMiner
-from madminer.lhe import LHEProcessor
+from madminer.lhe import LHEReader
 from madminer.fisherinformation import FisherInformation, profile_information
 
 
