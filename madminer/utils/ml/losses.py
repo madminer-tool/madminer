@@ -38,7 +38,7 @@ def score_mse_den(s_hat, log_r_hat, t0_hat, t1_hat, y_true, r_true, t0_true, t1_
     return MSELoss()(y_true * t1_hat, y_true * t1_true)
 
 
-def score_mse(s_hat, log_r_hat, t0_hat, t1_hat, y_true, r_true, t0_true, t1_true):
+def ratio_score_mse(s_hat, log_r_hat, t0_hat, t1_hat, y_true, r_true, t0_true, t1_true):
     return score_mse_num(s_hat, log_r_hat, t0_hat, t1_hat, y_true, r_true, t0_true, t1_true) + score_mse_den(
         s_hat, log_r_hat, t0_hat, t1_hat, y_true, r_true, t0_true, t1_true
     )
@@ -59,3 +59,11 @@ def augmented_cross_entropy(s_hat, log_r_hat, t0_hat, t1_hat, y_true, r_true, t0
 
 def local_score_mse(t_hat, t_true):
     return MSELoss()(t_hat, t_true)
+
+
+def negative_log_likelihood(log_p_pred, t_pred, t_true):
+    return -torch.mean(log_p_pred)
+
+
+def flow_score_mse(log_p_pred, t_pred, t_true):
+    return MSELoss()(t_pred, t_true)
