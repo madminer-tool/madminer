@@ -286,16 +286,16 @@ class Trainer(object):
             for i, (label, value) in enumerate(zip(labels, contributions)):
                 if i > 0:
                     summary += ", "
-                summary += "{}: {:5.3f}".format(label, value)
+                summary += "{}: {:>6.3f}".format(label, value)
             return summary
 
-        train_report = "Epoch {:>3d}: train loss {:>7.4f} ({})".format(
+        train_report = "Epoch {:>3d}: train loss {:>8.5f} ({})".format(
             i_epoch + 1, loss_train, contribution_summary(loss_labels, loss_contributions_train)
         )
         logging_fn(train_report)
 
         if loss_val is not None:
-            val_report = "           val. loss  {:>7.4f} ({})".format(
+            val_report = "           val. loss  {:>8.5f} ({})".format(
                 loss_val, contribution_summary(loss_labels, loss_contributions_val)
             )
             logging_fn(val_report)
