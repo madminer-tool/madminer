@@ -1,9 +1,10 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+import six
+from collections import OrderedDict
 import numpy as np
 import logging
 import torch
-from torch import tensor
 import torch.optim as optim
 from torch.utils.data import TensorDataset, DataLoader
 from torch.utils.data.sampler import SubsetRandomSampler
@@ -50,8 +51,9 @@ class Trainer:
         verbose="some",
         **kwargs
     ):
-        logger.debug("Initialising dataset and dataloaders")
-        dataset = self.make_dataset(data)
+        logger.debug("Initialising training data")
+        self.check_data(data)
+        data_labels, dataset = self.make_dataset(data)
         train_loader, val_loader = self.make_dataloaders(dataset, validation_split, batch_size)
 
         logger.debug("Setting up optimizer")
@@ -60,6 +62,12 @@ class Trainer:
 
         early_stopping = early_stopping and (validation_split is not None) and (epochs > 1)
         best_loss, best_model, best_epoch = None, None, None
+        if early_stopping and early_stopping_patience is None:
+            logger.debug("Using early stopping with infinite patience")
+        elif early_stopping:
+            logger.debug("Using early stopping with patience %s", early_stopping_patience)
+        else:
+            logger.debug("No early stopping")
 
         n_losses = len(loss_functions)
         loss_weights = [1.0] * n_losses if loss_weights is None else loss_weights
@@ -76,11 +84,14 @@ class Trainer:
 
         # Loop over epochs
         for i_epoch in range(epochs):
+            logger.debug("Training epoch %s / %s", i_epoch + 1, epochs)
+
             lr = self.calculate_lr(i_epoch, epochs, initial_lr, final_lr)
             self.set_lr(optimizer, lr)
+            logger.debug("Learning rate: %s", lr)
 
             loss_train, loss_val, loss_contributions_train, loss_contributions_val = self.epoch(
-                i_epoch, train_loader, val_loader, opt, loss_functions, loss_weights, clip_gradient
+                i_epoch, data_labels, train_loader, val_loader, opt, loss_functions, loss_weights, clip_gradient
             )
             losses_train.append(loss_train)
             losses_val.append(loss_val)
@@ -91,6 +102,7 @@ class Trainer:
                         best_loss, best_model, best_epoch, loss_val, best_epoch
                     )
                 except EarlyStoppingException:
+                    logger.debug("Early stopping: ending training after %s epochs", i_epoch + 1)
                     break
 
             verbose_epoch = (i_epoch + 1) % n_epochs_verbose == 0
@@ -111,12 +123,18 @@ class Trainer:
         return np.array(losses_train), np.array(losses_val)
 
     @staticmethod
+    def check_data(data):
+        pass
+
+    @staticmethod
     def make_dataset(data):
         tensor_data = []
-        for value in data.values():
+        data_labels = []
+        for key, value in six.iteritems():
+            data_labels.append(key)
             tensor_data.append(torch.from_numpy(value))
         dataset = TensorDataset(*tensor_data)
-        return dataset
+        return data_labels, dataset
 
     def make_dataloaders(self, dataset, validation_split, batch_size):
         if validation_split is None or validation_split <= 0.0:
@@ -149,7 +167,17 @@ class Trainer:
         for param_group in optimizer.param_groups:
             param_group["lr"] = lr
 
-    def epoch(self, i_epoch, train_loader, val_loader, optimizer, loss_functions, loss_weights, clip_gradient=None):
+    def epoch(
+        self,
+        i_epoch,
+        data_labels,
+        train_loader,
+        val_loader,
+        optimizer,
+        loss_functions,
+        loss_weights,
+        clip_gradient=None,
+    ):
         n_losses = len(loss_functions)
 
         self.model.train()
@@ -157,8 +185,9 @@ class Trainer:
         loss_train = 0.0
 
         for i_batch, batch_data in enumerate(train_loader):
+            batch_data = OrderedDict(list(zip(data_labels, batch_data)))
             batch_loss, batch_loss_contributions = self.batch_train(
-                i_epoch, i_batch, batch_data, loss_functions, loss_weights, optimizer, clip_gradient
+                batch_data, loss_functions, loss_weights, optimizer, clip_gradient
             )
             loss_train += batch_loss
             for i, batch_loss_contribution in enumerate(batch_loss_contributions):
@@ -173,9 +202,8 @@ class Trainer:
             loss_val = 0.0
 
             for i_batch, batch_data in enumerate(val_loader):
-                batch_loss, batch_loss_contributions = self.batch_val(
-                    i_epoch, i_batch, batch_data, loss_functions, loss_weights
-                )
+                batch_data = OrderedDict(list(zip(data_labels, batch_data)))
+                batch_loss, batch_loss_contributions = self.batch_val(batch_data, loss_functions, loss_weights)
                 loss_val += batch_loss
                 for i, batch_loss_contribution in enumerate(batch_loss_contributions):
                     loss_contributions_val[i] += batch_loss_contribution
@@ -189,11 +217,57 @@ class Trainer:
 
         return loss_train, loss_val, loss_contributions_train, loss_contributions_val
 
-    def batch_train(self, i_epoch, i_batch, batch_data, loss_functions, loss_weights, optimizer, clip_gradient=None):
+    def batch_train(self, batch_data, loss_functions, loss_weights, optimizer, clip_gradient=None):
+        loss_contributions = self.forward_pass(batch_data, loss_functions)
+        loss = self.sum_losses(loss_contributions, loss_weights)
+
+        self.optimizer_step(optimizer, loss, clip_gradient)
+
+        loss = loss.item()
+        loss_contributions = [contrib.item() for contrib in loss_contributions]
+        return loss, loss_contributions
+
+    def batch_val(self, batch_data, loss_functions, loss_weights):
+        loss_contributions = self.forward_pass(batch_data, loss_functions)
+        loss = self.sum_losses(loss_contributions, loss_weights)
+
+        loss = loss.item()
+        loss_contributions = [contrib.item() for contrib in loss_contributions]
+        return loss, loss_contributions
+
+    def forward_pass(self, batch_data, loss_functions):
+        """
+        Forward pass of the model. Needs to be implemented by any subclass.
+
+        Parameters
+        ----------
+        batch_data : OrderedDict with str keys and Tensor values
+            The data of the minibatch.
+
+        loss_functions : list of function
+            Loss functions.
+
+        Returns
+        -------
+        losses : list of Tensor
+            Losses as scalar pyTorch tensors.
+
+        """
         raise NotImplementedError
 
-    def batch_val(self, i_epoch, i_batch, batch_data, loss_functions, loss_weights):
-        raise NotImplementedError
+    @staticmethod
+    def sum_losses(contributions, weights):
+        loss = weights[0] * contributions[0]
+        for _w, _l in zip(weights[1:], contributions[1:]):
+            loss += _w * _l
+        return loss
+
+    def optimizer_step(self, optimizer, loss, clip_gradient):
+        optimizer.zero_grad()
+        loss.backward()
+        if clip_gradient is not None:
+            clip_grad_norm_(self.model.parameters(), clip_gradient)
+        optimizer.step()
 
     def check_early_stopping(self, best_loss, best_model, best_epoch, loss, i_epoch):
         if best_loss is None or loss < best_loss:
@@ -249,350 +323,179 @@ class Trainer:
 class SingleParameterizedRatioTrainer(Trainer):
     def __init__(self, model, run_on_gpu=True, double_precision=False):
         super(SingleParameterizedRatioTrainer, self).__init__(model, run_on_gpu, double_precision)
-
-        self.data_keys = None
         self.calculate_model_score = True
 
+    def check_data(self, data):
+        data_keys = list(data.keys())
+        if "x" not in data_keys or "theta" not in data_keys or "y" not in data_keys:
+            raise ValueError("Missing required information 'x', 'theta', or 'y' in training data!")
+
+        for key in data_keys:
+            if key not in ["x", "theta", "y", "r_xz", "t_xz"]:
+                logger.warning("Unknown key %s in training data! Ignoring it.", key)
+
+        self.calculate_model_score = "t_xz" in data_keys
+        if self.calculate_model_score:
+            logger.debug("Model score will be calculated")
+        else:
+            logger.debug("Model score will not be calculated")
+
     def make_dataset(self, data):
         tensor_data = []
-        for key, value in zip(data.keys(), data.values()):
-            if key == "theta0" and self.calculate_model_score:
+        data_labels = []
+        for key, value in six.iteritems():
+            data_labels.append(key)
+            if key == "theta":
                 tensor_data.append(torch.tensor(value, requires_grad=True))
             else:
                 tensor_data.append(torch.from_numpy(value))
         dataset = TensorDataset(*tensor_data)
-        return dataset
+        return data_labels, dataset
 
-    def train(self, data, *args, **kwargs):
-        self.data_keys = list(data.keys())
-        self.calculate_model_score = "t_xz" in self.data_keys
-        if "calculate_model_score" in kwargs.keys():
-            self.calculate_model_score = kwargs["calculate_model_score"]
+    def forward_pass(self, batch_data, loss_functions):
+        theta = batch_data["theta"].to(self.device, self.dtype)
+        x = batch_data["x"].to(self.device, self.dtype)
+        y = batch_data["y"].to(self.device, self.dtype)
+        try:
+            r_xz = batch_data["r_xz"].to(self.device, self.dtype)
+        except KeyError:
+            r_xz = None
+        try:
+            t_xz = batch_data["t_xz"].to(self.device, self.dtype)
+        except KeyError:
+            t_xz = None
 
-        super(SingleParameterizedRatioTrainer, self).train(data, *args, **kwargs)
+        s_hat, log_r_hat, t_hat = self.model(theta, x, track_score=self.calculate_model_score, return_grad_x=False)
 
-    def batch_train(self, i_epoch, i_batch, batch_data, loss_functions, loss_weights, optimizer, clip_gradient):
-        theta0 = None
-        x = None
-        y = None
-        r_xz = None
-        t_xz = None
-
-        for batch_datum, key in zip(batch_data, self.data_keys):
-            if key == "theta0":
-                theta0 = batch_datum.to(self.device, self.dtype)
-            elif key == "x":
-                x = batch_datum.to(self.device, self.dtype)
-            elif key == "y":
-                y = batch_datum.to(self.device, self.dtype)
-            elif key == "r_xz":
-                r_xz = batch_datum.to(self.device, self.dtype)
-            elif key == "t_xz":
-                t_xz = batch_datum.to(self.device, self.dtype)
-
-        optimizer.zero_grad()
-
-        # Forward pass
-        s_hat, log_r_hat, t_hat = self.model(theta0, x, track_score=self.calculate_model_score, return_grad_x=False)
-
-        loss_contributions = [
-            loss_function(s_hat, log_r_hat, t_hat, None, y, r_xz, t_xz, None) for loss_function in loss_functions
-        ]
-        loss = loss_weights[0] * loss_contributions[0]
-        for _w, _l in zip(loss_weights[1:], loss_contributions[1:]):
-            loss += _w * _l
-
-        # Optimizer
-        loss.backward()
-        if clip_gradient is not None:
-            clip_grad_norm_(self.model.parameters(), clip_gradient)
-
-        # Optimizer step
-        optimizer.step()
-
-        loss = loss.item()
-        loss_contributions = [contrib.item() for contrib in loss_contributions]
-        return loss, loss_contributions
-
-    def batch_val(self, i_epoch, i_batch, batch_data, loss_functions, loss_weights):
-        theta0 = None
-        x = None
-        y = None
-        r_xz = None
-        t_xz = None
-
-        for batch_datum, key in zip(batch_data, self.data_keys):
-            if key == "theta0":
-                theta0 = batch_datum.to(self.device, self.dtype)
-            elif key == "x":
-                x = batch_datum.to(self.device, self.dtype)
-            elif key == "y":
-                y = batch_datum.to(self.device, self.dtype)
-            elif key == "r_xz":
-                r_xz = batch_datum.to(self.device, self.dtype)
-            elif key == "t_xz":
-                t_xz = batch_datum.to(self.device, self.dtype)
-
-        # Forward pass
-        s_hat, log_r_hat, t_hat = self.model(theta0, x, track_score=self.calculate_model_score, return_grad_x=False)
-
-        loss_contributions = [
-            loss_function(s_hat, log_r_hat, t_hat, None, y, r_xz, t_xz, None) for loss_function in loss_functions
-        ]
-        loss = loss_weights[0] * loss_contributions[0]
-        for _w, _l in zip(loss_weights[1:], loss_contributions[1:]):
-            loss += _w * _l
-
-        loss = loss.item()
-        loss_contributions = [contrib.item() for contrib in loss_contributions]
-        return loss, loss_contributions
+        losses = [loss_function(s_hat, log_r_hat, t_hat, None, y, r_xz, t_xz, None) for loss_function in loss_functions]
+        return losses
 
 
-class DoubleParameterizedRatioTrainer(SingleParameterizedRatioTrainer):
+class DoubleParameterizedRatioTrainer(Trainer):
+    def __init__(self, model, run_on_gpu=True, double_precision=False):
+        super(DoubleParameterizedRatioTrainer, self).__init__(model, run_on_gpu, double_precision)
+        self.calculate_model_score = True
+
+    def check_data(self, data):
+        data_keys = list(data.keys())
+        if "x" not in data_keys or "theta0" not in data_keys or "theta1" not in data_keys or "y" not in data_keys:
+            raise ValueError("Missing required information 'x', 'theta0', 'theta1', or 'y' in training data!")
+
+        for key in data_keys:
+            if key not in ["x", "theta0", "theta1" "y", "r_xz", "t_xz0", "t_xz1"]:
+                logger.warning("Unknown key %s in training data! Ignoring it.", key)
+
+        self.calculate_model_score = "t_xz0" in data_keys or "t_xz1" in data_keys
+        if self.calculate_model_score:
+            logger.debug("Model score will be calculated")
+        else:
+            logger.debug("Model score will not be calculated")
+
     def make_dataset(self, data):
         tensor_data = []
-        for key, value in zip(data.keys(), data.values()):
-            if key in ["theta0", "theta1"] and self.calculate_model_score:
+        data_labels = []
+        for key, value in six.iteritems():
+            data_labels.append(key)
+            if key in ["theta0", "theta1"]:
                 tensor_data.append(torch.tensor(value, requires_grad=True))
             else:
                 tensor_data.append(torch.from_numpy(value))
         dataset = TensorDataset(*tensor_data)
-        return dataset
+        return data_labels, dataset
 
-    def batch_train(self, i_epoch, i_batch, batch_data, loss_functions, loss_weights, optimizer, clip_gradient):
-        theta0 = None
-        theta1 = None
-        x = None
-        y = None
-        r_xz = None
-        t_xz0 = None
-        t_xz1 = None
+    def forward_pass(self, batch_data, loss_functions):
+        theta0 = batch_data["theta0"].to(self.device, self.dtype)
+        theta1 = batch_data["theta1"].to(self.device, self.dtype)
+        x = batch_data["x"].to(self.device, self.dtype)
+        y = batch_data["y"].to(self.device, self.dtype)
+        try:
+            r_xz = batch_data["r_xz"].to(self.device, self.dtype)
+        except KeyError:
+            r_xz = None
+        try:
+            t_xz0 = batch_data["t_xz0"].to(self.device, self.dtype)
+        except KeyError:
+            t_xz0 = None
+        try:
+            t_xz1 = batch_data["t_xz1"].to(self.device, self.dtype)
+        except KeyError:
+            t_xz1 = None
 
-        for batch_datum, key in zip(batch_data, self.data_keys):
-            if key == "theta0":
-                theta0 = batch_datum.to(self.device, self.dtype)
-            elif key == "theta1":
-                theta1 = batch_datum.to(self.device, self.dtype)
-            elif key == "x":
-                x = batch_datum.to(self.device, self.dtype)
-            elif key == "y":
-                y = batch_datum.to(self.device, self.dtype)
-            elif key == "r_xz":
-                r_xz = batch_datum.to(self.device, self.dtype)
-            elif key == "t_xz0":
-                t_xz0 = batch_datum.to(self.device, self.dtype)
-            elif key == "t_xz1":
-                t_xz1 = batch_datum.to(self.device, self.dtype)
-
-        optimizer.zero_grad()
-
-        # Forward pass
         s_hat, log_r_hat, t_hat0, t_hat1 = self.model(
             theta0, theta1, x, track_score=self.calculate_model_score, return_grad_x=False
         )
 
-        loss_contributions = [
+        losses = [
             loss_function(s_hat, log_r_hat, t_hat0, t_hat1, y, r_xz, t_xz0, t_xz1) for loss_function in loss_functions
         ]
-        loss = loss_weights[0] * loss_contributions[0]
-        for _w, _l in zip(loss_weights[1:], loss_contributions[1:]):
-            loss += _w * _l
-
-        # Optimizer
-        loss.backward()
-        if clip_gradient is not None:
-            clip_grad_norm_(self.model.parameters(), clip_gradient)
-
-        # Optimizer step
-        optimizer.step()
-
-        loss = loss.item()
-        loss_contributions = [contrib.item() for contrib in loss_contributions]
-        return loss, loss_contributions
-
-    def batch_val(self, i_epoch, i_batch, batch_data, loss_functions, loss_weights):
-        theta0 = None
-        theta1 = None
-        x = None
-        y = None
-        r_xz = None
-        t_xz0 = None
-        t_xz1 = None
-
-        for batch_datum, key in zip(batch_data, self.data_keys):
-            if key == "theta0":
-                theta0 = batch_datum.to(self.device, self.dtype)
-            elif key == "theta1":
-                theta1 = batch_datum.to(self.device, self.dtype)
-            elif key == "x":
-                x = batch_datum.to(self.device, self.dtype)
-            elif key == "y":
-                y = batch_datum.to(self.device, self.dtype)
-            elif key == "r_xz":
-                r_xz = batch_datum.to(self.device, self.dtype)
-            elif key == "t_xz0":
-                t_xz0 = batch_datum.to(self.device, self.dtype)
-            elif key == "t_xz1":
-                t_xz1 = batch_datum.to(self.device, self.dtype)
-
-        # Forward pass
-        s_hat, log_r_hat, t_hat0, t_hat1 = self.model(
-            theta0, theta1, x, track_score=self.calculate_model_score, return_grad_x=False
-        )
-
-        loss_contributions = [
-            loss_function(s_hat, log_r_hat, t_hat0, t_hat1, y, r_xz, t_xz0, t_xz1) for loss_function in loss_functions
-        ]
-        loss = loss_weights[0] * loss_contributions[0]
-        for _w, _l in zip(loss_weights[1:], loss_contributions[1:]):
-            loss += _w * _l
-
-        loss = loss.item()
-        loss_contributions = [contrib.item() for contrib in loss_contributions]
-        return loss, loss_contributions
+        return losses
 
 
 class LocalScoreTrainer(Trainer):
-    def __init__(self, model, run_on_gpu=True, double_precision=False):
-        super(LocalScoreTrainer, self).__init__(model, run_on_gpu, double_precision)
-        self.data_keys = None
+    def check_data(self, data):
+        data_keys = list(data.keys())
+        if "x" not in data_keys or "t_xz" not in data_keys:
+            raise ValueError("Missing required information 'x' or 't_xz' in training data!")
 
-    def train(self, data, *args, **kwargs):
-        data_sorted = {"x": data["x"], "t_xz": data["t_xz"]}
-        super(LocalScoreTrainer, self).train(data_sorted, *args, **kwargs)
+        for key in data_keys:
+            if key not in ["x", "t_xz"]:
+                logger.warning("Unknown key %s in training data! Ignoring it.", key)
 
-    def batch_train(self, i_epoch, i_batch, batch_data, loss_functions, loss_weights, optimizer, clip_gradient):
-        x = batch_data[0].to(self.device, self.dtype)
-        t_xz = batch_data[1].to(self.device, self.dtype)
+    def forward_pass(self, batch_data, loss_functions):
+        x = batch_data["x"].to(self.device, self.dtype)
+        t_xz = batch_data["t_xz"].to(self.device, self.dtype)
 
-        optimizer.zero_grad()
-
-        # Forward pass
         t_hat = self.model(x)
 
-        loss_contributions = [loss_function(t_hat, t_xz) for loss_function in loss_functions]
-        loss = loss_weights[0] * loss_contributions[0]
-        for _w, _l in zip(loss_weights[1:], loss_contributions[1:]):
-            loss += _w * _l
-
-        # Optimizer
-        loss.backward()
-        if clip_gradient is not None:
-            clip_grad_norm_(self.model.parameters(), clip_gradient)
-
-        # Optimizer step
-        optimizer.step()
-
-        loss = loss.item()
-        loss_contributions = [contrib.item() for contrib in loss_contributions]
-        return loss, loss_contributions
-
-    def batch_val(self, i_epoch, i_batch, batch_data, loss_functions, loss_weights):
-        x = batch_data[0].to(self.device, self.dtype)
-        t_xz = batch_data[1].to(self.device, self.dtype)
-
-        # Forward pass
-        t_hat = self.model(x)
-
-        loss_contributions = [loss_function(t_hat, t_xz) for loss_function in loss_functions]
-        loss = loss_weights[0] * loss_contributions[0]
-        for _w, _l in zip(loss_weights[1:], loss_contributions[1:]):
-            loss += _w * _l
-
-        loss = loss.item()
-        loss_contributions = [contrib.item() for contrib in loss_contributions]
-        return loss, loss_contributions
+        losses = [loss_function(t_hat, t_xz) for loss_function in loss_functions]
+        return losses
 
 
 class FlowTrainer(Trainer):
     def __init__(self, model, run_on_gpu=True, double_precision=False):
         super(FlowTrainer, self).__init__(model, run_on_gpu, double_precision)
-
-        self.data_keys = None
         self.calculate_model_score = True
+
+    def check_data(self, data):
+        data_keys = list(data.keys())
+        if "x" not in data_keys or "theta" not in data_keys:
+            raise ValueError("Missing required information 'x' or 'theta' in training data!")
+
+        for key in data_keys:
+            if key not in ["x", "theta", "t_xz"]:
+                logger.warning("Unknown key %s in training data! Ignoring it.", key)
+
+        self.calculate_model_score = "t_xz" in data_keys
+        if self.calculate_model_score:
+            logger.debug("Model score will be calculated")
+        else:
+            logger.debug("Model score will not be calculated")
 
     def make_dataset(self, data):
         tensor_data = []
-        for key, value in zip(data.keys(), data.values()):
-            if key == "theta" and self.calculate_model_score:
+        data_labels = []
+        for key, value in six.iteritems():
+            data_labels.append(key)
+            if key == "theta":
                 tensor_data.append(torch.tensor(value, requires_grad=True))
             else:
                 tensor_data.append(torch.from_numpy(value))
         dataset = TensorDataset(*tensor_data)
-        return dataset
+        return data_labels, dataset
 
-    def train(self, data, *args, **kwargs):
-        self.data_keys = list(data.keys())
-        self.calculate_model_score = "t_xz" in self.data_keys
-        if "calculate_model_score" in kwargs.keys():
-            self.calculate_model_score = kwargs["calculate_model_score"]
+    def forward_pass(self, batch_data, loss_functions):
+        x = batch_data["x"].to(self.device, self.dtype)
+        theta = batch_data["theta"].to(self.device, self.dtype)
+        try:
+            t_xz = batch_data["t_xz"].to(self.device, self.dtype)
+        except KeyError:
+            t_xz = None
 
-        super(FlowTrainer, self).train(data, *args, **kwargs)
-
-    def batch_train(self, i_epoch, i_batch, batch_data, loss_functions, loss_weights, optimizer, clip_gradient):
-        theta = None
-        x = None
-        t_xz = None
-
-        for batch_datum, key in zip(batch_data, self.data_keys):
-            if key == "theta":
-                theta = batch_datum.to(self.device, self.dtype)
-            elif key == "x":
-                x = batch_datum.to(self.device, self.dtype)
-            elif key == "t_xz":
-                t_xz = batch_datum.to(self.device, self.dtype)
-
-        optimizer.zero_grad()
-
-        # Forward pass
         if self.calculate_model_score:
-            _, log_likelihood, score = self.model.log_likelihood_and_score(theta, x)
+            _, log_likelihood, t_hat = self.model.log_likelihood_and_score(theta, x)
         else:
             _, log_likelihood = self.model.log_likelihood(theta, x)
-            score = None
+            t_hat = None
 
-        loss_contributions = [loss_function(log_likelihood, score, t_xz) for loss_function in loss_functions]
-        loss = loss_weights[0] * loss_contributions[0]
-        for _w, _l in zip(loss_weights[1:], loss_contributions[1:]):
-            loss += _w * _l
-
-        # Optimizer
-        loss.backward()
-        if clip_gradient is not None:
-            clip_grad_norm_(self.model.parameters(), clip_gradient)
-
-        # Optimizer step
-        optimizer.step()
-
-        loss = loss.item()
-        loss_contributions = [contrib.item() for contrib in loss_contributions]
-        return loss, loss_contributions
-
-    def batch_val(self, i_epoch, i_batch, batch_data, loss_functions, loss_weights):
-        theta = None
-        x = None
-        t_xz = None
-
-        for batch_datum, key in zip(batch_data, self.data_keys):
-            if key == "theta":
-                theta = batch_datum.to(self.device, self.dtype)
-            elif key == "x":
-                x = batch_datum.to(self.device, self.dtype)
-            elif key == "t_xz":
-                t_xz = batch_datum.to(self.device, self.dtype)
-
-        # Forward pass
-        if self.calculate_model_score:
-            _, log_likelihood, score = self.model.log_likelihood_and_score(theta, x)
-        else:
-            _, log_likelihood = self.model.log_likelihood(theta, x)
-            score = None
-
-        loss_contributions = [loss_function(log_likelihood, score, t_xz) for loss_function in loss_functions]
-        loss = loss_weights[0] * loss_contributions[0]
-        for _w, _l in zip(loss_weights[1:], loss_contributions[1:]):
-            loss += _w * _l
-
-        loss = loss.item()
-        loss_contributions = [contrib.item() for contrib in loss_contributions]
-        return loss, loss_contributions
+        losses = [loss_function(log_likelihood, t_hat, t_xz) for loss_function in loss_functions]
+        return losses
