@@ -86,7 +86,7 @@ class MLForge:
         shuffle_labels=False,
         grad_x_regularization=None,
         limit_samplesize=None,
-        verbose=False,
+        verbose="some",
     ):
 
         """
@@ -225,8 +225,8 @@ class MLForge:
         limit_samplesize : int or None, optional
             If not None, only this number of samples (events) is used to train the estimator. Default value: None.
 
-        verbose : bool, optional
-            If True, prints loss updates after every epoch.
+        verbose : {"all", "many", "some", "few", "none}, optional
+            Determines verbosity of training. Default value: "some".
 
         Returns
         -------

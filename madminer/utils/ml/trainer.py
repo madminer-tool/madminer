@@ -74,11 +74,16 @@ class Trainer(object):
         loss_weights = [1.0] * n_losses if loss_weights is None else loss_weights
 
         # Verbosity
-        n_epochs_verbose = None
         if verbose == "all":  # Print output after every epoch
             n_epochs_verbose = 1
+        elif verbose == "many":  # Print output after 2%, 4%, ..., 100% progress
+            n_epochs_verbose = max(int(round(epochs / 50, 0)), 1)
         elif verbose == "some":  # Print output after 10%, 20%, ..., 100% progress
-            n_epochs_verbose = max(int(round(epochs / 10, 0)), 1)
+            n_epochs_verbose = max(int(round(epochs / 20, 0)), 1)
+        elif verbose == "few":  # Print output after 20%, 40%, ..., 100% progress
+            n_epochs_verbose = max(int(round(epochs / 5, 0)), 1)
+        else:  # Never print output
+            n_epochs_verbose = epochs + 2
 
         logger.debug("Beginning main training loop")
         losses_train, losses_val = [], []
@@ -88,7 +93,7 @@ class Trainer(object):
             logger.debug("Training epoch %s / %s", i_epoch + 1, epochs)
 
             lr = self.calculate_lr(i_epoch, epochs, initial_lr, final_lr)
-            self.set_lr(optimizer, lr)
+            self.set_lr(opt, lr)
             logger.debug("Learning rate: %s", lr)
 
             loss_train, loss_val, loss_contributions_train, loss_contributions_val = self.epoch(
@@ -284,27 +289,20 @@ class Trainer(object):
         logging_fn = logger.info if verbose else logger.debug
 
         contr_str_train = ""
-        contr_str_val = ""
-        for i, (label, value_train, value_val) in enumerate(
-            zip(loss_labels, loss_contributions_train, loss_contributions_val)
-        ):
+        for i, (label, value) in enumerate(zip(loss_labels, loss_contributions_train)):
             if i > 0:
                 contr_str_train += ", "
-                contr_str_val += ", "
-            contr_str_train += "{}: {:.6f}".format(label, value_train)
-            contr_str_val += "{}: {:.6f}".format(label, value_val)
+            contr_str_train += "{}: {:6.6f}".format(label, value)
         train_report = "  Epoch {:>3d}: train loss {:6.6f} ({})".format(i_epoch + 1, loss_train, contr_str_train)
 
         logging_fn(train_report)
 
         if loss_val is not None:
             contr_str_val = ""
-            for i, (label, value_train, value_val) in enumerate(
-                zip(loss_labels, loss_contributions_train, loss_contributions_val)
-            ):
+            for i, (label, value) in enumerate(zip(loss_labels, loss_contributions_val)):
                 if i > 0:
                     contr_str_val += ", "
-                contr_str_val += "{}: {:.4f}".format(label, value_val)
+                contr_str_val += "{}: {:6.6f}".format(label, value)
             val_report = "            val. loss  {:6.6f} ({})".format(loss_val, contr_str_val)
             logging_fn(val_report)
 
