@@ -65,7 +65,7 @@ class MLForge:
         t_xz1_filename=None,
         features=None,
         nde_type="mafmog",
-        n_hidden=(100, 100, 100),
+        n_hidden=(100, 100,),
         activation="tanh",
         maf_n_mades=3,
         maf_batch_norm=False,
@@ -189,7 +189,7 @@ class MLForge:
             Number of epochs. Default value: 50.
 
         batch_size : int, optional
-            Batch size. Default value: 128.
+            Batch size. Default value: 200.
 
         initial_lr : float, optional
             Learning rate during the first epoch, after which it exponentially decays to final_lr. Default value:
@@ -203,7 +203,7 @@ class MLForge:
 
         validation_split : float or None, optional
             Fraction of samples used  for validation and early stopping (if early_stopping is True). If None, the entire
-            sample is used for training and early stopping is deactivated. Default value: None.
+            sample is used for training and early stopping is deactivated. Default value: 0.25.
 
         early_stopping : bool, optional
             Activates early stopping based on the validation loss (only if validation_split is not None). Default value:
