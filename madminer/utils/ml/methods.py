@@ -1,19 +1,69 @@
 from __future__ import absolute_import, division, print_function
 
+from collections import OrderedDict
+
 from madminer.utils.ml import ratio_losses, flow_losses
 from madminer.utils.ml.trainer import SingleParameterizedRatioTrainer, DoubleParameterizedRatioTrainer
 from madminer.utils.ml.trainer import FlowTrainer, LocalScoreTrainer
 
 
-def get_trainer(method):
-    if method in ["sally", "sallino"]:
-        return LocalScoreTrainer
+def get_method_type(method):
+    if method in ["carl", "rolr", "rascal", "alice", "alices"]:
+        method_type = "parameterized"
+    elif method in ["carl2", "rolr2", "rascal2", "alice2", "alices2"]:
+        method_type = "doubly_parameterized"
+    elif method in ["sally", "sallino"]:
+        method_type = "local_score"
     elif method in ["nde", "scandal"]:
-        return FlowTrainer
-    elif method in ["carl", "rolr", "rascal", "cascal", "alice", "alices"]:
+        method_type = "nde"
+    else:
+        raise RuntimeError("Unknown method {}".format(method))
+    return method_type
+
+
+def package_training_data(method, x, theta0, theta1, y, r_xz, t_xz0, t_xz1):
+    method_type = get_method_type(method)
+    data = OrderedDict()
+    if method_type == "parameterized":
+        data["x"] = x
+        data["theta"] = theta0
+        data["y"] = y
+        if r_xz is not None:
+            data["r_xz"] = r_xz
+        if t_xz0 is not None:
+            data["t_xz"] = t_xz0
+    elif method_type == "doubly_parameterized":
+        data["x"] = x
+        data["theta0"] = theta0
+        data["theta1"] = theta1
+        data["y"] = y
+        if r_xz is not None:
+            data["r_xz"] = r_xz
+        if t_xz0 is not None:
+            data["t_xz0"] = t_xz0
+        if t_xz1 is not None:
+            data["t_xz1"] = t_xz1
+    elif method_type == "local_score":
+        data["x"] = x
+        data["t_xz"] = t_xz0
+    elif method_type == "nde":
+        data["x"] = x
+        data["theta"] = theta0
+        if t_xz0 is not None:
+            data["t_xz"] = t_xz0
+    return data
+
+
+def get_trainer(method):
+    method_type = get_method_type(method)
+    if method_type == "parameterized":
         return SingleParameterizedRatioTrainer
-    elif method in ["carl2", "rolr2", "rascal2", "cascal2", "alice2", "alices2"]:
+    elif method_type == "doubly_parameterized":
         return DoubleParameterizedRatioTrainer
+    elif method_type == "local_score":
+        return LocalScoreTrainer
+    elif method_type == "nde":
+        return FlowTrainer
     else:
         raise RuntimeError("Unknown method %s", method)
 

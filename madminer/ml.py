@@ -6,6 +6,7 @@ import os
 import json
 import numpy as np
 import torch
+from torch import optim
 
 from madminer.utils.ml.models.maf import ConditionalMaskedAutoregressiveFlow
 from madminer.utils.ml.models.maf_mog import ConditionalMixtureMaskedAutoregressiveFlow
@@ -16,7 +17,7 @@ from madminer.utils.ml.ratio_trainer import evaluate_ratio_model
 from madminer.utils.ml.score_trainer import evaluate_local_score_model
 from madminer.utils.ml.utils import check_required_data
 from madminer.utils.various import create_missing_folders, load_and_check, shuffle, restrict_samplesize
-from madminer.utils.ml.methods import get_training_function, get_loss
+from madminer.utils.ml.methods import get_method_type, get_trainer, get_loss, package_training_data
 
 logger = logging.getLogger(__name__)
 
@@ -73,7 +74,7 @@ class MLForge:
         maf_batch_norm_alpha=0.1,
         maf_mog_n_components=10,
         alpha=1.0,
-        trainer="amsgrad",
+        optimizer="amsgrad",
         n_epochs=50,
         batch_size=128,
         initial_lr=0.001,
@@ -85,7 +86,6 @@ class MLForge:
         shuffle_labels=False,
         grad_x_regularization=None,
         limit_samplesize=None,
-        return_first_loss=False,
         verbose=False,
     ):
 
@@ -184,7 +184,7 @@ class MLForge:
             Hyperparameter weighting the score error in the loss function of the 'alices', 'alices2', 'rascal',
             'rascal2', and 'scandal' methods. Default value: 1.
 
-        trainer : {"adam", "amsgrad", "sgd"}, optional
+        optimizer : {"adam", "amsgrad", "sgd"}, optional
             Optimization algorithm. Default value: "amsgrad".
 
         n_epochs : int, optional
@@ -219,17 +219,11 @@ class MLForge:
             normal order. This serves as a closure test, in particular as cross-check against overfitting: an estimator
             trained with shuffle_labels=True should predict to likelihood ratios around 1 and scores around 0.
 
-        grad_x_regularization : float or None, optional
-            If not None, a term of the form `grad_x_regularization * |grad_x f(x)|^2` is added to the loss, where `f(x)`
-            is the neural network output (the estimated log likelihood ratio or score). Default value: None.
+        grad_x_regularization : None
+            Currently not supported.
 
         limit_samplesize : int or None, optional
             If not None, only this number of samples (events) is used to train the estimator. Default value: None.
-
-        return_first_loss : bool, optional
-            If True, the training routine only proceeds until the loss is calculated for the first time, at which point
-            the loss tensor is returned. This can be useful for debugging or visualization purposes (but of course not
-            for training a model).
 
         verbose : bool, optional
             If True, prints loss updates after every epoch.
@@ -273,27 +267,26 @@ class MLForge:
         if method in ["cascal", "cascal2", "rascal", "rascal2", "scandal", "alices"]:
             logger.info("  alpha:                  %s", alpha)
         logger.info("  Batch size:             %s", batch_size)
-        logger.info("  Trainer:                %s", trainer)
+        logger.info("  Optimizer:              %s", optimizer)
         logger.info("  Epochs:                 %s", n_epochs)
         logger.info("  Learning rate:          %s initially, decaying to %s", initial_lr, final_lr)
-        if trainer == "sgd":
+        if optimizer == "sgd":
             logger.info("  Nesterov momentum:      %s", nesterov_momentum)
         logger.info("  Validation split:       %s", validation_split)
         logger.info("  Early stopping:         %s", early_stopping)
         logger.info("  Scale inputs:           %s", scale_inputs)
         logger.info("  Shuffle labels          %s", shuffle_labels)
-        if grad_x_regularization is None:
-            logger.info("  Regularization:         None")
-        else:
-            logger.info("  Regularization:         %s * |grad_x f(x)|^2", grad_x_regularization)
         if limit_samplesize is None:
             logger.info("  Samples:                all")
         else:
             logger.info("  Samples:                %s", limit_samplesize)
 
+        # Check
+        if grad_x_regularization is not None:
+            logger.warning("grad_x_regularization is not supported in this version of MadMiner")
+
         # Load training data
         logger.info("Loading training data")
-
         theta0 = load_and_check(theta0_filename)
         theta1 = load_and_check(theta1_filename)
         x = load_and_check(x_filename)
@@ -301,15 +294,12 @@ class MLForge:
         r_xz = load_and_check(r_xz_filename)
         t_xz0 = load_and_check(t_xz0_filename)
         t_xz1 = load_and_check(t_xz1_filename)
-
         if y is not None:
             y = y.reshape((-1, 1))
 
         # Check necessary information is there
         if not check_required_data(method, r_xz, t_xz0, t_xz1, theta0, theta1, x, y):
             raise ValueError("Not all required data for method {} provided!".format(method))
-
-        calculate_model_score = method in ["rascal", "cascal", "alices", "scandal", "rascal2", "cascal2", "alices2"]
 
         # Infer dimensions of problem
         n_samples = x.shape[0]
@@ -318,7 +308,6 @@ class MLForge:
             n_parameters = theta0.shape[1]
         else:
             n_parameters = t_xz0.shape[1]
-
         logger.info("Found %s samples with %s parameters and %s observables", n_samples, n_parameters, n_observables)
 
         # Limit sample size
@@ -354,11 +343,13 @@ class MLForge:
 
         # Features
         self.features = features
-
         if features is not None:
             x = x[:, features]
             logger.info("Only using %s of %s observables", x.shape[1], n_observables)
             n_observables = x.shape[1]
+
+        # Data
+        data = package_training_data(method, x, theta0, theta1, y, r_xz, t_xz0, t_xz1)
 
         # Create model and save settings
         logger.info("Creating model for method %s", method)
@@ -378,37 +369,38 @@ class MLForge:
         # Losses
         loss_functions, loss_labels, loss_weights = get_loss(method, alpha)
 
+        # Optimizer
+        opt_kwargs = None
+        if optimizer == "adam":
+            opt = optim.Adam
+        elif optimizer == "amsgrad":
+            opt = optim.Adam
+            opt_kwargs = {"amsgrad": True}
+        elif optimizer == "sgd":
+            opt = optim.SGD
+            if nesterov_momentum is not None:
+                opt_kwargs = {"momentum": nesterov_momentum}
+        else:
+            raise ValueError("Unknown optimizer {}".format(optimizer))
+
         # Train model
         logger.info("Training model")
-        training_fn = get_training_function(method)
-        result = training_fn(
-            model=self.model,
-            method_type=self.method_type,
+        trainer = get_trainer(method)(self.model)
+        result = trainer.train(
+            data=data,
             loss_functions=loss_functions,
             loss_weights=loss_weights,
             loss_labels=loss_labels,
-            theta0s=theta0,
-            theta1s=theta1,
-            xs=x,
-            ys=y,
-            r_xzs=r_xz,
-            t_xzs=t_xz0,
-            t_xz0s=t_xz0,
-            t_xz1s=t_xz1,
-            calculate_model_score=calculate_model_score,
+            epochs=n_epochs,
             batch_size=batch_size,
-            n_epochs=n_epochs,
-            initial_learning_rate=initial_lr,
-            final_learning_rate=final_lr,
+            optimizer=opt,
+            optimizer_kwargs=opt_kwargs,
+            initial_lr=initial_lr,
+            final_lr=final_lr,
             validation_split=validation_split,
             early_stopping=early_stopping,
-            trainer=trainer,
-            nesterov_momentum=nesterov_momentum,
-            verbose="all" if verbose else "some",
-            grad_x_regularization=grad_x_regularization,
-            return_first_loss=return_first_loss,
+            verbose=verbose,
         )
-
         return result
 
     def evaluate(
@@ -871,23 +863,20 @@ class MLForge:
         self.maf_batch_norm_alpha = maf_batch_norm_alpha
         self.maf_mog_n_components = maf_mog_n_components
 
-        if method in ["carl", "rolr", "rascal", "alice", "alices"]:
-            self.method_type = "parameterized"
+        self.method_type = get_method_type(method)
+        if self.method_type == "parameterized":
             self.model = ParameterizedRatioEstimator(
                 n_observables=n_observables, n_parameters=n_parameters, n_hidden=n_hidden, activation=activation
             )
-        elif method in ["carl2", "rolr2", "rascal2", "alice2", "alices2"]:
-            self.method_type = "doubly_parameterized"
+        elif self.method_type == "doubly_parameterized":
             self.model = DoublyParameterizedRatioEstimator(
                 n_observables=n_observables, n_parameters=n_parameters, n_hidden=n_hidden, activation=activation
             )
-        elif method in ["sally", "sallino"]:
-            self.method_type = "local_score"
+        elif self.method_type == "local_score":
             self.model = LocalScoreEstimator(
                 n_observables=n_observables, n_parameters=n_parameters, n_hidden=n_hidden, activation=activation
             )
-        elif method in ["nde", "scandal"]:
-            self.method_type = "nde"
+        elif self.method_type == "nde":
             if nde_type == "maf":
                 self.model = ConditionalMaskedAutoregressiveFlow(
                     n_conditionals=n_parameters,
