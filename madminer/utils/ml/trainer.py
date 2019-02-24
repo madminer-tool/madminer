@@ -1,9 +1,9 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import six
+import logging
 from collections import OrderedDict
 import numpy as np
-import logging
 import torch
 import torch.optim as optim
 from torch.utils.data import TensorDataset, DataLoader
@@ -18,6 +18,8 @@ class EarlyStoppingException(Exception):
 
 
 class Trainer:
+    """ Trainer class. Any subclass has to implement the forward_pass() function. """
+
     def __init__(self, model, run_on_gpu=True, double_precision=False):
         self.model = model
         self.run_on_gpu = run_on_gpu and torch.cuda.is_available()
@@ -49,7 +51,6 @@ class Trainer:
         early_stopping_patience=None,
         clip_gradient=100.0,
         verbose="some",
-        **kwargs
     ):
         logger.debug("Initialising training data")
         self.check_data(data)
@@ -130,7 +131,7 @@ class Trainer:
     def make_dataset(data):
         tensor_data = []
         data_labels = []
-        for key, value in six.iteritems():
+        for key, value in six.iteritems(data):
             data_labels.append(key)
             tensor_data.append(torch.from_numpy(value))
         dataset = TensorDataset(*tensor_data)
@@ -343,7 +344,7 @@ class SingleParameterizedRatioTrainer(Trainer):
     def make_dataset(self, data):
         tensor_data = []
         data_labels = []
-        for key, value in six.iteritems():
+        for key, value in six.iteritems(data):
             data_labels.append(key)
             if key == "theta":
                 tensor_data.append(torch.tensor(value, requires_grad=True))
@@ -394,7 +395,7 @@ class DoubleParameterizedRatioTrainer(Trainer):
     def make_dataset(self, data):
         tensor_data = []
         data_labels = []
-        for key, value in six.iteritems():
+        for key, value in six.iteritems(data):
             data_labels.append(key)
             if key in ["theta0", "theta1"]:
                 tensor_data.append(torch.tensor(value, requires_grad=True))
@@ -474,7 +475,7 @@ class FlowTrainer(Trainer):
     def make_dataset(self, data):
         tensor_data = []
         data_labels = []
-        for key, value in six.iteritems():
+        for key, value in six.iteritems(data):
             data_labels.append(key)
             if key == "theta":
                 tensor_data.append(torch.tensor(value, requires_grad=True))
