@@ -17,7 +17,7 @@ class EarlyStoppingException(Exception):
     pass
 
 
-class Trainer:
+class Trainer(object):
     """ Trainer class. Any subclass has to implement the forward_pass() function. """
 
     def __init__(self, model, run_on_gpu=True, double_precision=False):
