@@ -1,16 +1,21 @@
 from __future__ import absolute_import, division, print_function
 
 from madminer.utils.ml import ratio_losses, flow_losses
-from madminer.utils.ml import ratio_trainer, flow_trainer, score_trainer
+from madminer.utils.ml.trainer import SingleParameterizedRatioTrainer, DoubleParameterizedRatioTrainer
+from madminer.utils.ml.trainer import FlowTrainer, LocalScoreTrainer
 
 
-def get_training_function(method):
+def get_trainer(method):
     if method in ["sally", "sallino"]:
-        return score_trainer.train_local_score_model
+        return LocalScoreTrainer
     elif method in ["nde", "scandal"]:
-        return flow_trainer.train_flow_model
+        return FlowTrainer
+    elif method in ["carl", "rolr", "rascal", "cascal", "alice", "alices"]:
+        return SingleParameterizedRatioTrainer
+    elif method in ["carl2", "rolr2", "rascal2", "cascal2", "alice2", "alices2"]:
+        return DoubleParameterizedRatioTrainer
     else:
-        return ratio_trainer.train_ratio_model
+        raise RuntimeError("Unknown method %s", method)
 
 
 def get_loss(method, alpha):
