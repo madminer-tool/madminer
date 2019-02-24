@@ -288,22 +288,23 @@ class Trainer(object):
     ):
         logging_fn = logger.info if verbose else logger.debug
 
-        contr_str_train = ""
-        for i, (label, value) in enumerate(zip(loss_labels, loss_contributions_train)):
-            if i > 0:
-                contr_str_train += ", "
-            contr_str_train += "{}: {:6.6f}".format(label, value)
-        train_report = "  Epoch {:>3d}: train loss {:6.6f} ({})".format(i_epoch + 1, loss_train, contr_str_train)
+        def contribution_summary(labels, contributions):
+            summary = ""
+            for i, (label, value) in enumerate(zip(labels, contributions)):
+                if i > 0:
+                    summary += ", "
+                summary += "{}: {:6.6f}".format(label, value)
+            return summary
 
+        train_report = "Epoch {:>3d}: train loss {:6.6f} ({})".format(
+            i_epoch + 1, loss_train, contribution_summary(loss_labels, loss_contributions_train)
+        )
         logging_fn(train_report)
 
         if loss_val is not None:
-            contr_str_val = ""
-            for i, (label, value) in enumerate(zip(loss_labels, loss_contributions_val)):
-                if i > 0:
-                    contr_str_val += ", "
-                contr_str_val += "{}: {:6.6f}".format(label, value)
-            val_report = "            val. loss  {:6.6f} ({})".format(loss_val, contr_str_val)
+            val_report = "           val. loss  {:6.6f} ({})".format(
+                i_epoch + 1, loss_val, contribution_summary(loss_labels, loss_contributions_val)
+            )
             logging_fn(val_report)
 
     def wrap_up_early_stopping(self, best_model, loss_val, best_loss, best_epoch):
