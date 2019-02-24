@@ -125,7 +125,8 @@ class Trainer(object):
                 verbose=verbose_epoch,
             )
 
-        self.wrap_up_early_stopping(best_model, losses_val[-1], best_loss, best_epoch)
+        if early_stopping:
+            self.wrap_up_early_stopping(best_model, losses_val[-1], best_loss, best_epoch)
 
         logger.debug("Training finished")
 
@@ -301,7 +302,9 @@ class Trainer(object):
             logging_fn(val_report)
 
     def wrap_up_early_stopping(self, best_model, loss_val, best_loss, best_epoch):
-        if loss_val < best_loss:
+        if loss_val is None or best_loss is None:
+            logger.warning("Loss is None, cannot wrap up early stopping")
+        elif loss_val < best_loss:
             logger.info(
                 "Early stopping after epoch %s, with loss %.2f compared to final loss %.2f",
                 best_epoch + 1,
