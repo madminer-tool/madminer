@@ -71,7 +71,7 @@ def get_trainer(method):
 
 def get_loss(method, alpha):
     if method in ["carl", "carl2"]:
-        loss_functions = [losses.standard_cross_entropy]
+        loss_functions = [losses.ratio_xe]
         loss_weights = [1.0]
         loss_labels = ["xe"]
     elif method in ["rolr", "rolr2"]:
@@ -79,7 +79,7 @@ def get_loss(method, alpha):
         loss_weights = [1.0]
         loss_labels = ["mse_r"]
     elif method == "rascal":
-        loss_functions = [losses.ratio_mse, losses.score_mse_num]
+        loss_functions = [losses.ratio_mse, losses.ratio_score_mse_num]
         loss_weights = [1.0, alpha]
         loss_labels = ["mse_r", "mse_score"]
     elif method == "rascal2":
@@ -87,15 +87,15 @@ def get_loss(method, alpha):
         loss_weights = [1.0, alpha]
         loss_labels = ["mse_r", "mse_score"]
     elif method in ["alice", "alice2"]:
-        loss_functions = [losses.augmented_cross_entropy]
+        loss_functions = [losses.ratio_augmented_xe]
         loss_weights = [1.0]
         loss_labels = ["improved_xe"]
     elif method == "alices":
-        loss_functions = [losses.augmented_cross_entropy, losses.score_mse_num]
+        loss_functions = [losses.ratio_augmented_xe, losses.ratio_score_mse_num]
         loss_weights = [1.0, alpha]
         loss_labels = ["improved_xe", "mse_score"]
     elif method == "alices2":
-        loss_functions = [losses.augmented_cross_entropy, losses.ratio_score_mse]
+        loss_functions = [losses.ratio_augmented_xe, losses.ratio_score_mse]
         loss_weights = [1.0, alpha]
         loss_labels = ["improved_xe", "mse_score"]
     elif method in ["sally", "sallino"]:
@@ -103,11 +103,11 @@ def get_loss(method, alpha):
         loss_weights = [1.0]
         loss_labels = ["mse_score"]
     elif method == "nde":
-        loss_functions = [madminer.utils.ml.losses.negative_log_likelihood]
+        loss_functions = [madminer.utils.ml.losses.flow_nll]
         loss_weights = [1.0]
         loss_labels = ["nll"]
     elif method == "scandal":
-        loss_functions = [madminer.utils.ml.losses.negative_log_likelihood, madminer.utils.ml.losses.flow_score_mse]
+        loss_functions = [madminer.utils.ml.losses.flow_nll, madminer.utils.ml.losses.flow_score_mse]
         loss_weights = [1.0, alpha]
         loss_labels = ["nll", "mse_score"]
     else:

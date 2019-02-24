@@ -120,3 +120,7 @@ def test_nuisance():
 
     # Check that results make sense
     assert np.all(np.abs(relative_diffs) < tolerance)
+
+
+if __name__ == "__main__":
+    test_nuisance()

@@ -54,6 +54,7 @@ class Trainer(object):
     ):
         logger.debug("Initialising training data")
         self.check_data(data)
+        self.report_data(data)
         data_labels, dataset = self.make_dataset(data)
         train_loader, val_loader = self.make_dataloaders(dataset, validation_split, batch_size)
 
@@ -100,7 +101,7 @@ class Trainer(object):
             logger.debug("Learning rate: %s", lr)
 
             loss_train, loss_val, loss_contributions_train, loss_contributions_val = self.epoch(
-                data_labels, train_loader, val_loader, opt, loss_functions, loss_weights, clip_gradient
+                i_epoch, data_labels, train_loader, val_loader, opt, loss_functions, loss_weights, clip_gradient
             )
             losses_train.append(loss_train)
             losses_val.append(loss_val)
@@ -131,6 +132,20 @@ class Trainer(object):
         logger.debug("Training finished")
 
         return np.array(losses_train), np.array(losses_val)
+
+    @staticmethod
+    def report_data(data):
+        logger.debug("Training data:")
+        for key, value in six.iteritems(data):
+            logger.debug(
+                "  %s: shape %s, first %s, mean %s, min %s, max %s",
+                key,
+                value.shape,
+                value[0],
+                np.mean(value, axis=0),
+                np.min(value, axis=0),
+                np.max(value, axis=0),
+            )
 
     @staticmethod
     def check_data(data):
@@ -177,7 +192,7 @@ class Trainer(object):
         for param_group in optimizer.param_groups:
             param_group["lr"] = lr
 
-    def epoch(self, data_labels, train_loader, val_loader, optimizer, loss_functions, loss_weights, clip_gradient=None):
+    def epoch(self, i_epoch, data_labels, train_loader, val_loader, optimizer, loss_functions, loss_weights, clip_gradient=None):
         n_losses = len(loss_functions)
 
         self.model.train()
@@ -259,7 +274,7 @@ class Trainer(object):
     def sum_losses(contributions, weights):
         loss = weights[0] * contributions[0]
         for _w, _l in zip(weights[1:], contributions[1:]):
-            loss += _w * _l
+            loss = loss + _w * _l
         return loss
 
     def optimizer_step(self, optimizer, loss, clip_gradient):
@@ -310,7 +325,7 @@ class Trainer(object):
             logger.warning("Loss is None, cannot wrap up early stopping")
         elif loss_val < best_loss:
             logger.info(
-                "Early stopping after epoch %s, with loss %.2f compared to final loss %.2f",
+                "Early stopping after epoch %s, with loss %8.5f compared to final loss %8.5f",
                 best_epoch + 1,
                 best_loss,
                 loss_val,
