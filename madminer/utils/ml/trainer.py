@@ -108,7 +108,7 @@ class Trainer(object):
             if early_stopping:
                 try:
                     best_loss, best_model, best_epoch = self.check_early_stopping(
-                        best_loss, best_model, best_epoch, loss_val, best_epoch
+                        best_loss, best_model, best_epoch, loss_val, best_epoch, early_stopping_patience
                     )
                 except EarlyStoppingException:
                     logger.debug("Early stopping: ending training after %s epochs", i_epoch + 1)
@@ -269,11 +269,15 @@ class Trainer(object):
             clip_grad_norm_(self.model.parameters(), clip_gradient)
         optimizer.step()
 
-    def check_early_stopping(self, best_loss, best_model, best_epoch, loss, i_epoch):
+    def check_early_stopping(self, best_loss, best_model, best_epoch, loss, i_epoch, early_stopping_patience=None):
         if best_loss is None or loss < best_loss:
             best_loss = loss
             best_model = self.model.state_dict()
             best_epoch = i_epoch
+
+        if early_stopping_patience is not None and i_epoch - best_epoch > early_stopping_patience >= 0:
+            raise EarlyStoppingException
+
         return best_loss, best_model, best_epoch
 
     @staticmethod
