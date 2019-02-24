@@ -12,9 +12,7 @@ from madminer.utils.ml.models.maf import ConditionalMaskedAutoregressiveFlow
 from madminer.utils.ml.models.maf_mog import ConditionalMixtureMaskedAutoregressiveFlow
 from madminer.utils.ml.models.ratio import ParameterizedRatioEstimator, DoublyParameterizedRatioEstimator
 from madminer.utils.ml.models.score import LocalScoreEstimator
-from madminer.utils.ml.flow_trainer import evaluate_flow_model
-from madminer.utils.ml.ratio_trainer import evaluate_ratio_model
-from madminer.utils.ml.score_trainer import evaluate_local_score_model
+from madminer.utils.ml.eval import evaluate_flow_model, evaluate_ratio_model, evaluate_local_score_model
 from madminer.utils.ml.utils import check_required_data
 from madminer.utils.various import create_missing_folders, load_and_check, shuffle, restrict_samplesize
 from madminer.utils.ml.methods import get_method_type, get_trainer, get_loss, package_training_data
