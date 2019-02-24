@@ -82,8 +82,11 @@ class Trainer(object):
             n_epochs_verbose = max(int(round(epochs / 20, 0)), 1)
         elif verbose == "few":  # Print output after 20%, 40%, ..., 100% progress
             n_epochs_verbose = max(int(round(epochs / 5, 0)), 1)
-        else:  # Never print output
+        elif verbose == "none":  # Never print output
             n_epochs_verbose = epochs + 2
+        else:
+            raise ValueError("Unknown value %s for keyword verbose", verbose)
+        logger.debug("Will print training progress every %s epochs", n_epochs_verbose)
 
         logger.debug("Beginning main training loop")
         losses_train, losses_val = [], []
@@ -97,7 +100,7 @@ class Trainer(object):
             logger.debug("Learning rate: %s", lr)
 
             loss_train, loss_val, loss_contributions_train, loss_contributions_val = self.epoch(
-                i_epoch, data_labels, train_loader, val_loader, opt, loss_functions, loss_weights, clip_gradient
+                data_labels, train_loader, val_loader, opt, loss_functions, loss_weights, clip_gradient
             )
             losses_train.append(loss_train)
             losses_val.append(loss_val)
@@ -173,17 +176,7 @@ class Trainer(object):
         for param_group in optimizer.param_groups:
             param_group["lr"] = lr
 
-    def epoch(
-        self,
-        i_epoch,
-        data_labels,
-        train_loader,
-        val_loader,
-        optimizer,
-        loss_functions,
-        loss_weights,
-        clip_gradient=None,
-    ):
+    def epoch(self, data_labels, train_loader, val_loader, optimizer, loss_functions, loss_weights, clip_gradient=None):
         n_losses = len(loss_functions)
 
         self.model.train()
@@ -293,17 +286,17 @@ class Trainer(object):
             for i, (label, value) in enumerate(zip(labels, contributions)):
                 if i > 0:
                     summary += ", "
-                summary += "{}: {:6.6f}".format(label, value)
+                summary += "{}: {:5.3f}".format(label, value)
             return summary
 
-        train_report = "Epoch {:>3d}: train loss {:6.6f} ({})".format(
+        train_report = "Epoch {:>3d}: train loss {:>7.4f} ({})".format(
             i_epoch + 1, loss_train, contribution_summary(loss_labels, loss_contributions_train)
         )
         logging_fn(train_report)
 
         if loss_val is not None:
-            val_report = "           val. loss  {:6.6f} ({})".format(
-                i_epoch + 1, loss_val, contribution_summary(loss_labels, loss_contributions_val)
+            val_report = "           val. loss  {:>7.4f} ({})".format(
+                loss_val, contribution_summary(loss_labels, loss_contributions_val)
             )
             logging_fn(val_report)
 
