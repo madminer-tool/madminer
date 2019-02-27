@@ -9,7 +9,7 @@ from madminer.utils.ml.trainer import FlowTrainer, LocalScoreTrainer
 
 
 def get_method_type(method):
-    if method in ["carl", "rolr", "rascal", "alice", "alices"]:
+    if method in ["carl", "rolr", "cascal", "rascal", "alice", "alices"]:
         method_type = "parameterized"
     elif method in ["carl2", "rolr2", "rascal2", "alice2", "alices2"]:
         method_type = "doubly_parameterized"
