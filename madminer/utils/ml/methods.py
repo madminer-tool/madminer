@@ -78,6 +78,14 @@ def get_loss(method, alpha):
         loss_functions = [losses.ratio_mse]
         loss_weights = [1.0]
         loss_labels = ["mse_r"]
+    elif method == "cascal":
+        loss_functions = [losses.ratio_xe, losses.ratio_score_mse_num]
+        loss_weights = [1.0, alpha]
+        loss_labels = ["xe", "mse_score"]
+    elif method == "cascal2":
+        loss_functions = [losses.ratio_xe, losses.ratio_score_mse]
+        loss_weights = [1.0, alpha]
+        loss_labels = ["xe", "mse_score"]
     elif method == "rascal":
         loss_functions = [losses.ratio_mse, losses.ratio_score_mse_num]
         loss_weights = [1.0, alpha]
