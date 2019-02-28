@@ -20,18 +20,18 @@ from madminer.utils.ml.methods import get_method_type, get_trainer, get_loss, pa
 logger = logging.getLogger(__name__)
 
 
-class MLForge:
+class Estimator:
     """
     Estimating likelihood ratios and scores with machine learning.
 
     Each instance of this class represents one neural estimator. The most important functions are:
 
-    * `MLForge.train()` to train an estimator. The keyword `method` determines the inference technique
+    * `Estimator.train()` to train an estimator. The keyword `method` determines the inference technique
       and whether a class instance represents a single-parameterized likelihood ratio estimator, a doubly-parameterized
       likelihood ratio estimator, or a local score estimator.
-    * `MLForge.evaluate()` to evaluate the estimator.
-    * `MLForge.save()` to save the trained model to files.
-    * `MLForge.load()` to load the trained model from files.
+    * `Estimator.evaluate()` to evaluate the estimator.
+    * `Estimator.save()` to save the trained model to files.
+    * `Estimator.load()` to load the trained model from files.
 
     Please see the tutorial for a detailed walk-through.
     """
@@ -832,7 +832,7 @@ class MLForge:
 
         save_model : bool, optional
             If True, the whole model is saved in addition to the state dict. This is not necessary for loading it
-            again with MLForge.load(), but can be useful for debugging, for instance to plot the computational graph.
+            again with Estimator.load(), but can be useful for debugging, for instance to plot the computational graph.
 
         Returns
         -------
@@ -1046,23 +1046,23 @@ class MLForge:
             raise RuntimeError("Unknown method {}".format(method))
 
 
-class EnsembleForge:
+class Ensemble:
     """
     Ensemble methods for likelihood ratio and score information.
 
-    Generally, EnsembleForge instances can be used very similarly to MLForge instances:
+    Generally, Ensemble instances can be used very similarly to MLForge instances:
 
-    * The initialization of EnsembleForge takes a list of (trained or untrained) MLForge instances.
-    * The methods `EnsembleForge.train_one()` and `EnsembleForge.train_all()` train the estimators (this can also be
-      done outside of EnsembleForge).
-    * `EnsembleForge.calculate_expectation()` can be used to calculate the expectation of the estimation likelihood
+    * The initialization of Ensemble takes a list of (trained or untrained) MLForge instances.
+    * The methods `Ensemble.train_one()` and `Ensemble.train_all()` train the estimators (this can also be
+      done outside of Ensemble).
+    * `Ensemble.calculate_expectation()` can be used to calculate the expectation of the estimation likelihood
       ratio or the expected estimated score over a validation sample. Ideally (and assuming the correct sampling),
       these expectation values should be close to zero. Deviations from zero therefore point out that the estimator
       is probably inaccurate.
-    * `EnsembleForge.evaluate()` and `EnsembleForge.calculate_fisher_information()` can then be used to calculate
+    * `Ensemble.evaluate()` and `Ensemble.calculate_fisher_information()` can then be used to calculate
       ensemble predictions. The user has the option to treat all estimators equally ('committee method') or to give those
       with expected score / ratio close to zero a higher weight.
-    * `EnsembleForge.save()` and `EnsembleForge.load()` can store all estimators in one folder.
+    * `Ensemble.save()` and `Ensemble.load()` can store all estimators in one folder.
 
     The individual estimators in the ensemble can be trained with different methods, but they have to be of the same
     type: either all estimators are single-parameterized likelihood ratio estimators, or all estimators are
@@ -1082,7 +1082,7 @@ class EnsembleForge:
 
     Attributes
     ----------
-    estimators : list of MLForge
+    estimators : list of Estimator
         The estimators in the form of MLForge instances.
     """
 
@@ -1094,17 +1094,17 @@ class EnsembleForge:
         if estimators is None:
             self.estimators = []
         elif isinstance(estimators, int):
-            self.estimators = [MLForge() for _ in range(estimators)]
+            self.estimators = [Estimator() for _ in range(estimators)]
         else:
             self.estimators = []
             for estimator in estimators:
                 if isinstance(estimator, six.string_types):
-                    estimator_object = MLForge()
+                    estimator_object = Estimator()
                     estimator_object.load(estimator)
-                elif isinstance(estimator, MLForge):
+                elif isinstance(estimator, Estimator):
                     estimator_object = estimator
                 else:
-                    raise ValueError("Entry {} in estimators is neither str nor MLForge instance")
+                    raise ValueError("Entry {} in estimators is neither str nor Estimator instance")
 
                 self.estimators.append(estimator_object)
 
@@ -1113,7 +1113,7 @@ class EnsembleForge:
 
         # Consistency checks
         for estimator in self.estimators:
-            assert isinstance(estimator, MLForge), "Estimator is no MLForge instance!"
+            assert isinstance(estimator, Estimator), "Estimator is no Estimator instance!"
 
         self._check_consistency()
 
@@ -1123,7 +1123,7 @@ class EnsembleForge:
 
         Parameters
         ----------
-        estimator : MLForge or str
+        estimator : Estimator or str
             The estimator, either as MLForge instance or filename (which is then loaded with `MLForge.load()`).
 
         Returns
@@ -1132,19 +1132,19 @@ class EnsembleForge:
 
         """
         if isinstance(estimator, six.string_types):
-            estimator_object = MLForge()
+            estimator_object = Estimator()
             estimator_object.load(estimator)
-        elif isinstance(estimator, MLForge):
+        elif isinstance(estimator, Estimator):
             estimator_object = estimator
         else:
-            raise ValueError("Entry {} in estimators is neither str nor MLForge instance")
+            raise ValueError("Entry {} in estimators is neither str nor Estimator instance")
 
         self.estimators.append(estimator_object)
         self.n_estimators = len(self.estimators)
 
     def train_one(self, i, **kwargs):
         """
-        Trains an individual estimator. See `MLForge.train()`.
+        Trains an individual estimator. See `Estimator.train()`.
 
         Parameters
         ----------
@@ -1152,7 +1152,7 @@ class EnsembleForge:
             The index `0 <= i < n_estimators` of the estimator to be trained.
 
         kwargs : dict
-            Parameters for `MLForge.train()`.
+            Parameters for `Estimator.train()`.
 
         Returns
         -------
@@ -1166,12 +1166,12 @@ class EnsembleForge:
 
     def train_all(self, **kwargs):
         """
-        Trains all estimators. See `MLForge.train()`.
+        Trains all estimators. See `Estimator.train()`.
 
         Parameters
         ----------
         kwargs : dict
-            Parameters for `MLForge.train()`. If a value in this dict is a list, it has to have length `n_estimators`
+            Parameters for `Estimator.train()`. If a value in this dict is a list, it has to have length `n_estimators`
             and contain one value of this parameter for each of the estimators. Otherwise the value is used as parameter
             for the training of all the estimators.
 
@@ -1668,7 +1668,7 @@ class EnsembleForge:
 
         save_model : bool, optional
             If True, the whole model is saved in addition to the state dict. This is not necessary for loading it
-            again with EnsembleForge.load(), but can be useful for debugging, for instance to plot the computational
+            again with Ensemble.load(), but can be useful for debugging, for instance to plot the computational
             graph.
 
         Returns
@@ -1730,7 +1730,7 @@ class EnsembleForge:
         # Load estimators
         self.estimators = []
         for i in range(self.n_estimators):
-            estimator = MLForge()
+            estimator = Estimator()
             estimator.load(folder + "/estimator_" + str(i))
             self.estimators.append(estimator)
 
