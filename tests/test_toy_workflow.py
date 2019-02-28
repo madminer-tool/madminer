@@ -128,3 +128,7 @@ def test_toy_workflow():
     print("Root mean squared error of true log r vs ALICES log r: {}".format(rmse))
 
     assert rmse < 1000.0
+
+
+if __name__ == "__main__":
+    test_toy_workflow()
