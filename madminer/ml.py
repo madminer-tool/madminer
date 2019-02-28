@@ -65,7 +65,7 @@ class MLForge:
         t_xz1_filename=None,
         features=None,
         nde_type="mafmog",
-        n_hidden=(100, 100,),
+        n_hidden=(100, 100),
         activation="tanh",
         maf_n_mades=3,
         maf_batch_norm=False,
@@ -88,7 +88,7 @@ class MLForge:
     ):
 
         """
-        Trains a neural network to estimate either the likelihood ratio or, if method is 'sally' or 'sallino', the
+        Trains a neural network to estimate either the likelihood, the likelihood ratio, or the
         score.
 
         The keyword method determines the structure of the estimator that an instance of this class represents:
@@ -401,18 +401,11 @@ class MLForge:
         )
         return result
 
-    def evaluate(
-        self,
-        x,
-        theta0_filename=None,
-        theta1_filename=None,
-        test_all_combinations=True,
-        evaluate_score=False,
-        return_grad_x=False,
-    ):
+    def evaluate(self, x, theta0_filename=None, theta1_filename=None, test_all_combinations=True, evaluate_score=False):
 
         """
-        Evaluates a trained estimator of the log likelihood ratio (or, if method is 'sally' or 'sallino', the score).
+        Evaluates a trained estimator of the log likelihood ratio, the log likelihood, or the score, depending on the
+        method.
 
         Parameters
         ----------
@@ -472,6 +465,72 @@ class MLForge:
             Only returned if return_grad_x is True.
 
         """
+        if self.method_type in ["parameterized", "doubly_parameterized"]:
+            return self.evaluate_log_likelihood_ratio(
+                x, theta0_filename, theta1_filename, test_all_combinations, evaluate_score
+            )
+        elif self.method_type == "nde":
+            return self.evaluate_log_likelihood(x, theta0_filename, test_all_combinations, evaluate_score)
+        elif self.method_type == "local_score":
+            return self.evaluate_score(x)
+        else:
+            raise RuntimeError("Unknown method type %s", self.method_type)
+
+    def evaluate_log_likelihood_ratio(
+        self, x, theta0_filename=None, theta1_filename=None, test_all_combinations=True, evaluate_score=False
+    ):
+
+        """
+        Evaluates a trained estimator of the log likelihood ratio, the log likelihood, or the score, depending on the
+        method.
+
+        Parameters
+        ----------
+        x : str or ndarray
+            Sample of observations, or path to numpy file with observations, as saved by the
+            `madminer.sampling.SampleAugmenter` functions.
+
+        theta0_filename : str or None, optional
+            Path to an unweighted sample of numerator parameters, as saved by the `madminer.sampling.SampleAugmenter`
+            functions. Required if the estimator was trained with the 'alice', 'alice2', 'alices', 'alices2', 'carl',
+            'carl2', 'nde', 'rascal', 'rascal2', 'rolr', 'rolr2', or 'scandal' method. Default value: None.
+
+        theta1_filename : str or None, optional
+            Path to an unweighted sample of denominator parameters, as saved by the `madminer.sampling.SampleAugmenter`
+            functions. Required if the estimator was trained with the 'alice2', 'alices2', 'carl2', 'rascal2', or
+            'rolr2' method. Default value: None.
+
+        test_all_combinations : bool, optional
+            If method is not 'sally' and not 'sallino': If False, the number of samples in the observable and theta
+            files has to match, and the likelihood ratio is evaluated only for the combinations
+            `r(x_i | theta0_i, theta1_i)`. If True, `r(x_i | theta0_j, theta1_j)` for all pairwise combinations `i, j`
+            are evaluated. Default value: True.
+
+        evaluate_score : bool, optional
+            If method is not 'sally' and not 'sallino', this sets whether in addition to the likelihood ratio the score
+            is evaluated. Default value: False.
+
+        Returns
+        -------
+        log_likelihood_ratio : ndarray
+            Only returned if the network was trained with neither `method='sally'` nor `method='sallino'`. The estimated
+            log likelihood ratio. If test_all_combinations is True, the result has shape `(n_thetas, n_x)`. Otherwise,
+            it has shape `(n_samples,)`.
+
+        score_theta0 : ndarray or None
+            Only returned if the network was trained with neither `method='sally'` nor `method='sallino'`. None if
+            evaluate_score is False. Otherwise the derived estimated score at `theta0`. If test_all_combinations is
+            True, the result has shape `(n_thetas, n_x, n_parameters)`. Otherwise, it has shape
+            `(n_samples, n_parameters)`.
+
+        score_theta1 : ndarray or None
+            Only returned if the network was trained with neither `method='sally'` nor `method='sallino'`. None if
+            evaluate_score is False, or the network was trained with any method other than 'alice2', 'alices2', 'carl2',
+            'rascal2', or 'rolr2'. Otherwise the derived estimated score at `theta1`. If test_all_combinations is
+            True, the result has shape `(n_thetas, n_x, n_parameters)`. Otherwise, it has shape
+            `(n_samples, n_parameters)`.
+
+        """
 
         if self.model is None:
             raise ValueError("No model -- train or load model before evaluating it!")
@@ -486,22 +545,9 @@ class MLForge:
         # Scale observables
         x = self._transform_inputs(x)
 
-        # Restrict featuers
+        # Restrict features
         if self.features is not None:
             x = x[:, self.features]
-
-        # SALLY evaluation
-        if self.method in ["sally", "sallino"]:
-            logger.debug("Starting score evaluation")
-
-            if return_grad_x:
-                all_t_hat, all_x_gradients = evaluate_local_score_model(model=self.model, xs=x, return_grad_x=True)
-
-                return all_t_hat, all_x_gradients
-
-            all_t_hat = evaluate_local_score_model(model=self.model, xs=x)
-
-            return all_t_hat
 
         # Balance thetas
         if theta1s is None and theta0s is not None:
@@ -516,7 +562,6 @@ class MLForge:
         all_log_r_hat = []
         all_t_hat0 = []
         all_t_hat1 = []
-        all_x_gradients = []
 
         if test_all_combinations:
             logger.debug("Starting ratio evaluation for all combinations")
@@ -525,83 +570,182 @@ class MLForge:
                 logger.debug(
                     "Starting ratio evaluation for thetas %s / %s: %s vs %s", i + 1, len(theta0s), theta0, theta1
                 )
-
-                if self.method in ["nde", "scandal"]:
-                    _, log_r_hat, t_hat0 = evaluate_flow_model(
-                        model=self.model, theta0s=[theta0], xs=x, evaluate_score=evaluate_score
-                    )
-                    t_hat1 = None
-
-                else:
-                    if return_grad_x:
-                        _, log_r_hat, t_hat0, t_hat1, x_gradient = evaluate_ratio_model(
-                            model=self.model,
-                            method_type=self.method_type,
-                            theta0s=[theta0],
-                            theta1s=[theta1] if theta1 is not None else None,
-                            xs=x,
-                            evaluate_score=evaluate_score,
-                            return_grad_x=True,
-                        )
-                    else:
-                        _, log_r_hat, t_hat0, t_hat1 = evaluate_ratio_model(
-                            model=self.model,
-                            method_type=self.method_type,
-                            theta0s=[theta0],
-                            theta1s=[theta1] if theta1 is not None else None,
-                            xs=x,
-                            evaluate_score=evaluate_score,
-                        )
-                        x_gradient = None
+                _, log_r_hat, t_hat0, t_hat1 = evaluate_ratio_model(
+                    model=self.model,
+                    method_type=self.method_type,
+                    theta0s=[theta0],
+                    theta1s=[theta1] if theta1 is not None else None,
+                    xs=x,
+                    evaluate_score=evaluate_score,
+                )
 
                 all_log_r_hat.append(log_r_hat)
                 all_t_hat0.append(t_hat0)
                 all_t_hat1.append(t_hat1)
-                all_x_gradients.append(x_gradient)
 
             all_log_r_hat = np.array(all_log_r_hat)
             all_t_hat0 = np.array(all_t_hat0)
             all_t_hat1 = np.array(all_t_hat1)
-            all_t_hat1 = np.array(all_t_hat1)
-            if return_grad_x:
-                all_x_gradients = np.array(all_x_gradients)
 
         else:
             logger.debug("Starting ratio evaluation")
-
-            if self.method in ["nde", "scandal"]:
-                _, all_log_r_hat, t_hat0 = evaluate_flow_model(
-                    model=self.model, theta0s=theta0s, xs=x, evaluate_score=evaluate_score
-                )
-                all_t_hat1 = None
-
-            else:
-                if return_grad_x:
-                    _, all_log_r_hat, all_t_hat0, all_t_hat1, all_x_gradients = evaluate_ratio_model(
-                        model=self.model,
-                        method_type=self.method_type,
-                        theta0s=theta0s,
-                        theta1s=None if None in theta1s else theta1s,
-                        xs=x,
-                        evaluate_score=evaluate_score,
-                        return_grad_x=True,
-                    )
-                else:
-                    _, all_log_r_hat, all_t_hat0, all_t_hat1 = evaluate_ratio_model(
-                        model=self.model,
-                        method_type=self.method_type,
-                        theta0s=theta0s,
-                        theta1s=None if None in theta1s else theta1s,
-                        xs=x,
-                        evaluate_score=evaluate_score,
-                    )
-                    all_x_gradients = None
+            _, all_log_r_hat, all_t_hat0, all_t_hat1 = evaluate_ratio_model(
+                model=self.model,
+                method_type=self.method_type,
+                theta0s=theta0s,
+                theta1s=None if None in theta1s else theta1s,
+                xs=x,
+                evaluate_score=evaluate_score,
+            )
 
         logger.debug("Evaluation done")
-
-        if return_grad_x:
-            return all_log_r_hat, all_t_hat0, all_t_hat1, all_x_gradients
         return all_log_r_hat, all_t_hat0, all_t_hat1
+
+    def evaluate_score(self, x, return_grad_x=False):
+
+        """
+        Evaluates a trained estimator of the the score.
+
+        Parameters
+        ----------
+        x : str or ndarray
+            Sample of observations, or path to numpy file with observations, as saved by the
+            `madminer.sampling.SampleAugmenter` functions.
+
+        return_grad_x : bool, optional
+            If True, `grad_x log r(x)` or `grad_x t(x)` (for 'sally' or 'sallino' estimators) are returned in addition
+            to the other outputs. Default value: False.
+
+        Returns
+        -------
+        sally_estimated_score : ndarray
+            Only returned if the network was trained with `method='sally'` or `method='sallino'`. In this case, an
+            array of the estimator for `t(x_i | theta_ref)` is returned for all events `i`.
+
+        grad_x : ndarray
+            Only returned if return_grad_x is True.
+
+        """
+
+        if self.model is None:
+            raise ValueError("No model -- train or load model before evaluating it!")
+
+        # Load training data
+        logger.debug("Loading evaluation data")
+        if isinstance(x, six.string_types):
+            x = load_and_check(x)
+
+        # Scale observables
+        x = self._transform_inputs(x)
+
+        # Restrict featuers
+        if self.features is not None:
+            x = x[:, self.features]
+
+        # SALLY evaluation
+        if self.method not in ["sally", "sallino"]:
+            raise NotImplementedError("Score evaluation only implemented for methods SALLY and SALLINO.")
+
+        logger.debug("Starting score evaluation")
+
+        all_t_hat = evaluate_local_score_model(model=self.model, xs=x)
+        return all_t_hat
+
+    def evaluate_log_likelihood(self, x, theta0_filename=None, test_all_combinations=True, evaluate_score=False):
+
+        """
+        Evaluates a trained estimator of the log likelihood.
+
+        Parameters
+        ----------
+        x : str or ndarray
+            Sample of observations, or path to numpy file with observations, as saved by the
+            `madminer.sampling.SampleAugmenter` functions.
+
+        theta0_filename : str or None, optional
+            Path to an unweighted sample of numerator parameters, as saved by the `madminer.sampling.SampleAugmenter`
+            functions. Required if the estimator was trained with the 'alice', 'alice2', 'alices', 'alices2', 'carl',
+            'carl2', 'nde', 'rascal', 'rascal2', 'rolr', 'rolr2', or 'scandal' method. Default value: None.
+
+        test_all_combinations : bool, optional
+            If method is not 'sally' and not 'sallino': If False, the number of samples in the observable and theta
+            files has to match, and the likelihood ratio is evaluated only for the combinations
+            `r(x_i | theta0_i, theta1_i)`. If True, `r(x_i | theta0_j, theta1_j)` for all pairwise combinations `i, j`
+            are evaluated. Default value: True.
+
+        evaluate_score : bool, optional
+            If method is not 'sally' and not 'sallino', this sets whether in addition to the likelihood ratio the score
+            is evaluated. Default value: False.
+
+        Returns
+        -------
+
+        log_likelihood : ndarray
+            The estimated log likelihood. If test_all_combinations is True, the result has shape `(n_thetas, n_x)`.
+            Otherwise, it has shape `(n_samples,)`.
+
+        score_theta0 : ndarray or None
+            None if
+            evaluate_score is False. Otherwise the derived estimated score at `theta0`. If test_all_combinations is
+            True, the result has shape `(n_thetas, n_x, n_parameters)`. Otherwise, it has shape
+            `(n_samples, n_parameters)`.
+
+        """
+
+        if self.model is None:
+            raise ValueError("No model -- train or load model before evaluating it!")
+
+        # Load training data
+        logger.debug("Loading evaluation data")
+        thetas = load_and_check(theta0_filename)
+        if isinstance(x, six.string_types):
+            x = load_and_check(x)
+
+        # Scale observables
+        x = self._transform_inputs(x)
+
+        # Restrict featuers
+        if self.features is not None:
+            x = x[:, self.features]
+
+        if self.method_type != "nde":
+            raise RuntimeError("Likelihood estimation only possible for methods NDE and SCANDAL")
+
+        # Evaluation for all other methods
+        all_log_p_hat = []
+        all_t_hat = []
+
+        if test_all_combinations:
+            logger.debug("Starting ratio evaluation for all combinations")
+
+            for i, theta in enumerate(thetas):
+                logger.debug(
+                    "Starting log likelihood evaluation for thetas %s / %s: %s vs %s",
+                    i + 1,
+                    len(thetas),
+                    theta0,
+                    theta1,
+                )
+
+                log_p_hat, t_hat = evaluate_flow_model(
+                    model=self.model, thetas=[theta], xs=x, evaluate_score=evaluate_score
+                )
+
+                all_log_p_hat.append(log_p_hat)
+                all_t_hat.append(t_hat)
+
+            all_log_p_hat = np.array(all_log_p_hat)
+            all_t_hat = np.array(all_t_hat)
+
+        else:
+            logger.debug("Starting log likelihood evaluation")
+
+            all_log_p_hat, all_t_hat = evaluate_flow_model(
+                model=self.model, thetas=thetas, xs=x, evaluate_score=evaluate_score
+            )
+
+        logger.debug("Evaluation done")
+        return all_log_p_hat, all_t_hat
 
     def calculate_fisher_information(self, x, weights=None, n_events=1, sum_events=True):
 

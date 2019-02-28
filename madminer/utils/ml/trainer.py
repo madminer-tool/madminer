@@ -192,7 +192,17 @@ class Trainer(object):
         for param_group in optimizer.param_groups:
             param_group["lr"] = lr
 
-    def epoch(self, i_epoch, data_labels, train_loader, val_loader, optimizer, loss_functions, loss_weights, clip_gradient=None):
+    def epoch(
+        self,
+        i_epoch,
+        data_labels,
+        train_loader,
+        val_loader,
+        optimizer,
+        loss_functions,
+        loss_weights,
+        clip_gradient=None,
+    ):
         n_losses = len(loss_functions)
 
         self.model.train()

@@ -10,29 +10,29 @@ from madminer.utils.ml.models.ratio import ParameterizedRatioEstimator, DoublyPa
 logger = logging.getLogger(__name__)
 
 
-def evaluate_flow_model(model, theta0s=None, xs=None, evaluate_score=False, run_on_gpu=True, double_precision=False):
+def evaluate_flow_model(model, thetas=None, xs=None, evaluate_score=False, run_on_gpu=True, double_precision=False):
     # CPU or GPU?
     run_on_gpu = run_on_gpu and torch.cuda.is_available()
     device = torch.device("cuda" if run_on_gpu else "cpu")
     dtype = torch.double if double_precision else torch.float
 
     # Balance theta0 and theta1
-    n_thetas = len(theta0s)
+    n_thetas = len(thetas)
 
     # Prepare data
     n_xs = len(xs)
-    theta0s = torch.stack([tensor(theta0s[i % n_thetas], requires_grad=True) for i in range(n_xs)])
+    thetas = torch.stack([tensor(thetas[i % n_thetas], requires_grad=True) for i in range(n_xs)])
     xs = torch.stack([tensor(i) for i in xs])
 
     model = model.to(device, dtype)
-    theta0s = theta0s.to(device, dtype)
+    thetas = thetas.to(device, dtype)
     xs = xs.to(device, dtype)
 
     # Evaluate estimator with score:
     if evaluate_score:
         model.eval()
 
-        _, log_p_hat, t_hat = model.log_likelihood_and_score(theta0s, xs)
+        _, log_p_hat, t_hat = model.log_likelihood_and_score(thetas, xs)
 
         # Copy back tensors to CPU
         if run_on_gpu:
@@ -47,7 +47,7 @@ def evaluate_flow_model(model, theta0s=None, xs=None, evaluate_score=False, run_
         with torch.no_grad():
             model.eval()
 
-            _, log_p_hat = model.log_likelihood(theta0s, xs)
+            _, log_p_hat = model.log_likelihood(thetas, xs)
 
             # Copy back tensors to CPU
             if run_on_gpu:
