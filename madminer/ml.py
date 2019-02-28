@@ -6,17 +6,16 @@ import os
 import json
 import numpy as np
 import torch
+from torch import optim
 
 from madminer.utils.ml.models.maf import ConditionalMaskedAutoregressiveFlow
 from madminer.utils.ml.models.maf_mog import ConditionalMixtureMaskedAutoregressiveFlow
 from madminer.utils.ml.models.ratio import ParameterizedRatioEstimator, DoublyParameterizedRatioEstimator
 from madminer.utils.ml.models.score import LocalScoreEstimator
-from madminer.utils.ml.flow_trainer import evaluate_flow_model
-from madminer.utils.ml.ratio_trainer import evaluate_ratio_model
-from madminer.utils.ml.score_trainer import evaluate_local_score_model
+from madminer.utils.ml.eval import evaluate_flow_model, evaluate_ratio_model, evaluate_local_score_model
 from madminer.utils.ml.utils import check_required_data
 from madminer.utils.various import create_missing_folders, load_and_check, shuffle, restrict_samplesize
-from madminer.utils.ml.methods import get_training_function, get_loss
+from madminer.utils.ml.methods import get_method_type, get_trainer, get_loss, package_training_data
 
 logger = logging.getLogger(__name__)
 
@@ -73,24 +72,23 @@ class MLForge:
         maf_batch_norm_alpha=0.1,
         maf_mog_n_components=10,
         alpha=1.0,
-        trainer="amsgrad",
+        optimizer="amsgrad",
         n_epochs=50,
-        batch_size=128,
+        batch_size=200,
         initial_lr=0.001,
         final_lr=0.0001,
         nesterov_momentum=None,
-        validation_split=None,
+        validation_split=0.25,
         early_stopping=True,
         scale_inputs=True,
         shuffle_labels=False,
         grad_x_regularization=None,
         limit_samplesize=None,
-        return_first_loss=False,
-        verbose=False,
+        verbose="some",
     ):
 
         """
-        Trains a neural network to estimate either the likelihood ratio or, if method is 'sally' or 'sallino', the
+        Trains a neural network to estimate either the likelihood, the likelihood ratio, or the
         score.
 
         The keyword method determines the structure of the estimator that an instance of this class represents:
@@ -184,14 +182,14 @@ class MLForge:
             Hyperparameter weighting the score error in the loss function of the 'alices', 'alices2', 'rascal',
             'rascal2', and 'scandal' methods. Default value: 1.
 
-        trainer : {"adam", "amsgrad", "sgd"}, optional
+        optimizer : {"adam", "amsgrad", "sgd"}, optional
             Optimization algorithm. Default value: "amsgrad".
 
         n_epochs : int, optional
             Number of epochs. Default value: 50.
 
         batch_size : int, optional
-            Batch size. Default value: 128.
+            Batch size. Default value: 200.
 
         initial_lr : float, optional
             Learning rate during the first epoch, after which it exponentially decays to final_lr. Default value:
@@ -205,7 +203,7 @@ class MLForge:
 
         validation_split : float or None, optional
             Fraction of samples used  for validation and early stopping (if early_stopping is True). If None, the entire
-            sample is used for training and early stopping is deactivated. Default value: None.
+            sample is used for training and early stopping is deactivated. Default value: 0.25.
 
         early_stopping : bool, optional
             Activates early stopping based on the validation loss (only if validation_split is not None). Default value:
@@ -219,20 +217,14 @@ class MLForge:
             normal order. This serves as a closure test, in particular as cross-check against overfitting: an estimator
             trained with shuffle_labels=True should predict to likelihood ratios around 1 and scores around 0.
 
-        grad_x_regularization : float or None, optional
-            If not None, a term of the form `grad_x_regularization * |grad_x f(x)|^2` is added to the loss, where `f(x)`
-            is the neural network output (the estimated log likelihood ratio or score). Default value: None.
+        grad_x_regularization : None
+            Currently not supported.
 
         limit_samplesize : int or None, optional
             If not None, only this number of samples (events) is used to train the estimator. Default value: None.
 
-        return_first_loss : bool, optional
-            If True, the training routine only proceeds until the loss is calculated for the first time, at which point
-            the loss tensor is returned. This can be useful for debugging or visualization purposes (but of course not
-            for training a model).
-
-        verbose : bool, optional
-            If True, prints loss updates after every epoch.
+        verbose : {"all", "many", "some", "few", "none}, optional
+            Determines verbosity of training. Default value: "some".
 
         Returns
         -------
@@ -273,27 +265,26 @@ class MLForge:
         if method in ["cascal", "cascal2", "rascal", "rascal2", "scandal", "alices"]:
             logger.info("  alpha:                  %s", alpha)
         logger.info("  Batch size:             %s", batch_size)
-        logger.info("  Trainer:                %s", trainer)
+        logger.info("  Optimizer:              %s", optimizer)
         logger.info("  Epochs:                 %s", n_epochs)
         logger.info("  Learning rate:          %s initially, decaying to %s", initial_lr, final_lr)
-        if trainer == "sgd":
+        if optimizer == "sgd":
             logger.info("  Nesterov momentum:      %s", nesterov_momentum)
         logger.info("  Validation split:       %s", validation_split)
         logger.info("  Early stopping:         %s", early_stopping)
         logger.info("  Scale inputs:           %s", scale_inputs)
         logger.info("  Shuffle labels          %s", shuffle_labels)
-        if grad_x_regularization is None:
-            logger.info("  Regularization:         None")
-        else:
-            logger.info("  Regularization:         %s * |grad_x f(x)|^2", grad_x_regularization)
         if limit_samplesize is None:
             logger.info("  Samples:                all")
         else:
             logger.info("  Samples:                %s", limit_samplesize)
 
+        # Check
+        if grad_x_regularization is not None:
+            logger.warning("grad_x_regularization is not supported in this version of MadMiner")
+
         # Load training data
         logger.info("Loading training data")
-
         theta0 = load_and_check(theta0_filename)
         theta1 = load_and_check(theta1_filename)
         x = load_and_check(x_filename)
@@ -301,15 +292,12 @@ class MLForge:
         r_xz = load_and_check(r_xz_filename)
         t_xz0 = load_and_check(t_xz0_filename)
         t_xz1 = load_and_check(t_xz1_filename)
-
         if y is not None:
             y = y.reshape((-1, 1))
 
         # Check necessary information is there
         if not check_required_data(method, r_xz, t_xz0, t_xz1, theta0, theta1, x, y):
             raise ValueError("Not all required data for method {} provided!".format(method))
-
-        calculate_model_score = method in ["rascal", "cascal", "alices", "scandal", "rascal2", "cascal2", "alices2"]
 
         # Infer dimensions of problem
         n_samples = x.shape[0]
@@ -318,7 +306,6 @@ class MLForge:
             n_parameters = theta0.shape[1]
         else:
             n_parameters = t_xz0.shape[1]
-
         logger.info("Found %s samples with %s parameters and %s observables", n_samples, n_parameters, n_observables)
 
         # Limit sample size
@@ -354,11 +341,13 @@ class MLForge:
 
         # Features
         self.features = features
-
         if features is not None:
             x = x[:, features]
             logger.info("Only using %s of %s observables", x.shape[1], n_observables)
             n_observables = x.shape[1]
+
+        # Data
+        data = package_training_data(method, x, theta0, theta1, y, r_xz, t_xz0, t_xz1)
 
         # Create model and save settings
         logger.info("Creating model for method %s", method)
@@ -378,51 +367,45 @@ class MLForge:
         # Losses
         loss_functions, loss_labels, loss_weights = get_loss(method, alpha)
 
+        # Optimizer
+        opt_kwargs = None
+        if optimizer == "adam":
+            opt = optim.Adam
+        elif optimizer == "amsgrad":
+            opt = optim.Adam
+            opt_kwargs = {"amsgrad": True}
+        elif optimizer == "sgd":
+            opt = optim.SGD
+            if nesterov_momentum is not None:
+                opt_kwargs = {"momentum": nesterov_momentum}
+        else:
+            raise ValueError("Unknown optimizer {}".format(optimizer))
+
         # Train model
         logger.info("Training model")
-        training_fn = get_training_function(method)
-        result = training_fn(
-            model=self.model,
-            method_type=self.method_type,
+        trainer = get_trainer(method)(self.model)
+        result = trainer.train(
+            data=data,
             loss_functions=loss_functions,
             loss_weights=loss_weights,
             loss_labels=loss_labels,
-            theta0s=theta0,
-            theta1s=theta1,
-            xs=x,
-            ys=y,
-            r_xzs=r_xz,
-            t_xzs=t_xz0,
-            t_xz0s=t_xz0,
-            t_xz1s=t_xz1,
-            calculate_model_score=calculate_model_score,
+            epochs=n_epochs,
             batch_size=batch_size,
-            n_epochs=n_epochs,
-            initial_learning_rate=initial_lr,
-            final_learning_rate=final_lr,
+            optimizer=opt,
+            optimizer_kwargs=opt_kwargs,
+            initial_lr=initial_lr,
+            final_lr=final_lr,
             validation_split=validation_split,
             early_stopping=early_stopping,
-            trainer=trainer,
-            nesterov_momentum=nesterov_momentum,
-            verbose="all" if verbose else "some",
-            grad_x_regularization=grad_x_regularization,
-            return_first_loss=return_first_loss,
+            verbose=verbose,
         )
-
         return result
 
-    def evaluate(
-        self,
-        x,
-        theta0_filename=None,
-        theta1_filename=None,
-        test_all_combinations=True,
-        evaluate_score=False,
-        return_grad_x=False,
-    ):
+    def evaluate(self, x, theta0_filename=None, theta1_filename=None, test_all_combinations=True, evaluate_score=False):
 
         """
-        Evaluates a trained estimator of the log likelihood ratio (or, if method is 'sally' or 'sallino', the score).
+        Evaluates a trained estimator of the log likelihood ratio, the log likelihood, or the score, depending on the
+        method.
 
         Parameters
         ----------
@@ -482,6 +465,72 @@ class MLForge:
             Only returned if return_grad_x is True.
 
         """
+        if self.method_type in ["parameterized", "doubly_parameterized"]:
+            return self.evaluate_log_likelihood_ratio(
+                x, theta0_filename, theta1_filename, test_all_combinations, evaluate_score
+            )
+        elif self.method_type == "nde":
+            return self.evaluate_log_likelihood(x, theta0_filename, test_all_combinations, evaluate_score)
+        elif self.method_type == "local_score":
+            return self.evaluate_score(x)
+        else:
+            raise RuntimeError("Unknown method type %s", self.method_type)
+
+    def evaluate_log_likelihood_ratio(
+        self, x, theta0_filename=None, theta1_filename=None, test_all_combinations=True, evaluate_score=False
+    ):
+
+        """
+        Evaluates a trained estimator of the log likelihood ratio, the log likelihood, or the score, depending on the
+        method.
+
+        Parameters
+        ----------
+        x : str or ndarray
+            Sample of observations, or path to numpy file with observations, as saved by the
+            `madminer.sampling.SampleAugmenter` functions.
+
+        theta0_filename : str or None, optional
+            Path to an unweighted sample of numerator parameters, as saved by the `madminer.sampling.SampleAugmenter`
+            functions. Required if the estimator was trained with the 'alice', 'alice2', 'alices', 'alices2', 'carl',
+            'carl2', 'nde', 'rascal', 'rascal2', 'rolr', 'rolr2', or 'scandal' method. Default value: None.
+
+        theta1_filename : str or None, optional
+            Path to an unweighted sample of denominator parameters, as saved by the `madminer.sampling.SampleAugmenter`
+            functions. Required if the estimator was trained with the 'alice2', 'alices2', 'carl2', 'rascal2', or
+            'rolr2' method. Default value: None.
+
+        test_all_combinations : bool, optional
+            If method is not 'sally' and not 'sallino': If False, the number of samples in the observable and theta
+            files has to match, and the likelihood ratio is evaluated only for the combinations
+            `r(x_i | theta0_i, theta1_i)`. If True, `r(x_i | theta0_j, theta1_j)` for all pairwise combinations `i, j`
+            are evaluated. Default value: True.
+
+        evaluate_score : bool, optional
+            If method is not 'sally' and not 'sallino', this sets whether in addition to the likelihood ratio the score
+            is evaluated. Default value: False.
+
+        Returns
+        -------
+        log_likelihood_ratio : ndarray
+            Only returned if the network was trained with neither `method='sally'` nor `method='sallino'`. The estimated
+            log likelihood ratio. If test_all_combinations is True, the result has shape `(n_thetas, n_x)`. Otherwise,
+            it has shape `(n_samples,)`.
+
+        score_theta0 : ndarray or None
+            Only returned if the network was trained with neither `method='sally'` nor `method='sallino'`. None if
+            evaluate_score is False. Otherwise the derived estimated score at `theta0`. If test_all_combinations is
+            True, the result has shape `(n_thetas, n_x, n_parameters)`. Otherwise, it has shape
+            `(n_samples, n_parameters)`.
+
+        score_theta1 : ndarray or None
+            Only returned if the network was trained with neither `method='sally'` nor `method='sallino'`. None if
+            evaluate_score is False, or the network was trained with any method other than 'alice2', 'alices2', 'carl2',
+            'rascal2', or 'rolr2'. Otherwise the derived estimated score at `theta1`. If test_all_combinations is
+            True, the result has shape `(n_thetas, n_x, n_parameters)`. Otherwise, it has shape
+            `(n_samples, n_parameters)`.
+
+        """
 
         if self.model is None:
             raise ValueError("No model -- train or load model before evaluating it!")
@@ -496,22 +545,9 @@ class MLForge:
         # Scale observables
         x = self._transform_inputs(x)
 
-        # Restrict featuers
+        # Restrict features
         if self.features is not None:
             x = x[:, self.features]
-
-        # SALLY evaluation
-        if self.method in ["sally", "sallino"]:
-            logger.debug("Starting score evaluation")
-
-            if return_grad_x:
-                all_t_hat, all_x_gradients = evaluate_local_score_model(model=self.model, xs=x, return_grad_x=True)
-
-                return all_t_hat, all_x_gradients
-
-            all_t_hat = evaluate_local_score_model(model=self.model, xs=x)
-
-            return all_t_hat
 
         # Balance thetas
         if theta1s is None and theta0s is not None:
@@ -526,7 +562,6 @@ class MLForge:
         all_log_r_hat = []
         all_t_hat0 = []
         all_t_hat1 = []
-        all_x_gradients = []
 
         if test_all_combinations:
             logger.debug("Starting ratio evaluation for all combinations")
@@ -535,83 +570,182 @@ class MLForge:
                 logger.debug(
                     "Starting ratio evaluation for thetas %s / %s: %s vs %s", i + 1, len(theta0s), theta0, theta1
                 )
-
-                if self.method in ["nde", "scandal"]:
-                    _, log_r_hat, t_hat0 = evaluate_flow_model(
-                        model=self.model, theta0s=[theta0], xs=x, evaluate_score=evaluate_score
-                    )
-                    t_hat1 = None
-
-                else:
-                    if return_grad_x:
-                        _, log_r_hat, t_hat0, t_hat1, x_gradient = evaluate_ratio_model(
-                            model=self.model,
-                            method_type=self.method_type,
-                            theta0s=[theta0],
-                            theta1s=[theta1] if theta1 is not None else None,
-                            xs=x,
-                            evaluate_score=evaluate_score,
-                            return_grad_x=True,
-                        )
-                    else:
-                        _, log_r_hat, t_hat0, t_hat1 = evaluate_ratio_model(
-                            model=self.model,
-                            method_type=self.method_type,
-                            theta0s=[theta0],
-                            theta1s=[theta1] if theta1 is not None else None,
-                            xs=x,
-                            evaluate_score=evaluate_score,
-                        )
-                        x_gradient = None
+                _, log_r_hat, t_hat0, t_hat1 = evaluate_ratio_model(
+                    model=self.model,
+                    method_type=self.method_type,
+                    theta0s=[theta0],
+                    theta1s=[theta1] if theta1 is not None else None,
+                    xs=x,
+                    evaluate_score=evaluate_score,
+                )
 
                 all_log_r_hat.append(log_r_hat)
                 all_t_hat0.append(t_hat0)
                 all_t_hat1.append(t_hat1)
-                all_x_gradients.append(x_gradient)
 
             all_log_r_hat = np.array(all_log_r_hat)
             all_t_hat0 = np.array(all_t_hat0)
             all_t_hat1 = np.array(all_t_hat1)
-            all_t_hat1 = np.array(all_t_hat1)
-            if return_grad_x:
-                all_x_gradients = np.array(all_x_gradients)
 
         else:
             logger.debug("Starting ratio evaluation")
-
-            if self.method in ["nde", "scandal"]:
-                _, all_log_r_hat, t_hat0 = evaluate_flow_model(
-                    model=self.model, theta0s=theta0s, xs=x, evaluate_score=evaluate_score
-                )
-                all_t_hat1 = None
-
-            else:
-                if return_grad_x:
-                    _, all_log_r_hat, all_t_hat0, all_t_hat1, all_x_gradients = evaluate_ratio_model(
-                        model=self.model,
-                        method_type=self.method_type,
-                        theta0s=theta0s,
-                        theta1s=None if None in theta1s else theta1s,
-                        xs=x,
-                        evaluate_score=evaluate_score,
-                        return_grad_x=True,
-                    )
-                else:
-                    _, all_log_r_hat, all_t_hat0, all_t_hat1 = evaluate_ratio_model(
-                        model=self.model,
-                        method_type=self.method_type,
-                        theta0s=theta0s,
-                        theta1s=None if None in theta1s else theta1s,
-                        xs=x,
-                        evaluate_score=evaluate_score,
-                    )
-                    all_x_gradients = None
+            _, all_log_r_hat, all_t_hat0, all_t_hat1 = evaluate_ratio_model(
+                model=self.model,
+                method_type=self.method_type,
+                theta0s=theta0s,
+                theta1s=None if None in theta1s else theta1s,
+                xs=x,
+                evaluate_score=evaluate_score,
+            )
 
         logger.debug("Evaluation done")
-
-        if return_grad_x:
-            return all_log_r_hat, all_t_hat0, all_t_hat1, all_x_gradients
         return all_log_r_hat, all_t_hat0, all_t_hat1
+
+    def evaluate_score(self, x, return_grad_x=False):
+
+        """
+        Evaluates a trained estimator of the the score.
+
+        Parameters
+        ----------
+        x : str or ndarray
+            Sample of observations, or path to numpy file with observations, as saved by the
+            `madminer.sampling.SampleAugmenter` functions.
+
+        return_grad_x : bool, optional
+            If True, `grad_x log r(x)` or `grad_x t(x)` (for 'sally' or 'sallino' estimators) are returned in addition
+            to the other outputs. Default value: False.
+
+        Returns
+        -------
+        sally_estimated_score : ndarray
+            Only returned if the network was trained with `method='sally'` or `method='sallino'`. In this case, an
+            array of the estimator for `t(x_i | theta_ref)` is returned for all events `i`.
+
+        grad_x : ndarray
+            Only returned if return_grad_x is True.
+
+        """
+
+        if self.model is None:
+            raise ValueError("No model -- train or load model before evaluating it!")
+
+        # Load training data
+        logger.debug("Loading evaluation data")
+        if isinstance(x, six.string_types):
+            x = load_and_check(x)
+
+        # Scale observables
+        x = self._transform_inputs(x)
+
+        # Restrict featuers
+        if self.features is not None:
+            x = x[:, self.features]
+
+        # SALLY evaluation
+        if self.method not in ["sally", "sallino"]:
+            raise NotImplementedError("Score evaluation only implemented for methods SALLY and SALLINO.")
+
+        logger.debug("Starting score evaluation")
+
+        all_t_hat = evaluate_local_score_model(model=self.model, xs=x)
+        return all_t_hat
+
+    def evaluate_log_likelihood(self, x, theta0_filename=None, test_all_combinations=True, evaluate_score=False):
+
+        """
+        Evaluates a trained estimator of the log likelihood.
+
+        Parameters
+        ----------
+        x : str or ndarray
+            Sample of observations, or path to numpy file with observations, as saved by the
+            `madminer.sampling.SampleAugmenter` functions.
+
+        theta0_filename : str or None, optional
+            Path to an unweighted sample of numerator parameters, as saved by the `madminer.sampling.SampleAugmenter`
+            functions. Required if the estimator was trained with the 'alice', 'alice2', 'alices', 'alices2', 'carl',
+            'carl2', 'nde', 'rascal', 'rascal2', 'rolr', 'rolr2', or 'scandal' method. Default value: None.
+
+        test_all_combinations : bool, optional
+            If method is not 'sally' and not 'sallino': If False, the number of samples in the observable and theta
+            files has to match, and the likelihood ratio is evaluated only for the combinations
+            `r(x_i | theta0_i, theta1_i)`. If True, `r(x_i | theta0_j, theta1_j)` for all pairwise combinations `i, j`
+            are evaluated. Default value: True.
+
+        evaluate_score : bool, optional
+            If method is not 'sally' and not 'sallino', this sets whether in addition to the likelihood ratio the score
+            is evaluated. Default value: False.
+
+        Returns
+        -------
+
+        log_likelihood : ndarray
+            The estimated log likelihood. If test_all_combinations is True, the result has shape `(n_thetas, n_x)`.
+            Otherwise, it has shape `(n_samples,)`.
+
+        score_theta0 : ndarray or None
+            None if
+            evaluate_score is False. Otherwise the derived estimated score at `theta0`. If test_all_combinations is
+            True, the result has shape `(n_thetas, n_x, n_parameters)`. Otherwise, it has shape
+            `(n_samples, n_parameters)`.
+
+        """
+
+        if self.model is None:
+            raise ValueError("No model -- train or load model before evaluating it!")
+
+        # Load training data
+        logger.debug("Loading evaluation data")
+        thetas = load_and_check(theta0_filename)
+        if isinstance(x, six.string_types):
+            x = load_and_check(x)
+
+        # Scale observables
+        x = self._transform_inputs(x)
+
+        # Restrict featuers
+        if self.features is not None:
+            x = x[:, self.features]
+
+        if self.method_type != "nde":
+            raise RuntimeError("Likelihood estimation only possible for methods NDE and SCANDAL")
+
+        # Evaluation for all other methods
+        all_log_p_hat = []
+        all_t_hat = []
+
+        if test_all_combinations:
+            logger.debug("Starting ratio evaluation for all combinations")
+
+            for i, theta in enumerate(thetas):
+                logger.debug(
+                    "Starting log likelihood evaluation for thetas %s / %s: %s vs %s",
+                    i + 1,
+                    len(thetas),
+                    theta0,
+                    theta1,
+                )
+
+                log_p_hat, t_hat = evaluate_flow_model(
+                    model=self.model, thetas=[theta], xs=x, evaluate_score=evaluate_score
+                )
+
+                all_log_p_hat.append(log_p_hat)
+                all_t_hat.append(t_hat)
+
+            all_log_p_hat = np.array(all_log_p_hat)
+            all_t_hat = np.array(all_t_hat)
+
+        else:
+            logger.debug("Starting log likelihood evaluation")
+
+            all_log_p_hat, all_t_hat = evaluate_flow_model(
+                model=self.model, thetas=thetas, xs=x, evaluate_score=evaluate_score
+            )
+
+        logger.debug("Evaluation done")
+        return all_log_p_hat, all_t_hat
 
     def calculate_fisher_information(self, x, weights=None, n_events=1, sum_events=True):
 
@@ -871,23 +1005,20 @@ class MLForge:
         self.maf_batch_norm_alpha = maf_batch_norm_alpha
         self.maf_mog_n_components = maf_mog_n_components
 
-        if method in ["carl", "rolr", "rascal", "alice", "alices"]:
-            self.method_type = "parameterized"
+        self.method_type = get_method_type(method)
+        if self.method_type == "parameterized":
             self.model = ParameterizedRatioEstimator(
                 n_observables=n_observables, n_parameters=n_parameters, n_hidden=n_hidden, activation=activation
             )
-        elif method in ["carl2", "rolr2", "rascal2", "alice2", "alices2"]:
-            self.method_type = "doubly_parameterized"
+        elif self.method_type == "doubly_parameterized":
             self.model = DoublyParameterizedRatioEstimator(
                 n_observables=n_observables, n_parameters=n_parameters, n_hidden=n_hidden, activation=activation
             )
-        elif method in ["sally", "sallino"]:
-            self.method_type = "local_score"
+        elif self.method_type == "local_score":
             self.model = LocalScoreEstimator(
                 n_observables=n_observables, n_parameters=n_parameters, n_hidden=n_hidden, activation=activation
             )
-        elif method in ["nde", "scandal"]:
-            self.method_type = "nde"
+        elif self.method_type == "nde":
             if nde_type == "maf":
                 self.model = ConditionalMaskedAutoregressiveFlow(
                     n_conditionals=n_parameters,
