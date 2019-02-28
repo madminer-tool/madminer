@@ -720,11 +720,10 @@ class MLForge:
 
             for i, theta in enumerate(thetas):
                 logger.debug(
-                    "Starting log likelihood evaluation for thetas %s / %s: %s vs %s",
+                    "Starting log likelihood evaluation for theta %s / %s: %s",
                     i + 1,
                     len(thetas),
-                    theta0,
-                    theta1,
+                    theta,
                 )
 
                 log_p_hat, t_hat = evaluate_flow_model(
