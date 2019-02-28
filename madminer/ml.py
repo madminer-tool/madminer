@@ -20,9 +20,10 @@ from madminer.utils.ml.methods import get_method_type, get_trainer, get_loss, pa
 logger = logging.getLogger(__name__)
 
 
-class Estimator:
+class Estimator(object):
     """
-    Estimating likelihood ratios and scores with machine learning.
+    Abstract class for any ML estimator. Subclassed by ParameterizedRatioEstimator, DoubleParameterizedRatioEstimator,
+    LocalScoreEstimator, and LikelihoodEstimator.
 
     Each instance of this class represents one neural estimator. The most important functions are:
 
@@ -1044,6 +1045,26 @@ class Estimator:
                 raise RuntimeError("Unknown NDE type {}".format(nde_type))
         else:
             raise RuntimeError("Unknown method {}".format(method))
+
+
+class ParameterizedRatioEstimator(Estimator):
+    def __init__(self):
+        super(ParameterizedRatioEstimator, self).__init__()
+
+
+class DoubleParameterizedRatioEstimator(Estimator):
+    def __init__(self):
+        super(DoubleParameterizedRatioEstimator, self).__init__()
+
+
+class LocalScoreEstimator(Estimator):
+    def __init__(self):
+        super(LocalScoreEstimator, self).__init__()
+
+
+class LikelihoodEstimator(Estimator):
+    def __init__(self):
+        super(LikelihoodEstimator, self).__init__()
 
 
 class Ensemble:
