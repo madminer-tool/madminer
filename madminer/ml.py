@@ -517,7 +517,7 @@ class ParameterizedRatioEstimator(Estimator):
 
             for i, this_theta in enumerate(theta):
                 logger.debug(
-                    "Starting ratio evaluation for thetas %s / %s: %s", i + 1, len(thetas), this_theta
+                    "Starting ratio evaluation for thetas %s / %s: %s", i + 1, len(theta), this_theta
                 )
                 _, log_r_hat, t_hat, _ = evaluate_ratio_model(
                     model=self.model,
@@ -750,7 +750,7 @@ class DoubleParameterizedRatioEstimator(Estimator):
         t_xz0 = load_and_check(t_xz0)
         t_xz1 = load_and_check(t_xz1)
 
-        self._check_required_data(method, r_xz, t_xz)
+        self._check_required_data(method, r_xz, t_xz0, t_xz1)
 
         # Infer dimensions of problem
         n_samples = x.shape[0]
@@ -900,7 +900,7 @@ class DoubleParameterizedRatioEstimator(Estimator):
 
             for i, (this_theta0, this_theta1) in enumerate(zip(theta0, theta1)):
                 logger.debug(
-                    "Starting ratio evaluation for thetas %s / %s: %s vs %s", i + 1, len(theta0s), this_theta0, this_theta1
+                    "Starting ratio evaluation for thetas %s / %s: %s vs %s", i + 1, len(theta0), this_theta0, this_theta1
                 )
                 _, log_r_hat, t_hat0, t_hat1 = evaluate_ratio_model(
                     model=self.model,
@@ -1339,7 +1339,7 @@ class LikelihoodEstimator(Estimator):
     def __init__(self, features=None, n_components=1, n_mades=5, n_hidden=(100,), activation="tanh", batch_norm=None):
         super(LikelihoodEstimator, self).__init__(features)
 
-        self.n_components = components
+        self.n_components = n_components
         self.n_mades = n_mades
         self.n_hidden = n_hidden
         self.activation = activation
@@ -1470,7 +1470,7 @@ class LikelihoodEstimator(Estimator):
         # Limit sample size
         if limit_samplesize is not None and limit_samplesize < n_samples:
             logger.info("Only using %s of %s training samples", limit_samplesize, n_samples)
-            x, theta, y, r_xz, t_xz = restrict_samplesize(limit_samplesize, x, theta, y, r_xz, t_xz)
+            x, theta, t_xz = restrict_samplesize(limit_samplesize, x, theta, t_xz)
 
         # Scale features
         if scale_inputs:
@@ -1483,7 +1483,7 @@ class LikelihoodEstimator(Estimator):
         # Shuffle labels
         if shuffle_labels:
             logger.info("Shuffling labels")
-            yt_xz = shuffle(t_xz)
+            t_xz = shuffle(t_xz)
 
         # Features
         if self.features is not None:
@@ -1602,7 +1602,7 @@ class LikelihoodEstimator(Estimator):
         if test_all_combinations:
             logger.debug("Starting ratio evaluation for all combinations")
 
-            for i, theta in enumerate(theta):
+            for i, this_theta in enumerate(theta):
                 logger.debug(
                     "Starting log likelihood evaluation for thetas %s / %s: %s",
                     i + 1,
