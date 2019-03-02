@@ -5,6 +5,7 @@ import logging
 import os
 import json
 import numpy as np
+from collections import OrderedDict
 import torch
 from torch import optim
 
@@ -13,17 +14,19 @@ from madminer.utils.ml.models.maf_mog import ConditionalMixtureMaskedAutoregress
 from madminer.utils.ml.models.ratio import DenseSingleParameterizedRatioModel, DenseDoublyParameterizedRatioModel
 from madminer.utils.ml.models.score import DenseLocalScoreModel
 from madminer.utils.ml.eval import evaluate_flow_model, evaluate_ratio_model, evaluate_local_score_model
-from madminer.utils.ml.utils import check_required_data
+from madminer.utils.ml.utils import check_required_data, get_optimizer, get_loss
 from madminer.utils.various import create_missing_folders, load_and_check, shuffle, restrict_samplesize
-from madminer.utils.ml.methods import get_method_type, get_trainer, get_loss, package_training_data
+from madminer.utils.ml.methods import get_method_type, get_trainer, package_training_data
+from madminer.utils.ml.trainer import SingleParameterizedRatioTrainer, DoubleParameterizedRatioTrainer
+from madminer.utils.ml.trainer import LocalScoreTrainer, FlowTrainer
 
 logger = logging.getLogger(__name__)
 
 
 class Estimator(object):
     """
-    Abstract class for any ML estimator. Subclassed by DenseSingleParameterizedRatioModel, DoubleParameterizedRatioEstimator,
-    DenseLocalScoreModel, and LikelihoodEstimator.
+    Abstract class for any ML estimator. Subclassed by ParameterizedRatioEstimator, DoubleParameterizedRatioEstimator,
+    LocalScoreEstimator, and LikelihoodEstimator.
 
     Each instance of this class represents one neural estimator. The most important functions are:
 
@@ -37,195 +40,69 @@ class Estimator(object):
     Please see the tutorial for a detailed walk-through.
     """
 
-    def __init__(self):
-        self.method_type = None
+    def __init__(self, features=None):
+        self.features = features
+
         self.model = None
-        self.method = None
-        self.nde_type = None
         self.n_observables = None
         self.n_parameters = None
         self.n_hidden = None
         self.activation = None
-        self.maf_n_mades = None
-        self.maf_batch_norm = None
-        self.maf_batch_norm_alpha = None
-        self.maf_mog_n_components = None
-        self.features = None
         self.x_scaling_means = None
         self.x_scaling_stds = None
 
-    def train(
-        self,
-        method,
-        x_filename,
-        y_filename=None,
-        theta0_filename=None,
-        theta1_filename=None,
-        r_xz_filename=None,
-        t_xz0_filename=None,
-        t_xz1_filename=None,
-        features=None,
-        nde_type="mafmog",
-        n_hidden=(100, 100),
-        activation="tanh",
-        maf_n_mades=3,
-        maf_batch_norm=False,
-        maf_batch_norm_alpha=0.1,
-        maf_mog_n_components=10,
-        alpha=1.0,
-        optimizer="amsgrad",
-        n_epochs=50,
-        batch_size=200,
-        initial_lr=0.001,
-        final_lr=0.0001,
-        nesterov_momentum=None,
-        validation_split=0.25,
-        early_stopping=True,
-        scale_inputs=True,
-        shuffle_labels=False,
-        grad_x_regularization=None,
-        limit_samplesize=None,
-        verbose="some",
-    ):
+    def train(self, *args, **kwargs):
+        raise NotImplementedError
+
+    def evaluate_log_likelihood(self, *args, **kwargs):
+        raise NotImplementedError
+
+    def evaluate_log_likelihood_ratio(self, *args, **kwargs):
+        raise NotImplementedError
+
+    def evaluate_score(self, *args, **kwargs):
+        raise NotImplementedError
+
+    def evaluate(self, *args, **kwargs):
+        raise NotImplementedError
+
+    def calculate_fisher_information(self, *args, **kwargs):
+        raise NotImplementedError
+
+
+    def _initialize_input_transform(self, x, transform=True):
+        if transform:
+            self.x_scaling_means = np.mean(x, axis=0)
+            self.x_scaling_stds = np.maximum(np.std(x, axis=0), 1.0e-6)
+        else:
+            n_parameters = x.shape[0]
+
+            self.x_scaling_means = np.zeros(n_parameters)
+            self.x_scaling_stds = np.ones(n_parameters)
+
+    def _transform_inputs(self, x):
+        if self.x_scaling_means is not None and self.x_scaling_stds is not None:
+            x_scaled = x - self.x_scaling_means
+            x_scaled /= self.x_scaling_stds
+        else:
+            x_scaled = x
+        return x_scaled
+
+
+    def save(self, filename, save_model=False):
 
         """
-        Trains a neural network to estimate either the likelihood, the likelihood ratio, or the
-        score.
-
-        The keyword method determines the structure of the estimator that an instance of this class represents:
-
-        * For 'alice', 'alices', 'carl', 'nde', 'rascal', 'rolr', and 'scandal', the neural network models
-          the likelihood ratio as a function of the observables `x` and the numerator hypothesis `theta0`, while
-          the denominator hypothesis is kept at a fixed reference value ("single-parameterized likelihood ratio
-          estimator"). In addition to the likelihood ratio, the estimator allows to estimate the score at `theta0`.
-        * For 'alice2', 'alices2', 'carl2', 'rascal2', and 'rolr2', the neural network models
-          the likelihood ratio as a function of the observables `x`, the numerator hypothesis `theta0`, and the
-          denominator hypothesis `theta1` ("doubly parameterized likelihood ratio estimator"). The score at `theta0`
-          and `theta1` can also be evaluated.
-        * For 'sally' and 'sallino', the neural networks models the score evaluated at some reference hypothesis
-          ("local score regression"). The likelihood ratio cannot be estimated directly from the neural network, but
-          can be estimated in a second step through density estimation in the estimated score space.
+        Saves the trained model to four files: a JSON file with the settings, a pickled pyTorch state dict
+        file, and numpy files for the mean and variance of the inputs (used for input scaling).
 
         Parameters
         ----------
-        method : str
-            The inference method used. Allows values are 'alice', 'alices', 'carl', 'nde', 'rascal', 'rolr', and
-            'scandal' for a single-parameterized likelihood ratio estimator; 'alice2', 'alices2', 'carl2', 'rascal2',
-            and 'rolr2' for a doubly-parameterized likelihood ratio estimator; and 'sally' and 'sallino' for local
-            score regression.
-            
-        x_filename : str
-            Path to an unweighted sample of observations, as saved by the `madminer.sampling.SampleAugmenter` functions.
-            Required for all inference methods.
-            
-        y_filename : str or None, optional
-            Path to an unweighted sample of class labels, as saved by the `madminer.sampling.SampleAugmenter` functions.
-            Required for the 'alice', 'alice2', 'alices', 'alices2', 'carl', 'carl2', 'rascal', 'rascal2', 'rolr',
-            and 'rolr2' methods. Default value: None.
+        filename : str
+            Path to the files. '_settings.json' and '_state_dict.pl' will be added.
 
-        theta0_filename : str or None, optional
-            Path to an unweighted sample of numerator parameters, as saved by the `madminer.sampling.SampleAugmenter`
-            functions. Required for the 'alice', 'alice2', 'alices', 'alices2', 'carl', 'carl2', 'nde', 'rascal',
-            'rascal2', 'rolr', 'rolr2', and 'scandal' methods. Default value: None.
-
-        theta1_filename : str or None, optional
-            Path to an unweighted sample of denominator parameters, as saved by the `madminer.sampling.SampleAugmenter`
-            functions. Required for the 'alice2', 'alices2', 'carl2', 'rascal2', and 'rolr2' methods. Default value:
-            None.
-
-        r_xz_filename : str or None, optional
-            Path to an unweighted sample of joint likelihood ratios, as saved by the `madminer.sampling.SampleAugmenter`
-            functions. Required for the 'alice', 'alice2', 'alices', 'alices2', 'rascal', 'rascal2', 'rolr', and 'rolr2'
-            methods. Default value: None.
-
-        t_xz0_filename : str or None, optional
-            Path to an unweighted sample of joint scores at theta0, as saved by the `madminer.sampling.SampleAugmenter`
-            functions. Required for the 'alices', 'alices2', 'rascal', 'rascal2', 'sallino', 'sally', and 'scandal'
-            methods. Default value: None.
-
-        t_xz1_filename : str or None, optional
-            Path to an unweighted sample of joint scores at theta1, as saved by the `madminer.sampling.SampleAugmenter`
-            functions. Required for the 'rascal2' and 'alices2' methods. Default value: None.
-
-        features : list of int or None, optional
-            Indices of observables (features) that are used as input to the neural networks. If None, all observables
-            are used. Default value: None.
-
-        nde_type : {'maf', 'mafmog'}, optional
-            If the method is 'nde' or 'scandal', nde_type determines the architecture used in the neural density
-            estimator. Currently supported are 'maf' for a Masked Autoregressive Flow with a Gaussian base density, or
-            'mafmog' for a Masked Autoregressive Flow with a mixture of Gaussian base densities. Default value:
-            'mafmog'.
-
-        n_hidden : tuple of int, optional
-            Units in each hidden layer in the neural networks. If method is 'nde' or 'scandal', this refers to the
-            setup of each individual MADE layer. Default value: (100, 100).
-            
-        activation : {'tanh', 'sigmoid', 'relu'}, optional
-            Activation function. Default value: 'tanh'.
-
-        maf_n_mades : int, optional
-            If method is 'nde' or 'scandal', this sets the number of MADE layers. Default value: 3.
-
-        maf_batch_norm : bool, optional
-            If method is 'nde' or 'scandal', switches batch normalization layers after each MADE layer on or off.
-            Default: False.
-
-        maf_batch_norm_alpha : float, optional
-            If method is 'nde' or 'scandal' and maf_batch_norm is True, this sets the alpha parameter in the calculation
-            of the running average of the mean and variance. Default value: 0.1.
-
-        maf_mog_n_components : int, optional
-            If method is 'nde' or 'scandal' and nde_type is 'mafmog', this sets the number of Gaussian base components.
-            Default value: 10.
-
-        alpha : float, optional
-            Hyperparameter weighting the score error in the loss function of the 'alices', 'alices2', 'rascal',
-            'rascal2', and 'scandal' methods. Default value: 1.
-
-        optimizer : {"adam", "amsgrad", "sgd"}, optional
-            Optimization algorithm. Default value: "amsgrad".
-
-        n_epochs : int, optional
-            Number of epochs. Default value: 50.
-
-        batch_size : int, optional
-            Batch size. Default value: 200.
-
-        initial_lr : float, optional
-            Learning rate during the first epoch, after which it exponentially decays to final_lr. Default value:
-            0.001.
-
-        final_lr : float, optional
-            Learning rate during the last epoch. Default value: 0.0001.
-
-        nesterov_momentum : float or None, optional
-            If trainer is "sgd", sets the Nesterov momentum. Default value: None.
-
-        validation_split : float or None, optional
-            Fraction of samples used  for validation and early stopping (if early_stopping is True). If None, the entire
-            sample is used for training and early stopping is deactivated. Default value: 0.25.
-
-        early_stopping : bool, optional
-            Activates early stopping based on the validation loss (only if validation_split is not None). Default value:
-            True.
-
-        scale_inputs : bool, optional
-            Scale the observables to zero mean and unit variance. Default value: True.
-
-        shuffle_labels : bool, optional
-            If True, the labels (`y`, `r_xz`, `t_xz`) are shuffled, while the observations (`x`) remain in their
-            normal order. This serves as a closure test, in particular as cross-check against overfitting: an estimator
-            trained with shuffle_labels=True should predict to likelihood ratios around 1 and scores around 0.
-
-        grad_x_regularization : None
-            Currently not supported.
-
-        limit_samplesize : int or None, optional
-            If not None, only this number of samples (events) is used to train the estimator. Default value: None.
-
-        verbose : {"all", "many", "some", "few", "none}, optional
-            Determines verbosity of training. Default value: "some".
+        save_model : bool, optional
+            If True, the whole model is saved in addition to the state dict. This is not necessary for loading it
+            again with Estimator.load(), but can be useful for debugging, for instance to plot the computational graph.
 
         Returns
         -------
@@ -233,125 +110,112 @@ class Estimator(object):
 
         """
 
-        logger.info("Starting training")
-        logger.info("  Method:                 %s", method)
-        logger.info("  Training data:          x at %s", x_filename)
-        if theta0_filename is not None:
-            logger.info("                          theta0 at %s", theta0_filename)
-        if theta1_filename is not None:
-            logger.info("                          theta1 at %s", theta1_filename)
-        if y_filename is not None:
-            logger.info("                          y at %s", y_filename)
-        if r_xz_filename is not None:
-            logger.info("                          r_xz at %s", r_xz_filename)
-        if t_xz0_filename is not None:
-            logger.info("                          t_xz (theta0) at %s", t_xz0_filename)
-        if t_xz1_filename is not None:
-            logger.info("                          t_xz (theta1) at %s", t_xz1_filename)
-        if features is None:
-            logger.info("  Features:               all")
-        else:
-            logger.info("  Features:               %s", features)
-        logger.info("  Method:                 %s", method)
-        if method in ["nde", "scandal"]:
-            logger.info("  Neural density est.:    %s", nde_type)
-        if method not in ["nde", "scandal"]:
-            logger.info("  Hidden layers:          %s", n_hidden)
-        if method in ["nde", "scandal"]:
-            logger.info("  MAF, number MADEs:      %s", maf_n_mades)
-            logger.info("  MAF, batch norm:        %s", maf_batch_norm)
-            logger.info("  MAF, BN alpha:          %s", maf_batch_norm_alpha)
-            logger.info("  MAF MoG, components:    %s", maf_mog_n_components)
-        logger.info("  Activation function:    %s", activation)
-        if method in ["cascal", "cascal2", "rascal", "rascal2", "scandal", "alices"]:
-            logger.info("  alpha:                  %s", alpha)
-        logger.info("  Batch size:             %s", batch_size)
-        logger.info("  Optimizer:              %s", optimizer)
-        logger.info("  Epochs:                 %s", n_epochs)
-        logger.info("  Learning rate:          %s initially, decaying to %s", initial_lr, final_lr)
-        if optimizer == "sgd":
-            logger.info("  Nesterov momentum:      %s", nesterov_momentum)
-        logger.info("  Validation split:       %s", validation_split)
-        logger.info("  Early stopping:         %s", early_stopping)
-        logger.info("  Scale inputs:           %s", scale_inputs)
-        logger.info("  Shuffle labels          %s", shuffle_labels)
-        if limit_samplesize is None:
-            logger.info("  Samples:                all")
-        else:
-            logger.info("  Samples:                %s", limit_samplesize)
+        if self.model is None:
+            raise ValueError("No model -- train or load model before saving!")
 
-        # Check
-        if grad_x_regularization is not None:
-            logger.warning("grad_x_regularization is not supported in this version of MadMiner")
+        # Check paths
+        create_missing_folders([os.path.dirname(filename)])
 
-        # Load training data
-        logger.info("Loading training data")
-        theta0 = load_and_check(theta0_filename)
-        theta1 = load_and_check(theta1_filename)
-        x = load_and_check(x_filename)
-        y = load_and_check(y_filename)
-        r_xz = load_and_check(r_xz_filename)
-        t_xz0 = load_and_check(t_xz0_filename)
-        t_xz1 = load_and_check(t_xz1_filename)
-        if y is not None:
-            y = y.reshape((-1, 1))
+        # Save settings
+        logger.debug("Saving settings to %s_settings.json", filename)
 
-        # Check necessary information is there
-        if not check_required_data(method, r_xz, t_xz0, t_xz1, theta0, theta1, x, y):
-            raise ValueError("Not all required data for method {} provided!".format(method))
+        settings = {
+            "method": self.method,
+            "method_type": self.method_type,
+            "n_observables": self.n_observables,
+            "n_parameters": self.n_parameters,
+            "n_hidden": list(self.n_hidden),
+            "activation": self.activation,
+            "features": self.features,
+            "nde_type": self.nde_type,
+            "maf_n_mades": self.maf_n_mades,
+            "maf_batch_norm": self.maf_batch_norm,
+            "maf_batch_norm_alpha": self.maf_batch_norm_alpha,
+            "maf_mog_n_components": self.maf_mog_n_components,
+        }
 
-        # Infer dimensions of problem
-        n_samples = x.shape[0]
-        n_observables = x.shape[1]
-        if theta0 is not None:
-            n_parameters = theta0.shape[1]
-        else:
-            n_parameters = t_xz0.shape[1]
-        logger.info("Found %s samples with %s parameters and %s observables", n_samples, n_parameters, n_observables)
+        with open(filename + "_settings.json", "w") as f:
+            json.dump(settings, f)
 
-        # Limit sample size
-        if limit_samplesize is not None and limit_samplesize < n_samples:
-            logger.info("Only using %s of %s training samples", limit_samplesize, n_samples)
-            x, theta0, theta1, y, r_xz, t_xz0, t_xz1 = restrict_samplesize(
-                limit_samplesize, x, theta0, theta1, y, r_xz, t_xz0, t_xz1
-            )
+        # Save scaling
+        if self.x_scaling_stds is not None and self.x_scaling_means is not None:
+            logger.debug("Saving input scaling information to %s_x_means.npy and %s_x_stds.npy", filename, filename)
+            np.save(filename + "_x_means.npy", self.x_scaling_means)
+            np.save(filename + "_x_stds.npy", self.x_scaling_stds)
 
-        # Scale features
-        if scale_inputs:
-            logger.info("Rescaling inputs")
-            self._initialize_input_transform(x)
-            x = self._transform_inputs(x)
-        else:
-            self._initialize_input_transform(x, False)
+        # Save state dict
+        logger.debug("Saving state dictionary to %s_state_dict.pt", filename)
+        torch.save(self.model.state_dict(), filename + "_state_dict.pt")
 
-        logger.debug("Observable ranges:")
-        for i in range(n_observables):
-            logger.debug(
-                "  x_%s: mean %s, std %s, range %s ... %s",
-                i + 1,
-                np.mean(x[:, i]),
-                np.std(x[:, i]),
-                np.min(x[:, i]),
-                np.max(x[:, i]),
-            )
+        # Save model
+        if save_model:
+            logger.debug("Saving model to %s_model.pt", filename)
+            torch.save(self.model, filename + "_model.pt")
 
-        # Shuffle labels
-        if shuffle_labels:
-            logger.info("Shuffling labels")
-            y, r_xz, t_xz0, t_xz1 = shuffle(y, r_xz, t_xz0, t_xz1)
+    def load(self, filename):
+
+        """
+        Loads a trained model from files.
+
+        Parameters
+        ----------
+        filename : str
+            Path to the files. '_settings.json' and '_state_dict.pl' will be added.
+
+        Returns
+        -------
+            None
+
+        """
+
+        # Load settings
+        logger.debug("Loading settings from %s_settings.json", filename)
+
+        with open(filename + "_settings.json", "r") as f:
+            settings = json.load(f)
+
+        method = settings["method"]
+        n_observables = int(settings["n_observables"])
+        n_parameters = int(settings["n_parameters"])
+        n_hidden = tuple([int(item) for item in settings["n_hidden"]])
+        activation = str(settings["activation"])
+        features = settings["features"]
+        nde_type = settings["nde_type"]
+        maf_n_mades = int(settings["maf_n_mades"])
+        maf_batch_norm = bool(settings["maf_batch_norm"])
+        maf_batch_norm_alpha = float(settings["maf_batch_norm_alpha"])
+        maf_mog_n_components = int(settings["maf_mog_n_components"])
+
+        logger.debug(
+            "  Found method %s, %s observables, %s parameters, %s hidden layers, %s activation function, "
+            "features %s",
+            method,
+            n_observables,
+            n_parameters,
+            n_hidden,
+            activation,
+            features,
+        )
 
         # Features
-        self.features = features
+        if features == "None":
+            self.features = None
         if features is not None:
-            x = x[:, features]
-            logger.info("Only using %s of %s observables", x.shape[1], n_observables)
-            n_observables = x.shape[1]
+            self.features = list([int(item) for item in features])
 
-        # Data
-        data = package_training_data(method, x, theta0, theta1, y, r_xz, t_xz0, t_xz1)
+        # Load scaling
+        try:
+            self.x_scaling_means = np.load(filename + "_x_means.npy")
+            self.x_scaling_stds = np.load(filename + "_x_stds.npy")
+            logger.debug(
+                "  Found input scaling information: means %s, stds %s", self.x_scaling_means, self.x_scaling_stds
+            )
+        except FileNotFoundError:
+            logger.warning("Scaling information not found in %s", filename)
+            self.x_scaling_means = None
+            self.x_scaling_stds = None
 
-        # Create model and save settings
-        logger.info("Creating model for method %s", method)
+        # Create model and save in self
         self._create_model(
             method,
             n_observables,
@@ -365,42 +229,15 @@ class Estimator(object):
             maf_mog_n_components,
         )
 
-        # Losses
-        loss_functions, loss_labels, loss_weights = get_loss(method, alpha)
+        # Load state dict
+        logger.debug("Loading state dictionary from %s_state_dict.pt", filename)
+        self.model.load_state_dict(torch.load(filename + "_state_dict.pt"))
 
-        # Optimizer
-        opt_kwargs = None
-        if optimizer == "adam":
-            opt = optim.Adam
-        elif optimizer == "amsgrad":
-            opt = optim.Adam
-            opt_kwargs = {"amsgrad": True}
-        elif optimizer == "sgd":
-            opt = optim.SGD
-            if nesterov_momentum is not None:
-                opt_kwargs = {"momentum": nesterov_momentum}
-        else:
-            raise ValueError("Unknown optimizer {}".format(optimizer))
 
-        # Train model
-        logger.info("Training model")
-        trainer = get_trainer(method)(self.model)
-        result = trainer.train(
-            data=data,
-            loss_functions=loss_functions,
-            loss_weights=loss_weights,
-            loss_labels=loss_labels,
-            epochs=n_epochs,
-            batch_size=batch_size,
-            optimizer=opt,
-            optimizer_kwargs=opt_kwargs,
-            initial_lr=initial_lr,
-            final_lr=final_lr,
-            validation_split=validation_split,
-            early_stopping=early_stopping,
-            verbose=verbose,
-        )
-        return result
+
+####################################################################################################
+
+
 
     def evaluate(self, x, theta0_filename=None, theta1_filename=None, test_all_combinations=True, evaluate_score=False):
 
@@ -820,167 +657,7 @@ class Estimator(object):
 
         return fisher_information
 
-    def save(self, filename, save_model=False):
 
-        """
-        Saves the trained model to four files: a JSON file with the settings, a pickled pyTorch state dict
-        file, and numpy files for the mean and variance of the inputs (used for input scaling).
-
-        Parameters
-        ----------
-        filename : str
-            Path to the files. '_settings.json' and '_state_dict.pl' will be added.
-
-        save_model : bool, optional
-            If True, the whole model is saved in addition to the state dict. This is not necessary for loading it
-            again with Estimator.load(), but can be useful for debugging, for instance to plot the computational graph.
-
-        Returns
-        -------
-            None
-
-        """
-
-        if self.model is None:
-            raise ValueError("No model -- train or load model before saving!")
-
-        # Check paths
-        create_missing_folders([os.path.dirname(filename)])
-
-        # Save settings
-        logger.debug("Saving settings to %s_settings.json", filename)
-
-        settings = {
-            "method": self.method,
-            "method_type": self.method_type,
-            "n_observables": self.n_observables,
-            "n_parameters": self.n_parameters,
-            "n_hidden": list(self.n_hidden),
-            "activation": self.activation,
-            "features": self.features,
-            "nde_type": self.nde_type,
-            "maf_n_mades": self.maf_n_mades,
-            "maf_batch_norm": self.maf_batch_norm,
-            "maf_batch_norm_alpha": self.maf_batch_norm_alpha,
-            "maf_mog_n_components": self.maf_mog_n_components,
-        }
-
-        with open(filename + "_settings.json", "w") as f:
-            json.dump(settings, f)
-
-        # Save scaling
-        if self.x_scaling_stds is not None and self.x_scaling_means is not None:
-            logger.debug("Saving input scaling information to %s_x_means.npy and %s_x_stds.npy", filename, filename)
-            np.save(filename + "_x_means.npy", self.x_scaling_means)
-            np.save(filename + "_x_stds.npy", self.x_scaling_stds)
-
-        # Save state dict
-        logger.debug("Saving state dictionary to %s_state_dict.pt", filename)
-        torch.save(self.model.state_dict(), filename + "_state_dict.pt")
-
-        # Save model
-        if save_model:
-            logger.debug("Saving model to %s_model.pt", filename)
-            torch.save(self.model, filename + "_model.pt")
-
-    def load(self, filename):
-
-        """
-        Loads a trained model from files.
-
-        Parameters
-        ----------
-        filename : str
-            Path to the files. '_settings.json' and '_state_dict.pl' will be added.
-
-        Returns
-        -------
-            None
-
-        """
-
-        # Load settings
-        logger.debug("Loading settings from %s_settings.json", filename)
-
-        with open(filename + "_settings.json", "r") as f:
-            settings = json.load(f)
-
-        method = settings["method"]
-        n_observables = int(settings["n_observables"])
-        n_parameters = int(settings["n_parameters"])
-        n_hidden = tuple([int(item) for item in settings["n_hidden"]])
-        activation = str(settings["activation"])
-        features = settings["features"]
-        nde_type = settings["nde_type"]
-        maf_n_mades = int(settings["maf_n_mades"])
-        maf_batch_norm = bool(settings["maf_batch_norm"])
-        maf_batch_norm_alpha = float(settings["maf_batch_norm_alpha"])
-        maf_mog_n_components = int(settings["maf_mog_n_components"])
-
-        logger.debug(
-            "  Found method %s, %s observables, %s parameters, %s hidden layers, %s activation function, "
-            "features %s",
-            method,
-            n_observables,
-            n_parameters,
-            n_hidden,
-            activation,
-            features,
-        )
-
-        # Features
-        if features == "None":
-            self.features = None
-        if features is not None:
-            self.features = list([int(item) for item in features])
-
-        # Load scaling
-        try:
-            self.x_scaling_means = np.load(filename + "_x_means.npy")
-            self.x_scaling_stds = np.load(filename + "_x_stds.npy")
-            logger.debug(
-                "  Found input scaling information: means %s, stds %s", self.x_scaling_means, self.x_scaling_stds
-            )
-        except FileNotFoundError:
-            logger.warning("Scaling information not found in %s", filename)
-            self.x_scaling_means = None
-            self.x_scaling_stds = None
-
-        # Create model and save in self
-        self._create_model(
-            method,
-            n_observables,
-            n_parameters,
-            n_hidden,
-            activation,
-            nde_type,
-            maf_n_mades,
-            maf_batch_norm,
-            maf_batch_norm_alpha,
-            maf_mog_n_components,
-        )
-
-        # Load state dict
-        logger.debug("Loading state dictionary from %s_state_dict.pt", filename)
-        self.model.load_state_dict(torch.load(filename + "_state_dict.pt"))
-
-    def _initialize_input_transform(self, x, transform=True):
-        if transform:
-            self.x_scaling_means = np.mean(x, axis=0)
-            self.x_scaling_stds = np.maximum(np.std(x, axis=0), 1.0e-6)
-        else:
-            n_parameters = x.shape[0]
-
-            self.x_scaling_means = np.zeros(n_parameters)
-            self.x_scaling_stds = np.ones(n_parameters)
-
-    def _transform_inputs(self, x):
-        if self.x_scaling_means is not None and self.x_scaling_stds is not None:
-            x_scaled = x - self.x_scaling_means
-            x_scaled /= self.x_scaling_stds
-        else:
-            x_scaled = x
-        return x_scaled
 
     def _create_model(
         self,
@@ -1047,24 +724,1426 @@ class Estimator(object):
             raise RuntimeError("Unknown method {}".format(method))
 
 
-class ParameterizedRatioEstimator(Estimator):
-    def __init__(self):
-        super(DenseSingleParameterizedRatioModel, self).__init__()
 
+####################################################################################################
+
+
+
+
+class ParameterizedRatioEstimator(Estimator):
+    """
+    A neural estimator of the likelihood ratio as a function of the observation x as well as
+    the numerator hypothesis theta. The reference (denominator) hypothesis is kept fixed at some
+    reference value.
+
+    Parameters
+    ----------
+    features : list of int or None, optional
+        Indices of observables (features) that are used as input to the neural networks. If None, all observables
+        are used. Default value: None.
+
+    n_hidden : tuple of int, optional
+        Units in each hidden layer in the neural networks. If method is 'nde' or 'scandal', this refers to the
+        setup of each individual MADE layer. Default value: (100, 100).
+
+    activation : {'tanh', 'sigmoid', 'relu'}, optional
+        Activation function. Default value: 'tanh'.
+
+
+    """
+    def __init__(self, features=None, n_hidden=(100,100), activation="tanh", ):
+        super(ParameterizedRatioEstimator, self).__init__()
+
+    def train(
+        self,
+        method,
+        x,
+        y,
+        theta,
+        r_xz=None,
+        t_xz=None,
+        alpha=1.0,
+        optimizer="amsgrad",
+        n_epochs=50,
+        batch_size=200,
+        initial_lr=0.001,
+        final_lr=0.0001,
+        nesterov_momentum=None,
+        validation_split=0.25,
+        early_stopping=True,
+        scale_inputs=True,
+        shuffle_labels=False,
+        limit_samplesize=None,
+        verbose="some",
+    ):
+
+        """
+        Trains the network.
+
+        Parameters
+        ----------
+        method : str
+            The inference method used for training. Allowed values are 'alice', 'alices', 'carl', 'cascal', 'rascal', and 'rolr'.
+
+        x : ndarray or str
+            Path to an unweighted sample of observations, as saved by the `madminer.sampling.SampleAugmenter` functions.
+            Required for all inference methods.
+
+        y : ndarray or str
+            Class labels (0 = numeerator, 1 = denominator), or filename of a pickled numpy array.
+
+        theta : ndarray or str
+            Numerator parameter point, or filename of a pickled numpy array.
+
+        r_xz : ndarray or str or None, optional
+            Joint likelihood ratio, or filename of a pickled numpy array. Default value: None.
+
+        t_xz : ndarray or str or None, optional
+            Joint scores at theta, or filename of a pickled numpy array. Default value: None.
+
+        alpha : float, optional
+            Hyperparameter weighting the score error in the loss function of the 'alices', 'rascal', and 'cascal' methods. Default value: 1.
+
+        optimizer : {"adam", "amsgrad", "sgd"}, optional
+            Optimization algorithm. Default value: "amsgrad".
+
+        n_epochs : int, optional
+            Number of epochs. Default value: 50.
+
+        batch_size : int, optional
+            Batch size. Default value: 200.
+
+        initial_lr : float, optional
+            Learning rate during the first epoch, after which it exponentially decays to final_lr. Default value:
+            0.001.
+
+        final_lr : float, optional
+            Learning rate during the last epoch. Default value: 0.0001.
+
+        nesterov_momentum : float or None, optional
+            If trainer is "sgd", sets the Nesterov momentum. Default value: None.
+
+        validation_split : float or None, optional
+            Fraction of samples used  for validation and early stopping (if early_stopping is True). If None, the entire
+            sample is used for training and early stopping is deactivated. Default value: 0.25.
+
+        early_stopping : bool, optional
+            Activates early stopping based on the validation loss (only if validation_split is not None). Default value:
+            True.
+
+        scale_inputs : bool, optional
+            Scale the observables to zero mean and unit variance. Default value: True.
+
+        shuffle_labels : bool, optional
+            If True, the labels (`y`, `r_xz`, `t_xz`) are shuffled, while the observations (`x`) remain in their
+            normal order. This serves as a closure test, in particular as cross-check against overfitting: an estimator
+            trained with shuffle_labels=True should predict to likelihood ratios around 1 and scores around 0.
+
+        limit_samplesize : int or None, optional
+            If not None, only this number of samples (events) is used to train the estimator. Default value: None.
+
+        verbose : {"all", "many", "some", "few", "none}, optional
+            Determines verbosity of training. Default value: "some".
+
+        Returns
+        -------
+            None
+
+        """
+
+        logger.info("Starting training")
+        logger.info("  Method:                 %s", method)
+        if method in ["cascal", "rascal", "alices"]:
+            logger.info("  alpha:                  %s", alpha)
+        logger.info("  Batch size:             %s", batch_size)
+        logger.info("  Optimizer:              %s", optimizer)
+        logger.info("  Epochs:                 %s", n_epochs)
+        logger.info("  Learning rate:          %s initially, decaying to %s", initial_lr, final_lr)
+        if optimizer == "sgd":
+            logger.info("  Nesterov momentum:      %s", nesterov_momentum)
+        logger.info("  Validation split:       %s", validation_split)
+        logger.info("  Early stopping:         %s", early_stopping)
+        logger.info("  Scale inputs:           %s", scale_inputs)
+        logger.info("  Shuffle labels          %s", shuffle_labels)
+        if limit_samplesize is None:
+            logger.info("  Samples:                all")
+        else:
+            logger.info("  Samples:                %s", limit_samplesize)
+
+        # Load training data
+        logger.info("Loading training data")
+        theta = load_and_check(theta)
+        x = load_and_check(x)
+        y = load_and_check(y)
+        r_xz = load_and_check(r_xz)
+        t_xz = load_and_check(t_xz)
+
+        self._check_required_data(method, r_xz, t_xz)
+
+        # Infer dimensions of problem
+        n_samples = x.shape[0]
+        n_observables = x.shape[1]
+        if self.n_observables is None:
+            self.n_observables = n_observables
+        n_parameters = theta.shape[1]
+        if self.n_parameters is None:
+            self.n_parameters = n_parameters
+        logger.info("Found %s samples with %s parameters and %s observables", n_samples, n_parameters, n_observables)
+
+        # Check consistency of input with model
+        if n_parameters != self.n_parameters:
+            raise RuntimeError("Number of parameters does not match model: {} vs {}".format(n_parameters, self.n_parameters))
+        if n_observables != self.n_observables:
+            raise RuntimeError("Number of observables does not match model: {} vs {}".format(n_observables, self.n_observables))
+
+        # Limit sample size
+        if limit_samplesize is not None and limit_samplesize < n_samples:
+            logger.info("Only using %s of %s training samples", limit_samplesize, n_samples)
+            x, theta, y, r_xz, t_xz = restrict_samplesize(limit_samplesize, x, theta, y, r_xz, t_xz)
+
+        # Scale features
+        if scale_inputs:
+            logger.info("Rescaling inputs")
+            self._initialize_input_transform(x)
+            x = self._transform_inputs(x)
+        else:
+            self._initialize_input_transform(x, False)
+
+        # Shuffle labels
+        if shuffle_labels:
+            logger.info("Shuffling labels")
+            y, r_xz, t_xz = shuffle(y, r_xz, t_xz)
+
+        # Features
+        if self.features is not None:
+            x = x[:, self.features]
+            logger.info("Only using %s of %s observables", x.shape[1], n_observables)
+            n_observables = x.shape[1]
+
+        # Data
+        data = self._package_training_data(method, x, theta, y, r_xz, t_xz)
+
+        # Create model
+        if self.model is None:
+            logger.info("Creating model", method)
+            self._create_model()
+
+        # Losses
+        loss_functions, loss_labels, loss_weights = get_loss(method, alpha)
+
+        # Optimizer
+        opt, opt_kwargs = get_optimizer(optimizer, nesterov_momentum)
+
+        # Train model
+        logger.info("Training model")
+        trainer = SingleParameterizedRatioTrainer
+        result = trainer.train(
+            data=data,
+            loss_functions=loss_functions,
+            loss_weights=loss_weights,
+            loss_labels=loss_labels,
+            epochs=n_epochs,
+            batch_size=batch_size,
+            optimizer=opt,
+            optimizer_kwargs=opt_kwargs,
+            initial_lr=initial_lr,
+            final_lr=final_lr,
+            validation_split=validation_split,
+            early_stopping=early_stopping,
+            verbose=verbose,
+        )
+        return result
+
+    def evaluate_log_likelihood_ratio(self, x, theta, test_all_combinations=True, evaluate_score=False):
+        """
+        Evaluates a trained estimator of the log likelihood ratio, the log likelihood, or the score, depending on the
+        method.
+
+        Parameters
+        ----------
+        x : str or ndarray
+            Observations or filename of a pickled numpy array.
+
+        theta : ndarray or str
+            Parameter points or filename of a pickled numpy array.
+
+        test_all_combinations : bool, optional
+            If False, the number of samples in the observable and theta
+            files has to match, and the likelihood ratio is evaluated only for the combinations
+            `r(x_i | theta0_i, theta1_i)`. If True, `r(x_i | theta0_j, theta1_j)` for all pairwise combinations `i, j`
+            are evaluated. Default value: True.
+
+        evaluate_score : bool, optional
+            Sets whether in addition to the likelihood ratio the score is evaluated. Default value: False.
+
+        Returns
+        -------
+        log_likelihood_ratio : ndarray
+            The estimated log likelihood ratio. If test_all_combinations is True, the result has shape
+            `(n_thetas, n_x)`. Otherwise, it has shape `(n_samples,)`.
+
+        score : ndarray or None
+            None if evaluate_score is False. Otherwise the derived estimated score at `theta0`. If test_all_combinations
+            is True, the result has shape `(n_thetas, n_x, n_parameters)`. Otherwise, it has shape
+            `(n_samples, n_parameters)`.
+
+        """
+        if self.model is None:
+            raise ValueError("No model -- train or load model before evaluating it!")
+
+        # Load training data
+        logger.debug("Loading evaluation data")
+        x = load_and_check(x)
+        theta = load_and_check(theta)
+
+        # Scale observables
+        x = self._transform_inputs(x)
+
+        # Restrict features
+        if self.features is not None:
+            x = x[:, self.features]
+
+        all_log_r_hat = []
+        all_t_hat = []
+
+        if test_all_combinations:
+            logger.debug("Starting ratio evaluation for all combinations")
+
+            for i, this_theta in enumerate(theta):
+                logger.debug(
+                    "Starting ratio evaluation for thetas %s / %s: %s", i + 1, len(thetas), this_theta
+                )
+                _, log_r_hat, t_hat, _ = evaluate_ratio_model(
+                    model=self.model,
+                    method_type=self.method_type,
+                    theta0s=[this_theta],
+                    theta1s=None,
+                    xs=x,
+                    evaluate_score=evaluate_score,
+                )
+
+                all_log_r_hat.append(log_r_hat)
+                all_t_hat.append(t_hat)
+
+            all_log_r_hat = np.array(all_log_r_hat)
+            all_t_hat = np.array(all_t_hat)
+
+        else:
+            logger.debug("Starting ratio evaluation")
+            _, all_log_r_hat, all_t_hat, _ = evaluate_ratio_model(
+                model=self.model,
+                method_type=self.method_type,
+                theta0s=theta,
+                theta1s=None,
+                xs=x,
+                evaluate_score=evaluate_score,
+            )
+
+        logger.debug("Evaluation done")
+        return all_log_r_hat, all_t_hat
+
+    def evaluate(self, *args, **kwargs):
+        return self.evaluate_log_likelihood_ratio(*args, **kwargs)
+
+    def _create_model(self):
+        self.model = DenseSingleParameterizedRatioModel(
+            n_observables=self.n_observables,
+            n_parameters=self.n_parameters,
+            n_hidden=self.n_hidden,
+            activation=self.activation,
+        )
+
+    @staticmethod
+    def _check_required_data(method, r_xz, t_xz):
+        if method in ["cascal", "alices", "rascal"] and t_xz is None:
+            raise RuntimeError("Method {} requires joint score information".format(method))
+        if method in ["rolr", "alices", "rascal"] and r_xz is None:
+            raise RuntimeError("Method {} requires joint likelihood ratio information".format(method))
+
+    @staticmethod
+    def _package_training_data(method, x, theta, y, r_xz, t_xz):
+        data = OrderedDict()
+        data["x"] = x
+        data["theta"] = theta
+        data["y"] = y
+        if r_xz is not None:
+            data["r_xz"] = r_xz
+        if t_xz is not None:
+            data["t_xz"] = t_xz
+        return data
 
 class DoubleParameterizedRatioEstimator(Estimator):
+    """ A neural estimator of the likelihood ratio as a function of the observation x, the numerator
+    hypothesis theta0, and the denominator hypothesis theta1. """
     def __init__(self):
         super(DoubleParameterizedRatioEstimator, self).__init__()
 
+    def train(
+            self,
+            method,
+            x_filename,
+            y_filename=None,
+            theta0_filename=None,
+            theta1_filename=None,
+            r_xz_filename=None,
+            t_xz0_filename=None,
+            t_xz1_filename=None,
+            features=None,
+            nde_type="mafmog",
+            n_hidden=(100, 100),
+            activation="tanh",
+            maf_n_mades=3,
+            maf_batch_norm=False,
+            maf_batch_norm_alpha=0.1,
+            maf_mog_n_components=10,
+            alpha=1.0,
+            optimizer="amsgrad",
+            n_epochs=50,
+            batch_size=200,
+            initial_lr=0.001,
+            final_lr=0.0001,
+            nesterov_momentum=None,
+            validation_split=0.25,
+            early_stopping=True,
+            scale_inputs=True,
+            shuffle_labels=False,
+            grad_x_regularization=None,
+            limit_samplesize=None,
+            verbose="some",
+            **kwargs
+    ):
+
+        """
+        Trains a neural network to estimate either the likelihood, the likelihood ratio, or the
+        score.
+
+        The keyword method determines the structure of the estimator that an instance of this class represents:
+
+        * For 'alice', 'alices', 'carl', 'nde', 'rascal', 'rolr', and 'scandal', the neural network models
+          the likelihood ratio as a function of the observables `x` and the numerator hypothesis `theta0`, while
+          the denominator hypothesis is kept at a fixed reference value ("single-parameterized likelihood ratio
+          estimator"). In addition to the likelihood ratio, the estimator allows to estimate the score at `theta0`.
+        * For 'alice2', 'alices2', 'carl2', 'rascal2', and 'rolr2', the neural network models
+          the likelihood ratio as a function of the observables `x`, the numerator hypothesis `theta0`, and the
+          denominator hypothesis `theta1` ("doubly parameterized likelihood ratio estimator"). The score at `theta0`
+          and `theta1` can also be evaluated.
+        * For 'sally' and 'sallino', the neural networks models the score evaluated at some reference hypothesis
+          ("local score regression"). The likelihood ratio cannot be estimated directly from the neural network, but
+          can be estimated in a second step through density estimation in the estimated score space.
+
+        Parameters
+        ----------
+        method : str
+            The inference method used. Allows values are 'alice', 'alices', 'carl', 'nde', 'rascal', 'rolr', and
+            'scandal' for a single-parameterized likelihood ratio estimator; 'alice2', 'alices2', 'carl2', 'rascal2',
+            and 'rolr2' for a doubly-parameterized likelihood ratio estimator; and 'sally' and 'sallino' for local
+            score regression.
+
+        x_filename : str
+            Path to an unweighted sample of observations, as saved by the `madminer.sampling.SampleAugmenter` functions.
+            Required for all inference methods.
+
+        y_filename : str or None, optional
+            Path to an unweighted sample of class labels, as saved by the `madminer.sampling.SampleAugmenter` functions.
+            Required for the 'alice', 'alice2', 'alices', 'alices2', 'carl', 'carl2', 'rascal', 'rascal2', 'rolr',
+            and 'rolr2' methods. Default value: None.
+
+        theta0_filename : str or None, optional
+            Path to an unweighted sample of numerator parameters, as saved by the `madminer.sampling.SampleAugmenter`
+            functions. Required for the 'alice', 'alice2', 'alices', 'alices2', 'carl', 'carl2', 'nde', 'rascal',
+            'rascal2', 'rolr', 'rolr2', and 'scandal' methods. Default value: None.
+
+        theta1_filename : str or None, optional
+            Path to an unweighted sample of denominator parameters, as saved by the `madminer.sampling.SampleAugmenter`
+            functions. Required for the 'alice2', 'alices2', 'carl2', 'rascal2', and 'rolr2' methods. Default value:
+            None.
+
+        r_xz_filename : str or None, optional
+            Path to an unweighted sample of joint likelihood ratios, as saved by the `madminer.sampling.SampleAugmenter`
+            functions. Required for the 'alice', 'alice2', 'alices', 'alices2', 'rascal', 'rascal2', 'rolr', and 'rolr2'
+            methods. Default value: None.
+
+        t_xz0_filename : str or None, optional
+            Path to an unweighted sample of joint scores at theta0, as saved by the `madminer.sampling.SampleAugmenter`
+            functions. Required for the 'alices', 'alices2', 'rascal', 'rascal2', 'sallino', 'sally', and 'scandal'
+            methods. Default value: None.
+
+        t_xz1_filename : str or None, optional
+            Path to an unweighted sample of joint scores at theta1, as saved by the `madminer.sampling.SampleAugmenter`
+            functions. Required for the 'rascal2' and 'alices2' methods. Default value: None.
+
+        features : list of int or None, optional
+            Indices of observables (features) that are used as input to the neural networks. If None, all observables
+            are used. Default value: None.
+
+        nde_type : {'maf', 'mafmog'}, optional
+            If the method is 'nde' or 'scandal', nde_type determines the architecture used in the neural density
+            estimator. Currently supported are 'maf' for a Masked Autoregressive Flow with a Gaussian base density, or
+            'mafmog' for a Masked Autoregressive Flow with a mixture of Gaussian base densities. Default value:
+            'mafmog'.
+
+        n_hidden : tuple of int, optional
+            Units in each hidden layer in the neural networks. If method is 'nde' or 'scandal', this refers to the
+            setup of each individual MADE layer. Default value: (100, 100).
+
+        activation : {'tanh', 'sigmoid', 'relu'}, optional
+            Activation function. Default value: 'tanh'.
+
+        maf_n_mades : int, optional
+            If method is 'nde' or 'scandal', this sets the number of MADE layers. Default value: 3.
+
+        maf_batch_norm : bool, optional
+            If method is 'nde' or 'scandal', switches batch normalization layers after each MADE layer on or off.
+            Default: False.
+
+        maf_batch_norm_alpha : float, optional
+            If method is 'nde' or 'scandal' and maf_batch_norm is True, this sets the alpha parameter in the calculation
+            of the running average of the mean and variance. Default value: 0.1.
+
+        maf_mog_n_components : int, optional
+            If method is 'nde' or 'scandal' and nde_type is 'mafmog', this sets the number of Gaussian base components.
+            Default value: 10.
+
+        alpha : float, optional
+            Hyperparameter weighting the score error in the loss function of the 'alices', 'alices2', 'rascal',
+            'rascal2', and 'scandal' methods. Default value: 1.
+
+        optimizer : {"adam", "amsgrad", "sgd"}, optional
+            Optimization algorithm. Default value: "amsgrad".
+
+        n_epochs : int, optional
+            Number of epochs. Default value: 50.
+
+        batch_size : int, optional
+            Batch size. Default value: 200.
+
+        initial_lr : float, optional
+            Learning rate during the first epoch, after which it exponentially decays to final_lr. Default value:
+            0.001.
+
+        final_lr : float, optional
+            Learning rate during the last epoch. Default value: 0.0001.
+
+        nesterov_momentum : float or None, optional
+            If trainer is "sgd", sets the Nesterov momentum. Default value: None.
+
+        validation_split : float or None, optional
+            Fraction of samples used  for validation and early stopping (if early_stopping is True). If None, the entire
+            sample is used for training and early stopping is deactivated. Default value: 0.25.
+
+        early_stopping : bool, optional
+            Activates early stopping based on the validation loss (only if validation_split is not None). Default value:
+            True.
+
+        scale_inputs : bool, optional
+            Scale the observables to zero mean and unit variance. Default value: True.
+
+        shuffle_labels : bool, optional
+            If True, the labels (`y`, `r_xz`, `t_xz`) are shuffled, while the observations (`x`) remain in their
+            normal order. This serves as a closure test, in particular as cross-check against overfitting: an estimator
+            trained with shuffle_labels=True should predict to likelihood ratios around 1 and scores around 0.
+
+        grad_x_regularization : None
+            Currently not supported.
+
+        limit_samplesize : int or None, optional
+            If not None, only this number of samples (events) is used to train the estimator. Default value: None.
+
+        verbose : {"all", "many", "some", "few", "none}, optional
+            Determines verbosity of training. Default value: "some".
+
+        Returns
+        -------
+            None
+
+        """
+
+        logger.info("Starting training")
+        logger.info("  Method:                 %s", method)
+        logger.info("  Training data:          x at %s", x_filename)
+        if theta0_filename is not None:
+            logger.info("                          theta0 at %s", theta0_filename)
+        if theta1_filename is not None:
+            logger.info("                          theta1 at %s", theta1_filename)
+        if y_filename is not None:
+            logger.info("                          y at %s", y_filename)
+        if r_xz_filename is not None:
+            logger.info("                          r_xz at %s", r_xz_filename)
+        if t_xz0_filename is not None:
+            logger.info("                          t_xz (theta0) at %s", t_xz0_filename)
+        if t_xz1_filename is not None:
+            logger.info("                          t_xz (theta1) at %s", t_xz1_filename)
+        if features is None:
+            logger.info("  Features:               all")
+        else:
+            logger.info("  Features:               %s", features)
+        logger.info("  Method:                 %s", method)
+        if method in ["nde", "scandal"]:
+            logger.info("  Neural density est.:    %s", nde_type)
+        if method not in ["nde", "scandal"]:
+            logger.info("  Hidden layers:          %s", n_hidden)
+        if method in ["nde", "scandal"]:
+            logger.info("  MAF, number MADEs:      %s", maf_n_mades)
+            logger.info("  MAF, batch norm:        %s", maf_batch_norm)
+            logger.info("  MAF, BN alpha:          %s", maf_batch_norm_alpha)
+            logger.info("  MAF MoG, components:    %s", maf_mog_n_components)
+        logger.info("  Activation function:    %s", activation)
+        if method in ["cascal", "cascal2", "rascal", "rascal2", "scandal", "alices"]:
+            logger.info("  alpha:                  %s", alpha)
+        logger.info("  Batch size:             %s", batch_size)
+        logger.info("  Optimizer:              %s", optimizer)
+        logger.info("  Epochs:                 %s", n_epochs)
+        logger.info("  Learning rate:          %s initially, decaying to %s", initial_lr, final_lr)
+        if optimizer == "sgd":
+            logger.info("  Nesterov momentum:      %s", nesterov_momentum)
+        logger.info("  Validation split:       %s", validation_split)
+        logger.info("  Early stopping:         %s", early_stopping)
+        logger.info("  Scale inputs:           %s", scale_inputs)
+        logger.info("  Shuffle labels          %s", shuffle_labels)
+        if limit_samplesize is None:
+            logger.info("  Samples:                all")
+        else:
+            logger.info("  Samples:                %s", limit_samplesize)
+
+        # Check
+        if grad_x_regularization is not None:
+            logger.warning("grad_x_regularization is not supported in this version of MadMiner")
+
+        # Load training data
+        logger.info("Loading training data")
+        theta0 = load_and_check(theta0_filename)
+        theta1 = load_and_check(theta1_filename)
+        x = load_and_check(x_filename)
+        y = load_and_check(y_filename)
+        r_xz = load_and_check(r_xz_filename)
+        t_xz0 = load_and_check(t_xz0_filename)
+        t_xz1 = load_and_check(t_xz1_filename)
+        if y is not None:
+            y = y.reshape((-1, 1))
+
+        # Check necessary information is there
+        if not check_required_data(method, r_xz, t_xz0, t_xz1, theta0, theta1, x, y):
+            raise ValueError("Not all required data for method {} provided!".format(method))
+
+        # Infer dimensions of problem
+        n_samples = x.shape[0]
+        n_observables = x.shape[1]
+        if theta0 is not None:
+            n_parameters = theta0.shape[1]
+        else:
+            n_parameters = t_xz0.shape[1]
+        logger.info("Found %s samples with %s parameters and %s observables", n_samples, n_parameters, n_observables)
+
+        # Limit sample size
+        if limit_samplesize is not None and limit_samplesize < n_samples:
+            logger.info("Only using %s of %s training samples", limit_samplesize, n_samples)
+            x, theta0, theta1, y, r_xz, t_xz0, t_xz1 = restrict_samplesize(
+                limit_samplesize, x, theta0, theta1, y, r_xz, t_xz0, t_xz1
+            )
+
+        # Scale features
+        if scale_inputs:
+            logger.info("Rescaling inputs")
+            self._initialize_input_transform(x)
+            x = self._transform_inputs(x)
+        else:
+            self._initialize_input_transform(x, False)
+
+        logger.debug("Observable ranges:")
+        for i in range(n_observables):
+            logger.debug(
+                "  x_%s: mean %s, std %s, range %s ... %s",
+                i + 1,
+                np.mean(x[:, i]),
+                np.std(x[:, i]),
+                np.min(x[:, i]),
+                np.max(x[:, i]),
+            )
+
+        # Shuffle labels
+        if shuffle_labels:
+            logger.info("Shuffling labels")
+            y, r_xz, t_xz0, t_xz1 = shuffle(y, r_xz, t_xz0, t_xz1)
+
+        # Features
+        self.features = features
+        if features is not None:
+            x = x[:, features]
+            logger.info("Only using %s of %s observables", x.shape[1], n_observables)
+            n_observables = x.shape[1]
+
+        # Data
+        data = package_training_data(method, x, theta0, theta1, y, r_xz, t_xz0, t_xz1)
+
+        # Create model and save settings
+        logger.info("Creating model for method %s", method)
+        self._create_model(
+            method,
+            n_observables,
+            n_parameters,
+            n_hidden,
+            activation,
+            nde_type,
+            maf_n_mades,
+            maf_batch_norm,
+            maf_batch_norm_alpha,
+            maf_mog_n_components,
+        )
+
+        # Losses
+        loss_functions, loss_labels, loss_weights = get_loss(method, alpha)
+
+        # Optimizer
+        opt_kwargs = None
+        if optimizer == "adam":
+            opt = optim.Adam
+        elif optimizer == "amsgrad":
+            opt = optim.Adam
+            opt_kwargs = {"amsgrad": True}
+        elif optimizer == "sgd":
+            opt = optim.SGD
+            if nesterov_momentum is not None:
+                opt_kwargs = {"momentum": nesterov_momentum}
+        else:
+            raise ValueError("Unknown optimizer {}".format(optimizer))
+
+        # Train model
+        logger.info("Training model")
+        trainer = get_trainer(method)(self.model)
+        result = trainer.train(
+            data=data,
+            loss_functions=loss_functions,
+            loss_weights=loss_weights,
+            loss_labels=loss_labels,
+            epochs=n_epochs,
+            batch_size=batch_size,
+            optimizer=opt,
+            optimizer_kwargs=opt_kwargs,
+            initial_lr=initial_lr,
+            final_lr=final_lr,
+            validation_split=validation_split,
+            early_stopping=early_stopping,
+            verbose=verbose,
+        )
+        return result
+
 
 class LocalScoreEstimator(Estimator):
+    """ A neural estimator of the score evaluated at a reference hypothesis as a function of the
+     obseervation x. """
     def __init__(self):
-        super(DenseLocalScoreModel, self).__init__()
+        super(LocalScoreEstimator, self).__init__()
+
+    def train(
+            self,
+            method,
+            x_filename,
+            y_filename=None,
+            theta0_filename=None,
+            theta1_filename=None,
+            r_xz_filename=None,
+            t_xz0_filename=None,
+            t_xz1_filename=None,
+            features=None,
+            nde_type="mafmog",
+            n_hidden=(100, 100),
+            activation="tanh",
+            maf_n_mades=3,
+            maf_batch_norm=False,
+            maf_batch_norm_alpha=0.1,
+            maf_mog_n_components=10,
+            alpha=1.0,
+            optimizer="amsgrad",
+            n_epochs=50,
+            batch_size=200,
+            initial_lr=0.001,
+            final_lr=0.0001,
+            nesterov_momentum=None,
+            validation_split=0.25,
+            early_stopping=True,
+            scale_inputs=True,
+            shuffle_labels=False,
+            grad_x_regularization=None,
+            limit_samplesize=None,
+            verbose="some",
+            **kwargs
+    ):
+
+        """
+        Trains a neural network to estimate either the likelihood, the likelihood ratio, or the
+        score.
+
+        The keyword method determines the structure of the estimator that an instance of this class represents:
+
+        * For 'alice', 'alices', 'carl', 'nde', 'rascal', 'rolr', and 'scandal', the neural network models
+          the likelihood ratio as a function of the observables `x` and the numerator hypothesis `theta0`, while
+          the denominator hypothesis is kept at a fixed reference value ("single-parameterized likelihood ratio
+          estimator"). In addition to the likelihood ratio, the estimator allows to estimate the score at `theta0`.
+        * For 'alice2', 'alices2', 'carl2', 'rascal2', and 'rolr2', the neural network models
+          the likelihood ratio as a function of the observables `x`, the numerator hypothesis `theta0`, and the
+          denominator hypothesis `theta1` ("doubly parameterized likelihood ratio estimator"). The score at `theta0`
+          and `theta1` can also be evaluated.
+        * For 'sally' and 'sallino', the neural networks models the score evaluated at some reference hypothesis
+          ("local score regression"). The likelihood ratio cannot be estimated directly from the neural network, but
+          can be estimated in a second step through density estimation in the estimated score space.
+
+        Parameters
+        ----------
+        method : str
+            The inference method used. Allows values are 'alice', 'alices', 'carl', 'nde', 'rascal', 'rolr', and
+            'scandal' for a single-parameterized likelihood ratio estimator; 'alice2', 'alices2', 'carl2', 'rascal2',
+            and 'rolr2' for a doubly-parameterized likelihood ratio estimator; and 'sally' and 'sallino' for local
+            score regression.
+
+        x_filename : str
+            Path to an unweighted sample of observations, as saved by the `madminer.sampling.SampleAugmenter` functions.
+            Required for all inference methods.
+
+        y_filename : str or None, optional
+            Path to an unweighted sample of class labels, as saved by the `madminer.sampling.SampleAugmenter` functions.
+            Required for the 'alice', 'alice2', 'alices', 'alices2', 'carl', 'carl2', 'rascal', 'rascal2', 'rolr',
+            and 'rolr2' methods. Default value: None.
+
+        theta0_filename : str or None, optional
+            Path to an unweighted sample of numerator parameters, as saved by the `madminer.sampling.SampleAugmenter`
+            functions. Required for the 'alice', 'alice2', 'alices', 'alices2', 'carl', 'carl2', 'nde', 'rascal',
+            'rascal2', 'rolr', 'rolr2', and 'scandal' methods. Default value: None.
+
+        theta1_filename : str or None, optional
+            Path to an unweighted sample of denominator parameters, as saved by the `madminer.sampling.SampleAugmenter`
+            functions. Required for the 'alice2', 'alices2', 'carl2', 'rascal2', and 'rolr2' methods. Default value:
+            None.
+
+        r_xz_filename : str or None, optional
+            Path to an unweighted sample of joint likelihood ratios, as saved by the `madminer.sampling.SampleAugmenter`
+            functions. Required for the 'alice', 'alice2', 'alices', 'alices2', 'rascal', 'rascal2', 'rolr', and 'rolr2'
+            methods. Default value: None.
+
+        t_xz0_filename : str or None, optional
+            Path to an unweighted sample of joint scores at theta0, as saved by the `madminer.sampling.SampleAugmenter`
+            functions. Required for the 'alices', 'alices2', 'rascal', 'rascal2', 'sallino', 'sally', and 'scandal'
+            methods. Default value: None.
+
+        t_xz1_filename : str or None, optional
+            Path to an unweighted sample of joint scores at theta1, as saved by the `madminer.sampling.SampleAugmenter`
+            functions. Required for the 'rascal2' and 'alices2' methods. Default value: None.
+
+        features : list of int or None, optional
+            Indices of observables (features) that are used as input to the neural networks. If None, all observables
+            are used. Default value: None.
+
+        nde_type : {'maf', 'mafmog'}, optional
+            If the method is 'nde' or 'scandal', nde_type determines the architecture used in the neural density
+            estimator. Currently supported are 'maf' for a Masked Autoregressive Flow with a Gaussian base density, or
+            'mafmog' for a Masked Autoregressive Flow with a mixture of Gaussian base densities. Default value:
+            'mafmog'.
+
+        n_hidden : tuple of int, optional
+            Units in each hidden layer in the neural networks. If method is 'nde' or 'scandal', this refers to the
+            setup of each individual MADE layer. Default value: (100, 100).
+
+        activation : {'tanh', 'sigmoid', 'relu'}, optional
+            Activation function. Default value: 'tanh'.
+
+        maf_n_mades : int, optional
+            If method is 'nde' or 'scandal', this sets the number of MADE layers. Default value: 3.
+
+        maf_batch_norm : bool, optional
+            If method is 'nde' or 'scandal', switches batch normalization layers after each MADE layer on or off.
+            Default: False.
+
+        maf_batch_norm_alpha : float, optional
+            If method is 'nde' or 'scandal' and maf_batch_norm is True, this sets the alpha parameter in the calculation
+            of the running average of the mean and variance. Default value: 0.1.
+
+        maf_mog_n_components : int, optional
+            If method is 'nde' or 'scandal' and nde_type is 'mafmog', this sets the number of Gaussian base components.
+            Default value: 10.
+
+        alpha : float, optional
+            Hyperparameter weighting the score error in the loss function of the 'alices', 'alices2', 'rascal',
+            'rascal2', and 'scandal' methods. Default value: 1.
+
+        optimizer : {"adam", "amsgrad", "sgd"}, optional
+            Optimization algorithm. Default value: "amsgrad".
+
+        n_epochs : int, optional
+            Number of epochs. Default value: 50.
+
+        batch_size : int, optional
+            Batch size. Default value: 200.
+
+        initial_lr : float, optional
+            Learning rate during the first epoch, after which it exponentially decays to final_lr. Default value:
+            0.001.
+
+        final_lr : float, optional
+            Learning rate during the last epoch. Default value: 0.0001.
+
+        nesterov_momentum : float or None, optional
+            If trainer is "sgd", sets the Nesterov momentum. Default value: None.
+
+        validation_split : float or None, optional
+            Fraction of samples used  for validation and early stopping (if early_stopping is True). If None, the entire
+            sample is used for training and early stopping is deactivated. Default value: 0.25.
+
+        early_stopping : bool, optional
+            Activates early stopping based on the validation loss (only if validation_split is not None). Default value:
+            True.
+
+        scale_inputs : bool, optional
+            Scale the observables to zero mean and unit variance. Default value: True.
+
+        shuffle_labels : bool, optional
+            If True, the labels (`y`, `r_xz`, `t_xz`) are shuffled, while the observations (`x`) remain in their
+            normal order. This serves as a closure test, in particular as cross-check against overfitting: an estimator
+            trained with shuffle_labels=True should predict to likelihood ratios around 1 and scores around 0.
+
+        grad_x_regularization : None
+            Currently not supported.
+
+        limit_samplesize : int or None, optional
+            If not None, only this number of samples (events) is used to train the estimator. Default value: None.
+
+        verbose : {"all", "many", "some", "few", "none}, optional
+            Determines verbosity of training. Default value: "some".
+
+        Returns
+        -------
+            None
+
+        """
+
+        logger.info("Starting training")
+        logger.info("  Method:                 %s", method)
+        logger.info("  Training data:          x at %s", x_filename)
+        if theta0_filename is not None:
+            logger.info("                          theta0 at %s", theta0_filename)
+        if theta1_filename is not None:
+            logger.info("                          theta1 at %s", theta1_filename)
+        if y_filename is not None:
+            logger.info("                          y at %s", y_filename)
+        if r_xz_filename is not None:
+            logger.info("                          r_xz at %s", r_xz_filename)
+        if t_xz0_filename is not None:
+            logger.info("                          t_xz (theta0) at %s", t_xz0_filename)
+        if t_xz1_filename is not None:
+            logger.info("                          t_xz (theta1) at %s", t_xz1_filename)
+        if features is None:
+            logger.info("  Features:               all")
+        else:
+            logger.info("  Features:               %s", features)
+        logger.info("  Method:                 %s", method)
+        if method in ["nde", "scandal"]:
+            logger.info("  Neural density est.:    %s", nde_type)
+        if method not in ["nde", "scandal"]:
+            logger.info("  Hidden layers:          %s", n_hidden)
+        if method in ["nde", "scandal"]:
+            logger.info("  MAF, number MADEs:      %s", maf_n_mades)
+            logger.info("  MAF, batch norm:        %s", maf_batch_norm)
+            logger.info("  MAF, BN alpha:          %s", maf_batch_norm_alpha)
+            logger.info("  MAF MoG, components:    %s", maf_mog_n_components)
+        logger.info("  Activation function:    %s", activation)
+        if method in ["cascal", "cascal2", "rascal", "rascal2", "scandal", "alices"]:
+            logger.info("  alpha:                  %s", alpha)
+        logger.info("  Batch size:             %s", batch_size)
+        logger.info("  Optimizer:              %s", optimizer)
+        logger.info("  Epochs:                 %s", n_epochs)
+        logger.info("  Learning rate:          %s initially, decaying to %s", initial_lr, final_lr)
+        if optimizer == "sgd":
+            logger.info("  Nesterov momentum:      %s", nesterov_momentum)
+        logger.info("  Validation split:       %s", validation_split)
+        logger.info("  Early stopping:         %s", early_stopping)
+        logger.info("  Scale inputs:           %s", scale_inputs)
+        logger.info("  Shuffle labels          %s", shuffle_labels)
+        if limit_samplesize is None:
+            logger.info("  Samples:                all")
+        else:
+            logger.info("  Samples:                %s", limit_samplesize)
+
+        # Check
+        if grad_x_regularization is not None:
+            logger.warning("grad_x_regularization is not supported in this version of MadMiner")
+
+        # Load training data
+        logger.info("Loading training data")
+        theta0 = load_and_check(theta0_filename)
+        theta1 = load_and_check(theta1_filename)
+        x = load_and_check(x_filename)
+        y = load_and_check(y_filename)
+        r_xz = load_and_check(r_xz_filename)
+        t_xz0 = load_and_check(t_xz0_filename)
+        t_xz1 = load_and_check(t_xz1_filename)
+        if y is not None:
+            y = y.reshape((-1, 1))
+
+        # Check necessary information is there
+        if not check_required_data(method, r_xz, t_xz0, t_xz1, theta0, theta1, x, y):
+            raise ValueError("Not all required data for method {} provided!".format(method))
+
+        # Infer dimensions of problem
+        n_samples = x.shape[0]
+        n_observables = x.shape[1]
+        if theta0 is not None:
+            n_parameters = theta0.shape[1]
+        else:
+            n_parameters = t_xz0.shape[1]
+        logger.info("Found %s samples with %s parameters and %s observables", n_samples, n_parameters, n_observables)
+
+        # Limit sample size
+        if limit_samplesize is not None and limit_samplesize < n_samples:
+            logger.info("Only using %s of %s training samples", limit_samplesize, n_samples)
+            x, theta0, theta1, y, r_xz, t_xz0, t_xz1 = restrict_samplesize(
+                limit_samplesize, x, theta0, theta1, y, r_xz, t_xz0, t_xz1
+            )
+
+        # Scale features
+        if scale_inputs:
+            logger.info("Rescaling inputs")
+            self._initialize_input_transform(x)
+            x = self._transform_inputs(x)
+        else:
+            self._initialize_input_transform(x, False)
+
+        logger.debug("Observable ranges:")
+        for i in range(n_observables):
+            logger.debug(
+                "  x_%s: mean %s, std %s, range %s ... %s",
+                i + 1,
+                np.mean(x[:, i]),
+                np.std(x[:, i]),
+                np.min(x[:, i]),
+                np.max(x[:, i]),
+            )
+
+        # Shuffle labels
+        if shuffle_labels:
+            logger.info("Shuffling labels")
+            y, r_xz, t_xz0, t_xz1 = shuffle(y, r_xz, t_xz0, t_xz1)
+
+        # Features
+        self.features = features
+        if features is not None:
+            x = x[:, features]
+            logger.info("Only using %s of %s observables", x.shape[1], n_observables)
+            n_observables = x.shape[1]
+
+        # Data
+        data = package_training_data(method, x, theta0, theta1, y, r_xz, t_xz0, t_xz1)
+
+        # Create model and save settings
+        logger.info("Creating model for method %s", method)
+        self._create_model(
+            method,
+            n_observables,
+            n_parameters,
+            n_hidden,
+            activation,
+            nde_type,
+            maf_n_mades,
+            maf_batch_norm,
+            maf_batch_norm_alpha,
+            maf_mog_n_components,
+        )
+
+        # Losses
+        loss_functions, loss_labels, loss_weights = get_loss(method, alpha)
+
+        # Optimizer
+        opt_kwargs = None
+        if optimizer == "adam":
+            opt = optim.Adam
+        elif optimizer == "amsgrad":
+            opt = optim.Adam
+            opt_kwargs = {"amsgrad": True}
+        elif optimizer == "sgd":
+            opt = optim.SGD
+            if nesterov_momentum is not None:
+                opt_kwargs = {"momentum": nesterov_momentum}
+        else:
+            raise ValueError("Unknown optimizer {}".format(optimizer))
+
+        # Train model
+        logger.info("Training model")
+        trainer = get_trainer(method)(self.model)
+        result = trainer.train(
+            data=data,
+            loss_functions=loss_functions,
+            loss_weights=loss_weights,
+            loss_labels=loss_labels,
+            epochs=n_epochs,
+            batch_size=batch_size,
+            optimizer=opt,
+            optimizer_kwargs=opt_kwargs,
+            initial_lr=initial_lr,
+            final_lr=final_lr,
+            validation_split=validation_split,
+            early_stopping=early_stopping,
+            verbose=verbose,
+        )
+        return result
 
 
 class LikelihoodEstimator(Estimator):
+    """ A neural estimator of the density or likelihood evaluated at a reference hypothesis as a function
+     of the observation x. """
     def __init__(self):
         super(LikelihoodEstimator, self).__init__()
+
+        self.nde_type = None
+        self.maf_n_mades = None
+        self.maf_batch_norm = None
+        self.maf_batch_norm_alpha = None
+        self.maf_mog_n_components = None
+
+    def train(
+            self,
+            method,
+            x_filename,
+            y_filename=None,
+            theta0_filename=None,
+            theta1_filename=None,
+            r_xz_filename=None,
+            t_xz0_filename=None,
+            t_xz1_filename=None,
+            features=None,
+            nde_type="mafmog",
+            n_hidden=(100, 100),
+            activation="tanh",
+            maf_n_mades=3,
+            maf_batch_norm=False,
+            maf_batch_norm_alpha=0.1,
+            maf_mog_n_components=10,
+            alpha=1.0,
+            optimizer="amsgrad",
+            n_epochs=50,
+            batch_size=200,
+            initial_lr=0.001,
+            final_lr=0.0001,
+            nesterov_momentum=None,
+            validation_split=0.25,
+            early_stopping=True,
+            scale_inputs=True,
+            shuffle_labels=False,
+            grad_x_regularization=None,
+            limit_samplesize=None,
+            verbose="some",
+            **kwargs
+    ):
+
+        """
+        Trains a neural network to estimate either the likelihood, the likelihood ratio, or the
+        score.
+
+        The keyword method determines the structure of the estimator that an instance of this class represents:
+
+        * For 'alice', 'alices', 'carl', 'nde', 'rascal', 'rolr', and 'scandal', the neural network models
+          the likelihood ratio as a function of the observables `x` and the numerator hypothesis `theta0`, while
+          the denominator hypothesis is kept at a fixed reference value ("single-parameterized likelihood ratio
+          estimator"). In addition to the likelihood ratio, the estimator allows to estimate the score at `theta0`.
+        * For 'alice2', 'alices2', 'carl2', 'rascal2', and 'rolr2', the neural network models
+          the likelihood ratio as a function of the observables `x`, the numerator hypothesis `theta0`, and the
+          denominator hypothesis `theta1` ("doubly parameterized likelihood ratio estimator"). The score at `theta0`
+          and `theta1` can also be evaluated.
+        * For 'sally' and 'sallino', the neural networks models the score evaluated at some reference hypothesis
+          ("local score regression"). The likelihood ratio cannot be estimated directly from the neural network, but
+          can be estimated in a second step through density estimation in the estimated score space.
+
+        Parameters
+        ----------
+        method : str
+            The inference method used. Allows values are 'alice', 'alices', 'carl', 'nde', 'rascal', 'rolr', and
+            'scandal' for a single-parameterized likelihood ratio estimator; 'alice2', 'alices2', 'carl2', 'rascal2',
+            and 'rolr2' for a doubly-parameterized likelihood ratio estimator; and 'sally' and 'sallino' for local
+            score regression.
+
+        x_filename : str
+            Path to an unweighted sample of observations, as saved by the `madminer.sampling.SampleAugmenter` functions.
+            Required for all inference methods.
+
+        y_filename : str or None, optional
+            Path to an unweighted sample of class labels, as saved by the `madminer.sampling.SampleAugmenter` functions.
+            Required for the 'alice', 'alice2', 'alices', 'alices2', 'carl', 'carl2', 'rascal', 'rascal2', 'rolr',
+            and 'rolr2' methods. Default value: None.
+
+        theta0_filename : str or None, optional
+            Path to an unweighted sample of numerator parameters, as saved by the `madminer.sampling.SampleAugmenter`
+            functions. Required for the 'alice', 'alice2', 'alices', 'alices2', 'carl', 'carl2', 'nde', 'rascal',
+            'rascal2', 'rolr', 'rolr2', and 'scandal' methods. Default value: None.
+
+        theta1_filename : str or None, optional
+            Path to an unweighted sample of denominator parameters, as saved by the `madminer.sampling.SampleAugmenter`
+            functions. Required for the 'alice2', 'alices2', 'carl2', 'rascal2', and 'rolr2' methods. Default value:
+            None.
+
+        r_xz_filename : str or None, optional
+            Path to an unweighted sample of joint likelihood ratios, as saved by the `madminer.sampling.SampleAugmenter`
+            functions. Required for the 'alice', 'alice2', 'alices', 'alices2', 'rascal', 'rascal2', 'rolr', and 'rolr2'
+            methods. Default value: None.
+
+        t_xz0_filename : str or None, optional
+            Path to an unweighted sample of joint scores at theta0, as saved by the `madminer.sampling.SampleAugmenter`
+            functions. Required for the 'alices', 'alices2', 'rascal', 'rascal2', 'sallino', 'sally', and 'scandal'
+            methods. Default value: None.
+
+        t_xz1_filename : str or None, optional
+            Path to an unweighted sample of joint scores at theta1, as saved by the `madminer.sampling.SampleAugmenter`
+            functions. Required for the 'rascal2' and 'alices2' methods. Default value: None.
+
+        features : list of int or None, optional
+            Indices of observables (features) that are used as input to the neural networks. If None, all observables
+            are used. Default value: None.
+
+        nde_type : {'maf', 'mafmog'}, optional
+            If the method is 'nde' or 'scandal', nde_type determines the architecture used in the neural density
+            estimator. Currently supported are 'maf' for a Masked Autoregressive Flow with a Gaussian base density, or
+            'mafmog' for a Masked Autoregressive Flow with a mixture of Gaussian base densities. Default value:
+            'mafmog'.
+
+        n_hidden : tuple of int, optional
+            Units in each hidden layer in the neural networks. If method is 'nde' or 'scandal', this refers to the
+            setup of each individual MADE layer. Default value: (100, 100).
+
+        activation : {'tanh', 'sigmoid', 'relu'}, optional
+            Activation function. Default value: 'tanh'.
+
+        maf_n_mades : int, optional
+            If method is 'nde' or 'scandal', this sets the number of MADE layers. Default value: 3.
+
+        maf_batch_norm : bool, optional
+            If method is 'nde' or 'scandal', switches batch normalization layers after each MADE layer on or off.
+            Default: False.
+
+        maf_batch_norm_alpha : float, optional
+            If method is 'nde' or 'scandal' and maf_batch_norm is True, this sets the alpha parameter in the calculation
+            of the running average of the mean and variance. Default value: 0.1.
+
+        maf_mog_n_components : int, optional
+            If method is 'nde' or 'scandal' and nde_type is 'mafmog', this sets the number of Gaussian base components.
+            Default value: 10.
+
+        alpha : float, optional
+            Hyperparameter weighting the score error in the loss function of the 'alices', 'alices2', 'rascal',
+            'rascal2', and 'scandal' methods. Default value: 1.
+
+        optimizer : {"adam", "amsgrad", "sgd"}, optional
+            Optimization algorithm. Default value: "amsgrad".
+
+        n_epochs : int, optional
+            Number of epochs. Default value: 50.
+
+        batch_size : int, optional
+            Batch size. Default value: 200.
+
+        initial_lr : float, optional
+            Learning rate during the first epoch, after which it exponentially decays to final_lr. Default value:
+            0.001.
+
+        final_lr : float, optional
+            Learning rate during the last epoch. Default value: 0.0001.
+
+        nesterov_momentum : float or None, optional
+            If trainer is "sgd", sets the Nesterov momentum. Default value: None.
+
+        validation_split : float or None, optional
+            Fraction of samples used  for validation and early stopping (if early_stopping is True). If None, the entire
+            sample is used for training and early stopping is deactivated. Default value: 0.25.
+
+        early_stopping : bool, optional
+            Activates early stopping based on the validation loss (only if validation_split is not None). Default value:
+            True.
+
+        scale_inputs : bool, optional
+            Scale the observables to zero mean and unit variance. Default value: True.
+
+        shuffle_labels : bool, optional
+            If True, the labels (`y`, `r_xz`, `t_xz`) are shuffled, while the observations (`x`) remain in their
+            normal order. This serves as a closure test, in particular as cross-check against overfitting: an estimator
+            trained with shuffle_labels=True should predict to likelihood ratios around 1 and scores around 0.
+
+        grad_x_regularization : None
+            Currently not supported.
+
+        limit_samplesize : int or None, optional
+            If not None, only this number of samples (events) is used to train the estimator. Default value: None.
+
+        verbose : {"all", "many", "some", "few", "none}, optional
+            Determines verbosity of training. Default value: "some".
+
+        Returns
+        -------
+            None
+
+        """
+
+        logger.info("Starting training")
+        logger.info("  Method:                 %s", method)
+        logger.info("  Training data:          x at %s", x_filename)
+        if theta0_filename is not None:
+            logger.info("                          theta0 at %s", theta0_filename)
+        if theta1_filename is not None:
+            logger.info("                          theta1 at %s", theta1_filename)
+        if y_filename is not None:
+            logger.info("                          y at %s", y_filename)
+        if r_xz_filename is not None:
+            logger.info("                          r_xz at %s", r_xz_filename)
+        if t_xz0_filename is not None:
+            logger.info("                          t_xz (theta0) at %s", t_xz0_filename)
+        if t_xz1_filename is not None:
+            logger.info("                          t_xz (theta1) at %s", t_xz1_filename)
+        if features is None:
+            logger.info("  Features:               all")
+        else:
+            logger.info("  Features:               %s", features)
+        logger.info("  Method:                 %s", method)
+        if method in ["nde", "scandal"]:
+            logger.info("  Neural density est.:    %s", nde_type)
+        if method not in ["nde", "scandal"]:
+            logger.info("  Hidden layers:          %s", n_hidden)
+        if method in ["nde", "scandal"]:
+            logger.info("  MAF, number MADEs:      %s", maf_n_mades)
+            logger.info("  MAF, batch norm:        %s", maf_batch_norm)
+            logger.info("  MAF, BN alpha:          %s", maf_batch_norm_alpha)
+            logger.info("  MAF MoG, components:    %s", maf_mog_n_components)
+        logger.info("  Activation function:    %s", activation)
+        if method in ["cascal", "cascal2", "rascal", "rascal2", "scandal", "alices"]:
+            logger.info("  alpha:                  %s", alpha)
+        logger.info("  Batch size:             %s", batch_size)
+        logger.info("  Optimizer:              %s", optimizer)
+        logger.info("  Epochs:                 %s", n_epochs)
+        logger.info("  Learning rate:          %s initially, decaying to %s", initial_lr, final_lr)
+        if optimizer == "sgd":
+            logger.info("  Nesterov momentum:      %s", nesterov_momentum)
+        logger.info("  Validation split:       %s", validation_split)
+        logger.info("  Early stopping:         %s", early_stopping)
+        logger.info("  Scale inputs:           %s", scale_inputs)
+        logger.info("  Shuffle labels          %s", shuffle_labels)
+        if limit_samplesize is None:
+            logger.info("  Samples:                all")
+        else:
+            logger.info("  Samples:                %s", limit_samplesize)
+
+        # Check
+        if grad_x_regularization is not None:
+            logger.warning("grad_x_regularization is not supported in this version of MadMiner")
+
+        # Load training data
+        logger.info("Loading training data")
+        theta0 = load_and_check(theta0_filename)
+        theta1 = load_and_check(theta1_filename)
+        x = load_and_check(x_filename)
+        y = load_and_check(y_filename)
+        r_xz = load_and_check(r_xz_filename)
+        t_xz0 = load_and_check(t_xz0_filename)
+        t_xz1 = load_and_check(t_xz1_filename)
+        if y is not None:
+            y = y.reshape((-1, 1))
+
+        # Check necessary information is there
+        if not check_required_data(method, r_xz, t_xz0, t_xz1, theta0, theta1, x, y):
+            raise ValueError("Not all required data for method {} provided!".format(method))
+
+        # Infer dimensions of problem
+        n_samples = x.shape[0]
+        n_observables = x.shape[1]
+        if theta0 is not None:
+            n_parameters = theta0.shape[1]
+        else:
+            n_parameters = t_xz0.shape[1]
+        logger.info("Found %s samples with %s parameters and %s observables", n_samples, n_parameters, n_observables)
+
+        # Limit sample size
+        if limit_samplesize is not None and limit_samplesize < n_samples:
+            logger.info("Only using %s of %s training samples", limit_samplesize, n_samples)
+            x, theta0, theta1, y, r_xz, t_xz0, t_xz1 = restrict_samplesize(
+                limit_samplesize, x, theta0, theta1, y, r_xz, t_xz0, t_xz1
+            )
+
+        # Scale features
+        if scale_inputs:
+            logger.info("Rescaling inputs")
+            self._initialize_input_transform(x)
+            x = self._transform_inputs(x)
+        else:
+            self._initialize_input_transform(x, False)
+
+        logger.debug("Observable ranges:")
+        for i in range(n_observables):
+            logger.debug(
+                "  x_%s: mean %s, std %s, range %s ... %s",
+                i + 1,
+                np.mean(x[:, i]),
+                np.std(x[:, i]),
+                np.min(x[:, i]),
+                np.max(x[:, i]),
+            )
+
+        # Shuffle labels
+        if shuffle_labels:
+            logger.info("Shuffling labels")
+            y, r_xz, t_xz0, t_xz1 = shuffle(y, r_xz, t_xz0, t_xz1)
+
+        # Features
+        self.features = features
+        if features is not None:
+            x = x[:, features]
+            logger.info("Only using %s of %s observables", x.shape[1], n_observables)
+            n_observables = x.shape[1]
+
+        # Data
+        data = package_training_data(method, x, theta0, theta1, y, r_xz, t_xz0, t_xz1)
+
+        # Create model and save settings
+        logger.info("Creating model for method %s", method)
+        self._create_model(
+            method,
+            n_observables,
+            n_parameters,
+            n_hidden,
+            activation,
+            nde_type,
+            maf_n_mades,
+            maf_batch_norm,
+            maf_batch_norm_alpha,
+            maf_mog_n_components,
+        )
+
+        # Losses
+        loss_functions, loss_labels, loss_weights = get_loss(method, alpha)
+
+        # Optimizer
+        opt_kwargs = None
+        if optimizer == "adam":
+            opt = optim.Adam
+        elif optimizer == "amsgrad":
+            opt = optim.Adam
+            opt_kwargs = {"amsgrad": True}
+        elif optimizer == "sgd":
+            opt = optim.SGD
+            if nesterov_momentum is not None:
+                opt_kwargs = {"momentum": nesterov_momentum}
+        else:
+            raise ValueError("Unknown optimizer {}".format(optimizer))
+
+        # Train model
+        logger.info("Training model")
+        trainer = get_trainer(method)(self.model)
+        result = trainer.train(
+            data=data,
+            loss_functions=loss_functions,
+            loss_weights=loss_weights,
+            loss_labels=loss_labels,
+            epochs=n_epochs,
+            batch_size=batch_size,
+            optimizer=opt,
+            optimizer_kwargs=opt_kwargs,
+            initial_lr=initial_lr,
+            final_lr=final_lr,
+            validation_split=validation_split,
+            early_stopping=early_stopping,
+            verbose=verbose,
+        )
+        return result
 
 
 class Ensemble:
