@@ -5,7 +5,7 @@ import numpy as np
 import torch
 from torch import tensor
 
-from madminer.utils.ml.models.ratio import ParameterizedRatioEstimator, DoublyParameterizedRatioEstimator
+from madminer.utils.ml.models.ratio import DenseSingleParameterizedRatioModel, DenseDoublyParameterizedRatioModel
 
 logger = logging.getLogger(__name__)
 
@@ -77,9 +77,9 @@ def evaluate_ratio_model(
 
     # Figure out method type
     if method_type is None:
-        if isinstance(model, ParameterizedRatioEstimator):
+        if isinstance(model, DenseSingleParameterizedRatioModel):
             method_type = "parameterized"
-        elif isinstance(model, DoublyParameterizedRatioEstimator):
+        elif isinstance(model, DenseDoublyParameterizedRatioModel):
             method_type = "doubly_parameterized"
         else:
             raise RuntimeError("Cannot infer method type automatically")

@@ -9,13 +9,13 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-class LocalScoreEstimator(nn.Module):
+class DenseLocalScoreModel(nn.Module):
     """Module that implements local score estimators for methods like SALLY and SALLINO, or the calculation
      of Fisher information matrices."""
 
     def __init__(self, n_observables, n_parameters, n_hidden, activation="tanh"):
 
-        super(LocalScoreEstimator, self).__init__()
+        super(DenseLocalScoreModel, self).__init__()
 
         # Save input
         self.n_hidden = n_hidden
@@ -57,7 +57,7 @@ class LocalScoreEstimator(nn.Module):
         return t_hat
 
     def to(self, *args, **kwargs):
-        self = super(LocalScoreEstimator, self).to(*args, **kwargs)
+        self = super(DenseLocalScoreModel, self).to(*args, **kwargs)
 
         for i, layer in enumerate(self.layers):
             self.layers[i] = layer.to(*args, **kwargs)

@@ -10,8 +10,8 @@ from torch import optim
 
 from madminer.utils.ml.models.maf import ConditionalMaskedAutoregressiveFlow
 from madminer.utils.ml.models.maf_mog import ConditionalMixtureMaskedAutoregressiveFlow
-from madminer.utils.ml.models.ratio import ParameterizedRatioEstimator, DoublyParameterizedRatioEstimator
-from madminer.utils.ml.models.score import LocalScoreEstimator
+from madminer.utils.ml.models.ratio import DenseSingleParameterizedRatioModel, DenseDoublyParameterizedRatioModel
+from madminer.utils.ml.models.score import DenseLocalScoreModel
 from madminer.utils.ml.eval import evaluate_flow_model, evaluate_ratio_model, evaluate_local_score_model
 from madminer.utils.ml.utils import check_required_data
 from madminer.utils.various import create_missing_folders, load_and_check, shuffle, restrict_samplesize
@@ -22,8 +22,8 @@ logger = logging.getLogger(__name__)
 
 class Estimator(object):
     """
-    Abstract class for any ML estimator. Subclassed by ParameterizedRatioEstimator, DoubleParameterizedRatioEstimator,
-    LocalScoreEstimator, and LikelihoodEstimator.
+    Abstract class for any ML estimator. Subclassed by DenseSingleParameterizedRatioModel, DoubleParameterizedRatioEstimator,
+    DenseLocalScoreModel, and LikelihoodEstimator.
 
     Each instance of this class represents one neural estimator. The most important functions are:
 
@@ -1008,15 +1008,15 @@ class Estimator(object):
 
         self.method_type = get_method_type(method)
         if self.method_type == "parameterized":
-            self.model = ParameterizedRatioEstimator(
+            self.model = DenseSingleParameterizedRatioModel(
                 n_observables=n_observables, n_parameters=n_parameters, n_hidden=n_hidden, activation=activation
             )
         elif self.method_type == "doubly_parameterized":
-            self.model = DoublyParameterizedRatioEstimator(
+            self.model = DenseDoublyParameterizedRatioModel(
                 n_observables=n_observables, n_parameters=n_parameters, n_hidden=n_hidden, activation=activation
             )
         elif self.method_type == "local_score":
-            self.model = LocalScoreEstimator(
+            self.model = DenseLocalScoreModel(
                 n_observables=n_observables, n_parameters=n_parameters, n_hidden=n_hidden, activation=activation
             )
         elif self.method_type == "nde":
@@ -1049,7 +1049,7 @@ class Estimator(object):
 
 class ParameterizedRatioEstimator(Estimator):
     def __init__(self):
-        super(ParameterizedRatioEstimator, self).__init__()
+        super(DenseSingleParameterizedRatioModel, self).__init__()
 
 
 class DoubleParameterizedRatioEstimator(Estimator):
@@ -1059,7 +1059,7 @@ class DoubleParameterizedRatioEstimator(Estimator):
 
 class LocalScoreEstimator(Estimator):
     def __init__(self):
-        super(LocalScoreEstimator, self).__init__()
+        super(DenseLocalScoreModel, self).__init__()
 
 
 class LikelihoodEstimator(Estimator):
