@@ -1741,9 +1741,9 @@ class Ensemble:
     """
     Ensemble methods for likelihood ratio and score information.
 
-    Generally, Ensemble instances can be used very similarly to MLForge instances:
+    Generally, Ensemble instances can be used very similarly to Estimator instances:
 
-    * The initialization of Ensemble takes a list of (trained or untrained) MLForge instances.
+    * The initialization of Ensemble takes a list of (trained or untrained) Estimator instances.
     * The methods `Ensemble.train_one()` and `Ensemble.train_all()` train the estimators (this can also be
       done outside of Ensemble).
     * `Ensemble.calculate_expectation()` can be used to calculate the expectation of the estimation likelihood
@@ -1756,8 +1756,9 @@ class Ensemble:
     * `Ensemble.save()` and `Ensemble.load()` can store all estimators in one folder.
 
     The individual estimators in the ensemble can be trained with different methods, but they have to be of the same
-    type: either all estimators are single-parameterized likelihood ratio estimators, or all estimators are
-    doubly-parameterized likelihood estimators, or all estimators are local score regressors.
+    type: either all estimators are ParameterizedRatioEstimator instances, or all estimators are
+    DoubleParameterizedRatioEstimator instances, or all estimators are ScoreEstimator instances, or all estimators are
+    LikelihoodEstimator instances..
 
     Parameters
     ----------
@@ -1777,15 +1778,16 @@ class Ensemble:
         The estimators in the form of MLForge instances.
     """
 
-    def __init__(self, estimators=None):
+    def __init__(self, estimators=None, type=ParameterizedRatioEstimator):
         self.n_parameters = None
         self.n_observables = None
+        self.estimator_type = None
 
         # Initialize estimators
         if estimators is None:
             self.estimators = []
         elif isinstance(estimators, int):
-            self.estimators = [Estimator() for _ in range(estimators)]
+            self.estimators = [type() for _ in range(estimators)]
         else:
             self.estimators = []
             for estimator in estimators:
@@ -1803,12 +1805,9 @@ class Ensemble:
         self.expectations = None
 
         # Consistency checks
-        for estimator in self.estimators:
-            assert isinstance(estimator, Estimator), "Estimator is no Estimator instance!"
-
         self._check_consistency()
 
-    def add_estimator(self, estimator):
+    def add_estimator(self, estimator, type=ParameterizedRatioEstimator):
         """
         Adds an estimator to the ensemble.
 
@@ -1823,7 +1822,7 @@ class Ensemble:
 
         """
         if isinstance(estimator, six.string_types):
-            estimator_object = Estimator()
+            estimator_object = type()
             estimator_object.load(estimator)
         elif isinstance(estimator, Estimator):
             estimator_object = estimator
@@ -1832,6 +1831,8 @@ class Ensemble:
 
         self.estimators.append(estimator_object)
         self.n_estimators = len(self.estimators)
+
+        self._check_consistency()
 
     def train_one(self, i, **kwargs):
         """
@@ -2428,21 +2429,11 @@ class Ensemble:
         # Check consistency and update n_parameters, n_observables
         self._check_consistency()
 
-    def _check_consistency(self, keywords=None):
+    def _check_consistency(self):
         """
         Internal function that checks if all estimators belong to the same category
         (local score regression, single-parameterized likelihood ratio estimator,
         doubly parameterized likelihood ratio estimator).
-
-        Parameters
-        ----------
-        keywords : dict or None, optional
-            kwargs passed to `train_one()` or `train_all()`.
-
-        Returns
-        -------
-        method_type : {"local_score", "parameterized", "doubly_parameterized"}
-            Method type of this ensemble.
 
         Raises
         ------
@@ -2451,40 +2442,23 @@ class Ensemble:
 
         """
         # Accumulate methods of all estimators
-        methods = [estimator.method for estimator in self.estimators]
+        all_types = [self._get_estimator_type(estimator) for estimator in self.estimators]
         all_n_parameters = [estimator.n_parameters for estimator in self.estimators]
         all_n_observables = [estimator.n_observables for estimator in self.estimators]
 
-        if keywords is not None:
-            keyword_method = keywords.get("method", None)
-            if isinstance(keyword_method, list):
-                methods += keyword_method
-            else:
-                methods.append(keyword_method)
 
         # Check consistency of methods
-        self.method_type = None
+        self.estimator_type = None
 
-        for method in methods:
-            if method in ["sally", "sallino"]:
-                this_method_type = "local_score"
-            elif method in ["carl", "rolr", "rascal", "alice", "alices", "nde", "scandal"]:
-                this_method_type = "parameterized"
-            elif method in ["carl2", "rolr2", "rascal2", "alice2", "alices2"]:
-                this_method_type = "doubly_parameterized"
-            elif method is None:
-                continue
-            else:
-                raise RuntimeError("Unknown method %s", method)
+        for estimator_type in all_types:
+            if self.estimator_type is None:
+                self.estimator_type = estimator_type
 
-            if self.method_type is None:
-                self.method_type = this_method_type
-
-            if self.method_type != this_method_type:
+            if self.estimator_type != estimator_type:
                 raise RuntimeError(
                     "Ensemble with inconsistent estimator methods! All methods have to be either"
                     " single-parameterized ratio estimators, doubly parameterized ratio estimators,"
-                    " or local score estimators. Found methods " + ", ".join(methods) + "."
+                    " or local score estimators. Found types " + ", ".join(all_types) + "."
                 )
 
         # Check consistency of parameter and observable numnbers
@@ -2506,8 +2480,21 @@ class Ensemble:
                     "Ensemble with inconsistent numbers of parameters for different estimators: %s", all_n_observables
                 )
 
-        # Return method type of ensemble
-        return self.method_type
+    @staticmethod
+    def _get_estimator_type(estimator):
+        if not isinstance(estimator, Estimator):
+            raise RuntimeError("Estimator is not an Estimator instance!")
+
+        if isinstance(estimator, ParameterizedRatioEstimator):
+            return "parameterized_ratio"
+        elif isinstance(estimator, DoubleParameterizedRatioEstimator):
+            return "double_parameterized_ratio"
+        elif isinstance(estimator, ScoreEstimator):
+            return "score"
+        elif isinstance(estimator, LikelihoodEstimator):
+            return "likelihood"
+        else:
+            raise RuntimeError("Estimator is an unknown Estimator type!")
 
 
 class TheresAGoodReasonThisDoesntWork(Exception):
