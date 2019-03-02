@@ -251,7 +251,8 @@ class ParameterizedRatioEstimator(Estimator):
 
 
     """
-    def __init__(self, features=None, n_hidden=(100,100), activation="tanh", ):
+
+    def __init__(self, features=None, n_hidden=(100, 100), activation="tanh"):
         super(ParameterizedRatioEstimator, self).__init__(features)
 
         self.n_hidden = n_hidden
@@ -421,10 +422,12 @@ class ParameterizedRatioEstimator(Estimator):
 
         if n_parameters != self.n_parameters:
             raise RuntimeError(
-                "Number of parameters does not match model: {} vs {}".format(n_parameters, self.n_parameters))
+                "Number of parameters does not match model: {} vs {}".format(n_parameters, self.n_parameters)
+            )
         if n_observables != self.n_observables:
             raise RuntimeError(
-                "Number of observables does not match model: {} vs {}".format(n_observables, self.n_observables))
+                "Number of observables does not match model: {} vs {}".format(n_observables, self.n_observables)
+            )
 
         # Data
         data = self._package_training_data(method, x, theta, y, r_xz, t_xz)
@@ -516,9 +519,7 @@ class ParameterizedRatioEstimator(Estimator):
             logger.debug("Starting ratio evaluation for all combinations")
 
             for i, this_theta in enumerate(theta):
-                logger.debug(
-                    "Starting ratio evaluation for thetas %s / %s: %s", i + 1, len(theta), this_theta
-                )
+                logger.debug("Starting ratio evaluation for thetas %s / %s: %s", i + 1, len(theta), this_theta)
                 _, log_r_hat, t_hat, _ = evaluate_ratio_model(
                     model=self.model,
                     method_type=self.method_type,
@@ -549,15 +550,18 @@ class ParameterizedRatioEstimator(Estimator):
         return all_log_r_hat, all_t_hat
 
     def evaluate_log_likelihood(self, *args, **kwargs):
-        raise TheresAGoodReasonThisDoesntWork("This estimator can only estimate likelihood ratios, not the likelihood "
-                                              "itself!")
+        raise TheresAGoodReasonThisDoesntWork(
+            "This estimator can only estimate likelihood ratios, not the likelihood " "itself!"
+        )
 
     def evaluate_score(self, *args, **kwargs):
         raise NotImplementedError("Please use evaluate_log_likelihood_ratio(evaluate_score=True).")
 
     def calculate_fisher_information(self, *args, **kwargs):
-        raise NotImplementedError("Please use evaluate_log_likelihood_ratio(evaluate_score=True) and calculate the "
-                                  "Fisher information manually.")
+        raise NotImplementedError(
+            "Please use evaluate_log_likelihood_ratio(evaluate_score=True) and calculate the "
+            "Fisher information manually."
+        )
 
     def evaluate(self, *args, **kwargs):
         return self.evaluate_log_likelihood_ratio(*args, **kwargs)
@@ -610,7 +614,8 @@ class DoubleParameterizedRatioEstimator(Estimator):
 
 
     """
-    def __init__(self, features=None, n_hidden=(100,100), activation="tanh", ):
+
+    def __init__(self, features=None, n_hidden=(100, 100), activation="tanh"):
         super(DoubleParameterizedRatioEstimator, self).__init__(features)
 
         self.n_hidden = n_hidden
@@ -761,7 +766,9 @@ class DoubleParameterizedRatioEstimator(Estimator):
         # Limit sample size
         if limit_samplesize is not None and limit_samplesize < n_samples:
             logger.info("Only using %s of %s training samples", limit_samplesize, n_samples)
-            x, theta0, theta1, y, r_xz, t_xz0, t_xz1 = restrict_samplesize(limit_samplesize, x, theta0, theta1, y, r_xz, t_xz0, t_xz1)
+            x, theta0, theta1, y, r_xz, t_xz0, t_xz1 = restrict_samplesize(
+                limit_samplesize, x, theta0, theta1, y, r_xz, t_xz0, t_xz1
+            )
 
         # Scale features
         if scale_inputs:
@@ -789,9 +796,13 @@ class DoubleParameterizedRatioEstimator(Estimator):
             self.n_parameters = n_parameters
 
         if n_parameters != self.n_parameters:
-            raise RuntimeError("Number of parameters does not match model: {} vs {}".format(n_parameters, self.n_parameters))
+            raise RuntimeError(
+                "Number of parameters does not match model: {} vs {}".format(n_parameters, self.n_parameters)
+            )
         if n_observables != self.n_observables:
-            raise RuntimeError("Number of observables does not match model: {} vs {}".format(n_observables, self.n_observables))
+            raise RuntimeError(
+                "Number of observables does not match model: {} vs {}".format(n_observables, self.n_observables)
+            )
 
         # Data
         data = self._package_training_data(method, x, theta0, theta1, y, r_xz, t_xz0, t_xz1)
@@ -900,7 +911,11 @@ class DoubleParameterizedRatioEstimator(Estimator):
 
             for i, (this_theta0, this_theta1) in enumerate(zip(theta0, theta1)):
                 logger.debug(
-                    "Starting ratio evaluation for thetas %s / %s: %s vs %s", i + 1, len(theta0), this_theta0, this_theta1
+                    "Starting ratio evaluation for thetas %s / %s: %s vs %s",
+                    i + 1,
+                    len(theta0),
+                    this_theta0,
+                    this_theta1,
                 )
                 _, log_r_hat, t_hat0, t_hat1 = evaluate_ratio_model(
                     model=self.model,
@@ -934,15 +949,18 @@ class DoubleParameterizedRatioEstimator(Estimator):
         return all_log_r_hat, all_t_hat0, all_t_hat1
 
     def evaluate_log_likelihood(self, *args, **kwargs):
-        raise TheresAGoodReasonThisDoesntWork("This estimator can only estimate likelihood ratios, not the likelihood "
-                                              "itself!")
+        raise TheresAGoodReasonThisDoesntWork(
+            "This estimator can only estimate likelihood ratios, not the likelihood " "itself!"
+        )
 
     def evaluate_score(self, *args, **kwargs):
         raise NotImplementedError("Please use evaluate_log_likelihood_ratio(evaluate_score=True).")
 
     def calculate_fisher_information(self, *args, **kwargs):
-        raise NotImplementedError("Please use evaluate_log_likelihood_ratio(evaluate_score=True) and calculate the "
-                                  "Fisher information manually.")
+        raise NotImplementedError(
+            "Please use evaluate_log_likelihood_ratio(evaluate_score=True) and calculate the "
+            "Fisher information manually."
+        )
 
     def evaluate(self, *args, **kwargs):
         return self.evaluate_log_likelihood_ratio(*args, **kwargs)
@@ -996,7 +1014,8 @@ class ScoreEstimator(Estimator):
 
 
     """
-    def __init__(self, features=None, n_hidden=(100,100), activation="tanh", ):
+
+    def __init__(self, features=None, n_hidden=(100, 100), activation="tanh"):
         super(ScoreEstimator, self).__init__(features)
 
         self.n_hidden = n_hidden
@@ -1143,10 +1162,12 @@ class ScoreEstimator(Estimator):
 
         if n_parameters != self.n_parameters:
             raise RuntimeError(
-                "Number of parameters does not match model: {} vs {}".format(n_parameters, self.n_parameters))
+                "Number of parameters does not match model: {} vs {}".format(n_parameters, self.n_parameters)
+            )
         if n_observables != self.n_observables:
             raise RuntimeError(
-                "Number of observables does not match model: {} vs {}".format(n_observables, self.n_observables))
+                "Number of observables does not match model: {} vs {}".format(n_observables, self.n_observables)
+            )
 
         # Data
         data = self._package_training_data(x, t_xz)
@@ -1297,6 +1318,7 @@ class ScoreEstimator(Estimator):
             n_hidden=self.n_hidden,
             activation=self.activation,
         )
+
     @staticmethod
     def _package_training_data(x, t_xz):
         data = OrderedDict()
@@ -1336,6 +1358,7 @@ class LikelihoodEstimator(Estimator):
 
 
     """
+
     def __init__(self, features=None, n_components=1, n_mades=5, n_hidden=(100,), activation="tanh", batch_norm=None):
         super(LikelihoodEstimator, self).__init__(features)
 
@@ -1499,10 +1522,12 @@ class LikelihoodEstimator(Estimator):
 
         if n_parameters != self.n_parameters:
             raise RuntimeError(
-                "Number of parameters does not match model: {} vs {}".format(n_parameters, self.n_parameters))
+                "Number of parameters does not match model: {} vs {}".format(n_parameters, self.n_parameters)
+            )
         if n_observables != self.n_observables:
             raise RuntimeError(
-                "Number of observables does not match model: {} vs {}".format(n_observables, self.n_observables))
+                "Number of observables does not match model: {} vs {}".format(n_observables, self.n_observables)
+            )
 
         # Data
         data = self._package_training_data(method, x, theta, t_xz)
@@ -1603,12 +1628,7 @@ class LikelihoodEstimator(Estimator):
             logger.debug("Starting ratio evaluation for all combinations")
 
             for i, this_theta in enumerate(theta):
-                logger.debug(
-                    "Starting log likelihood evaluation for thetas %s / %s: %s",
-                    i + 1,
-                    len(theta),
-                    this_theta,
-                )
+                logger.debug("Starting log likelihood evaluation for thetas %s / %s: %s", i + 1, len(theta), this_theta)
 
                 log_p_hat, t_hat = evaluate_flow_model(
                     model=self.model, thetas=[this_theta], xs=x, evaluate_score=evaluate_score
@@ -1654,9 +1674,12 @@ class LikelihoodEstimator(Estimator):
         elif len(theta1) < len(theta0):
             theta1 = [theta1[i % len(theta1)] for i in range(len(theta0))]
 
-        log_p_hat0, t_hat0 = self.evaluate_log_likelihood(x, theta0, test_all_combinations=test_all_combinations, evaluate_score=evaluate_score)
-        log_p_hat1, t_hat1 = self.evaluate_log_likelihood(x, theta0, test_all_combinations=test_all_combinations,
-                                                          evaluate_score=evaluate_score)
+        log_p_hat0, t_hat0 = self.evaluate_log_likelihood(
+            x, theta0, test_all_combinations=test_all_combinations, evaluate_score=evaluate_score
+        )
+        log_p_hat1, t_hat1 = self.evaluate_log_likelihood(
+            x, theta0, test_all_combinations=test_all_combinations, evaluate_score=evaluate_score
+        )
         log_r_hat = log_p_hat0 - log_p_hat1
 
         return log_r_hat, t_hat0, t_hat1
@@ -1665,8 +1688,10 @@ class LikelihoodEstimator(Estimator):
         raise NotImplementedError("Please use evaluate_log_likelihood(evaluate_score=True).")
 
     def calculate_fisher_information(self, *args, **kwargs):
-        raise NotImplementedError("Please use evaluate_log_likelihood_ratio(evaluate_score=True) and calculate the "
-                                  "Fisher information manually.")
+        raise NotImplementedError(
+            "Please use evaluate_log_likelihood_ratio(evaluate_score=True) and calculate the "
+            "Fisher information manually."
+        )
 
     def evaluate(self, *args, **kwargs):
         return self.evaluate_log_likelihood(*args, **kwargs)

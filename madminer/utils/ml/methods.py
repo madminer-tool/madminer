@@ -34,5 +34,3 @@ def package_training_data(method, x, theta0, theta1, y, r_xz, t_xz0, t_xz1):
         if t_xz0 is not None:
             data["t_xz"] = t_xz0
     return data
-
-
