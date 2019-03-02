@@ -7,14 +7,13 @@ import json
 import numpy as np
 from collections import OrderedDict
 import torch
-from torch import optim
 
 from madminer.utils.ml.models.maf import ConditionalMaskedAutoregressiveFlow
 from madminer.utils.ml.models.maf_mog import ConditionalMixtureMaskedAutoregressiveFlow
 from madminer.utils.ml.models.ratio import DenseSingleParameterizedRatioModel, DenseDoublyParameterizedRatioModel
 from madminer.utils.ml.models.score import DenseLocalScoreModel
 from madminer.utils.ml.eval import evaluate_flow_model, evaluate_ratio_model, evaluate_local_score_model
-from madminer.utils.ml.utils import check_required_data, get_optimizer, get_loss
+from madminer.utils.ml.utils import get_optimizer, get_loss
 from madminer.utils.various import create_missing_folders, load_and_check, shuffle, restrict_samplesize
 from madminer.utils.ml.trainer import SingleParameterizedRatioTrainer, DoubleParameterizedRatioTrainer
 from madminer.utils.ml.trainer import LocalScoreTrainer, FlowTrainer
@@ -231,382 +230,6 @@ class Estimator(object):
         self.model.load_state_dict(torch.load(filename + "_state_dict.pt"))
 
 
-
-####################################################################################################
-
-
-
-    def evaluate(self, x, theta0_filename=None, theta1_filename=None, test_all_combinations=True, evaluate_score=False):
-
-        """
-        Evaluates a trained estimator of the log likelihood ratio, the log likelihood, or the score, depending on the
-        method.
-
-        Parameters
-        ----------
-        x : str or ndarray
-            Sample of observations, or path to numpy file with observations, as saved by the
-            `madminer.sampling.SampleAugmenter` functions.
-
-        theta0_filename : str or None, optional
-            Path to an unweighted sample of numerator parameters, as saved by the `madminer.sampling.SampleAugmenter`
-            functions. Required if the estimator was trained with the 'alice', 'alice2', 'alices', 'alices2', 'carl',
-            'carl2', 'nde', 'rascal', 'rascal2', 'rolr', 'rolr2', or 'scandal' method. Default value: None.
-
-        theta1_filename : str or None, optional
-            Path to an unweighted sample of denominator parameters, as saved by the `madminer.sampling.SampleAugmenter`
-            functions. Required if the estimator was trained with the 'alice2', 'alices2', 'carl2', 'rascal2', or
-            'rolr2' method. Default value: None.
-
-        test_all_combinations : bool, optional
-            If method is not 'sally' and not 'sallino': If False, the number of samples in the observable and theta
-            files has to match, and the likelihood ratio is evaluated only for the combinations
-            `r(x_i | theta0_i, theta1_i)`. If True, `r(x_i | theta0_j, theta1_j)` for all pairwise combinations `i, j`
-            are evaluated. Default value: True.
-
-        evaluate_score : bool, optional
-            If method is not 'sally' and not 'sallino', this sets whether in addition to the likelihood ratio the score
-            is evaluated. Default value: False.
-
-        return_grad_x : bool, optional
-            If True, `grad_x log r(x)` or `grad_x t(x)` (for 'sally' or 'sallino' estimators) are returned in addition
-            to the other outputs. Default value: False.
-
-        Returns
-        -------
-        sally_estimated_score : ndarray
-            Only returned if the network was trained with `method='sally'` or `method='sallino'`. In this case, an
-            array of the estimator for `t(x_i | theta_ref)` is returned for all events `i`.
-
-        log_likelihood_ratio : ndarray
-            Only returned if the network was trained with neither `method='sally'` nor `method='sallino'`. The estimated
-            log likelihood ratio. If test_all_combinations is True, the result has shape `(n_thetas, n_x)`. Otherwise,
-            it has shape `(n_samples,)`.
-
-        score_theta0 : ndarray or None
-            Only returned if the network was trained with neither `method='sally'` nor `method='sallino'`. None if
-            evaluate_score is False. Otherwise the derived estimated score at `theta0`. If test_all_combinations is
-            True, the result has shape `(n_thetas, n_x, n_parameters)`. Otherwise, it has shape
-            `(n_samples, n_parameters)`.
-
-        score_theta1 : ndarray or None
-            Only returned if the network was trained with neither `method='sally'` nor `method='sallino'`. None if
-            evaluate_score is False, or the network was trained with any method other than 'alice2', 'alices2', 'carl2',
-            'rascal2', or 'rolr2'. Otherwise the derived estimated score at `theta1`. If test_all_combinations is
-            True, the result has shape `(n_thetas, n_x, n_parameters)`. Otherwise, it has shape
-            `(n_samples, n_parameters)`.
-
-        grad_x : ndarray
-            Only returned if return_grad_x is True.
-
-        """
-        if self.method_type in ["parameterized", "doubly_parameterized"]:
-            return self.evaluate_log_likelihood_ratio(
-                x, theta0_filename, theta1_filename, test_all_combinations, evaluate_score
-            )
-        elif self.method_type == "nde":
-            return self.evaluate_log_likelihood(x, theta0_filename, test_all_combinations, evaluate_score)
-        elif self.method_type == "local_score":
-            return self.evaluate_score(x)
-        else:
-            raise RuntimeError("Unknown method type %s", self.method_type)
-
-    def evaluate_log_likelihood_ratio(
-        self, x, theta0_filename=None, theta1_filename=None, test_all_combinations=True, evaluate_score=False
-    ):
-
-        """
-        Evaluates a trained estimator of the log likelihood ratio, the log likelihood, or the score, depending on the
-        method.
-
-        Parameters
-        ----------
-        x : str or ndarray
-            Sample of observations, or path to numpy file with observations, as saved by the
-            `madminer.sampling.SampleAugmenter` functions.
-
-        theta0_filename : str or None, optional
-            Path to an unweighted sample of numerator parameters, as saved by the `madminer.sampling.SampleAugmenter`
-            functions. Required if the estimator was trained with the 'alice', 'alice2', 'alices', 'alices2', 'carl',
-            'carl2', 'nde', 'rascal', 'rascal2', 'rolr', 'rolr2', or 'scandal' method. Default value: None.
-
-        theta1_filename : str or None, optional
-            Path to an unweighted sample of denominator parameters, as saved by the `madminer.sampling.SampleAugmenter`
-            functions. Required if the estimator was trained with the 'alice2', 'alices2', 'carl2', 'rascal2', or
-            'rolr2' method. Default value: None.
-
-        test_all_combinations : bool, optional
-            If method is not 'sally' and not 'sallino': If False, the number of samples in the observable and theta
-            files has to match, and the likelihood ratio is evaluated only for the combinations
-            `r(x_i | theta0_i, theta1_i)`. If True, `r(x_i | theta0_j, theta1_j)` for all pairwise combinations `i, j`
-            are evaluated. Default value: True.
-
-        evaluate_score : bool, optional
-            If method is not 'sally' and not 'sallino', this sets whether in addition to the likelihood ratio the score
-            is evaluated. Default value: False.
-
-        Returns
-        -------
-        log_likelihood_ratio : ndarray
-            Only returned if the network was trained with neither `method='sally'` nor `method='sallino'`. The estimated
-            log likelihood ratio. If test_all_combinations is True, the result has shape `(n_thetas, n_x)`. Otherwise,
-            it has shape `(n_samples,)`.
-
-        score_theta0 : ndarray or None
-            Only returned if the network was trained with neither `method='sally'` nor `method='sallino'`. None if
-            evaluate_score is False. Otherwise the derived estimated score at `theta0`. If test_all_combinations is
-            True, the result has shape `(n_thetas, n_x, n_parameters)`. Otherwise, it has shape
-            `(n_samples, n_parameters)`.
-
-        score_theta1 : ndarray or None
-            Only returned if the network was trained with neither `method='sally'` nor `method='sallino'`. None if
-            evaluate_score is False, or the network was trained with any method other than 'alice2', 'alices2', 'carl2',
-            'rascal2', or 'rolr2'. Otherwise the derived estimated score at `theta1`. If test_all_combinations is
-            True, the result has shape `(n_thetas, n_x, n_parameters)`. Otherwise, it has shape
-            `(n_samples, n_parameters)`.
-
-        """
-
-        if self.model is None:
-            raise ValueError("No model -- train or load model before evaluating it!")
-
-        # Load training data
-        logger.debug("Loading evaluation data")
-        theta0s = load_and_check(theta0_filename)
-        theta1s = load_and_check(theta1_filename)
-        if isinstance(x, six.string_types):
-            x = load_and_check(x)
-
-        # Scale observables
-        x = self._transform_inputs(x)
-
-        # Restrict features
-        if self.features is not None:
-            x = x[:, self.features]
-
-        # Balance thetas
-        if theta1s is None and theta0s is not None:
-            theta1s = [None for _ in theta0s]
-        elif theta1s is not None and theta0s is not None:
-            if len(theta1s) > len(theta0s):
-                theta0s = [theta0s[i % len(theta0s)] for i in range(len(theta1s))]
-            elif len(theta1s) < len(theta0s):
-                theta1s = [theta1s[i % len(theta1s)] for i in range(len(theta0s))]
-
-        # Evaluation for all other methods
-        all_log_r_hat = []
-        all_t_hat0 = []
-        all_t_hat1 = []
-
-        if test_all_combinations:
-            logger.debug("Starting ratio evaluation for all combinations")
-
-            for i, (theta0, theta1) in enumerate(zip(theta0s, theta1s)):
-                logger.debug(
-                    "Starting ratio evaluation for thetas %s / %s: %s vs %s", i + 1, len(theta0s), theta0, theta1
-                )
-                _, log_r_hat, t_hat0, t_hat1 = evaluate_ratio_model(
-                    model=self.model,
-                    method_type=self.method_type,
-                    theta0s=[theta0],
-                    theta1s=[theta1] if theta1 is not None else None,
-                    xs=x,
-                    evaluate_score=evaluate_score,
-                )
-
-                all_log_r_hat.append(log_r_hat)
-                all_t_hat0.append(t_hat0)
-                all_t_hat1.append(t_hat1)
-
-            all_log_r_hat = np.array(all_log_r_hat)
-            all_t_hat0 = np.array(all_t_hat0)
-            all_t_hat1 = np.array(all_t_hat1)
-
-        else:
-            logger.debug("Starting ratio evaluation")
-            _, all_log_r_hat, all_t_hat0, all_t_hat1 = evaluate_ratio_model(
-                model=self.model,
-                method_type=self.method_type,
-                theta0s=theta0s,
-                theta1s=None if None in theta1s else theta1s,
-                xs=x,
-                evaluate_score=evaluate_score,
-            )
-
-        logger.debug("Evaluation done")
-        return all_log_r_hat, all_t_hat0, all_t_hat1
-
-
-    def evaluate_log_likelihood(self, x, theta0_filename=None, test_all_combinations=True, evaluate_score=False):
-
-        """
-        Evaluates a trained estimator of the log likelihood.
-
-        Parameters
-        ----------
-        x : str or ndarray
-            Sample of observations, or path to numpy file with observations, as saved by the
-            `madminer.sampling.SampleAugmenter` functions.
-
-        theta0_filename : str or None, optional
-            Path to an unweighted sample of numerator parameters, as saved by the `madminer.sampling.SampleAugmenter`
-            functions. Required if the estimator was trained with the 'alice', 'alice2', 'alices', 'alices2', 'carl',
-            'carl2', 'nde', 'rascal', 'rascal2', 'rolr', 'rolr2', or 'scandal' method. Default value: None.
-
-        test_all_combinations : bool, optional
-            If method is not 'sally' and not 'sallino': If False, the number of samples in the observable and theta
-            files has to match, and the likelihood ratio is evaluated only for the combinations
-            `r(x_i | theta0_i, theta1_i)`. If True, `r(x_i | theta0_j, theta1_j)` for all pairwise combinations `i, j`
-            are evaluated. Default value: True.
-
-        evaluate_score : bool, optional
-            If method is not 'sally' and not 'sallino', this sets whether in addition to the likelihood ratio the score
-            is evaluated. Default value: False.
-
-        Returns
-        -------
-
-        log_likelihood : ndarray
-            The estimated log likelihood. If test_all_combinations is True, the result has shape `(n_thetas, n_x)`.
-            Otherwise, it has shape `(n_samples,)`.
-
-        score_theta0 : ndarray or None
-            None if
-            evaluate_score is False. Otherwise the derived estimated score at `theta0`. If test_all_combinations is
-            True, the result has shape `(n_thetas, n_x, n_parameters)`. Otherwise, it has shape
-            `(n_samples, n_parameters)`.
-
-        """
-
-        if self.model is None:
-            raise ValueError("No model -- train or load model before evaluating it!")
-
-        # Load training data
-        logger.debug("Loading evaluation data")
-        thetas = load_and_check(theta0_filename)
-        if isinstance(x, six.string_types):
-            x = load_and_check(x)
-
-        # Scale observables
-        x = self._transform_inputs(x)
-
-        # Restrict featuers
-        if self.features is not None:
-            x = x[:, self.features]
-
-        if self.method_type != "nde":
-            raise RuntimeError("Likelihood estimation only possible for methods NDE and SCANDAL")
-
-        # Evaluation for all other methods
-        all_log_p_hat = []
-        all_t_hat = []
-
-        if test_all_combinations:
-            logger.debug("Starting ratio evaluation for all combinations")
-
-            for i, theta in enumerate(thetas):
-                logger.debug(
-                    "Starting log likelihood evaluation for thetas %s / %s: %s vs %s",
-                    i + 1,
-                    len(thetas),
-                    theta0,
-                    theta1,
-                )
-
-                log_p_hat, t_hat = evaluate_flow_model(
-                    model=self.model, thetas=[theta], xs=x, evaluate_score=evaluate_score
-                )
-
-                all_log_p_hat.append(log_p_hat)
-                all_t_hat.append(t_hat)
-
-            all_log_p_hat = np.array(all_log_p_hat)
-            all_t_hat = np.array(all_t_hat)
-
-        else:
-            logger.debug("Starting log likelihood evaluation")
-
-            all_log_p_hat, all_t_hat = evaluate_flow_model(
-                model=self.model, thetas=thetas, xs=x, evaluate_score=evaluate_score
-            )
-
-        logger.debug("Evaluation done")
-        return all_log_p_hat, all_t_hat
-
-
-
-
-    def _create_model(
-        self,
-        method,
-        n_observables,
-        n_parameters,
-        n_hidden,
-        activation,
-        nde_type=None,
-        maf_n_mades=None,
-        maf_batch_norm=None,
-        maf_batch_norm_alpha=None,
-        maf_mog_n_components=None,
-    ):
-
-        self.method = method
-        self.n_observables = n_observables
-        self.n_parameters = n_parameters
-        self.n_hidden = n_hidden
-        self.activation = activation
-        self.maf_n_mades = maf_n_mades
-        self.maf_batch_norm = maf_batch_norm
-        self.maf_batch_norm_alpha = maf_batch_norm_alpha
-        self.maf_mog_n_components = maf_mog_n_components
-
-        self.method_type = get_method_type(method)
-        if self.method_type == "parameterized":
-            self.model = DenseSingleParameterizedRatioModel(
-                n_observables=n_observables, n_parameters=n_parameters, n_hidden=n_hidden, activation=activation
-            )
-        elif self.method_type == "doubly_parameterized":
-            self.model = DenseDoublyParameterizedRatioModel(
-                n_observables=n_observables, n_parameters=n_parameters, n_hidden=n_hidden, activation=activation
-            )
-        elif self.method_type == "local_score":
-            self.model = DenseLocalScoreModel(
-                n_observables=n_observables, n_parameters=n_parameters, n_hidden=n_hidden, activation=activation
-            )
-        elif self.method_type == "nde":
-            if nde_type == "maf":
-                self.model = ConditionalMaskedAutoregressiveFlow(
-                    n_conditionals=n_parameters,
-                    n_inputs=n_observables,
-                    n_hiddens=n_hidden,
-                    n_mades=maf_n_mades,
-                    activation=activation,
-                    batch_norm=maf_batch_norm,
-                    alpha=maf_batch_norm_alpha,
-                )
-            elif nde_type == "mafmog":
-                self.model = ConditionalMixtureMaskedAutoregressiveFlow(
-                    n_conditionals=n_parameters,
-                    n_inputs=n_observables,
-                    n_components=maf_mog_n_components,
-                    n_hiddens=n_hidden,
-                    n_mades=maf_n_mades,
-                    activation=activation,
-                    batch_norm=maf_batch_norm,
-                    alpha=maf_batch_norm_alpha,
-                )
-            else:
-                raise RuntimeError("Unknown NDE type {}".format(nde_type))
-        else:
-            raise RuntimeError("Unknown method {}".format(method))
-
-
-
-####################################################################################################
-
-
-
-
 class ParameterizedRatioEstimator(Estimator):
     """
     A neural estimator of the likelihood ratio as a function of the observation x as well as
@@ -819,7 +442,7 @@ class ParameterizedRatioEstimator(Estimator):
 
         # Train model
         logger.info("Training model")
-        trainer = SingleParameterizedRatioTrainer
+        trainer = SingleParameterizedRatioTrainer(self.model)
         result = trainer.train(
             data=data,
             loss_functions=loss_functions,
@@ -1179,14 +802,14 @@ class DoubleParameterizedRatioEstimator(Estimator):
             self._create_model()
 
         # Losses
-        loss_functions, loss_labels, loss_weights = get_loss(method, alpha)
+        loss_functions, loss_labels, loss_weights = get_loss(method + "2", alpha)
 
         # Optimizer
         opt, opt_kwargs = get_optimizer(optimizer, nesterov_momentum)
 
         # Train model
         logger.info("Training model")
-        trainer = DoubleParameterizedRatioTrainer
+        trainer = DoubleParameterizedRatioTrainer(self.model)
         result = trainer.train(
             data=data,
             loss_functions=loss_functions,
@@ -1684,145 +1307,85 @@ class ScoreEstimator(Estimator):
 
 class LikelihoodEstimator(Estimator):
     """ A neural estimator of the density or likelihood evaluated at a reference hypothesis as a function
-     of the observation x. """
-    def __init__(self):
-        super(LikelihoodEstimator, self).__init__()
+     of the observation x.
 
-        self.nde_type = None
-        self.maf_n_mades = None
-        self.maf_batch_norm = None
-        self.maf_batch_norm_alpha = None
-        self.maf_mog_n_components = None
+    Parameters
+    ----------
+    features : list of int or None, optional
+        Indices of observables (features) that are used as input to the neural networks. If None, all observables
+        are used. Default value: None.
+
+    n_components : int, optional
+        The number of Gaussian base components in a MADE MoG. If 1, a plain MADE is used.
+        Default value: 1.
+
+    n_mades : int, optional
+        The number of MADE layers. Default value: 3.
+
+
+    n_hidden : tuple of int, optional
+        Units in each hidden layer in the neural networks. If method is 'nde' or 'scandal', this refers to the
+        setup of each individual MADE layer. Default value: (100, 100).
+
+    activation : {'tanh', 'sigmoid', 'relu'}, optional
+        Activation function. Default value: 'tanh'.
+
+    batch_norm : None or floar, optional
+        If not None, batch normalization is used, where this value sets the alpha parameter in the calculation
+        of the running average of the mean and variance. Default value: None.
+
+
+    """
+    def __init__(self, features=None, n_components=1, n_mades=5, n_hidden=(100,), activation="tanh", batch_norm=None):
+        super(LikelihoodEstimator, self).__init__(features)
+
+        self.n_components = components
+        self.n_mades = n_mades
+        self.n_hidden = n_hidden
+        self.activation = activation
+        self.batch_norm = batch_norm
 
     def train(
-            self,
-            method,
-            x_filename,
-            y_filename=None,
-            theta0_filename=None,
-            theta1_filename=None,
-            r_xz_filename=None,
-            t_xz0_filename=None,
-            t_xz1_filename=None,
-            features=None,
-            nde_type="mafmog",
-            n_hidden=(100, 100),
-            activation="tanh",
-            maf_n_mades=3,
-            maf_batch_norm=False,
-            maf_batch_norm_alpha=0.1,
-            maf_mog_n_components=10,
-            alpha=1.0,
-            optimizer="amsgrad",
-            n_epochs=50,
-            batch_size=200,
-            initial_lr=0.001,
-            final_lr=0.0001,
-            nesterov_momentum=None,
-            validation_split=0.25,
-            early_stopping=True,
-            scale_inputs=True,
-            shuffle_labels=False,
-            grad_x_regularization=None,
-            limit_samplesize=None,
-            verbose="some",
-            **kwargs
+        self,
+        method,
+        x,
+        theta,
+        t_xz=None,
+        alpha=1.0,
+        optimizer="amsgrad",
+        n_epochs=50,
+        batch_size=200,
+        initial_lr=0.001,
+        final_lr=0.0001,
+        nesterov_momentum=None,
+        validation_split=0.25,
+        early_stopping=True,
+        scale_inputs=True,
+        shuffle_labels=False,
+        limit_samplesize=None,
+        verbose="some",
     ):
 
         """
-        Trains a neural network to estimate either the likelihood, the likelihood ratio, or the
-        score.
-
-        The keyword method determines the structure of the estimator that an instance of this class represents:
-
-        * For 'alice', 'alices', 'carl', 'nde', 'rascal', 'rolr', and 'scandal', the neural network models
-          the likelihood ratio as a function of the observables `x` and the numerator hypothesis `theta0`, while
-          the denominator hypothesis is kept at a fixed reference value ("single-parameterized likelihood ratio
-          estimator"). In addition to the likelihood ratio, the estimator allows to estimate the score at `theta0`.
-        * For 'alice2', 'alices2', 'carl2', 'rascal2', and 'rolr2', the neural network models
-          the likelihood ratio as a function of the observables `x`, the numerator hypothesis `theta0`, and the
-          denominator hypothesis `theta1` ("doubly parameterized likelihood ratio estimator"). The score at `theta0`
-          and `theta1` can also be evaluated.
-        * For 'sally' and 'sallino', the neural networks models the score evaluated at some reference hypothesis
-          ("local score regression"). The likelihood ratio cannot be estimated directly from the neural network, but
-          can be estimated in a second step through density estimation in the estimated score space.
+        Trains the network.
 
         Parameters
         ----------
         method : str
-            The inference method used. Allows values are 'alice', 'alices', 'carl', 'nde', 'rascal', 'rolr', and
-            'scandal' for a single-parameterized likelihood ratio estimator; 'alice2', 'alices2', 'carl2', 'rascal2',
-            and 'rolr2' for a doubly-parameterized likelihood ratio estimator; and 'sally' and 'sallino' for local
-            score regression.
+            The inference method used for training. Allowed values are 'alice', 'alices', 'carl', 'cascal', 'rascal', and 'rolr'.
 
-        x_filename : str
+        x : ndarray or str
             Path to an unweighted sample of observations, as saved by the `madminer.sampling.SampleAugmenter` functions.
             Required for all inference methods.
 
-        y_filename : str or None, optional
-            Path to an unweighted sample of class labels, as saved by the `madminer.sampling.SampleAugmenter` functions.
-            Required for the 'alice', 'alice2', 'alices', 'alices2', 'carl', 'carl2', 'rascal', 'rascal2', 'rolr',
-            and 'rolr2' methods. Default value: None.
+        theta : ndarray or str
+            Numerator parameter point, or filename of a pickled numpy array.
 
-        theta0_filename : str or None, optional
-            Path to an unweighted sample of numerator parameters, as saved by the `madminer.sampling.SampleAugmenter`
-            functions. Required for the 'alice', 'alice2', 'alices', 'alices2', 'carl', 'carl2', 'nde', 'rascal',
-            'rascal2', 'rolr', 'rolr2', and 'scandal' methods. Default value: None.
-
-        theta1_filename : str or None, optional
-            Path to an unweighted sample of denominator parameters, as saved by the `madminer.sampling.SampleAugmenter`
-            functions. Required for the 'alice2', 'alices2', 'carl2', 'rascal2', and 'rolr2' methods. Default value:
-            None.
-
-        r_xz_filename : str or None, optional
-            Path to an unweighted sample of joint likelihood ratios, as saved by the `madminer.sampling.SampleAugmenter`
-            functions. Required for the 'alice', 'alice2', 'alices', 'alices2', 'rascal', 'rascal2', 'rolr', and 'rolr2'
-            methods. Default value: None.
-
-        t_xz0_filename : str or None, optional
-            Path to an unweighted sample of joint scores at theta0, as saved by the `madminer.sampling.SampleAugmenter`
-            functions. Required for the 'alices', 'alices2', 'rascal', 'rascal2', 'sallino', 'sally', and 'scandal'
-            methods. Default value: None.
-
-        t_xz1_filename : str or None, optional
-            Path to an unweighted sample of joint scores at theta1, as saved by the `madminer.sampling.SampleAugmenter`
-            functions. Required for the 'rascal2' and 'alices2' methods. Default value: None.
-
-        features : list of int or None, optional
-            Indices of observables (features) that are used as input to the neural networks. If None, all observables
-            are used. Default value: None.
-
-        nde_type : {'maf', 'mafmog'}, optional
-            If the method is 'nde' or 'scandal', nde_type determines the architecture used in the neural density
-            estimator. Currently supported are 'maf' for a Masked Autoregressive Flow with a Gaussian base density, or
-            'mafmog' for a Masked Autoregressive Flow with a mixture of Gaussian base densities. Default value:
-            'mafmog'.
-
-        n_hidden : tuple of int, optional
-            Units in each hidden layer in the neural networks. If method is 'nde' or 'scandal', this refers to the
-            setup of each individual MADE layer. Default value: (100, 100).
-
-        activation : {'tanh', 'sigmoid', 'relu'}, optional
-            Activation function. Default value: 'tanh'.
-
-        maf_n_mades : int, optional
-            If method is 'nde' or 'scandal', this sets the number of MADE layers. Default value: 3.
-
-        maf_batch_norm : bool, optional
-            If method is 'nde' or 'scandal', switches batch normalization layers after each MADE layer on or off.
-            Default: False.
-
-        maf_batch_norm_alpha : float, optional
-            If method is 'nde' or 'scandal' and maf_batch_norm is True, this sets the alpha parameter in the calculation
-            of the running average of the mean and variance. Default value: 0.1.
-
-        maf_mog_n_components : int, optional
-            If method is 'nde' or 'scandal' and nde_type is 'mafmog', this sets the number of Gaussian base components.
-            Default value: 10.
+        t_xz : ndarray or str or None, optional
+            Joint scores at theta, or filename of a pickled numpy array. Default value: None.
 
         alpha : float, optional
-            Hyperparameter weighting the score error in the loss function of the 'alices', 'alices2', 'rascal',
-            'rascal2', and 'scandal' methods. Default value: 1.
+            Hyperparameter weighting the score error in the loss function of the 'alices', 'rascal', and 'cascal' methods. Default value: 1.
 
         optimizer : {"adam", "amsgrad", "sgd"}, optional
             Optimization algorithm. Default value: "amsgrad".
@@ -1859,9 +1422,6 @@ class LikelihoodEstimator(Estimator):
             normal order. This serves as a closure test, in particular as cross-check against overfitting: an estimator
             trained with shuffle_labels=True should predict to likelihood ratios around 1 and scores around 0.
 
-        grad_x_regularization : None
-            Currently not supported.
-
         limit_samplesize : int or None, optional
             If not None, only this number of samples (events) is used to train the estimator. Default value: None.
 
@@ -1876,35 +1436,7 @@ class LikelihoodEstimator(Estimator):
 
         logger.info("Starting training")
         logger.info("  Method:                 %s", method)
-        logger.info("  Training data:          x at %s", x_filename)
-        if theta0_filename is not None:
-            logger.info("                          theta0 at %s", theta0_filename)
-        if theta1_filename is not None:
-            logger.info("                          theta1 at %s", theta1_filename)
-        if y_filename is not None:
-            logger.info("                          y at %s", y_filename)
-        if r_xz_filename is not None:
-            logger.info("                          r_xz at %s", r_xz_filename)
-        if t_xz0_filename is not None:
-            logger.info("                          t_xz (theta0) at %s", t_xz0_filename)
-        if t_xz1_filename is not None:
-            logger.info("                          t_xz (theta1) at %s", t_xz1_filename)
-        if features is None:
-            logger.info("  Features:               all")
-        else:
-            logger.info("  Features:               %s", features)
-        logger.info("  Method:                 %s", method)
-        if method in ["nde", "scandal"]:
-            logger.info("  Neural density est.:    %s", nde_type)
-        if method not in ["nde", "scandal"]:
-            logger.info("  Hidden layers:          %s", n_hidden)
-        if method in ["nde", "scandal"]:
-            logger.info("  MAF, number MADEs:      %s", maf_n_mades)
-            logger.info("  MAF, batch norm:        %s", maf_batch_norm)
-            logger.info("  MAF, BN alpha:          %s", maf_batch_norm_alpha)
-            logger.info("  MAF MoG, components:    %s", maf_mog_n_components)
-        logger.info("  Activation function:    %s", activation)
-        if method in ["cascal", "cascal2", "rascal", "rascal2", "scandal", "alices"]:
+        if method == ["scandal"]:
             logger.info("  alpha:                  %s", alpha)
         logger.info("  Batch size:             %s", batch_size)
         logger.info("  Optimizer:              %s", optimizer)
@@ -1921,41 +1453,24 @@ class LikelihoodEstimator(Estimator):
         else:
             logger.info("  Samples:                %s", limit_samplesize)
 
-        # Check
-        if grad_x_regularization is not None:
-            logger.warning("grad_x_regularization is not supported in this version of MadMiner")
-
         # Load training data
         logger.info("Loading training data")
-        theta0 = load_and_check(theta0_filename)
-        theta1 = load_and_check(theta1_filename)
-        x = load_and_check(x_filename)
-        y = load_and_check(y_filename)
-        r_xz = load_and_check(r_xz_filename)
-        t_xz0 = load_and_check(t_xz0_filename)
-        t_xz1 = load_and_check(t_xz1_filename)
-        if y is not None:
-            y = y.reshape((-1, 1))
+        theta = load_and_check(theta)
+        x = load_and_check(x)
+        t_xz = load_and_check(t_xz)
 
-        # Check necessary information is there
-        if not check_required_data(method, r_xz, t_xz0, t_xz1, theta0, theta1, x, y):
-            raise ValueError("Not all required data for method {} provided!".format(method))
+        self._check_required_data(method, t_xz)
 
         # Infer dimensions of problem
         n_samples = x.shape[0]
         n_observables = x.shape[1]
-        if theta0 is not None:
-            n_parameters = theta0.shape[1]
-        else:
-            n_parameters = t_xz0.shape[1]
+        n_parameters = theta.shape[1]
         logger.info("Found %s samples with %s parameters and %s observables", n_samples, n_parameters, n_observables)
 
         # Limit sample size
         if limit_samplesize is not None and limit_samplesize < n_samples:
             logger.info("Only using %s of %s training samples", limit_samplesize, n_samples)
-            x, theta0, theta1, y, r_xz, t_xz0, t_xz1 = restrict_samplesize(
-                limit_samplesize, x, theta0, theta1, y, r_xz, t_xz0, t_xz1
-            )
+            x, theta, y, r_xz, t_xz = restrict_samplesize(limit_samplesize, x, theta, y, r_xz, t_xz)
 
         # Scale features
         if scale_inputs:
@@ -1965,67 +1480,47 @@ class LikelihoodEstimator(Estimator):
         else:
             self._initialize_input_transform(x, False)
 
-        logger.debug("Observable ranges:")
-        for i in range(n_observables):
-            logger.debug(
-                "  x_%s: mean %s, std %s, range %s ... %s",
-                i + 1,
-                np.mean(x[:, i]),
-                np.std(x[:, i]),
-                np.min(x[:, i]),
-                np.max(x[:, i]),
-            )
-
         # Shuffle labels
         if shuffle_labels:
             logger.info("Shuffling labels")
-            y, r_xz, t_xz0, t_xz1 = shuffle(y, r_xz, t_xz0, t_xz1)
+            yt_xz = shuffle(t_xz)
 
         # Features
-        self.features = features
-        if features is not None:
-            x = x[:, features]
+        if self.features is not None:
+            x = x[:, self.features]
             logger.info("Only using %s of %s observables", x.shape[1], n_observables)
             n_observables = x.shape[1]
 
-        # Data
-        data = package_training_data(method, x, theta0, theta1, y, r_xz, t_xz0, t_xz1)
+        # Check consistency of input with model
+        if self.n_observables is None:
+            self.n_observables = n_observables
+        if self.n_parameters is None:
+            self.n_parameters = n_parameters
 
-        # Create model and save settings
-        logger.info("Creating model for method %s", method)
-        self._create_model(
-            method,
-            n_observables,
-            n_parameters,
-            n_hidden,
-            activation,
-            nde_type,
-            maf_n_mades,
-            maf_batch_norm,
-            maf_batch_norm_alpha,
-            maf_mog_n_components,
-        )
+        if n_parameters != self.n_parameters:
+            raise RuntimeError(
+                "Number of parameters does not match model: {} vs {}".format(n_parameters, self.n_parameters))
+        if n_observables != self.n_observables:
+            raise RuntimeError(
+                "Number of observables does not match model: {} vs {}".format(n_observables, self.n_observables))
+
+        # Data
+        data = self._package_training_data(method, x, theta, t_xz)
+
+        # Create model
+        if self.model is None:
+            logger.info("Creating model", method)
+            self._create_model()
 
         # Losses
         loss_functions, loss_labels, loss_weights = get_loss(method, alpha)
 
         # Optimizer
-        opt_kwargs = None
-        if optimizer == "adam":
-            opt = optim.Adam
-        elif optimizer == "amsgrad":
-            opt = optim.Adam
-            opt_kwargs = {"amsgrad": True}
-        elif optimizer == "sgd":
-            opt = optim.SGD
-            if nesterov_momentum is not None:
-                opt_kwargs = {"momentum": nesterov_momentum}
-        else:
-            raise ValueError("Unknown optimizer {}".format(optimizer))
+        opt, opt_kwargs = get_optimizer(optimizer, nesterov_momentum)
 
         # Train model
         logger.info("Training model")
-        trainer = get_trainer(method)(self.model)
+        trainer = FlowTrainer(self.model)
         result = trainer.train(
             data=data,
             loss_functions=loss_functions,
@@ -2042,6 +1537,179 @@ class LikelihoodEstimator(Estimator):
             verbose=verbose,
         )
         return result
+
+    def evaluate_log_likelihood(self, x, theta, test_all_combinations=True, evaluate_score=False):
+
+        """
+        Evaluates a trained estimator of the log likelihood.
+
+        Parameters
+        ----------
+        x : ndarray or str
+            Sample of observations, or path to numpy file with observations, as saved by the
+            `madminer.sampling.SampleAugmenter` functions.
+
+        theta : ndarray or str
+            Parameter point
+
+        test_all_combinations : bool, optional
+            If method is not 'sally' and not 'sallino': If False, the number of samples in the observable and theta
+            files has to match, and the likelihood ratio is evaluated only for the combinations
+            `r(x_i | theta0_i, theta1_i)`. If True, `r(x_i | theta0_j, theta1_j)` for all pairwise combinations `i, j`
+            are evaluated. Default value: True.
+
+        evaluate_score : bool, optional
+            If method is not 'sally' and not 'sallino', this sets whether in addition to the likelihood ratio the score
+            is evaluated. Default value: False.
+
+        Returns
+        -------
+
+        log_likelihood : ndarray
+            The estimated log likelihood. If test_all_combinations is True, the result has shape `(n_thetas, n_x)`.
+            Otherwise, it has shape `(n_samples,)`.
+
+        score_theta0 : ndarray or None
+            None if
+            evaluate_score is False. Otherwise the derived estimated score at `theta0`. If test_all_combinations is
+            True, the result has shape `(n_thetas, n_x, n_parameters)`. Otherwise, it has shape
+            `(n_samples, n_parameters)`.
+
+        """
+
+        if self.model is None:
+            raise ValueError("No model -- train or load model before evaluating it!")
+
+        # Load training data
+        logger.debug("Loading evaluation data")
+        theta = load_and_check(theta)
+        x = load_and_check(x)
+
+        # Scale observables
+        x = self._transform_inputs(x)
+
+        # Restrict featuers
+        if self.features is not None:
+            x = x[:, self.features]
+
+        if self.method_type != "nde":
+            raise RuntimeError("Likelihood estimation only possible for methods NDE and SCANDAL")
+
+        # Evaluation for all other methods
+        all_log_p_hat = []
+        all_t_hat = []
+
+        if test_all_combinations:
+            logger.debug("Starting ratio evaluation for all combinations")
+
+            for i, theta in enumerate(theta):
+                logger.debug(
+                    "Starting log likelihood evaluation for thetas %s / %s: %s",
+                    i + 1,
+                    len(theta),
+                    this_theta,
+                )
+
+                log_p_hat, t_hat = evaluate_flow_model(
+                    model=self.model, thetas=[this_theta], xs=x, evaluate_score=evaluate_score
+                )
+
+                all_log_p_hat.append(log_p_hat)
+                all_t_hat.append(t_hat)
+
+            all_log_p_hat = np.array(all_log_p_hat)
+            all_t_hat = np.array(all_t_hat)
+
+        else:
+            logger.debug("Starting log likelihood evaluation")
+
+            all_log_p_hat, all_t_hat = evaluate_flow_model(
+                model=self.model, thetas=theta, xs=x, evaluate_score=evaluate_score
+            )
+
+        logger.debug("Evaluation done")
+        return all_log_p_hat, all_t_hat
+
+    def evaluate_log_likelihood_ratio(self, x, theta0, theta1, test_all_combinations, evaluate_score=False):
+
+        if self.model is None:
+            raise ValueError("No model -- train or load model before evaluating it!")
+
+        # Load training data
+        logger.debug("Loading evaluation data")
+        x = load_and_check(x)
+        theta0 = load_and_check(theta0)
+        theta1 = load_and_check(theta1)
+
+        # Scale observables
+        x = self._transform_inputs(x)
+
+        # Restrict features
+        if self.features is not None:
+            x = x[:, self.features]
+
+        # Balance thetas
+        if len(theta1) > len(theta0):
+            theta0 = [theta0[i % len(theta0)] for i in range(len(theta1))]
+        elif len(theta1) < len(theta0):
+            theta1 = [theta1[i % len(theta1)] for i in range(len(theta0))]
+
+        log_p_hat0, t_hat0 = self.evaluate_log_likelihood(x, theta0, test_all_combinations=test_all_combinations, evaluate_score=evaluate_score)
+        log_p_hat1, t_hat1 = self.evaluate_log_likelihood(x, theta0, test_all_combinations=test_all_combinations,
+                                                          evaluate_score=evaluate_score)
+        log_r_hat = log_p_hat0 - log_p_hat1
+
+        return log_r_hat, t_hat0, t_hat1
+
+    def evaluate_score(self, *args, **kwargs):
+        raise NotImplementedError("Please use evaluate_log_likelihood(evaluate_score=True).")
+
+    def calculate_fisher_information(self, *args, **kwargs):
+        raise NotImplementedError("Please use evaluate_log_likelihood_ratio(evaluate_score=True) and calculate the "
+                                  "Fisher information manually.")
+
+    def evaluate(self, *args, **kwargs):
+        return self.evaluate_log_likelihood(*args, **kwargs)
+
+    def _create_model(self):
+        if self.n_components > 1:
+            self.model = ConditionalMixtureMaskedAutoregressiveFlow(
+                n_conditionals=self.n_parameters,
+                n_inputs=self.n_observables,
+                n_components=self.n_components,
+                n_hiddens=self.n_hidden,
+                n_mades=self.n_mades,
+                activation=self.activation,
+                batch_norm=self.batch_norm is not None,
+                alpha=self.batch_norm,
+            )
+        else:
+            self.model = ConditionalMaskedAutoregressiveFlow(
+                n_conditionals=self.n_parameters,
+                n_inputs=self.n_observables,
+                n_hiddens=self.n_hidden,
+                n_mades=self.n_mades,
+                activation=self.activation,
+                batch_norm=self.batch_norm is not None,
+                alpha=self.batch_norm,
+            )
+
+    @staticmethod
+    def _check_required_data(method, t_xz):
+        if method == ["scandal"] and t_xz is None:
+            raise RuntimeError("Method {} requires joint score information".format(method))
+
+    @staticmethod
+    def _package_training_data(method, x, theta, y, r_xz, t_xz):
+        data = OrderedDict()
+        data["x"] = x
+        data["theta"] = theta
+        data["y"] = y
+        if method in ["rolr", "alice", "alices", "rascal"]:
+            data["r_xz"] = r_xz
+        if method in ["cascal", "alices", "rascal"]:
+            data["t_xz"] = t_xz
+        return data
 
 
 class Ensemble:
