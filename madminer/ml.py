@@ -16,7 +16,6 @@ from madminer.utils.ml.models.score import DenseLocalScoreModel
 from madminer.utils.ml.eval import evaluate_flow_model, evaluate_ratio_model, evaluate_local_score_model
 from madminer.utils.ml.utils import check_required_data, get_optimizer, get_loss
 from madminer.utils.various import create_missing_folders, load_and_check, shuffle, restrict_samplesize
-from madminer.utils.ml.methods import get_method_type, get_trainer, package_training_data
 from madminer.utils.ml.trainer import SingleParameterizedRatioTrainer, DoubleParameterizedRatioTrainer
 from madminer.utils.ml.trainer import LocalScoreTrainer, FlowTrainer
 
@@ -1048,6 +1047,17 @@ class ParameterizedRatioEstimator(Estimator):
         logger.debug("Evaluation done")
         return all_log_r_hat, all_t_hat
 
+    def evaluate_log_likelihood(self, *args, **kwargs):
+        raise TheresAGoodReasonThisDoesntWork("This estimator can only estimate likelihood ratios, not the likelihood "
+                                              "itself!")
+
+    def evaluate_score(self, *args, **kwargs):
+        raise NotImplementedError("Please use evaluate_log_likelihood_ratio(evaluate_score=True).")
+
+    def calculate_fisher_information(self, *args, **kwargs):
+        raise NotImplementedError("Please use evaluate_log_likelihood_ratio(evaluate_score=True) and calculate the "
+                                  "Fisher information manually.")
+
     def evaluate(self, *args, **kwargs):
         return self.evaluate_log_likelihood_ratio(*args, **kwargs)
 
@@ -1380,7 +1390,6 @@ class DoubleParameterizedRatioEstimator(Estimator):
         elif len(theta1) < len(theta0):
             theta1 = [theta1[i % len(theta1)] for i in range(len(theta0))]
 
-
         all_log_r_hat = []
         all_t_hat0 = []
         all_t_hat1 = []
@@ -1423,6 +1432,17 @@ class DoubleParameterizedRatioEstimator(Estimator):
         logger.debug("Evaluation done")
         return all_log_r_hat, all_t_hat0, all_t_hat1
 
+    def evaluate_log_likelihood(self, *args, **kwargs):
+        raise TheresAGoodReasonThisDoesntWork("This estimator can only estimate likelihood ratios, not the likelihood "
+                                              "itself!")
+
+    def evaluate_score(self, *args, **kwargs):
+        raise NotImplementedError("Please use evaluate_log_likelihood_ratio(evaluate_score=True).")
+
+    def calculate_fisher_information(self, *args, **kwargs):
+        raise NotImplementedError("Please use evaluate_log_likelihood_ratio(evaluate_score=True) and calculate the "
+                                  "Fisher information manually.")
+
     def evaluate(self, *args, **kwargs):
         return self.evaluate_log_likelihood_ratio(*args, **kwargs)
 
@@ -1456,20 +1476,9 @@ class DoubleParameterizedRatioEstimator(Estimator):
         return data
 
 
-
-
-
-
-
-
-
-
-
-
-
 class LocalScoreEstimator(Estimator):
     """ A neural estimator of the score evaluated at a reference hypothesis as a function of the
-     obseervation x. """
+     observation x. """
     def __init__(self):
         super(LocalScoreEstimator, self).__init__()
 
@@ -2956,3 +2965,7 @@ class Ensemble:
 
         # Return method type of ensemble
         return self.method_type
+
+
+class TheresAGoodReasonThisDoesntWork(Exception):
+    pass
