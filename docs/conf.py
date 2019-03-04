@@ -24,9 +24,9 @@ copyright = 'Johann Brehmer, Felix Kling, Irina Espejo, and Kyle Cranmer 2018'
 author = 'Johann Brehmer, Felix Kling, Irina Espejo, and Kyle Cranmer'
 
 # The short X.Y version
-version = '0.2.6'
+version = '0.2.8'
 # The full version, including alpha/beta/rc tags
-release = '0.2.6'
+release = version
 
 
 # -- General configuration ---------------------------------------------------
@@ -42,6 +42,7 @@ extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.viewcode',
     'numpydoc',
+    #'recommonmark',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -50,8 +51,15 @@ templates_path = ['_templates']
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:
 #
-# source_suffix = ['.rst', '.md']
-source_suffix = '.rst'
+source_suffix = ['.rst', '.md']
+#source_suffix = '.rst'
+
+# Markdown support
+from recommonmark.parser import CommonMarkParser
+
+source_parsers = {
+    '.md': CommonMarkParser,
+}
 
 # The master toctree document.
 master_doc = 'index'
@@ -71,13 +79,13 @@ exclude_patterns = []
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = None
 
-
 # -- Options for HTML output -------------------------------------------------
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = 'alabaster'
+# html_theme = 'alabaster'
+html_theme = "sphinx_rtd_theme"
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
@@ -98,7 +106,8 @@ html_static_path = ['_static']
 # default: ``['localtoc.html', 'relations.html', 'sourcelink.html',
 # 'searchbox.html']``.
 #
-# html_sidebars = {}
+# html_sidebars = {"toc.rst"}
+html_sidebars = { '**': ['globaltoc.html', 'relations.html', 'sourcelink.html', 'searchbox.html'] }
 
 
 # -- Options for HTMLHelp output ---------------------------------------------
@@ -132,7 +141,7 @@ latex_elements = {
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
     (master_doc, 'MadMiner.tex', 'MadMiner Documentation',
-     'Johann Brehmer, Kyle Cranmer, and Felix Kling', 'manual'),
+     'Johann Brehmer, Felix Kling, Irina Espejo, and Kyle Cranmer', 'manual'),
 ]
 
 

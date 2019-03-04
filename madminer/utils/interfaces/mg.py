@@ -83,7 +83,7 @@ def generate_mg_process(
     )
 
 
-def prepare_run_mg_pythia(
+def setup_mg_with_scripts(
     mg_process_directory,
     proc_card_filename_from_mgprocdir=None,
     run_card_file_from_mgprocdir=None,
@@ -289,7 +289,7 @@ def prepare_run_mg_pythia(
     return call_placeholder
 
 
-def run_mg_pythia(
+def run_mg(
     mg_directory,
     mg_process_directory,
     proc_card_filename=None,
@@ -415,3 +415,18 @@ def copy_ufo_model(ufo_directory, mg_directory):
         return
 
     shutil.copytree(ufo_directory, destination)
+
+
+def create_master_script(log_directory, master_script_filename, mg_directory, mg_process_directory, results):
+    placeholder_definition = r"mgdir=${1:-" + mg_directory + r"}" + "\n"
+    placeholder_definition += r"mgprocdir=${2:-" + mg_process_directory + r"}" + "\n"
+    placeholder_definition += r"mmlogdir=${3:-" + log_directory + r"}"
+    commands = "\n".join(results)
+    script = (
+        "#!/bin/bash\n\n# Master script to generate events for MadMiner\n\n"
+        + "# Usage: run.sh [MG_directory] [MG_process_directory] [log_directory]\n\n"
+        + "{}\n\n{}"
+    ).format(placeholder_definition, commands)
+    with open(master_script_filename, "w") as file:
+        file.write(script)
+    make_file_executable(master_script_filename)

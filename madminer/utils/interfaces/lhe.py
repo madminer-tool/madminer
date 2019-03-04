@@ -889,3 +889,9 @@ def _smear_particles(particles, energy_resolutions, pt_resolutions, eta_resoluti
         smeared_particles.append(smeared_particle)
 
     return smeared_particles
+
+
+def get_elementary_pdg_ids():
+    ids = [1, -1, 2, -2, 3, -3, 4, -4, 5, -5, 6, -6, 9, 11, -11, 12, -12, 13, -13, 14, -14, 15, -15, 16, -16]
+    ids += [21, 22, 23, 24, -24, 25]
+    return ids

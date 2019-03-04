@@ -1,40 +1,37 @@
-notifications: # set notification options
+notifications:
   email:
     recipients:
-      - iem244@nyu.edu
-
+    - iem244@nyu.edu
 sudo: required
-
 language: python
-
 python:
 - '2.7'
 - '3.5'
 - '3.6'
-
 services:
 - docker
-
 install:
-  - travis_wait pip install -q --no-cache-dir -e .
-
+- pip install -q --no-cache-dir -e .
+- travis_wait pip install -q --no-cache-dir -e .
 script:
-  - pytest tests/test_imports.py
-  - pytest -s tests/test_toy_workflow.py
-  - pytest -s tests/test_nuisance.py
-
-deploy: #docker build + login + push 
-  provider: script
-  script: bash docker_push
-  on:
-    branch: #only on master & docker-travis-build branch
-      - master
-      - docker-travis-build
-    condition: "$TRAVIS_PULL_REQUEST = false" #only push docker image after merge
-
-
-env: #security
+- pytest tests/test_imports.py
+- pytest -s tests/test_toy_workflow.py
+- pytest -s tests/test_nuisance.py
+jobs:
+  include:
+  - stage: docker
+    install:
+    - echo none
+    script:
+    - echo none
+    deploy:
+      provider: script
+      script: sh docker_push.sh
+      on:
+        branch:
+        - master
+        condition: "$TRAVIS_PULL_REQUEST = false"
+env:
   global:
-  - secure: cS5rvdhbnzjvJYDv8Quk+9CBI0ei9jPX3CoAHGrNuYMAmCrLLCJo4cZO0pXDIzI9R2vyXTAsJtQ5e2qaSGa8JHFYy78FlO0vz+XRJbpCTBXO1lQUZkON4+pUlx/VhnCmCwnTNQWFWMpDOqtBAS9MfVBzAETgJIulRS7CJiIcAGNajD3CSYPEIJV3ifBkUndLYFckDYwKY52cZ4NamgLW/mgj+sT73GBBBBXGsN+ZkWpI4IVGckRKzoF9qnH0dgWRNHxrXtI01UclQR24KUx0HhY6OSI3IvhHwT8T8481nEeAwqvXASLXw/E7ryKgXEZ1LxEcEedGCHREfrxVKxAS8hqaxGgKzgQRFul/baYxzPCxWsGIkE2E5lJxIKweJwVbDSzSk8tgk5yuw1l+9iIsHf5oXiJBWmJVUkjjstJ9c5XVJ/WQUrwMjIiWuMlzXDcOe3yxCyRrzcJvI9QfZbN9u+chuTD14wYWoRb6g+2/SzsfOWLmd8q3ncN24bqINhtrC41CPid9UJJkf+SFNtune6H7a+zzFtqylFTNlteek7W7DAb39loUr5s5WDeYO2JxRqK7/ReNRx+yYS4IIo+/xrjm1b1qu9WcE9g3XfamtfbFeosNFY0KtLHRXHg79hjERfNe3S3u5LKBJue3jpwNiXVe7/b7FKJPmuf4YNt+/gU=
-  - secure: olXoD4JcZcnNTMzeEGHHJ+MCh0Stc5zQIwWCSBio5WOReKmnzm+jGcyo8eyYRpbrHqKFwT5at/YP9GA/P38k7pWzI21MP1BYiosEW3QIh+IYjJz0ygGh7KQPh6e7crQyV9tcgM+pfd9CvipuufoUOZ7jt5U0E2Im9rOrxauQMrXbusuftsDZ7qV+bHW8rYizIh2wSBvQZHBF/NFZnAg1dqkkvoygvbltOlJ7BfuM7AvdmO+IKFlQ16AuINcYvBbMOSJcWUMHlKeP9OnHo+LdpcDlCu0P55wioK3ujl0MhrFJpE5QcLQvw/Ni8E+ispGCl6vUsVGV46e/6G0zhUaQKvkhjn1EuqmZbrkCsRhEsCsbALKOvtKVuwWN8jLfv0x7k90nv7rC1ZNhOIg/L4mjbprcLLojSyNCDHAOyZFw0u+6m78NDUrA+X1pn18nAahL8YdaGD7cLfOypRqQSS2N8ldpXFHsbeNLf8Y4SDGvm86Y2gimOEwRIEC/lNc7JBsNlTJyY6GqUHM/zIeZygy45oJ+xFs2QeCvcD4JUnCUr8oTP4nhJP+wo1i358FBHI7P6/4N4uD/eqKnhTr376NhhFaI2uKMn2vFpFSJYrBVSyGOgSjzfzKv2b7fdaQZbBmkvI4/YAQEaScuV5gfeikmWYfSexLcylM0nJxQiz2GDTY=
-  - secure: y641L98mnOsTd0FIvWxMJ9uZ1LACze2Hgn94e292RFGfEI9nyFVIhGiKJcQODOJigH2QHJuRxukQ5sldanCnsojYSi9QCoLqt8S+blpY1oocd8PtNiTYYXdJzt+49wxWZUsOs/e9Pma9fLkALJGRx6+J98aBRqxAu1X3qPeQj/4VedSIkj85KG/7e1RIZu3a9X7cjHSGEczbqe0vCJJZw0rXCXL3v3lGL8grUqU2bfvJ+oWii+ZxGTSdMWFAMa/GCtP+ck0n/w5KytBf2g2qI111KXvHuz6Qcc+wL/52AEGXeBhSeuF1iF2/b5+WowNwU3msqwtgEAVP+bumP9dARF1FogV/Gfn6wjswM+qHQ2eOK7Xd29yGug+izqhFSqHT35Axg6mwUhvThHfKMEJC604NHL46MH3ydeLD+xWSwdoNG8KzhK40jOtUIuxoetgp6FlPyanLU/d6xv/pks8vSkWpCCX8HX9hIq4P0BfT1X1rJC4TnB2ri6vCvzLHpoE7La5ncNXEhQA62BAjBw3XH7ciLHNHmAyEWmI+LTRXYU3IOe7RWlPpW8G6Nkt/IWA2o9L6W8545fIbybrWFOY1tLlXypEVB4GkhouGDaegXJb+91G15CIq68C6lokuhokawSlmgkZxmZFrfqe1oiEWbT1B1h7sf3RCA/tjXtjkM/0=
+  - secure: koCF/aaS8oyAzxt+FJRt2iG9eBSabegSg7zEYqtFq0RlAJUmN6X+UQlFj4xneC+Gn6DYuRvN/814h0oVW+fAWvuur/Inb1OB81rlYJJLGjE1EJRb5DttLe+Dmn45uokLM1MkZD73ckGbTGKCoMbdD+tyyBfNNdBjwR3sD/NaprRjwitO7HGe+W5IMFd58iVw9slVYlKdHRqQ1RIBNnRwbX7aZMSnSaSK3QiRL4Me46lK/A2iGOoXpoIzQtIL2XgiNJzf72Cx7W5hx4Qrtce9laEzJywnt5tbcHk8ZjgxXjk5+6NUZ179hTkA4vfiYKU8KCZRld7Me1bDwYBU7p+4i88eTuDcutYHNZTER45qPJWLVqPvTkVSvnqW48ix8fiPk2oYk6z5c2dVSYPr8buI2ewBiLB2D/cORjAU/37E4uRdnTHmNqHqh8/90h63M1arpqDvrpCSuHZZfbsSzGVnh9xV0kr9lhCLUhMsWyIAivGnkNPi+7rGGalvLZi79WeE1L2neDQnbv3YzY7JYBf12ryN2UqbH4bRvlE4vC48kkGkqSy48hIEyPGN+bAUcZWTxhMxHbcH5fgcU9Juz+XdIYsttusQUd05vJXZ3Frx3sfUE5i2UZU/b6wUm1OS+Y7gqsBGRd9NcB8qZBPm55frIrLimJDB6rvuXYaRa323asM=
+  - secure: kZGomcLsvNU9fuqe6i+JHfHn6/ROXKdwEAxj69zwy/ecjnciVIkY/sAEmHuAjzVaf4uv+WN7o0o+3fg3PdX7+krDaQ5VEI5wvItXNSOYlpY9hxg2Au1Y40NfjsS7SNFrgtSZKVyRKNwd2h5j3lK1kBECaCmjyghu3RncM+fXtJdP98l0Hn5wow9gbiKF7H9nSW0Cc8gosz4mC9f5NAD7VFj5Tb6UMoVpibWzLlYtwqUIXqM2EWJlwO4iKcn5O3o1KYc6KqV/cJtKzkDaSKbkTwPN/2mp3YkNTVboN17PmKaLsKTnKfdDBVUFkn3Cw3JHqrwGBKE6qd64uMU0coge1GNCK4dGE9WG8exnu6cE03//XCAzwCPoShYriF9dt0ZVYL2Wxa9SzqqR1CKKKsWFbo3vbPYb1gZSdJXL6gTElFVO9reOHyKiQAx9haZNS8k4Z+CuQHEvUtcPwOQbbeRrWsw44+xAv/cU7/37JG56jy0+zfnWXZV0eRF2F/moGBLy5MeBz0te75S4D5i1ax4i8dVx0kQrr7KLlvnR7XYO6hGXOdyCvoMLEBPNOoMnEgk9MvbOziHht67wICw8gsh4NbYxMMU/C05ZUuVwsUjA9Upc/KeD8yRdqCmFG7raysjtupArGjP0x09vHEmsAqC0B59m0+HLBbJ3wWy2bNX7S7w=
