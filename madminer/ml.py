@@ -1148,7 +1148,7 @@ class ScoreEstimator(Estimator):
 
         # Train model
         logger.info("Training model")
-        trainer = LocalScoreTrainer
+        trainer = LocalScoreTrainer(self.model)
         result = trainer.train(
             data=data,
             loss_functions=loss_functions,
