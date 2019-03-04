@@ -110,7 +110,7 @@ def run_test():
 
     # Evaluation
     log_r_tests_alices, _ = estimator.evaluate(
-        theta0_filename="tests/data/theta_grid.npy", x="tests/data/x_test.npy", evaluate_score=False
+        theta="tests/data/theta_grid.npy", x="tests/data/x_test.npy", evaluate_score=False
     )
 
     # Calculate error
