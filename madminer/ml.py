@@ -38,14 +38,14 @@ class Estimator(object):
     Please see the tutorial for a detailed walk-through.
     """
 
-    def __init__(self, features=None):
+    def __init__(self, features=None, n_hidden=(100,100), activation="tanh"):
         self.features = features
+        self.n_hidden = n_hidden
+        self.activation = activation
 
         self.model = None
         self.n_observables = None
         self.n_parameters = None
-        self.n_hidden = None
-        self.activation = None
         self.x_scaling_means = None
         self.x_scaling_stds = None
 
@@ -53,12 +53,24 @@ class Estimator(object):
         raise NotImplementedError
 
     def evaluate_log_likelihood(self, *args, **kwargs):
+        """
+        Log likelihood estimation. Signature depends on the type of estimator. The first returned value is the log
+        likelihood with shape `(n_thetas, n_x)`.
+        """
         raise NotImplementedError
 
     def evaluate_log_likelihood_ratio(self, *args, **kwargs):
+        """
+        Log likelihood ratio estimation. Signature depends on the type of estimator. The first returned value is the log
+        likelihood ratio with shape `(n_thetas, n_x)` or `(n_x)`.
+        """
         raise NotImplementedError
 
     def evaluate_score(self, *args, **kwargs):
+        """
+        Score estimation. Signature depends on the type of estimator. The only returned value is the score with shape
+        `(n_x)`.
+        """
         raise NotImplementedError
 
     def evaluate(self, *args, **kwargs):
@@ -66,24 +78,6 @@ class Estimator(object):
 
     def calculate_fisher_information(self, *args, **kwargs):
         raise NotImplementedError
-
-    def _initialize_input_transform(self, x, transform=True):
-        if transform:
-            self.x_scaling_means = np.mean(x, axis=0)
-            self.x_scaling_stds = np.maximum(np.std(x, axis=0), 1.0e-6)
-        else:
-            n_parameters = x.shape[0]
-
-            self.x_scaling_means = np.zeros(n_parameters)
-            self.x_scaling_stds = np.ones(n_parameters)
-
-    def _transform_inputs(self, x):
-        if self.x_scaling_means is not None and self.x_scaling_stds is not None:
-            x_scaled = x - self.x_scaling_means
-            x_scaled /= self.x_scaling_stds
-        else:
-            x_scaled = x
-        return x_scaled
 
     def save(self, filename, save_model=False):
 
@@ -115,20 +109,7 @@ class Estimator(object):
         # Save settings
         logger.debug("Saving settings to %s_settings.json", filename)
 
-        settings = {
-            "method": self.method,
-            "method_type": self.method_type,
-            "n_observables": self.n_observables,
-            "n_parameters": self.n_parameters,
-            "n_hidden": list(self.n_hidden),
-            "activation": self.activation,
-            "features": self.features,
-            "nde_type": self.nde_type,
-            "maf_n_mades": self.maf_n_mades,
-            "maf_batch_norm": self.maf_batch_norm,
-            "maf_batch_norm_alpha": self.maf_batch_norm_alpha,
-            "maf_mog_n_components": self.maf_mog_n_components,
-        }
+        settings = self._wrap_settings()
 
         with open(filename + "_settings.json", "w") as f:
             json.dump(settings, f)
@@ -164,40 +145,12 @@ class Estimator(object):
 
         """
 
-        # Load settings
+        # Load settings and create model
         logger.debug("Loading settings from %s_settings.json", filename)
-
         with open(filename + "_settings.json", "r") as f:
             settings = json.load(f)
-
-        method = settings["method"]
-        n_observables = int(settings["n_observables"])
-        n_parameters = int(settings["n_parameters"])
-        n_hidden = tuple([int(item) for item in settings["n_hidden"]])
-        activation = str(settings["activation"])
-        features = settings["features"]
-        nde_type = settings["nde_type"]
-        maf_n_mades = int(settings["maf_n_mades"])
-        maf_batch_norm = bool(settings["maf_batch_norm"])
-        maf_batch_norm_alpha = float(settings["maf_batch_norm_alpha"])
-        maf_mog_n_components = int(settings["maf_mog_n_components"])
-
-        logger.debug(
-            "  Found method %s, %s observables, %s parameters, %s hidden layers, %s activation function, "
-            "features %s",
-            method,
-            n_observables,
-            n_parameters,
-            n_hidden,
-            activation,
-            features,
-        )
-
-        # Features
-        if features == "None":
-            self.features = None
-        if features is not None:
-            self.features = list([int(item) for item in features])
+        self._unwrap_settings(settings)
+        self._create_model()
 
         # Load scaling
         try:
@@ -211,23 +164,51 @@ class Estimator(object):
             self.x_scaling_means = None
             self.x_scaling_stds = None
 
-        # Create model and save in self
-        self._create_model(
-            method,
-            n_observables,
-            n_parameters,
-            n_hidden,
-            activation,
-            nde_type,
-            maf_n_mades,
-            maf_batch_norm,
-            maf_batch_norm_alpha,
-            maf_mog_n_components,
-        )
-
         # Load state dict
         logger.debug("Loading state dictionary from %s_state_dict.pt", filename)
         self.model.load_state_dict(torch.load(filename + "_state_dict.pt"))
+
+    def _initialize_input_transform(self, x, transform=True):
+        if transform:
+            self.x_scaling_means = np.mean(x, axis=0)
+            self.x_scaling_stds = np.maximum(np.std(x, axis=0), 1.0e-6)
+        else:
+            n_parameters = x.shape[0]
+
+            self.x_scaling_means = np.zeros(n_parameters)
+            self.x_scaling_stds = np.ones(n_parameters)
+
+    def _transform_inputs(self, x):
+        if self.x_scaling_means is not None and self.x_scaling_stds is not None:
+            x_scaled = x - self.x_scaling_means
+            x_scaled /= self.x_scaling_stds
+        else:
+            x_scaled = x
+        return x_scaled
+
+    def _wrap_settings(self):
+        settings = {
+            "n_observables": self.n_observables,
+            "n_parameters": self.n_parameters,
+            "features": self.features,
+            "n_hidden": list(self.n_hidden),
+            "activation": self.activation,
+        }
+        return settings
+
+    def _unwrap_settings(self, settings):
+        self.n_observables = int(settings["n_observables"])
+        self.n_parameters = int(settings["n_parameters"])
+        self.n_hidden = tuple([int(item) for item in settings["n_hidden"]])
+        self.activation = str(settings["activation"])
+        self.features = settings["features"]
+        if self.features == "None":
+            self.features = None
+        if self.features is not None:
+            self.features = list([int(item) for item in self.features])
+
+    def _create_model(self):
+        raise NotImplementedError
 
 
 class ParameterizedRatioEstimator(Estimator):
@@ -251,13 +232,6 @@ class ParameterizedRatioEstimator(Estimator):
 
 
     """
-
-    def __init__(self, features=None, n_hidden=(100, 100), activation="tanh"):
-        super(ParameterizedRatioEstimator, self).__init__(features)
-
-        self.n_hidden = n_hidden
-        self.activation = activation
-
     def train(
         self,
         method,
@@ -593,6 +567,17 @@ class ParameterizedRatioEstimator(Estimator):
             data["t_xz"] = t_xz
         return data
 
+    def _wrap_settings(self):
+        settings = {
+            "method": self.method,
+            "nde_type": self.nde_type,
+            "maf_n_mades": self.maf_n_mades,
+            "maf_batch_norm": self.maf_batch_norm,
+            "maf_batch_norm_alpha": self.maf_batch_norm_alpha,
+            "maf_mog_n_components": self.maf_mog_n_components,
+        }
+        return settings
+
 
 class DoubleParameterizedRatioEstimator(Estimator):
     """
@@ -614,13 +599,6 @@ class DoubleParameterizedRatioEstimator(Estimator):
 
 
     """
-
-    def __init__(self, features=None, n_hidden=(100, 100), activation="tanh"):
-        super(DoubleParameterizedRatioEstimator, self).__init__(features)
-
-        self.n_hidden = n_hidden
-        self.activation = activation
-
     def train(
         self,
         method,
@@ -1014,13 +992,6 @@ class ScoreEstimator(Estimator):
 
 
     """
-
-    def __init__(self, features=None, n_hidden=(100, 100), activation="tanh"):
-        super(ScoreEstimator, self).__init__(features)
-
-        self.n_hidden = n_hidden
-        self.activation = activation
-
     def train(
         self,
         method,
@@ -1360,12 +1331,10 @@ class LikelihoodEstimator(Estimator):
     """
 
     def __init__(self, features=None, n_components=1, n_mades=5, n_hidden=(100,), activation="tanh", batch_norm=None):
-        super(LikelihoodEstimator, self).__init__(features)
+        super(LikelihoodEstimator, self).__init__(features, n_hidden, activation)
 
         self.n_components = n_components
         self.n_mades = n_mades
-        self.n_hidden = n_hidden
-        self.activation = activation
         self.batch_norm = batch_norm
 
     def train(
@@ -1736,10 +1705,27 @@ class LikelihoodEstimator(Estimator):
             data["t_xz"] = t_xz
         return data
 
+    def _wrap_settings(self):
+        settings = super(LikelihoodEstimator, self)._wrap_settings()
+        settings["n_components"] = self.n_components
+        settings["batch_norm"] = self.batch_norm
+        settings["n_mades"] = self.n_mades
+
+    def _unwrap_settings(self, settings):
+        super(LikelihoodEstimator, self)._unwrap_settings(settings)
+
+        self.n_components = int(settings["n_components"])
+        self.n_mades = int(settings["n_mades"])
+        self.batch_norm = settings["batch_norm"]
+        if self.batch_norm == "None":
+            self.batch_norm = None
+        if self.batch_norm is not None:
+            self.batch_norm = float(self.batch_norm)
+
 
 class Ensemble:
     """
-    Ensemble methods for likelihood ratio and score information.
+    Ensemble methods for likelihood, likelihood ratio, and score estimation.
 
     Generally, Ensemble instances can be used very similarly to Estimator instances:
 
@@ -1750,9 +1736,9 @@ class Ensemble:
       ratio or the expected estimated score over a validation sample. Ideally (and assuming the correct sampling),
       these expectation values should be close to zero. Deviations from zero therefore point out that the estimator
       is probably inaccurate.
-    * `Ensemble.evaluate()` and `Ensemble.calculate_fisher_information()` can then be used to calculate
-      ensemble predictions. The user has the option to treat all estimators equally ('committee method') or to give those
-      with expected score / ratio close to zero a higher weight.
+    * `Ensemble.evaluate_log_likelihood()`, `Ensemble.evaluate_log_likelihood_ratio()`, `Ensemble.evaluate_score()`,
+      and `Ensemble.calculate_fisher_information()` can then be used to calculate
+      ensemble predictions.
     * `Ensemble.save()` and `Ensemble.load()` can store all estimators in one folder.
 
     The individual estimators in the ensemble can be trained with different methods, but they have to be of the same
@@ -1762,7 +1748,7 @@ class Ensemble:
 
     Parameters
     ----------
-    estimators : None or int or list of (MLForge or str), optional
+    estimators : None or list of Estimator, optional
         If int, sets the number of estimators that will be created as new MLForge instances. If list, sets
         the estimators directly, either from MLForge instances or filenames (that are then loaded with
         `MLForge.load()`). If None, the ensemble is initialized without estimators. Note that the estimators have
@@ -1778,7 +1764,7 @@ class Ensemble:
         The estimators in the form of MLForge instances.
     """
 
-    def __init__(self, estimators=None, type=ParameterizedRatioEstimator):
+    def __init__(self, estimators=None):
         self.n_parameters = None
         self.n_observables = None
         self.estimator_type = None
@@ -1786,52 +1772,36 @@ class Ensemble:
         # Initialize estimators
         if estimators is None:
             self.estimators = []
-        elif isinstance(estimators, int):
-            self.estimators = [type() for _ in range(estimators)]
         else:
             self.estimators = []
             for estimator in estimators:
-                if isinstance(estimator, six.string_types):
-                    estimator_object = Estimator()
-                    estimator_object.load(estimator)
-                elif isinstance(estimator, Estimator):
-                    estimator_object = estimator
+                if isinstance(estimator, Estimator):
+                    self.estimators.append(estimator)
                 else:
                     raise ValueError("Entry {} in estimators is neither str nor Estimator instance")
 
-                self.estimators.append(estimator_object)
-
         self.n_estimators = len(self.estimators)
-        self.expectations = None
-
-        # Consistency checks
         self._check_consistency()
 
-    def add_estimator(self, estimator, type=ParameterizedRatioEstimator):
+    def add_estimator(self, estimator):
         """
         Adds an estimator to the ensemble.
 
         Parameters
         ----------
-        estimator : Estimator or str
-            The estimator, either as MLForge instance or filename (which is then loaded with `MLForge.load()`).
+        estimator : Estimator
+            The estimator.
 
         Returns
         -------
             None
 
         """
-        if isinstance(estimator, six.string_types):
-            estimator_object = type()
-            estimator_object.load(estimator)
-        elif isinstance(estimator, Estimator):
-            estimator_object = estimator
-        else:
+        if not isinstance(estimator, Estimator):
             raise ValueError("Entry {} in estimators is neither str nor Estimator instance")
 
-        self.estimators.append(estimator_object)
+        self.estimators.append(estimator)
         self.n_estimators = len(self.estimators)
-
         self._check_consistency()
 
     def train_one(self, i, **kwargs):
@@ -1851,8 +1821,6 @@ class Ensemble:
             None
 
         """
-
-        self._check_consistency(kwargs)
 
         self.estimators[i].train(**kwargs)
 
@@ -1880,8 +1848,6 @@ class Ensemble:
 
             assert len(kwargs[key]) == self.n_estimators, "Keyword {} has wrong length {}".format(key, len(value))
 
-        self._check_consistency(kwargs)
-
         for i, estimator in enumerate(self.estimators):
             kwargs_this_estimator = {}
             for key, value in six.iteritems(kwargs):
@@ -1890,212 +1856,180 @@ class Ensemble:
             logger.info("Training estimator %s / %s in ensemble", i + 1, self.n_estimators)
             estimator.train(**kwargs_this_estimator)
 
-    def calculate_expectation(self, x_filename, theta0_filename=None, theta1_filename=None):
+    def evaluate_log_likelihood(self, estimator_weights = None, calculate_covariance=False, **kwargs):
         """
-        Calculates the expectation of the estimation likelihood ratio or the expected estimated score over a validation
-        sample. Ideally (and assuming the correct sampling), these expectation values should be close to zero.
-        Deviations from zero therefore point out that the estimator is probably inaccurate.
+        Estimates the log likelihood from each estimator and returns the ensemble mean (and, if calculate_covariance is
+        True, the covariance between them).
 
         Parameters
         ----------
-        x_filename : str
-            Path to an unweighted sample of observations, as saved by the `madminer.sampling.SampleAugmenter` functions.
-
-        theta0_filename : str or None, optional
-            Path to an unweighted sample of numerator parameters, as saved by the `madminer.sampling.SampleAugmenter`
-            functions. Required if the estimators were trained with the 'alice', 'alice2', 'alices', 'alices2', 'carl',
-            'carl2', 'nde', 'rascal', 'rascal2', 'rolr', 'rolr2', or 'scandal' method. Default value: None.
-
-        theta1_filename : str or None, optional
-            Path to an unweighted sample of denominator parameters, as saved by the `madminer.sampling.SampleAugmenter`
-            functions. Required if the estimators were trained with the 'alice2', 'alices2', 'carl2', 'rascal2', or
-            'rolr2' method. Default value: None.
-
-        Returns
-        -------
-        expectations : ndarray
-            Expected score (if the estimators were trained with the 'sally' or 'sallino' methods) or likelihood ratio
-            (otherwise).
-
-        """
-
-        logger.info("Calculating expectation for %s estimators in ensemble", self.n_estimators)
-
-        self.expectations = []
-        method_type = self._check_consistency()
-
-        for i, estimator in enumerate(self.estimators):
-            logger.info("Starting evaluation for estimator %s / %s in ensemble", i + 1, self.n_estimators)
-
-            # Calculate expected score / ratio
-            if method_type == "local_score":
-                prediction = estimator.evaluate(x_filename, theta0_filename, theta1_filename)
-            else:
-                raise NotImplementedError("Expectation calculation currently only implemented for SALLY and SALLINO!")
-
-            self.expectations.append(np.mean(prediction, axis=0))
-
-        self.expectations = np.array(self.expectations)
-
-        return self.expectations
-
-    def evaluate(
-        self,
-        x,
-        theta0_filename=None,
-        theta1_filename=None,
-        test_all_combinations=True,
-        vote_expectation_weight=None,
-        calculate_covariance=False,
-        return_individual_predictions=False,
-    ):
-
-        """
-        Evaluates the estimators of the likelihood ratio (or, if method is 'sally' or 'sallino', the score), and
-        calculates the ensemble mean or variance.
-
-        The user has the option to treat all estimators equally ('committee method') or to give those with expected
-        score / ratio close to zero (as calculated by `calculate_expectation()`) a higher weight. In the latter case,
-        the ensemble mean `f(x)` is calculated as `f(x)  =  sum_i w_i f_i(x)` with weights
-        `w_i  =  exp(-vote_expectation_weight |E[f_i]|) / sum_j exp(-vote_expectation_weight |E[f_j]|)`. Here `f_i(x)`
-        are the individual estimators and `E[f_i]` is the expectation value calculated by `calculate_expectation()`.
-
-        Parameters
-        ----------
-        x : str or ndarray
-            Sample of observations, or path to numpy file with observations, as saved by the
-            `madminer.sampling.SampleAugmenter` functions. Note that this sample has to be sampled from the reference
-            parameter where the score is estimated with the SALLY / SALLINO estimator!
-
-        theta0_filename : str or None, optional
-            Path to an unweighted sample of numerator parameters, as saved by the `madminer.sampling.SampleAugmenter`
-            functions. Required if the estimator was trained with the 'alice', 'alice2', 'alices', 'alices2', 'carl',
-            'carl2', 'nde', 'rascal', 'rascal2', 'rolr', 'rolr2', or 'scandal' method. Default value: None.
-
-        theta1_filename : str or None, optional
-            Path to an unweighted sample of denominator parameters, as saved by the `madminer.sampling.SampleAugmenter`
-            functions. Required if the estimator was trained with the 'alice2', 'alices2', 'carl2', 'rascal2', or
-            'rolr2' method. Default value: None.
-
-        test_all_combinations : bool, optional
-            If method is not 'sally' and not 'sallino': If False, the number of samples in the observable and theta
-            files has to match, and the likelihood ratio is evaluated only for the combinations
-            `r(x_i | theta0_i, theta1_i)`. If True, `r(x_i | theta0_j, theta1_j)` for all pairwise combinations `i, j`
-            are evaluated. Default value: True.
-
-        vote_expectation_weight : float or list of float or None, optional
-            Factor that determines how much more weight is given to those estimators with small expectation value (as
-            calculated by `calculate_expectation()`). If a list is given, results are returned for each element in the
-            list. If None, or if `calculate_expectation()` has not been called, all estimators are treated equal.
-            Default value: None.
+        estimator_weights : ndarray or None, optional
+            Weights for each estimator in the ensemble. If None, all estimators have an equal vote. Default value: None.
 
         calculate_covariance : bool, optional
-            Whether the covariance matrix is calculated. Default value: False.
+            If True, the covariance between the different estimators is calculated. Default value: False.
 
-        return_individual_predictions : bool, optional
-            Whether the individual estimator predictions are returned. Default value: False.
+        kwargs
+            Arguments for the evaluation. See the documentation of the relevant Estimator class.
 
         Returns
         -------
-        mean_prediction : ndarray or list of ndarray
-            The (weighted) ensemble mean of the estimators. If the estimators were trained with `method='sally'` or
-            `method='sallino'`, this is an array of the estimator for `t(x_i | theta_ref)` for all events `i`.
-            Otherwise, the estimated likelihood ratio (if test_all_combinations is True, the result has shape
-            `(n_thetas, n_x)`, otherwise, it has shape `(n_samples,)`). If more then one value vote_expectation_weight
-            is given, this is a list with results for all entries in vote_expectation_weight.
+        log_likelihood : ndarray
+            Mean prediction for the log likelihood.
 
-        covariance : None or ndarray or list of ndarray
-            The covariance matrix of the (flattened) predictions, defined as the ensemble covariance. If more then one
-            value vote_expectation_weight is given, this is a list with results
-            for all entries in vote_expectation_weight. If calculate_covariance is False, None is returned.
-
-        weights : ndarray or list of ndarray
-            Only returned if return_individual_predictions is True. The estimator weights `w_i`. If more then one value
-            vote_expectation_weight is given, this is a list with results for all entries in vote_expectation_weight.
-
-        individual_predictions : ndarray
-            Only returned if return_individual_predictions is True. The individual estimator predictions.
+        covariance : ndarray or None
+            If calculate_covariance is True, the covariance matrix between the estimators. Otherwise None.
 
         """
+
         logger.info("Evaluating %s estimators in ensemble", self.n_estimators)
 
         # Calculate weights of each estimator in vote
-        if self.expectations is None or vote_expectation_weight is None:
-            weights = [np.ones(self.n_estimators)]
-        else:
-            if len(self.expectations.shape) == 1:
-                expectations_norm = self.expectations
-            elif len(self.expectations.shape) == 2:
-                expectations_norm = np.linalg.norm(self.expectations, axis=1)
-            else:
-                expectations_norm = [np.linalg.norm(expectation) for expectation in self.expectations]
-
-            if not isinstance(vote_expectation_weight, list):
-                vote_expectation_weight = [vote_expectation_weight]
-
-            weights = []
-            for vote_weight in vote_expectation_weight:
-                if vote_weight is None:
-                    these_weights = np.ones(self.n_estimators)
-                else:
-                    these_weights = np.exp(-vote_weight * expectations_norm)
-                these_weights /= np.sum(these_weights)
-                weights.append(these_weights)
-
-        logger.debug("Estimator weights: %s", weights)
+        if estimator_weights is None:
+            estimator_weights = np.ones(self.n_estimators)
+        assert len(estimator_weights) == self.n_estimators
+        estimator_weights /= np.sum(estimator_weights)
+        logger.debug("Estimator weights: %s", estimator_weights)
 
         # Calculate estimator predictions
         predictions = []
         for i, estimator in enumerate(self.estimators):
             logger.info("Starting evaluation for estimator %s / %s in ensemble", i + 1, self.n_estimators)
-
-            predictions.append(
-                estimator.evaluate(x, theta0_filename, theta1_filename, test_all_combinations, evaluate_score=False)
-            )
-
-            logger.debug("Estimator %s predicts %s for first event", i + 1, predictions[-1][0, :])
+            predictions.append(estimator.evaluate_log_likelihood(**kwargs)[0])
         predictions = np.array(predictions)
 
         # Calculate weighted means and covariance matrices
-        means = []
-        covariances = []
+        mean = np.average(predictions, axis=0, weights=estimator_weights)
 
-        for these_weights in weights:
-            mean = np.average(predictions, axis=0, weights=these_weights)
-            means.append(mean)
+        if calculate_covariance:
+            predictions_flat = predictions.reshape((predictions.shape[0], -1))
+            covariance = np.cov(predictions_flat.T, aweights=estimator_weights)
+            covariance = covariance.reshape(list(predictions.shape) + list(predictions.shape))
+        else:
+            covariance = None
 
-            if calculate_covariance:
-                predictions_flat = predictions.reshape((predictions.shape[0], -1))
+        return mean, covariance
 
-                covariance = np.cov(predictions_flat.T, aweights=these_weights)
-            else:
-                covariance = None
+    def evaluate_log_likelihood_ratio(self, estimator_weights = None, calculate_covariance=False, **kwargs):
+        """
+        Estimates the log likelihood ratio from each estimator and returns the ensemble mean (and, if
+        calculate_covariance is True, the covariance between them).
 
-            covariances.append(covariance)
+        Parameters
+        ----------
+        estimator_weights : ndarray or None, optional
+            Weights for each estimator in the ensemble. If None, all estimators have an equal vote. Default value: None.
 
-        # Returns
-        if len(weights) == 1:
-            if return_individual_predictions:
-                return means[0], covariances[0], weights[0], predictions
-            return means[0], covariances[0]
+        calculate_covariance : bool, optional
+            If True, the covariance between the different estimators is calculated. Default value: False.
 
-        if return_individual_predictions:
-            return means, covariances, weights, predictions
-        return means, covariances
+        kwargs
+            Arguments for the evaluation. See the documentation of the relevant Estimator class.
+
+        Returns
+        -------
+        log_likelihood_ratio : ndarray
+            Mean prediction for the log likelihood ratio.
+
+        covariance : ndarray or None
+            If calculate_covariance is True, the covariance matrix between the estimators. Otherwise None.
+
+        """
+
+        logger.info("Evaluating %s estimators in ensemble", self.n_estimators)
+
+        # Calculate weights of each estimator in vote
+        if estimator_weights is None:
+            estimator_weights = np.ones(self.n_estimators)
+        assert len(estimator_weights) == self.n_estimators
+        estimator_weights /= np.sum(estimator_weights)
+        logger.debug("Estimator weights: %s", estimator_weights)
+
+        # Calculate estimator predictions
+        predictions = []
+        for i, estimator in enumerate(self.estimators):
+            logger.info("Starting evaluation for estimator %s / %s in ensemble", i + 1, self.n_estimators)
+            predictions.append(estimator.evaluate_log_likelihood_ratio(**kwargs)[0])
+        predictions = np.array(predictions)
+
+        # Calculate weighted means and covariance matrices
+        mean = np.average(predictions, axis=0, weights=estimator_weights)
+
+        if calculate_covariance:
+            predictions_flat = predictions.reshape((predictions.shape[0], -1))
+            covariance = np.cov(predictions_flat.T, aweights=estimator_weights)
+            covariance = covariance.reshape(list(predictions.shape) + list(predictions.shape))
+        else:
+            covariance = None
+
+        return mean, covariance
+
+    def evaluate_score(self, estimator_weights=None, calculate_covariance=False, **kwargs):
+        """
+        Estimates the score from each estimator and returns the ensemble mean (and, if
+        calculate_covariance is True, the covariance between them).
+
+        Parameters
+        ----------
+        estimator_weights : ndarray or None, optional
+            Weights for each estimator in the ensemble. If None, all estimators have an equal vote. Default value: None.
+
+        calculate_covariance : bool, optional
+            If True, the covariance between the different estimators is calculated. Default value: False.
+
+        kwargs
+            Arguments for the evaluation. See the documentation of the relevant Estimator class.
+
+        Returns
+        -------
+        log_likelihood_ratio : ndarray
+            Mean prediction for the log likelihood ratio.
+
+        covariance : ndarray or None
+            If calculate_covariance is True, the covariance matrix between the estimators. Otherwise None.
+
+        """
+
+        logger.info("Evaluating %s estimators in ensemble", self.n_estimators)
+
+        # Calculate weights of each estimator in vote
+        if estimator_weights is None:
+            estimator_weights = np.ones(self.n_estimators)
+        assert len(estimator_weights) == self.n_estimators
+        estimator_weights /= np.sum(estimator_weights)
+        logger.debug("Estimator weights: %s", estimator_weights)
+
+        # Calculate estimator predictions
+        predictions = []
+        for i, estimator in enumerate(self.estimators):
+            logger.info("Starting evaluation for estimator %s / %s in ensemble", i + 1, self.n_estimators)
+            predictions.append(estimator.evaluate_score(**kwargs))
+        predictions = np.array(predictions)
+
+        # Calculate weighted means and covariance matrices
+        mean = np.average(predictions, axis=0, weights=estimator_weights)
+
+        if calculate_covariance:
+            predictions_flat = predictions.reshape((predictions.shape[0], -1))
+            covariance = np.cov(predictions_flat.T, aweights=estimator_weights)
+            covariance = covariance.reshape(list(predictions.shape) + list(predictions.shape))
+        else:
+            covariance = None
+
+        return mean, covariance
 
     def calculate_fisher_information(
         self,
         x,
         obs_weights=None,
+        estimator_weights=None,
         n_events=1,
         mode="score",
-        uncertainty="ensemble",
-        vote_expectation_weight=None,
-        return_individual_predictions=False,
+        calculate_covariance=True,
         sum_events=True,
     ):
         """
-        Calculates expected Fisher information matrices for an ensemble of SALLY estimators.
+        Calculates expected Fisher information matrices for an ensemble of ScoreEstimator instances.
 
         There are two ways of calculating the ensemble average. In the default "score" mode, the ensemble average for
         the score is calculated for each event, and the Fisher information is calculated based on these mean scores. In
@@ -2130,6 +2064,9 @@ class Ensemble:
         obs_weights : None or ndarray, optional
             Weights for the observations. If None, all events are taken to have equal weight. Default value: None.
 
+        estimator_weights : ndarray or None, optional
+            Weights for each estimator in the ensemble. If None, all estimators have an equal vote. Default value: None.
+
         n_events : float, optional
             Expected number of events for which the kinematic Fisher information should be calculated. Default value: 1.
 
@@ -2138,22 +2075,8 @@ class Ensemble:
             are the sample mean and covariance calculated. If mode is "score", the sample mean is
             calculated for the score for each event. Default value: "score".
 
-        uncertainty : {"ensemble", "expectation", "sum", "none"}, optional
-            How the covariance matrix of the Fisher information estimate is calculate. With "ensemble", the ensemble
-            covariance is used (only supported if mode is "information"). With "expectation", the expectation of the
-            score is used as a measure of the uncertainty of the score estimator, and this uncertainty is propagated
-            through to the covariance matrix. With "sum", both terms are summed (only supported if mode is
-            "information"). With "none", no uncertainties are calculated. Default value: "ensemble".
-
-        vote_expectation_weight : float or list of float or None, optional
-            If mode is "information", this factor determines how much more weight is given to those estimators with
-            small expectation value (as calculated by `calculate_expectation()`). If a list is given, results are
-            returned for each element in the list. If None, or if `calculate_expectation()` has not been called, all
-            estimators are treated equal. Default value: None.
-
-        return_individual_predictions : bool, optional
-            If mode is "information", sets whether the individual estimator predictions are returned. Default value:
-            False.
+        calculate_covariance : bool, optional
+            If True, the covariance between the different estimators is calculated. Default value: True.
 
         sum_events : bool, optional
             If True or mode is "information", the expected Fisher information summed over the events x is calculated.
@@ -2162,86 +2085,51 @@ class Ensemble:
 
         Returns
         -------
-        mean_prediction : ndarray or list of ndarray
+        mean_prediction : ndarray
             Expected kinematic Fisher information matrix with shape `(n_events, n_parameters, n_parameters)` if
             sum_events is False and mode is "score", or `(n_parameters, n_parameters)` in any other case.
 
-        covariance : ndarray or list of ndarray
-            The covariance matrix of the Fisher information estimate. Its definition depends on the value of
-            uncertainty; by default, the covariance is defined as the ensemble covariance (only supported if mode is
-            "information"). This object has four indices, `cov_(ij)(i'j')`, ordered as i j i' j'. It has shape
-            `(n_parameters, n_parameters, n_parameters, n_parameters)`. If more then one value vote_expectation_weight
-            is given, this is a list with results for all entries in vote_expectation_weight.
-
-        weights : ndarray or list of ndarray
-            Only returned if return_individual_predictions is True. The estimator weights `w_i`. If more then one value
-            vote_expectation_weight is given, this is a list with results for all entries in vote_expectation_weight.
-
-        individual_predictions : ndarray
-            Only returned if return_individual_predictions is True. The individual estimator predictions.
-
+        covariance : ndarray or None
+            The covariance of the estimated Fisher information matrix. This object has four indices, `cov_(ij)(i'j')`,
+            ordered as i j i' j'. It has shape `(n_parameters, n_parameters, n_parameters, n_parameters)`.
         """
         logger.debug("Evaluating Fisher information for %s estimators in ensemble", self.n_estimators)
+
+        # Check ensemble
+        if self.estimator_type != "score":
+            raise NotImplementedError("Fisher information calculation is only implemented for local score estimators "
+                                      "(ScoreEstimator instances).")
 
         # Check input
         if mode not in ["score", "information"]:
             raise ValueError("Unknown mode {}, has to be 'score' or 'information'!".format(mode))
 
-        if mode == "score":
-            vote_expectation_weight = None
-
-        if uncertainty == "expectation" or uncertainty == "sum":
-            if self.expectations is None:
-                raise RuntimeError(
-                    "Expectations have not been calculated, cannot use uncertainty mode 'expectation' " "or 'sum'!"
-                )
-
         # Calculate estimator_weights of each estimator in vote
-        if self.expectations is None or vote_expectation_weight is None:
-            estimator_weights = [np.ones(self.n_estimators)]
-        else:
-            if len(self.expectations.shape) == 1:
-                expectations_norm = self.expectations
-            elif len(self.expectations.shape) == 2:
-                expectations_norm = np.linalg.norm(self.expectations, axis=1)
-            else:
-                expectations_norm = [np.linalg.norm(expectation) for expectation in self.expectations]
+        if estimator_weights is None:
+            estimator_weights = np.ones(self.n_estimators)
+        assert len(estimator_weights) == self.n_estimators
+        estimator_weights /= np.sum(estimator_weights)
+        logger.debug("Estimator weights: %s", estimator_weights)
 
-            if not isinstance(vote_expectation_weight, list):
-                vote_expectation_weight = [vote_expectation_weight]
-
-            estimator_weights = []
-            for vote_weight in vote_expectation_weight:
-                if vote_weight is None:
-                    these_weights = np.ones(self.n_estimators)
-                else:
-                    these_weights = np.exp(-vote_weight * expectations_norm)
-                these_weights /= np.sum(these_weights)
-                estimator_weights.append(these_weights)
-
-        logger.debug("  Estimator estimator_weights: %s", estimator_weights)
-
-        predictions = []
+        covariance = None
 
         # "information" mode
         if mode == "information":
             # Calculate estimator predictions
+            predictions = []
             for i, estimator in enumerate(self.estimators):
                 logger.debug("Starting evaluation for estimator %s / %s in ensemble", i + 1, self.n_estimators)
 
                 predictions.append(estimator.calculate_fisher_information(x=x, weights=obs_weights, n_events=n_events))
             predictions = np.array(predictions)
 
-            # Calculate weighted means and covariance matrices
-            means = []
-            ensemble_covariances = []
+            # Calculate weighted mean and covariance
+            information = np.average(predictions, axis=0, weights=estimator_weights)
 
-            for these_weights in estimator_weights:
-                mean = np.average(predictions, axis=0, weights=these_weights)
-                means.append(mean)
+            predictions_flat = predictions.reshape((predictions.shape[0], -1))
 
-                predictions_flat = predictions.reshape((predictions.shape[0], -1))
-                covariance = np.cov(predictions_flat.T, aweights=these_weights)
+            if calculate_covariance:
+                covariance = np.cov(predictions_flat.T, aweights=estimator_weights)
                 covariance_shape = (
                     predictions.shape[1],
                     predictions.shape[2],
@@ -2249,8 +2137,6 @@ class Ensemble:
                     predictions.shape[2],
                 )
                 covariance = covariance.reshape(covariance_shape)
-
-                ensemble_covariances.append(covariance)
 
         # "score" mode:
         else:
@@ -2283,71 +2169,39 @@ class Ensemble:
 
             # Fisher information prediction (based on mean scores)
             if sum_events:
-                information_mean = float(n_events) * np.sum(
+                information = float(n_events) * np.sum(
                     obs_weights[:, np.newaxis, np.newaxis]
                     * score_mean[:, :, np.newaxis]
                     * score_mean[:, np.newaxis, :],
                     axis=0,
                 )
             else:
-                information_mean = (
+                information = (
                     float(n_events)
                     * obs_weights[:, np.newaxis, np.newaxis]
                     * score_mean[:, :, np.newaxis]
                     * score_mean[:, np.newaxis, :]
                 )
-            means = [information_mean]
 
-            # Fisher information predictions based on shifted scores
-            informations_shifted = float(n_events) * np.sum(
-                obs_weights[np.newaxis, :, np.newaxis, np.newaxis]
-                * score_shifted_predictions[:, :, :, np.newaxis]
-                * score_shifted_predictions[:, :, np.newaxis, :],
-                axis=1,
-            )  # (n_estimators, n_parameters, n_parameters)
+            if calculate_covariance:
+                # Fisher information predictions based on shifted scores
+                informations_shifted = float(n_events) * np.sum(
+                    obs_weights[np.newaxis, :, np.newaxis, np.newaxis]
+                    * score_shifted_predictions[:, :, :, np.newaxis]
+                    * score_shifted_predictions[:, :, np.newaxis, :],
+                    axis=1,
+                )  # (n_estimators, n_parameters, n_parameters)
 
-            n_params = score_mean.shape[1]
-            informations_shifted = informations_shifted.reshape(-1, n_params ** 2)
-            information_cov = np.cov(informations_shifted.T)
-            information_cov = information_cov.reshape(n_params, n_params, n_params, n_params)
-            ensemble_covariances = [information_cov]
+                n_params = score_mean.shape[1]
+                informations_shifted = informations_shifted.reshape(-1, n_params ** 2)
+                covariance = np.cov(informations_shifted.T)
+                covariance = covariance.reshape(n_params, n_params, n_params, n_params)
 
             # Let's check the expected score
             expected_score = [np.einsum("n,ni->i", obs_weights, score_mean)]
             logger.debug("Expected per-event score (should be close to zero):\n%s", expected_score)
 
-        # Calculate uncertainty through non-zero score expectation
-        expectation_covariances = None
-        if uncertainty == "expectation" or uncertainty == "sum":
-            expectation_covariances = []
-            for these_weights, expectation in zip(estimator_weights, self.expectations):
-                mean_expectation = np.average(expectation, weights=these_weights, axis=0)
-                expectation_covariances.append(
-                    n_events
-                    * np.einsum("a,b,c,d->abcd", mean_expectation, mean_expectation, mean_expectation, mean_expectation)
-                )
-
-        # Final covariances
-        if uncertainty == "ensemble":
-            covariances = ensemble_covariances
-        elif uncertainty == "expectation":
-            covariances = expectation_covariances
-        elif uncertainty == "sum":
-            covariances = [cov1 + cov2 for cov1, cov2 in zip(ensemble_covariances, expectation_covariances)]
-        elif uncertainty == "none":
-            covariances = [None for cov in ensemble_covariances]
-        else:
-            raise ValueError("Unknown uncertainty mode {}".format(uncertainty))
-
-        # Returns
-        if len(estimator_weights) == 1:
-            if return_individual_predictions and mode == "information":
-                return means[0], covariances[0], estimator_weights[0], predictions
-            return means[0], covariances[0]
-
-        if return_individual_predictions and mode == "information":
-            return means, covariances, estimator_weights, predictions
-        return means, covariances
+        return information, covariance
 
     def save(self, folder, save_model=False):
         """
@@ -2374,13 +2228,7 @@ class Ensemble:
 
         # Save ensemble settings
         logger.debug("Saving ensemble setup to %s/ensemble.json", folder)
-
-        if self.expectations is None:
-            expectations = "None"
-        else:
-            expectations = self.expectations.tolist()
-
-        settings = {"n_estimators": self.n_estimators, "expectations": expectations}
+        settings = {"estimator_type": self.estimator_type, "n_estimators": self.n_estimators}
 
         with open(folder + "/ensemble.json", "w") as f:
             json.dump(settings, f)
@@ -2403,30 +2251,20 @@ class Ensemble:
             None
 
         """
-
         # Load ensemble settings
         logger.debug("Loading ensemble setup from %s/ensemble.json", folder)
-
         with open(folder + "/ensemble.json", "r") as f:
             settings = json.load(f)
-
-        self.n_estimators = settings["n_estimators"]
-        self.expectations = settings["expectations"]
-        if self.expectations == "None":
-            self.expectations = None
-        if self.expectations is not None:
-            self.expectations = np.array(self.expectations)
-
-        logger.info("Found ensemble with %s estimators and expectations %s", self.n_estimators, self.expectations)
+        estimator_type = str(settings["estimator_type"])
+        self.n_estimators = int(settings["n_estimators"])
+        logger.info("Found %s ensemble with %s estimators", estimator_type, self.n_estimators)
 
         # Load estimators
         self.estimators = []
         for i in range(self.n_estimators):
-            estimator = Estimator()
+            estimator = self._get_estimator_class(estimator_type)()
             estimator.load(folder + "/estimator_" + str(i))
             self.estimators.append(estimator)
-
-        # Check consistency and update n_parameters, n_observables
         self._check_consistency()
 
     def _check_consistency(self):
@@ -2445,7 +2283,6 @@ class Ensemble:
         all_types = [self._get_estimator_type(estimator) for estimator in self.estimators]
         all_n_parameters = [estimator.n_parameters for estimator in self.estimators]
         all_n_observables = [estimator.n_observables for estimator in self.estimators]
-
 
         # Check consistency of methods
         self.estimator_type = None
@@ -2495,6 +2332,19 @@ class Ensemble:
             return "likelihood"
         else:
             raise RuntimeError("Estimator is an unknown Estimator type!")
+
+    @staticmethod
+    def _get_estimator_class(estimator_type):
+        if estimator_type == "parameterized_ratio":
+            return ParameterizedRatioEstimator
+        elif estimator_type == "double_parameterized_ratio":
+            return DoubleParameterizedRatioEstimator
+        elif estimator_type == "score":
+            return ScoreEstimator
+        elif estimator_type == "likelihood":
+            return LikelihoodEstimator
+        else:
+            raise RuntimeError("Unknown estimator type {}!".format(estimator_type))
 
 
 class TheresAGoodReasonThisDoesntWork(Exception):
