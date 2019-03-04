@@ -339,7 +339,7 @@ class Trainer(object):
                 best_epoch + 1,
                 best_loss,
                 currrent_loss,
-            )s
+            )
             self.model.load_state_dict(best_model)
         else:
             logger.info("Early stopping did not improve performance")
