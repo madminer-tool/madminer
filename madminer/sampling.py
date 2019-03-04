@@ -154,7 +154,7 @@ class SampleAugmenter:
             logger.info("Found nuisance morphing setup")
 
     def extract_samples_train_plain(
-        self, theta, n_samples, folder, filename, test_split=0.5, switch_train_test_events=False
+        self, theta, n_samples, folder, filename, test_split=0.2, switch_train_test_events=False
     ):
         """
         Extracts plain training samples `x ~ p(x|theta)` without any augmented data. This can be use for standard
@@ -180,7 +180,7 @@ class SampleAugmenter:
 
         test_split : float or None, optional
             Fraction of events reserved for the evaluation sample (that will not be used for any training samples).
-            Default value: 0.5.
+            Default value: 0.2.
 
         switch_train_test_events : bool, optional
             If True, this function generates a training sample from the events normally reserved for test samples.
@@ -231,7 +231,7 @@ class SampleAugmenter:
         folder,
         filename,
         nuisance_score=False,
-        test_split=0.5,
+        test_split=0.2,
         switch_train_test_events=False,
         log_message=True,
     ):
@@ -262,7 +262,7 @@ class SampleAugmenter:
 
         test_split : float or None, optional
             Fraction of events reserved for the evaluation sample (that will not be used for any training samples).
-            Default value: 0.5.
+            Default value: 0.2.
 
         switch_train_test_events : bool, optional
             If True, this function generates a training sample from the events normally reserved for test samples.
@@ -348,7 +348,7 @@ class SampleAugmenter:
         return x, theta, t_xz
 
     def extract_samples_train_global(
-        self, theta, n_samples, folder, filename, test_split=0.5, switch_train_test_events=False
+        self, theta, n_samples, folder, filename, test_split=0.2, switch_train_test_events=False
     ):
         """
         Extracts training samples x ~ p(x|theta) as well as the joint score t(x, z|theta), where theta is sampled
@@ -373,7 +373,7 @@ class SampleAugmenter:
 
         test_split : float or None, optional
             Fraction of events reserved for the evaluation sample (that will not be used for any training samples).
-            Default value: 0.5.
+            Default value: 0.2.
 
         switch_train_test_events : bool, optional
             If True, this function generates a training sample from the events normally reserved for test samples.
@@ -412,7 +412,7 @@ class SampleAugmenter:
         )
 
     def extract_samples_train_ratio(
-        self, theta0, theta1, n_samples, folder, filename, test_split=0.5, switch_train_test_events=False
+        self, theta0, theta1, n_samples, folder, filename, test_split=0.2, switch_train_test_events=False
     ):
         """
         Extracts training samples `x ~ p(x|theta0)` and `x ~ p(x|theta1)` together with the class label `y`, the joint
@@ -443,7 +443,7 @@ class SampleAugmenter:
 
         test_split : float or None, optional
             Fraction of events reserved for the evaluation sample (that will not be used for any training samples).
-            Default value: 0.5.
+            Default value: 0.2.
 
         switch_train_test_events : bool, optional
             If True, this function generates a training sample from the events normally reserved for test samples.
@@ -595,7 +595,7 @@ class SampleAugmenter:
         folder,
         filename,
         additional_thetas=None,
-        test_split=0.5,
+        test_split=0.2,
         switch_train_test_events=False,
     ):
         """
@@ -640,7 +640,7 @@ class SampleAugmenter:
 
         test_split : float or None, optional
             Fraction of events reserved for the evaluation sample (that will not be used for any training samples).
-            Default value: 0.5.
+            Default value: 0.2.
 
         switch_train_test_events : bool, optional
             If True, this function generates a training sample from the events normally reserved for test samples.
@@ -853,7 +853,7 @@ class SampleAugmenter:
 
         return x, theta0, theta1, y, r_xz, t_xz0, t_xz1
 
-    def extract_samples_test(self, theta, n_samples, folder, filename, test_split=0.5, switch_train_test_events=False):
+    def extract_samples_test(self, theta, n_samples, folder, filename, test_split=0.2, switch_train_test_events=False):
         """
         Extracts evaluation samples `x ~ p(x|theta)` without any augmented data.
 
@@ -876,7 +876,7 @@ class SampleAugmenter:
 
         test_split : float or None, optional
             Fraction of events reserved for the evaluation sample (that will not be used for any training samples).
-            Default value: 0.5.
+            Default value: 0.2.
 
         switch_train_test_events : bool, optional
             If True, this function generates a test sample from the events normally reserved for training samples.

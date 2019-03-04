@@ -219,7 +219,7 @@ class FisherInformation:
         mode="score",
         calculate_covariance=True,
         batch_size=100000,
-        test_split=0.5,
+        test_split=0.2,
     ):
         """
         Calculates the full Fisher information in realistic detector-level observations, estimated with neural networks.
@@ -261,7 +261,7 @@ class FisherInformation:
 
         test_split : float or None, optional
             If unweighted_x_sample_file is None, this determines the fraction of weighted events used for evaluation.
-            If None, all events are used (this will probably include events used during training!). Default value: 0.5.
+            If None, all events are used (this will probably include events used during training!). Default value: 0.2.
 
         Returns
         -------
@@ -793,7 +793,7 @@ class FisherInformation:
         cuts=None,
         efficiency_functions=None,
         batch_size=100000,
-        test_split=0.5,
+        test_split=0.2,
     ):
         """
         Calculates the full and rate-only Fisher information in slices of one observable. For the full
@@ -836,7 +836,7 @@ class FisherInformation:
         test_split : float or None, optional
             If model_file is not None: If unweighted_x_sample_file is None, this determines the fraction of weighted
             events used for evaluation.
-            If None, all events are used (this will probably include events used during training!). Default value: 0.5.
+            If None, all events are used (this will probably include events used during training!). Default value: 0.2.
 
 
         Returns
