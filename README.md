@@ -1,11 +1,15 @@
 # MadMiner
 
-*Johann Brehmer, Felix Kling, Irina Espejo, and Kyle Cranmer*
+**Johann Brehmer, Felix Kling, Irina Espejo, and Kyle Cranmer**
 
 Mining gold from MadGraph to improve limit setting in particle physics.
 
 Note that this is an early development version. Do not expect anything to be stable. If you have any questions, please
 contact us at [johann.brehmer@nyu.edu](johann.brehmer@nyu.edu).
+
+*Note: Consider working with the `future` branch, where we develop a refactored and cleaned up version of MadMiner.
+The API and even the file format for trained neural ntworks is different from the `master` version (v0.2.x).
+We expect these changes to make it into MadMiner v0.3.0.*
 
 [![PyPI version](https://badge.fury.io/py/madminer.svg)](https://badge.fury.io/py/madminer)
 [![Documentation Status](https://readthedocs.org/projects/madminer/badge/?version=latest)](https://madminer.readthedocs.io/en/latest/?badge=latest)
@@ -15,7 +19,6 @@ contact us at [johann.brehmer@nyu.edu](johann.brehmer@nyu.edu).
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/ambv/black)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.1489147.svg)](https://doi.org/10.5281/zenodo.1489147)
-
 
 ## Introduction
 
