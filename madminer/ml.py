@@ -497,7 +497,7 @@ class ParameterizedRatioEstimator(Estimator):
                 logger.debug("Starting ratio evaluation for thetas %s / %s: %s", i + 1, len(theta), this_theta)
                 _, log_r_hat, t_hat, _ = evaluate_ratio_model(
                     model=self.model,
-                    method_type=self.method_type,
+                    method_type="parameterized_ratio",
                     theta0s=[this_theta],
                     theta1s=None,
                     xs=x,
@@ -514,7 +514,7 @@ class ParameterizedRatioEstimator(Estimator):
             logger.debug("Starting ratio evaluation")
             _, all_log_r_hat, all_t_hat, _ = evaluate_ratio_model(
                 model=self.model,
-                method_type=self.method_type,
+                method_type="parameterized_ratio",
                 theta0s=theta,
                 theta1s=None,
                 xs=x,
@@ -888,7 +888,7 @@ class DoubleParameterizedRatioEstimator(Estimator):
                 )
                 _, log_r_hat, t_hat0, t_hat1 = evaluate_ratio_model(
                     model=self.model,
-                    method_type=self.method_type,
+                    method_type="double_parameterized_ratio",
                     theta0s=[this_theta0],
                     theta1s=[this_theta1],
                     xs=x,
@@ -907,7 +907,7 @@ class DoubleParameterizedRatioEstimator(Estimator):
             logger.debug("Starting ratio evaluation")
             _, all_log_r_hat, all_t_hat0, all_t_hat1 = evaluate_ratio_model(
                 model=self.model,
-                method_type=self.method_type,
+                method_type="double_parameterized_ratio",
                 theta0s=theta0,
                 theta1s=theta1,
                 xs=x,
@@ -1577,9 +1577,6 @@ class LikelihoodEstimator(Estimator):
         # Restrict featuers
         if self.features is not None:
             x = x[:, self.features]
-
-        if self.method_type != "nde":
-            raise RuntimeError("Likelihood estimation only possible for methods NDE and SCANDAL")
 
         # Evaluation for all other methods
         all_log_p_hat = []
