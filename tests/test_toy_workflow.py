@@ -1,11 +1,10 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import os
-import logging
 import numpy as np
 from scipy.stats import norm
 
-from madminer.ml import Estimator
+from madminer.ml import ParameterizedRatioEstimator
 
 if not os.path.exists("tests/data"):
     os.makedirs("tests/data")
@@ -77,7 +76,7 @@ def run_test():
     np.save("tests/data/t_xz_train.npy", t_xz_train)
 
     # Train model
-    forge = Estimator()
+    forge = ParameterizedRatioEstimator()
 
     forge.train(
         method="alices",
