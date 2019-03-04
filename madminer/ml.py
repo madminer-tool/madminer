@@ -409,7 +409,7 @@ class ParameterizedRatioEstimator(Estimator):
 
         # Create model
         if self.model is None:
-            logger.info("Creating model", method)
+            logger.info("Creating model")
             self._create_model()
 
         # Losses
@@ -567,17 +567,6 @@ class ParameterizedRatioEstimator(Estimator):
         if method in ["cascal", "alices", "rascal"]:
             data["t_xz"] = t_xz
         return data
-
-    def _wrap_settings(self):
-        settings = {
-            "method": self.method,
-            "nde_type": self.nde_type,
-            "maf_n_mades": self.maf_n_mades,
-            "maf_batch_norm": self.maf_batch_norm,
-            "maf_batch_norm_alpha": self.maf_batch_norm_alpha,
-            "maf_mog_n_components": self.maf_mog_n_components,
-        }
-        return settings
 
 
 class DoubleParameterizedRatioEstimator(Estimator):
