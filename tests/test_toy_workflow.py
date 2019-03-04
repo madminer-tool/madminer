@@ -76,18 +76,16 @@ def run_test():
     np.save("tests/data/t_xz_train.npy", t_xz_train)
 
     # Train model
-    forge = ParameterizedRatioEstimator()
-
-    forge.train(
+    estimator = ParameterizedRatioEstimator(n_hidden=(20, 20))
+    estimator.train(
         method="alices",
-        x_filename="tests/data/x_train.npy",
-        y_filename="tests/data/y_train.npy",
-        theta0_filename="tests/data/theta0_train.npy",
-        r_xz_filename="tests/data/r_xz_train.npy",
-        t_xz0_filename="tests/data/t_xz_train.npy",
+        x="tests/data/x_train.npy",
+        y="tests/data/y_train.npy",
+        theta="tests/data/theta0_train.npy",
+        r_xz="tests/data/r_xz_train.npy",
+        t_xz="tests/data/t_xz_train.npy",
         alpha=0.1,
         n_epochs=10,
-        n_hidden=(20, 20),
         validation_split=None,
         batch_size=256,
     )
@@ -111,7 +109,7 @@ def run_test():
     log_r_test_true = np.array(log_r_test_true)
 
     # Evaluation
-    log_r_tests_alices, _, _ = forge.evaluate(
+    log_r_tests_alices, _ = estimator.evaluate(
         theta0_filename="tests/data/theta_grid.npy", x="tests/data/x_test.npy", evaluate_score=False
     )
 
