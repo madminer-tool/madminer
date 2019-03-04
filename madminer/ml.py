@@ -38,7 +38,7 @@ class Estimator(object):
     Please see the tutorial for a detailed walk-through.
     """
 
-    def __init__(self, features=None, n_hidden=(100,100), activation="tanh"):
+    def __init__(self, features=None, n_hidden=(100, 100), activation="tanh"):
         self.features = features
         self.n_hidden = n_hidden
         self.activation = activation
@@ -232,6 +232,7 @@ class ParameterizedRatioEstimator(Estimator):
 
 
     """
+
     def train(
         self,
         method,
@@ -599,6 +600,7 @@ class DoubleParameterizedRatioEstimator(Estimator):
 
 
     """
+
     def train(
         self,
         method,
@@ -992,6 +994,7 @@ class ScoreEstimator(Estimator):
 
 
     """
+
     def train(
         self,
         method,
@@ -1856,7 +1859,7 @@ class Ensemble:
             logger.info("Training estimator %s / %s in ensemble", i + 1, self.n_estimators)
             estimator.train(**kwargs_this_estimator)
 
-    def evaluate_log_likelihood(self, estimator_weights = None, calculate_covariance=False, **kwargs):
+    def evaluate_log_likelihood(self, estimator_weights=None, calculate_covariance=False, **kwargs):
         """
         Estimates the log likelihood from each estimator and returns the ensemble mean (and, if calculate_covariance is
         True, the covariance between them).
@@ -1910,7 +1913,7 @@ class Ensemble:
 
         return mean, covariance
 
-    def evaluate_log_likelihood_ratio(self, estimator_weights = None, calculate_covariance=False, **kwargs):
+    def evaluate_log_likelihood_ratio(self, estimator_weights=None, calculate_covariance=False, **kwargs):
         """
         Estimates the log likelihood ratio from each estimator and returns the ensemble mean (and, if
         calculate_covariance is True, the covariance between them).
@@ -2097,8 +2100,10 @@ class Ensemble:
 
         # Check ensemble
         if self.estimator_type != "score":
-            raise NotImplementedError("Fisher information calculation is only implemented for local score estimators "
-                                      "(ScoreEstimator instances).")
+            raise NotImplementedError(
+                "Fisher information calculation is only implemented for local score estimators "
+                "(ScoreEstimator instances)."
+            )
 
         # Check input
         if mode not in ["score", "information"]:
