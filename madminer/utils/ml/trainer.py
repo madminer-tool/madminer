@@ -109,7 +109,7 @@ class Trainer(object):
             if early_stopping:
                 try:
                     best_loss, best_model, best_epoch = self.check_early_stopping(
-                        best_loss, best_model, best_epoch, loss_val, best_epoch, early_stopping_patience
+                        best_loss, best_model, best_epoch, loss_val, i_epoch, early_stopping_patience
                     )
                 except EarlyStoppingException:
                     logger.debug("Early stopping: ending training after %s epochs", i_epoch + 1)
@@ -330,16 +330,16 @@ class Trainer(object):
             )
             logging_fn(val_report)
 
-    def wrap_up_early_stopping(self, best_model, loss_val, best_loss, best_epoch):
-        if loss_val is None or best_loss is None:
+    def wrap_up_early_stopping(self, best_model, currrent_loss, best_loss, best_epoch):
+        if currrent_loss is None or best_loss is None:
             logger.warning("Loss is None, cannot wrap up early stopping")
-        elif loss_val < best_loss:
+        elif best_loss < currrent_loss:
             logger.info(
                 "Early stopping after epoch %s, with loss %8.5f compared to final loss %8.5f",
                 best_epoch + 1,
                 best_loss,
-                loss_val,
-            )
+                currrent_loss,
+            )s
             self.model.load_state_dict(best_model)
         else:
             logger.info("Early stopping did not improve performance")
