@@ -1137,7 +1137,7 @@ class ScoreEstimator(Estimator):
 
         # Create model
         if self.model is None:
-            logger.info("Creating model", method)
+            logger.info("Creating model")
             self._create_model()
 
         # Losses
