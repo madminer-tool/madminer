@@ -428,16 +428,7 @@ class FisherInformation:
 
         # Returns
         if model_is_ensemble:
-            if isinstance(ensemble_vote_expectation_weight, list) and len(ensemble_vote_expectation_weight) > 1:
-                fisher_info_results = [
-                    fisher_info_rate + this_fisher_info_kin for this_fisher_info_kin in fisher_info_kin
-                ]
-                covariance_results = [rate_covariance + this_covariance for this_covariance in covariance]
-
-                return fisher_info_results, covariance_results
-
-            else:
-                return fisher_info_rate + fisher_info_kin, rate_covariance + covariance
+            return fisher_info_rate + fisher_info_kin, rate_covariance + covariance
 
         return fisher_info_rate + fisher_info_kin, rate_covariance
 
