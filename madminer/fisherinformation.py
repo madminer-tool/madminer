@@ -9,7 +9,7 @@ from madminer.utils.interfaces.madminer_hdf5 import load_madminer_settings, madm
 from madminer.utils.analysis import get_theta_benchmark_matrix, get_dtheta_benchmark_matrix, mdot
 from madminer.utils.morphing import PhysicsMorpher, NuisanceMorpher
 from madminer.utils.various import format_benchmark, math_commands, weighted_quantile, sanitize_array
-from madminer.ml import Estimator, Ensemble
+from madminer.ml import ScoreEstimator, Ensemble
 
 logger = logging.getLogger(__name__)
 
@@ -217,8 +217,7 @@ class FisherInformation:
         luminosity=300000.0,
         include_xsec_info=True,
         mode="score",
-        uncertainty="ensemble",
-        ensemble_vote_expectation_weight=None,
+        calculate_covariance=True,
         batch_size=100000,
         test_split=0.5,
     ):
@@ -254,17 +253,8 @@ class FisherInformation:
             are the sample mean and covariance calculated. If mode is "score", the sample mean is
             calculated for the score for each event. Default value: "score".
 
-        uncertainty : {"ensemble", "expectation", "sum"}, optional
-            How the covariance matrix of the Fisher information estimate is calculated. With "ensemble", the ensemble
-            covariance is used. With "expectation", the expectation of the score is used as a measure of the uncertainty
-            of the score estimator, and this uncertainty is propagated through to the covariance matrix. With "sum",
-            both terms are summed. Default value: "ensemble".
-
-        ensemble_vote_expectation_weight : float or list of float or None, optional
-            For ensemble models, the factor that determines how much more weight is given to those estimators with small
-            expectation value. If a list is given, results are returned for each element in the list. If None, or if
-            `Ensemble.calculate_expectation()` has not been called, all estimators are treated equal. Default
-            value: None.
+        calculate_covariance : bool, optional
+            If True, the covariance between the different estimators is calculated. Default value: True.
 
         batch_size : int, optional
             Batch size. Default value: 100000.
@@ -299,7 +289,7 @@ class FisherInformation:
             model.load(model_file)
         else:
             model_is_ensemble = False
-            model = Estimator()
+            model = ScoreEstimator()
             model.load(model_file)
 
         # Nuisance parameters?
@@ -392,9 +382,8 @@ class FisherInformation:
                         x=observations,
                         obs_weights=weights_theta,
                         n_events=luminosity * total_xsec * np.sum(weights_theta) / total_sum_weights_theta,
-                        vote_expectation_weight=ensemble_vote_expectation_weight,
+                        calculate_covariance=calculate_covariance,
                         mode=mode,
-                        uncertainty=uncertainty,
                     )
                 else:
                     this_fisher_info = model.calculate_fisher_information(
@@ -426,15 +415,14 @@ class FisherInformation:
         else:
             if model_is_ensemble:
                 fisher_info_kin, covariance = model.calculate_fisher_information(
-                    unweighted_x_sample_file,
+                    x=unweighted_x_sample_file,
                     n_events=luminosity * total_xsec,
-                    vote_expectation_weight=ensemble_vote_expectation_weight,
                     mode=mode,
-                    uncertainty=uncertainty,
+                    calculate_covariance=calculate_covariance,
                 )
             else:
                 fisher_info_kin = model.calculate_fisher_information(
-                    unweighted_x_sample_file, n_events=luminosity * total_xsec
+                    x=unweighted_x_sample_file, n_events=luminosity * total_xsec
                 )
                 covariance = None
 
@@ -929,7 +917,7 @@ class FisherInformation:
                 model.load(model_file)
             else:
                 model_is_ensemble = False
-                model = Estimator()
+                model = ScoreEstimator()
                 model.load(model_file)
 
             # Nuisance parameters?
@@ -1002,7 +990,7 @@ class FisherInformation:
                         obs_weights=weights_theta,
                         n_events=luminosity * np.sum(weights_theta),
                         mode="score",
-                        uncertainty="none",
+                        calculate_covariance=False,
                         sum_events=False,
                     )
                 else:
