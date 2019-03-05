@@ -19,7 +19,7 @@ from madminer.utils.interfaces.lhe import (
 logger = logging.getLogger(__name__)
 
 
-class LHEProcessor:
+class LHEReader:
     """
     Detector simulation with smearing functions and simple calculation of observables.
 
