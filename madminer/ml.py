@@ -197,6 +197,12 @@ class Estimator(object):
         return settings
 
     def _unwrap_settings(self, settings):
+        try:
+            _ = str(settings["estimator_type"])
+        except KeyError:
+            raise RuntimeError("Can't find estimator type information in file. Maybe this file was created with"
+                               " an incompatible MadMiner version < v0.3.0?")
+
         self.n_observables = int(settings["n_observables"])
         self.n_parameters = int(settings["n_parameters"])
         self.n_hidden = tuple([int(item) for item in settings["n_hidden"]])
@@ -567,6 +573,18 @@ class ParameterizedRatioEstimator(Estimator):
         if method in ["cascal", "alices", "rascal"]:
             data["t_xz"] = t_xz
         return data
+
+    def _wrap_settings(self):
+        settings = super(ParameterizedRatioEstimator, self)._wrap_settings()
+        settings["estimator_type"] = "parameterized_ratio"
+        return settings
+
+    def _unwrap_settings(self, settings):
+        super(ParameterizedRatioEstimator, self)._unwrap_settings(settings)
+
+        estimator_type = str(settings["estimator_type"])
+        if estimator_type != "parameterized_ratio":
+            raise RuntimeError("Saved model is an incompatible estimator type {}.".format(estimator_type))
 
 
 class DoubleParameterizedRatioEstimator(Estimator):
@@ -963,6 +981,18 @@ class DoubleParameterizedRatioEstimator(Estimator):
             data["t_xz1"] = t_xz1
         return data
 
+    def _wrap_settings(self):
+        settings = super(DoubleParameterizedRatioEstimator, self)._wrap_settings()
+        settings["estimator_type"] = "double_parameterized_ratio"
+        return settings
+
+    def _unwrap_settings(self, settings):
+        super(DoubleParameterizedRatioEstimator, self)._unwrap_settings(settings)
+
+        estimator_type = str(settings["estimator_type"])
+        if estimator_type != "double_parameterized_ratio":
+            raise RuntimeError("Saved model is an incompatible estimator type {}.".format(estimator_type))
+
 
 class ScoreEstimator(Estimator):
     """ A neural estimator of the score evaluated at a reference hypothesis as a function of the
@@ -1288,6 +1318,19 @@ class ScoreEstimator(Estimator):
         data["x"] = x
         data["t_xz"] = t_xz
         return data
+
+    def _wrap_settings(self):
+        settings = super(ScoreEstimator, self)._wrap_settings()
+        settings["estimator_type"] = "score"
+        return settings
+
+    def _unwrap_settings(self, settings):
+        super(DoubleParameterizedRatioEstimator, self)._unwrap_settings(settings)
+
+        estimator_type = str(settings["estimator_type"])
+        if estimator_type != "score":
+            raise RuntimeError("Saved model is an incompatible estimator type {}.".format(estimator_type))
+
 
 
 class LikelihoodEstimator(Estimator):
@@ -1696,12 +1739,18 @@ class LikelihoodEstimator(Estimator):
 
     def _wrap_settings(self):
         settings = super(LikelihoodEstimator, self)._wrap_settings()
+        settings["estimator_type"] = "likelihood"
         settings["n_components"] = self.n_components
         settings["batch_norm"] = self.batch_norm
         settings["n_mades"] = self.n_mades
+        return settings
 
     def _unwrap_settings(self, settings):
         super(LikelihoodEstimator, self)._unwrap_settings(settings)
+
+        estimator_type = str(settings["estimator_type"])
+        if estimator_type != "likelihood":
+            raise RuntimeError("Saved model is an incompatible estimator type {}.".format(estimator_type))
 
         self.n_components = int(settings["n_components"])
         self.n_mades = int(settings["n_mades"])
@@ -2246,8 +2295,13 @@ class Ensemble:
         logger.debug("Loading ensemble setup from %s/ensemble.json", folder)
         with open(folder + "/ensemble.json", "r") as f:
             settings = json.load(f)
-        estimator_type = str(settings["estimator_type"])
+
         self.n_estimators = int(settings["n_estimators"])
+        try:
+            estimator_type = str(settings["estimator_type"])
+        except KeyError:
+            raise RuntimeError("Can't find estimator type information in file. Maybe this file was created with"
+                               " an incompatible MadMiner version < v0.3.0?")
         logger.info("Found %s ensemble with %s estimators", estimator_type, self.n_estimators)
 
         # Load estimators
