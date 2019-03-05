@@ -7,9 +7,9 @@ import os
 from scipy.stats import chi2, poisson
 
 from madminer.utils.interfaces.madminer_hdf5 import load_madminer_settings, madminer_event_loader
-from madminer.utils.analysis import get_theta_benchmark_matrix, get_dtheta_benchmark_matrix, mdot
+from madminer.utils.analysis import get_theta_benchmark_matrix, mdot
 from madminer.utils.morphing import PhysicsMorpher, NuisanceMorpher
-from madminer.utils.various import format_benchmark, math_commands, weighted_quantile, sanitize_array
+from madminer.utils.various import format_benchmark
 from madminer.ml import ParameterizedRatioEstimator, Ensemble
 
 logger = logging.getLogger(__name__)
@@ -113,7 +113,7 @@ class AsymptoticLimits:
 
     def observed_limits(self, x_observed, theta_ranges, model_file, resolution=25, luminosity=300000.0):
         theta_grid = self._make_theta_grid(theta_ranges, resolution)
-        p_values, i_ml = self._analyse(x_observed, theta_grid, model_file, len(x_observed), luminosity)
+        p_values, i_ml = self._analyse(x_observed, theta_grid, model_file, len(x_observed), None, luminosity)
         return theta_grid, p_values, i_ml
 
     def expected_limits(self, theta_true, theta_ranges, model_file, resolution=25, luminosity=300000.0):
@@ -160,7 +160,7 @@ class AsymptoticLimits:
 
     def _calculate_xsecs(self, thetas, test_split=0.2):
         # Test split
-        start_event, end_event = self._train_test_split(self, False, test_split)
+        start_event, end_event = self._train_test_split(False, test_split)
 
         # Total xsecs for benchmarks
         xsecs_benchmarks = 0.0
@@ -197,21 +197,21 @@ class AsymptoticLimits:
         return theta_grid
 
     def _calculate_log_likelihood_xsec(self, n_observed, theta_grid, luminosity=300000.0):
-        n_predicted = self._calculate_xsec(theta_grid) * luminosity
+        n_predicted = self._calculate_xsecs(theta_grid) * luminosity
         log_p = poisson.logpmf(k=n_observed, mu=n_predicted)
         return log_p
 
     def _calculate_log_likelihood_ratio_kinematics(self, x_observed, theta_grid, model, theta1=None):
         if isinstance(model, ParameterizedRatioEstimator):
             log_r, _ = model.evaluate_log_likelihood_ratio(
-                x=x_observed, theta=theta_grid, evaluate_all_combinations=True, calculate_score=False
+                x=x_observed, theta=theta_grid, test_all_combinations=True, evaluate_score=False
             )
         elif isinstance(model, Ensemble) and model.estimator_type == "parameterized_ratio":
             log_r, _ = model.evaluate_log_likelihood_ratio(
                 x=x_observed,
                 theta=theta_grid,
-                evaluate_all_combinations=True,
-                calculate_score=False,
+                test_all_combinations=True,
+                evaluate_score=False,
                 calculate_covariance=False,
             )
         else:
@@ -227,8 +227,7 @@ class AsymptoticLimits:
         log_r_subtracted = log_r[:] - log_r[i_ml]
         return log_r_subtracted, i_ml
 
-    @staticmethod
-    def _train_test_split(train, test_split):
+    def _train_test_split(self, train, test_split):
         """
         Returns the start and end event for train samples (train = True) or test samples (train = False).
 
