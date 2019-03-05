@@ -902,7 +902,7 @@ class FisherInformation:
         # ML case
         else:
             # Load SALLY model
-            if os.path.isdir(model_file):
+            if os.path.isdir(model_file) and os.path.exists(model_file + "/ensemble.json"):
                 model_is_ensemble = True
                 model = Ensemble()
                 model.load(model_file)
