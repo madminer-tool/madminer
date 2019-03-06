@@ -200,8 +200,10 @@ class Estimator(object):
         try:
             _ = str(settings["estimator_type"])
         except KeyError:
-            raise RuntimeError("Can't find estimator type information in file. Maybe this file was created with"
-                               " an incompatible MadMiner version < v0.3.0?")
+            raise RuntimeError(
+                "Can't find estimator type information in file. Maybe this file was created with"
+                " an incompatible MadMiner version < v0.3.0?"
+            )
 
         self.n_observables = int(settings["n_observables"])
         self.n_parameters = int(settings["n_parameters"])
@@ -268,7 +270,8 @@ class ParameterizedRatioEstimator(Estimator):
         Parameters
         ----------
         method : str
-            The inference method used for training. Allowed values are 'alice', 'alices', 'carl', 'cascal', 'rascal', and 'rolr'.
+            The inference method used for training. Allowed values are 'alice', 'alices', 'carl', 'cascal', 'rascal',
+            and 'rolr'.
 
         x : ndarray or str
             Path to an unweighted sample of observations, as saved by the `madminer.sampling.SampleAugmenter` functions.
@@ -287,7 +290,8 @@ class ParameterizedRatioEstimator(Estimator):
             Joint scores at theta, or filename of a pickled numpy array. Default value: None.
 
         alpha : float, optional
-            Hyperparameter weighting the score error in the loss function of the 'alices', 'rascal', and 'cascal' methods. Default value: 1.
+            Hyperparameter weighting the score error in the loss function of the 'alices', 'rascal', and 'cascal'
+            methods. Default value: 1.
 
         optimizer : {"adam", "amsgrad", "sgd"}, optional
             Optimization algorithm. Default value: "amsgrad".
@@ -639,7 +643,8 @@ class DoubleParameterizedRatioEstimator(Estimator):
         Parameters
         ----------
         method : str
-            The inference method used for training. Allowed values are 'alice', 'alices', 'carl', 'cascal', 'rascal', and 'rolr'.
+            The inference method used for training. Allowed values are 'alice', 'alices', 'carl', 'cascal', 'rascal',
+            and 'rolr'.
 
         x : ndarray or str
             Path to an unweighted sample of observations, as saved by the `madminer.sampling.SampleAugmenter` functions.
@@ -664,7 +669,8 @@ class DoubleParameterizedRatioEstimator(Estimator):
             Joint scores at theta1, or filename of a pickled numpy array. Default value: None.
 
         alpha : float, optional
-            Hyperparameter weighting the score error in the loss function of the 'alices', 'rascal', and 'cascal' methods. Default value: 1.
+            Hyperparameter weighting the score error in the loss function of the 'alices', 'rascal', and 'cascal'
+            methods. Default value: 1.
 
         optimizer : {"adam", "amsgrad", "sgd"}, optional
             Optimization algorithm. Default value: "amsgrad".
@@ -1011,7 +1017,6 @@ class ScoreEstimator(Estimator):
     activation : {'tanh', 'sigmoid', 'relu'}, optional
         Activation function. Default value: 'tanh'.
 
-
     """
 
     def train(
@@ -1039,7 +1044,8 @@ class ScoreEstimator(Estimator):
         Parameters
         ----------
         method : str
-            The inference method used for training. Allowed values are 'alice', 'alices', 'carl', 'cascal', 'rascal', and 'rolr'.
+            The inference method used for training. Allowed values are 'alice', 'alices', 'carl', 'cascal', 'rascal',
+            and 'rolr'.
 
         x : ndarray or str
             Path to an unweighted sample of observations, as saved by the `madminer.sampling.SampleAugmenter` functions.
@@ -1325,12 +1331,11 @@ class ScoreEstimator(Estimator):
         return settings
 
     def _unwrap_settings(self, settings):
-        super(DoubleParameterizedRatioEstimator, self)._unwrap_settings(settings)
+        super(ScoreEstimator, self)._unwrap_settings(settings)
 
         estimator_type = str(settings["estimator_type"])
         if estimator_type != "score":
             raise RuntimeError("Saved model is an incompatible estimator type {}.".format(estimator_type))
-
 
 
 class LikelihoodEstimator(Estimator):
@@ -1399,7 +1404,8 @@ class LikelihoodEstimator(Estimator):
         Parameters
         ----------
         method : str
-            The inference method used for training. Allowed values are 'alice', 'alices', 'carl', 'cascal', 'rascal', and 'rolr'.
+            The inference method used for training. Allowed values are 'alice', 'alices', 'carl', 'cascal', 'rascal',
+            and 'rolr'.
 
         x : ndarray or str
             Path to an unweighted sample of observations, as saved by the `madminer.sampling.SampleAugmenter` functions.
@@ -1412,7 +1418,8 @@ class LikelihoodEstimator(Estimator):
             Joint scores at theta, or filename of a pickled numpy array. Default value: None.
 
         alpha : float, optional
-            Hyperparameter weighting the score error in the loss function of the 'alices', 'rascal', and 'cascal' methods. Default value: 1.
+            Hyperparameter weighting the score error in the loss function of the 'alices', 'rascal', and 'cascal'
+            methods. Default value: 1.
 
         optimizer : {"adam", "amsgrad", "sgd"}, optional
             Optimization algorithm. Default value: "amsgrad".
@@ -1679,7 +1686,7 @@ class LikelihoodEstimator(Estimator):
             x, theta0, test_all_combinations=test_all_combinations, evaluate_score=evaluate_score
         )
         log_p_hat1, t_hat1 = self.evaluate_log_likelihood(
-            x, theta0, test_all_combinations=test_all_combinations, evaluate_score=evaluate_score
+            x, theta1, test_all_combinations=test_all_combinations, evaluate_score=evaluate_score
         )
         log_r_hat = log_p_hat0 - log_p_hat1
 
@@ -1726,14 +1733,11 @@ class LikelihoodEstimator(Estimator):
             raise RuntimeError("Method {} requires joint score information".format(method))
 
     @staticmethod
-    def _package_training_data(method, x, theta, y, r_xz, t_xz):
+    def _package_training_data(method, x, theta, t_xz):
         data = OrderedDict()
         data["x"] = x
         data["theta"] = theta
-        data["y"] = y
-        if method in ["rolr", "alice", "alices", "rascal"]:
-            data["r_xz"] = r_xz
-        if method in ["cascal", "alices", "rascal"]:
+        if method in ["scandal"]:
             data["t_xz"] = t_xz
         return data
 
@@ -2300,8 +2304,10 @@ class Ensemble:
         try:
             estimator_type = str(settings["estimator_type"])
         except KeyError:
-            raise RuntimeError("Can't find estimator type information in file. Maybe this file was created with"
-                               " an incompatible MadMiner version < v0.3.0?")
+            raise RuntimeError(
+                "Can't find estimator type information in file. Maybe this file was created with"
+                " an incompatible MadMiner version < v0.3.0?"
+            )
         logger.info("Found %s ensemble with %s estimators", estimator_type, self.n_estimators)
 
         # Load estimators

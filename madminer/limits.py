@@ -111,16 +111,38 @@ class AsymptoticLimits:
             )
             logger.info("Found nuisance morphing setup")
 
-    def observed_limits(self, x_observed, theta_ranges, model_file, include_xsec=True, include_kin=True, resolution=25, luminosity=300000.0):
+    def observed_limits(
+        self,
+        x_observed,
+        theta_ranges,
+        model_file,
+        include_xsec=True,
+        include_kin=True,
+        resolution=25,
+        luminosity=300000.0,
+    ):
         theta_grid = self._make_theta_grid(theta_ranges, resolution)
-        p_values, i_ml = self._analyse(x_observed, theta_grid, model_file, len(x_observed), include_xsec, include_kin, None, luminosity)
+        p_values, i_ml = self._analyse(
+            x_observed, theta_grid, model_file, len(x_observed), include_xsec, include_kin, None, luminosity
+        )
         return theta_grid, p_values, i_ml
 
-    def expected_limits(self, theta_true, theta_ranges, model_file, include_xsec=True, include_kin=True, resolution=25, luminosity=300000.0):
+    def expected_limits(
+        self,
+        theta_true,
+        theta_ranges,
+        model_file,
+        include_xsec=True,
+        include_kin=True,
+        resolution=25,
+        luminosity=300000.0,
+    ):
         x_asimov, x_weights = self._asimov_data(theta_true)
         n_observed = luminosity * self._calculate_xsecs([theta_true])[0]
         theta_grid = self._make_theta_grid(theta_ranges, resolution)
-        p_values, i_ml = self._analyse(x_asimov, theta_grid, model_file, n_observed, include_xsec, include_kin, x_weights, luminosity)
+        p_values, i_ml = self._analyse(
+            x_asimov, theta_grid, model_file, n_observed, include_xsec, include_kin, x_weights, luminosity
+        )
         return theta_grid, p_values, i_ml
 
     def asymptotic_p_value(self, log_likelihood_ratio):
@@ -128,7 +150,17 @@ class AsymptoticLimits:
         p_value = chi2.sf(x=q, df=self.n_parameters)
         return p_value
 
-    def _analyse(self, x, theta_grid, model_file, n_events, include_xsec=True, include_kin=True, obs_weights=None, luminosity=300000.0):
+    def _analyse(
+        self,
+        x,
+        theta_grid,
+        model_file,
+        n_events,
+        include_xsec=True,
+        include_kin=True,
+        obs_weights=None,
+        luminosity=300000.0,
+    ):
         # Observation weights
         if obs_weights is None:
             obs_weights = np.ones(len(x))
@@ -144,16 +176,16 @@ class AsymptoticLimits:
             not_finite = np.any(~np.isfinite(log_r_kin), axis=0)
             if np.sum(not_finite) > 0:
                 logger.warning("Removing %s inf / nan results from calculation")
-                log_r_kin[:, not_finite] = 0.
+                log_r_kin[:, not_finite] = 0.0
             log_r_kin = n_events / len(x) * np.einsum("tx,x->t", log_r_kin, obs_weights, dtype=np.float64)
         else:
-            log_r_kin = 0.
+            log_r_kin = 0.0
 
         # xsec part
         if include_xsec:
             log_p_xsec = self._calculate_log_likelihood_xsec(n_events, theta_grid, luminosity)
         else:
-            log_p_xsec = 0.
+            log_p_xsec = 0.0
 
         # Combine and get p-values
         log_r = log_r_kin + log_p_xsec
