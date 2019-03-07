@@ -12,9 +12,9 @@ class Histo:
         self.n_bins_x = n_bins_x
         self.separate_1d_x_histos = separate_1d_histos
 
-        logger.info('Initialized histogram with the following settings:')
-        logger.info('  Bins per parameter:  %s', self.n_bins_theta)
-        logger.info('  Bins per observable: %s', self.n_bins_x)
+        logger.info("Initialized histogram with the following settings:")
+        logger.info("  Bins per parameter:  %s", self.n_bins_theta)
+        logger.info("  Bins per observable: %s", self.n_bins_x)
 
         # Not yet trained
         self.n_parameters = None
@@ -23,7 +23,9 @@ class Histo:
         self.edges = None
         self.histos = None
 
-    def _calculate_binning(self, theta, x, observables=None, lower_cutoff_percentile=0., upper_cutoff_percentile=100.):
+    def _calculate_binning(
+        self, theta, x, observables=None, lower_cutoff_percentile=0.0, upper_cutoff_percentile=100.0
+    ):
         all_theta_x = np.hstack([theta, x]).T
 
         # Number of bins
@@ -38,16 +40,16 @@ class Histo:
         n_binned_observables = len(observables)
 
         # TODO: better automatic bin number determination
-        recommended_n_bins = 10 + int(round(n_samples ** (1. / 3.), 0))
-        logger.info('Recommended total number of bins: %s', recommended_n_bins)
+        recommended_n_bins = 10 + int(round(n_samples ** (1.0 / 3.0), 0))
+        logger.info("Recommended total number of bins: %s", recommended_n_bins)
 
         n_bins_per_theta = self.n_bins_theta
-        if n_bins_per_theta == 'auto':
-            n_bins_per_theta = max(3, int(round(recommended_n_bins ** (1. / (n_parameters + n_binned_observables)))))
+        if n_bins_per_theta == "auto":
+            n_bins_per_theta = max(3, int(round(recommended_n_bins ** (1.0 / (n_parameters + n_binned_observables)))))
 
         n_bins_per_x = self.n_bins_x
-        if n_bins_per_x == 'auto':
-            n_bins_per_x = max(3, int(round(recommended_n_bins ** (1. / (n_parameters + n_binned_observables)))))
+        if n_bins_per_x == "auto":
+            n_bins_per_x = max(3, int(round(recommended_n_bins ** (1.0 / (n_parameters + n_binned_observables)))))
 
         all_n_bins = [1 for _ in range(n_all_observables)]
         for i in observables:
@@ -64,8 +66,8 @@ class Histo:
             edges[0], edges[-1] = range_
 
             # Remove zero-width bins
-            widths = np.array(list(edges[1:] - edges[:-1]) + [1.])
-            edges = edges[widths > 1.e-9]
+            widths = np.array(list(edges[1:] - edges[:-1]) + [1.0])
+            edges = edges[widths > 1.0e-9]
 
             all_n_bins[i] = len(edges) - 1
             all_edges.append(edges)
@@ -79,14 +81,14 @@ class Histo:
         self.n_parameters = theta.shape[1]
         self.n_observables = x.shape[1]
 
-        logger.info('Filling histogram with settings:')
-        logger.info('  Samples:       %s', n_samples)
-        logger.info('  Parameters:    %s', self.n_parameters)
-        logger.info('  Observables:   %s', self.n_observables)
-        logger.info('  No empty bins: %s', fill_empty_bins)
+        logger.info("Filling histogram with settings:")
+        logger.info("  Samples:       %s", n_samples)
+        logger.info("  Parameters:    %s", self.n_parameters)
+        logger.info("  Observables:   %s", self.n_observables)
+        logger.info("  No empty bins: %s", fill_empty_bins)
 
         # Find bins
-        logger.info('Calculating binning')
+        logger.info("Calculating binning")
 
         self.n_bins = []
         self.edges = []
@@ -108,21 +110,21 @@ class Histo:
             ranges.append(histo_ranges)
 
         for h, (histo_n_bins, histo_edges, histo_ranges) in enumerate(zip(self.n_bins, self.edges, ranges)):
-            logger.info('Histogram %s: bin edges', h + 1)
+            logger.info("Histogram %s: bin edges", h + 1)
             for i, (axis_bins, axis_edges, axis_range) in enumerate(zip(histo_n_bins, histo_edges, histo_ranges)):
                 if i < theta.shape[1]:
-                    logger.info(
-                        '  theta %s: %s bins, range %s, edges %s',
-                        i + 1, axis_bins, axis_range, axis_edges
-                    )
+                    logger.info("  theta %s: %s bins, range %s, edges %s", i + 1, axis_bins, axis_range, axis_edges)
                 else:
                     logger.info(
-                        '  x %s:     %s bins, range %s, edges %s',
-                        i + 1 - theta.shape[1], axis_bins, axis_range, axis_edges
+                        "  x %s:     %s bins, range %s, edges %s",
+                        i + 1 - theta.shape[1],
+                        axis_bins,
+                        axis_range,
+                        axis_edges,
                     )
 
         # Fill histograms
-        logger.info('Filling histograms')
+        logger.info("Filling histograms")
         self.histos = []
         theta_x = np.hstack([theta, x])
 
@@ -131,18 +133,18 @@ class Histo:
 
             # Avoid empty bins
             if fill_empty_bins:
-                histo[histo <= 1.] = 1.
+                histo[histo <= 1.0] = 1.0
 
             # Calculate cell volumes
             original_shape = tuple(histo_n_bins)
-            flat_shape = tuple([-1] + list(histo_n_bins[self.n_parameters:]))
+            flat_shape = tuple([-1] + list(histo_n_bins[self.n_parameters :]))
 
             # Fix edges for bvolume calculation (to avoid larger volumes for more training data)
             modified_histo_edges = []
             for i in range(x.shape[1]):
                 axis_edges = histo_edges[self.n_parameters + i]
-                axis_edges[0] = min(np.percentile(x[:, i], 5.), axis_edges[1] - 0.01)
-                axis_edges[-1] = max(np.percentile(x[:, i], 95.), axis_edges[-2] + 0.01)
+                axis_edges[0] = min(np.percentile(x[:, i], 5.0), axis_edges[1] - 0.01)
+                axis_edges[-1] = max(np.percentile(x[:, i], 95.0), axis_edges[-2] + 0.01)
                 modified_histo_edges.append(axis_edges)
 
             bin_widths = [axis_edges[1:] - axis_edges[:-1] for axis_edges in modified_histo_edges]
@@ -165,22 +167,20 @@ class Histo:
             histo = histo.reshape(original_shape)
 
             # Avoid NaNs
-            histo[np.invert(np.isfinite(histo))] = 0.
+            histo[np.invert(np.isfinite(histo))] = 0.0
 
             self.histos.append(histo)
 
     def log_likelihood(self, theta, x):
         theta_x = np.hstack([theta, x])
 
-        log_p = 0.
+        log_p = 0.0
 
         for histo, histo_edges, n_bins in zip(self.histos, self.edges, self.n_bins):
             histo_indices = []
 
             for j in range(theta_x.shape[1]):
-                indices = np.searchsorted(histo_edges[j],
-                                          theta_x[:, j],
-                                          side="right") - 1
+                indices = np.searchsorted(histo_edges[j], theta_x[:, j], side="right") - 1
 
                 indices[indices < 0] = 0
                 indices[indices >= n_bins[j]] = n_bins[j] - 1

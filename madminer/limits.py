@@ -11,6 +11,9 @@ from madminer.utils.analysis import get_theta_benchmark_matrix, mdot
 from madminer.utils.morphing import PhysicsMorpher, NuisanceMorpher
 from madminer.utils.various import format_benchmark
 from madminer.ml import ParameterizedRatioEstimator, Ensemble
+from madminer.utils.histo import Histo
+from madminer.sampling import SampleAugmenter
+from madminer import sampling
 
 logger = logging.getLogger(__name__)
 
@@ -117,16 +120,24 @@ class AsymptoticLimits:
         theta_ranges,
         mode="ml",
         model_file=None,
-        hist_var=None,
+        hist_vars=None,
         hist_bins=20,
-        hist_range=None,
         include_xsec=True,
         resolution=25,
         luminosity=300000.0,
     ):
-        theta_grid = self._make_theta_grid(theta_ranges, resolution)
-        p_values, i_ml = self._analyse(
-            len(x_observed), x_asimov, theta_grid, mode, model_file, hist_var, hist_bins, hist_range, include_xsec, None, luminosity
+        theta_grid, p_values, i_ml = self._analyse(
+            len(x_observed),
+            x_observed,
+            theta_ranges,
+            resolution,
+            mode,
+            model_file,
+            hist_vars,
+            hist_bins,
+            include_xsec,
+            None,
+            luminosity,
         )
         return theta_grid, p_values, i_ml
 
@@ -136,18 +147,26 @@ class AsymptoticLimits:
         theta_ranges,
         mode="ml",
         model_file=None,
-        hist_var=None,
+        hist_vars=None,
         hist_bins=20,
-        hist_range=None,
         include_xsec=True,
         resolution=25,
         luminosity=300000.0,
     ):
         x_asimov, x_weights = self._asimov_data(theta_true)
         n_observed = luminosity * self._calculate_xsecs([theta_true])[0]
-        theta_grid = self._make_theta_grid(theta_ranges, resolution)
-        p_values, i_ml = self._analyse(
-            n_observed, x_asimov, theta_grid, mode, model_file, hist_var, hist_bins, hist_range, include_xsec, x_weights, luminosity
+        theta_grid, p_values, i_ml = self._analyse(
+            n_observed,
+            x_asimov,
+            theta_ranges,
+            resolution,
+            mode,
+            model_file,
+            hist_vars,
+            hist_bins,
+            include_xsec,
+            x_weights,
+            luminosity,
         )
         return theta_grid, p_values, i_ml
 
@@ -160,14 +179,13 @@ class AsymptoticLimits:
         self,
         n_events,
         x,
-        theta_grid,
+        theta_ranges,
+        theta_resolution,
         mode="ml",
         model_file=None,
-        hist_var=None,
+        hist_vars=None,
         hist_bins=20,
-        hist_range=None,
         include_xsec=True,
-        include_kin=True,
         obs_weights=None,
         luminosity=300000.0,
     ):
@@ -177,6 +195,9 @@ class AsymptoticLimits:
         obs_weights /= np.sum(obs_weights)
         obs_weights = obs_weights.astype(np.float64)
 
+        # Theta grid
+        theta_grid = self._make_theta_grid(theta_ranges, theta_resolution)
+
         # Kinematic part
         if mode == "ml":
             model = self._load_model(model_file)
@@ -185,7 +206,7 @@ class AsymptoticLimits:
             log_r_kin = self._clean_nans(log_r_kin)
             log_r_kin = n_events / len(x) * np.einsum("tx,x->t", log_r_kin, obs_weights, dtype=np.float64)
         elif mode == "histo":
-            histo = self._make_histo(hist_var, hist_bins, hist_range)
+            histo = self._make_histo(hist_vars, hist_bins, theta_grid, theta_resolution)
             log_r_kin = self._calculate_log_likelihood_histo(x, theta_grid, histo)
             log_r_kin = log_r_kin.astype(np.float64)
             log_r_kin = self._clean_nans(log_r_kin)
@@ -207,9 +228,11 @@ class AsymptoticLimits:
         log_r = log_r_kin + log_p_xsec
         log_r, i_ml = self._subtract_ml(log_r)
         p_values = self.asymptotic_p_value(log_r)
-        return p_values, i_ml
 
-    def _load_model(self, filename):
+        return theta_grid, p_values, i_ml
+
+    @staticmethod
+    def _load_model(filename):
         if os.path.isdir(filename):
             model = Ensemble()
             model.load(filename)
@@ -257,11 +280,32 @@ class AsymptoticLimits:
         theta_grid = np.vstack(theta_grid_each).T
         return theta_grid
 
-    def _make_histo(self, x, theta_grid, nbins=25, xrange=None):
-        raise NotImplementedError
+    def _make_histo(self, x_vars, x_bins, theta_grid, theta_bins, n_samples_per_theta=1000):
+        logger.info("Building histogram with %s bins per parameter and %s bins per observable")
+        histo = Histo(theta_bins, x_bins)
+        theta, x = self._make_histo_data(theta_grid, x_vars, n_samples_per_theta * len(theta_grid))
+        histo.fit(theta, x, fill_empty_bins=True)
+        return histo
 
+    def _make_histo_data(self, thetas, n_samples, test_split=0.2):
+        logger.info("Generating unweighted data to fill histogram")
+        sampler = SampleAugmenter(self.madminer_filename, include_nuisance_parameters=self.include_nuisance_parameters)
+        theta, x = sampler.extract_samples_train_plain(
+            theta=sampling.morphing_points(thetas),
+            n_samples=n_samples,
+            test_split=test_split,
+            filename=None,
+            folder=None,
+        )
+        return theta, x
+
+    @staticmethod
     def _calculate_log_likelihood_histo(x, theta_grid, histo):
-        raise NotImplementedError
+        log_p = []
+        for theta in theta_grid:
+            log_p.append(histo.log_likelihood(theta, x))
+        log_p = np.asarray(log_p)
+        return log_p
 
     def _calculate_log_likelihood_xsec(self, n_observed, theta_grid, luminosity=300000.0):
         n_predicted = self._calculate_xsecs(theta_grid) * luminosity
