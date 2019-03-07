@@ -115,15 +115,18 @@ class AsymptoticLimits:
         self,
         x_observed,
         theta_ranges,
-        model_file,
+        mode="ml",
+        model_file=None,
+        hist_var=None,
+        hist_bins=20,
+        hist_range=None,
         include_xsec=True,
-        include_kin=True,
         resolution=25,
         luminosity=300000.0,
     ):
         theta_grid = self._make_theta_grid(theta_ranges, resolution)
         p_values, i_ml = self._analyse(
-            x_observed, theta_grid, model_file, len(x_observed), include_xsec, include_kin, None, luminosity
+            len(x_observed), x_asimov, theta_grid, mode, model_file, hist_var, hist_bins, hist_range, include_xsec, None, luminosity
         )
         return theta_grid, p_values, i_ml
 
@@ -131,9 +134,12 @@ class AsymptoticLimits:
         self,
         theta_true,
         theta_ranges,
-        model_file,
+        mode="ml",
+        model_file=None,
+        hist_var=None,
+        hist_bins=20,
+        hist_range=None,
         include_xsec=True,
-        include_kin=True,
         resolution=25,
         luminosity=300000.0,
     ):
@@ -141,7 +147,7 @@ class AsymptoticLimits:
         n_observed = luminosity * self._calculate_xsecs([theta_true])[0]
         theta_grid = self._make_theta_grid(theta_ranges, resolution)
         p_values, i_ml = self._analyse(
-            x_asimov, theta_grid, model_file, n_observed, include_xsec, include_kin, x_weights, luminosity
+            n_observed, x_asimov, theta_grid, mode, model_file, hist_var, hist_bins, hist_range, include_xsec, x_weights, luminosity
         )
         return theta_grid, p_values, i_ml
 
@@ -152,10 +158,14 @@ class AsymptoticLimits:
 
     def _analyse(
         self,
+        n_events,
         x,
         theta_grid,
-        model_file,
-        n_events,
+        mode="ml",
+        model_file=None,
+        hist_var=None,
+        hist_bins=20,
+        hist_range=None,
         include_xsec=True,
         include_kin=True,
         obs_weights=None,
@@ -168,18 +178,24 @@ class AsymptoticLimits:
         obs_weights = obs_weights.astype(np.float64)
 
         # Kinematic part
-        if include_kin:
+        if mode == "ml":
             model = self._load_model(model_file)
             log_r_kin = self._calculate_log_likelihood_ratio_kinematics(x, theta_grid, model)
             log_r_kin = log_r_kin.astype(np.float64)
-
-            not_finite = np.any(~np.isfinite(log_r_kin), axis=0)
-            if np.sum(not_finite) > 0:
-                logger.warning("Removing %s inf / nan results from calculation")
-                log_r_kin[:, not_finite] = 0.0
+            log_r_kin = self._clean_nans(log_r_kin)
             log_r_kin = n_events / len(x) * np.einsum("tx,x->t", log_r_kin, obs_weights, dtype=np.float64)
-        else:
+        elif mode == "histo":
+            histo = self._make_histo(hist_var, hist_bins, hist_range)
+            log_r_kin = self._calculate_log_likelihood_histo(x, theta_grid, histo)
+            log_r_kin = log_r_kin.astype(np.float64)
+            log_r_kin = self._clean_nans(log_r_kin)
+            log_r_kin = n_events / len(x) * np.einsum("tx,x->t", log_r_kin, obs_weights, dtype=np.float64)
+        elif mode == "rate":
             log_r_kin = 0.0
+        else:
+            raise ValueError("Unknown mode {}, has to be 'ml' or 'histo' or 'xsec'".format(mode))
+
+        log_r_kin = n_events / len(x) * np.einsum("tx,x->t", log_r_kin, obs_weights, dtype=np.float64)
 
         # xsec part
         if include_xsec:
@@ -241,6 +257,12 @@ class AsymptoticLimits:
         theta_grid = np.vstack(theta_grid_each).T
         return theta_grid
 
+    def _make_histo(self, x, theta_grid, nbins=25, xrange=None):
+        raise NotImplementedError
+
+    def _calculate_log_likelihood_histo(x, theta_grid, histo):
+        raise NotImplementedError
+
     def _calculate_log_likelihood_xsec(self, n_observed, theta_grid, luminosity=300000.0):
         n_predicted = self._calculate_xsecs(theta_grid) * luminosity
         log_p = poisson.logpmf(k=n_observed, mu=n_predicted)
@@ -271,6 +293,14 @@ class AsymptoticLimits:
         i_ml = np.argmax(log_r)
         log_r_subtracted = log_r[:] - log_r[i_ml]
         return log_r_subtracted, i_ml
+
+    @staticmethod
+    def _clean_nans(array):
+        not_finite = np.any(~np.isfinite(array), axis=0)
+        if np.sum(not_finite) > 0:
+            logger.warning("Removing %s inf / nan results from calculation")
+            array[:, not_finite] = 0.0
+        return array
 
     def _train_test_split(self, train, test_split):
         """
