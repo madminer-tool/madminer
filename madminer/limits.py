@@ -189,6 +189,8 @@ class AsymptoticLimits:
         obs_weights=None,
         luminosity=300000.0,
     ):
+        logger.debug("Calculating p-values for %s expected events", n_events)
+
         # Observation weights
         if obs_weights is None:
             obs_weights = np.ones(len(x))
@@ -200,23 +202,25 @@ class AsymptoticLimits:
 
         # Kinematic part
         if mode == "ml":
+            assert model_file is not None
             model = self._load_model(model_file)
             log_r_kin = self._calculate_log_likelihood_ratio_kinematics(x, theta_grid, model)
             log_r_kin = log_r_kin.astype(np.float64)
             log_r_kin = self._clean_nans(log_r_kin)
-            log_r_kin = n_events / len(x) * np.einsum("tx,x->t", log_r_kin, obs_weights, dtype=np.float64)
+            logger.debug("Raw mean -2 log r: %s", np.mean(-2.*log_r_kin, axis=1))
+            log_r_kin = n_events * np.sum(log_r_kin * obs_weights[np.newaxis,:], axis=1)
+            logger.debug("Rescaled -2 log r: %s", -2.*log_r_kin)
         elif mode == "histo":
+            assert hist_vars is not None
             histo = self._make_histo(hist_vars, hist_bins, theta_grid, theta_resolution)
             log_r_kin = self._calculate_log_likelihood_histo(x, theta_grid, histo)
             log_r_kin = log_r_kin.astype(np.float64)
             log_r_kin = self._clean_nans(log_r_kin)
-            log_r_kin = n_events / len(x) * np.einsum("tx,x->t", log_r_kin, obs_weights, dtype=np.float64)
+            log_r_kin = n_events * np.sum(log_r_kin * obs_weights[np.newaxis,:], axis=1)
         elif mode == "rate":
             log_r_kin = 0.0
         else:
             raise ValueError("Unknown mode {}, has to be 'ml' or 'histo' or 'xsec'".format(mode))
-
-        log_r_kin = n_events / len(x) * np.einsum("tx,x->t", log_r_kin, obs_weights, dtype=np.float64)
 
         # xsec part
         if include_xsec:
@@ -226,7 +230,9 @@ class AsymptoticLimits:
 
         # Combine and get p-values
         log_r = log_r_kin + log_p_xsec
+        logger.debug("Combined -2 log r: %s", -2.*log_r)
         log_r, i_ml = self._subtract_ml(log_r)
+        logger.debug("Min-subtracted -2 log r: %s", -2.*log_r)
         p_values = self.asymptotic_p_value(log_r)
 
         return theta_grid, p_values, i_ml
