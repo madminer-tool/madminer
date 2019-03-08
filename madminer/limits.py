@@ -333,7 +333,7 @@ class AsymptoticLimits:
         theta_grid = np.vstack(theta_grid_each).T
         return theta_grid
 
-    def _make_histo(self, summary_function, x_bins, theta_grid, theta_bins, n_samples_per_theta=10000):
+    def _make_histo(self, summary_function, x_bins, theta_grid, theta_bins, n_samples_per_theta=1000):
         logger.info("Building histogram with %s bins per parameter and %s bins per observable")
         histo = Histo(theta_bins, x_bins)
         theta, x = self._make_histo_data(theta_grid, n_samples_per_theta * len(theta_grid))
