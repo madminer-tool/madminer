@@ -19,7 +19,7 @@ from madminer.utils.interfaces.lhe import parse_lhe_file, extract_nuisance_param
 logger = logging.getLogger(__name__)
 
 
-class DelphesProcessor:
+class DelphesReader:
     """
     Detector simulation with Delphes and simple calculation of observables.
     

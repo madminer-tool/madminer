@@ -1,6 +1,6 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
-import six
 
+import six
 import logging
 import numpy as np
 from collections import OrderedDict
@@ -11,14 +11,14 @@ from madminer.utils.various import sanitize_array
 logger = logging.getLogger(__name__)
 
 
-class Morpher:
+class PhysicsMorpher:
     """
     Morphing functionality for theory parameters. Morphing is a technique that allows MadMax to infer the full
     probability distribution `p(x_i | theta)` for each simulated event `x_i` and any `theta`, not just the benchmarks.
 
     For a typical MadMiner application, it is not necessary to use the morphing classes directly. The other MadMiner
     classes use the morphing functions "under the hood" when needed. Only for an isolated study of the morphing setup
-    (e.g. to optimize the morphing basis), the Morpher class itself may be of interest.
+    (e.g. to optimize the morphing basis), the PhysicsMorpher class itself may be of interest.
 
     A typical morphing basis setup involves the following steps:
 
@@ -360,7 +360,8 @@ class Morpher:
 
         if basis is None:
             raise RuntimeError(
-                "No basis defined or given. Use Morpher.set_basis(), Morpher.optimize_basis(), or the " "basis keyword."
+                "No basis defined or given. Use PhysicsMorpher.set_basis(), PhysicsMorpher.optimize_basis(), or the "
+                "basis keyword."
             )
 
         n_benchmarks = len(basis)
@@ -437,7 +438,8 @@ class Morpher:
 
         if basis is None:
             raise RuntimeError(
-                "No basis defined or given. Use Morpher.set_basis(), Morpher.optimize_basis(), or the " "basis keyword."
+                "No basis defined or given. Use PhysicsMorpher.set_basis(), PhysicsMorpher.optimize_basis(), or the "
+                "basis keyword."
             )
 
         if morphing_matrix is None:
@@ -497,7 +499,8 @@ class Morpher:
 
         if basis is None:
             raise RuntimeError(
-                "No basis defined or given. Use Morpher.set_basis(), Morpher.optimize_basis(), or the " "basis keyword."
+                "No basis defined or given. Use PhysicsMorpher.set_basis(), PhysicsMorpher.optimize_basis(), or the "
+                "basis keyword."
             )
 
         if morphing_matrix is None:
@@ -578,7 +581,8 @@ class Morpher:
 
         if basis is None:
             raise RuntimeError(
-                "No basis defined or given. Use Morpher.set_basis(), Morpher.optimize_basis(), or the " "basis keyword."
+                "No basis defined or given. Use PhysicsMorpher.set_basis(), PhysicsMorpher.optimize_basis(), or the "
+                "basis keyword."
             )
 
         if morphing_matrix is None:

@@ -142,12 +142,14 @@ def load_and_check(filename, warning_threshold=1.0e9):
     if filename is None:
         return None
 
-    data = np.load(filename)
+    if not isinstance(filename, six.string_types):
+        data = filename
+    else:
+        data = np.load(filename)
 
     n_nans = np.sum(np.isnan(data))
     n_infs = np.sum(np.isinf(data))
     n_finite = np.sum(np.isfinite(data))
-
     if n_nans + n_infs > 0:
         logger.warning(
             "Warning: file %s contains %s NaNs and %s Infs, compared to %s finite numbers!",
@@ -159,9 +161,11 @@ def load_and_check(filename, warning_threshold=1.0e9):
 
     smallest = np.nanmin(data)
     largest = np.nanmax(data)
-
     if np.abs(smallest) > warning_threshold or np.abs(largest) > warning_threshold:
         logger.warning("Warning: file %s has some large numbers, rangin from %s to %s", filename, smallest, largest)
+
+    if len(data.shape) == 1:
+        data = data.reshape(-1, 1)
 
     return data
 
