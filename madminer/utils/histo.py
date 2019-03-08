@@ -7,13 +7,13 @@ logger = logging.getLogger(__name__)
 
 
 class Histo:
-    def __init__(self, n_bins_theta, n_bins_x, separate_1d_histos=False):
-        self.n_bins_theta = n_bins_theta
+    def __init__(self, n_bins_thetas, n_bins_x, separate_1d_histos=False):
+        self.n_bins_thetas = n_bins_thetas
         self.n_bins_x = n_bins_x
         self.separate_1d_x_histos = separate_1d_histos
 
         logger.debug("Initialized histogram with the following settings:")
-        logger.debug("  Bins per parameter:  %s", self.n_bins_theta)
+        logger.debug("  Bins per parameter:  %s", self.n_bins_thetas)
         logger.debug("  Bins per observable: %s", self.n_bins_x)
 
         # Not yet trained
@@ -26,13 +26,7 @@ class Histo:
     def _calculate_binning(
         self, theta, x, observables=None, lower_cutoff_percentile=0.0, upper_cutoff_percentile=100.0
     ):
-        logger.debug("theta going into bin calculation: shape %s, means %s", theta.shape, np.mean(theta, axis=0))
-        logger.debug("x going into bin calculation: shape %s, means %s", x.shape, np.mean(x, axis=0))
-
         all_theta_x = np.hstack([theta, x]).T
-        logger.debug(
-            "Data going into bin calculation: shape %s, means %s", all_theta_x.shape, np.mean(all_theta_x, axis=1)
-        )
 
         # Number of bins
         n_samples = x.shape[0]
@@ -43,24 +37,19 @@ class Histo:
         if observables is None:
             observables = list(range(n_all_observables))
 
-        n_binned_observables = len(observables)
-
-        # TODO: better automatic bin number determination
-        recommended_n_bins = 10 + int(round(n_samples ** (1.0 / 3.0), 0))
-        logger.debug("Recommended total number of bins: %s", recommended_n_bins)
-
-        n_bins_per_theta = self.n_bins_theta
-        if n_bins_per_theta == "auto":
-            n_bins_per_theta = max(3, int(round(recommended_n_bins ** (1.0 / (n_parameters + n_binned_observables)))))
-
-        n_bins_per_x = self.n_bins_x
-        if n_bins_per_x == "auto":
-            n_bins_per_x = max(3, int(round(recommended_n_bins ** (1.0 / (n_parameters + n_binned_observables)))))
-
-        all_n_bins = [1 for _ in range(n_all_observables)]
+        # Number of bins
+        all_n_bins_x = [1 for _ in range(n_all_observables)]
         for i in observables:
-            all_n_bins[i] = n_bins_per_x
-        all_n_bins = [n_bins_per_theta] * n_parameters + all_n_bins
+            all_n_bins_x[i] = self.n_bins_x
+
+        if isinstance(self.n_bins_thetas, int):
+            all_n_bins_theta = [self.n_bins_thetas for _ in range(n_parameters)]
+        elif len(self.n_bins_thetas) == n_parameters:
+            all_n_bins_theta = self.n_bins_thetas
+        else:
+            raise RuntimeError("Inconsistent bin numbers for parameteers: {} vs {} parameters".format(self.n_bins_thetas, n_parameters))
+
+        all_n_bins = all_n_bins_theta + all_n_bins_x
 
         # Find edges based on percentiles
         all_edges = []
