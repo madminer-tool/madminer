@@ -295,7 +295,6 @@ class AsymptoticLimits:
         return histo
 
     def _make_histo_data(self, thetas, x_vars, n_samples, test_split=0.2):
-        logger.info("Generating unweighted data to fill histogram")
         x_names = list(self.observables.keys())
         x_indices = []
         for x_var in x_vars:
@@ -306,7 +305,7 @@ class AsymptoticLimits:
         logger.debug("Using x indices %s", x_indices)
 
         sampler = SampleAugmenter(self.madminer_filename, include_nuisance_parameters=self.include_nuisance_parameters)
-        theta, x = sampler.extract_samples_train_plain(
+        x, theta = sampler.extract_samples_train_plain(
             theta=sampling.morphing_points(thetas),
             n_samples=n_samples,
             test_split=test_split,
@@ -321,6 +320,7 @@ class AsymptoticLimits:
     def _calculate_log_likelihood_histo(x, theta_grid, histo):
         log_p = []
         for theta in theta_grid:
+            logger.debug("Evaluating theta with shape %s, x with shape %s", theta.shape, x.shape)
             log_p.append(histo.log_likelihood(theta, x))
         log_p = np.asarray(log_p)
         return log_p

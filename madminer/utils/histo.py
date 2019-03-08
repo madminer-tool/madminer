@@ -12,9 +12,9 @@ class Histo:
         self.n_bins_x = n_bins_x
         self.separate_1d_x_histos = separate_1d_histos
 
-        logger.info("Initialized histogram with the following settings:")
-        logger.info("  Bins per parameter:  %s", self.n_bins_theta)
-        logger.info("  Bins per observable: %s", self.n_bins_x)
+        logger.debug("Initialized histogram with the following settings:")
+        logger.debug("  Bins per parameter:  %s", self.n_bins_theta)
+        logger.debug("  Bins per observable: %s", self.n_bins_x)
 
         # Not yet trained
         self.n_parameters = None
@@ -26,7 +26,11 @@ class Histo:
     def _calculate_binning(
         self, theta, x, observables=None, lower_cutoff_percentile=0.0, upper_cutoff_percentile=100.0
     ):
+        logger.debug("theta going into bin calculation: shape %s, means %s", theta.shape, np.mean(theta, axis=0))
+        logger.debug("x going into bin calculation: shape %s, means %s", x.shape, np.mean(x, axis=0))
+
         all_theta_x = np.hstack([theta, x]).T
+        logger.debug("Data going into bin calculation: shape %s, means %s", all_theta_x.shape, np.mean(all_theta_x, axis=1))
 
         # Number of bins
         n_samples = x.shape[0]
@@ -41,7 +45,7 @@ class Histo:
 
         # TODO: better automatic bin number determination
         recommended_n_bins = 10 + int(round(n_samples ** (1.0 / 3.0), 0))
-        logger.info("Recommended total number of bins: %s", recommended_n_bins)
+        logger.debug("Recommended total number of bins: %s", recommended_n_bins)
 
         n_bins_per_theta = self.n_bins_theta
         if n_bins_per_theta == "auto":
@@ -80,15 +84,16 @@ class Histo:
         n_samples = x.shape[0]
         self.n_parameters = theta.shape[1]
         self.n_observables = x.shape[1]
+        assert theta.shape[0] == n_samples
 
-        logger.info("Filling histogram with settings:")
-        logger.info("  Samples:       %s", n_samples)
-        logger.info("  Parameters:    %s", self.n_parameters)
-        logger.info("  Observables:   %s", self.n_observables)
-        logger.info("  No empty bins: %s", fill_empty_bins)
+        logger.debug("Filling histogram with settings:")
+        logger.debug("  Samples:       %s", n_samples)
+        logger.debug("  Parameters:    %s with means %s", self.n_parameters, np.mean(theta, axis=0))
+        logger.debug("  Observables:   %s with means %s", self.n_observables, np.mean(x, axis=0))
+        logger.debug("  No empty bins: %s", fill_empty_bins)
 
         # Find bins
-        logger.info("Calculating binning")
+        logger.debug("Calculating binning")
 
         self.n_bins = []
         self.edges = []
@@ -110,12 +115,12 @@ class Histo:
             ranges.append(histo_ranges)
 
         for h, (histo_n_bins, histo_edges, histo_ranges) in enumerate(zip(self.n_bins, self.edges, ranges)):
-            logger.info("Histogram %s: bin edges", h + 1)
+            logger.debug("Histogram %s: bin edges", h + 1)
             for i, (axis_bins, axis_edges, axis_range) in enumerate(zip(histo_n_bins, histo_edges, histo_ranges)):
                 if i < theta.shape[1]:
-                    logger.info("  theta %s: %s bins, range %s, edges %s", i + 1, axis_bins, axis_range, axis_edges)
+                    logger.debug("  theta %s: %s bins, range %s, edges %s", i + 1, axis_bins, axis_range, axis_edges)
                 else:
-                    logger.info(
+                    logger.debug(
                         "  x %s:     %s bins, range %s, edges %s",
                         i + 1 - theta.shape[1],
                         axis_bins,
@@ -124,7 +129,7 @@ class Histo:
                     )
 
         # Fill histograms
-        logger.info("Filling histograms")
+        logger.debug("Filling histograms")
         self.histos = []
         theta_x = np.hstack([theta, x])
 
