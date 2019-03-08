@@ -213,7 +213,7 @@ class AsymptoticLimits:
         elif mode == "histo":
             assert hist_vars is not None
             histo = self._make_histo(hist_vars, hist_bins, theta_grid, theta_resolution)
-            log_r_kin = self._calculate_log_likelihood_histo(x, theta_grid, histo)
+            log_r_kin = self._calculate_log_likelihood_histo(x, theta_grid, histo, hist_vars)
             log_r_kin = log_r_kin.astype(np.float64)
             log_r_kin = self._clean_nans(log_r_kin)
             log_r_kin = n_events * np.sum(log_r_kin * obs_weights[np.newaxis,:], axis=1)
@@ -295,14 +295,7 @@ class AsymptoticLimits:
         return histo
 
     def _make_histo_data(self, thetas, x_vars, n_samples, test_split=0.2):
-        x_names = list(self.observables.keys())
-        x_indices = []
-        for x_var in x_vars:
-            try:
-                x_indices.append(x_names.index(x_var))
-            except ValueError:
-                raise RuntimeError("Unknown observable {}, has to be one of {}".format(x_var, x_names))
-        logger.debug("Using x indices %s", x_indices)
+        x_indices = self._find_x_indices(x_vars)
 
         sampler = SampleAugmenter(self.madminer_filename, include_nuisance_parameters=self.include_nuisance_parameters)
         x, theta = sampler.extract_samples_train_plain(
@@ -316,12 +309,22 @@ class AsymptoticLimits:
         x = x[:, x_indices]
         return theta, x
 
-    @staticmethod
-    def _calculate_log_likelihood_histo(x, theta_grid, histo):
+    def _find_x_indices(self, observables):
+        x_names = list(self.observables.keys())
+        x_indices = []
+        for obs in observables:
+            try:
+                x_indices.append(x_names.index(obs))
+            except ValueError:
+                raise RuntimeError("Unknown observable {}, has to be one of {}".format(obs, x_names))
+        logger.debug("Using x indices %s", x_indices)
+        return x_indices
+
+    def _calculate_log_likelihood_histo(self, x, theta_grid, histo, x_vars):
+        x_indices = self._find_x_indices(x_vars)
         log_p = []
         for theta in theta_grid:
-            logger.debug("Evaluating theta with shape %s, x with shape %s", theta.shape, x.shape)
-            log_p.append(histo.log_likelihood(theta, x))
+            log_p.append(histo.log_likelihood(theta, x[:, x_indices]))
         log_p = np.asarray(log_p)
         return log_p
 

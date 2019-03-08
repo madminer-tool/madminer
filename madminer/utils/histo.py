@@ -177,10 +177,13 @@ class Histo:
             self.histos.append(histo)
 
     def log_likelihood(self, theta, x):
-        theta_x = np.hstack([theta, x])
+        if len(theta.shape) == 1:
+            theta_ = np.broadcast_to(theta, (x.shape[0], theta.shape[0]))
+        else:
+            theta_ = theta
+        theta_x = np.hstack([theta_, x])
 
         log_p = 0.0
-
         for histo, histo_edges, n_bins in zip(self.histos, self.edges, self.n_bins):
             histo_indices = []
 
