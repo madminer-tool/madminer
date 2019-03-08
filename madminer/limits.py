@@ -206,8 +206,10 @@ class AsymptoticLimits:
             log_r_kin = 0.0
         elif mode == "ml":
             assert model_file is not None
-            model = self._load_model(model_file)
+            logger.info("Loading kinematic likelihood ratio estimator")
+            model = self._load_ratio_model(model_file)
 
+            logger.info("Calculating kinematic log likelihood ratio with estimator")
             log_r_kin = self._calculate_log_likelihood_ratio_kinematics(x, theta_grid, model)
             log_r_kin = log_r_kin.astype(np.float64)
             log_r_kin = self._clean_nans(log_r_kin)
@@ -217,31 +219,38 @@ class AsymptoticLimits:
 
         elif mode == "histo":
             if hist_vars is not None:
+                logger.info("Setting up standard summary statistics")
                 summary_function = self._make_summary_statistic_function("observables", observables=hist_vars)
             elif model_file is not None:
-                model = self._load_model(model_file)
+                logger.info("Loading score estimator and setting it up as summary statistics")
+                model = self._load_score_model(model_file)
                 summary_function = self._make_summary_statistic_function("sally", model=model)
             else:
                 raise RuntimeError("For 'histo' mode, either provide histo_vars or model_file!")
             summary_stats = summary_function(x)
 
+            logger.info("Creating histogram with %s bins for the summary statistics", hist_bins)
             histo = self._make_histo(summary_function, hist_bins, theta_grid, theta_resolution)
 
+            logger.info("Calculating kinematic log likelihood with histograms")
             log_r_kin = self._calculate_log_likelihood_histo(summary_stats, theta_grid, histo)
             log_r_kin = log_r_kin.astype(np.float64)
             log_r_kin = self._clean_nans(log_r_kin)
             log_r_kin = n_events * np.sum(log_r_kin * obs_weights[np.newaxis, :], axis=1)
+
         else:
             raise ValueError("Unknown mode {}, has to be 'ml' or 'histo' or 'xsec'".format(mode))
 
         # xsec part
         if include_xsec:
+            logger.info("Calculating rate log likelihood")
             log_p_xsec = self._calculate_log_likelihood_xsec(n_events, theta_grid, luminosity)
             logger.debug("Rate -2 log p: %s", -2.0 * log_p_xsec)
         else:
             log_p_xsec = 0.0
 
         # Combine and get p-values
+        logger.info("Calculating p-values")
         log_r = log_r_kin + log_p_xsec
         logger.debug("Combined -2 log r: %s", -2.0 * log_r)
         log_r, i_ml = self._subtract_ml(log_r)
@@ -267,14 +276,23 @@ class AsymptoticLimits:
         return summary_function
 
     @staticmethod
-    def _load_model(filename):
+    def _load_ratio_model(filename):
         if os.path.isdir(filename):
             model = Ensemble()
             model.load(filename)
         else:
             model = ParameterizedRatioEstimator()
             model.load(filename)
+        return model
 
+    @staticmethod
+    def _load_score_model(filename):
+        if os.path.isdir(filename):
+            model = Ensemble()
+            model.load(filename)
+        else:
+            model = ScoreEstimator()
+            model.load(filename)
         return model
 
     def _calculate_xsecs(self, thetas, test_split=0.2):
