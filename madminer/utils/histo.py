@@ -30,7 +30,9 @@ class Histo:
         logger.debug("x going into bin calculation: shape %s, means %s", x.shape, np.mean(x, axis=0))
 
         all_theta_x = np.hstack([theta, x]).T
-        logger.debug("Data going into bin calculation: shape %s, means %s", all_theta_x.shape, np.mean(all_theta_x, axis=1))
+        logger.debug(
+            "Data going into bin calculation: shape %s, means %s", all_theta_x.shape, np.mean(all_theta_x, axis=1)
+        )
 
         # Number of bins
         n_samples = x.shape[0]

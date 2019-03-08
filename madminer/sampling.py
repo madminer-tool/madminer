@@ -863,7 +863,9 @@ class SampleAugmenter:
 
         return x, theta0, theta1, y, r_xz, t_xz0, t_xz1
 
-    def extract_samples_test(self, theta, n_samples, folder=None, filename=None, test_split=0.2, switch_train_test_events=False):
+    def extract_samples_test(
+        self, theta, n_samples, folder=None, filename=None, test_split=0.2, switch_train_test_events=False
+    ):
         """
         Extracts evaluation samples `x ~ p(x|theta)` without any augmented data.
 
