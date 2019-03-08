@@ -154,7 +154,7 @@ class SampleAugmenter:
             logger.info("Found nuisance morphing setup")
 
     def extract_samples_train_plain(
-        self, theta, n_samples, folder, filename, test_split=0.2, switch_train_test_events=False
+        self, theta, n_samples, folder=None, filename=None, test_split=0.2, switch_train_test_events=False
     ):
         """
         Extracts plain training samples `x ~ p(x|theta)` without any augmented data. This can be use for standard
@@ -171,12 +171,14 @@ class SampleAugmenter:
         n_samples : int
             Total number of events to be drawn.
 
-        folder : str
-            Path to the folder where the resulting samples should be saved (ndarrays in .npy format).
+        folder : str or None
+            Path to the folder where the resulting samples should be saved (ndarrays in .npy format). Default value:
+            None.
 
-        filename : str
+        filename : str or None
             Filenames for the resulting samples. A prefix such as 'x' or 'theta0' as well as the extension
-            '.npy' will be added automatically.
+            '.npy' will be added automatically. Default value:
+            None.
 
         test_split : float or None, optional
             Fraction of events reserved for the evaluation sample (that will not be used for any training samples).
@@ -228,8 +230,8 @@ class SampleAugmenter:
         self,
         theta,
         n_samples,
-        folder,
-        filename,
+        folder=None,
+        filename=None,
         nuisance_score=False,
         test_split=0.2,
         switch_train_test_events=False,
@@ -248,12 +250,14 @@ class SampleAugmenter:
         n_samples : int
             Total number of events to be drawn.
 
-        folder : str
-            Path to the folder where the resulting samples should be saved (ndarrays in .npy format).
+        folder : str or None
+            Path to the folder where the resulting samples should be saved (ndarrays in .npy format). Default value:
+            None.
 
-        filename : str
+        filename : str or None
             Filenames for the resulting samples. A prefix such as 'x' or 'theta0' as well as the extension
-            '.npy' will be added automatically.
+            '.npy' will be added automatically. Default value:
+            None.
 
         nuisance_score : bool, optional
             If True and if the sample contains nuisance parameters, the score with respect to the nuisance parameters
@@ -348,7 +352,7 @@ class SampleAugmenter:
         return x, theta, t_xz
 
     def extract_samples_train_global(
-        self, theta, n_samples, folder, filename, test_split=0.2, switch_train_test_events=False
+        self, theta, n_samples, folder=None, filename=None, test_split=0.2, switch_train_test_events=False
     ):
         """
         Extracts training samples x ~ p(x|theta) as well as the joint score t(x, z|theta), where theta is sampled
@@ -364,12 +368,14 @@ class SampleAugmenter:
         n_samples : int
             Total number of events to be drawn.
 
-        folder : str
-            Path to the folder where the resulting samples should be saved (ndarrays in .npy format).
+        folder : str or None
+            Path to the folder where the resulting samples should be saved (ndarrays in .npy format). Default value:
+            None.
 
-        filename : str
+        filename : str or None
             Filenames for the resulting samples. A prefix such as 'x' or 'theta0' as well as the extension
-            '.npy' will be added automatically.
+            '.npy' will be added automatically. Default value:
+            None.
 
         test_split : float or None, optional
             Fraction of events reserved for the evaluation sample (that will not be used for any training samples).
@@ -412,7 +418,7 @@ class SampleAugmenter:
         )
 
     def extract_samples_train_ratio(
-        self, theta0, theta1, n_samples, folder, filename, test_split=0.2, switch_train_test_events=False
+        self, theta0, theta1, n_samples, folder=None, filename=None, test_split=0.2, switch_train_test_events=False
     ):
         """
         Extracts training samples `x ~ p(x|theta0)` and `x ~ p(x|theta1)` together with the class label `y`, the joint
@@ -434,12 +440,14 @@ class SampleAugmenter:
         n_samples : int
             Total number of events to be drawn.
 
-        folder : str
-            Path to the folder where the resulting samples should be saved (ndarrays in .npy format).
+        folder : str or None
+            Path to the folder where the resulting samples should be saved (ndarrays in .npy format). Default value:
+            None.
 
-        filename : str
+        filename : str or None
             Filenames for the resulting samples. A prefix such as 'x' or 'theta0' as well as the extension
-            '.npy' will be added automatically.
+            '.npy' will be added automatically. Default value:
+            None.
 
         test_split : float or None, optional
             Fraction of events reserved for the evaluation sample (that will not be used for any training samples).
@@ -592,8 +600,8 @@ class SampleAugmenter:
         theta0,
         theta1,
         n_samples,
-        folder,
-        filename,
+        folder=None,
+        filename=None,
         additional_thetas=None,
         test_split=0.2,
         switch_train_test_events=False,
@@ -623,12 +631,14 @@ class SampleAugmenter:
         n_samples : int
             Total number of events to be drawn.
 
-        folder : str
-            Path to the folder where the resulting samples should be saved (ndarrays in .npy format).
+        folder : str or None
+            Path to the folder where the resulting samples should be saved (ndarrays in .npy format). Default value:
+            None.
 
-        filename : str
+        filename : str or None
             Filenames for the resulting samples. A prefix such as 'x' or 'theta0' as well as the extension
-            '.npy' will be added automatically.
+            '.npy' will be added automatically. Default value:
+            None.
 
         additional_thetas : list of tuple or None
             list of tuples `(type, value)` that defines additional theta points at which ratio and score are evaluated,
@@ -853,7 +863,9 @@ class SampleAugmenter:
 
         return x, theta0, theta1, y, r_xz, t_xz0, t_xz1
 
-    def extract_samples_test(self, theta, n_samples, folder, filename, test_split=0.2, switch_train_test_events=False):
+    def extract_samples_test(
+        self, theta, n_samples, folder=None, filename=None, test_split=0.2, switch_train_test_events=False
+    ):
         """
         Extracts evaluation samples `x ~ p(x|theta)` without any augmented data.
 
@@ -867,12 +879,14 @@ class SampleAugmenter:
         n_samples : int
             Total number of events to be drawn.
 
-        folder : str
-            Path to the folder where the resulting samples should be saved (ndarrays in .npy format).
+        folder : str or None
+            Path to the folder where the resulting samples should be saved (ndarrays in .npy format). Default value:
+            None.
 
-        filename : str
+        filename : str or None
             Filenames for the resulting samples. A prefix such as 'x' or 'theta0' as well as the extension
-            '.npy' will be added automatically.
+            '.npy' will be added automatically. Default value:
+            None.
 
         test_split : float or None, optional
             Fraction of events reserved for the evaluation sample (that will not be used for any training samples).

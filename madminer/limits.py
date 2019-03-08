@@ -11,6 +11,10 @@ from madminer.utils.analysis import get_theta_benchmark_matrix, mdot
 from madminer.utils.morphing import PhysicsMorpher, NuisanceMorpher
 from madminer.utils.various import format_benchmark
 from madminer.ml import ParameterizedRatioEstimator, Ensemble
+from madminer.utils.histo import Histo
+from madminer.sampling import SampleAugmenter
+from madminer import sampling
+from madminer.ml import ScoreEstimator
 
 logger = logging.getLogger(__name__)
 
@@ -115,15 +119,26 @@ class AsymptoticLimits:
         self,
         x_observed,
         theta_ranges,
-        model_file,
+        mode="ml",
+        model_file=None,
+        hist_vars=None,
+        hist_bins=20,
         include_xsec=True,
-        include_kin=True,
         resolution=25,
         luminosity=300000.0,
     ):
-        theta_grid = self._make_theta_grid(theta_ranges, resolution)
-        p_values, i_ml = self._analyse(
-            x_observed, theta_grid, model_file, len(x_observed), include_xsec, include_kin, None, luminosity
+        theta_grid, p_values, i_ml = self._analyse(
+            len(x_observed),
+            x_observed,
+            theta_ranges,
+            resolution,
+            mode,
+            model_file,
+            hist_vars,
+            hist_bins,
+            include_xsec,
+            None,
+            luminosity,
         )
         return theta_grid, p_values, i_ml
 
@@ -131,17 +146,28 @@ class AsymptoticLimits:
         self,
         theta_true,
         theta_ranges,
-        model_file,
+        mode="ml",
+        model_file=None,
+        hist_vars=None,
+        hist_bins=20,
         include_xsec=True,
-        include_kin=True,
         resolution=25,
         luminosity=300000.0,
     ):
         x_asimov, x_weights = self._asimov_data(theta_true)
         n_observed = luminosity * self._calculate_xsecs([theta_true])[0]
-        theta_grid = self._make_theta_grid(theta_ranges, resolution)
-        p_values, i_ml = self._analyse(
-            x_asimov, theta_grid, model_file, n_observed, include_xsec, include_kin, x_weights, luminosity
+        theta_grid, p_values, i_ml = self._analyse(
+            n_observed,
+            x_asimov,
+            theta_ranges,
+            resolution,
+            mode,
+            model_file,
+            hist_vars,
+            hist_bins,
+            include_xsec,
+            x_weights,
+            luminosity,
         )
         return theta_grid, p_values, i_ml
 
@@ -152,55 +178,121 @@ class AsymptoticLimits:
 
     def _analyse(
         self,
-        x,
-        theta_grid,
-        model_file,
         n_events,
+        x,
+        theta_ranges,
+        theta_resolution,
+        mode="ml",
+        model_file=None,
+        hist_vars=None,
+        hist_bins=20,
         include_xsec=True,
-        include_kin=True,
         obs_weights=None,
         luminosity=300000.0,
     ):
+        logger.debug("Calculating p-values for %s expected events", n_events)
+
         # Observation weights
         if obs_weights is None:
             obs_weights = np.ones(len(x))
         obs_weights /= np.sum(obs_weights)
         obs_weights = obs_weights.astype(np.float64)
 
+        # Theta grid
+        theta_grid = self._make_theta_grid(theta_ranges, theta_resolution)
+
         # Kinematic part
-        if include_kin:
-            model = self._load_model(model_file)
+        if mode == "rate":
+            log_r_kin = 0.0
+        elif mode == "ml":
+            assert model_file is not None
+            logger.info("Loading kinematic likelihood ratio estimator")
+            model = self._load_ratio_model(model_file)
+
+            logger.info("Calculating kinematic log likelihood ratio with estimator")
             log_r_kin = self._calculate_log_likelihood_ratio_kinematics(x, theta_grid, model)
             log_r_kin = log_r_kin.astype(np.float64)
+            log_r_kin = self._clean_nans(log_r_kin)
+            logger.debug("Raw mean -2 log r: %s", np.mean(-2.0 * log_r_kin, axis=1))
+            log_r_kin = n_events * np.sum(log_r_kin * obs_weights[np.newaxis, :], axis=1)
+            logger.debug("Rescaled -2 log r: %s", -2.0 * log_r_kin)
 
-            not_finite = np.any(~np.isfinite(log_r_kin), axis=0)
-            if np.sum(not_finite) > 0:
-                logger.warning("Removing %s inf / nan results from calculation")
-                log_r_kin[:, not_finite] = 0.0
-            log_r_kin = n_events / len(x) * np.einsum("tx,x->t", log_r_kin, obs_weights, dtype=np.float64)
+        elif mode == "histo":
+            if hist_vars is not None:
+                logger.info("Setting up standard summary statistics")
+                summary_function = self._make_summary_statistic_function("observables", observables=hist_vars)
+            elif model_file is not None:
+                logger.info("Loading score estimator and setting it up as summary statistics")
+                model = self._load_score_model(model_file)
+                summary_function = self._make_summary_statistic_function("sally", model=model)
+            else:
+                raise RuntimeError("For 'histo' mode, either provide histo_vars or model_file!")
+            summary_stats = summary_function(x)
+
+            logger.info("Creating histogram with %s bins for the summary statistics", hist_bins)
+            histo = self._make_histo(summary_function, hist_bins, theta_grid, theta_resolution)
+
+            logger.info("Calculating kinematic log likelihood with histograms")
+            log_r_kin = self._calculate_log_likelihood_histo(summary_stats, theta_grid, histo)
+            log_r_kin = log_r_kin.astype(np.float64)
+            log_r_kin = self._clean_nans(log_r_kin)
+            log_r_kin = n_events * np.sum(log_r_kin * obs_weights[np.newaxis, :], axis=1)
+
         else:
-            log_r_kin = 0.0
+            raise ValueError("Unknown mode {}, has to be 'ml' or 'histo' or 'xsec'".format(mode))
 
         # xsec part
         if include_xsec:
+            logger.info("Calculating rate log likelihood")
             log_p_xsec = self._calculate_log_likelihood_xsec(n_events, theta_grid, luminosity)
+            logger.debug("Rate -2 log p: %s", -2.0 * log_p_xsec)
         else:
             log_p_xsec = 0.0
 
         # Combine and get p-values
+        logger.info("Calculating p-values")
         log_r = log_r_kin + log_p_xsec
+        logger.debug("Combined -2 log r: %s", -2.0 * log_r)
         log_r, i_ml = self._subtract_ml(log_r)
+        logger.debug("Min-subtracted -2 log r: %s", -2.0 * log_r)
         p_values = self.asymptotic_p_value(log_r)
-        return p_values, i_ml
 
-    def _load_model(self, filename):
+        return theta_grid, p_values, i_ml
+
+    def _make_summary_statistic_function(self, mode, model=None, observables=None):
+        if mode == "observables":
+            assert observables is not None
+            x_indices = self._find_x_indices(observables)
+
+            def summary_function(x):
+                return x[:, x_indices]
+
+        elif mode == "sally":
+            assert isinstance(model, ScoreEstimator)
+
+            def summary_function(x):
+                return model.evaluate_score(x)
+
+        return summary_function
+
+    @staticmethod
+    def _load_ratio_model(filename):
         if os.path.isdir(filename):
             model = Ensemble()
             model.load(filename)
         else:
             model = ParameterizedRatioEstimator()
             model.load(filename)
+        return model
 
+    @staticmethod
+    def _load_score_model(filename):
+        if os.path.isdir(filename):
+            model = Ensemble()
+            model.load(filename)
+        else:
+            model = ScoreEstimator()
+            model.load(filename)
         return model
 
     def _calculate_xsecs(self, thetas, test_split=0.2):
@@ -241,9 +333,49 @@ class AsymptoticLimits:
         theta_grid = np.vstack(theta_grid_each).T
         return theta_grid
 
+    def _make_histo(self, summary_function, x_bins, theta_grid, theta_bins, n_samples_per_theta=1000):
+        logger.info("Building histogram with %s bins per parameter and %s bins per observable")
+        histo = Histo(theta_bins, x_bins)
+        theta, x = self._make_histo_data(theta_grid, n_samples_per_theta * len(theta_grid))
+        summary_stats = summary_function(x)
+        histo.fit(theta, summary_stats, fill_empty_bins=True)
+        return histo
+
+    def _make_histo_data(self, thetas, n_samples, test_split=0.2):
+        sampler = SampleAugmenter(self.madminer_filename, include_nuisance_parameters=self.include_nuisance_parameters)
+        x, theta = sampler.extract_samples_train_plain(
+            theta=sampling.morphing_points(thetas),
+            n_samples=n_samples,
+            test_split=test_split,
+            filename=None,
+            folder=None,
+        )
+        return theta, x
+
+    def _find_x_indices(self, observables):
+        x_names = list(self.observables.keys())
+        x_indices = []
+        for obs in observables:
+            try:
+                x_indices.append(x_names.index(obs))
+            except ValueError:
+                raise RuntimeError("Unknown observable {}, has to be one of {}".format(obs, x_names))
+        logger.debug("Using x indices %s", x_indices)
+        return x_indices
+
+    def _calculate_log_likelihood_histo(self, x, theta_grid, histo):
+        log_p = []
+        for theta in theta_grid:
+            log_p.append(histo.log_likelihood(theta, x))
+        log_p = np.asarray(log_p)
+        return log_p
+
     def _calculate_log_likelihood_xsec(self, n_observed, theta_grid, luminosity=300000.0):
+        n_observed_rounded = int(np.round(n_observed, 0))
         n_predicted = self._calculate_xsecs(theta_grid) * luminosity
-        log_p = poisson.logpmf(k=n_observed, mu=n_predicted)
+        logger.debug("Observed events: %s", n_observed)
+        logger.debug("Expected events: %s", n_predicted)
+        log_p = poisson.logpmf(k=n_observed_rounded, mu=n_predicted)
         return log_p
 
     def _calculate_log_likelihood_ratio_kinematics(self, x_observed, theta_grid, model, theta1=None):
@@ -271,6 +403,14 @@ class AsymptoticLimits:
         i_ml = np.argmax(log_r)
         log_r_subtracted = log_r[:] - log_r[i_ml]
         return log_r_subtracted, i_ml
+
+    @staticmethod
+    def _clean_nans(array):
+        not_finite = np.any(~np.isfinite(array), axis=0)
+        if np.sum(not_finite) > 0:
+            logger.warning("Removing %s inf / nan results from calculation")
+            array[:, not_finite] = 0.0
+        return array
 
     def _train_test_split(self, train, test_split):
         """
