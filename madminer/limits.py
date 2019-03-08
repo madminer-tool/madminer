@@ -225,6 +225,7 @@ class AsymptoticLimits:
         # xsec part
         if include_xsec:
             log_p_xsec = self._calculate_log_likelihood_xsec(n_events, theta_grid, luminosity)
+            logger.debug("Rate -2 log p: %s", -2.*log_p_xsec)
         else:
             log_p_xsec = 0.0
 
@@ -293,8 +294,17 @@ class AsymptoticLimits:
         histo.fit(theta, x, fill_empty_bins=True)
         return histo
 
-    def _make_histo_data(self, thetas, n_samples, test_split=0.2):
+    def _make_histo_data(self, thetas, x_vars, n_samples, test_split=0.2):
         logger.info("Generating unweighted data to fill histogram")
+        x_names = list(self.observables.keys())
+        x_indices = []
+        for x_var in x_vars:
+            try:
+                x_indices.append(x_names.index(x_var))
+            except ValueError:
+                raise RuntimeError("Unknown observable {}, has to be one of {}".format(x_var, x_names))
+        logger.debug("Using x indices %s", x_indices)
+
         sampler = SampleAugmenter(self.madminer_filename, include_nuisance_parameters=self.include_nuisance_parameters)
         theta, x = sampler.extract_samples_train_plain(
             theta=sampling.morphing_points(thetas),
@@ -303,6 +313,8 @@ class AsymptoticLimits:
             filename=None,
             folder=None,
         )
+
+        x = x[:, x_indices]
         return theta, x
 
     @staticmethod
@@ -314,8 +326,11 @@ class AsymptoticLimits:
         return log_p
 
     def _calculate_log_likelihood_xsec(self, n_observed, theta_grid, luminosity=300000.0):
+        n_observed_rounded = int(np.round(n_observed,0))
         n_predicted = self._calculate_xsecs(theta_grid) * luminosity
-        log_p = poisson.logpmf(k=n_observed, mu=n_predicted)
+        logger.debug("Observed events: %s", n_observed)
+        logger.debug("Expected events: %s", n_predicted)
+        log_p = poisson.logpmf(k=n_observed_rounded, mu=n_predicted)
         return log_p
 
     def _calculate_log_likelihood_ratio_kinematics(self, x_observed, theta_grid, model, theta1=None):
