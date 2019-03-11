@@ -719,13 +719,7 @@ class MLForge:
             logger.debug("Starting ratio evaluation for all combinations")
 
             for i, theta in enumerate(thetas):
-                logger.debug(
-                    "Starting log likelihood evaluation for thetas %s / %s: %s vs %s",
-                    i + 1,
-                    len(thetas),
-                    theta0,
-                    theta1,
-                )
+                logger.debug("Starting log likelihood evaluation for theta %s / %s: %s", i + 1, len(thetas), theta)
 
                 log_p_hat, t_hat = evaluate_flow_model(
                     model=self.model, thetas=[theta], xs=x, evaluate_score=evaluate_score
@@ -1019,6 +1013,7 @@ class MLForge:
                 n_observables=n_observables, n_parameters=n_parameters, n_hidden=n_hidden, activation=activation
             )
         elif self.method_type == "nde":
+            self.nde_type = nde_type
             if nde_type == "maf":
                 self.model = ConditionalMaskedAutoregressiveFlow(
                     n_conditionals=n_parameters,
