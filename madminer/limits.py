@@ -124,14 +124,14 @@ class AsymptoticLimits:
         hist_vars=None,
         hist_bins=20,
         include_xsec=True,
-        resolution=25,
+        resolutions=25,
         luminosity=300000.0,
     ):
         theta_grid, p_values, i_ml = self._analyse(
             len(x_observed),
             x_observed,
             theta_ranges,
-            resolution,
+            resolutions,
             mode,
             model_file,
             hist_vars,
@@ -151,7 +151,7 @@ class AsymptoticLimits:
         hist_vars=None,
         hist_bins=20,
         include_xsec=True,
-        resolution=25,
+        resolutions=25,
         luminosity=300000.0,
     ):
         x_asimov, x_weights = self._asimov_data(theta_true)
@@ -160,7 +160,7 @@ class AsymptoticLimits:
             n_observed,
             x_asimov,
             theta_ranges,
-            resolution,
+            resolutions,
             mode,
             model_file,
             hist_vars,
@@ -181,7 +181,7 @@ class AsymptoticLimits:
         n_events,
         x,
         theta_ranges,
-        theta_resolution,
+        theta_resolutions,
         mode="ml",
         model_file=None,
         hist_vars=None,
@@ -199,7 +199,7 @@ class AsymptoticLimits:
         obs_weights = obs_weights.astype(np.float64)
 
         # Theta grid
-        theta_grid = self._make_theta_grid(theta_ranges, theta_resolution)
+        theta_grid = self._make_theta_grid(theta_ranges, theta_resolutions)
 
         # Kinematic part
         if mode == "rate":
@@ -230,7 +230,7 @@ class AsymptoticLimits:
             summary_stats = summary_function(x)
 
             logger.info("Creating histogram with %s bins for the summary statistics", hist_bins)
-            histo = self._make_histo(summary_function, hist_bins, theta_grid, theta_resolution)
+            histo = self._make_histo(summary_function, hist_bins, theta_grid, theta_resolutions)
 
             logger.info("Calculating kinematic log likelihood with histograms")
             log_r_kin = self._calculate_log_likelihood_histo(summary_stats, theta_grid, histo)
@@ -324,9 +324,11 @@ class AsymptoticLimits:
         return x, weights_theta
 
     @staticmethod
-    def _make_theta_grid(theta_ranges, resolution):
+    def _make_theta_grid(theta_ranges, resolutions):
+        if isinstance(resolutions, int):
+            resolutions = [resolutions for _ in range(theta_ranges)]
         theta_each = []
-        for theta_min, theta_max in theta_ranges:
+        for resolution, (theta_min, theta_max) in zip(resolutions, theta_ranges):
             theta_each.append(np.linspace(theta_min, theta_max, resolution))
         theta_grid_each = np.meshgrid(*theta_each)
         theta_grid_each = [theta.flatten() for theta in theta_grid_each]
