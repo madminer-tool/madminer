@@ -1,5 +1,5 @@
 #!/bin/bash
-docker login -u "$DOCKER_USER" -p "$DOCKER_PASS"
+echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
 export REPO=madminertool/docker-madminer
 docker build -f Dockerfile -t $REPO .
 docker push $REPO
