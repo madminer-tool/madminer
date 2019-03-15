@@ -15,6 +15,7 @@ from madminer.utils.ml.models.score import DenseLocalScoreModel
 from madminer.utils.ml.eval import evaluate_flow_model, evaluate_ratio_model, evaluate_local_score_model
 from madminer.utils.ml.utils import get_optimizer, get_loss
 from madminer.utils.various import create_missing_folders, load_and_check, shuffle, restrict_samplesize
+from madminer.utils.various import separate_information_blocks
 from madminer.utils.ml.trainer import SingleParameterizedRatioTrainer, DoubleParameterizedRatioTrainer
 from madminer.utils.ml.trainer import LocalScoreTrainer, FlowTrainer
 
@@ -1209,8 +1210,56 @@ class ScoreEstimator(Estimator):
         )
         return result
 
-    def set_nuisance(self, fisher_information, nuisance_params):
-        raise NotImplementedError
+    def set_nuisance(self, fisher_information, parameters_of_interest):
+        """
+        Prepares the calculation of profiled scores, see https://arxiv.org/pdf/1903.01473.pdf.
+
+        Parameters
+        ----------
+        fisher_information : ndarray
+            Fisher informatioin with shape `(n_parameters, n_parameters)`.
+
+        parameters_of_interest : list of int
+            List of int, with 0 <= remaining_compoinents[i] < n_parameters. Denotes which parameters are kept in the
+            profiling, and their new order.
+
+        Returns
+        -------
+            None
+
+        """
+        if fisher_information.shape != (self.n_parameters, self.n_parameters):
+            raise ValueError(
+                "Fisher information has wrong shape {}, expected {}".format(
+                    fisher_information.shape, (self.n_parameters, self.n_parameters)
+                )
+            )
+
+        n_parameters_of_interest = len(parameters_of_interest)
+        nuisance_parameters = None  # TODO
+
+        # Separate Fisher information parts
+        information_phys, information_mix, information_nuisance = separate_information_blocks(
+            fisher_information, parameters_of_interest
+        )
+
+        # Calculate projection matrix
+        self.nuisance_project_matrix = np.zeros((n_parameters_of_interest, self.n_parameters))  # (n_phys, n_all)
+        for theta_new, theta_old in enumerate(parameters_of_interest):
+            self.nuisance_project_matrix[theta_new, theta_old] = 1.0
+
+        logger.debug("Nuisance projection matrix:/n%s", self.nuisance_project_matrix)
+
+        # Calculate profiling matrix
+        inverse_information_nuisance = np.linalg.inv(information_nuisance)  # (n_nuisance, n_nuisance)
+        profiling_matrix = -information_mix.T.dot(inverse_information_nuisance)  # (n_phys, n_nuisance)
+
+        self.nuisance_profile_matrix = np.copy(self.nuisance_project_matrix)  # (n_phys, n_all)
+        for theta_new, theta_old in enumerate(parameters_of_interest):
+            for nuis_new, nuis_old in enumerate(nuisance_parameters):
+                self.nuisance_project_matrix[theta_new, nuis_old] += profiling_matrix[theta_new, nuis_new]
+
+        logger.debug("Nuisance profiling matrix:/n%s", self.nuisance_project_matrix)
 
     def evaluate_score(self, x, nuisance_mode="auto"):
         """

@@ -268,3 +268,27 @@ def weighted_quantile(values, quantiles, sample_weight=None, values_sorted=False
 
 def approx_equal(a, b, epsilon=1.0e-6):
     return abs(a - b) < epsilon
+
+
+def separate_information_blocks(fisher_information, parameters_of_interest):
+    # Find indices
+    n_parameters = len(fisher_information)
+    n_poi = len(parameters_of_interest)
+
+    poi_checked = []
+    nuisance_params = []
+
+    for i in range(n_parameters):
+        if i in parameters_of_interest:
+            poi_checked.append(i)
+        else:
+            nuisance_params.append(i)
+
+    assert n_poi == len(poi_checked), "Inconsistent input"
+
+    # Separate Fisher information parts
+    information_phys = fisher_information[parameters_of_interest, :][:, parameters_of_interest]
+    information_mix = fisher_information[nuisance_params, :][:, parameters_of_interest]
+    information_nuisance = fisher_information[nuisance_params, :][:, nuisance_params]
+
+    return nuisance_params, information_phys, information_mix, information_nuisance

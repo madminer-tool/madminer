@@ -9,6 +9,7 @@ from madminer.utils.interfaces.madminer_hdf5 import load_madminer_settings, madm
 from madminer.utils.analysis import get_theta_benchmark_matrix, get_dtheta_benchmark_matrix, mdot
 from madminer.utils.morphing import PhysicsMorpher, NuisanceMorpher
 from madminer.utils.various import format_benchmark, math_commands, weighted_quantile, sanitize_array
+from madminer.utils.various import separate_information_blocks
 from madminer.ml import ScoreEstimator, Ensemble
 
 logger = logging.getLogger(__name__)
@@ -1609,21 +1610,12 @@ def profile_information(
     """
 
     logger.debug("Profiling Fisher information")
-
-    # Group components
     n_components = len(fisher_information)
     n_remaining_components = len(remaining_components)
 
-    remaining_components_checked = []
-    profiled_components = []
-
-    for i in range(n_components):
-        if i in remaining_components:
-            remaining_components_checked.append(i)
-        else:
-            profiled_components.append(i)
-
-    assert n_remaining_components == len(remaining_components_checked), "Inconsistent input"
+    _, information_phys, information_mix, information_nuisance = separate_information_blocks(
+        fisher_information, remaining_components
+    )
 
     # Error propagation
     if covariance is not None:
@@ -1660,11 +1652,6 @@ def profile_information(
         logger.debug("Central Fisher info:\n%s\nToy mean Fisher info:\n%s", profiled_information, toy_mean)
 
         return profiled_information, profiled_information_covariance
-
-    # Separate Fisher information parts
-    information_phys = fisher_information[remaining_components, :][:, remaining_components]
-    information_mix = fisher_information[profiled_components, :][:, remaining_components]
-    information_nuisance = fisher_information[profiled_components, :][:, profiled_components]
 
     # Calculate profiled information
     inverse_information_nuisance = np.linalg.inv(information_nuisance)
