@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 class Estimator(object):
     """
     Abstract class for any ML estimator. Subclassed by ParameterizedRatioEstimator, DoubleParameterizedRatioEstimator,
-    LocalScoreEstimator, and LikelihoodEstimator.
+    ScoreEstimator, and LikelihoodEstimator.
 
     Each instance of this class represents one neural estimator. The most important functions are:
 
@@ -1019,6 +1019,13 @@ class ScoreEstimator(Estimator):
 
     """
 
+    def __init__(self, features=None, n_components=1, n_mades=5, n_hidden=(100,), activation="tanh", batch_norm=None):
+        super(ScoreEstimator, self).__init__(features, n_hidden, activation)
+
+        self.nuisance_profile_matrix = None
+        self.nuisance_project_matrix = None
+        self.nuisance_mode_default = "keep"
+
     def train(
         self,
         method,
@@ -1202,7 +1209,10 @@ class ScoreEstimator(Estimator):
         )
         return result
 
-    def evaluate_score(self, x):
+    def set_nuisance(self, fisher_information, nuisance_params):
+        raise NotImplementedError
+
+    def evaluate_score(self, x, nuisance_mode="auto"):
         """
         Evaluates the score.
 
@@ -1210,6 +1220,14 @@ class ScoreEstimator(Estimator):
         ----------
         x : str or ndarray
             Observations, or filename of a pickled numpy array.
+
+        nuisance_mode : {"auto", "keep", "profile", "project"}
+            Decides how nuisance parameters are treated. If nuisance_mode is "auto", the returned score is the (n+k)-
+            dimensional score in the space of n parameters of interest and k nuisance parameters if `set_profiling`
+            has not been called, and the n-dimensional profiled score in the space of the parameters of interest
+            if it has been called. For "keep", the returned score is always (n+k)-dimensional. For "profile", it is
+            the n-dimensional profiled score. For "project", it is the n-dimensional projected score, i.e. ignoring
+            the nuisance parameters.
 
         Returns
         -------
@@ -1219,6 +1237,10 @@ class ScoreEstimator(Estimator):
 
         if self.model is None:
             raise ValueError("No model -- train or load model before evaluating it!")
+
+        if nuisance_mode == "auto":
+            logger.debug("Using nuisance mode %s", self.nuisance_mode_default)
+            nuisance_mode = self.nuisance_mode_default
 
         # Load training data
         logger.debug("Loading evaluation data")
@@ -1233,9 +1255,31 @@ class ScoreEstimator(Estimator):
 
         # Evaluation
         logger.debug("Starting score evaluation")
-        all_t_hat = evaluate_local_score_model(model=self.model, xs=x)
+        t_hat = evaluate_local_score_model(model=self.model, xs=x)
 
-        return all_t_hat
+        # Treatment of nuisance paramters
+        if nuisance_mode == "keep":
+            logging.debug("Keeping nuisance parameter score")
+
+        elif nuisance_mode == "project":
+            if self.nuisance_project_matrix is None:
+                raise ValueError(
+                    "evaluate_score() was called with nuisance_mode = project, but nuisance parameters "
+                    "have not been set up yet. Please call set_nuisance() first!"
+                )
+            logging.debug("Projecting nuisance parameter score")
+            t_hat = np.einsum("ij,xj->xi", self.nuisance_project_matrix, t_hat)
+
+        elif nuisance_mode == "project":
+            if self.nuisance_profile_matrix is None:
+                raise ValueError(
+                    "evaluate_score() was called with nuisance_mode = profile, but nuisance parameters "
+                    "have not been set up yet. Please call set_nuisance() first!"
+                )
+            logging.debug("Profiling nuisance parameter score")
+            t_hat = np.einsum("ij,xj->xi", self.nuisance_profile_matrix, t_hat)
+
+        return t_hat
 
     def evaluate_log_likelihood(self, *args, **kwargs):
         raise TheresAGoodReasonThisDoesntWork("This estimator can only estimate the score, not the likelihood!")
