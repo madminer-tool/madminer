@@ -185,6 +185,8 @@ class Trainer(object):
 
     @staticmethod
     def calculate_lr(i_epoch, n_epochs, initial_lr, final_lr):
+        if n_epochs == 1:
+            return initial_lr
         return initial_lr * (final_lr / initial_lr) ** float(i_epoch / (n_epochs - 1.0))
 
     @staticmethod
