@@ -224,7 +224,7 @@ class ParameterizedRatioEstimator(Estimator):
     """
     A neural estimator of the likelihood ratio as a function of the observation x as well as
     the numerator hypothesis theta. The reference (denominator) hypothesis is kept fixed at some
-    reference value.
+    reference value and NOT modeled by the network.
 
     Parameters
     ----------
@@ -451,8 +451,8 @@ class ParameterizedRatioEstimator(Estimator):
 
     def evaluate_log_likelihood_ratio(self, x, theta, test_all_combinations=True, evaluate_score=False):
         """
-        Evaluates a trained estimator of the log likelihood ratio, the log likelihood, or the score, depending on the
-        method.
+        Evaluates the log likelihood ratio for given observations x betwen the given parameter point theta and the
+        reference hypothesis.
 
         Parameters
         ----------
@@ -834,8 +834,8 @@ class DoubleParameterizedRatioEstimator(Estimator):
 
     def evaluate_log_likelihood_ratio(self, x, theta0, theta1, test_all_combinations=True, evaluate_score=False):
         """
-        Evaluates a trained estimator of the log likelihood ratio, the log likelihood, or the score, depending on the
-        method.
+        Evaluates the log likelihood ratio as a function of the observation x, the numerator hypothesis theta0, and
+        the denominator hypothesis theta1.
 
         Parameters
         ----------
@@ -1002,7 +1002,7 @@ class DoubleParameterizedRatioEstimator(Estimator):
 
 
 class ScoreEstimator(Estimator):
-    """ A neural estimator of the score evaluated at a reference hypothesis as a function of the
+    """ A neural estimator of the score evaluated at a fixed reference hypothesis as a function of the
      observation x.
 
     Parameters
@@ -1052,8 +1052,8 @@ class ScoreEstimator(Estimator):
         Parameters
         ----------
         method : str
-            The inference method used for training. Allowed values are 'alice', 'alices', 'carl', 'cascal', 'rascal',
-            and 'rolr'.
+            The inference method used for training. Currently values are 'sally' and 'sallino', but at the training
+            stage they are identical. So right now it doesn't matter which one you use.
 
         x : ndarray or str
             Path to an unweighted sample of observations, as saved by the `madminer.sampling.SampleAugmenter` functions.
@@ -1109,8 +1109,11 @@ class ScoreEstimator(Estimator):
 
         """
 
+        if method not in ["sally", "sallino"]:
+            logger.warning("Method %s not allowed for score estimators. Using 'sally' instead.", method)
+            method = "sally"
+
         logger.info("Starting training")
-        logger.info("  Method:                 %s", method)
         logger.info("  Batch size:             %s", batch_size)
         logger.info("  Optimizer:              %s", optimizer)
         logger.info("  Epochs:                 %s", n_epochs)
@@ -1538,8 +1541,7 @@ class LikelihoodEstimator(Estimator):
         Parameters
         ----------
         method : str
-            The inference method used for training. Allowed values are 'alice', 'alices', 'carl', 'cascal', 'rascal',
-            and 'rolr'.
+            The inference method used for training. Allowed values are 'nde' and 'scandal'.
 
         x : ndarray or str
             Path to an unweighted sample of observations, as saved by the `madminer.sampling.SampleAugmenter` functions.
@@ -1604,7 +1606,7 @@ class LikelihoodEstimator(Estimator):
 
         logger.info("Starting training")
         logger.info("  Method:                 %s", method)
-        if method == ["scandal"]:
+        if method == "scandal":
             logger.info("  alpha:                  %s", alpha)
         logger.info("  Batch size:             %s", batch_size)
         logger.info("  Optimizer:              %s", optimizer)
@@ -1711,16 +1713,15 @@ class LikelihoodEstimator(Estimator):
     def evaluate_log_likelihood(self, x, theta, test_all_combinations=True, evaluate_score=False):
 
         """
-        Evaluates a trained estimator of the log likelihood.
+        Evaluates the log likelihood as a function of the observation x and the parameter point theta.
 
         Parameters
         ----------
         x : ndarray or str
-            Sample of observations, or path to numpy file with observations, as saved by the
-            `madminer.sampling.SampleAugmenter` functions.
+            Sample of observations, or path to numpy file with observations.
 
         theta : ndarray or str
-            Parameter point
+            Parameter points, or path to numpy file with parameter points.
 
         test_all_combinations : bool, optional
             If method is not 'sally' and not 'sallino': If False, the number of samples in the observable and theta
@@ -1739,9 +1740,9 @@ class LikelihoodEstimator(Estimator):
             The estimated log likelihood. If test_all_combinations is True, the result has shape `(n_thetas, n_x)`.
             Otherwise, it has shape `(n_samples,)`.
 
-        score_theta0 : ndarray or None
+        score : ndarray or None
             None if
-            evaluate_score is False. Otherwise the derived estimated score at `theta0`. If test_all_combinations is
+            evaluate_score is False. Otherwise the derived estimated score at `theta`. If test_all_combinations is
             True, the result has shape `(n_thetas, n_x, n_parameters)`. Otherwise, it has shape
             `(n_samples, n_parameters)`.
 
@@ -1793,6 +1794,46 @@ class LikelihoodEstimator(Estimator):
         return all_log_p_hat, all_t_hat
 
     def evaluate_log_likelihood_ratio(self, x, theta0, theta1, test_all_combinations, evaluate_score=False):
+
+        """
+        Evaluates the log likelihood ratio as a function of the observation x, the numerator parameter point theta0,
+        and the denominator parameter point theta1.
+
+        Parameters
+        ----------
+        x : ndarray or str
+            Sample of observations, or path to numpy file with observations.
+
+        theta0 : ndarray or str
+            Numerator parameters, or path to numpy file.
+
+        theta1 : ndarray or str
+            Denominator parameters, or path to numpy file.
+
+        test_all_combinations : bool, optional
+            If method is not 'sally' and not 'sallino': If False, the number of samples in the observable and theta
+            files has to match, and the likelihood ratio is evaluated only for the combinations
+            `r(x_i | theta0_i, theta1_i)`. If True, `r(x_i | theta0_j, theta1_j)` for all pairwise combinations `i, j`
+            are evaluated. Default value: True.
+
+        evaluate_score : bool, optional
+            If method is not 'sally' and not 'sallino', this sets whether in addition to the likelihood ratio the score
+            is evaluated. Default value: False.
+
+        Returns
+        -------
+
+        log_likelihood : ndarray
+            The estimated log likelihood. If test_all_combinations is True, the result has shape `(n_thetas, n_x)`.
+            Otherwise, it has shape `(n_samples,)`.
+
+        score : ndarray or None
+            None if
+            evaluate_score is False. Otherwise the derived estimated score at `theta`. If test_all_combinations is
+            True, the result has shape `(n_thetas, n_x, n_parameters)`. Otherwise, it has shape
+            `(n_samples, n_parameters)`.
+
+        """
 
         if self.model is None:
             raise ValueError("No model -- train or load model before evaluating it!")
