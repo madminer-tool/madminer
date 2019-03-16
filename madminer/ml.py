@@ -1236,10 +1236,9 @@ class ScoreEstimator(Estimator):
             )
 
         n_parameters_of_interest = len(parameters_of_interest)
-        nuisance_parameters = None  # TODO
 
         # Separate Fisher information parts
-        information_phys, information_mix, information_nuisance = separate_information_blocks(
+        nuisance_parameters, information_phys, information_mix, information_nuisance = separate_information_blocks(
             fisher_information, parameters_of_interest
         )
 
@@ -1403,6 +1402,31 @@ class ScoreEstimator(Estimator):
 
         return fisher_information
 
+    def save(self, filename, save_model=False):
+        super(ScoreEstimator, self).save(filename, save_model)
+
+        # Also save Fisher information information for profiling / projections
+        if self.nuisance_profile_matrix is not None and self.nuisance_project_matrix is not None:
+            logger.debug("Saving nuisance profiling / projection information to %s_nuisance_profile_matrix.npy and "
+                         "%s_nuisance_project_matrix.npy", filename, filename)
+            np.save(filename + "_nuisance_profile_matrix.npy", self.nuisance_profile_matrix)
+            np.save(filename + "_nuisance_project_matrix.npy", self.nuisance_project_matrix)
+
+    def load(self, filename):
+        super(ScoreEstimator, self).load(filename)
+
+        # Load scaling
+        try:
+            self.nuisance_profile_matrix = np.load(filename + "_nuisance_profile_matrix.npy")
+            self.nuisance_project_matrix = np.load(filename + "_nuisance_project_matrix.npy")
+            logger.debug(
+                "  Found nuisance profiling / projection matrices:\nProfiling:\n%s\nProjection:\n%s", self.nuisance_profile_matrix, self.nuisance_project_matrix
+            )
+        except FileNotFoundError:
+            logger.debug("Did not find nuisance profiling / projection setup in %s", filename)
+            self.nuisance_profile_matrix = None
+            self.nuisance_project_matrix = None
+
     def _create_model(self):
         self.model = DenseLocalScoreModel(
             n_observables=self.n_observables,
@@ -1421,6 +1445,8 @@ class ScoreEstimator(Estimator):
     def _wrap_settings(self):
         settings = super(ScoreEstimator, self)._wrap_settings()
         settings["estimator_type"] = "score"
+        settings["estimator_type"] = "score"
+        settings["nuisance_mode_default"] = self.nuisance_mode_default
         return settings
 
     def _unwrap_settings(self, settings):
@@ -1430,6 +1456,11 @@ class ScoreEstimator(Estimator):
         if estimator_type != "score":
             raise RuntimeError("Saved model is an incompatible estimator type {}.".format(estimator_type))
 
+        try:
+            self.nuisance_mode_default = str(settings["nuisance_mode_default"])
+        except KeyError:
+            self.nuisance_mode_default = "keep"
+            logger.warning("Did not find entry nuisance_mode_default in saved model, using default 'keep'.")
 
 class LikelihoodEstimator(Estimator):
     """ A neural estimator of the density or likelihood evaluated at a reference hypothesis as a function
