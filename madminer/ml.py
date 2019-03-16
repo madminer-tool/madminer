@@ -1407,8 +1407,12 @@ class ScoreEstimator(Estimator):
 
         # Also save Fisher information information for profiling / projections
         if self.nuisance_profile_matrix is not None and self.nuisance_project_matrix is not None:
-            logger.debug("Saving nuisance profiling / projection information to %s_nuisance_profile_matrix.npy and "
-                         "%s_nuisance_project_matrix.npy", filename, filename)
+            logger.debug(
+                "Saving nuisance profiling / projection information to %s_nuisance_profile_matrix.npy and "
+                "%s_nuisance_project_matrix.npy",
+                filename,
+                filename,
+            )
             np.save(filename + "_nuisance_profile_matrix.npy", self.nuisance_profile_matrix)
             np.save(filename + "_nuisance_project_matrix.npy", self.nuisance_project_matrix)
 
@@ -1420,7 +1424,9 @@ class ScoreEstimator(Estimator):
             self.nuisance_profile_matrix = np.load(filename + "_nuisance_profile_matrix.npy")
             self.nuisance_project_matrix = np.load(filename + "_nuisance_project_matrix.npy")
             logger.debug(
-                "  Found nuisance profiling / projection matrices:\nProfiling:\n%s\nProjection:\n%s", self.nuisance_profile_matrix, self.nuisance_project_matrix
+                "  Found nuisance profiling / projection matrices:\nProfiling:\n%s\nProjection:\n%s",
+                self.nuisance_profile_matrix,
+                self.nuisance_project_matrix,
             )
         except FileNotFoundError:
             logger.debug("Did not find nuisance profiling / projection setup in %s", filename)
@@ -1461,6 +1467,7 @@ class ScoreEstimator(Estimator):
         except KeyError:
             self.nuisance_mode_default = "keep"
             logger.warning("Did not find entry nuisance_mode_default in saved model, using default 'keep'.")
+
 
 class LikelihoodEstimator(Estimator):
     """ A neural estimator of the density or likelihood evaluated at a reference hypothesis as a function
