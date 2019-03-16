@@ -1256,7 +1256,7 @@ class ScoreEstimator(Estimator):
         self.nuisance_profile_matrix = np.copy(self.nuisance_project_matrix)  # (n_phys, n_all)
         for theta_new, theta_old in enumerate(parameters_of_interest):
             for nuis_new, nuis_old in enumerate(nuisance_parameters):
-                self.nuisance_project_matrix[theta_new, nuis_old] += profiling_matrix[theta_new, nuis_new]
+                self.nuisance_profile_matrix[theta_new, nuis_old] += profiling_matrix[theta_new, nuis_new]
 
         logger.debug("Nuisance profiling matrix:/n%s", self.nuisance_project_matrix)
 
@@ -1318,7 +1318,7 @@ class ScoreEstimator(Estimator):
             logging.debug("Projecting nuisance parameter score")
             t_hat = np.einsum("ij,xj->xi", self.nuisance_project_matrix, t_hat)
 
-        elif nuisance_mode == "project":
+        elif nuisance_mode == "profile":
             if self.nuisance_profile_matrix is None:
                 raise ValueError(
                     "evaluate_score() was called with nuisance_mode = profile, but nuisance parameters "
@@ -1326,6 +1326,9 @@ class ScoreEstimator(Estimator):
                 )
             logging.debug("Profiling nuisance parameter score")
             t_hat = np.einsum("ij,xj->xi", self.nuisance_profile_matrix, t_hat)
+
+        else:
+            raise ValueError("Unknown nuisance_mode {}".format(nuisance_mode))
 
         return t_hat
 
