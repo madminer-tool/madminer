@@ -1066,6 +1066,8 @@ class SampleAugmenter:
         theta_sets_values,
         n_samples_per_theta,
         sampling_theta_index=0,
+        nu_sets_types=None,
+        nu_sets_values=None,
         augmented_data_definitions=None,
         nuisance_score=False,
         start_event=0,
@@ -1084,8 +1086,19 @@ class SampleAugmenter:
             theta_sampling_types entry is 'benchmark') or a numpy array with the theta values
             (of the corresponding theta_sampling_types entry is 'morphing')
 
+        sampling_theta_index : int
+            Marking the index of the theta set defined through thetas_types and
+            thetas_values that should be used for sampling. Default value: 0.
+
         n_samples_per_theta : int
             Number of samples to be drawn per entry in theta_sampling_types.
+
+        nu_sets_types :  None or list of list of str
+            Each entry can be 'benchmark' or 'morphing'. Default value: None.
+
+        nu_sets_values : None or list of list of ndarray
+            If None, nuisance parameters are set to their nominal value (0). Else, each entry is an ndarray with the
+            values of the nuisance parameters. Default values: None.
 
         augmented_data_definitions : list of tuple or None
             Each tuple can either be ('ratio', num_theta, den_theta) or
@@ -1097,10 +1110,6 @@ class SampleAugmenter:
             If True and if the sample contains nuisance parameters, any joint score in the augmented data definitions
             is also calculated with respect to the nuisance parameters (evaluated at their default position). Default
             value: False.
-
-        sampling_theta_index : int
-            Marking the index of the theta set defined through thetas_types and
-            thetas_values that should be used for sampling. Default value: 0.
 
         start_event : int
             Index of first event to consider. Default value: 0.
@@ -1123,6 +1132,7 @@ class SampleAugmenter:
 
         logger.debug("Starting sample extraction")
 
+        # Check inputs
         assert n_samples_per_theta > 0, "Requested {} samples per theta!".format(n_samples_per_theta)
 
         if augmented_data_definitions is None:
@@ -1133,7 +1143,11 @@ class SampleAugmenter:
             logger.debug("  %s", augmented_data_definition)
 
         # Nuisance parameters?
-        include_nuisance_parameters = self.include_nuisance_parameters and nuisance_score
+        assert (nu_sets_types is None) == (nu_sets_values is None), "Inconsistent nu input!"
+        sample_from_nuisance_parameters = nu_sets_types is not None
+        use_nuisance_parameters = nuisance_score or sample_from_nuisance_parameters
+        if use_nuisance_parameters and not self.nuisance_parameters:
+            raise RuntimeError("Class not initialized with nuisance parameters, cannot calculate nuisance-based data")
 
         # Calculate total xsecs for benchmarks
         xsecs_benchmarks = None
@@ -1144,7 +1158,7 @@ class SampleAugmenter:
             self.madminer_filename,
             start=start_event,
             end=end_event,
-            include_nuisance_parameters=include_nuisance_parameters,
+            include_nuisance_parameters=use_nuisance_parameters,
             benchmark_is_nuisance=self.benchmark_is_nuisance,
         ):
             # obs has shape (n_events, n_observables)
@@ -1164,6 +1178,10 @@ class SampleAugmenter:
 
         # Balance thetas
         theta_sets_types, theta_sets_values = balance_thetas(theta_sets_types, theta_sets_values)
+        if sample_from_nuisance_parameters:
+            nu_sets_types, nu_sets_values = balance_thetas(
+                theta_sets_types, theta_sets_values, n_sets=len(theta_sets_types[0])
+            )
 
         # Check whether we need to calculate scores (which will require the gradients of the morphing matrices)
         needs_gradients = False
@@ -1172,11 +1190,11 @@ class SampleAugmenter:
                 needs_gradients = True
 
                 if self.morpher is None:
-                    raise RuntimeError("Cannot calculate score without morphing setup!")
+                    raise RuntimeError("Cannot currently calculate score without morphing setup!")
 
         # Consistency checks
         n_benchmarks = xsecs_benchmarks.shape[0]
-        expected_n_benchmarks = self.n_benchmarks if include_nuisance_parameters else self.n_benchmarks_phys
+        expected_n_benchmarks = self.n_benchmarks if use_nuisance_parameters else self.n_benchmarks_phys
         if self.morphing_matrix is None:
             if n_benchmarks != expected_n_benchmarks:
                 raise ValueError(
@@ -1195,6 +1213,8 @@ class SampleAugmenter:
                 "Inconsistent numbers of observables: {} in observations,"
                 "{} in observable list".format(n_observables, len(self.observables))
             )
+
+        # TODO: from here
 
         n_thetas = len(theta_sets_types)
         assert n_thetas == len(theta_sets_values)

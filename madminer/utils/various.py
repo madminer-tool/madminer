@@ -111,10 +111,11 @@ def restrict_samplesize(n, *arrays):
     return restricted_arrays
 
 
-def balance_thetas(theta_sets_types, theta_sets_values):
+def balance_thetas(theta_sets_types, theta_sets_values, n_sets=None):
     """Repeats theta values such that all thetas lists have the same length """
 
-    n_sets = max([len(thetas) for thetas in theta_sets_types])
+    if n_sets is None:
+        n_sets = max([len(thetas) for thetas in theta_sets_types])
 
     for i, (types, values) in enumerate(zip(theta_sets_types, theta_sets_values)):
         assert len(types) == len(values)
