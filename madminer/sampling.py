@@ -214,7 +214,7 @@ class SampleAugmenter:
         x, _, (theta,) = self._extract_sample(
             theta_sets_types=[theta_types],
             theta_sets_values=[theta_values],
-            n_samples_per_theta=n_samples_per_theta,
+            n_samples_per_set=n_samples_per_theta,
             start_event=start_event,
             end_event=end_event,
         )
@@ -322,7 +322,7 @@ class SampleAugmenter:
         x, augmented_data, (theta,) = self._extract_sample(
             theta_sets_types=[theta_types],
             theta_sets_values=[theta_values],
-            n_samples_per_theta=n_samples_per_theta,
+            n_samples_per_set=n_samples_per_theta,
             augmented_data_definitions=augmented_data_definitions,
             nuisance_score=nuisance_score,
             start_event=start_event,
@@ -519,7 +519,7 @@ class SampleAugmenter:
                 theta_sets_types=[theta0_types, theta1_types],
                 theta_sets_values=[theta0_values, theta1_values],
                 sampling_theta_index=0,
-                n_samples_per_theta=n_samples_per_theta,
+                n_samples_per_set=n_samples_per_theta,
                 augmented_data_definitions=augmented_data_definitions,
                 start_event=start_event,
                 end_event=end_event,
@@ -530,7 +530,7 @@ class SampleAugmenter:
                 theta_sets_types=[theta0_types, theta1_types],
                 theta_sets_values=[theta0_values, theta1_values],
                 sampling_theta_index=0,
-                n_samples_per_theta=n_samples_per_theta,
+                n_samples_per_set=n_samples_per_theta,
                 augmented_data_definitions=augmented_data_definitions,
                 start_event=start_event,
                 end_event=end_event,
@@ -548,7 +548,7 @@ class SampleAugmenter:
                 theta_sets_types=[theta0_types, theta1_types],
                 theta_sets_values=[theta0_values, theta1_values],
                 sampling_theta_index=1,
-                n_samples_per_theta=n_samples_per_theta,
+                n_samples_per_set=n_samples_per_theta,
                 augmented_data_definitions=augmented_data_definitions,
                 start_event=start_event,
                 end_event=end_event,
@@ -559,7 +559,7 @@ class SampleAugmenter:
                 theta_sets_types=[theta0_types, theta1_types],
                 theta_sets_values=[theta0_values, theta1_values],
                 sampling_theta_index=1,
-                n_samples_per_theta=n_samples_per_theta,
+                n_samples_per_set=n_samples_per_theta,
                 augmented_data_definitions=augmented_data_definitions,
                 start_event=start_event,
                 end_event=end_event,
@@ -739,7 +739,7 @@ class SampleAugmenter:
         x_0, augmented_data_0, thetas_0 = self._extract_sample(
             theta_sets_types=theta_types,
             theta_sets_values=theta_values,
-            n_samples_per_theta=n_samples_per_theta,
+            n_samples_per_set=n_samples_per_theta,
             augmented_data_definitions=augmented_data_definitions_0,
             sampling_theta_index=0,
             start_event=start_event,
@@ -797,7 +797,7 @@ class SampleAugmenter:
         x_1, augmented_data_1, thetas_1 = self._extract_sample(
             theta_sets_types=theta_types,
             theta_sets_values=theta_values,
-            n_samples_per_theta=n_samples_per_theta,
+            n_samples_per_set=n_samples_per_theta,
             augmented_data_definitions=augmented_data_definitions_1,
             sampling_theta_index=1,
             start_event=start_event,
@@ -922,7 +922,7 @@ class SampleAugmenter:
         x, _, (theta,) = self._extract_sample(
             theta_sets_types=[theta_types],
             theta_sets_values=[theta_values],
-            n_samples_per_theta=n_samples_per_theta,
+            n_samples_per_set=n_samples_per_theta,
             start_event=start_event,
             end_event=end_event,
         )
@@ -1064,7 +1064,7 @@ class SampleAugmenter:
         self,
         theta_sets_types,
         theta_sets_values,
-        n_samples_per_theta,
+        n_samples_per_set,
         sampling_theta_index=0,
         nu_sets_types=None,
         nu_sets_values=None,
@@ -1075,6 +1075,9 @@ class SampleAugmenter:
     ):
         """
         Low-level function for the extraction of information from the event samples. Do not use this function directly.
+
+        The sampling is organized in terms of "sets". For each set, a number of parameter points (thetas and nus) is
+        fixed, and `n_samples_per_theta` events are sampled from one of them.
 
         Parameters
         ----------
@@ -1090,7 +1093,7 @@ class SampleAugmenter:
             Marking the index of the theta set defined through thetas_types and
             thetas_values that should be used for sampling. Default value: 0.
 
-        n_samples_per_theta : int
+        n_samples_per_set : int
             Number of samples to be drawn per entry in theta_sampling_types.
 
         nu_sets_types :  None or list of list of str
@@ -1130,10 +1133,12 @@ class SampleAugmenter:
 
         """
 
+        # TODO: clean up this function
+
         logger.debug("Starting sample extraction")
 
         # Check inputs
-        assert n_samples_per_theta > 0, "Requested {} samples per theta!".format(n_samples_per_theta)
+        assert n_samples_per_set > 0, "Requested {} samples per theta!".format(n_samples_per_set)
 
         if augmented_data_definitions is None:
             augmented_data_definitions = []
@@ -1150,30 +1155,9 @@ class SampleAugmenter:
             raise RuntimeError("Class not initialized with nuisance parameters, cannot calculate nuisance-based data")
 
         # Calculate total xsecs for benchmarks
-        xsecs_benchmarks = None
-        squared_weight_sum_benchmarks = None
-        n_observables = 0
-
-        for obs, weights in madminer_event_loader(
-            self.madminer_filename,
-            start=start_event,
-            end=end_event,
-            include_nuisance_parameters=use_nuisance_parameters,
-            benchmark_is_nuisance=self.benchmark_is_nuisance,
-        ):
-            # obs has shape (n_events, n_observables)
-            # weights has shape (n_events, n_benchmarks_phys)
-            # sampled_from_benchmark has shape (n_events,)
-
-            if xsecs_benchmarks is None:
-                xsecs_benchmarks = np.sum(weights, axis=0)
-                squared_weight_sum_benchmarks = np.sum(weights * weights, axis=0)
-            else:
-                xsecs_benchmarks += np.sum(weights, axis=0)
-                squared_weight_sum_benchmarks += np.sum(weights * weights, axis=0)
-
-            n_observables = obs.shape[1]
-
+        xsecs_benchmarks, squared_weight_sum_benchmarks, n_observables = self._calculate_benchmark_xsecs(
+            start_event, end_event, use_nuisance_parameters
+        )
         logger.debug("Benchmark cross sections [pb]: %s", xsecs_benchmarks)
 
         # Balance thetas
@@ -1188,7 +1172,6 @@ class SampleAugmenter:
         for augmented_data_definition in augmented_data_definitions:
             if augmented_data_definition[0] == "score":
                 needs_gradients = True
-
                 if self.morpher is None:
                     raise RuntimeError("Cannot currently calculate score without morphing setup!")
 
@@ -1214,35 +1197,42 @@ class SampleAugmenter:
                 "{} in observable list".format(n_observables, len(self.observables))
             )
 
-        # TODO: from here
-
         n_thetas = len(theta_sets_types)
         assert n_thetas == len(theta_sets_values)
+        if sample_from_nuisance_parameters:
+            assert n_thetas == len(nu_sets_types) == len(nu_sets_values)
+
         # Sets (within each set, all thetas (sampling, numerator, ...) have a constant value)
         n_sets = len(theta_sets_types[sampling_theta_index])
         for theta_types, theta_values in zip(theta_sets_types, theta_sets_values):
             assert n_sets == len(theta_types) == len(theta_values)
+        if sample_from_nuisance_parameters:
+            for nu_types, nu_values in zip(nu_sets_types, nu_sets_values):
+                assert n_sets == len(nu_types) == len(nu_values)
 
         # Number of samples to be drawn
-        if not isinstance(n_samples_per_theta, collections.Iterable):
-            n_samples_per_theta = [n_samples_per_theta] * n_sets
-        elif len(n_samples_per_theta) == 1:
-            n_samples_per_theta = [n_samples_per_theta[0]] * n_sets
+        if not isinstance(n_samples_per_set, collections.Iterable):
+            n_samples_per_set = [n_samples_per_set] * n_sets
+        elif len(n_samples_per_set) == 1:
+            n_samples_per_set = [n_samples_per_set[0]] * n_sets
 
         # Prepare output
         all_x = []
         all_augmented_data = [[] for _ in augmented_data_definitions]
         all_thetas = [[] for _ in range(n_thetas)]
+        all_nus = [[] for _ in range(n_thetas)]
         all_effective_n_samples = []
 
         n_statistics_warnings = 0
         n_negative_weights_warnings = 0
 
-        # Main loop over thetas
+        # TODO: from here
+
+        # Main loop over sets
         for i_set in range(n_sets):
 
             # Setup for set
-            n_samples = n_samples_per_theta[i_set]
+            n_samples = n_samples_per_set[i_set]
 
             theta_types = [t[i_set] for t in theta_sets_types]
             theta_values = [t[i_set] for t in theta_sets_values]
@@ -1339,14 +1329,6 @@ class SampleAugmenter:
                             if n_negative_weights_warnings == 3:
                                 logger.warning("Skipping warnings about negative weights in the future...")
 
-                        # filter_negative_weights = p_theta < 0.0
-                        # for weight_theta_neg, weight_benchmarks_neg in zip(
-                        #     weights_theta[filter_negative_weights], weights_benchmarks_batch[filter_negative_weights]
-                        # ):
-                        #     logger.debug(
-                        #         "  weight(theta): %s, benchmark weights: %s", weight_theta_neg, weight_benchmarks_neg
-                        #     )
-
                     p_theta[p_theta < 0.0] = 0.0
 
                     # Remember largest weights (to calculate effective number of samples)
@@ -1418,6 +1400,22 @@ class SampleAugmenter:
             logger.info("Effective number of samples: %s", all_effective_n_samples[0])
 
         return all_x, all_augmented_data, all_thetas
+
+    def _calculate_benchmark_xsecs(self, start_event, end_event, use_nuisance_parameters):
+        xsecs_benchmarks = 0.0
+        squared_weight_sum_benchmarks = 0.0
+        n_observables = 0
+        for obs, weights in madminer_event_loader(
+            self.madminer_filename,
+            start=start_event,
+            end=end_event,
+            include_nuisance_parameters=use_nuisance_parameters,
+            benchmark_is_nuisance=self.benchmark_is_nuisance,
+        ):
+            xsecs_benchmarks += np.sum(weights, axis=0)
+            squared_weight_sum_benchmarks += np.sum(weights * weights, axis=0)
+            n_observables = obs.shape[1]
+        return xsecs_benchmarks, squared_weight_sum_benchmarks, n_observables
 
     def _train_test_split(self, train, test_split):
         """
