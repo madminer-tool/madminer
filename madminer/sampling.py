@@ -1061,6 +1061,159 @@ class SampleAugmenter:
 
             return x, weights_theta
 
+    def _sample(
+            self,
+            sets,
+            n_samples_per_set,
+            sampling_theta_index=0,
+            augmented_data_definitions=None,
+            nuisance_score=False,
+            start_event=0,
+            end_event=None,
+    ):
+        """
+        Low-level function for the extraction of information from the event samples. Do not use this function directly.
+
+        The sampling is organized in terms of "sets". For each set, a number of parameter points (thetas and nus) is
+        fixed, and `n_samples_per_theta` events are sampled from one of them.
+
+        Parameters
+        ----------
+        sets : list of list of tuples
+            The outer list goes over sets, the inner list goes over parameter points, the tuples have the form
+            (theta_type, theta_value, nu_type, nu_value). Here the types can be 'benchmark' or 'morphing' and the
+            values can be int (for 'benchmark') or an ndarray (for 'morphing').
+
+        n_samples_per_set : int
+            Number of samples to be drawn per entry in theta_sampling_types.
+
+        sampling_theta_index : int
+            Marking the index of the theta set defined through thetas_types and
+            thetas_values that should be used for sampling. Default value: 0.
+
+        nu_sets_types :  None or list of list of str
+            Each entry can be 'benchmark' or 'morphing'. Default value: None.
+
+        nu_sets_values : None or list of list of ndarray
+            If None, nuisance parameters are set to their nominal value (0). Else, each entry is an ndarray with the
+            values of the nuisance parameters. Default values: None.
+
+        augmented_data_definitions : list of tuple or None
+            Each tuple can either be ('ratio', num_theta, den_theta) or
+            ('score', theta), where num_theta, den_theta, and theta are indexes marking
+            which of the theta sets defined through thetas_types and thetas_values is
+            used. Default value: None.
+
+        nuisance_score : bool, optional
+            If True and if the sample contains nuisance parameters, any joint score in the augmented data definitions
+            is also calculated with respect to the nuisance parameters (evaluated at their default position). Default
+            value: False.
+
+        start_event : int
+            Index of first event to consider. Default value: 0.
+
+        end_event : int or None
+            Index of last event to consider. If None, use the last event. Default value: None.
+
+        Returns
+        -------
+        x :  ndarray
+            Observables.
+
+        augmented_data : list of ndarray
+            Augmented data.
+
+        theta : list of ndarray
+            Parameter values.
+
+        """
+
+        logger.debug("Starting sample extraction")
+
+        # Check inputs
+        if augmented_data_definitions is None:
+            augmented_data_definitions = []
+
+        sets = self._balance_sets(sets)
+        n_sets, n_params = self._check_sets(sets)
+
+        # What needs to be calculated?
+        needs_gradients = self._check_gradient_need(augmented_data_definitions)
+
+        # Prepare outputs
+        all_x = []
+        all_augmented_data = [[] for _ in augmented_data_definitions]
+        all_thetas = [[] for _ in range(n_params)]
+        all_nus = [[] for _ in range(n_params)]
+        all_effective_n_samples = []
+
+        n_statistics_warnings = 0
+        n_negative_weights_warnings = 0
+
+        # Loop over sets
+        for set in enumerate(sets):
+            x, thetas, nus, augmented_data, eff_n_samples = self._sample_set(
+                set,
+                n_samples_per_set,
+                needs_gradients,
+            )
+
+            all_x.append(x)
+            for i, values in enumerate(augmented_data):
+                all_augmented_data[i].append(values)
+            for i, values in enumerate(thetas):
+                all_thetas[i].append(values)
+            for i, values in enumerate(nus):
+                all_nus[i].append(values)
+            all_effective_n_samples.append(eff_n_samples)
+
+        # Combine and return results
+        all_x = np.vstack(all_x)
+        for i, values in enumerate(all_thetas):
+            all_thetas[i] = np.vstack(values)
+        for i, values in enumerate(all_nus):
+            all_nus[i] = np.vstack(values)
+        for i, values in enumerate(all_augmented_data):
+            all_augmented_data[i] = np.vstack(values)
+        all_effective_n_samples = np.array(all_effective_n_samples)
+
+        # Report effective number of samples
+        self._report_effective_n_samples(all_effective_n_samples)
+
+        return all_x, all_augmented_data, all_thetas, all_effective_n_samples
+
+    def _check_sets(self, sets):
+        n_params = None
+        for set in sets:
+            if n_params is None:
+                n_params = len(set)
+            assert len(set) == n_params
+
+            for param_point in set:
+                assert len(param_point) == 4
+
+    def _sample_set(self, set, n_samples, needs_gradients):
+        # TODO TODO TODO
+        raise NotImplementedError
+
+    def calculate_weights(self, weights_benchmarks, theta_type, theta_value, nu_type, nu_value):
+        raise NotImplementedError
+
+    def calculate_xsec(self, weights_benchmarks, theta_type, theta_value, nu_type, nu_value):
+        raise NotImplementedError
+
+    def _report_effective_n_samples(self, all_effective_n_samples):
+        if len(all_effective_n_samples) > 1:
+            logger.info(
+                "Effective number of samples: mean %s, with individual thetas ranging from %s to %s",
+                np.mean(all_effective_n_samples),
+                np.min(all_effective_n_samples),
+                np.max(all_effective_n_samples),
+            )
+            logger.debug("Effective number of samples for all thetas: %s", all_effective_n_samples)
+        else:
+            logger.info("Effective number of samples: %s", all_effective_n_samples[0])
+
     def _extract_sample(
         self,
         theta_sets_types,
