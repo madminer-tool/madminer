@@ -360,7 +360,7 @@ class Trainer(object):
             if tensor is None:
                 continue
             if torch.isnan(tensor).any():
-                logger.warning("%s contains NaNs, aborting training!", label)
+                logger.warning("%s contains NaNs, aborting training! Data:\n%s", label, tensor)
                 raise NanException
 
 
