@@ -111,7 +111,7 @@ class Trainer(object):
                 losses_train.append(loss_train)
                 losses_val.append(loss_val)
             except NanException:
-                logger.info("Ending training after %s epochs because NaNs appeared", i_epoch + 1)
+                logger.info("Ending training during epoch %s because NaNs appeared", i_epoch + 1)
                 break
 
             if early_stopping:
@@ -134,7 +134,7 @@ class Trainer(object):
                 verbose=verbose_epoch,
             )
 
-        if early_stopping:
+        if early_stopping and len(losses_val) > 0:
             self.wrap_up_early_stopping(best_model, losses_val[-1], best_loss, best_epoch)
 
         logger.debug("Training finished")
