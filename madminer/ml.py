@@ -167,7 +167,7 @@ class Estimator(object):
 
         # Load state dict
         logger.debug("Loading state dictionary from %s_state_dict.pt", filename)
-        self.model.load_state_dict(torch.load(filename + "_state_dict.pt"))
+        self.model.load_state_dict(torch.load(filename + "_state_dict.pt", map_location='cpu'))
 
     def _initialize_input_transform(self, x, transform=True):
         if transform:
