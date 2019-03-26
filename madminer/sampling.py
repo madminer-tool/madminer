@@ -8,6 +8,7 @@ import six
 from madminer.utils.interfaces.madminer_hdf5 import load_madminer_settings, madminer_event_loader
 from madminer.utils.interfaces.madminer_hdf5 import save_preformatted_events_to_madminer_file
 from madminer.utils.analysis import get_theta_value, get_theta_benchmark_matrix, get_dtheta_benchmark_matrix
+from madminer.utils.analysis import get_nu_value
 from madminer.utils.analysis import calculate_augmented_data, parse_theta, mdot
 from madminer.utils.morphing import PhysicsMorpher, NuisanceMorpher
 from madminer.utils.various import format_benchmark, create_missing_folders, shuffle, balance_thetas
@@ -1149,8 +1150,8 @@ class SampleAugmenter:
 
         # Nuisance parameters?
         assert (nu_sets_types is None) == (nu_sets_values is None), "Inconsistent nu input!"
-        sample_from_nuisance_parameters = nu_sets_types is not None
-        use_nuisance_parameters = nuisance_score or sample_from_nuisance_parameters
+        ratio_or_sampling_from_nuisance_parameters = nu_sets_types is not None
+        use_nuisance_parameters = nuisance_score or ratio_or_sampling_from_nuisance_parameters
         if use_nuisance_parameters and not self.nuisance_parameters:
             raise RuntimeError("Class not initialized with nuisance parameters, cannot calculate nuisance-based data")
 
@@ -1162,7 +1163,7 @@ class SampleAugmenter:
 
         # Balance thetas
         theta_sets_types, theta_sets_values = balance_thetas(theta_sets_types, theta_sets_values)
-        if sample_from_nuisance_parameters:
+        if ratio_or_sampling_from_nuisance_parameters:
             nu_sets_types, nu_sets_values = balance_thetas(
                 theta_sets_types, theta_sets_values, n_sets=len(theta_sets_types[0])
             )
@@ -1199,14 +1200,14 @@ class SampleAugmenter:
 
         n_thetas = len(theta_sets_types)
         assert n_thetas == len(theta_sets_values)
-        if sample_from_nuisance_parameters:
+        if ratio_or_sampling_from_nuisance_parameters:
             assert n_thetas == len(nu_sets_types) == len(nu_sets_values)
 
         # Sets (within each set, all thetas (sampling, numerator, ...) have a constant value)
         n_sets = len(theta_sets_types[sampling_theta_index])
         for theta_types, theta_values in zip(theta_sets_types, theta_sets_values):
             assert n_sets == len(theta_types) == len(theta_values)
-        if sample_from_nuisance_parameters:
+        if ratio_or_sampling_from_nuisance_parameters:
             for nu_types, nu_values in zip(nu_sets_types, nu_sets_values):
                 assert n_sets == len(nu_types) == len(nu_values)
 
@@ -1226,8 +1227,6 @@ class SampleAugmenter:
         n_statistics_warnings = 0
         n_negative_weights_warnings = 0
 
-        # TODO: from here
-
         # Main loop over sets
         for i_set in range(n_sets):
 
@@ -1236,6 +1235,12 @@ class SampleAugmenter:
 
             theta_types = [t[i_set] for t in theta_sets_types]
             theta_values = [t[i_set] for t in theta_sets_values]
+            if ratio_or_sampling_from_nuisance_parameters:
+                nu_types = [t[i_set] for t in nu_sets_types]
+                nu_values = [t[i_set] for t in nu_sets_values]
+            else:
+                nu_types = [None for _ in theta_sets_types]
+                nu_values = [None for _ in theta_sets_values]
 
             if self.morpher is None and "morphing" in theta_types:
                 raise RuntimeError("Theta defined through morphing, but no morphing setup has been loaded.")
@@ -1244,13 +1249,19 @@ class SampleAugmenter:
             thetas = []
             theta_matrices = []
             theta_gradient_matrices = []
+            nus = []
 
             logger.debug("Drawing %s events for the following thetas:", n_samples)
 
-            for i_theta, (theta_type, theta_value) in enumerate(zip(theta_types, theta_values)):
+            for i_theta, (theta_type, theta_value, nu_type, nu_value) in enumerate(zip(theta_types, theta_values, nu_types, nu_values)):
                 theta = get_theta_value(theta_type, theta_value, self.benchmarks)
                 theta = np.broadcast_to(theta, (n_samples, theta.size))
                 thetas.append(theta)
+
+                if nu_type is not None:
+                    nu = get_nu_value(nu_type, nu_value)
+                    nu = np.broadcast_to(nu, (n_samples, theta.size))
+                    nus.append(nu)
 
                 theta_matrices.append(
                     get_theta_benchmark_matrix(theta_type, theta_value, self.benchmarks, self.morpher)
@@ -1263,6 +1274,8 @@ class SampleAugmenter:
                 logger.debug(
                     "  theta %s = %s%s", i_theta, theta[0, :], " (sampling)" if i_theta == sampling_theta_index else ""
                 )
+
+            # TODO: nuisance ratios from here
 
             sampling_theta_matrix = theta_matrices[sampling_theta_index]
 

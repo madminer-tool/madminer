@@ -20,6 +20,20 @@ def get_theta_value(theta_type, theta_value, benchmarks):
         raise ValueError("Unknown theta {}".format(theta_type))
 
 
+def get_nu_value(nu_type, nu_value):
+    if nu_type is None:
+        return None
+
+    elif nu_type == "benchmark":
+        raise NotImplementedError
+
+    elif nu_type == "morphing":
+        return nu_value
+
+    else:
+        raise ValueError("Unknown nu {}".format(nu_type))
+
+
 def get_theta_benchmark_matrix(theta_type, theta_value, benchmarks, morpher=None):
     """Calculates vector A such that dsigma(theta) = A * dsigma_benchmarks"""
 
