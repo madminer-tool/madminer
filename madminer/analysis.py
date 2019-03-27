@@ -14,7 +14,7 @@ from madminer.utils.various import format_benchmark
 logger = logging.getLogger(__name__)
 
 
-class EventAnalyzer(object):
+class DataAnalyzer(object):
     """
     Collects common functionality that is used when analysing data in the MadMiner file.
 

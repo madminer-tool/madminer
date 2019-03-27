@@ -20,16 +20,16 @@ def _parse_theta(theta, n_samples):
         n_samples_per_theta = int(round(n_samples / n_benchmarks, 0))
         thetas_out = [int(val) for val in theta_value_in]
 
-    elif theta_type_in == "theta":
+    elif theta_type_in == "morphing_point":
         thetas_out = np.asarray([theta_value_in])
         n_samples_per_theta = n_samples
 
-    elif theta_type_in == "thetas":
+    elif theta_type_in == "morphing_points":
         n_benchmarks = len(theta_value_in)
         n_samples_per_theta = int(round(n_samples / n_benchmarks, 0))
         thetas_out = np.asarray(theta_value_in)
 
-    elif theta_type_in == "random":
+    elif theta_type_in == "random_morphing_points":
         n_benchmarks, priors = theta_value_in
         if n_benchmarks is None or n_benchmarks <= 0:
             n_benchmarks = n_samples
@@ -53,6 +53,39 @@ def _parse_theta(theta, n_samples):
         raise ValueError("Unknown theta specification {}".format(theta))
 
     return thetas_out, n_samples_per_theta
+
+
+def _parse_nu(nu, n_thetas):
+    nu_type_in = nu[0]
+    nu_value_in = nu[1]
+
+    if nu_type_in == "morphing_point":
+        nu_out = np.asarray([nu_value_in for _ in range(n_thetas)])
+
+    elif nu_type_in == "morphing_points":
+        n_nus = len(nu_value_in)
+        nu_out = np.asarray([nu_value_in[i % n_nus] for i in range(n_thetas)])
+
+    elif nu_type_in == "random_morphing_points":
+        n_nus = len(nu_value_in)
+        _, priors = nu_value_in
+
+        nu_out = []
+        for prior in priors:
+            if prior[0] == "flat":
+                prior_min = prior[1]
+                prior_max = prior[2]
+                nu_out.append(prior_min + (prior_max - prior_min) * np.random.rand(n_nus))
+            elif prior[0] == "gaussian":
+                prior_mean = prior[1]
+                prior_std = prior[2]
+                nu_out.append(np.random.normal(loc=prior_mean, scale=prior_std, size=n_nus))
+            else:
+                raise ValueError("Unknown prior {}".format(prior))
+        nu_out = np.array(nu_out).T
+
+    else:
+        raise ValueError("Unknown nu specification {}".format(nu))
 
 
 def _get_theta_value(theta, benchmarks):

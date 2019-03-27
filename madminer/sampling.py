@@ -130,6 +130,8 @@ class SampleAugmenter(DataAnalyzer):
 
         # Thetas
         parsed_thetas, n_samples_per_theta = _parse_theta(theta, n_samples)
+        parsed_nus = _parse_nu(nu, len(parsed_thetas))
+
 
         # Train / test split
         start_event, end_event, _ = self._train_test_split(not switch_train_test_events, test_split)
@@ -939,7 +941,7 @@ class SampleAugmenter(DataAnalyzer):
         augmented_data : list of ndarray
             Augmented data.
 
-        theta : list of ndarray
+        theta_values : list of ndarray
             Parameter values.
 
         """
@@ -1519,7 +1521,7 @@ def morphing_point(theta):
         Input to various SampleAugmenter functions
 
     """
-    return "theta", np.asarray(theta)
+    return "morphing_point", np.asarray(theta)
 
 
 def morphing_points(thetas):
@@ -1538,7 +1540,7 @@ def morphing_points(thetas):
         Input to various SampleAugmenter functions
 
     """
-    return "thetas", [np.asarray(theta) for theta in thetas]
+    return "morphing_points", [np.asarray(theta) for theta in thetas]
 
 
 def random_morphing_points(n_thetas, priors):
@@ -1562,4 +1564,4 @@ def random_morphing_points(n_thetas, priors):
         Input to various SampleAugmenter functions
 
     """
-    return "random", (n_thetas, priors)
+    return "random_morphing_points", (n_thetas, priors)
