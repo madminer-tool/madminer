@@ -203,7 +203,10 @@ def parse_theta(theta, n_samples):
 
 
 def mdot(matrix, benchmark_information):
-    """ Calculates a product between a matrix with shape (a, n1) and a weight list with shape (?, n2) with n1 <= n2 """
+    """
+    Calculates a product between a matrix / matrices with shape (n1) or (a, n1) and a weight list with shape (b, n2)
+    or (n2,), where n1 and n2 do not have to be the same
+    """
 
     n_benchmarks_matrix = matrix.shape[-1]
     weights_benchmarks_T = benchmark_information.T

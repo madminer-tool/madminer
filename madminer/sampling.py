@@ -932,14 +932,14 @@ class SampleAugmenter(DataAnalyzer):
         return all_thetas, all_xsecs, all_xsec_uncertainties
 
     def _sample(
-            self,
-            sets,
-            n_samples_per_set,
-            sampling_theta_index=0,
-            augmented_data_definitions=None,
-            nuisance_score=False,
-            start_event=0,
-            end_event=None,
+        self,
+        sets,
+        n_samples_per_set,
+        sampling_theta_index=0,
+        augmented_data_definitions=None,
+        nuisance_score=False,
+        start_event=0,
+        end_event=None,
     ):
         """
         Low-level function for the extraction of information from the event samples. Do not use this function directly.
@@ -1022,11 +1022,7 @@ class SampleAugmenter(DataAnalyzer):
 
         # Loop over sets
         for set in enumerate(sets):
-            x, thetas, nus, augmented_data, eff_n_samples = self._sample_set(
-                set,
-                n_samples_per_set,
-                needs_gradients,
-            )
+            x, thetas, nus, augmented_data, eff_n_samples = self._sample_set(set, n_samples_per_set, needs_gradients)
 
             all_x.append(x)
             for i, values in enumerate(augmented_data):
@@ -1276,7 +1272,9 @@ class SampleAugmenter(DataAnalyzer):
 
             logger.debug("Drawing %s events for the following thetas:", n_samples)
 
-            for i_theta, (theta_type, theta_value, nu_type, nu_value) in enumerate(zip(theta_types, theta_values, nu_types, nu_values)):
+            for i_theta, (theta_type, theta_value, nu_type, nu_value) in enumerate(
+                zip(theta_types, theta_values, nu_types, nu_values)
+            ):
                 theta = get_theta_value(theta_type, theta_value, self.benchmarks)
                 theta = np.broadcast_to(theta, (n_samples, theta.size))
                 thetas.append(theta)
