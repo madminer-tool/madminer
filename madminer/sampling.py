@@ -28,18 +28,18 @@ class SampleAugmenter(DataAnalyzer):
     After inializing `SampleAugmenter` with the filename of a MadMiner file, this is done with a single function call.
     Depending on the downstream inference algorithm, there are different possibilities:
 
-    * `SampleAugmenter.extract_samples_train_plain()` creates plain training samples without augmented data.
-    * `SampleAugmenter.extract_samples_train_local()` creates training samples for local methods based on the score,
+    * `SampleAugmenter.sample_train_plain()` creates plain training samples without augmented data.
+    * `SampleAugmenter.sample_train_local()` creates training samples for local methods based on the score,
       such as SALLY and SALLINO.
-    * `SampleAugmenter.extract_samples_train_global()` creates training samples for non-local methods based on density
+    * `SampleAugmenter.sample_train_density()` creates training samples for non-local methods based on density
       estimation and the score, such as SCANDAL.
-    * `SampleAugmenter.extract_samples_train_ratio()` creates training samples for non-local, ratio-based methods
+    * `SampleAugmenter.sample_train_ratio()` creates training samples for non-local, ratio-based methods
       like RASCAL or ALICE.
-    * `SampleAugmenter.extract_samples_train_more_ratios()` does the same, but can extract joint ratios and scores
+    * `SampleAugmenter.sample_train_more_ratios()` does the same, but can extract joint ratios and scores
       at more parameter points. This additional information  can be used efficiently in the setup with a "doubly
       parameterized" likelihood ratio estimator that models the dependence on both the numerator and denominator
       hypothesis.
-    * `SampleAugmenter.extract_samples_test()` creates evaluation samples for all methods.
+    * `SampleAugmenter.sample_test()` creates evaluation samples for all methods.
 
     Please see the tutorial for a walkthrough.
 
@@ -130,10 +130,10 @@ class SampleAugmenter(DataAnalyzer):
 
         create_missing_folders([folder])
 
-        # Thetas
+        # Parameters
         parsed_thetas, n_samples_per_theta = _parse_theta(theta, n_samples)
         parsed_nus = _parse_nu(nu, len(parsed_thetas))
-        sets = _build_sets(parsed_thetas, parsed_nus)
+        sets = _build_sets([parsed_thetas], [parsed_nus])
 
         # Train / test split
         start_event, end_event, _ = self._train_test_split(not switch_train_test_events, test_split)
@@ -154,6 +154,7 @@ class SampleAugmenter(DataAnalyzer):
         self,
         theta,
         n_samples,
+        nu=None,
         folder=None,
         filename=None,
         nuisance_score=False,
@@ -173,6 +174,10 @@ class SampleAugmenter(DataAnalyzer):
 
         n_samples : int
             Total number of events to be drawn.
+
+        nu : None or tuple, optional
+            Tuple (type, value) that defines the nuisance parameter point or prior over parameter points for the
+            sampling. Default value: None
 
         folder : str or None
             Path to the folder where the resulting samples should be saved (ndarrays in .npy format). Default value:
@@ -231,8 +236,10 @@ class SampleAugmenter(DataAnalyzer):
         if self.nuisance_morpher is None and nuisance_score:
             raise RuntimeError("No nuisance parameters defined. Cannot calculate nuisance score.")
 
-        # Thetas
+        # Parameters
         parsed_thetas, n_samples_per_theta = _parse_theta(theta, n_samples)
+        parsed_nus = _parse_nu(nu, len(parsed_thetas))
+        sets = _build_sets([parsed_thetas], [parsed_nus])
 
         # Augmented data (gold)
         augmented_data_definitions = [("score", 0)]
@@ -243,9 +250,8 @@ class SampleAugmenter(DataAnalyzer):
         start_event, end_event, _ = self._train_test_split(not switch_train_test_events, test_split)
 
         # Start
-        x, augmented_data, (theta,) = self._extract_sample(
-            theta_sets_types=[theta_types],
-            theta_sets_values=[theta_values],
+        x, augmented_data, (theta,) = self._sample(
+            sets=sets,
             n_samples_per_set=n_samples_per_theta,
             augmented_data_definitions=augmented_data_definitions,
             nuisance_score=nuisance_score,
@@ -276,7 +282,7 @@ class SampleAugmenter(DataAnalyzer):
         return x, theta, t_xz
 
     def sample_train_density(
-        self, theta, n_samples, folder=None, filename=None, test_split=0.2, switch_train_test_events=False
+        self, theta, n_samples, nu=None, folder=None, filename=None, test_split=0.2, switch_train_test_events=False
     ):
         """
         Extracts training samples x ~ p(x|theta) as well as the joint score t(x, z|theta), where theta is sampled
@@ -291,6 +297,10 @@ class SampleAugmenter(DataAnalyzer):
 
         n_samples : int
             Total number of events to be drawn.
+
+        nu : None or tuple, optional
+            Tuple (type, value) that defines the nuisance parameter point or prior over parameter points for the
+            sampling. Default value: None
 
         folder : str or None
             Path to the folder where the resulting samples should be saved (ndarrays in .npy format). Default value:
@@ -332,17 +342,27 @@ class SampleAugmenter(DataAnalyzer):
         )
 
         return self.sample_train_local(
-            theta,
-            n_samples,
-            folder,
-            filename,
+            theta=theta,
+            n_samples=n_samples,
+            nu=nu,
+            folder=folder,
+            filename=filename,
             test_split=test_split,
             switch_train_test_events=switch_train_test_events,
             log_message=False,
         )
 
     def sample_train_ratio(
-        self, theta0, theta1, n_samples, folder=None, filename=None, test_split=0.2, switch_train_test_events=False
+        self,
+        theta0,
+        theta1,
+        n_samples,
+        nu0=None,
+        nu1=None,
+        folder=None,
+        filename=None,
+        test_split=0.2,
+        switch_train_test_events=False,
     ):
         """
         Extracts training samples `x ~ p(x|theta0)` and `x ~ p(x|theta1)` together with the class label `y`, the joint
@@ -363,6 +383,14 @@ class SampleAugmenter(DataAnalyzer):
 
         n_samples : int
             Total number of events to be drawn.
+
+        nu0 : None or tuple, optional
+            Tuple (type, value) that defines the numerator nuisance parameter point or prior over parameter points for the
+            sampling. Default value: None
+
+        nu1 : None or tuple, optional
+            Tuple (type, value) that defines the denominator nuisance parameter point or prior over parameter points for the
+            sampling. Default value: None
 
         folder : str or None
             Path to the folder where the resulting samples should be saved (ndarrays in .npy format). Default value:
@@ -433,15 +461,16 @@ class SampleAugmenter(DataAnalyzer):
         # Thetas for theta0 sampling
         parsed_theta0s, n_samples_per_theta0 = _parse_theta(theta0, n_samples // 2)
         parsed_theta1s, n_samples_per_theta1 = _parse_theta(theta1, n_samples // 2)
+        parsed_nu0s = _parse_nu(nu0, len(parsed_theta0s))
+        parsed_nu1s = _parse_nu(nu1, len(parsed_theta1s))
+        sets = _build_sets([parsed_theta0s, parsed_theta1s], [parsed_nu0s, parsed_nu1s])
 
         n_samples_per_theta = min(n_samples_per_theta0, n_samples_per_theta1)
 
         # Start for theta0
-
         if self.morpher is None:
-            x0, (r_xz0,), (theta0_0, theta1_0) = self._extract_sample(
-                theta_sets_types=[theta0_types, theta1_types],
-                theta_sets_values=[theta0_values, theta1_values],
+            x0, (r_xz0,), (theta0_0, theta1_0) = self._sample(
+                sets=sets,
                 sampling_theta_index=0,
                 n_samples_per_set=n_samples_per_theta,
                 augmented_data_definitions=augmented_data_definitions,
@@ -450,9 +479,8 @@ class SampleAugmenter(DataAnalyzer):
             )
             t_xz0 = None
         else:
-            x0, (r_xz0, t_xz0), (theta0_0, theta1_0) = self._extract_sample(
-                theta_sets_types=[theta0_types, theta1_types],
-                theta_sets_values=[theta0_values, theta1_values],
+            x0, (r_xz0, t_xz0), (theta0_0, theta1_0) = self._sample(
+                sets=sets,
                 sampling_theta_index=0,
                 n_samples_per_set=n_samples_per_theta,
                 augmented_data_definitions=augmented_data_definitions,
@@ -524,6 +552,8 @@ class SampleAugmenter(DataAnalyzer):
         theta0,
         theta1,
         n_samples,
+        nu0=None,
+        nu1=None,
         folder=None,
         filename=None,
         additional_thetas=None,
@@ -554,6 +584,14 @@ class SampleAugmenter(DataAnalyzer):
 
         n_samples : int
             Total number of events to be drawn.
+
+        nu0 : None or tuple, optional
+            Tuple (type, value) that defines the numerator nuisance parameter point or prior over parameter points for the
+            sampling. Default value: None
+
+        nu1 : None or tuple, optional
+            Tuple (type, value) that defines the denominator nuisance parameter point or prior over parameter points for the
+            sampling. Default value: None
 
         folder : str or None
             Path to the folder where the resulting samples should be saved (ndarrays in .npy format). Default value:
@@ -638,25 +676,33 @@ class SampleAugmenter(DataAnalyzer):
 
         # Parse thetas for theta0 sampling
         parsed_thetas = []
+        parsed_nus = []
         n_samples_per_theta = 1000000
 
-        parsed_thetas0, this_n_samples = _parse_theta(theta0, n_samples // 2)
-        parsed_thetas.append(parsed_thetas0)
+        parsed_theta0s, this_n_samples = _parse_theta(theta0, n_samples // 2)
+        parsed_nu0s = _parse_nu(nu0, len(parsed_theta0s))
+        parsed_thetas.append(parsed_theta0s)
+        parsed_nus.append(parsed_nu0s)
         n_samples_per_theta = min(this_n_samples, n_samples_per_theta)
 
-        parsed_thetas1, this_n_samples = _parse_theta(theta1, n_samples // 2)
-        parsed_thetas.append(parsed_thetas1)
+        parsed_theta1s, this_n_samples = _parse_theta(theta1, n_samples // 2)
+        parsed_nu1s = _parse_nu(nu1, len(parsed_theta1s))
+        parsed_thetas.append(parsed_theta1s)
+        parsed_nus.append(parsed_nu1s)
         n_samples_per_theta = min(this_n_samples, n_samples_per_theta)
 
         for additional_theta in additional_thetas:
             additional_parsed_thetas, this_n_samples = _parse_theta(additional_theta, n_samples // 2)
             parsed_thetas.append(additional_parsed_thetas)
+            additional_parsed_nu = _parse_nu(nu1, len(additional_parsed_thetas))
+            parsed_nus.append(additional_parsed_nu)
             n_samples_per_theta = min(this_n_samples, n_samples_per_theta)
 
+        sets = _build_sets(parsed_thetas, parsed_nus)
+
         # Start for theta0
-        x_0, augmented_data_0, thetas_0 = self._extract_sample(
-            theta_sets_types=theta_types,
-            theta_sets_values=theta_values,
+        x_0, augmented_data_0, thetas_0 = self._sample(
+            sets=sets,
             n_samples_per_set=n_samples_per_theta,
             augmented_data_definitions=augmented_data_definitions_0,
             sampling_theta_index=0,
@@ -690,25 +736,33 @@ class SampleAugmenter(DataAnalyzer):
 
         # Parse thetas for theta1 sampling
         parsed_thetas = []
+        parsed_nus = []
         n_samples_per_theta = 1000000
 
         parsed_thetas0, this_n_samples = _parse_theta(theta0, n_samples // 2)
+        parsed_nu0s = _parse_nu(nu0, len(parsed_theta0s))
         parsed_thetas.append(parsed_thetas0)
+        parsed_nus.append(parsed_nu0s)
         n_samples_per_theta = min(this_n_samples, n_samples_per_theta)
 
         parsed_thetas1, this_n_samples = _parse_theta(theta1, n_samples // 2)
+        parsed_nu1s = _parse_nu(nu1, len(parsed_theta1s))
         parsed_thetas.append(parsed_thetas1)
+        parsed_nus.append(parsed_nu1s)
         n_samples_per_theta = min(this_n_samples, n_samples_per_theta)
 
         for additional_theta in additional_thetas:
             additional_parsed_thetas, this_n_samples = _parse_theta(additional_theta, n_samples // 2)
+            additional_parsed_nu = _parse_nu(nu0, len(additional_parsed_thetas))
             parsed_thetas.append(additional_parsed_thetas)
+            parsed_nus.append(additional_parsed_nu)
             n_samples_per_theta = min(this_n_samples, n_samples_per_theta)
 
+        sets = _build_sets(parsed_thetas, parsed_nus)
+
         # Start for theta1
-        x_1, augmented_data_1, thetas_1 = self._extract_sample(
-            theta_sets_types=theta_types,
-            theta_sets_values=theta_values,
+        x_1, augmented_data_1, thetas_1 = self._sample(
+            sets=sets,
             n_samples_per_set=n_samples_per_theta,
             augmented_data_definitions=augmented_data_definitions_1,
             sampling_theta_index=1,
@@ -775,7 +829,9 @@ class SampleAugmenter(DataAnalyzer):
 
         return x, theta0, theta1, y, r_xz, t_xz0, t_xz1
 
-    def sample_test(self, theta, n_samples, folder=None, filename=None, test_split=0.2, switch_train_test_events=False):
+    def sample_test(
+        self, theta, n_samples, nu=None, folder=None, filename=None, test_split=0.2, switch_train_test_events=False
+    ):
         """
         Extracts evaluation samples `x ~ p(x|theta)` without any augmented data.
 
@@ -788,6 +844,10 @@ class SampleAugmenter(DataAnalyzer):
 
         n_samples : int
             Total number of events to be drawn.
+
+        nu : None or tuple, optional
+            Tuple (type, value) that defines the nuisance parameter point or prior over parameter points for the
+            sampling. Default value: None
 
         folder : str or None
             Path to the folder where the resulting samples should be saved (ndarrays in .npy format). Default value:
@@ -824,17 +884,15 @@ class SampleAugmenter(DataAnalyzer):
 
         # Thetas
         parsed_thetas, n_samples_per_theta = _parse_theta(theta, n_samples)
+        parsed_nus = _parse_nu(nu, len(parsed_thetas))
+        sets = _build_sets([parsed_thetas], [parsed_nus])
 
         # Train / test split
         start_event, end_event, _ = self._train_test_split(switch_train_test_events, test_split)
 
         # Extract information
-        x, _, (theta,) = self._extract_sample(
-            theta_sets_types=[theta_types],
-            theta_sets_values=[theta_values],
-            n_samples_per_set=n_samples_per_theta,
-            start_event=start_event,
-            end_event=end_event,
+        x, _, (theta,) = self._sample(
+            sets=sets, n_samples_per_set=n_samples_per_theta, start_event=start_event, end_event=end_event
         )
 
         # Save data
@@ -844,7 +902,7 @@ class SampleAugmenter(DataAnalyzer):
 
         return x, theta
 
-    def cross_sections(self, theta):
+    def cross_sections(self, theta, nu=None):
 
         """
         Calculates the total cross sections for all specified thetas.
@@ -857,10 +915,16 @@ class SampleAugmenter(DataAnalyzer):
             `benchmarks()`, `morphing_point()`, `morphing_points()`, or
             `random_morphing_points()`.
 
+        nu : tuple or None, optional
+            Tuple (type, value) that defines the nuisance parameter point or prior over nuisance parameter points at
+            which the cross section is calculated. Pass the output of the functions `benchmark()`,
+            `benchmarks()`, `morphing_point()`, `morphing_points()`, or
+            `random_morphing_points()`. Default valuee: None.
+
         Returns
         -------
         thetas : ndarray
-            Parameter points with shape `(n_thetas, n_parameters)`.
+            Parameter points with shape `(n_thetas, n_parameters)` or `(n_thetas, n_parameters + n_nuisance_parameters)`.
 
         xsecs : ndarray
             Total cross sections in pb with shape `(n_thetas, )`.
@@ -872,8 +936,18 @@ class SampleAugmenter(DataAnalyzer):
         logger.info("Starting cross-section calculation")
         parsed_thetas, _ = _parse_theta(theta, 1)
         theta_values = np.asarray([_get_theta_value(parsed_theta for parsed_theta in parsed_thetas)])
-        xsecs, uncertainties = self.xsecs(thetas=parsed_thetas, nus=None)
-        return theta_values, xsecs, uncertainties
+
+        if nu is not None:
+            parsed_nus = _parse_nu(nu, len(parsed_thetas))
+            nu_values = np.asarray([_get_nu_value(parsed_nu for parsed_nu in parsed_nus)])
+            param_values = np.hstack((theta_values, nu_values))
+        else:
+            parsed_nus = None
+            param_values = theta_values
+
+        xsecs, uncertainties = self.xsecs(thetas=parsed_thetas, nus=parsed_nus)
+
+        return param_values, xsecs, uncertainties
 
     def _sample(
         self,
