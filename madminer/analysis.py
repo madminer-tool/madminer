@@ -6,7 +6,7 @@ import collections
 import six
 
 from madminer.utils.interfaces.madminer_hdf5 import load_madminer_settings, madminer_event_loader
-from madminer.utils.analysis import get_theta_benchmark_matrix, get_dtheta_benchmark_matrix
+from madminer.utils.analysis import _get_theta_benchmark_matrix, _get_dtheta_benchmark_matrix
 from madminer.utils.analysis import mdot
 from madminer.utils.morphing import PhysicsMorpher, NuisanceMorpher
 from madminer.utils.various import format_benchmark
@@ -163,7 +163,7 @@ class EventAnalyzer(object):
             return x, weights_benchmarks[:, i_benchmark]
 
         elif derivative:
-            dtheta_matrix = get_dtheta_benchmark_matrix("morphing", theta, self.benchmarks, self.morpher)
+            dtheta_matrix = _get_dtheta_benchmark_matrix("morphing", theta, self.benchmarks, self.morpher)
 
             gradients_theta = mdot(dtheta_matrix, weights_benchmarks)  # (n_gradients, n_samples)
             gradients_theta = gradients_theta.T
@@ -175,20 +175,14 @@ class EventAnalyzer(object):
             if nu is not None:
                 raise NotImplementedError
 
-            theta_matrix = get_theta_benchmark_matrix("morphing", theta, self.benchmarks, self.morpher)
+            theta_matrix = _get_theta_benchmark_matrix("morphing", theta, self.benchmarks, self.morpher)
 
             weights_theta = mdot(theta_matrix, weights_benchmarks)
 
             return x, weights_theta
 
     def xsecs(
-        self,
-        thetas=None,
-        nus=None,
-        events="all",
-        test_split=0.2,
-        include_nuisance_benchmarks=False,
-        batch_size=100000,
+        self, thetas=None, nus=None, events="all", test_split=0.2, include_nuisance_benchmarks=False, batch_size=100000
     ):
         """
         Returns the total cross sections for benchmarks or parameter points.
@@ -240,7 +234,7 @@ class EventAnalyzer(object):
         # Which events to use
         if events == "all":
             start_event, end_event = None, None
-            correction_factor = 1.
+            correction_factor = 1.0
         elif events == "train":
             start_event, end_event, correction_factor = self._train_test_split(True, test_split)
         elif events == "test":
@@ -253,11 +247,11 @@ class EventAnalyzer(object):
         for theta in thetas:
             if isinstance(theta, six.string_types):
                 i_benchmark = list(self.benchmarks.keys()).index(theta)
-                theta_matrix = get_theta_benchmark_matrix("benchmark", i_benchmark, self.benchmarks)
+                theta_matrix = _get_theta_benchmark_matrix("benchmark", i_benchmark, self.benchmarks)
             elif isinstance(theta, int):
-                theta_matrix = get_theta_benchmark_matrix("benchmark", theta, self.benchmarks)
+                theta_matrix = _get_theta_benchmark_matrix("benchmark", theta, self.benchmarks)
             else:
-                theta_matrix = get_theta_benchmark_matrix("morphing", theta, self.benchmarks, self.morpher)
+                theta_matrix = _get_theta_benchmark_matrix("morphing", theta, self.benchmarks, self.morpher)
             theta_matrices.append(theta_matrix)
         theta_matrices = np.asarray(theta_matrices)  # Shape (n_thetas, n_benchmarks)
 
@@ -347,20 +341,20 @@ class EventAnalyzer(object):
 
             if test_split is None or test_split <= 0.0 or test_split >= 1.0:
                 end_event = None
-                correction_factor = 1.
+                correction_factor = 1.0
             else:
                 end_event = int(round((1.0 - test_split) * self.n_samples, 0))
-                correction_factor = 1./(1.-test_split)
+                correction_factor = 1.0 / (1.0 - test_split)
                 if end_event < 0 or end_event > self.n_samples:
                     raise ValueError("Irregular train / test split: sample {} / {}", end_event, self.n_samples)
 
         else:
             if test_split is None or test_split <= 0.0 or test_split >= 1.0:
                 start_event = 0
-                correction_factor = 1.
+                correction_factor = 1.0
             else:
                 start_event = int(round((1.0 - test_split) * self.n_samples, 0)) + 1
-                correction_factor = 1./(test_split)
+                correction_factor = 1.0 / (test_split)
                 if start_event < 0 or start_event > self.n_samples:
                     raise ValueError("Irregular train / test split: sample {} / {}", start_event, self.n_samples)
 

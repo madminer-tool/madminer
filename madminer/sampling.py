@@ -8,9 +8,9 @@ import six
 from madminer.analysis import DataAnalyzer
 from madminer.utils.interfaces.madminer_hdf5 import load_madminer_settings, madminer_event_loader
 from madminer.utils.interfaces.madminer_hdf5 import save_preformatted_events_to_madminer_file
-from madminer.utils.analysis import get_theta_value, get_theta_benchmark_matrix, get_dtheta_benchmark_matrix
-from madminer.utils.analysis import get_nu_value
-from madminer.utils.analysis import calculate_augmented_data, parse_theta, mdot
+from madminer.utils.analysis import _get_theta_value, _get_theta_benchmark_matrix, _get_dtheta_benchmark_matrix
+from madminer.utils.analysis import _get_nu_value
+from madminer.utils.analysis import _calculate_augmented_data, _parse_theta, mdot
 from madminer.utils.morphing import PhysicsMorpher, NuisanceMorpher
 from madminer.utils.various import format_benchmark, create_missing_folders, shuffle, balance_thetas
 
@@ -22,7 +22,7 @@ class SampleAugmenter(DataAnalyzer):
     Sampling and data augmentation.
 
     After the generated events have been analyzed and the observables and weights have been saved into a MadMiner file,
-    for instance with `madminer.delphes.DelphesProcessor` or `madminer.lhe.LHEProcessor`, the next step is typically
+    for instance with `madminer.delphes.DelphesReader` or `madminer.lhe.LHEReader`, the next step is typically
     the generation of training and evaluation data for the machine learning algorithms. This generally involves two
     (related) tasks: unweighting, i.e. the creation of samples that do not carry individual weights but follow some
     distribution, and the extraction of the joint likelihood ratio and / or joint score (the "augmented data").
@@ -129,7 +129,7 @@ class SampleAugmenter(DataAnalyzer):
         create_missing_folders([folder])
 
         # Thetas
-        theta_types, theta_values, n_samples_per_theta = parse_theta(theta, n_samples)
+        parsed_thetas, n_samples_per_theta = _parse_theta(theta, n_samples)
 
         # Train / test split
         start_event, end_event, _ = self._train_test_split(not switch_train_test_events, test_split)
@@ -232,7 +232,7 @@ class SampleAugmenter(DataAnalyzer):
             raise RuntimeError("No nuisance parameters defined. Cannot calculate nuisance score.")
 
         # Thetas
-        theta_types, theta_values, n_samples_per_theta = parse_theta(theta, n_samples)
+        parsed_thetas, n_samples_per_theta = _parse_theta(theta, n_samples)
 
         # Augmented data (gold)
         augmented_data_definitions = [("score", 0)]
@@ -431,8 +431,8 @@ class SampleAugmenter(DataAnalyzer):
         start_event, end_event, _ = self._train_test_split(not switch_train_test_events, test_split)
 
         # Thetas for theta0 sampling
-        theta0_types, theta0_values, n_samples_per_theta0 = parse_theta(theta0, n_samples // 2)
-        theta1_types, theta1_values, n_samples_per_theta1 = parse_theta(theta1, n_samples // 2)
+        parsed_theta0s, n_samples_per_theta0 = _parse_theta(theta0, n_samples // 2)
+        parsed_theta1s, n_samples_per_theta1 = _parse_theta(theta1, n_samples // 2)
 
         n_samples_per_theta = min(n_samples_per_theta0, n_samples_per_theta1)
 
@@ -461,8 +461,8 @@ class SampleAugmenter(DataAnalyzer):
             )
 
         # Thetas for theta1 sampling (could be different if num or denom are random)
-        theta0_types, theta0_values, n_samples_per_theta0 = parse_theta(theta0, n_samples // 2)
-        theta1_types, theta1_values, n_samples_per_theta1 = parse_theta(theta1, n_samples // 2)
+        parsed_theta0s, n_samples_per_theta0 = _parse_theta(theta0, n_samples // 2)
+        parsed_theta1s, n_samples_per_theta1 = _parse_theta(theta1, n_samples // 2)
 
         n_samples_per_theta = min(n_samples_per_theta0, n_samples_per_theta1)
 
@@ -637,26 +637,20 @@ class SampleAugmenter(DataAnalyzer):
         start_event, end_event, _ = self._train_test_split(not switch_train_test_events, test_split)
 
         # Parse thetas for theta0 sampling
-        theta_types = []
-        theta_values = []
+        parsed_thetas = []
         n_samples_per_theta = 1000000
 
-        theta0_types, theta0_values, this_n_samples = parse_theta(theta0, n_samples // 2)
-        theta_types.append(theta0_types)
-        theta_values.append(theta0_values)
+        parsed_thetas0, this_n_samples = _parse_theta(theta0, n_samples // 2)
+        parsed_thetas.append(parsed_thetas0)
         n_samples_per_theta = min(this_n_samples, n_samples_per_theta)
 
-        theta1_types, theta1_values, this_n_samples = parse_theta(theta1, n_samples // 2)
-        theta_types.append(theta1_types)
-        theta_values.append(theta1_values)
+        parsed_thetas1, this_n_samples = _parse_theta(theta1, n_samples // 2)
+        parsed_thetas.append(parsed_thetas1)
         n_samples_per_theta = min(this_n_samples, n_samples_per_theta)
 
         for additional_theta in additional_thetas:
-            additional_theta_types, additional_theta_values, this_n_samples = parse_theta(
-                additional_theta, n_samples // 2
-            )
-            theta_types.append(additional_theta_types)
-            theta_values.append(additional_theta_values)
+            additional_parsed_thetas, this_n_samples = _parse_theta(additional_theta, n_samples // 2)
+            parsed_thetas.append(additional_parsed_thetas)
             n_samples_per_theta = min(this_n_samples, n_samples_per_theta)
 
         # Start for theta0
@@ -695,26 +689,20 @@ class SampleAugmenter(DataAnalyzer):
         theta1_0 = np.vstack([theta1_0] + thetas_eval)
 
         # Parse thetas for theta1 sampling
-        theta_types = []
-        theta_values = []
+        parsed_thetas = []
         n_samples_per_theta = 1000000
 
-        theta0_types, theta0_values, this_n_samples = parse_theta(theta0, n_samples // 2)
-        theta_types.append(theta0_types)
-        theta_values.append(theta0_values)
+        parsed_thetas0, this_n_samples = _parse_theta(theta0, n_samples // 2)
+        parsed_thetas.append(parsed_thetas0)
         n_samples_per_theta = min(this_n_samples, n_samples_per_theta)
 
-        theta1_types, theta1_values, this_n_samples = parse_theta(theta1, n_samples // 2)
-        theta_types.append(theta1_types)
-        theta_values.append(theta1_values)
+        parsed_thetas1, this_n_samples = _parse_theta(theta1, n_samples // 2)
+        parsed_thetas.append(parsed_thetas1)
         n_samples_per_theta = min(this_n_samples, n_samples_per_theta)
 
         for additional_theta in additional_thetas:
-            additional_theta_types, additional_theta_values, this_n_samples = parse_theta(
-                additional_theta, n_samples // 2
-            )
-            theta_types.append(additional_theta_types)
-            theta_values.append(additional_theta_values)
+            additional_parsed_thetas, this_n_samples = _parse_theta(additional_theta, n_samples // 2)
+            parsed_thetas.append(additional_parsed_thetas)
             n_samples_per_theta = min(this_n_samples, n_samples_per_theta)
 
         # Start for theta1
@@ -837,7 +825,7 @@ class SampleAugmenter(DataAnalyzer):
         create_missing_folders([folder])
 
         # Thetas
-        theta_types, theta_values, n_samples_per_theta = parse_theta(theta, n_samples)
+        parsed_thetas, n_samples_per_theta = _parse_theta(theta, n_samples)
 
         # Train / test split
         start_event, end_event, _ = self._train_test_split(switch_train_test_events, test_split)
@@ -883,21 +871,10 @@ class SampleAugmenter(DataAnalyzer):
             Statistical uncertainties on the total cross sections in pb with shape `(n_thetas, )`.
 
         """
-
         logger.info("Starting cross-section calculation")
-
-        theta_values = []
-        theta_input = []
-        _types, _specs, _ = parse_theta(theta, 1)
-        for (_type, _spec) in zip(_types, _specs):
-            theta_values.append(get_theta_value(_type, _spec, self.benchmarks))
-            if _type == "morphing":
-                theta_input.append(np.asarray(_spec))
-            elif _type == "benchmark":
-                theta_input.append(str(_spec))
-
-        xsecs, uncertainties = self.xsecs(thetas=theta_input, nus=None)
-
+        parsed_thetas, _ = _parse_theta(theta, 1)
+        theta_values = np.asarray([_get_theta_value(parsed_theta for parsed_theta in parsed_thetas)])
+        xsecs, uncertainties = self.xsecs(thetas=parsed_thetas, nus=None)
         return theta_values, xsecs, uncertainties
 
     def _sample(
@@ -1244,21 +1221,21 @@ class SampleAugmenter(DataAnalyzer):
             for i_theta, (theta_type, theta_value, nu_type, nu_value) in enumerate(
                 zip(theta_types, theta_values, nu_types, nu_values)
             ):
-                theta = get_theta_value(theta_type, theta_value, self.benchmarks)
+                theta = _get_theta_value(theta_type, theta_value, self.benchmarks)
                 theta = np.broadcast_to(theta, (n_samples, theta.size))
                 thetas.append(theta)
 
                 if nu_type is not None:
-                    nu = get_nu_value(nu_type, nu_value)
+                    nu = _get_nu_value(nu_type, nu_value)
                     nu = np.broadcast_to(nu, (n_samples, theta.size))
                     nus.append(nu)
 
                 theta_matrices.append(
-                    get_theta_benchmark_matrix(theta_type, theta_value, self.benchmarks, self.morpher)
+                    _get_theta_benchmark_matrix(theta_type, theta_value, self.benchmarks, self.morpher)
                 )
                 if needs_gradients:
                     theta_gradient_matrices.append(
-                        get_dtheta_benchmark_matrix(theta_type, theta_value, self.benchmarks, self.morpher)
+                        _get_dtheta_benchmark_matrix(theta_type, theta_value, self.benchmarks, self.morpher)
                     )
 
                 logger.debug(
@@ -1349,7 +1326,7 @@ class SampleAugmenter(DataAnalyzer):
                     samples_done[found_now] = True
 
                     # Extract augmented data
-                    relevant_augmented_data = calculate_augmented_data(
+                    relevant_augmented_data = _calculate_augmented_data(
                         augmented_data_definitions,
                         weights_benchmarks_batch[indices[found_now], :],
                         xsecs_benchmarks,

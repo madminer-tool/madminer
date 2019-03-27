@@ -7,7 +7,7 @@ import os
 from scipy.stats import chi2, poisson
 
 from madminer.utils.interfaces.madminer_hdf5 import load_madminer_settings, madminer_event_loader
-from madminer.utils.analysis import get_theta_benchmark_matrix, mdot
+from madminer.utils.analysis import _get_theta_benchmark_matrix, mdot
 from madminer.utils.morphing import PhysicsMorpher, NuisanceMorpher
 from madminer.utils.various import format_benchmark
 from madminer.ml import ParameterizedRatioEstimator, Ensemble
@@ -307,7 +307,7 @@ class AsymptoticLimits:
         # xsecs at thetas
         xsecs = []
         for theta in thetas:
-            theta_matrix = get_theta_benchmark_matrix("morphing", theta, self.benchmarks, self.morpher)
+            theta_matrix = _get_theta_benchmark_matrix("morphing", theta, self.benchmarks, self.morpher)
             xsecs.append(mdot(theta_matrix, xsecs_benchmarks))
         return np.asarray(xsecs)
 
@@ -317,7 +317,7 @@ class AsymptoticLimits:
             madminer_event_loader(self.madminer_filename, start=start_event, end=end_event, batch_size=None)
         )
 
-        theta_matrix = get_theta_benchmark_matrix("morphing", theta, self.benchmarks, self.morpher)
+        theta_matrix = _get_theta_benchmark_matrix("morphing", theta, self.benchmarks, self.morpher)
         weights_theta = mdot(theta_matrix, weights_benchmarks)
         weights_theta /= np.sum(weights_theta)
 

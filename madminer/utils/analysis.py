@@ -7,7 +7,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def parse_theta(theta, n_samples):
+def _parse_theta(theta, n_samples):
     theta_type_in = theta[0]
     theta_value_in = theta[1]
 
@@ -52,10 +52,10 @@ def parse_theta(theta, n_samples):
     else:
         raise ValueError("Unknown theta specification {}".format(theta))
 
-    return thetas_out
+    return thetas_out, n_samples_per_theta
 
 
-def get_theta_value(theta, benchmarks):
+def _get_theta_value(theta, benchmarks):
     if isinstance(theta, six.string_types):
         benchmark = benchmarks[theta]
         theta_value = np.array([benchmark[key] for key in benchmark])
@@ -67,20 +67,20 @@ def get_theta_value(theta, benchmarks):
     return theta_value
 
 
-def get_nu_value(nu, benchmarks):
+def _get_nu_value(nu, benchmarks):
     if isinstance(nu, None):
-        nu_value = 0.
+        nu_value = 0.0
     else:
         nu_value = np.asarray(nu)
     return nu_value
 
 
-def get_theta_benchmark_matrix(theta, benchmarks, morpher=None):
+def _get_theta_benchmark_matrix(theta, benchmarks, morpher=None):
     """Calculates vector A such that dsigma(theta) = A * dsigma_benchmarks"""
 
     if isinstance(theta, six.string_types):
         i_benchmark = list(benchmarks).index(theta)
-        return get_theta_benchmark_matrix(i_benchmark, benchmarks, morpher)
+        return _get_theta_benchmark_matrix(i_benchmark, benchmarks, morpher)
     elif isinstance(theta, int):
         n_benchmarks = len(benchmarks)
         theta_matrix = np.zeros(n_benchmarks)
@@ -90,7 +90,7 @@ def get_theta_benchmark_matrix(theta, benchmarks, morpher=None):
     return theta_matrix
 
 
-def get_dtheta_benchmark_matrix(theta, benchmarks, morpher):
+def _get_dtheta_benchmark_matrix(theta, benchmarks, morpher):
     """Calculates matrix A_ij such that d dsigma(theta) / d theta_i = A_ij * dsigma (benchmark j)"""
 
     if morpher is None:
@@ -99,22 +99,20 @@ def get_dtheta_benchmark_matrix(theta, benchmarks, morpher):
     if isinstance(theta, six.string_types):
         benchmark = benchmarks[theta]
         benchmark = np.array([value for _, value in six.iteritems(benchmark)])
-        return get_dtheta_benchmark_matrix(benchmark, benchmarks, morpher)
+        return _get_dtheta_benchmark_matrix(benchmark, benchmarks, morpher)
 
     elif isinstance(theta, int):
         benchmark = benchmarks[list(benchmarks.keys())[theta]]
         benchmark = np.array([value for _, value in six.iteritems(benchmark)])
-        return get_dtheta_benchmark_matrix(benchmark, benchmarks, morpher)
+        return _get_dtheta_benchmark_matrix(benchmark, benchmarks, morpher)
 
     else:
-        dtheta_matrix = morpher.calculate_morphing_weight_gradient(
-            theta
-        )  # Shape (n_parameters, n_benchmarks_phys)
+        dtheta_matrix = morpher.calculate_morphing_weight_gradient(theta)  # Shape (n_parameters, n_benchmarks_phys)
 
     return dtheta_matrix
 
 
-def calculate_augmented_data(
+def _calculate_augmented_data(
     augmented_data_definitions,
     weights_benchmarks,
     xsecs_benchmarks,

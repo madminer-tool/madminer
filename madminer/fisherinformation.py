@@ -6,7 +6,7 @@ import six
 import os
 
 from madminer.utils.interfaces.madminer_hdf5 import load_madminer_settings, madminer_event_loader
-from madminer.utils.analysis import get_theta_benchmark_matrix, get_dtheta_benchmark_matrix, mdot
+from madminer.utils.analysis import _get_theta_benchmark_matrix, _get_dtheta_benchmark_matrix, mdot
 from madminer.utils.morphing import PhysicsMorpher, NuisanceMorpher
 from madminer.utils.various import format_benchmark, math_commands, weighted_quantile, sanitize_array
 from madminer.utils.various import separate_information_blocks
@@ -352,7 +352,7 @@ class FisherInformation:
                 total_sum_weights_theta = total_xsec
 
             # Theta morphing matrix
-            theta_matrix = get_theta_benchmark_matrix("morphing", theta, self.benchmarks, self.morpher)
+            theta_matrix = _get_theta_benchmark_matrix("morphing", theta, self.benchmarks, self.morpher)
 
             # Prepare output
             fisher_info_kin = None
@@ -855,7 +855,7 @@ class FisherInformation:
             efficiency_functions = []
 
         # Theta morphing matrix
-        theta_matrix = get_theta_benchmark_matrix("morphing", theta, self.benchmarks, self.morpher)
+        theta_matrix = _get_theta_benchmark_matrix("morphing", theta, self.benchmarks, self.morpher)
 
         # Number of bins
         n_bins_total = nbins + 2
@@ -1071,7 +1071,7 @@ class FisherInformation:
         x, weights_benchmarks = next(madminer_event_loader(self.madminer_filename, batch_size=None))
 
         if theta is not None:
-            theta_matrix = get_theta_benchmark_matrix("morphing", theta, self.benchmarks, self.morpher)
+            theta_matrix = _get_theta_benchmark_matrix("morphing", theta, self.benchmarks, self.morpher)
 
             weights_theta = mdot(theta_matrix, weights_benchmarks)
 
@@ -1102,7 +1102,7 @@ class FisherInformation:
 
         weights_thetas = []
         for theta in thetas:
-            theta_matrix = get_theta_benchmark_matrix("morphing", theta, self.benchmarks, self.morpher)
+            theta_matrix = _get_theta_benchmark_matrix("morphing", theta, self.benchmarks, self.morpher)
             weights_thetas.append(mdot(theta_matrix, weights_benchmarks))
 
         weights_thetas = np.array(weights_thetas)
@@ -1166,10 +1166,10 @@ class FisherInformation:
         """
 
         # Get morphing matrices
-        theta_matrix = get_theta_benchmark_matrix(
+        theta_matrix = _get_theta_benchmark_matrix(
             "morphing", theta, self.benchmarks, self.morpher
         )  # (n_benchmarks_phys,)
-        dtheta_matrix = get_dtheta_benchmark_matrix(
+        dtheta_matrix = _get_dtheta_benchmark_matrix(
             "morphing", theta, self.benchmarks, self.morpher
         )  # (n_parameters, n_benchmarks_phys)
 
@@ -1467,7 +1467,7 @@ class FisherInformation:
             return xsecs_benchmarks
 
         # Translate to xsec for theta
-        theta_matrix = get_theta_benchmark_matrix("morphing", theta, self.benchmarks, self.morpher)
+        theta_matrix = _get_theta_benchmark_matrix("morphing", theta, self.benchmarks, self.morpher)
         xsec = mdot(theta_matrix, xsecs_benchmarks)
         xsec_error = mdot(theta_matrix, xsecs_uncertainty_benchmarks)
 
@@ -1506,7 +1506,7 @@ class FisherInformation:
         histo_observables_pilot = np.asarray([self._eval_observable(x, observable) for x in x_pilot])
 
         # Weights at theta
-        theta_matrix = get_theta_benchmark_matrix("morphing", theta, self.benchmarks, self.morpher)
+        theta_matrix = _get_theta_benchmark_matrix("morphing", theta, self.benchmarks, self.morpher)
         weight_theta_pilot = mdot(theta_matrix, weights_pilot)
 
         # Bin boundaries

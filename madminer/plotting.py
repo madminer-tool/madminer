@@ -8,7 +8,7 @@ from matplotlib import gridspec
 import logging
 
 from madminer.sampling import SampleAugmenter
-from madminer.utils.analysis import mdot, get_theta_benchmark_matrix
+from madminer.utils.analysis import mdot, _get_theta_benchmark_matrix
 from madminer.utils.morphing import NuisanceMorpher
 from madminer.utils.various import weighted_quantile, sanitize_array, shuffle
 
@@ -97,7 +97,7 @@ def plot_uncertainty(
     x = x[:, obs_idx]
 
     # Theta matrix
-    theta_matrix = get_theta_benchmark_matrix("morphing", theta, sa.benchmarks, sa.morpher)
+    theta_matrix = _get_theta_benchmark_matrix("morphing", theta, sa.benchmarks, sa.morpher)
     weights = mdot(theta_matrix, weights_benchmarks)
 
     # Remove negative weights
@@ -446,9 +446,9 @@ def plot_distributions(
     theta_matrices = []
     for theta in parameter_points:
         if isinstance(theta, six.string_types):
-            matrix = get_theta_benchmark_matrix("benchmark", theta, sa.benchmarks)
+            matrix = _get_theta_benchmark_matrix("benchmark", theta, sa.benchmarks)
         else:
-            matrix = get_theta_benchmark_matrix("morphing", theta, sa.benchmarks, sa.morpher)
+            matrix = _get_theta_benchmark_matrix("morphing", theta, sa.benchmarks, sa.morpher)
         theta_matrices.append(matrix)
 
     logger.debug("Calculated %s theta matrices", len(theta_matrices))
