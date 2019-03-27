@@ -132,7 +132,7 @@ class SampleAugmenter(DataAnalyzer):
         theta_types, theta_values, n_samples_per_theta = parse_theta(theta, n_samples)
 
         # Train / test split
-        start_event, end_event = self._train_test_split(not switch_train_test_events, test_split)
+        start_event, end_event, _ = self._train_test_split(not switch_train_test_events, test_split)
 
         # Start
         x, _, (theta,) = self._extract_sample(
@@ -240,7 +240,7 @@ class SampleAugmenter(DataAnalyzer):
             augmented_data_definitions += [("nuisance_score",)]
 
         # Train / test split
-        start_event, end_event = self._train_test_split(not switch_train_test_events, test_split)
+        start_event, end_event, _ = self._train_test_split(not switch_train_test_events, test_split)
 
         # Start
         x, augmented_data, (theta,) = self._extract_sample(
@@ -428,7 +428,7 @@ class SampleAugmenter(DataAnalyzer):
             augmented_data_definitions.append(("score", 0))
 
         # Train / test split
-        start_event, end_event = self._train_test_split(not switch_train_test_events, test_split)
+        start_event, end_event, _ = self._train_test_split(not switch_train_test_events, test_split)
 
         # Thetas for theta0 sampling
         theta0_types, theta0_values, n_samples_per_theta0 = parse_theta(theta0, n_samples // 2)
@@ -634,7 +634,7 @@ class SampleAugmenter(DataAnalyzer):
             augmented_data_definitions_1.append(("score", i + 2))
 
         # Train / test split
-        start_event, end_event = self._train_test_split(not switch_train_test_events, test_split)
+        start_event, end_event, _ = self._train_test_split(not switch_train_test_events, test_split)
 
         # Parse thetas for theta0 sampling
         theta_types = []
@@ -840,7 +840,7 @@ class SampleAugmenter(DataAnalyzer):
         theta_types, theta_values, n_samples_per_theta = parse_theta(theta, n_samples)
 
         # Train / test split
-        start_event, end_event = self._train_test_split(switch_train_test_events, test_split)
+        start_event, end_event, _ = self._train_test_split(switch_train_test_events, test_split)
 
         # Extract information
         x, _, (theta,) = self._extract_sample(
@@ -867,9 +867,9 @@ class SampleAugmenter(DataAnalyzer):
         ----------
         theta : tuple
             Tuple (type, value) that defines the parameter point or prior over parameter points at which the cross
-            section is calculated. Pass the output of the functions `constant_benchmark_theta()`,
-            `multiple_benchmark_thetas()`, `constant_morphing_theta()`, `multiple_morphing_thetas()`, or
-            `random_morphing_thetas()`.
+            section is calculated. Pass the output of the functions `benchmark()`,
+            `benchmarks()`, `morphing_point()`, `morphing_points()`, or
+            `random_morphing_points()`.
 
         Returns
         -------
@@ -886,50 +886,19 @@ class SampleAugmenter(DataAnalyzer):
 
         logger.info("Starting cross-section calculation")
 
-        # Total xsecs for benchmarks
-        xsecs_benchmarks = None
-        squared_weight_sum_benchmarks = None
+        theta_values = []
+        theta_input = []
+        _types, _specs, _ = parse_theta(theta, 1)
+        for (_type, _spec) in zip(_types, _specs):
+            theta_values.append(get_theta_value(_type, _spec, self.benchmarks))
+            if _type == "morphing":
+                theta_input.append(np.asarray(_spec))
+            elif _type == "benchmark":
+                theta_input.append(str(_spec))
 
-        for obs, weights in madminer_event_loader(self.madminer_filename):
-            if xsecs_benchmarks is None:
-                xsecs_benchmarks = np.sum(weights, axis=0)
-                squared_weight_sum_benchmarks = np.sum(weights * weights, axis=0)
-            else:
-                xsecs_benchmarks += np.sum(weights, axis=0)
-                squared_weight_sum_benchmarks += np.sum(weights * weights, axis=0)
+        xsecs, uncertainties = self.xsecs(thetas=theta_input, nus=None)
 
-        # Parse thetas for evaluation
-        theta_types, theta_values, _ = parse_theta(theta, 1)
-
-        # Loop over thetas
-        all_thetas = []
-        all_xsecs = []
-        all_xsec_uncertainties = []
-
-        for (theta_type, theta_value) in zip(theta_types, theta_values):
-
-            if self.morpher is None and theta_type == "morphing":
-                raise RuntimeError("Theta defined through morphing, but no morphing setup has been loaded.")
-
-            theta = get_theta_value(theta_type, theta_value, self.benchmarks)
-            theta_matrix = get_theta_benchmark_matrix(theta_type, theta_value, self.benchmarks, self.morpher)
-
-            # Total xsec for this theta
-            xsec_theta = mdot(theta_matrix, xsecs_benchmarks)
-            rms_xsec_theta = mdot(theta_matrix * theta_matrix, squared_weight_sum_benchmarks) ** 0.5
-
-            all_thetas.append(theta)
-            all_xsecs.append(xsec_theta)
-            all_xsec_uncertainties.append(rms_xsec_theta)
-
-            logger.debug("theta %s: xsec = (%s +/- %s) pb", theta, xsec_theta, rms_xsec_theta)
-
-        # Return
-        all_thetas = np.array(all_thetas)
-        all_xsecs = np.array(all_xsecs)
-        all_xsec_uncertainties = np.array(all_xsec_uncertainties)
-
-        return all_thetas, all_xsecs, all_xsec_uncertainties
+        return theta_values, xsecs, uncertainties
 
     def _sample(
         self,
@@ -951,8 +920,8 @@ class SampleAugmenter(DataAnalyzer):
         ----------
         sets : list of list of tuples
             The outer list goes over sets, the inner list goes over parameter points, the tuples have the form
-            (theta_type, theta_value, nu_type, nu_value). Here the types can be 'benchmark' or 'morphing' and the
-            values can be int (for 'benchmark') or an ndarray (for 'morphing').
+            (theta, nu). Here theta can be a str or int (for benchmarks) or ndarray (with morphing), while nu can be
+            None (for nominal value) or ndarray (for nuisance morphing).
 
         n_samples_per_set : int
             Number of samples to be drawn per entry in theta_sampling_types.
@@ -1056,7 +1025,7 @@ class SampleAugmenter(DataAnalyzer):
             assert len(set) == n_params
 
             for param_point in set:
-                assert len(param_point) == 4
+                assert len(param_point) == 2
 
     def _sample_set(self, set, n_samples, needs_gradients):
         # TODO TODO TODO
@@ -1175,7 +1144,7 @@ class SampleAugmenter(DataAnalyzer):
             raise RuntimeError("Class not initialized with nuisance parameters, cannot calculate nuisance-based data")
 
         # Calculate total xsecs for benchmarks
-        xsecs_benchmarks, squared_weight_sum_benchmarks, n_observables = self._calculate_benchmark_xsecs(
+        xsecs_benchmarks, squared_weight_sum_benchmarks = self._calculate_benchmark_xsecs(
             start_event, end_event, use_nuisance_parameters
         )
         logger.debug("Benchmark cross sections [pb]: %s", xsecs_benchmarks)

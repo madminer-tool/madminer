@@ -321,22 +321,6 @@ class EventAnalyzer(object):
 
         return xsecs, xsec_uncertainties
 
-    def _calculate_benchmark_xsecs_sampling(self, start_event, end_event, use_nuisance_parameters):
-        xsecs_benchmarks = 0.0
-        squared_weight_sum_benchmarks = 0.0
-        n_observables = 0
-        for obs, weights in madminer_event_loader(
-            self.madminer_filename,
-            start=start_event,
-            end=end_event,
-            include_nuisance_parameters=use_nuisance_parameters,
-            benchmark_is_nuisance=self.benchmark_is_nuisance,
-        ):
-            xsecs_benchmarks += np.sum(weights, axis=0)
-            squared_weight_sum_benchmarks += np.sum(weights * weights, axis=0)
-            n_observables = obs.shape[1]
-        return xsecs_benchmarks, squared_weight_sum_benchmarks, n_observables
-
     def _train_test_split(self, train, test_split):
         """
         Returns the start and end event for train samples (train = True) or test samples (train = False).

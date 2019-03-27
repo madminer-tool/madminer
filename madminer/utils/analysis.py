@@ -7,73 +7,109 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def get_theta_value(theta_type, theta_value, benchmarks):
-    if theta_type == "benchmark":
-        benchmark = benchmarks[theta_value]
-        benchmark_theta = np.array([benchmark[key] for key in benchmark])
-        return benchmark_theta
+def parse_theta(theta, n_samples):
+    theta_type_in = theta[0]
+    theta_value_in = theta[1]
 
-    elif theta_type == "morphing":
-        return theta_value
+    if theta_type_in == "benchmark":
+        thetas_out = [int(theta_value_in)]
+        n_samples_per_theta = n_samples
+
+    elif theta_type_in == "benchmarks":
+        n_benchmarks = len(theta_value_in)
+        n_samples_per_theta = int(round(n_samples / n_benchmarks, 0))
+        thetas_out = [int(val) for val in theta_value_in]
+
+    elif theta_type_in == "theta":
+        thetas_out = np.asarray([theta_value_in])
+        n_samples_per_theta = n_samples
+
+    elif theta_type_in == "thetas":
+        n_benchmarks = len(theta_value_in)
+        n_samples_per_theta = int(round(n_samples / n_benchmarks, 0))
+        thetas_out = np.asarray(theta_value_in)
+
+    elif theta_type_in == "random":
+        n_benchmarks, priors = theta_value_in
+        if n_benchmarks is None or n_benchmarks <= 0:
+            n_benchmarks = n_samples
+        n_samples_per_theta = int(round(n_samples / n_benchmarks, 0))
+
+        thetas_out = []
+        for prior in priors:
+            if prior[0] == "flat":
+                prior_min = prior[1]
+                prior_max = prior[2]
+                thetas_out.append(prior_min + (prior_max - prior_min) * np.random.rand(n_benchmarks))
+            elif prior[0] == "gaussian":
+                prior_mean = prior[1]
+                prior_std = prior[2]
+                thetas_out.append(np.random.normal(loc=prior_mean, scale=prior_std, size=n_benchmarks))
+            else:
+                raise ValueError("Unknown prior {}".format(prior))
+        thetas_out = np.array(thetas_out).T
 
     else:
-        raise ValueError("Unknown theta {}".format(theta_type))
+        raise ValueError("Unknown theta specification {}".format(theta))
+
+    return thetas_out
 
 
-def get_nu_value(nu_type, nu_value):
-    if nu_type is None:
-        return None
-
-    elif nu_type == "benchmark":
-        raise NotImplementedError
-
-    elif nu_type == "morphing":
-        return nu_value
-
+def get_theta_value(theta, benchmarks):
+    if isinstance(theta, six.string_types):
+        benchmark = benchmarks[theta]
+        theta_value = np.array([benchmark[key] for key in benchmark])
+    elif isinstance(theta, int):
+        benchmark = benchmarks[list(benchmarks.keys())[theta]]
+        theta_value = np.array([benchmark[key] for key in benchmark])
     else:
-        raise ValueError("Unknown nu {}".format(nu_type))
+        theta_value = np.asarray(theta)
+    return theta_value
 
 
-def get_theta_benchmark_matrix(theta_type, theta_value, benchmarks, morpher=None):
+def get_nu_value(nu, benchmarks):
+    if isinstance(nu, None):
+        nu_value = 0.
+    else:
+        nu_value = np.asarray(nu)
+    return nu_value
+
+
+def get_theta_benchmark_matrix(theta, benchmarks, morpher=None):
     """Calculates vector A such that dsigma(theta) = A * dsigma_benchmarks"""
 
-    if theta_type == "benchmark":
+    if isinstance(theta, six.string_types):
+        i_benchmark = list(benchmarks).index(theta)
+        return get_theta_benchmark_matrix(i_benchmark, benchmarks, morpher)
+    elif isinstance(theta, int):
         n_benchmarks = len(benchmarks)
-        index = list(benchmarks).index(theta_value)
         theta_matrix = np.zeros(n_benchmarks)
-        theta_matrix[index] = 1.0
-
-    elif theta_type == "morphing":
-        theta_matrix = morpher.calculate_morphing_weights(theta_value)
-
+        theta_matrix[theta] = 1.0
     else:
-        raise ValueError("Unknown theta {}".format(theta_type))
-
+        theta_matrix = morpher.calculate_morphing_weights(theta)
     return theta_matrix
 
 
-def get_dtheta_benchmark_matrix(theta_type, theta_value, benchmarks, morpher=None):
+def get_dtheta_benchmark_matrix(theta, benchmarks, morpher):
     """Calculates matrix A_ij such that d dsigma(theta) / d theta_i = A_ij * dsigma (benchmark j)"""
 
-    if theta_type == "benchmark":
-        if morpher is None:
-            raise RuntimeError("Cannot calculate score without morphing")
+    if morpher is None:
+        raise RuntimeError("Cannot calculate score without morphing")
 
-        theta = benchmarks[theta_value]
-        theta = np.array([value for _, value in six.iteritems(theta)])
+    if isinstance(theta, six.string_types):
+        benchmark = benchmarks[theta]
+        benchmark = np.array([value for _, value in six.iteritems(benchmark)])
+        return get_dtheta_benchmark_matrix(benchmark, benchmarks, morpher)
 
-        return get_dtheta_benchmark_matrix("morphing", theta, benchmarks, morpher)
-
-    elif theta_type == "morphing":
-        if morpher is None:
-            raise RuntimeError("Cannot calculate score without morphing")
-
-        dtheta_matrix = morpher.calculate_morphing_weight_gradient(
-            theta_value
-        )  # Shape (n_parameters, n_benchmarks_phys)
+    elif isinstance(theta, int):
+        benchmark = benchmarks[list(benchmarks.keys())[theta]]
+        benchmark = np.array([value for _, value in six.iteritems(benchmark)])
+        return get_dtheta_benchmark_matrix(benchmark, benchmarks, morpher)
 
     else:
-        raise ValueError("Unknown theta {}".format(theta_type))
+        dtheta_matrix = morpher.calculate_morphing_weight_gradient(
+            theta
+        )  # Shape (n_parameters, n_benchmarks_phys)
 
     return dtheta_matrix
 
@@ -136,70 +172,6 @@ def calculate_augmented_data(
             raise ValueError("Unknown augmented data type {}".format(definition[0]))
 
     return augmented_data
-
-
-def parse_theta(theta, n_samples):
-    theta_type_in = theta[0]
-    theta_value_in = theta[1]
-
-    if theta_type_in == "benchmark":
-        theta_types = ["benchmark"]
-        theta_values = [theta_value_in]
-        n_samples_per_theta = n_samples
-
-    elif theta_type_in == "benchmarks":
-        n_benchmarks = len(theta_value_in)
-        theta_types = ["benchmark"] * n_benchmarks
-        theta_values = theta_value_in
-        n_samples_per_theta = int(round(n_samples / n_benchmarks, 0))
-
-    elif theta_type_in == "theta":
-        theta_types = ["morphing"]
-        theta_values = [theta_value_in]
-        n_samples_per_theta = n_samples
-
-    elif theta_type_in == "thetas":
-        n_benchmarks = len(theta_value_in)
-        theta_types = ["morphing"] * n_benchmarks
-        theta_values = theta_value_in
-        n_samples_per_theta = int(round(n_samples / n_benchmarks, 0))
-
-    elif theta_type_in == "random":
-        n_benchmarks, priors = theta_value_in
-
-        if n_benchmarks is None or n_benchmarks <= 0:
-            n_benchmarks = n_samples
-
-        theta_values = []
-        for prior in priors:
-            if prior[0] == "flat":
-                prior_min = prior[1]
-                prior_max = prior[2]
-                theta_values.append(prior_min + (prior_max - prior_min) * np.random.rand(n_benchmarks))
-
-            elif prior[0] == "gaussian":
-                prior_mean = prior[1]
-                prior_std = prior[2]
-                theta_values.append(np.random.normal(loc=prior_mean, scale=prior_std, size=n_benchmarks))
-
-            else:
-                raise ValueError("Unknown prior {}".format(prior))
-
-        theta_types = ["morphing"] * n_benchmarks
-        theta_values = np.array(theta_values).T
-        n_samples_per_theta = int(round(n_samples / n_benchmarks, 0))
-
-        logger.debug(
-            "Total n_samples: %s, n_benchmarks_phys: %s, n_samples_per_theta: %s",
-            n_samples,
-            n_benchmarks,
-            n_samples_per_theta,
-        )
-
-    else:
-        raise ValueError("Unknown theta {}".format(theta))
-
-    return theta_types, theta_values, n_samples_per_theta
 
 
 def mdot(matrix, benchmark_information):
