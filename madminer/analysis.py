@@ -335,6 +335,10 @@ class DataAnalyzer(object):
         end_event : int
             Index (in the MadMiner file) of the last unweighted event to consider.
 
+        correction_factor : float
+            Factor with which the weights and cross sections will have to be multiplied to make up for the missing
+            events.
+
         """
         if train:
             start_event = 0

@@ -56,10 +56,17 @@ def _parse_theta(theta, n_samples):
 
 
 def _parse_nu(nu, n_thetas):
-    nu_type_in = nu[0]
-    nu_value_in = nu[1]
+    if nu is None:
+        nu_type_in = "nominal"
+        nu_value_in = None
+    else:
+        nu_type_in = nu[0]
+        nu_value_in = nu[1]
 
-    if nu_type_in == "morphing_point":
+    if nu_type_in == "nominal":
+        nu_out = [None for _ in range(n_thetas)]
+
+    elif nu_type_in == "morphing_point":
         nu_out = np.asarray([nu_value_in for _ in range(n_thetas)])
 
     elif nu_type_in == "morphing_points":
@@ -86,6 +93,25 @@ def _parse_nu(nu, n_thetas):
 
     else:
         raise ValueError("Unknown nu specification {}".format(nu))
+
+
+def _build_sets(thetas, nus):
+    if len(nus) != len(thetas):
+        raise RuntimeError("Mismatching thetas and nus: {} vs {}".format(len(thetas), len(nus)))
+
+    n_sets = max([len(param) for param in thetas + nus])
+    sets = [[] for _ in range(n_sets)]
+
+    for (theta, nu) in zip(thetas, nus):
+        n_theta_sets_before = len(theta)
+        n_nu_sets_before = len(nu)
+
+        for i_set in range(n_sets):
+            sets[i_set].append(
+                (theta[i_set % n_theta_sets_before], nu[i_set % n_nu_sets_before])
+            )
+
+    return sets
 
 
 def _get_theta_value(theta, benchmarks):

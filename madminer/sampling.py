@@ -6,13 +6,11 @@ import collections
 import six
 
 from madminer.analysis import DataAnalyzer
-from madminer.utils.interfaces.madminer_hdf5 import load_madminer_settings, madminer_event_loader
+from madminer.utils.interfaces.madminer_hdf5 import madminer_event_loader
 from madminer.utils.interfaces.madminer_hdf5 import save_preformatted_events_to_madminer_file
 from madminer.utils.analysis import _get_theta_value, _get_theta_benchmark_matrix, _get_dtheta_benchmark_matrix
-from madminer.utils.analysis import _get_nu_value
-from madminer.utils.analysis import _calculate_augmented_data, _parse_theta, mdot
-from madminer.utils.morphing import PhysicsMorpher, NuisanceMorpher
-from madminer.utils.various import format_benchmark, create_missing_folders, shuffle, balance_thetas
+from madminer.utils.analysis import _get_nu_value, _calculate_augmented_data, _parse_theta, mdot, _parse_nu, _build_sets
+from madminer.utils.various import create_missing_folders, shuffle, balance_thetas
 
 logger = logging.getLogger(__name__)
 
@@ -78,7 +76,7 @@ class SampleAugmenter(DataAnalyzer):
         super(SampleAugmenter, self).__init__(filename, disable_morphing, include_nuisance_parameters)
 
     def extract_samples_train_plain(
-        self, theta, n_samples, folder=None, filename=None, test_split=0.2, switch_train_test_events=False
+        self, theta, n_samples, nu=None, folder=None, filename=None, test_split=0.2, switch_train_test_events=False
     ):
         """
         Extracts plain training samples `x ~ p(x|theta)` without any augmented data. This can be use for standard
@@ -94,6 +92,10 @@ class SampleAugmenter(DataAnalyzer):
 
         n_samples : int
             Total number of events to be drawn.
+
+        nu : None or tuple, optional
+            Tuple (type, value) that defines the nuisance parameter point or prior over parameter points for the
+            sampling. Default value: None
 
         folder : str or None
             Path to the folder where the resulting samples should be saved (ndarrays in .npy format). Default value:
@@ -131,15 +133,14 @@ class SampleAugmenter(DataAnalyzer):
         # Thetas
         parsed_thetas, n_samples_per_theta = _parse_theta(theta, n_samples)
         parsed_nus = _parse_nu(nu, len(parsed_thetas))
-
+        sets = _build_sets(parsed_thetas, parsed_nus)
 
         # Train / test split
         start_event, end_event, _ = self._train_test_split(not switch_train_test_events, test_split)
 
         # Start
-        x, _, (theta,) = self._extract_sample(
-            theta_sets_types=[theta_types],
-            theta_sets_values=[theta_values],
+        x, _, (theta,) = self._sample(
+            sets=sets,
             n_samples_per_set=n_samples_per_theta,
             start_event=start_event,
             end_event=end_event,
@@ -1565,3 +1566,18 @@ def random_morphing_points(n_thetas, priors):
 
     """
     return "random_morphing_points", (n_thetas, priors)
+
+
+def nominal():
+    """
+    Utility function to be used as input to various SampleAugmenter functions, specifying that nuisance parameters are
+    fixed at their nominal valuees.
+
+
+    Returns
+    -------
+    output : tuple
+        Input to various SampleAugmenter functions
+
+    """
+    return "nominal", None
