@@ -185,8 +185,8 @@ class EventAnalyzer(object):
         self,
         thetas=None,
         nus=None,
-        start_event=None,
-        end_event=None,
+        events="all",
+        test_split=0.2,
         include_nuisance_benchmarks=False,
         batch_size=100000,
     ):
@@ -205,14 +205,14 @@ class EventAnalyzer(object):
              account. Otherwise, the list has to have the same number of elements as thetas, and each entry can specify
              nuisance parameters at nominal value (None) or a value of the nuisance parameters (ndarray).
 
-        start_event : int or None, optional
-            Index (in the MadMiner file) of the first event to consider. Default value: None.
-
-        end_event : int or None, optional
-            Index (in the MadMiner file) of the last unweighted event to consider. Default value: None.
-
         include_nuisance_benchmarks : bool, optional
             Whether to includee nuisance benchmarks if thetas is None. Default value: False.
+
+        test_split : float, optional
+            Fraction of events reserved for testing. Default value: 0.2.
+
+        events : {"train", "test", "all"}, optional
+            Which events to use. Default: "all".
 
         batch_size : int, optional
             Size of the batches of events that are loaded into memory at the same time. Default value: 100000.
@@ -236,6 +236,17 @@ class EventAnalyzer(object):
             if nus is None:
                 nus = [None for _ in thetas]
             assert len(nus) == len(thetas), "Numbers of thetas and nus don't match!"
+
+        # Which events to use
+        if events == "all":
+            start_event, end_event = None, None
+            correction_factor = 1.
+        elif events == "train":
+            start_event, end_event, correction_factor = self._train_test_split(True, test_split)
+        elif events == "test":
+            start_event, end_event, correction_factor = self._train_test_split(False, test_split)
+        else:
+            raise ValueError("Events has to be either 'all', 'train', or 'test', but got {}!".format(events))
 
         # Theta matrices (translation of benchmarks to theta, at nominal nuisance params)
         theta_matrices = []
@@ -298,13 +309,17 @@ class EventAnalyzer(object):
                 xsecs += np.sum(weights, axis=1)
                 xsec_uncertainties += np.sum(weights_sq, axis=1)
 
-            xsec_uncertainties = xsec_uncertainties ** 0.5
+        xsec_uncertainties = xsec_uncertainties ** 0.5
 
-            logger.debug("xsecs and uncertainties [pb]:")
-            for this_xsec, this_uncertainty in zip(xsecs, xsec_uncertainties):
-                logger.debug("  %s +/- %s (%s %)", this_xsec, this_uncertainty, 100 * this_uncertainty / this_xsec)
+        # Correct for not using all events
+        xsecs *= correction_factor
+        xsec_uncertainties *= correction_factor
 
-            return xsecs, xsec_uncertainties
+        logger.debug("xsecs and uncertainties [pb]:")
+        for this_xsec, this_uncertainty in zip(xsecs, xsec_uncertainties):
+            logger.debug("  %s +/- %s (%s %)", this_xsec, this_uncertainty, 100 * this_uncertainty / this_xsec)
+
+        return xsecs, xsec_uncertainties
 
     def _calculate_benchmark_xsecs_sampling(self, start_event, end_event, use_nuisance_parameters):
         xsecs_benchmarks = 0.0
@@ -321,132 +336,6 @@ class EventAnalyzer(object):
             squared_weight_sum_benchmarks += np.sum(weights * weights, axis=0)
             n_observables = obs.shape[1]
         return xsecs_benchmarks, squared_weight_sum_benchmarks, n_observables
-
-    def _calculate_xsec_fisherinformation(
-        self,
-        theta=None,
-        cuts=None,
-        efficiency_functions=None,
-        return_benchmark_xsecs=False,
-        return_error=False,
-        include_nuisance_parameters=True,
-        start_event=0,
-    ):
-        """
-        Calculates the total cross section for a parameter point.
-
-        Parameters
-        ----------
-        theta : ndarray or None, optional
-            The parameter point. If None, return_benchmark_xsecs should be True. Default value: None.
-
-        cuts : list of str or None, optional
-            Cuts. Each entry is a parseable Python expression that returns a bool (True if the event should pass a cut,
-            False otherwise). Default value: None.
-
-        efficiency_functions : list of str or None
-            Efficiencies. Each entry is a parseable Python expression that returns a float for the efficiency of one
-            component. Default value: None.
-
-        return_benchmark_xsecs : bool, optional
-            If True, this function returns the benchmark xsecs. Otherwise, it returns the xsec at theta. Default value:
-            False.
-
-        return_error : bool, optional
-            If True, this function also returns the square root of the summed squared weights.
-
-        include_nuisance_parameters : bool, optional
-            If True and if return_benchmark_xsecs is True, the nuisance benchmarks are included in the output. Default
-            value: True.
-
-        start_event : int, optional
-            Index of first event in MadMiner file to consider. Default value: 0.
-
-        Returns
-        -------
-        xsec : ndarray or float
-            If return_benchmark_xsecs is True, an ndarray of benchmark xsecs in pb is returned. Otherwise, the cross
-            section at theta in pb is returned.
-
-        xsec_uncertainty : ndarray or float
-            Only returned if return_error is True. Uncertainty (square root of the summed squared weights) on xsec.
-
-        """
-
-        logger.debug("Calculating total cross section for theta = %s", theta)
-
-        # Input
-        if cuts is None:
-            cuts = []
-        if efficiency_functions is None:
-            efficiency_functions = []
-
-        assert (theta is not None) or return_benchmark_xsecs, "Please supply theta or set return_benchmark_xsecs=True"
-
-        # Total xsecs for benchmarks
-        xsecs_benchmarks = None
-        xsecs_uncertainty_benchmarks = None
-
-        for observations, weights in madminer_event_loader(
-            self.madminer_filename, start=start_event, include_nuisance_parameters=include_nuisance_parameters
-        ):
-            # Cuts
-            cut_filter = [self._pass_cuts(obs_event, cuts) for obs_event in observations]
-            observations = observations[cut_filter]
-            weights = weights[cut_filter]
-
-            # Efficiencies
-            efficiencies = np.array(
-                [self._eval_efficiency(obs_event, efficiency_functions) for obs_event in observations]
-            )
-            weights *= efficiencies[:, np.newaxis]
-
-            # xsecs
-            if xsecs_benchmarks is None:
-                xsecs_benchmarks = np.sum(weights, axis=0)
-                xsecs_uncertainty_benchmarks = np.sum(weights ** 2, axis=0)
-            else:
-                xsecs_benchmarks += np.sum(weights, axis=0)
-                xsecs_uncertainty_benchmarks += np.sum(weights ** 2, axis=0)
-
-        assert xsecs_benchmarks is not None, "No events passed cuts"
-
-        xsecs_uncertainty_benchmarks = xsecs_uncertainty_benchmarks ** 0.5
-
-        logger.debug("Benchmarks xsecs [pb]: %s", xsecs_benchmarks)
-
-        if return_benchmark_xsecs:
-            if return_error:
-                return xsecs_benchmarks, xsecs_uncertainty_benchmarks
-            return xsecs_benchmarks
-
-        # Translate to xsec for theta
-        theta_matrix = get_theta_benchmark_matrix("morphing", theta, self.benchmarks, self.morpher)
-        xsec = mdot(theta_matrix, xsecs_benchmarks)
-        xsec_error = mdot(theta_matrix, xsecs_uncertainty_benchmarks)
-
-        logger.debug("Theta matrix: %s", theta_matrix)
-        logger.debug("Cross section at theta: %s pb", xsec)
-
-        if return_error:
-            return xsec, xsec_error
-        return xsec
-
-    def _calculate_xsecs_limits(self, thetas, test_split=0.2):
-        # Test split
-        start_event, end_event = self._train_test_split(False, test_split)
-
-        # Total xsecs for benchmarks
-        xsecs_benchmarks = 0.0
-        for observations, weights in madminer_event_loader(self.madminer_filename, start=start_event, end=end_event):
-            xsecs_benchmarks += np.sum(weights, axis=0)
-
-        # xsecs at thetas
-        xsecs = []
-        for theta in thetas:
-            theta_matrix = get_theta_benchmark_matrix("morphing", theta, self.benchmarks, self.morpher)
-            xsecs.append(mdot(theta_matrix, xsecs_benchmarks))
-        return np.asarray(xsecs)
 
     def _train_test_split(self, train, test_split):
         """
@@ -474,19 +363,23 @@ class EventAnalyzer(object):
 
             if test_split is None or test_split <= 0.0 or test_split >= 1.0:
                 end_event = None
+                correction_factor = 1.
             else:
                 end_event = int(round((1.0 - test_split) * self.n_samples, 0))
+                correction_factor = 1./(1.-test_split)
                 if end_event < 0 or end_event > self.n_samples:
                     raise ValueError("Irregular train / test split: sample {} / {}", end_event, self.n_samples)
 
         else:
             if test_split is None or test_split <= 0.0 or test_split >= 1.0:
                 start_event = 0
+                correction_factor = 1.
             else:
                 start_event = int(round((1.0 - test_split) * self.n_samples, 0)) + 1
+                correction_factor = 1./(test_split)
                 if start_event < 0 or start_event > self.n_samples:
                     raise ValueError("Irregular train / test split: sample {} / {}", start_event, self.n_samples)
 
             end_event = None
 
-        return start_event, end_event
+        return start_event, end_event, correction_factor
