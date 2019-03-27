@@ -75,7 +75,7 @@ class SampleAugmenter(DataAnalyzer):
     def __init__(self, filename, disable_morphing=False, include_nuisance_parameters=True):
         super(SampleAugmenter, self).__init__(filename, disable_morphing, include_nuisance_parameters)
 
-    def extract_samples_train_plain(
+    def sample_train_plain(
         self, theta, n_samples, nu=None, folder=None, filename=None, test_split=0.2, switch_train_test_events=False
     ):
         """
@@ -140,10 +140,7 @@ class SampleAugmenter(DataAnalyzer):
 
         # Start
         x, _, (theta,) = self._sample(
-            sets=sets,
-            n_samples_per_set=n_samples_per_theta,
-            start_event=start_event,
-            end_event=end_event,
+            sets=sets, n_samples_per_set=n_samples_per_theta, start_event=start_event, end_event=end_event
         )
 
         # Save data
@@ -153,7 +150,7 @@ class SampleAugmenter(DataAnalyzer):
 
         return x, theta
 
-    def extract_samples_train_local(
+    def sample_train_local(
         self,
         theta,
         n_samples,
@@ -278,7 +275,7 @@ class SampleAugmenter(DataAnalyzer):
 
         return x, theta, t_xz
 
-    def extract_samples_train_global(
+    def sample_train_density(
         self, theta, n_samples, folder=None, filename=None, test_split=0.2, switch_train_test_events=False
     ):
         """
@@ -334,7 +331,7 @@ class SampleAugmenter(DataAnalyzer):
             theta,
         )
 
-        return self.extract_samples_train_local(
+        return self.sample_train_local(
             theta,
             n_samples,
             folder,
@@ -344,7 +341,7 @@ class SampleAugmenter(DataAnalyzer):
             log_message=False,
         )
 
-    def extract_samples_train_ratio(
+    def sample_train_ratio(
         self, theta0, theta1, n_samples, folder=None, filename=None, test_split=0.2, switch_train_test_events=False
     ):
         """
@@ -522,7 +519,7 @@ class SampleAugmenter(DataAnalyzer):
 
         return x, theta0, theta1, y, r_xz, t_xz
 
-    def extract_samples_train_more_ratios(
+    def sample_train_more_ratios(
         self,
         theta0,
         theta1,
@@ -778,9 +775,7 @@ class SampleAugmenter(DataAnalyzer):
 
         return x, theta0, theta1, y, r_xz, t_xz0, t_xz1
 
-    def extract_samples_test(
-        self, theta, n_samples, folder=None, filename=None, test_split=0.2, switch_train_test_events=False
-    ):
+    def sample_test(self, theta, n_samples, folder=None, filename=None, test_split=0.2, switch_train_test_events=False):
         """
         Extracts evaluation samples `x ~ p(x|theta)` without any augmented data.
 
@@ -849,7 +844,7 @@ class SampleAugmenter(DataAnalyzer):
 
         return x, theta
 
-    def extract_cross_sections(self, theta):
+    def cross_sections(self, theta):
 
         """
         Calculates the total cross sections for all specified thetas.

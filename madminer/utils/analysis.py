@@ -107,9 +107,7 @@ def _build_sets(thetas, nus):
         n_nu_sets_before = len(nu)
 
         for i_set in range(n_sets):
-            sets[i_set].append(
-                (theta[i_set % n_theta_sets_before], nu[i_set % n_nu_sets_before])
-            )
+            sets[i_set].append((theta[i_set % n_theta_sets_before], nu[i_set % n_nu_sets_before]))
 
     return sets
 

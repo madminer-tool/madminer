@@ -345,7 +345,7 @@ class AsymptoticLimits:
 
     def _make_histo_data(self, thetas, n_samples, test_split=0.2):
         sampler = SampleAugmenter(self.madminer_filename, include_nuisance_parameters=self.include_nuisance_parameters)
-        x, theta = sampler.extract_samples_train_plain(
+        x, theta = sampler.sample_train_plain(
             theta=sampling.morphing_points(thetas),
             n_samples=n_samples,
             test_split=test_split,
