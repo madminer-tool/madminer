@@ -169,66 +169,6 @@ def _get_dtheta_benchmark_matrix(theta, benchmarks, morpher):
     return dtheta_matrix
 
 
-def _calculate_augmented_data(
-    augmented_data_definitions,
-    weights_benchmarks,
-    xsecs_benchmarks,
-    theta_matrices,
-    theta_gradient_matrices,
-    nuisance_morpher=None,
-):
-    """Extracts augmented data from benchmark weights"""
-
-    augmented_data = []
-
-    for definition in augmented_data_definitions:
-
-        if definition[0] == "ratio":
-            i_num = definition[1]
-            i_den = definition[2]
-
-            dsigma_num = mdot(theta_matrices[i_num], weights_benchmarks)
-            sigma_num = mdot(theta_matrices[i_num], xsecs_benchmarks)
-            dsigma_den = mdot(theta_matrices[i_den], weights_benchmarks)
-            sigma_den = mdot(theta_matrices[i_den], xsecs_benchmarks)
-
-            ratio = (dsigma_num / sigma_num) / (dsigma_den / sigma_den)
-            ratio = ratio.reshape((-1, 1))
-
-            augmented_data.append(ratio)
-
-        elif definition[0] == "score":
-            i = definition[1]
-
-            gradient_dsigma = mdot(theta_gradient_matrices[i], weights_benchmarks)  # (n_gradients, n_samples)
-            gradient_sigma = mdot(theta_gradient_matrices[i], xsecs_benchmarks)  # (n_gradients,)
-
-            dsigma = mdot(theta_matrices[i], weights_benchmarks)  # (n_samples,)
-            sigma = mdot(theta_matrices[i], xsecs_benchmarks)  # scalar
-
-            score = gradient_dsigma / dsigma  # (n_gradients, n_samples)
-            score = score.T  # (n_samples, n_gradients)
-            score = score - np.broadcast_to(gradient_sigma / sigma, score.shape)  # (n_samples, n_gradients)
-
-            augmented_data.append(score)
-
-        elif definition[0] == "nuisance_score":
-            a_weights = nuisance_morpher.calculate_a(weights_benchmarks)
-            a_xsec = nuisance_morpher.calculate_a(xsecs_benchmarks[np.newaxis, :])
-
-            nuisance_score = a_weights - a_xsec  # Shape (n_nuisance_parameters, n_samples)
-            nuisance_score = nuisance_score.T  # Shape (n_samples, n_nuisance_parameters)
-
-            logger.debug("Nuisance score: shape %s, content %s", nuisance_score.shape, nuisance_score)
-
-            augmented_data.append(nuisance_score)
-
-        else:
-            raise ValueError("Unknown augmented data type {}".format(definition[0]))
-
-    return augmented_data
-
-
 def mdot(matrix, benchmark_information):
     """
     Calculates a product between a matrix / matrices with shape (n1) or (a, n1) and a weight list with shape (b, n2)

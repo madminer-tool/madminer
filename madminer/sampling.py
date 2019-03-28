@@ -465,7 +465,7 @@ class SampleAugmenter(DataAnalyzer):
         if self.morpher is None:
             x0, (r_xz0,), (theta0_0, theta1_0) = self._sample(
                 sets=sets,
-                sampling_theta_index=0,
+                sampling_index=0,
                 n_samples_per_set=n_samples_per_theta,
                 augmented_data_definitions=augmented_data_definitions,
                 use_train_events=not switch_train_test_events,
@@ -475,7 +475,7 @@ class SampleAugmenter(DataAnalyzer):
         else:
             x0, (r_xz0, t_xz0), (theta0_0, theta1_0) = self._sample(
                 sets=sets,
-                sampling_theta_index=0,
+                sampling_index=0,
                 n_samples_per_set=n_samples_per_theta,
                 augmented_data_definitions=augmented_data_definitions,
                 use_train_events=not switch_train_test_events,
@@ -495,7 +495,7 @@ class SampleAugmenter(DataAnalyzer):
         if self.morpher is None:
             x1, (r_xz1,), (theta0_1, theta1_1) = self._sample(
                 sets=sets,
-                sampling_theta_index=1,
+                sampling_index=1,
                 n_samples_per_set=n_samples_per_theta,
                 augmented_data_definitions=augmented_data_definitions,
                 use_train_events=not switch_train_test_events,
@@ -505,7 +505,7 @@ class SampleAugmenter(DataAnalyzer):
         else:
             x1, (r_xz1, t_xz1), (theta0_1, theta1_1) = self._sample(
                 sets=sets,
-                sampling_theta_index=1,
+                sampling_index=1,
                 n_samples_per_set=n_samples_per_theta,
                 augmented_data_definitions=augmented_data_definitions,
                 use_train_events=not switch_train_test_events,
@@ -697,7 +697,7 @@ class SampleAugmenter(DataAnalyzer):
             sets=sets,
             n_samples_per_set=n_samples_per_theta,
             augmented_data_definitions=augmented_data_definitions_0,
-            sampling_theta_index=0,
+            sampling_index=0,
             use_train_events=not switch_train_test_events,
             test_split=test_split,
         )
@@ -757,7 +757,7 @@ class SampleAugmenter(DataAnalyzer):
             sets=sets,
             n_samples_per_set=n_samples_per_theta,
             augmented_data_definitions=augmented_data_definitions_1,
-            sampling_theta_index=1,
+            sampling_index=1,
             use_train_events=not switch_train_test_events,
             test_split=test_split,
         )
@@ -945,7 +945,7 @@ class SampleAugmenter(DataAnalyzer):
         self,
         sets,
         n_samples_per_set,
-        sampling_theta_index=0,
+        sampling_index=0,
         augmented_data_definitions=None,
         nuisance_score=False,
         use_train_events=True,
@@ -967,7 +967,7 @@ class SampleAugmenter(DataAnalyzer):
         n_samples_per_set : int
             Number of samples to be drawn per entry in theta_sampling_types.
 
-        sampling_theta_index : int
+        sampling_index : int
             Marking the index of the theta set defined through thetas_types and
             thetas_values that should be used for sampling. Default value: 0.
 
@@ -1036,6 +1036,8 @@ class SampleAugmenter(DataAnalyzer):
             x, thetas, nus, augmented_data, eff_n_samples = self._sample_set(
                 set,
                 n_samples_per_set,
+                augmented_data_definitions,
+                sampling_index=sampling_index,
                 needs_gradients=needs_gradients,
                 use_train_events=use_train_events,
                 test_split=test_split,
@@ -1075,15 +1077,199 @@ class SampleAugmenter(DataAnalyzer):
             for param_point in set:
                 assert len(param_point) == 2
 
-    def _sample_set(self, set, n_samples, needs_gradients=True, use_train_events=True, test_split=0.2):
-        # TODO TODO TODO
-        raise NotImplementedError
+    def _sample_set(self, set, n_samples, augmented_data_definitions, sampling_index=0, needs_gradients=True, use_train_events=True, test_split=0.2, n_stats_warnings=0, n_neg_weights_warnings=0):
+        # Parse thetas and nus
+        thetas, nus = [], []
+        theta_values, nu_values = [], []
+        theta_matrices, theta_gradient_matrices = [], []
 
-    def calculate_weights(self, weights_benchmarks, theta_type, theta_value, nu_type, nu_value):
-        raise NotImplementedError
+        logger.debug("Drawing %s events for the following parameter points:", n_samples)
 
-    def calculate_xsec(self, weights_benchmarks, theta_type, theta_value, nu_type, nu_value):
-        raise NotImplementedError
+        for i_param, (theta, nu) in enumerate(set):
+            thetas.append(theta)
+            nus.append(nu)
+            theta_value = _get_theta_value(theta, self.benchmarks)
+            theta_value = np.broadcast_to(theta_value, (n_samples, theta_value.size))
+            theta_values.append(theta_value)
+            nu_value = _get_nu_value(nu, self.benchmarks)
+            nu_value = np.broadcast_to(nu_value, (n_samples, nu_value.size))
+            nu_values.append(nu_value)
+            theta_matrices.append(_get_theta_benchmark_matrix(theta, self.benchmarks, self.morpher))
+            if needs_gradients:
+                theta_gradient_matrices.append(_get_dtheta_benchmark_matrix(theta, self.benchmarks, self.morpher))
+
+            if i_param == sampling_index:
+                logger.debug("  %s: theta = %s, nu = %s (sampling)", i_param, theta_value[0, :], nu_value[0,:])
+            else:
+                logger.debug("  %s: theta = %s, nu = %s", i_param, theta_value[0, :], nu_value[0,:])
+
+        # Cross sections
+        xsecs, xsec_uncertainties = self.xsecs(
+            thetas,
+            nus,
+            events="train" if use_train_events else "test",
+            test_split=test_split,
+        )
+        xsec_gradients = self.xsec_gradients(
+            thetas,
+            nus,
+            events="train" if use_train_events else "test",
+            test_split=test_split,
+        )
+
+        # Report large uncertainties
+        if xsec_uncertainties[sampling_index] > 0.1 * xsecs[sampling_index]:
+            n_stats_warnings += 1
+            if n_stats_warnings <= 1:
+                logger.warning(
+                    "Large statistical uncertainty on the total cross section when sampling from theta = %s: "
+                    "(%4f +/- %4f) pb, relative error %s. Skipping these warnings in the future...",
+                    theta_values[sampling_index][0],
+                    xsecs[sampling_index],
+                    xsec_uncertainties[sampling_index],
+                    xsec_uncertainties[sampling_index] / xsecs[sampling_index]
+                )
+
+        # Prepare output
+        done = np.zeros(n_samples, dtype=np.bool)
+        x = np.zeros((n_samples, self.n_observables))
+        augmented_data = []
+        for definition in augmented_data_definitions:
+            if definition[0] == "ratio":
+                augmented_data.append(np.zeros((n_samples, 1)))
+            elif definition[0] == "score":
+                augmented_data.append(np.zeros((n_samples, self.n_parameters)))
+            elif definition[0] == "nuisance_score":
+                augmented_data.append(np.zeros((n_samples, self.n_nuisance_parameters)))
+        largest_weight = 0.0
+
+        # Main sampling loop
+        start_event, end_event, correction_factor = self._train_test_split(use_train_events, test_split)
+        while not np.all(done):
+            # Draw random numbers in [0, 1]
+            u = np.random.rand(n_samples)  # Shape: (n_samples,)
+            cumulative_p = np.array([0.0])
+
+            # Loop over weighted events
+            for x_batch, weights_benchmarks_batch in madminer_event_loader(
+                self.madminer_filename, start=start_event, end=end_event
+            ):
+                # Weights
+                weights = self._weights(thetas, nus, weights_benchmarks_batch, theta_matrices)
+
+                # Evaluate p(x | sampling theta)
+                p_sampling = weights[sampling_index] / xsecs[sampling_index]  # Shape: (n_batch_size,)
+
+                # Handle negative weights (should be rare)
+                n_negative_weights = np.sum(p_sampling < 0.0)
+                if n_negative_weights > 0:
+                    n_neg_weights_warnings += 1
+                    if n_neg_weights_warnings <= 3:
+                        logger.warning(
+                            "For this value of theta, %s / %s events have negative weight and will be ignored",
+                            n_negative_weights,
+                            p_sampling.size,
+                        )
+                        if n_neg_weights_warnings == 3:
+                            logger.warning("Skipping warnings about negative weights in the future...")
+                p_sampling[p_sampling < 0.0] = 0.0
+
+                # Remember largest weights (to calculate effective number of samples)
+                largest_weight = max(largest_weight, np.max(p_sampling))
+
+                # Calculate cumulative p (summing up all events until here)
+                cumulative_p = cumulative_p.flatten()[-1] + np.cumsum(p_sampling)  # Shape: (n_batch_size,)
+
+                # When cumulative_p hits u, we store the events
+                indices = np.searchsorted(cumulative_p, u, side="left").flatten()
+                # Shape: (n_samples,), values: [0, ..., n_batch_size]
+
+                found_now = np.invert(done) & (indices < len(cumulative_p))  # Shape: (n_samples,)
+                x[found_now] = x_batch[indices[found_now]]
+                done[found_now] = True
+
+                # Extract augmented data
+                relevant_augmented_data = _calculate_augmented_data(
+                    augmented_data_definitions,
+                    weights,
+                    xsecs,
+                    theta_matrices=theta_matrices,
+                    theta_gradient_matrices=theta_gradient_matrices,
+                )
+
+                for i, this_relevant_augmented_data in enumerate(relevant_augmented_data):
+                    augmented_data[i][found_now] = this_relevant_augmented_data
+
+                if np.all(done):
+                    break
+
+            # Cross-check cumulative probabilities at end
+            logger.debug("  Cumulative probability (should be close to 1): %s", cumulative_p[-1])
+
+            # Check that we got 'em all, otherwise repeat
+            if not np.all(done):
+                logger.debug(
+                    "  After full pass through event files, {} / {} samples not found, u = {}".format(
+                        np.sum(np.invert(done)), done.size, u[np.invert(done)]
+                    )
+                )
+
+        n_eff_samples = 1.0 / max(1.0e-12, largest_weight)
+
+        return x, theta_values, nu_values, augmented_data, n_eff_samples
+
+    def _calculate_augmented_data(
+        self,
+        augmented_data_definitions,
+        weights,
+        xsecs,
+        xsec_gradients,  # grad_theta sigma(theta, nu) with shape (n_params, n_gradients)
+        theta_matrices,
+        theta_gradient_matrices,
+    ):
+        """Extracts augmented data from benchmark weights"""
+
+        augmented_data = []
+
+        for definition in augmented_data_definitions:
+
+            if definition[0] == "ratio":
+                i_num = definition[1]
+                i_den = definition[2]
+                ratio = (weights[i_num] / xsecs[i_num]) / (weights[i_den] / xsecs[i_den])
+                ratio = ratio.reshape((-1, 1))
+                augmented_data.append(ratio)
+
+            elif definition[0] == "score":
+                i = definition[1]
+
+                gradient_dsigma = mdot(theta_gradient_matrices[i], benchmark_weights)  # (n_gradients, n_samples)
+                gradient_sigma = mdot(theta_gradient_matrices[i], xsecs_benchmarks)  # (n_gradients,)
+
+                dsigma = mdot(theta_matrices[i], benchmark_weights)  # (n_samples,)
+                sigma = mdot(theta_matrices[i], xsecs_benchmarks)  # scalar
+
+                score = gradient_dsigma / dsigma  # (n_gradients, n_samples)
+                score = score.T  # (n_samples, n_gradients)
+                score = score - np.broadcast_to(gradient_sigma / sigma, score.shape)  # (n_samples, n_gradients)
+
+                augmented_data.append(score)
+
+            elif definition[0] == "nuisance_score":
+                a_weights = nuisance_morpher.calculate_a(benchmark_weights)
+                a_xsec = nuisance_morpher.calculate_a(xsecs_benchmarks[np.newaxis, :])
+
+                nuisance_score = a_weights - a_xsec  # Shape (n_nuisance_parameters, n_samples)
+                nuisance_score = nuisance_score.T  # Shape (n_samples, n_nuisance_parameters)
+
+                logger.debug("Nuisance score: shape %s, content %s", nuisance_score.shape, nuisance_score)
+
+                augmented_data.append(nuisance_score)
+
+            else:
+                raise ValueError("Unknown augmented data type {}".format(definition[0]))
+
+        return augmented_data
 
     def _report_effective_n_samples(self, all_effective_n_samples):
         if len(all_effective_n_samples) > 1:
@@ -1102,7 +1288,7 @@ class SampleAugmenter(DataAnalyzer):
         theta_sets_types,
         theta_sets_values,
         n_samples_per_set,
-        sampling_theta_index=0,
+        sampling_index=0,
         nu_sets_types=None,
         nu_sets_values=None,
         augmented_data_definitions=None,
@@ -1126,7 +1312,7 @@ class SampleAugmenter(DataAnalyzer):
             theta_sampling_types entry is 'benchmark') or a numpy array with the theta values
             (of the corresponding theta_sampling_types entry is 'morphing')
 
-        sampling_theta_index : int
+        sampling_index : int
             Marking the index of the theta set defined through thetas_types and
             thetas_values that should be used for sampling. Default value: 0.
 
@@ -1240,7 +1426,7 @@ class SampleAugmenter(DataAnalyzer):
             assert n_thetas == len(nu_sets_types) == len(nu_sets_values)
 
         # Sets (within each set, all thetas (sampling, numerator, ...) have a constant value)
-        n_sets = len(theta_sets_types[sampling_theta_index])
+        n_sets = len(theta_sets_types[sampling_index])
         for theta_types, theta_values in zip(theta_sets_types, theta_sets_values):
             assert n_sets == len(theta_types) == len(theta_values)
         if ratio_or_sampling_from_nuisance_parameters:
@@ -1310,12 +1496,12 @@ class SampleAugmenter(DataAnalyzer):
                     )
 
                 logger.debug(
-                    "  theta %s = %s%s", i_theta, theta[0, :], " (sampling)" if i_theta == sampling_theta_index else ""
+                    "  theta %s = %s%s", i_theta, theta[0, :], " (sampling)" if i_theta == sampling_index else ""
                 )
 
             # TODO: nuisance ratios from here
 
-            sampling_theta_matrix = theta_matrices[sampling_theta_index]
+            sampling_theta_matrix = theta_matrices[sampling_index]
 
             # Total xsec for sampling theta
             xsec_sampling_theta = mdot(sampling_theta_matrix, xsecs_benchmarks)
@@ -1330,7 +1516,7 @@ class SampleAugmenter(DataAnalyzer):
                     logger.warning(
                         "Large statistical uncertainty on the total cross section for theta = %s: "
                         "(%4f +/- %4f) pb. Skipping these warnings in the future...",
-                        thetas[sampling_theta_index][0],
+                        thetas[sampling_index][0],
                         xsec_sampling_theta,
                         rms_xsec_sampling_theta,
                     )
