@@ -153,7 +153,7 @@ class SampleAugmenter(DataAnalyzer):
         nu=None,
         folder=None,
         filename=None,
-        nuisance_score=True,
+        nuisance_score="auto",
         test_split=0.2,
         switch_train_test_events=False,
         log_message=True,
@@ -184,10 +184,10 @@ class SampleAugmenter(DataAnalyzer):
             '.npy' will be added automatically. Default value:
             None.
 
-        nuisance_score : bool, optional
-            If True and if the sample contains nuisance parameters, the score with respect to the nuisance parameters
-            (at the default position) will also be calculated. Otherwise, only the score with respect to the
-            physics parameters is calculated. Default: True.
+        nuisance_score : bool or "auto", optional
+            If True, the score with respect to the nuisance parameters (at the default position) will also be
+            calculated. If False, only the score with respect to the physics parameters is calculated. For "auto",
+            the nuisance score will be calculated if a nuisance setup is defined. Default: True.
 
         test_split : float or None, optional
             Fraction of events reserved for the evaluation sample (that will not be used for any training samples).
@@ -226,6 +226,8 @@ class SampleAugmenter(DataAnalyzer):
         create_missing_folders([folder])
 
         # Check setup
+        if nuisance_score == "auto":
+            nuisance_score = self.nuisance_morpher is not None
         if self.morpher is None:
             raise RuntimeError("No morphing setup loaded. Cannot calculate score.")
         if self.nuisance_morpher is None and nuisance_score:
@@ -265,7 +267,7 @@ class SampleAugmenter(DataAnalyzer):
         nu=None,
         folder=None,
         filename=None,
-        nuisance_score=True,
+        nuisance_score="auto",
         test_split=0.2,
         switch_train_test_events=False,
     ):
@@ -297,10 +299,11 @@ class SampleAugmenter(DataAnalyzer):
             None.
             None.
 
-        nuisance_score : bool, optional
-            If True and if the sample contains nuisance parameters, the score with respect to the nuisance parameters
-            (at the default position) will also be calculated. Otherwise, only the score with respect to the
-            physics parameters is calculated. Default: True.
+
+        nuisance_score : bool or "auto", optional
+            If True, the score with respect to the nuisance parameters (at the default position) will also be
+            calculated. If False, only the score with respect to the physics parameters is calculated. For "auto",
+            the nuisance score will be calculated if a nuisance setup is defined. Default: True.
 
         test_split : float or None, optional
             Fraction of events reserved for the evaluation sample (that will not be used for any training samples).
@@ -353,7 +356,7 @@ class SampleAugmenter(DataAnalyzer):
         nu1=None,
         folder=None,
         filename=None,
-        nuisance_score=True,
+        nuisance_score="auto",
         test_split=0.2,
         switch_train_test_events=False,
     ):
@@ -394,10 +397,10 @@ class SampleAugmenter(DataAnalyzer):
             '.npy' will be added automatically. Default value:
             None.
 
-        nuisance_score : bool, optional
-            If True and if the sample contains nuisance parameters, the score with respect to the nuisance parameters
-            (at the default position) will also be calculated. Otherwise, only the score with respect to the
-            physics parameters is calculated. Default: True.
+        nuisance_score : bool or "auto", optional
+            If True, the score with respect to the nuisance parameters (at the default position) will also be
+            calculated. If False, only the score with respect to the physics parameters is calculated. For "auto",
+            the nuisance score will be calculated if a nuisance setup is defined. Default: True.
 
         test_split : float or None, optional
             Fraction of events reserved for the evaluation sample (that will not be used for any training samples).
@@ -443,12 +446,15 @@ class SampleAugmenter(DataAnalyzer):
             theta1,
         )
 
+        create_missing_folders([folder])
+
+        # Check setup
+        if nuisance_score == "auto":
+            nuisance_score = self.nuisance_morpher is not None
         if self.morpher is None:
             logging.warning("No morphing setup loaded. Cannot calculate joint score.")
         if self.nuisance_morpher is None and nuisance_score:
             raise RuntimeError("No nuisance parameters defined. Cannot calculate nuisance score.")
-
-        create_missing_folders([folder])
 
         # Augmented data (gold)
         augmented_data_definitions = [("ratio", 0, 1)]
@@ -559,7 +565,7 @@ class SampleAugmenter(DataAnalyzer):
         folder=None,
         filename=None,
         additional_thetas=None,
-        nuisance_score=True,
+        nuisance_score="auto",
         test_split=0.2,
         switch_train_test_events=False,
     ):
@@ -613,10 +619,10 @@ class SampleAugmenter(DataAnalyzer):
             `constant_benchmark_theta()`, `multiple_benchmark_thetas()`, `constant_morphing_theta()`,
             `multiple_morphing_thetas()`, or `random_morphing_thetas()`. Default value: None.
 
-        nuisance_score : bool, optional
-            If True and if the sample contains nuisance parameters, the score with respect to the nuisance parameters
-            (at the default position) will also be calculated. Otherwise, only the score with respect to the
-            physics parameters is calculated. Default: True.
+        nuisance_score : bool or "auto", optional
+            If True, the score with respect to the nuisance parameters (at the default position) will also be
+            calculated. If False, only the score with respect to the physics parameters is calculated. For "auto",
+            the nuisance score will be calculated if a nuisance setup is defined. Default: True.
 
         test_split : float or None, optional
             Fraction of events reserved for the evaluation sample (that will not be used for any training samples).
@@ -661,13 +667,15 @@ class SampleAugmenter(DataAnalyzer):
             theta1,
         )
 
+        create_missing_folders([folder])
+
+        # Check setup
+        if nuisance_score == "auto":
+            nuisance_score = self.nuisance_morpher is not None
         if self.morpher is None:
             raise RuntimeError("No morphing setup loaded. Cannot calculate score.")
         if self.nuisance_morpher is None and nuisance_score:
             raise RuntimeError("No nuisance parameters defined. Cannot calculate nuisance score.")
-
-        create_missing_folders([folder])
-
         if additional_thetas is None:
             additional_thetas = []
         n_additional_thetas = len(additional_thetas)
@@ -1041,7 +1049,7 @@ class SampleAugmenter(DataAnalyzer):
         n_neg_weights_warnings = 0
 
         # Loop over sets
-        for set_ in enumerate(sets):
+        for set_ in sets:
             x, thetas, nus, augmented_data, eff_n_samples, n_stats_warnings, n_neg_weights_warnings = self._sample_set(
                 set_,
                 n_samples_per_set,
@@ -1122,20 +1130,26 @@ class SampleAugmenter(DataAnalyzer):
         for i_param, (theta, nu) in enumerate(set_):
             thetas.append(theta)
             nus.append(nu)
+
             theta_value = self._get_theta_value(theta)
             theta_value = np.broadcast_to(theta_value, (n_samples, theta_value.size))
             theta_values.append(theta_value)
-            nu_value = self._get_nu_value(nu)
-            nu_value = np.broadcast_to(nu_value, (n_samples, nu_value.size))
-            nu_values.append(nu_value)
+
+            if nu is None:
+                nu_value = None
+                nu_values.append(None)
+            else:
+                nu_value = self._get_nu_value(nu)
+                nu_values.append(np.broadcast_to(nu_value, (n_samples, nu_value.size)))
+
             theta_matrices.append(self._get_theta_benchmark_matrix(theta))
             if needs_gradients:
                 theta_gradient_matrices.append(self._get_dtheta_benchmark_matrix(theta))
 
             if i_param == sampling_index:
-                logger.debug("  %s: theta = %s, nu = %s (sampling)", i_param, theta_value[0, :], nu_value[0, :])
+                logger.debug("  %s: theta = %s, nu = %s (sampling)", i_param, theta_value[0, :], nu_value)
             else:
-                logger.debug("  %s: theta = %s, nu = %s", i_param, theta_value[0, :], nu_value[0, :])
+                logger.debug("  %s: theta = %s, nu = %s", i_param, theta_value[0, :], nu_value)
 
         # Cross sections
         xsecs, xsec_uncertainties = self.xsecs(
@@ -1158,11 +1172,11 @@ class SampleAugmenter(DataAnalyzer):
             if n_stats_warnings <= 1:
                 logger.warning(
                     "Large statistical uncertainty on the total cross section when sampling from theta = %s: "
-                    "(%4f +/- %4f) pb, relative error %s. Skipping these warnings in the future...",
+                    "(%4f +/- %4f) pb (%s %%). Skipping these warnings in the future...",
                     theta_values[sampling_index][0],
                     xsecs[sampling_index],
                     xsec_uncertainties[sampling_index],
-                    xsec_uncertainties[sampling_index] / xsecs[sampling_index],
+                    100.0 * xsec_uncertainties[sampling_index] / xsecs[sampling_index],
                 )
 
         # Prepare output
@@ -1308,28 +1322,28 @@ class SampleAugmenter(DataAnalyzer):
         theta_value_in = theta[1]
 
         if theta_type_in == "benchmark":
-            thetas_out = [int(theta_value_in)]
+            thetas_out = [theta_value_in]
             n_samples_per_theta = n_samples
 
         elif theta_type_in == "benchmarks":
             n_benchmarks = len(theta_value_in)
-            n_samples_per_theta = int(round(n_samples / n_benchmarks, 0))
-            thetas_out = [int(val) for val in theta_value_in]
+            n_samples_per_theta = max(int(round(n_samples / n_benchmarks, 0)), 1)
+            thetas_out = theta_value_in
 
         elif theta_type_in == "morphing_point":
-            thetas_out = np.asarray([theta_value_in])
+            thetas_out = [np.asarray(theta_value_in)]
             n_samples_per_theta = n_samples
 
         elif theta_type_in == "morphing_points":
             n_benchmarks = len(theta_value_in)
-            n_samples_per_theta = int(round(n_samples / n_benchmarks, 0))
-            thetas_out = np.asarray(theta_value_in)
+            n_samples_per_theta = max(int(round(n_samples / n_benchmarks, 0)), 1)
+            thetas_out = theta_value_in
 
         elif theta_type_in == "random_morphing_points":
             n_benchmarks, priors = theta_value_in
-            if n_benchmarks is None or n_benchmarks <= 0:
+            if n_benchmarks is None or n_benchmarks <= 0 or n_benchmarks > n_samples:
                 n_benchmarks = n_samples
-            n_samples_per_theta = int(round(n_samples / n_benchmarks, 0))
+            n_samples_per_theta = max(int(round(n_samples / n_benchmarks, 0)), 1)
 
             thetas_out = []
             for prior in priors:

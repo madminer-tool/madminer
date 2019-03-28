@@ -221,7 +221,7 @@ class DataAnalyzer(object):
 
         # Inputs
         if thetas is not None:
-            include_nuisance_benchmarks = nus is not None
+            include_nuisance_benchmarks = self._any_nontrivial_nus(nus)
 
         if thetas is not None:
             if nus is None:
@@ -273,9 +273,7 @@ class DataAnalyzer(object):
                 logger.debug("Nominal weights: %s", weights_nom)
 
                 # Effect of nuisance parameters
-                nuisance_factors = np.asarray(
-                    [self.nuisance_morpher.calculate_nuisance_factors(nu, benchmark_weights) for nu in nus]
-                )  # Shape (n_thetas, n_batch)
+                nuisance_factors = self._calculate_nuisance_factors(nus, benchmark_weights)
                 weights = nuisance_factors * weights_nom
                 weights_sq = nuisance_factors * weights_sq_nom
                 logger.debug("Nuisance factors: %s", nuisance_factors)
@@ -292,9 +290,27 @@ class DataAnalyzer(object):
 
         logger.debug("xsecs and uncertainties [pb]:")
         for this_xsec, this_uncertainty in zip(xsecs, xsec_uncertainties):
-            logger.debug("  %s +/- %s (%s %)", this_xsec, this_uncertainty, 100 * this_uncertainty / this_xsec)
+            logger.debug("  (%4f +/- %4f) pb (%4f %%)", this_xsec, this_uncertainty, 100 * this_uncertainty / this_xsec)
 
         return xsecs, xsec_uncertainties
+
+    def _calculate_nuisance_factors(self, nus, benchmark_weights):
+        if self._any_nontrivial_nus(nus):
+            return np.asarray(
+                [self.nuisance_morpher.calculate_nuisance_factors(nu, benchmark_weights) for nu in nus]
+            )  # Shape (n_thetas, n_batch)
+        else:
+            return 1.0
+
+    def _any_nontrivial_nus(self, nus):
+        if nus is None:
+            return False
+
+        for nu in nus:
+            if nu is not None:
+                return True
+
+        return False
 
     def xsec_gradients(self, thetas, nus=None, events="all", test_split=0.2, gradients="all", batch_size=100000):
         """
@@ -379,10 +395,11 @@ class DataAnalyzer(object):
                 nom_gradients = mdot(
                     theta_gradient_matrices, benchmark_weights
                 )  # Shape (n_thetas, n_phys_gradients, n_batch)
-                nuisance_factors = np.asarray(
-                    [self.nuisance_morpher.calculate_nuisance_factors(nu, benchmark_weights) for nu in nus]
-                )  # Shape (n_thetas, n_batch)
-                dweight_dtheta = nuisance_factors[:, np.newaxis, :] * nom_gradients
+                nuisance_factors = self._calculate_nuisance_factors(nus, benchmark_weights)  # Shape (n_thetas, n_batch)
+                try:
+                    dweight_dtheta = nuisance_factors[:, np.newaxis, :] * nom_gradients
+                except TypeError:
+                    dweight_dtheta = nom_gradients
 
             if gradients in ["all", "nu"]:
                 weights_nom = mdot(theta_matrices, benchmark_weights)  # Shape (n_thetas, n_batch)
@@ -443,9 +460,7 @@ class DataAnalyzer(object):
         weights_nom = mdot(theta_matrices, benchmark_weights)  # Shape (n_thetas, n_batch)
 
         # Effect of nuisance parameters
-        nuisance_factors = np.asarray(
-            [self.nuisance_morpher.calculate_nuisance_factors(nu, benchmark_weights) for nu in nus]
-        )  # Shape (n_thetas, n_batch)
+        nuisance_factors = self._calculate_nuisance_factors(nu, benchmark_weights)
         weights = nuisance_factors * weights_nom
 
         return weights
@@ -480,7 +495,8 @@ class DataAnalyzer(object):
         n_events, _ = benchmark_weights.shape
 
         # Inputs
-        include_nuisance_benchmarks = nus is not None
+        if gradients == "all" and self.n_nuisance_parameters == 0:
+            gradients = "theta"
         if nus is None:
             nus = [None for _ in thetas]
         assert len(nus) == len(thetas), "Numbers of thetas and nus don't match!"
@@ -498,9 +514,7 @@ class DataAnalyzer(object):
             nom_gradients = mdot(
                 theta_gradient_matrices, benchmark_weights
             )  # Shape (n_thetas, n_phys_gradients, n_batch)
-            nuisance_factors = np.asarray(
-                [self.nuisance_morpher.calculate_nuisance_factors(nu, benchmark_weights) for nu in nus]
-            )  # Shape (n_thetas, n_batch)
+            nuisance_factors = self._calculate_nuisance_factors(nus, benchmark_weights)
             dweight_dtheta = nuisance_factors[:, np.newaxis, :] * nom_gradients
         else:
             dweight_dtheta = None
@@ -583,10 +597,9 @@ class DataAnalyzer(object):
             theta_value = np.asarray(theta)
         return theta_value
 
-    @staticmethod
-    def _get_nu_value(nu):
-        if isinstance(nu, None):
-            nu_value = 0.0
+    def _get_nu_value(self, nu):
+        if nu is None:
+            nu_value = np.zeros(self.n_nuisance_parameters)
         else:
             nu_value = np.asarray(nu)
         return nu_value
