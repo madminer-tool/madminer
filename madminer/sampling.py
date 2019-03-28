@@ -135,12 +135,12 @@ class SampleAugmenter(DataAnalyzer):
         parsed_nus = _parse_nu(nu, len(parsed_thetas))
         sets = _build_sets([parsed_thetas], [parsed_nus])
 
-        # Train / test split
-        start_event, end_event, _ = self._train_test_split(not switch_train_test_events, test_split)
-
         # Start
         x, _, (theta,) = self._sample(
-            sets=sets, n_samples_per_set=n_samples_per_theta, start_event=start_event, end_event=end_event
+            sets=sets,
+            n_samples_per_set=n_samples_per_theta,
+            use_train_events=not switch_train_test_events,
+            test_split=test_split,
         )
 
         # Save data
@@ -246,17 +246,14 @@ class SampleAugmenter(DataAnalyzer):
         if nuisance_score:
             augmented_data_definitions += [("nuisance_score",)]
 
-        # Train / test split
-        start_event, end_event, _ = self._train_test_split(not switch_train_test_events, test_split)
-
         # Start
         x, augmented_data, (theta,) = self._sample(
             sets=sets,
             n_samples_per_set=n_samples_per_theta,
             augmented_data_definitions=augmented_data_definitions,
             nuisance_score=nuisance_score,
-            start_event=start_event,
-            end_event=end_event,
+            use_train_events=not switch_train_test_events,
+            test_split=test_split,
         )
 
         t_xz_physics = augmented_data[0]
@@ -455,9 +452,6 @@ class SampleAugmenter(DataAnalyzer):
         if self.morpher is not None:
             augmented_data_definitions.append(("score", 0))
 
-        # Train / test split
-        start_event, end_event, _ = self._train_test_split(not switch_train_test_events, test_split)
-
         # Thetas for theta0 sampling
         parsed_theta0s, n_samples_per_theta0 = _parse_theta(theta0, n_samples // 2)
         parsed_theta1s, n_samples_per_theta1 = _parse_theta(theta1, n_samples // 2)
@@ -474,8 +468,8 @@ class SampleAugmenter(DataAnalyzer):
                 sampling_theta_index=0,
                 n_samples_per_set=n_samples_per_theta,
                 augmented_data_definitions=augmented_data_definitions,
-                start_event=start_event,
-                end_event=end_event,
+                use_train_events=not switch_train_test_events,
+                test_split=test_split,
             )
             t_xz0 = None
         else:
@@ -484,8 +478,8 @@ class SampleAugmenter(DataAnalyzer):
                 sampling_theta_index=0,
                 n_samples_per_set=n_samples_per_theta,
                 augmented_data_definitions=augmented_data_definitions,
-                start_event=start_event,
-                end_event=end_event,
+                use_train_events=not switch_train_test_events,
+                test_split=test_split,
             )
 
         # Thetas for theta1 sampling (could be different if num or denom are random)
@@ -504,8 +498,8 @@ class SampleAugmenter(DataAnalyzer):
                 sampling_theta_index=1,
                 n_samples_per_set=n_samples_per_theta,
                 augmented_data_definitions=augmented_data_definitions,
-                start_event=start_event,
-                end_event=end_event,
+                use_train_events=not switch_train_test_events,
+                test_split=test_split,
             )
             t_xz1 = None
         else:
@@ -514,8 +508,8 @@ class SampleAugmenter(DataAnalyzer):
                 sampling_theta_index=1,
                 n_samples_per_set=n_samples_per_theta,
                 augmented_data_definitions=augmented_data_definitions,
-                start_event=start_event,
-                end_event=end_event,
+                use_train_events=not switch_train_test_events,
+                test_split=test_split,
             )
 
         # Combine
@@ -672,9 +666,6 @@ class SampleAugmenter(DataAnalyzer):
             augmented_data_definitions_1.append(("ratio", i + 2, 1))
             augmented_data_definitions_1.append(("score", i + 2))
 
-        # Train / test split
-        start_event, end_event, _ = self._train_test_split(not switch_train_test_events, test_split)
-
         # Parse thetas for theta0 sampling
         parsed_thetas = []
         parsed_nus = []
@@ -707,8 +698,8 @@ class SampleAugmenter(DataAnalyzer):
             n_samples_per_set=n_samples_per_theta,
             augmented_data_definitions=augmented_data_definitions_0,
             sampling_theta_index=0,
-            start_event=start_event,
-            end_event=end_event,
+            use_train_events=not switch_train_test_events,
+            test_split=test_split,
         )
         n_actual_samples = x_0.shape[0]
 
@@ -767,8 +758,8 @@ class SampleAugmenter(DataAnalyzer):
             n_samples_per_set=n_samples_per_theta,
             augmented_data_definitions=augmented_data_definitions_1,
             sampling_theta_index=1,
-            start_event=start_event,
-            end_event=end_event,
+            use_train_events=not switch_train_test_events,
+            test_split=test_split,
         )
         n_actual_samples += x_1.shape[0]
 
@@ -888,12 +879,12 @@ class SampleAugmenter(DataAnalyzer):
         parsed_nus = _parse_nu(nu, len(parsed_thetas))
         sets = _build_sets([parsed_thetas], [parsed_nus])
 
-        # Train / test split
-        start_event, end_event, _ = self._train_test_split(switch_train_test_events, test_split)
-
         # Extract information
         x, _, (theta,) = self._sample(
-            sets=sets, n_samples_per_set=n_samples_per_theta, start_event=start_event, end_event=end_event
+            sets=sets,
+            n_samples_per_set=n_samples_per_theta,
+            use_train_events=switch_train_test_events,
+            test_split=test_split,
         )
 
         # Save data
@@ -957,8 +948,8 @@ class SampleAugmenter(DataAnalyzer):
         sampling_theta_index=0,
         augmented_data_definitions=None,
         nuisance_score=False,
-        start_event=0,
-        end_event=None,
+        use_train_events=True,
+        test_split=0.2,
     ):
         """
         Low-level function for the extraction of information from the event samples. Do not use this function directly.
@@ -998,11 +989,12 @@ class SampleAugmenter(DataAnalyzer):
             is also calculated with respect to the nuisance parameters (evaluated at their default position). Default
             value: False.
 
-        start_event : int
-            Index of first event to consider. Default value: 0.
+        use_train_events : bool, optional
+            Decides whether to use the train or test split of the events. Default value: True.
 
-        end_event : int or None
-            Index of last event to consider. If None, use the last event. Default value: None.
+        test_split : float or None, optional
+            Fraction of events reserved for the evaluation sample (that will not be used for any training samples).
+            Default value: 0.2.
 
         Returns
         -------
@@ -1041,7 +1033,13 @@ class SampleAugmenter(DataAnalyzer):
 
         # Loop over sets
         for set in enumerate(sets):
-            x, thetas, nus, augmented_data, eff_n_samples = self._sample_set(set, n_samples_per_set, needs_gradients)
+            x, thetas, nus, augmented_data, eff_n_samples = self._sample_set(
+                set,
+                n_samples_per_set,
+                needs_gradients=needs_gradients,
+                use_train_events=use_train_events,
+                test_split=test_split,
+            )
 
             all_x.append(x)
             for i, values in enumerate(augmented_data):
@@ -1077,7 +1075,7 @@ class SampleAugmenter(DataAnalyzer):
             for param_point in set:
                 assert len(param_point) == 2
 
-    def _sample_set(self, set, n_samples, needs_gradients):
+    def _sample_set(self, set, n_samples, needs_gradients=True, use_train_events=True, test_split=0.2):
         # TODO TODO TODO
         raise NotImplementedError
 
