@@ -798,7 +798,7 @@ class NuisanceMorpher:
         a = self.calculate_a(benchmark_weights)  # Shape (n_nuisance_parameters, n_events)
         b = self.calculate_b(benchmark_weights)  # Shape (n_nuisance_parameters, n_events)
 
-        log_gradients = a + 2. * b * nuisance_parameters[:, np.newaxis]
+        log_gradients = a + 2.0 * b * nuisance_parameters[:, np.newaxis]
 
         return log_gradients
 
@@ -830,7 +830,7 @@ class NuisanceMorpher:
 
         exponent = np.sum(a * nuisance_parameters[:, np.newaxis] + b * nuisance_parameters[:, np.newaxis] ** 2, axis=0)
         nuisance_factors = np.exp(exponent)
-        log_gradients = a + 2. * b * nuisance_parameters[:, np.newaxis]
+        log_gradients = a + 2.0 * b * nuisance_parameters[:, np.newaxis]
         gradients = log_gradients * nuisance_factors[np.newaxis, :]
 
         return gradients

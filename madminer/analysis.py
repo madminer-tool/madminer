@@ -276,7 +276,9 @@ class DataAnalyzer(object):
                 logger.debug("Nominal weights: %s", weights_nom)
 
                 # Effect of nuisance parameters
-                nuisance_factors = np.asarray([self.nuisance_morpher.calculate_nuisance_factors(nu, benchmark_weights) for nu in nus])  # Shape (n_thetas, n_batch)
+                nuisance_factors = np.asarray(
+                    [self.nuisance_morpher.calculate_nuisance_factors(nu, benchmark_weights) for nu in nus]
+                )  # Shape (n_thetas, n_batch)
                 weights = nuisance_factors * weights_nom
                 weights_sq = nuisance_factors * weights_sq_nom
                 logger.debug("Nuisance factors: %s", nuisance_factors)
@@ -297,9 +299,7 @@ class DataAnalyzer(object):
 
         return xsecs, xsec_uncertainties
 
-    def xsec_gradients(
-        self, thetas, nus=None, events="all", test_split=0.2, include_nuisance_benchmarks=False, batch_size=100000
-    ):
+    def xsec_gradients(self, thetas, nus=None, events="all", test_split=0.2, gradients="all", batch_size=100000):
         """
         Returns the gradient of total cross sections with respect to parameters.
 
@@ -315,14 +315,14 @@ class DataAnalyzer(object):
              account. Otherwise, the list has to have the same number of elements as thetas, and each entry can specify
              nuisance parameters at nominal value (None) or a value of the nuisance parameters (ndarray).
 
-        include_nuisance_benchmarks : bool, optional
-            Whether to includee nuisance benchmarks if thetas is None. Default value: False.
-
         test_split : float, optional
             Fraction of events reserved for testing. Default value: 0.2.
 
         events : {"train", "test", "all"}, optional
             Which events to use. Default: "all".
+
+        gradients : {"all", "theta", "nu"}, optional
+            Which gradients to calculate. Default value: "all".
 
         batch_size : int, optional
             Size of the batches of events that are loaded into memory at the same time. Default value: 100000.
@@ -333,15 +333,15 @@ class DataAnalyzer(object):
             Calculated cross section gradients in pb with shape (n_gradients,).
         """
 
-        # TODO!
-
         logger.debug("Calculating cross section gradients for thetas = %s and nus = %s", thetas, nus)
 
         # Inputs
-        include_nuisance_benchmarks = nus is not None
+        include_nuisance_benchmarks = nus is not None or gradients in ["all", "nu"]
         if nus is None:
             nus = [None for _ in thetas]
         assert len(nus) == len(thetas), "Numbers of thetas and nus don't match!"
+        if gradients not in ["all", "theta", "nu"]:
+            raise RuntimeError("Gradients has to be 'all', 'theta', or 'nu', but got {}".format(gradients))
 
         # Which events to use
         if events == "all":
@@ -355,12 +355,15 @@ class DataAnalyzer(object):
             raise ValueError("Events has to be either 'all', 'train', or 'test', but got {}!".format(events))
 
         # Theta matrices (translation of benchmarks to theta, at nominal nuisance params)
-        theta_matrices = [_get_theta_benchmark_matrix(theta, self.benchmarks, self.morpher) for theta in thetas]
-        theta_matrices = np.asarray(theta_matrices)  # Shape (n_thetas, n_benchmarks)
+        theta_matrices = np.asarray(
+            [_get_theta_benchmark_matrix(theta, self.benchmarks, self.morpher) for theta in thetas]
+        )  # shape (n_thetas, n_benchmarks)
+        theta_gradient_matrices = np.asarray(
+            [_get_dtheta_benchmark_matrix(theta, self.benchmarks, self.morpher) for theta in thetas]
+        )  # shape (n_thetas, n_gradients, n_benchmarks)
 
         # Loop over events
-        xsecs = 0.0
-        xsec_uncertainties = 0.0
+        xsec_gradients = 0.0
 
         for i_batch, (_, benchmark_weights) in enumerate(
             madminer_event_loader(
@@ -375,39 +378,34 @@ class DataAnalyzer(object):
             n_batch, _ = benchmark_weights.shape
             logger.debug("Batch %s with %s events", i_batch + 1, n_batch)
 
-            # Benchmark xsecs
-            if thetas is None:
-                xsecs += np.sum(benchmark_weights, axis=0)
-                xsec_uncertainties += np.sum(benchmark_weights * benchmark_weights, axis=0)
+            if gradients in ["all", "theta"]:
+                nom_gradients = mdot(
+                    theta_gradient_matrices, benchmark_weights
+                )  # Shape (n_thetas, n_phys_gradients, n_batch)
+                nuisance_factors = np.asarray(
+                    [self.nuisance_morpher.calculate_nuisance_factors(nu, benchmark_weights) for nu in nus]
+                )  # Shape (n_thetas, n_batch)
+                dweight_dtheta = nuisance_factors[:, np.newaxis, :] * nom_gradients
 
-            # xsecs at given parame ters(theta, nu)
-            else:
-                # Weights at nominal nuisance params (nu=0)
+            if gradients in ["all", "nu"]:
                 weights_nom = mdot(theta_matrices, benchmark_weights)  # Shape (n_thetas, n_batch)
-                weights_sq_nom = mdot(theta_matrices, benchmark_weights * benchmark_weights)  # same
-                logger.debug("Nominal weights: %s", weights_nom)
+                nuisance_factor_gradients = np.asarray(
+                    [self.nuisance_morpher.calculate_nuisance_factor_gradients(nu, benchmark_weights) for nu in nus]
+                )  # Shape (n_thetas, n_nuisance_gradients, n_batch)
+                dweight_dnu = nuisance_factor_gradients * weights_nom[:, np.newaxis, :]
 
-                # Effect of nuisance parameters
-                nuisance_factors = np.asarray([self.nuisance_morpher.calculate_nuisance_factors(nu, benchmark_weights) for nu in nus])  # Shape (n_thetas, n_batch)
-                weights = nuisance_factors * weights_nom
-                weights_sq = nuisance_factors * weights_sq_nom
-                logger.debug("Nuisance factors: %s", nuisance_factors)
-
-                # Sum up
-                xsecs += np.sum(weights, axis=1)
-                xsec_uncertainties += np.sum(weights_sq, axis=1)
-
-        xsec_uncertainties = xsec_uncertainties ** 0.5
+            if gradients == "all":
+                dweight_dall = np.concatenate((dweight_dtheta, dweight_dnu), 1)
+            elif gradients == "theta":
+                dweight_all = dweight_dtheta
+            elif gradients == "nu":
+                dweight_dall = dweight_dnu
+            xsec_gradients += np.sum(dweight_dall, axis=2)
 
         # Correct for not using all events
-        xsecs *= correction_factor
-        xsec_uncertainties *= correction_factor
+        xsec_gradients *= correction_factor
 
-        logger.debug("xsecs and uncertainties [pb]:")
-        for this_xsec, this_uncertainty in zip(xsecs, xsec_uncertainties):
-            logger.debug("  %s +/- %s (%s %)", this_xsec, this_uncertainty, 100 * this_uncertainty / this_xsec)
-
-        return xsecs, xsec_uncertainties
+        return xsec_gradients
 
     def _weights(self, thetas, nus, benchmark_weights, theta_matrices=None):
         """
@@ -448,7 +446,9 @@ class DataAnalyzer(object):
         weights_nom = mdot(theta_matrices, benchmark_weights)  # Shape (n_thetas, n_batch)
 
         # Effect of nuisance parameters
-        nuisance_factors = np.asarray([self.nuisance_morpher.calculate_nuisance_factors(nu, benchmark_weights) for nu in nus])  # Shape (n_thetas, n_batch)
+        nuisance_factors = np.asarray(
+            [self.nuisance_morpher.calculate_nuisance_factors(nu, benchmark_weights) for nu in nus]
+        )  # Shape (n_thetas, n_batch)
         weights = nuisance_factors * weights_nom
 
         return weights

@@ -1077,7 +1077,18 @@ class SampleAugmenter(DataAnalyzer):
             for param_point in set:
                 assert len(param_point) == 2
 
-    def _sample_set(self, set, n_samples, augmented_data_definitions, sampling_index=0, needs_gradients=True, use_train_events=True, test_split=0.2, n_stats_warnings=0, n_neg_weights_warnings=0):
+    def _sample_set(
+        self,
+        set,
+        n_samples,
+        augmented_data_definitions,
+        sampling_index=0,
+        needs_gradients=True,
+        use_train_events=True,
+        test_split=0.2,
+        n_stats_warnings=0,
+        n_neg_weights_warnings=0,
+    ):
         # Parse thetas and nus
         thetas, nus = [], []
         theta_values, nu_values = [], []
@@ -1099,22 +1110,16 @@ class SampleAugmenter(DataAnalyzer):
                 theta_gradient_matrices.append(_get_dtheta_benchmark_matrix(theta, self.benchmarks, self.morpher))
 
             if i_param == sampling_index:
-                logger.debug("  %s: theta = %s, nu = %s (sampling)", i_param, theta_value[0, :], nu_value[0,:])
+                logger.debug("  %s: theta = %s, nu = %s (sampling)", i_param, theta_value[0, :], nu_value[0, :])
             else:
-                logger.debug("  %s: theta = %s, nu = %s", i_param, theta_value[0, :], nu_value[0,:])
+                logger.debug("  %s: theta = %s, nu = %s", i_param, theta_value[0, :], nu_value[0, :])
 
         # Cross sections
         xsecs, xsec_uncertainties = self.xsecs(
-            thetas,
-            nus,
-            events="train" if use_train_events else "test",
-            test_split=test_split,
+            thetas, nus, events="train" if use_train_events else "test", test_split=test_split
         )
         xsec_gradients = self.xsec_gradients(
-            thetas,
-            nus,
-            events="train" if use_train_events else "test",
-            test_split=test_split,
+            thetas, nus, events="train" if use_train_events else "test", test_split=test_split
         )
 
         # Report large uncertainties
@@ -1127,7 +1132,7 @@ class SampleAugmenter(DataAnalyzer):
                     theta_values[sampling_index][0],
                     xsecs[sampling_index],
                     xsec_uncertainties[sampling_index],
-                    xsec_uncertainties[sampling_index] / xsecs[sampling_index]
+                    xsec_uncertainties[sampling_index] / xsecs[sampling_index],
                 )
 
         # Prepare output
