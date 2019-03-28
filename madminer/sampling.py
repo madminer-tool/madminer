@@ -2,13 +2,11 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import logging
 import numpy as np
-import collections
-import six
 
 from madminer.analysis import DataAnalyzer
 from madminer.utils.interfaces.madminer_hdf5 import madminer_event_loader
 from madminer.utils.interfaces.madminer_hdf5 import save_preformatted_events_to_madminer_file
-from madminer.utils.various import create_missing_folders, shuffle, balance_thetas, mdot
+from madminer.utils.various import create_missing_folders, shuffle
 
 logger = logging.getLogger(__name__)
 
@@ -380,12 +378,12 @@ class SampleAugmenter(DataAnalyzer):
             Total number of events to be drawn.
 
         nu0 : None or tuple, optional
-            Tuple (type, value) that defines the numerator nuisance parameter point or prior over parameter points for the
-            sampling. Default value: None
+            Tuple (type, value) that defines the numerator nuisance parameter point or prior over parameter points for
+            the sampling. Default value: None
 
         nu1 : None or tuple, optional
-            Tuple (type, value) that defines the denominator nuisance parameter point or prior over parameter points for the
-            sampling. Default value: None
+            Tuple (type, value) that defines the denominator nuisance parameter point or prior over parameter points for
+            the sampling. Default value: None
 
         folder : str or None
             Path to the folder where the resulting samples should be saved (ndarrays in .npy format). Default value:
@@ -591,12 +589,12 @@ class SampleAugmenter(DataAnalyzer):
             Total number of events to be drawn.
 
         nu0 : None or tuple, optional
-            Tuple (type, value) that defines the numerator nuisance parameter point or prior over parameter points for the
-            sampling. Default value: None
+            Tuple (type, value) that defines the numerator nuisance parameter point or prior over parameter points for
+            the sampling. Default value: None
 
         nu1 : None or tuple, optional
-            Tuple (type, value) that defines the denominator nuisance parameter point or prior over parameter points for the
-            sampling. Default value: None
+            Tuple (type, value) that defines the denominator nuisance parameter point or prior over parameter points for
+            the sampling. Default value: None
 
         folder : str or None
             Path to the folder where the resulting samples should be saved (ndarrays in .npy format). Default value:
@@ -935,7 +933,8 @@ class SampleAugmenter(DataAnalyzer):
         Returns
         -------
         thetas : ndarray
-            Parameter points with shape `(n_thetas, n_parameters)` or `(n_thetas, n_parameters + n_nuisance_parameters)`.
+            Parameter points with shape `(n_thetas, n_parameters)` or
+            `(n_thetas, n_parameters + n_nuisance_parameters)`.
 
         xsecs : ndarray
             Total cross sections in pb with shape `(n_thetas, )`.
@@ -990,13 +989,6 @@ class SampleAugmenter(DataAnalyzer):
             Marking the index of the theta set defined through thetas_types and
             thetas_values that should be used for sampling. Default value: 0.
 
-        nu_sets_types :  None or list of list of str
-            Each entry can be 'benchmark' or 'morphing'. Default value: None.
-
-        nu_sets_values : None or list of list of ndarray
-            If None, nuisance parameters are set to their nominal value (0). Else, each entry is an ndarray with the
-            values of the nuisance parameters. Default values: None.
-
         augmented_data_definitions : list of tuple or None
             Each tuple can either be ('ratio', num_theta, den_theta) or
             ('score', theta), where num_theta, den_theta, and theta are indexes marking
@@ -1033,7 +1025,6 @@ class SampleAugmenter(DataAnalyzer):
         if augmented_data_definitions is None:
             augmented_data_definitions = []
 
-        sets = self._balance_sets(sets)
         n_sets, n_params = self._check_sets(sets)
 
         # What needs to be calculated?
@@ -1050,15 +1041,16 @@ class SampleAugmenter(DataAnalyzer):
         n_neg_weights_warnings = 0
 
         # Loop over sets
-        for set in enumerate(sets):
+        for set_ in enumerate(sets):
             x, thetas, nus, augmented_data, eff_n_samples, n_stats_warnings, n_neg_weights_warnings = self._sample_set(
-                set,
+                set_,
                 n_samples_per_set,
                 augmented_data_definitions,
                 sampling_index=sampling_index,
                 needs_gradients=needs_gradients,
                 use_train_events=use_train_events,
                 test_split=test_split,
+                nuisance_score=nuisance_score,
                 n_stats_warnings=n_stats_warnings,
                 n_neg_weights_warnings=n_neg_weights_warnings,
             )
@@ -1087,23 +1079,34 @@ class SampleAugmenter(DataAnalyzer):
 
         return all_x, all_augmented_data, all_thetas, all_effective_n_samples
 
-    def _check_sets(self, sets):
+    @staticmethod
+    def _check_sets(sets):
+        n_sets = len(sets)
         n_params = None
-        for set in sets:
+        for set_ in sets:
             if n_params is None:
-                n_params = len(set)
-            assert len(set) == n_params
-
-            for param_point in set:
+                n_params = len(set_)
+            assert len(set_) == n_params
+            for param_point in set_:
                 assert len(param_point) == 2
+
+        return n_sets, n_params
+
+    @staticmethod
+    def _check_gradient_need(augmented_data_definitions):
+        for definition in augmented_data_definitions:
+            if definition[0] == "score":
+                return True
+        return False
 
     def _sample_set(
         self,
-        set,
+        set_,
         n_samples,
         augmented_data_definitions,
         sampling_index=0,
         needs_gradients=True,
+        nuisance_score=True,
         use_train_events=True,
         test_split=0.2,
         n_stats_warnings=0,
@@ -1116,7 +1119,7 @@ class SampleAugmenter(DataAnalyzer):
 
         logger.debug("Drawing %s events for the following parameter points:", n_samples)
 
-        for i_param, (theta, nu) in enumerate(set):
+        for i_param, (theta, nu) in enumerate(set_):
             thetas.append(theta)
             nus.append(nu)
             theta_value = self._get_theta_value(theta)
@@ -1140,7 +1143,11 @@ class SampleAugmenter(DataAnalyzer):
         )
         if needs_gradients:
             xsec_gradients = self.xsec_gradients(
-                thetas, nus, gradients="all", events="train" if use_train_events else "test", test_split=test_split
+                thetas,
+                nus,
+                gradients="all" if nuisance_score else "theta",
+                events="train" if use_train_events else "test",
+                test_split=test_split,
             )
         else:
             xsec_gradients = None
@@ -1188,7 +1195,7 @@ class SampleAugmenter(DataAnalyzer):
                         thetas,
                         nus,
                         weights_benchmarks_batch,
-                        gradients="all",
+                        gradients="all" if nuisance_score else "theta",
                         theta_matrices=theta_matrices,
                         theta_gradient_matrices=theta_gradient_matrices,
                     )
@@ -1231,6 +1238,7 @@ class SampleAugmenter(DataAnalyzer):
                 relevant_augmented_data = self._calculate_augmented_data(
                     augmented_data_definitions=augmented_data_definitions,
                     weights=weights,
+                    weight_gradients=weight_gradients,
                     xsecs=xsecs,
                     xsec_gradients=xsec_gradients,
                 )
@@ -1256,8 +1264,8 @@ class SampleAugmenter(DataAnalyzer):
 
         return x, theta_values, nu_values, augmented_data, n_eff_samples, n_stats_warnings, n_neg_weights_warnings
 
+    @staticmethod
     def _calculate_augmented_data(
-        self,
         augmented_data_definitions,
         weights,
         weight_gradients,  # grad_theta dsigma(theta, nu) with shape (n_params, n_gradients, n_events)
@@ -1381,6 +1389,8 @@ class SampleAugmenter(DataAnalyzer):
 
         else:
             raise ValueError("Unknown nu specification {}".format(nu))
+
+        return nu_out
 
     @staticmethod
     def _build_sets(thetas, nus):
