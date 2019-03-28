@@ -491,14 +491,16 @@ class SampleAugmenter(DataAnalyzer):
         # Thetas for theta1 sampling (could be different if num or denom are random)
         parsed_theta0s, n_samples_per_theta0 = _parse_theta(theta0, n_samples // 2)
         parsed_theta1s, n_samples_per_theta1 = _parse_theta(theta1, n_samples // 2)
+        parsed_nu0s = _parse_nu(nu0, len(parsed_theta0s))
+        parsed_nu1s = _parse_nu(nu1, len(parsed_theta1s))
+        sets = _build_sets([parsed_theta0s, parsed_theta1s], [parsed_nu0s, parsed_nu1s])
 
         n_samples_per_theta = min(n_samples_per_theta0, n_samples_per_theta1)
 
         # Start for theta1
         if self.morpher is None:
-            x1, (r_xz1,), (theta0_1, theta1_1) = self._extract_sample(
-                theta_sets_types=[theta0_types, theta1_types],
-                theta_sets_values=[theta0_values, theta1_values],
+            x1, (r_xz1,), (theta0_1, theta1_1) = self._sample(
+                sets=sets,
                 sampling_theta_index=1,
                 n_samples_per_set=n_samples_per_theta,
                 augmented_data_definitions=augmented_data_definitions,
@@ -507,9 +509,8 @@ class SampleAugmenter(DataAnalyzer):
             )
             t_xz1 = None
         else:
-            x1, (r_xz1, t_xz1), (theta0_1, theta1_1) = self._extract_sample(
-                theta_sets_types=[theta0_types, theta1_types],
-                theta_sets_values=[theta0_values, theta1_values],
+            x1, (r_xz1, t_xz1), (theta0_1, theta1_1) = self._sample(
+                sets=sets,
                 sampling_theta_index=1,
                 n_samples_per_set=n_samples_per_theta,
                 augmented_data_definitions=augmented_data_definitions,
