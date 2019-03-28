@@ -397,7 +397,7 @@ class DataAnalyzer(object):
             if gradients == "all":
                 dweight_dall = np.concatenate((dweight_dtheta, dweight_dnu), 1)
             elif gradients == "theta":
-                dweight_all = dweight_dtheta
+                dweight_dall = dweight_dtheta
             elif gradients == "nu":
                 dweight_dall = dweight_dnu
             xsec_gradients += np.sum(dweight_dall, axis=2)
@@ -452,6 +452,79 @@ class DataAnalyzer(object):
         weights = nuisance_factors * weights_nom
 
         return weights
+
+    def _weight_gradients(
+        self, thetas, nus, benchmark_weights, gradients="all", theta_matrices=None, theta_gradient_matrices=None
+    ):
+        """
+        Turns benchmark weights into weights for given parameter points (theta, nu).
+
+        Parameters
+        ----------
+        thetas : list of (ndarray or str)
+            If None, the function returns all benchmark cross sections. Otherwise, it returns the cross sections for a
+            series of parameter points that are either given by their benchmark name (as a str), their benchmark index
+            (as an int), or their parameter value (as an ndarray, using morphing).
+
+        nus : None or list of (None or ndarray)
+             If None, the nuisance parameters are set to their nominal values (0), i.e. no systematics are taken into
+             account. Otherwise, the list has to have the same number of elements as thetas, and each entry can specify
+             nuisance parameters at nominal value (None) or a value of the nuisance parameters (ndarray).
+
+        gradients : {"all", "theta", "nu"}, optional
+            Which gradients to calculate. Default value: "all".
+
+        Returns
+        -------
+        gradients : ndarray
+            Calculated gradients in pb.
+        """
+
+        n_events, _ = benchmark_weights.shape
+
+        # Inputs
+        include_nuisance_benchmarks = nus is not None
+        if nus is None:
+            nus = [None for _ in thetas]
+        assert len(nus) == len(thetas), "Numbers of thetas and nus don't match!"
+
+        # Theta matrices (translation of benchmarks to theta, at nominal nuisance params)
+        if theta_matrices is None:
+            theta_matrices = [_get_theta_benchmark_matrix(theta, self.benchmarks, self.morpher) for theta in thetas]
+        if theta_gradient_matrices is None:
+            theta_gradient_matrices = [
+                _get_dtheta_benchmark_matrix(theta, self.benchmarks, self.morpher) for theta in thetas
+            ]
+        theta_matrices = np.asarray(theta_matrices)  # Shape (n_thetas, n_benchmarks)
+        theta_gradient_matrices = np.asarray(theta_gradient_matrices)  # Shape (n_thetas, n_gradients, n_benchmarks)
+
+        # Calculate theta gradient
+        if gradients in ["all", "theta"]:
+            nom_gradients = mdot(
+                theta_gradient_matrices, benchmark_weights
+            )  # Shape (n_thetas, n_phys_gradients, n_batch)
+            nuisance_factors = np.asarray(
+                [self.nuisance_morpher.calculate_nuisance_factors(nu, benchmark_weights) for nu in nus]
+            )  # Shape (n_thetas, n_batch)
+            dweight_dtheta = nuisance_factors[:, np.newaxis, :] * nom_gradients
+        else:
+            dweight_dtheta = None
+
+        # Calculate nu gradient
+        if gradients in ["all", "nu"]:
+            weights_nom = mdot(theta_matrices, benchmark_weights)  # Shape (n_thetas, n_batch)
+            nuisance_factor_gradients = np.asarray(
+                [self.nuisance_morpher.calculate_nuisance_factor_gradients(nu, benchmark_weights) for nu in nus]
+            )  # Shape (n_thetas, n_nuisance_gradients, n_batch)
+            dweight_dnu = nuisance_factor_gradients * weights_nom[:, np.newaxis, :]
+        else:
+            dweight_dnu = None
+
+        if gradients == "theta":
+            return dweight_dtheta
+        elif gradients == "nu":
+            return dweight_dnu
+        return np.concatenate((dweight_dtheta, dweight_dnu), 1)
 
     def _train_test_split(self, train, test_split):
         """

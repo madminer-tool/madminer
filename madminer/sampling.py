@@ -1028,12 +1028,12 @@ class SampleAugmenter(DataAnalyzer):
         all_nus = [[] for _ in range(n_params)]
         all_effective_n_samples = []
 
-        n_statistics_warnings = 0
-        n_negative_weights_warnings = 0
+        n_stats_warnings = 0
+        n_neg_weights_warnings = 0
 
         # Loop over sets
         for set in enumerate(sets):
-            x, thetas, nus, augmented_data, eff_n_samples = self._sample_set(
+            x, thetas, nus, augmented_data, eff_n_samples, n_stats_warnings, n_neg_weights_warnings = self._sample_set(
                 set,
                 n_samples_per_set,
                 augmented_data_definitions,
@@ -1041,6 +1041,8 @@ class SampleAugmenter(DataAnalyzer):
                 needs_gradients=needs_gradients,
                 use_train_events=use_train_events,
                 test_split=test_split,
+                n_stats_warnings=n_stats_warnings,
+                n_neg_weights_warnings=n_neg_weights_warnings,
             )
 
             all_x.append(x)
@@ -1118,9 +1120,12 @@ class SampleAugmenter(DataAnalyzer):
         xsecs, xsec_uncertainties = self.xsecs(
             thetas, nus, events="train" if use_train_events else "test", test_split=test_split
         )
-        xsec_gradients = self.xsec_gradients(
-            thetas, nus, events="train" if use_train_events else "test", test_split=test_split
-        )
+        if needs_gradients:
+            xsec_gradients = self.xsec_gradients(
+                thetas, nus, gradients="all", events="train" if use_train_events else "test", test_split=test_split
+            )
+        else:
+            xsec_gradients = None
 
         # Report large uncertainties
         if xsec_uncertainties[sampling_index] > 0.1 * xsecs[sampling_index]:
@@ -1160,6 +1165,17 @@ class SampleAugmenter(DataAnalyzer):
                 self.madminer_filename, start=start_event, end=end_event
             ):
                 # Weights
+                if needs_gradients:
+                    weight_gradients = self._weight_gradients(
+                        thetas,
+                        nus,
+                        weights_benchmarks_batch,
+                        gradients="all",
+                        theta_matrices=theta_matrices,
+                        theta_gradient_matrices=theta_gradient_matrices,
+                    )
+                else:
+                    weight_gradients = None
                 weights = self._weights(thetas, nus, weights_benchmarks_batch, theta_matrices)
 
                 # Evaluate p(x | sampling theta)
@@ -1194,17 +1210,18 @@ class SampleAugmenter(DataAnalyzer):
                 done[found_now] = True
 
                 # Extract augmented data
-                relevant_augmented_data = _calculate_augmented_data(
-                    augmented_data_definitions,
-                    weights,
-                    xsecs,
+                relevant_augmented_data = self._calculate_augmented_data(
+                    augmented_data_definitions=augmented_data_definitions,
+                    weights=weights,
+                    xsecs=xsecs,
+                    xsec_gradients=xsec_gradients,
                     theta_matrices=theta_matrices,
                     theta_gradient_matrices=theta_gradient_matrices,
                 )
-
                 for i, this_relevant_augmented_data in enumerate(relevant_augmented_data):
                     augmented_data[i][found_now] = this_relevant_augmented_data
 
+                # Finished?
                 if np.all(done):
                     break
 
@@ -1214,23 +1231,22 @@ class SampleAugmenter(DataAnalyzer):
             # Check that we got 'em all, otherwise repeat
             if not np.all(done):
                 logger.debug(
-                    "  After full pass through event files, {} / {} samples not found, u = {}".format(
+                    "  After full pass through event files, {} / {} samples not found, with u = {}".format(
                         np.sum(np.invert(done)), done.size, u[np.invert(done)]
                     )
                 )
 
         n_eff_samples = 1.0 / max(1.0e-12, largest_weight)
 
-        return x, theta_values, nu_values, augmented_data, n_eff_samples
+        return x, theta_values, nu_values, augmented_data, n_eff_samples, n_stats_warnings, n_neg_weights_warnings
 
     def _calculate_augmented_data(
         self,
         augmented_data_definitions,
         weights,
+        weight_gradients,  # grad_theta dsigma(theta, nu) with shape (n_params, n_gradients, n_events)
         xsecs,
         xsec_gradients,  # grad_theta sigma(theta, nu) with shape (n_params, n_gradients)
-        theta_matrices,
-        theta_gradient_matrices,
     ):
         """Extracts augmented data from benchmark weights"""
 
@@ -1239,38 +1255,15 @@ class SampleAugmenter(DataAnalyzer):
         for definition in augmented_data_definitions:
 
             if definition[0] == "ratio":
-                i_num = definition[1]
-                i_den = definition[2]
+                _, i_num, i_den = definition
                 ratio = (weights[i_num] / xsecs[i_num]) / (weights[i_den] / xsecs[i_den])
                 ratio = ratio.reshape((-1, 1))
                 augmented_data.append(ratio)
-
             elif definition[0] == "score":
-                i = definition[1]
-
-                gradient_dsigma = mdot(theta_gradient_matrices[i], benchmark_weights)  # (n_gradients, n_samples)
-                gradient_sigma = mdot(theta_gradient_matrices[i], xsecs_benchmarks)  # (n_gradients,)
-
-                dsigma = mdot(theta_matrices[i], benchmark_weights)  # (n_samples,)
-                sigma = mdot(theta_matrices[i], xsecs_benchmarks)  # scalar
-
-                score = gradient_dsigma / dsigma  # (n_gradients, n_samples)
-                score = score.T  # (n_samples, n_gradients)
-                score = score - np.broadcast_to(gradient_sigma / sigma, score.shape)  # (n_samples, n_gradients)
-
+                _, i = definition
+                score = weight_gradients[i, :, :] / weights[i, np.newaxis, :]  # (n_gradients, n_samples)
+                score = score - xsec_gradients[i, :, np.newaxis] / xsecs[i, np.newaxis, np.newaxis]
                 augmented_data.append(score)
-
-            elif definition[0] == "nuisance_score":
-                a_weights = nuisance_morpher.calculate_a(benchmark_weights)
-                a_xsec = nuisance_morpher.calculate_a(xsecs_benchmarks[np.newaxis, :])
-
-                nuisance_score = a_weights - a_xsec  # Shape (n_nuisance_parameters, n_samples)
-                nuisance_score = nuisance_score.T  # Shape (n_samples, n_nuisance_parameters)
-
-                logger.debug("Nuisance score: shape %s, content %s", nuisance_score.shape, nuisance_score)
-
-                augmented_data.append(nuisance_score)
-
             else:
                 raise ValueError("Unknown augmented data type {}".format(definition[0]))
 
