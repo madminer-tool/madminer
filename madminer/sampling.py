@@ -157,7 +157,7 @@ class SampleAugmenter(DataAnalyzer):
         nu=None,
         folder=None,
         filename=None,
-        nuisance_score=False,
+        nuisance_score=True,
         test_split=0.2,
         switch_train_test_events=False,
         log_message=True,
@@ -191,7 +191,7 @@ class SampleAugmenter(DataAnalyzer):
         nuisance_score : bool, optional
             If True and if the sample contains nuisance parameters, the score with respect to the nuisance parameters
             (at the default position) will also be calculated. Otherwise, only the score with respect to the
-            physics parameters is calculated. Default: False.
+            physics parameters is calculated. Default: True.
 
         test_split : float or None, optional
             Fraction of events reserved for the evaluation sample (that will not be used for any training samples).
@@ -232,7 +232,6 @@ class SampleAugmenter(DataAnalyzer):
         # Check setup
         if self.morpher is None:
             raise RuntimeError("No morphing setup loaded. Cannot calculate score.")
-
         if self.nuisance_morpher is None and nuisance_score:
             raise RuntimeError("No nuisance parameters defined. Cannot calculate nuisance score.")
 
@@ -243,8 +242,6 @@ class SampleAugmenter(DataAnalyzer):
 
         # Augmented data (gold)
         augmented_data_definitions = [("score", 0)]
-        if nuisance_score:
-            augmented_data_definitions += [("nuisance_score",)]
 
         # Start
         x, augmented_data, (theta,) = self._sample(
@@ -255,20 +252,7 @@ class SampleAugmenter(DataAnalyzer):
             use_train_events=not switch_train_test_events,
             test_split=test_split,
         )
-
-        t_xz_physics = augmented_data[0]
-        if nuisance_score:
-            t_xz_nuisance = augmented_data[1]
-            t_xz = np.hstack([t_xz_physics, t_xz_nuisance])
-
-            logger.debug(
-                "Found physical score with shape %s, nuisance score with shape %s, combined shape %s",
-                t_xz_physics.shape,
-                t_xz_nuisance.shape,
-                t_xz.shape,
-            )
-        else:
-            t_xz = t_xz_physics
+        t_xz = augmented_data[0]
 
         # Save data
         if filename is not None and folder is not None:
@@ -279,7 +263,15 @@ class SampleAugmenter(DataAnalyzer):
         return x, theta, t_xz
 
     def sample_train_density(
-        self, theta, n_samples, nu=None, folder=None, filename=None, test_split=0.2, switch_train_test_events=False
+        self,
+        theta,
+        n_samples,
+        nu=None,
+        folder=None,
+        filename=None,
+        nuisance_score=True,
+        test_split=0.2,
+        switch_train_test_events=False,
     ):
         """
         Extracts training samples x ~ p(x|theta) as well as the joint score t(x, z|theta), where theta is sampled
@@ -307,6 +299,12 @@ class SampleAugmenter(DataAnalyzer):
             Filenames for the resulting samples. A prefix such as 'x' or 'theta0' as well as the extension
             '.npy' will be added automatically. Default value:
             None.
+            None.
+
+        nuisance_score : bool, optional
+            If True and if the sample contains nuisance parameters, the score with respect to the nuisance parameters
+            (at the default position) will also be calculated. Otherwise, only the score with respect to the
+            physics parameters is calculated. Default: True.
 
         test_split : float or None, optional
             Fraction of events reserved for the evaluation sample (that will not be used for any training samples).
@@ -344,6 +342,7 @@ class SampleAugmenter(DataAnalyzer):
             nu=nu,
             folder=folder,
             filename=filename,
+            nuisance_score=nuisance_score,
             test_split=test_split,
             switch_train_test_events=switch_train_test_events,
             log_message=False,
@@ -358,6 +357,7 @@ class SampleAugmenter(DataAnalyzer):
         nu1=None,
         folder=None,
         filename=None,
+        nuisance_score=True,
         test_split=0.2,
         switch_train_test_events=False,
     ):
@@ -397,6 +397,11 @@ class SampleAugmenter(DataAnalyzer):
             Filenames for the resulting samples. A prefix such as 'x' or 'theta0' as well as the extension
             '.npy' will be added automatically. Default value:
             None.
+
+        nuisance_score : bool, optional
+            If True and if the sample contains nuisance parameters, the score with respect to the nuisance parameters
+            (at the default position) will also be calculated. Otherwise, only the score with respect to the
+            physics parameters is calculated. Default: True.
 
         test_split : float or None, optional
             Fraction of events reserved for the evaluation sample (that will not be used for any training samples).
@@ -444,6 +449,8 @@ class SampleAugmenter(DataAnalyzer):
 
         if self.morpher is None:
             logging.warning("No morphing setup loaded. Cannot calculate joint score.")
+        if self.nuisance_morpher is None and nuisance_score:
+            raise RuntimeError("No nuisance parameters defined. Cannot calculate nuisance score.")
 
         create_missing_folders([folder])
 
@@ -468,6 +475,7 @@ class SampleAugmenter(DataAnalyzer):
                 sampling_index=0,
                 n_samples_per_set=n_samples_per_theta,
                 augmented_data_definitions=augmented_data_definitions,
+                nuisance_score=nuisance_score,
                 use_train_events=not switch_train_test_events,
                 test_split=test_split,
             )
@@ -478,6 +486,7 @@ class SampleAugmenter(DataAnalyzer):
                 sampling_index=0,
                 n_samples_per_set=n_samples_per_theta,
                 augmented_data_definitions=augmented_data_definitions,
+                nuisance_score=nuisance_score,
                 use_train_events=not switch_train_test_events,
                 test_split=test_split,
             )
@@ -498,6 +507,7 @@ class SampleAugmenter(DataAnalyzer):
                 sampling_index=1,
                 n_samples_per_set=n_samples_per_theta,
                 augmented_data_definitions=augmented_data_definitions,
+                nuisance_score=nuisance_score,
                 use_train_events=not switch_train_test_events,
                 test_split=test_split,
             )
@@ -508,6 +518,7 @@ class SampleAugmenter(DataAnalyzer):
                 sampling_index=1,
                 n_samples_per_set=n_samples_per_theta,
                 augmented_data_definitions=augmented_data_definitions,
+                nuisance_score=nuisance_score,
                 use_train_events=not switch_train_test_events,
                 test_split=test_split,
             )
@@ -552,6 +563,7 @@ class SampleAugmenter(DataAnalyzer):
         folder=None,
         filename=None,
         additional_thetas=None,
+        nuisance_score=True,
         test_split=0.2,
         switch_train_test_events=False,
     ):
@@ -605,6 +617,11 @@ class SampleAugmenter(DataAnalyzer):
             `constant_benchmark_theta()`, `multiple_benchmark_thetas()`, `constant_morphing_theta()`,
             `multiple_morphing_thetas()`, or `random_morphing_thetas()`. Default value: None.
 
+        nuisance_score : bool, optional
+            If True and if the sample contains nuisance parameters, the score with respect to the nuisance parameters
+            (at the default position) will also be calculated. Otherwise, only the score with respect to the
+            physics parameters is calculated. Default: True.
+
         test_split : float or None, optional
             Fraction of events reserved for the evaluation sample (that will not be used for any training samples).
             Default value: 0.2.
@@ -650,6 +667,8 @@ class SampleAugmenter(DataAnalyzer):
 
         if self.morpher is None:
             raise RuntimeError("No morphing setup loaded. Cannot calculate score.")
+        if self.nuisance_morpher is None and nuisance_score:
+            raise RuntimeError("No nuisance parameters defined. Cannot calculate nuisance score.")
 
         create_missing_folders([folder])
 
@@ -698,6 +717,7 @@ class SampleAugmenter(DataAnalyzer):
             n_samples_per_set=n_samples_per_theta,
             augmented_data_definitions=augmented_data_definitions_0,
             sampling_index=0,
+            nuisance_score=nuisance_score,
             use_train_events=not switch_train_test_events,
             test_split=test_split,
         )
@@ -758,6 +778,7 @@ class SampleAugmenter(DataAnalyzer):
             n_samples_per_set=n_samples_per_theta,
             augmented_data_definitions=augmented_data_definitions_1,
             sampling_index=1,
+            nuisance_score=nuisance_score,
             use_train_events=not switch_train_test_events,
             test_split=test_split,
         )
@@ -947,7 +968,7 @@ class SampleAugmenter(DataAnalyzer):
         n_samples_per_set,
         sampling_index=0,
         augmented_data_definitions=None,
-        nuisance_score=False,
+        nuisance_score=True,
         use_train_events=True,
         test_split=0.2,
     ):
@@ -985,9 +1006,8 @@ class SampleAugmenter(DataAnalyzer):
             used. Default value: None.
 
         nuisance_score : bool, optional
-            If True and if the sample contains nuisance parameters, any joint score in the augmented data definitions
-            is also calculated with respect to the nuisance parameters (evaluated at their default position). Default
-            value: False.
+            If True, any joint score in the augmented data definitions is also calculated with respect to the nuisance
+            parameters. Default value: True.
 
         use_train_events : bool, optional
             Decides whether to use the train or test split of the events. Default value: True.
