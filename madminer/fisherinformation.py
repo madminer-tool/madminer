@@ -6,9 +6,9 @@ import six
 import os
 
 from madminer.utils.interfaces.madminer_hdf5 import load_madminer_settings, madminer_event_loader
-from madminer.utils.analysis import _get_theta_benchmark_matrix, _get_dtheta_benchmark_matrix, mdot
+from madminer.utils.analysis import _get_theta_benchmark_matrix, _get_dtheta_benchmark_matrix
 from madminer.utils.morphing import PhysicsMorpher, NuisanceMorpher
-from madminer.utils.various import format_benchmark, math_commands, weighted_quantile, sanitize_array
+from madminer.utils.various import format_benchmark, math_commands, weighted_quantile, sanitize_array, mdot
 from madminer.utils.various import separate_information_blocks
 from madminer.ml import ScoreEstimator, Ensemble
 

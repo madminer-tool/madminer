@@ -2,14 +2,11 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import logging
 import numpy as np
-import collections
 import six
 
 from madminer.utils.interfaces.madminer_hdf5 import load_madminer_settings, madminer_event_loader
-from madminer.utils.analysis import _get_theta_benchmark_matrix, _get_dtheta_benchmark_matrix
-from madminer.utils.analysis import mdot
 from madminer.utils.morphing import PhysicsMorpher, NuisanceMorpher
-from madminer.utils.various import format_benchmark
+from madminer.utils.various import format_benchmark, mdot
 
 logger = logging.getLogger(__name__)
 
@@ -163,7 +160,7 @@ class DataAnalyzer(object):
             return x, weights_benchmarks[:, i_benchmark]
 
         elif derivative:
-            dtheta_matrix = _get_dtheta_benchmark_matrix("morphing", theta, self.benchmarks, self.morpher)
+            dtheta_matrix = self._get_dtheta_benchmark_matrix("morphing", theta)
 
             gradients_theta = mdot(dtheta_matrix, weights_benchmarks)  # (n_gradients, n_samples)
             gradients_theta = gradients_theta.T
@@ -175,7 +172,7 @@ class DataAnalyzer(object):
             if nu is not None:
                 raise NotImplementedError
 
-            theta_matrix = _get_theta_benchmark_matrix("morphing", theta, self.benchmarks, self.morpher)
+            theta_matrix = self._get_theta_benchmark_matrix("morphing", theta)
 
             weights_theta = mdot(theta_matrix, weights_benchmarks)
 
@@ -243,7 +240,7 @@ class DataAnalyzer(object):
             raise ValueError("Events has to be either 'all', 'train', or 'test', but got {}!".format(events))
 
         # Theta matrices (translation of benchmarks to theta, at nominal nuisance params)
-        theta_matrices = [_get_theta_benchmark_matrix(theta, self.benchmarks, self.morpher) for theta in thetas]
+        theta_matrices = [self._get_theta_benchmark_matrix(theta) for theta in thetas]
         theta_matrices = np.asarray(theta_matrices)  # Shape (n_thetas, n_benchmarks)
 
         # Loop over events
@@ -356,10 +353,10 @@ class DataAnalyzer(object):
 
         # Theta matrices (translation of benchmarks to theta, at nominal nuisance params)
         theta_matrices = np.asarray(
-            [_get_theta_benchmark_matrix(theta, self.benchmarks, self.morpher) for theta in thetas]
+            [self._get_theta_benchmark_matrix(theta) for theta in thetas]
         )  # shape (n_thetas, n_benchmarks)
         theta_gradient_matrices = np.asarray(
-            [_get_dtheta_benchmark_matrix(theta, self.benchmarks, self.morpher) for theta in thetas]
+            [self._get_dtheta_benchmark_matrix(theta) for theta in thetas]
         )  # shape (n_thetas, n_gradients, n_benchmarks)
 
         # Loop over events
@@ -439,7 +436,7 @@ class DataAnalyzer(object):
 
         # Theta matrices (translation of benchmarks to theta, at nominal nuisance params)
         if theta_matrices is None:
-            theta_matrices = [_get_theta_benchmark_matrix(theta, self.benchmarks, self.morpher) for theta in thetas]
+            theta_matrices = [self._get_theta_benchmark_matrix(theta) for theta in thetas]
         theta_matrices = np.asarray(theta_matrices)  # Shape (n_thetas, n_benchmarks)
 
         # Weights at nominal nuisance params (nu=0)
@@ -490,11 +487,9 @@ class DataAnalyzer(object):
 
         # Theta matrices (translation of benchmarks to theta, at nominal nuisance params)
         if theta_matrices is None:
-            theta_matrices = [_get_theta_benchmark_matrix(theta, self.benchmarks, self.morpher) for theta in thetas]
+            theta_matrices = [self._get_theta_benchmark_matrix(theta) for theta in thetas]
         if theta_gradient_matrices is None:
-            theta_gradient_matrices = [
-                _get_dtheta_benchmark_matrix(theta, self.benchmarks, self.morpher) for theta in thetas
-            ]
+            theta_gradient_matrices = [self._get_dtheta_benchmark_matrix(theta) for theta in thetas]
         theta_matrices = np.asarray(theta_matrices)  # Shape (n_thetas, n_benchmarks)
         theta_gradient_matrices = np.asarray(theta_gradient_matrices)  # Shape (n_thetas, n_gradients, n_benchmarks)
 
@@ -576,3 +571,59 @@ class DataAnalyzer(object):
             end_event = None
 
         return start_event, end_event, correction_factor
+
+    def _get_theta_value(self, theta):
+        if isinstance(theta, six.string_types):
+            benchmark = self.benchmarks[theta]
+            theta_value = np.array([benchmark[key] for key in benchmark])
+        elif isinstance(theta, int):
+            benchmark = self.benchmarks[list(self.benchmarks.keys())[theta]]
+            theta_value = np.array([benchmark[key] for key in benchmark])
+        else:
+            theta_value = np.asarray(theta)
+        return theta_value
+
+    @staticmethod
+    def _get_nu_value(nu):
+        if isinstance(nu, None):
+            nu_value = 0.0
+        else:
+            nu_value = np.asarray(nu)
+        return nu_value
+
+    def _get_theta_benchmark_matrix(self, theta):
+        """Calculates vector A such that dsigma(theta) = A * dsigma_benchmarks"""
+
+        if isinstance(theta, six.string_types):
+            i_benchmark = list(self.benchmarks).index(theta)
+            return self._get_theta_benchmark_matrix(i_benchmark)
+        elif isinstance(theta, int):
+            n_benchmarks = len(self.benchmarks)
+            theta_matrix = np.zeros(n_benchmarks)
+            theta_matrix[theta] = 1.0
+        else:
+            theta_matrix = self.morpher.calculate_morphing_weights(theta)
+        return theta_matrix
+
+    def _get_dtheta_benchmark_matrix(self, theta):
+        """Calculates matrix A_ij such that d dsigma(theta) / d theta_i = A_ij * dsigma (benchmark j)"""
+
+        if self.morpher is None:
+            raise RuntimeError("Cannot calculate score without morphing")
+
+        if isinstance(theta, six.string_types):
+            benchmark = self.benchmarks[theta]
+            benchmark = np.array([value for _, value in six.iteritems(benchmark)])
+            return self._get_dtheta_benchmark_matrix(benchmark)
+
+        elif isinstance(theta, int):
+            benchmark = self.benchmarks[list(self.benchmarks.keys())[theta]]
+            benchmark = np.array([value for _, value in six.iteritems(benchmark)])
+            return self._get_dtheta_benchmark_matrix(benchmark)
+
+        else:
+            dtheta_matrix = self.morpher.calculate_morphing_weight_gradient(
+                theta
+            )  # Shape (n_parameters, n_benchmarks_phys)
+
+        return dtheta_matrix

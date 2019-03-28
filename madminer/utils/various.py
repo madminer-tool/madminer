@@ -100,12 +100,10 @@ def shuffle(*arrays):
 
 def restrict_samplesize(n, *arrays):
     restricted_arrays = []
-
     for i, a in enumerate(arrays):
         if a is None:
             restricted_arrays.append(None)
             continue
-
         restricted_arrays.append(a[:n])
 
     return restricted_arrays
@@ -293,3 +291,25 @@ def separate_information_blocks(fisher_information, parameters_of_interest):
     information_nuisance = fisher_information[nuisance_params, :][:, nuisance_params]
 
     return nuisance_params, information_phys, information_mix, information_nuisance
+
+
+def mdot(matrix, benchmark_information):
+    """
+    Calculates a product between a matrix / matrices with shape (n1) or (a, n1) and a weight list with shape (b, n2)
+    or (n2,), where n1 and n2 do not have to be the same
+    """
+
+    n_benchmarks_matrix = matrix.shape[-1]
+    weights_benchmarks_T = benchmark_information.T
+    n_benchmarks_list = weights_benchmarks_T.shape[0]
+    n_smaller = min(n_benchmarks_matrix, n_benchmarks_list)
+
+    if n_benchmarks_matrix == n_benchmarks_list:
+        return matrix.dot(weights_benchmarks_T)
+
+    if n_benchmarks_matrix < n_benchmarks_list:
+        matrix = matrix.T
+        matrix = matrix[:n_smaller]
+        matrix = matrix.T
+
+    return matrix.dot(weights_benchmarks_T[:n_smaller])

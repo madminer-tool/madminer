@@ -8,9 +8,7 @@ import six
 from madminer.analysis import DataAnalyzer
 from madminer.utils.interfaces.madminer_hdf5 import madminer_event_loader
 from madminer.utils.interfaces.madminer_hdf5 import save_preformatted_events_to_madminer_file
-from madminer.utils.analysis import _get_theta_value, _get_theta_benchmark_matrix, _get_dtheta_benchmark_matrix
-from madminer.utils.analysis import _get_nu_value, _calculate_augmented_data, _parse_theta, mdot, _parse_nu, _build_sets
-from madminer.utils.various import create_missing_folders, shuffle, balance_thetas
+from madminer.utils.various import create_missing_folders, shuffle, balance_thetas, mdot
 
 logger = logging.getLogger(__name__)
 
@@ -131,9 +129,9 @@ class SampleAugmenter(DataAnalyzer):
         create_missing_folders([folder])
 
         # Parameters
-        parsed_thetas, n_samples_per_theta = _parse_theta(theta, n_samples)
-        parsed_nus = _parse_nu(nu, len(parsed_thetas))
-        sets = _build_sets([parsed_thetas], [parsed_nus])
+        parsed_thetas, n_samples_per_theta = self._parse_theta(theta, n_samples)
+        parsed_nus = self._parse_nu(nu, len(parsed_thetas))
+        sets = self._build_sets([parsed_thetas], [parsed_nus])
 
         # Start
         x, _, (theta,) = self._sample(
@@ -236,9 +234,9 @@ class SampleAugmenter(DataAnalyzer):
             raise RuntimeError("No nuisance parameters defined. Cannot calculate nuisance score.")
 
         # Parameters
-        parsed_thetas, n_samples_per_theta = _parse_theta(theta, n_samples)
-        parsed_nus = _parse_nu(nu, len(parsed_thetas))
-        sets = _build_sets([parsed_thetas], [parsed_nus])
+        parsed_thetas, n_samples_per_theta = self._parse_theta(theta, n_samples)
+        parsed_nus = self._parse_nu(nu, len(parsed_thetas))
+        sets = self._build_sets([parsed_thetas], [parsed_nus])
 
         # Augmented data (gold)
         augmented_data_definitions = [("score", 0)]
@@ -460,11 +458,11 @@ class SampleAugmenter(DataAnalyzer):
             augmented_data_definitions.append(("score", 0))
 
         # Thetas for theta0 sampling
-        parsed_theta0s, n_samples_per_theta0 = _parse_theta(theta0, n_samples // 2)
-        parsed_theta1s, n_samples_per_theta1 = _parse_theta(theta1, n_samples // 2)
-        parsed_nu0s = _parse_nu(nu0, len(parsed_theta0s))
-        parsed_nu1s = _parse_nu(nu1, len(parsed_theta1s))
-        sets = _build_sets([parsed_theta0s, parsed_theta1s], [parsed_nu0s, parsed_nu1s])
+        parsed_theta0s, n_samples_per_theta0 = self._parse_theta(theta0, n_samples // 2)
+        parsed_theta1s, n_samples_per_theta1 = self._parse_theta(theta1, n_samples // 2)
+        parsed_nu0s = self._parse_nu(nu0, len(parsed_theta0s))
+        parsed_nu1s = self._parse_nu(nu1, len(parsed_theta1s))
+        sets = self._build_sets([parsed_theta0s, parsed_theta1s], [parsed_nu0s, parsed_nu1s])
 
         n_samples_per_theta = min(n_samples_per_theta0, n_samples_per_theta1)
 
@@ -492,11 +490,11 @@ class SampleAugmenter(DataAnalyzer):
             )
 
         # Thetas for theta1 sampling (could be different if num or denom are random)
-        parsed_theta0s, n_samples_per_theta0 = _parse_theta(theta0, n_samples // 2)
-        parsed_theta1s, n_samples_per_theta1 = _parse_theta(theta1, n_samples // 2)
-        parsed_nu0s = _parse_nu(nu0, len(parsed_theta0s))
-        parsed_nu1s = _parse_nu(nu1, len(parsed_theta1s))
-        sets = _build_sets([parsed_theta0s, parsed_theta1s], [parsed_nu0s, parsed_nu1s])
+        parsed_theta0s, n_samples_per_theta0 = self._parse_theta(theta0, n_samples // 2)
+        parsed_theta1s, n_samples_per_theta1 = self._parse_theta(theta1, n_samples // 2)
+        parsed_nu0s = self._parse_nu(nu0, len(parsed_theta0s))
+        parsed_nu1s = self._parse_nu(nu1, len(parsed_theta1s))
+        sets = self._build_sets([parsed_theta0s, parsed_theta1s], [parsed_nu0s, parsed_nu1s])
 
         n_samples_per_theta = min(n_samples_per_theta0, n_samples_per_theta1)
 
@@ -690,26 +688,26 @@ class SampleAugmenter(DataAnalyzer):
         parsed_nus = []
         n_samples_per_theta = 1000000
 
-        parsed_theta0s, this_n_samples = _parse_theta(theta0, n_samples // 2)
-        parsed_nu0s = _parse_nu(nu0, len(parsed_theta0s))
+        parsed_theta0s, this_n_samples = self._parse_theta(theta0, n_samples // 2)
+        parsed_nu0s = self._parse_nu(nu0, len(parsed_theta0s))
         parsed_thetas.append(parsed_theta0s)
         parsed_nus.append(parsed_nu0s)
         n_samples_per_theta = min(this_n_samples, n_samples_per_theta)
 
-        parsed_theta1s, this_n_samples = _parse_theta(theta1, n_samples // 2)
-        parsed_nu1s = _parse_nu(nu1, len(parsed_theta1s))
+        parsed_theta1s, this_n_samples = self._parse_theta(theta1, n_samples // 2)
+        parsed_nu1s = self._parse_nu(nu1, len(parsed_theta1s))
         parsed_thetas.append(parsed_theta1s)
         parsed_nus.append(parsed_nu1s)
         n_samples_per_theta = min(this_n_samples, n_samples_per_theta)
 
         for additional_theta in additional_thetas:
-            additional_parsed_thetas, this_n_samples = _parse_theta(additional_theta, n_samples // 2)
+            additional_parsed_thetas, this_n_samples = self._parse_theta(additional_theta, n_samples // 2)
             parsed_thetas.append(additional_parsed_thetas)
-            additional_parsed_nu = _parse_nu(nu1, len(additional_parsed_thetas))
+            additional_parsed_nu = self._parse_nu(nu1, len(additional_parsed_thetas))
             parsed_nus.append(additional_parsed_nu)
             n_samples_per_theta = min(this_n_samples, n_samples_per_theta)
 
-        sets = _build_sets(parsed_thetas, parsed_nus)
+        sets = self._build_sets(parsed_thetas, parsed_nus)
 
         # Start for theta0
         x_0, augmented_data_0, thetas_0 = self._sample(
@@ -751,26 +749,26 @@ class SampleAugmenter(DataAnalyzer):
         parsed_nus = []
         n_samples_per_theta = 1000000
 
-        parsed_thetas0, this_n_samples = _parse_theta(theta0, n_samples // 2)
-        parsed_nu0s = _parse_nu(nu0, len(parsed_theta0s))
+        parsed_thetas0, this_n_samples = self._parse_theta(theta0, n_samples // 2)
+        parsed_nu0s = self._parse_nu(nu0, len(parsed_theta0s))
         parsed_thetas.append(parsed_thetas0)
         parsed_nus.append(parsed_nu0s)
         n_samples_per_theta = min(this_n_samples, n_samples_per_theta)
 
-        parsed_thetas1, this_n_samples = _parse_theta(theta1, n_samples // 2)
-        parsed_nu1s = _parse_nu(nu1, len(parsed_theta1s))
+        parsed_thetas1, this_n_samples = self._parse_theta(theta1, n_samples // 2)
+        parsed_nu1s = self._parse_nu(nu1, len(parsed_theta1s))
         parsed_thetas.append(parsed_thetas1)
         parsed_nus.append(parsed_nu1s)
         n_samples_per_theta = min(this_n_samples, n_samples_per_theta)
 
         for additional_theta in additional_thetas:
-            additional_parsed_thetas, this_n_samples = _parse_theta(additional_theta, n_samples // 2)
-            additional_parsed_nu = _parse_nu(nu0, len(additional_parsed_thetas))
+            additional_parsed_thetas, this_n_samples = self._parse_theta(additional_theta, n_samples // 2)
+            additional_parsed_nu = self._parse_nu(nu0, len(additional_parsed_thetas))
             parsed_thetas.append(additional_parsed_thetas)
             parsed_nus.append(additional_parsed_nu)
             n_samples_per_theta = min(this_n_samples, n_samples_per_theta)
 
-        sets = _build_sets(parsed_thetas, parsed_nus)
+        sets = self._build_sets(parsed_thetas, parsed_nus)
 
         # Start for theta1
         x_1, augmented_data_1, thetas_1 = self._sample(
@@ -896,9 +894,9 @@ class SampleAugmenter(DataAnalyzer):
         create_missing_folders([folder])
 
         # Thetas
-        parsed_thetas, n_samples_per_theta = _parse_theta(theta, n_samples)
-        parsed_nus = _parse_nu(nu, len(parsed_thetas))
-        sets = _build_sets([parsed_thetas], [parsed_nus])
+        parsed_thetas, n_samples_per_theta = self._parse_theta(theta, n_samples)
+        parsed_nus = self._parse_nu(nu, len(parsed_thetas))
+        sets = self._build_sets([parsed_thetas], [parsed_nus])
 
         # Extract information
         x, _, (theta,) = self._sample(
@@ -947,12 +945,12 @@ class SampleAugmenter(DataAnalyzer):
 
         """
         logger.info("Starting cross-section calculation")
-        parsed_thetas, _ = _parse_theta(theta, 1)
-        theta_values = np.asarray([_get_theta_value(parsed_theta for parsed_theta in parsed_thetas)])
+        parsed_thetas, _ = self._parse_theta(theta, 1)
+        theta_values = np.asarray([self._get_theta_value(parsed_theta for parsed_theta in parsed_thetas)])
 
         if nu is not None:
-            parsed_nus = _parse_nu(nu, len(parsed_thetas))
-            nu_values = np.asarray([_get_nu_value(parsed_nu for parsed_nu in parsed_nus)])
+            parsed_nus = self._parse_nu(nu, len(parsed_thetas))
+            nu_values = np.asarray([self._get_nu_value(parsed_nu for parsed_nu in parsed_nus)])
             param_values = np.hstack((theta_values, nu_values))
         else:
             parsed_nus = None
@@ -1121,15 +1119,15 @@ class SampleAugmenter(DataAnalyzer):
         for i_param, (theta, nu) in enumerate(set):
             thetas.append(theta)
             nus.append(nu)
-            theta_value = _get_theta_value(theta, self.benchmarks)
+            theta_value = self._get_theta_value(theta)
             theta_value = np.broadcast_to(theta_value, (n_samples, theta_value.size))
             theta_values.append(theta_value)
-            nu_value = _get_nu_value(nu, self.benchmarks)
+            nu_value = self._get_nu_value(nu)
             nu_value = np.broadcast_to(nu_value, (n_samples, nu_value.size))
             nu_values.append(nu_value)
-            theta_matrices.append(_get_theta_benchmark_matrix(theta, self.benchmarks, self.morpher))
+            theta_matrices.append(self._get_theta_benchmark_matrix(theta))
             if needs_gradients:
-                theta_gradient_matrices.append(_get_dtheta_benchmark_matrix(theta, self.benchmarks, self.morpher))
+                theta_gradient_matrices.append(self._get_dtheta_benchmark_matrix(theta))
 
             if i_param == sampling_index:
                 logger.debug("  %s: theta = %s, nu = %s (sampling)", i_param, theta_value[0, :], nu_value[0, :])
@@ -1266,12 +1264,8 @@ class SampleAugmenter(DataAnalyzer):
         xsecs,
         xsec_gradients,  # grad_theta sigma(theta, nu) with shape (n_params, n_gradients)
     ):
-        """Extracts augmented data from benchmark weights"""
-
         augmented_data = []
-
         for definition in augmented_data_definitions:
-
             if definition[0] == "ratio":
                 _, i_num, i_den = definition
                 ratio = (weights[i_num] / xsecs[i_num]) / (weights[i_den] / xsecs[i_den])
@@ -1299,6 +1293,111 @@ class SampleAugmenter(DataAnalyzer):
             logger.debug("Effective number of samples for all thetas: %s", all_effective_n_samples)
         else:
             logger.info("Effective number of samples: %s", all_effective_n_samples[0])
+
+    @staticmethod
+    def _parse_theta(theta, n_samples):
+        theta_type_in = theta[0]
+        theta_value_in = theta[1]
+
+        if theta_type_in == "benchmark":
+            thetas_out = [int(theta_value_in)]
+            n_samples_per_theta = n_samples
+
+        elif theta_type_in == "benchmarks":
+            n_benchmarks = len(theta_value_in)
+            n_samples_per_theta = int(round(n_samples / n_benchmarks, 0))
+            thetas_out = [int(val) for val in theta_value_in]
+
+        elif theta_type_in == "morphing_point":
+            thetas_out = np.asarray([theta_value_in])
+            n_samples_per_theta = n_samples
+
+        elif theta_type_in == "morphing_points":
+            n_benchmarks = len(theta_value_in)
+            n_samples_per_theta = int(round(n_samples / n_benchmarks, 0))
+            thetas_out = np.asarray(theta_value_in)
+
+        elif theta_type_in == "random_morphing_points":
+            n_benchmarks, priors = theta_value_in
+            if n_benchmarks is None or n_benchmarks <= 0:
+                n_benchmarks = n_samples
+            n_samples_per_theta = int(round(n_samples / n_benchmarks, 0))
+
+            thetas_out = []
+            for prior in priors:
+                if prior[0] == "flat":
+                    prior_min = prior[1]
+                    prior_max = prior[2]
+                    thetas_out.append(prior_min + (prior_max - prior_min) * np.random.rand(n_benchmarks))
+                elif prior[0] == "gaussian":
+                    prior_mean = prior[1]
+                    prior_std = prior[2]
+                    thetas_out.append(np.random.normal(loc=prior_mean, scale=prior_std, size=n_benchmarks))
+                else:
+                    raise ValueError("Unknown prior {}".format(prior))
+            thetas_out = np.array(thetas_out).T
+
+        else:
+            raise ValueError("Unknown theta specification {}".format(theta))
+
+        return thetas_out, n_samples_per_theta
+
+    @staticmethod
+    def _parse_nu(nu, n_thetas):
+        if nu is None:
+            nu_type_in = "nominal"
+            nu_value_in = None
+        else:
+            nu_type_in = nu[0]
+            nu_value_in = nu[1]
+
+        if nu_type_in == "nominal":
+            nu_out = [None for _ in range(n_thetas)]
+
+        elif nu_type_in == "morphing_point":
+            nu_out = np.asarray([nu_value_in for _ in range(n_thetas)])
+
+        elif nu_type_in == "morphing_points":
+            n_nus = len(nu_value_in)
+            nu_out = np.asarray([nu_value_in[i % n_nus] for i in range(n_thetas)])
+
+        elif nu_type_in == "random_morphing_points":
+            n_nus = len(nu_value_in)
+            _, priors = nu_value_in
+
+            nu_out = []
+            for prior in priors:
+                if prior[0] == "flat":
+                    prior_min = prior[1]
+                    prior_max = prior[2]
+                    nu_out.append(prior_min + (prior_max - prior_min) * np.random.rand(n_nus))
+                elif prior[0] == "gaussian":
+                    prior_mean = prior[1]
+                    prior_std = prior[2]
+                    nu_out.append(np.random.normal(loc=prior_mean, scale=prior_std, size=n_nus))
+                else:
+                    raise ValueError("Unknown prior {}".format(prior))
+            nu_out = np.array(nu_out).T
+
+        else:
+            raise ValueError("Unknown nu specification {}".format(nu))
+
+    @staticmethod
+    def _build_sets(thetas, nus):
+        if len(nus) != len(thetas):
+            raise RuntimeError("Mismatching thetas and nus: {} vs {}".format(len(thetas), len(nus)))
+
+        n_sets = max([len(param) for param in thetas + nus])
+        sets = [[] for _ in range(n_sets)]
+
+        for (theta, nu) in zip(thetas, nus):
+            n_theta_sets_before = len(theta)
+            n_nu_sets_before = len(nu)
+
+            for i_set in range(n_sets):
+                sets[i_set].append((theta[i_set % n_theta_sets_before], nu[i_set % n_nu_sets_before]))
+
+        return sets
 
 
 def combine_and_shuffle(input_filenames, output_filename, k_factors=None, overwrite_existing_file=True):

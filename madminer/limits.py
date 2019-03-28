@@ -7,9 +7,9 @@ import os
 from scipy.stats import chi2, poisson
 
 from madminer.utils.interfaces.madminer_hdf5 import load_madminer_settings, madminer_event_loader
-from madminer.utils.analysis import _get_theta_benchmark_matrix, mdot
+from madminer.utils.analysis import _get_theta_benchmark_matrix
 from madminer.utils.morphing import PhysicsMorpher, NuisanceMorpher
-from madminer.utils.various import format_benchmark
+from madminer.utils.various import format_benchmark, mdot
 from madminer.ml import ParameterizedRatioEstimator, Ensemble
 from madminer.utils.histo import Histo
 from madminer.sampling import SampleAugmenter

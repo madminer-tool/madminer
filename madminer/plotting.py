@@ -8,9 +8,9 @@ from matplotlib import gridspec
 import logging
 
 from madminer.sampling import SampleAugmenter
-from madminer.utils.analysis import mdot, _get_theta_benchmark_matrix
+from madminer.utils.analysis import _get_theta_benchmark_matrix
 from madminer.utils.morphing import NuisanceMorpher
-from madminer.utils.various import weighted_quantile, sanitize_array, shuffle
+from madminer.utils.various import weighted_quantile, sanitize_array, shuffle, mdot
 
 logger = logging.getLogger(__name__)
 
