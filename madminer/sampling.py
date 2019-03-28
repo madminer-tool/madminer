@@ -1187,10 +1187,11 @@ class SampleAugmenter(DataAnalyzer):
             if definition[0] == "ratio":
                 augmented_data.append(np.zeros((n_samples, 1)))
             elif definition[0] == "score":
-                augmented_data.append(np.zeros((n_samples, self.n_parameters)))
-            elif definition[0] == "nuisance_score":
-                augmented_data.append(np.zeros((n_samples, self.n_nuisance_parameters)))
-        largest_weight = 0.0
+                if nuisance_score:
+                    augmented_data.append(np.zeros((n_samples, self.n_parameters + self.n_nuisance_parameters)))
+                else:
+                    augmented_data.append(np.zeros((n_samples, self.n_parameters)))
+        largest_event_probability = 0.0
 
         # Main sampling loop
         start_event, end_event, correction_factor = self._train_test_split(use_train_events, test_split)
@@ -1232,10 +1233,10 @@ class SampleAugmenter(DataAnalyzer):
                         )
                         if n_neg_weights_warnings == 3:
                             logger.warning("Skipping warnings about negative weights in the future...")
-                p_sampling[p_sampling < 0.0] = 0.0
+                    p_sampling[p_sampling < 0.0] = 0.0
 
                 # Remember largest weights (to calculate effective number of samples)
-                largest_weight = max(largest_weight, np.max(p_sampling))
+                largest_event_probability = max(largest_event_probability, np.max(p_sampling))
 
                 # Calculate cumulative p (summing up all events until here)
                 cumulative_p = cumulative_p.flatten()[-1] + np.cumsum(p_sampling)  # Shape: (n_batch_size,)
@@ -1274,7 +1275,7 @@ class SampleAugmenter(DataAnalyzer):
                     )
                 )
 
-        n_eff_samples = 1.0 / max(1.0e-12, largest_weight)
+        n_eff_samples = 1.0 / max(1.0e-12, largest_event_probability)
 
         return x, theta_values, nu_values, augmented_data, n_eff_samples, n_stats_warnings, n_neg_weights_warnings
 
@@ -1297,6 +1298,7 @@ class SampleAugmenter(DataAnalyzer):
                 _, i = definition
                 score = weight_gradients[i, :, :] / weights[i, np.newaxis, :]  # (n_gradients, n_samples)
                 score = score - xsec_gradients[i, :, np.newaxis] / xsecs[i, np.newaxis, np.newaxis]
+                score = score.T  # (n_samples, n_gradients)
                 augmented_data.append(score)
             else:
                 raise ValueError("Unknown augmented data type {}".format(definition[0]))

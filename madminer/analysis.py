@@ -460,7 +460,7 @@ class DataAnalyzer(object):
         weights_nom = mdot(theta_matrices, benchmark_weights)  # Shape (n_thetas, n_batch)
 
         # Effect of nuisance parameters
-        nuisance_factors = self._calculate_nuisance_factors(nu, benchmark_weights)
+        nuisance_factors = self._calculate_nuisance_factors(nus, benchmark_weights)
         weights = nuisance_factors * weights_nom
 
         return weights
@@ -511,11 +511,12 @@ class DataAnalyzer(object):
 
         # Calculate theta gradient
         if gradients in ["all", "theta"]:
-            nom_gradients = mdot(
-                theta_gradient_matrices, benchmark_weights
-            )  # Shape (n_thetas, n_phys_gradients, n_batch)
+            nom_gradients = mdot(theta_gradient_matrices, benchmark_weights)  # (n_thetas, n_phys_gradients, n_batch)
             nuisance_factors = self._calculate_nuisance_factors(nus, benchmark_weights)
-            dweight_dtheta = nuisance_factors[:, np.newaxis, :] * nom_gradients
+            try:
+                dweight_dtheta = nuisance_factors[:, np.newaxis, :] * nom_gradients
+            except TypeError:
+                dweight_dtheta = nom_gradients
         else:
             dweight_dtheta = None
 
