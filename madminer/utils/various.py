@@ -308,7 +308,7 @@ def mdot(matrix, benchmark_information):
         matrix = matrix.T
         matrix = matrix[:n_smaller]
         matrix = matrix.T
-    elif n1 > n2:
+    elif n2 > n1:
         weights_t = weights_t[:n_smaller]
 
     return matrix.dot(weights_t)

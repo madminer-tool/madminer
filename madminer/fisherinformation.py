@@ -1026,8 +1026,8 @@ class FisherInformation(DataAnalyzer):
         """
 
         # Get morphing matrices
-        theta_matrix = self._get_theta_benchmark_matrix(theta)  # (n_benchmarks_phys,)
-        dtheta_matrix = self._get_dtheta_benchmark_matrix(theta)  # (n_parameters, n_benchmarks_phys)
+        theta_matrix = self._get_theta_benchmark_matrix(theta, zero_pad=False)  # (n_benchmarks_phys,)
+        dtheta_matrix = self._get_dtheta_benchmark_matrix(theta, zero_pad=False)  # (n_parameters, n_benchmarks_phys)
 
         # Get differential xsec per event, and the derivative wrt to theta
         sigma = mdot(theta_matrix, weights_benchmarks)  # Shape (n_events,)
