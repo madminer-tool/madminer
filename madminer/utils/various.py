@@ -299,17 +299,16 @@ def mdot(matrix, benchmark_information):
     or (n2,), where n1 and n2 do not have to be the same
     """
 
-    n_benchmarks_matrix = matrix.shape[-1]
-    weights_benchmarks_T = benchmark_information.T
-    n_benchmarks_list = weights_benchmarks_T.shape[0]
-    n_smaller = min(n_benchmarks_matrix, n_benchmarks_list)
+    n1 = matrix.shape[-1]
+    weights_t = benchmark_information.T
+    n2 = weights_t.shape[0]
+    n_smaller = min(n1, n2)
 
-    if n_benchmarks_matrix == n_benchmarks_list:
-        return matrix.dot(weights_benchmarks_T)
-
-    if n_benchmarks_matrix < n_benchmarks_list:
+    if n1 > n2:
         matrix = matrix.T
         matrix = matrix[:n_smaller]
         matrix = matrix.T
+    elif n1 > n2:
+        weights_t = weights_t[:n_smaller]
 
-    return matrix.dot(weights_benchmarks_T[:n_smaller])
+    return matrix.dot(weights_t)

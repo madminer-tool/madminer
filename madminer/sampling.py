@@ -1352,7 +1352,7 @@ class SampleAugmenter(DataAnalyzer):
             if nus is None:
                 nus = [None for _ in range(thetas)]
             for theta, nu in zip(thetas, nus):
-                if nu is None:
+                if nu is None or None in nu:
                     nu = np.zeros(self.n_nuisance_parameters)
                 combined.append(np.hstack((theta, nu)))
             all_combined.append(np.asarray(combined))

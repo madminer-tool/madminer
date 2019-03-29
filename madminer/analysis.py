@@ -81,7 +81,7 @@ class DataAnalyzer(object):
         logger.info("Found %s benchmarks, of which %s physical", self.n_benchmarks, self.n_benchmarks_phys)
         for (key, values), is_nuisance in zip(six.iteritems(self.benchmarks), self.benchmark_is_nuisance):
             if is_nuisance:
-                logger.debug("   %s: nuisance parameter", key)
+                logger.debug("   %s: systematics", key)
             else:
                 logger.debug("   %s: %s", key, format_benchmark(values))
 
@@ -179,7 +179,7 @@ class DataAnalyzer(object):
             return x, weights_theta
 
     def xsecs(
-        self, thetas=None, nus=None, events="all", test_split=0.2, include_nuisance_benchmarks=False, batch_size=100000
+        self, thetas=None, nus=None, events="all", test_split=0.2, include_nuisance_benchmarks=True, batch_size=100000
     ):
         """
         Returns the total cross sections for benchmarks or parameter points.
@@ -197,7 +197,7 @@ class DataAnalyzer(object):
              nuisance parameters at nominal value (None) or a value of the nuisance parameters (ndarray).
 
         include_nuisance_benchmarks : bool, optional
-            Whether to includee nuisance benchmarks if thetas is None. Default value: False.
+            Whether to include nuisance benchmarks if thetas is None. Default value: True.
 
         test_split : float, optional
             Fraction of events reserved for testing. Default value: 0.2.
@@ -221,7 +221,7 @@ class DataAnalyzer(object):
 
         # Inputs
         if thetas is not None:
-            include_nuisance_benchmarks = self._any_nontrivial_nus(nus)
+            include_nuisance_benchmarks = True
 
         if thetas is not None:
             if nus is None:
@@ -604,35 +604,48 @@ class DataAnalyzer(object):
             nu_value = np.asarray(nu)
         return nu_value
 
-    def _get_theta_benchmark_matrix(self, theta):
+    def _get_theta_benchmark_matrix(self, theta, zero_pad=True):
         """Calculates vector A such that dsigma(theta) = A * dsigma_benchmarks"""
 
-        if isinstance(theta, six.string_types):
+        if zero_pad:
+            unpadded_theta_matrix = self._get_theta_benchmark_matrix(theta, zero_pad=False)
+            theta_matrix = np.zeros(self.n_benchmarks)
+            theta_matrix[:unpadded_theta_matrix.shape[0]] = unpadded_theta_matrix
+
+        elif isinstance(theta, six.string_types):
             i_benchmark = list(self.benchmarks).index(theta)
-            return self._get_theta_benchmark_matrix(i_benchmark)
+            theta_matrix = self._get_theta_benchmark_matrix(i_benchmark)
+
         elif isinstance(theta, int):
             n_benchmarks = len(self.benchmarks)
             theta_matrix = np.zeros(n_benchmarks)
             theta_matrix[theta] = 1.0
+
         else:
             theta_matrix = self.morpher.calculate_morphing_weights(theta)
+
         return theta_matrix
 
-    def _get_dtheta_benchmark_matrix(self, theta):
+    def _get_dtheta_benchmark_matrix(self, theta, zero_pad=True):
         """Calculates matrix A_ij such that d dsigma(theta) / d theta_i = A_ij * dsigma (benchmark j)"""
 
         if self.morpher is None:
             raise RuntimeError("Cannot calculate score without morphing")
 
-        if isinstance(theta, six.string_types):
+        if zero_pad:
+            unpadded_theta_matrix = self._get_dtheta_benchmark_matrix(theta, zero_pad=False)
+            dtheta_matrix = np.zeros((unpadded_theta_matrix.shape[0], self.n_benchmarks))
+            dtheta_matrix[:,:unpadded_theta_matrix.shape[1]] = unpadded_theta_matrix
+
+        elif isinstance(theta, six.string_types):
             benchmark = self.benchmarks[theta]
             benchmark = np.array([value for _, value in six.iteritems(benchmark)])
-            return self._get_dtheta_benchmark_matrix(benchmark)
+            dtheta_matrix = self._get_dtheta_benchmark_matrix(benchmark)
 
         elif isinstance(theta, int):
             benchmark = self.benchmarks[list(self.benchmarks.keys())[theta]]
             benchmark = np.array([value for _, value in six.iteritems(benchmark)])
-            return self._get_dtheta_benchmark_matrix(benchmark)
+            dtheta_matrix =  self._get_dtheta_benchmark_matrix(benchmark)
 
         else:
             dtheta_matrix = self.morpher.calculate_morphing_weight_gradient(
