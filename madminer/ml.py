@@ -1434,7 +1434,7 @@ class ScoreEstimator(Estimator):
                 self.nuisance_profile_matrix,
                 self.nuisance_project_matrix,
             )
-        except FileNotFoundError:
+        except:
             logger.debug("Did not find nuisance profiling / projection setup in %s", filename)
             self.nuisance_profile_matrix = None
             self.nuisance_project_matrix = None
