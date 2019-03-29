@@ -1228,7 +1228,10 @@ class SampleAugmenter(DataAnalyzer):
             for x_batch, weights_benchmarks_batch in madminer_event_loader(
                 self.madminer_filename, start=start_event, end=end_event
             ):
+                weights_benchmarks_batch *= correction_factor
+
                 # Weights
+                weights = self._weights(thetas, nus, weights_benchmarks_batch, theta_matrices)
                 if needs_gradients:
                     weight_gradients = self._weight_gradients(
                         thetas,
@@ -1240,7 +1243,6 @@ class SampleAugmenter(DataAnalyzer):
                     )
                 else:
                     weight_gradients = None
-                weights = self._weights(thetas, nus, weights_benchmarks_batch, theta_matrices)
 
                 # Evaluate p(x | sampling theta)
                 p_sampling = weights[sampling_index] / xsecs[sampling_index]  # Shape: (n_batch_size,)
