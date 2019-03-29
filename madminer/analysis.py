@@ -302,14 +302,13 @@ class DataAnalyzer(object):
         else:
             return 1.0
 
-    def _any_nontrivial_nus(self, nus):
+    @staticmethod
+    def _any_nontrivial_nus(nus):
         if nus is None:
             return False
-
         for nu in nus:
             if nu is not None:
                 return True
-
         return False
 
     def xsec_gradients(self, thetas, nus=None, events="all", test_split=0.2, gradients="all", batch_size=100000):

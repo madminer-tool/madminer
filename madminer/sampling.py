@@ -120,6 +120,10 @@ class SampleAugmenter(DataAnalyzer):
             Parameter points used for sampling with shape `(n_samples, n_parameters)`. The same information is saved as
             a file in the given folder.
 
+        effective_n_samples : int
+            Effective number of samples, defined as 1/max(event_probabilities), where event_probabilities are the
+            fractions of the cross section carried by each event.
+
         """
 
         logger.info("Extracting plain training sample. Sampling according to %s", theta)
@@ -132,7 +136,7 @@ class SampleAugmenter(DataAnalyzer):
         sets = self._build_sets([parsed_thetas], [parsed_nus])
 
         # Start
-        x, _, (theta,) = self._sample(
+        x, _, (theta,), effective_n_samples = self._sample(
             sets=sets,
             n_samples_per_set=n_samples_per_theta,
             use_train_events=not switch_train_test_events,
@@ -142,9 +146,11 @@ class SampleAugmenter(DataAnalyzer):
         # Save data
         if filename is not None and folder is not None:
             np.save(folder + "/theta_" + filename + ".npy", theta)
+            if nu is not None and None not in nu:
+                np.save(folder + "/nu_" + filename + ".npy", nu)
             np.save(folder + "/x_" + filename + ".npy", x)
 
-        return x, theta
+        return x, theta, nu, min(effective_n_samples)
 
     def sample_train_local(
         self,
@@ -215,6 +221,10 @@ class SampleAugmenter(DataAnalyzer):
             nuisance_score is True) or `(n_samples, n_parameters)`. The same information is saved as a
             file in the given folder.
 
+        effective_n_samples : int
+            Effective number of samples, defined as 1/max(event_probabilities), where event_probabilities are the
+            fractions of the cross section carried by each event.
+
         """
 
         if log_message:
@@ -242,7 +252,7 @@ class SampleAugmenter(DataAnalyzer):
         augmented_data_definitions = [("score", 0)]
 
         # Start
-        x, augmented_data, (theta,) = self._sample(
+        x, augmented_data, (theta,), effective_n_samples = self._sample(
             sets=sets,
             n_samples_per_set=n_samples_per_theta,
             augmented_data_definitions=augmented_data_definitions,
@@ -258,7 +268,7 @@ class SampleAugmenter(DataAnalyzer):
             np.save(folder + "/x_" + filename + ".npy", x)
             np.save(folder + "/t_xz_" + filename + ".npy", t_xz)
 
-        return x, theta, t_xz
+        return x, theta, nu, t_xz, min(effective_n_samples)
 
     def sample_train_density(
         self,
@@ -295,10 +305,7 @@ class SampleAugmenter(DataAnalyzer):
 
         filename : str or None
             Filenames for the resulting samples. A prefix such as 'x' or 'theta0' as well as the extension
-            '.npy' will be added automatically. Default value:
-            None.
-            None.
-
+            '.npy' will be added automatically. Default value: None.
 
         nuisance_score : bool or "auto", optional
             If True, the score with respect to the nuisance parameters (at the default position) will also be
@@ -326,6 +333,10 @@ class SampleAugmenter(DataAnalyzer):
         t_xz : ndarray
             Joint score evaluated at theta with shape `(n_samples, n_parameters)`. The same information is saved as a
             file in the given folder.
+
+        effective_n_samples : int
+            Effective number of samples, defined as 1/max(event_probabilities), where event_probabilities are the
+            fractions of the cross section carried by each event.
 
         """
 
@@ -437,6 +448,10 @@ class SampleAugmenter(DataAnalyzer):
             information is saved as a file in the given folder. If morphing is not set up, None is returned (and no
             file is saved).
 
+        effective_n_samples : int
+            Effective number of samples, defined as 1/max(event_probabilities), where event_probabilities are the
+            fractions of the cross section carried by each event.
+
         """
 
         logger.info(
@@ -472,7 +487,7 @@ class SampleAugmenter(DataAnalyzer):
 
         # Start for theta0
         if self.morpher is None:
-            x0, (r_xz0,), (theta0_0, theta1_0) = self._sample(
+            x0, (r_xz0,), (theta0_0, theta1_0), n_effective_samples_0 = self._sample(
                 sets=sets,
                 sampling_index=0,
                 n_samples_per_set=n_samples_per_theta,
@@ -483,7 +498,7 @@ class SampleAugmenter(DataAnalyzer):
             )
             t_xz0 = None
         else:
-            x0, (r_xz0, t_xz0), (theta0_0, theta1_0) = self._sample(
+            x0, (r_xz0, t_xz0), (theta0_0, theta1_0), n_effective_samples_0 = self._sample(
                 sets=sets,
                 sampling_index=0,
                 n_samples_per_set=n_samples_per_theta,
@@ -504,7 +519,7 @@ class SampleAugmenter(DataAnalyzer):
 
         # Start for theta1
         if self.morpher is None:
-            x1, (r_xz1,), (theta0_1, theta1_1) = self._sample(
+            x1, (r_xz1,), (theta0_1, theta1_1), n_effective_samples_1 = self._sample(
                 sets=sets,
                 sampling_index=1,
                 n_samples_per_set=n_samples_per_theta,
@@ -515,7 +530,7 @@ class SampleAugmenter(DataAnalyzer):
             )
             t_xz1 = None
         else:
-            x1, (r_xz1, t_xz1), (theta0_1, theta1_1) = self._sample(
+            x1, (r_xz1, t_xz1), (theta0_1, theta1_1), n_effective_samples_1 = self._sample(
                 sets=sets,
                 sampling_index=1,
                 n_samples_per_set=n_samples_per_theta,
@@ -553,7 +568,7 @@ class SampleAugmenter(DataAnalyzer):
             if self.morpher is not None:
                 np.save(folder + "/t_xz_" + filename + ".npy", t_xz)
 
-        return x, theta0, theta1, y, r_xz, t_xz
+        return x, theta0, theta1, y, r_xz, t_xz, min(min(n_effective_samples_0), min(n_effective_samples_1))
 
     def sample_train_more_ratios(
         self,
@@ -658,6 +673,10 @@ class SampleAugmenter(DataAnalyzer):
             Joint score evaluated at theta0 with shape `(n_samples, n_parameters)`. The same information is saved as a
             file in the given folder.
 
+        effective_n_samples : int
+            Effective number of samples, defined as 1/max(event_probabilities), where event_probabilities are the
+            fractions of the cross section carried by each event.
+
         """
 
         logger.info(
@@ -716,7 +735,7 @@ class SampleAugmenter(DataAnalyzer):
         sets = self._build_sets(parsed_thetas, parsed_nus)
 
         # Start for theta0
-        x_0, augmented_data_0, thetas_0 = self._sample(
+        x_0, augmented_data_0, thetas_0, n_effective_samples_0 = self._sample(
             sets=sets,
             n_samples_per_set=n_samples_per_theta,
             augmented_data_definitions=augmented_data_definitions_0,
@@ -777,7 +796,7 @@ class SampleAugmenter(DataAnalyzer):
         sets = self._build_sets(parsed_thetas, parsed_nus)
 
         # Start for theta1
-        x_1, augmented_data_1, thetas_1 = self._sample(
+        x_1, augmented_data_1, thetas_1, n_effective_samples_1 = self._sample(
             sets=sets,
             n_samples_per_set=n_samples_per_theta,
             augmented_data_definitions=augmented_data_definitions_1,
@@ -844,7 +863,7 @@ class SampleAugmenter(DataAnalyzer):
             np.save(folder + "/t_xz0_" + filename + ".npy", t_xz0)
             np.save(folder + "/t_xz1_" + filename + ".npy", t_xz1)
 
-        return x, theta0, theta1, y, r_xz, t_xz0, t_xz1
+        return x, theta0, theta1, y, r_xz, t_xz0, t_xz1, min(min(n_effective_samples_0), min(n_effective_samples_1))
 
     def sample_test(
         self, theta, n_samples, nu=None, folder=None, filename=None, test_split=0.2, switch_train_test_events=False
@@ -893,6 +912,10 @@ class SampleAugmenter(DataAnalyzer):
             Parameter points used for sampling with shape `(n_samples, n_parameters)`. The same information is saved as
             a file in the given folder.
 
+        effective_n_samples : int
+            Effective number of samples, defined as 1/max(event_probabilities), where event_probabilities are the
+            fractions of the cross section carried by each event.
+
         """
 
         logger.info("Extracting evaluation sample. Sampling according to %s", theta)
@@ -905,7 +928,7 @@ class SampleAugmenter(DataAnalyzer):
         sets = self._build_sets([parsed_thetas], [parsed_nus])
 
         # Extract information
-        x, _, (theta,) = self._sample(
+        x, _, (theta,), n_effective_samples = self._sample(
             sets=sets,
             n_samples_per_set=n_samples_per_theta,
             use_train_events=switch_train_test_events,
@@ -917,7 +940,7 @@ class SampleAugmenter(DataAnalyzer):
             np.save(folder + "/theta_" + filename + ".npy", theta)
             np.save(folder + "/x_" + filename + ".npy", x)
 
-        return x, theta
+        return x, theta, min(n_effective_samples)
 
     def cross_sections(self, theta, nu=None):
 
@@ -1081,6 +1104,7 @@ class SampleAugmenter(DataAnalyzer):
         for i, values in enumerate(all_augmented_data):
             all_augmented_data[i] = np.vstack(values)
         all_effective_n_samples = np.array(all_effective_n_samples)
+        all_thetas = self._combine_thetas_nus(all_thetas, all_nus)
 
         # Report effective number of samples
         self._report_effective_n_samples(all_effective_n_samples)
@@ -1252,8 +1276,8 @@ class SampleAugmenter(DataAnalyzer):
                 # Extract augmented data
                 relevant_augmented_data = self._calculate_augmented_data(
                     augmented_data_definitions=augmented_data_definitions,
-                    weights=weights,
-                    weight_gradients=weight_gradients,
+                    weights=weights[:,indices[found_now]],
+                    weight_gradients=weight_gradients[:,:,indices[found_now]],
                     xsecs=xsecs,
                     xsec_gradients=xsec_gradients,
                 )
@@ -1282,9 +1306,9 @@ class SampleAugmenter(DataAnalyzer):
     @staticmethod
     def _calculate_augmented_data(
         augmented_data_definitions,
-        weights,
-        weight_gradients,  # grad_theta dsigma(theta, nu) with shape (n_params, n_gradients, n_events)
-        xsecs,
+        weights,  # shape (n_thetas, n_events)
+        weight_gradients,  # grad_theta dsigma(theta, nu) with shape (n_thetas, n_gradients, n_events)
+        xsecs,  # shape (n_thetas,)
         xsec_gradients,  # grad_theta sigma(theta, nu) with shape (n_params, n_gradients)
     ):
         augmented_data = []
@@ -1292,7 +1316,7 @@ class SampleAugmenter(DataAnalyzer):
             if definition[0] == "ratio":
                 _, i_num, i_den = definition
                 ratio = (weights[i_num] / xsecs[i_num]) / (weights[i_den] / xsecs[i_den])
-                ratio = ratio.reshape((-1, 1))
+                ratio = ratio.reshape((-1, 1))  # (n_samples, 1)
                 augmented_data.append(ratio)
             elif definition[0] == "score":
                 _, i = definition
@@ -1304,6 +1328,33 @@ class SampleAugmenter(DataAnalyzer):
                 raise ValueError("Unknown augmented data type {}".format(definition[0]))
 
         return augmented_data
+
+    def _combine_thetas_nus(self, all_thetas, all_nus):
+        n_thetas = len(all_thetas)
+        assert n_thetas == len(all_nus)
+
+        # all_nus is a list of a list of (None or ndarray)
+        # Figure out if there's anything nontrivial in there
+        add_nuisance_params = False
+        for nus in all_nus:
+            if self._any_nontrivial_nus(nus):
+                add_nuisance_params = True
+
+        # No nuisance params?
+        if not add_nuisance_params or self.nuisance_morpher is None or self.n_nuisance_parameters == 0:
+            return all_thetas
+
+        all_combined = []
+        for thetas, nus in zip(all_thetas, all_nus):
+            combined = []
+            if nus is None:
+                nus = [None for _ in range(thetas)]
+            for theta, nu in zip(thetas, nus):
+                if nu is None:
+                    nu = np.zeros(self.n_nuisance_parameters)
+                combined.append(np.hstack((theta, nu)))
+            all_combined.append(np.asarray(combined))
+        return all_combined
 
     @staticmethod
     def _report_effective_n_samples(all_effective_n_samples):
