@@ -975,8 +975,8 @@ class SampleAugmenter(DataAnalyzer):
 
         """
         logger.info("Starting cross-section calculation")
-        parsed_thetas, _ = self._parse_theta(theta, 1)
-        theta_values = np.asarray([self._get_theta_value(parsed_theta for parsed_theta in parsed_thetas)])
+        parsed_thetas, _ = self._parse_theta(theta, None)
+        theta_values = np.asarray([self._get_theta_value(parsed_theta) for parsed_theta in parsed_thetas])
 
         if nu is not None:
             parsed_nus = self._parse_nu(nu, len(parsed_thetas))
@@ -1279,7 +1279,7 @@ class SampleAugmenter(DataAnalyzer):
                 relevant_augmented_data = self._calculate_augmented_data(
                     augmented_data_definitions=augmented_data_definitions,
                     weights=weights[:, indices[found_now]],
-                    weight_gradients=weight_gradients[:, :, indices[found_now]],
+                    weight_gradients=None if weight_gradients is None else weight_gradients[:, :, indices[found_now]],
                     xsecs=xsecs,
                     xsec_gradients=xsec_gradients,
                 )
@@ -1378,27 +1378,42 @@ class SampleAugmenter(DataAnalyzer):
 
         if theta_type_in == "benchmark":
             thetas_out = [theta_value_in]
-            n_samples_per_theta = n_samples
+            if n_samples is None:
+                n_samples_per_theta = 1
+            else:
+                n_samples_per_theta = n_samples
 
         elif theta_type_in == "benchmarks":
             n_benchmarks = len(theta_value_in)
-            n_samples_per_theta = max(int(round(n_samples / n_benchmarks, 0)), 1)
+            if n_samples is None:
+                n_samples_per_theta = 1
+            else:
+                n_samples_per_theta = max(int(round(n_samples / n_benchmarks, 0)), 1)
             thetas_out = theta_value_in
 
         elif theta_type_in == "morphing_point":
             thetas_out = [np.asarray(theta_value_in)]
-            n_samples_per_theta = n_samples
+            if n_samples is None:
+                n_samples_per_theta = 1
+            else:
+                n_samples_per_theta = n_samples
 
         elif theta_type_in == "morphing_points":
             n_benchmarks = len(theta_value_in)
-            n_samples_per_theta = max(int(round(n_samples / n_benchmarks, 0)), 1)
+            if n_samples is None:
+                n_samples_per_theta = 1
+            else:
+                n_samples_per_theta = max(int(round(n_samples / n_benchmarks, 0)), 1)
             thetas_out = theta_value_in
 
         elif theta_type_in == "random_morphing_points":
             n_benchmarks, priors = theta_value_in
-            if n_benchmarks is None or n_benchmarks <= 0 or n_benchmarks > n_samples:
+            if n_benchmarks is None or n_benchmarks <= 0 or (n_samples is not None and n_benchmarks > n_samples):
                 n_benchmarks = n_samples
-            n_samples_per_theta = max(int(round(n_samples / n_benchmarks, 0)), 1)
+            if n_samples is None:
+                n_samples_per_theta = 1
+            else:
+                n_samples_per_theta = max(int(round(n_samples / n_benchmarks, 0)), 1)
 
             thetas_out = []
             for prior in priors:

@@ -14,6 +14,10 @@ from madminer.sampling import SampleAugmenter
 
 sampler = SampleAugmenter('data/madminer_example_systematics_with_data.h5')
 
+thetas_morphing, xsecs_morphing, xsec_errors_morphing = sampler.cross_sections(
+    theta=sampling.random_morphing_points(1000, [('gaussian', 0., 4.), ('gaussian', 0., 4.)])
+)
+
 x, theta0, theta1, y, r_xz, t_xz, n_eff = sampler.sample_train_ratio(
     theta0=sampling.random_morphing_points(20, [('gaussian', 0., 15.), ('gaussian', 0., 15.)]),
     theta1=sampling.benchmark('sm'),

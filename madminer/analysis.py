@@ -173,7 +173,6 @@ class DataAnalyzer(object):
                 raise NotImplementedError
 
             theta_matrix = self._get_theta_benchmark_matrix(theta)
-
             weights_theta = mdot(theta_matrix, weights_benchmarks)
 
             return x, weights_theta
