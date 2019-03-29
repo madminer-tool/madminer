@@ -160,7 +160,7 @@ class DataAnalyzer(object):
             return x, weights_benchmarks[:, i_benchmark]
 
         elif derivative:
-            dtheta_matrix = self._get_dtheta_benchmark_matrix("morphing", theta)
+            dtheta_matrix = self._get_dtheta_benchmark_matrix(theta)
 
             gradients_theta = mdot(dtheta_matrix, weights_benchmarks)  # (n_gradients, n_samples)
             gradients_theta = gradients_theta.T
@@ -172,7 +172,7 @@ class DataAnalyzer(object):
             if nu is not None:
                 raise NotImplementedError
 
-            theta_matrix = self._get_theta_benchmark_matrix("morphing", theta)
+            theta_matrix = self._get_theta_benchmark_matrix(theta)
 
             weights_theta = mdot(theta_matrix, weights_benchmarks)
 
@@ -610,7 +610,7 @@ class DataAnalyzer(object):
         if zero_pad:
             unpadded_theta_matrix = self._get_theta_benchmark_matrix(theta, zero_pad=False)
             theta_matrix = np.zeros(self.n_benchmarks)
-            theta_matrix[:unpadded_theta_matrix.shape[0]] = unpadded_theta_matrix
+            theta_matrix[: unpadded_theta_matrix.shape[0]] = unpadded_theta_matrix
 
         elif isinstance(theta, six.string_types):
             i_benchmark = list(self.benchmarks).index(theta)
@@ -635,7 +635,7 @@ class DataAnalyzer(object):
         if zero_pad:
             unpadded_theta_matrix = self._get_dtheta_benchmark_matrix(theta, zero_pad=False)
             dtheta_matrix = np.zeros((unpadded_theta_matrix.shape[0], self.n_benchmarks))
-            dtheta_matrix[:,:unpadded_theta_matrix.shape[1]] = unpadded_theta_matrix
+            dtheta_matrix[:, : unpadded_theta_matrix.shape[1]] = unpadded_theta_matrix
 
         elif isinstance(theta, six.string_types):
             benchmark = self.benchmarks[theta]
@@ -645,7 +645,7 @@ class DataAnalyzer(object):
         elif isinstance(theta, int):
             benchmark = self.benchmarks[list(self.benchmarks.keys())[theta]]
             benchmark = np.array([value for _, value in six.iteritems(benchmark)])
-            dtheta_matrix =  self._get_dtheta_benchmark_matrix(benchmark)
+            dtheta_matrix = self._get_dtheta_benchmark_matrix(benchmark)
 
         else:
             dtheta_matrix = self.morpher.calculate_morphing_weight_gradient(

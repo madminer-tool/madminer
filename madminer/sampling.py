@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 class SampleAugmenter(DataAnalyzer):
     """
-    Sampling and data augmentation.
+    Sampling / unweighting and data augmentation.
 
     After the generated events have been analyzed and the observables and weights have been saved into a MadMiner file,
     for instance with `madminer.delphes.DelphesReader` or `madminer.lhe.LHEReader`, the next step is typically
@@ -1278,8 +1278,8 @@ class SampleAugmenter(DataAnalyzer):
                 # Extract augmented data
                 relevant_augmented_data = self._calculate_augmented_data(
                     augmented_data_definitions=augmented_data_definitions,
-                    weights=weights[:,indices[found_now]],
-                    weight_gradients=weight_gradients[:,:,indices[found_now]],
+                    weights=weights[:, indices[found_now]],
+                    weight_gradients=weight_gradients[:, :, indices[found_now]],
                     xsecs=xsecs,
                     xsec_gradients=xsec_gradients,
                 )
@@ -1664,7 +1664,7 @@ def random_morphing_points(n_thetas, priors):
     return "random_morphing_points", (n_thetas, priors)
 
 
-def iid_nuisance_parameters(shape="gaussian", param0=0., param1=1.):
+def iid_nuisance_parameters(shape="gaussian", param0=0.0, param1=1.0):
     """
     Utility function to be used as input to various SampleAugmenter functions, specifying that nuisance parameters are
     fixed at their nominal valuees.
