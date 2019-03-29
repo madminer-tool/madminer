@@ -1161,7 +1161,7 @@ class SampleAugmenter(DataAnalyzer):
 
             if nu is None:
                 nu_value = None
-                nu_values.append(None)
+                nu_values.append([[None] for _ in range(n_samples)])
             else:
                 nu_value = self._get_nu_value(nu)
                 nu_values.append(np.broadcast_to(nu_value, (n_samples, nu_value.size)))
@@ -1419,8 +1419,7 @@ class SampleAugmenter(DataAnalyzer):
 
         return thetas_out, n_samples_per_theta
 
-    @staticmethod
-    def _parse_nu(nu, n_thetas):
+    def _parse_nu(self, nu, n_thetas):
         if nu is None:
             nu_type_in = "nominal"
             nu_value_in = None
@@ -1431,6 +1430,10 @@ class SampleAugmenter(DataAnalyzer):
         if nu_type_in == "nominal":
             nu_out = [None for _ in range(n_thetas)]
 
+        elif nu_type_in == "iid":
+            priors = [nu_value_in for _ in range(self.n_nuisance_parameters)]
+            return self._parse_nu(("random_morphing_points", (None, priors)), n_thetas)
+
         elif nu_type_in == "morphing_point":
             nu_out = np.asarray([nu_value_in for _ in range(n_thetas)])
 
@@ -1439,7 +1442,6 @@ class SampleAugmenter(DataAnalyzer):
             nu_out = np.asarray([nu_value_in[i % n_nus] for i in range(n_thetas)])
 
         elif nu_type_in == "random_morphing_points":
-            n_nus = len(nu_value_in)
             _, priors = nu_value_in
 
             nu_out = []
@@ -1447,11 +1449,11 @@ class SampleAugmenter(DataAnalyzer):
                 if prior[0] == "flat":
                     prior_min = prior[1]
                     prior_max = prior[2]
-                    nu_out.append(prior_min + (prior_max - prior_min) * np.random.rand(n_nus))
+                    nu_out.append(prior_min + (prior_max - prior_min) * np.random.rand(n_thetas))
                 elif prior[0] == "gaussian":
                     prior_mean = prior[1]
                     prior_std = prior[2]
-                    nu_out.append(np.random.normal(loc=prior_mean, scale=prior_std, size=n_nus))
+                    nu_out.append(np.random.normal(loc=prior_mean, scale=prior_std, size=n_thetas))
                 else:
                     raise ValueError("Unknown prior {}".format(prior))
             nu_out = np.array(nu_out).T
@@ -1662,7 +1664,28 @@ def random_morphing_points(n_thetas, priors):
     return "random_morphing_points", (n_thetas, priors)
 
 
-def nominal():
+def iid_nuisance_parameters(shape="gaussian", param0=0., param1=1.):
+    """
+    Utility function to be used as input to various SampleAugmenter functions, specifying that nuisance parameters are
+    fixed at their nominal valuees.
+
+    Parameters
+    ----------
+    prior : tuple
+        Prior for all nuisance parameters with form `(prior_shape, prior_param_0, prior_param_1)`.
+        Currently, the supported prior_shapes are `flat`, in which case the two other parameters are the lower and upper
+        bound of the flat prior, and `gaussian`, in which case they are the mean and standard deviation of a Gaussian.
+
+    Returns
+    -------
+    output : tuple
+        Input to various SampleAugmenter functions
+
+    """
+    return "iid", (shape, param0, param1)
+
+
+def nominal_nuisance_parameters():
     """
     Utility function to be used as input to various SampleAugmenter functions, specifying that nuisance parameters are
     fixed at their nominal valuees.
