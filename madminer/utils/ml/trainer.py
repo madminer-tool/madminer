@@ -17,6 +17,10 @@ class EarlyStoppingException(Exception):
     pass
 
 
+class NanException(Exception):
+    pass
+
+
 class Trainer(object):
     """ Trainer class. Any subclass has to implement the forward_pass() function. """
 
@@ -100,11 +104,15 @@ class Trainer(object):
             self.set_lr(opt, lr)
             logger.debug("Learning rate: %s", lr)
 
-            loss_train, loss_val, loss_contributions_train, loss_contributions_val = self.epoch(
-                i_epoch, data_labels, train_loader, val_loader, opt, loss_functions, loss_weights, clip_gradient
-            )
-            losses_train.append(loss_train)
-            losses_val.append(loss_val)
+            try:
+                loss_train, loss_val, loss_contributions_train, loss_contributions_val = self.epoch(
+                    i_epoch, data_labels, train_loader, val_loader, opt, loss_functions, loss_weights, clip_gradient
+                )
+                losses_train.append(loss_train)
+                losses_val.append(loss_val)
+            except NanException:
+                logger.info("Ending training during epoch %s because NaNs appeared", i_epoch + 1)
+                break
 
             if early_stopping:
                 try:
@@ -112,7 +120,7 @@ class Trainer(object):
                         best_loss, best_model, best_epoch, loss_val, i_epoch, early_stopping_patience
                     )
                 except EarlyStoppingException:
-                    logger.debug("Early stopping: ending training after %s epochs", i_epoch + 1)
+                    logger.info("Early stopping: ending training after %s epochs", i_epoch + 1)
                     break
 
             verbose_epoch = (i_epoch + 1) % n_epochs_verbose == 0
@@ -126,7 +134,7 @@ class Trainer(object):
                 verbose=verbose_epoch,
             )
 
-        if early_stopping:
+        if early_stopping and len(losses_val) > 0:
             self.wrap_up_early_stopping(best_model, losses_val[-1], best_loss, best_epoch)
 
         logger.debug("Training finished")
@@ -346,6 +354,15 @@ class Trainer(object):
         else:
             logger.info("Early stopping did not improve performance")
 
+    @staticmethod
+    def _check_for_nans(label, *tensors):
+        for tensor in tensors:
+            if tensor is None:
+                continue
+            if torch.isnan(tensor).any():
+                logger.warning("%s contains NaNs, aborting training! Data:\n%s", label, tensor)
+                raise NanException
+
 
 class SingleParameterizedRatioTrainer(Trainer):
     def __init__(self, model, run_on_gpu=True, double_precision=False):
@@ -391,10 +408,15 @@ class SingleParameterizedRatioTrainer(Trainer):
             t_xz = batch_data["t_xz"].to(self.device, self.dtype)
         except KeyError:
             t_xz = None
+        self._check_for_nans("Training data", theta, x, y)
+        self._check_for_nans("Augmented training data", r_xz, t_xz)
 
         s_hat, log_r_hat, t_hat = self.model(theta, x, track_score=self.calculate_model_score, return_grad_x=False)
+        self._check_for_nans("Model output", s_hat, log_r_hat, t_hat)
 
         losses = [loss_function(s_hat, log_r_hat, t_hat, None, y, r_xz, t_xz, None) for loss_function in loss_functions]
+        self._check_for_nans("Loss", *losses)
+
         return losses
 
 
@@ -447,14 +469,19 @@ class DoubleParameterizedRatioTrainer(Trainer):
             t_xz1 = batch_data["t_xz1"].to(self.device, self.dtype)
         except KeyError:
             t_xz1 = None
+        self._check_for_nans("Training data", theta0, theta1, x, y)
+        self._check_for_nans("Augmented training data", r_xz, t_xz0, t_xz1)
 
         s_hat, log_r_hat, t_hat0, t_hat1 = self.model(
             theta0, theta1, x, track_score=self.calculate_model_score, return_grad_x=False
         )
+        self._check_for_nans("Model output", s_hat, log_r_hat, t_hat0, t_hat1)
 
         losses = [
             loss_function(s_hat, log_r_hat, t_hat0, t_hat1, y, r_xz, t_xz0, t_xz1) for loss_function in loss_functions
         ]
+        self._check_for_nans("Loss", *losses)
+
         return losses
 
 
@@ -471,10 +498,15 @@ class LocalScoreTrainer(Trainer):
     def forward_pass(self, batch_data, loss_functions):
         x = batch_data["x"].to(self.device, self.dtype)
         t_xz = batch_data["t_xz"].to(self.device, self.dtype)
+        self._check_for_nans("Training data", x)
+        self._check_for_nans("Augmented training data", t_xz)
 
         t_hat = self.model(x)
+        self._check_for_nans("Model output", t_hat)
 
         losses = [loss_function(t_hat, t_xz) for loss_function in loss_functions]
+        self._check_for_nans("Loss", *losses)
+
         return losses
 
 
@@ -517,12 +549,17 @@ class FlowTrainer(Trainer):
             t_xz = batch_data["t_xz"].to(self.device, self.dtype)
         except KeyError:
             t_xz = None
+        self._check_for_nans("Training data", theta, x)
+        self._check_for_nans("Augmented training data", t_xz)
 
         if self.calculate_model_score:
             _, log_likelihood, t_hat = self.model.log_likelihood_and_score(theta, x)
         else:
             _, log_likelihood = self.model.log_likelihood(theta, x)
             t_hat = None
+        self._check_for_nans("Model output", log_likelihood, t_hat)
 
         losses = [loss_function(log_likelihood, t_hat, t_xz) for loss_function in loss_functions]
+        self._check_for_nans("Loss", *losses)
+
         return losses

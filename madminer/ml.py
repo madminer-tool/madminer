@@ -167,7 +167,7 @@ class Estimator(object):
 
         # Load state dict
         logger.debug("Loading state dictionary from %s_state_dict.pt", filename)
-        self.model.load_state_dict(torch.load(filename + "_state_dict.pt"))
+        self.model.load_state_dict(torch.load(filename + "_state_dict.pt", map_location="cpu"))
 
     def _initialize_input_transform(self, x, transform=True):
         if transform:
@@ -1434,7 +1434,7 @@ class ScoreEstimator(Estimator):
                 self.nuisance_profile_matrix,
                 self.nuisance_project_matrix,
             )
-        except FileNotFoundError:
+        except:
             logger.debug("Did not find nuisance profiling / projection setup in %s", filename)
             self.nuisance_profile_matrix = None
             self.nuisance_project_matrix = None

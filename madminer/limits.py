@@ -2,14 +2,12 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import logging
 import numpy as np
-import six
 import os
 from scipy.stats import chi2, poisson
 
-from madminer.utils.interfaces.madminer_hdf5 import load_madminer_settings, madminer_event_loader
-from madminer.utils.analysis import get_theta_benchmark_matrix, mdot
-from madminer.utils.morphing import PhysicsMorpher, NuisanceMorpher
-from madminer.utils.various import format_benchmark
+from madminer.analysis import DataAnalyzer
+from madminer.utils.interfaces.madminer_hdf5 import madminer_event_loader
+from madminer.utils.various import mdot
 from madminer.ml import ParameterizedRatioEstimator, Ensemble
 from madminer.utils.histo import Histo
 from madminer.sampling import SampleAugmenter
@@ -19,7 +17,7 @@ from madminer.ml import ScoreEstimator
 logger = logging.getLogger(__name__)
 
 
-class AsymptoticLimits:
+class AsymptoticLimits(DataAnalyzer):
     """
     Functions to calculate observed and expected constraints, using asymptotic properties of the likelihood ratio as
     test statistics.
@@ -34,86 +32,7 @@ class AsymptoticLimits:
     """
 
     def __init__(self, filename=None, include_nuisance_parameters=False):
-        if include_nuisance_parameters:
-            raise NotImplementedError("Nuisance parameters are not yet supported!")
-
-        # Save settings
-        self.madminer_filename = filename
-        self.include_nuisance_parameters = include_nuisance_parameters
-
-        logger.info("Loading data from %s", filename)
-
-        # Load data
-        (
-            self.parameters,
-            self.benchmarks,
-            self.benchmark_is_nuisance,
-            self.morphing_components,
-            self.morphing_matrix,
-            self.observables,
-            self.n_samples,
-            _,
-            self.reference_benchmark,
-            self.nuisance_parameters,
-        ) = load_madminer_settings(filename, include_nuisance_benchmarks=include_nuisance_parameters)
-        self.n_parameters = len(self.parameters)
-        self.n_benchmarks = len(self.benchmarks)
-        self.n_benchmarks_phys = np.sum(np.logical_not(self.benchmark_is_nuisance))
-
-        self.n_nuisance_parameters = 0
-        if self.nuisance_parameters is not None and include_nuisance_parameters:
-            self.n_nuisance_parameters = len(self.nuisance_parameters)
-        else:
-            self.nuisance_parameters = None
-
-        logger.info("Found %s parameters", len(self.parameters))
-        for key, values in six.iteritems(self.parameters):
-            logger.debug(
-                "   %s (LHA: %s %s, maximal power in squared ME: %s, range: %s)",
-                key,
-                values[0],
-                values[1],
-                values[2],
-                values[3],
-            )
-
-        if self.nuisance_parameters is not None and include_nuisance_parameters:
-            logger.info("Found %s nuisance parameters", self.n_nuisance_parameters)
-            for key, values in six.iteritems(self.nuisance_parameters):
-                logger.debug("   %s (%s)", key, values)
-        elif include_nuisance_parameters:
-            self.include_nuisance_parameters = False
-            logger.warning("Did not find nuisance parameters!")
-
-        logger.info("Found %s benchmarks, of which %s physical", self.n_benchmarks, self.n_benchmarks_phys)
-        for (key, values), is_nuisance in zip(six.iteritems(self.benchmarks), self.benchmark_is_nuisance):
-            if is_nuisance:
-                logger.debug("   %s: nuisance parameter", key)
-            else:
-                logger.debug("   %s: %s", key, format_benchmark(values))
-
-        logger.info("Found %s observables: %s", len(self.observables), ", ".join(self.observables))
-        logger.info("Found %s events", self.n_samples)
-
-        # Morphing
-        self.morpher = None
-        if self.morphing_matrix is not None and self.morphing_components is not None:
-            self.morpher = PhysicsMorpher(self.parameters)
-            self.morpher.set_components(self.morphing_components)
-            self.morpher.set_basis(self.benchmarks, morphing_matrix=self.morphing_matrix)
-
-            logger.info("Found morphing setup with %s components", len(self.morphing_components))
-
-        else:
-            raise RuntimeError("Did not find morphing setup.")
-
-        # Nuisance morphing
-        self.nuisance_morpher = None
-        if self.include_nuisance_parameters:
-            self.nuisance_morpher = NuisanceMorpher(
-                self.nuisance_parameters, list(self.benchmarks.keys()), self.reference_benchmark
-            )
-            logger.info("Found nuisance morphing setup")
+        super(AsymptoticLimits, self).__init__(filename, False, include_nuisance_parameters)
 
     def observed_limits(
         self,
@@ -273,6 +192,9 @@ class AsymptoticLimits:
             def summary_function(x):
                 return model.evaluate_score(x)
 
+        else:
+            raise RuntimeError("Unknown mode {}, has to be 'observables' or 'sally'".format(mode))
+
         return summary_function
 
     @staticmethod
@@ -307,7 +229,7 @@ class AsymptoticLimits:
         # xsecs at thetas
         xsecs = []
         for theta in thetas:
-            theta_matrix = get_theta_benchmark_matrix("morphing", theta, self.benchmarks, self.morpher)
+            theta_matrix = self._get_theta_benchmark_matrix(theta)
             xsecs.append(mdot(theta_matrix, xsecs_benchmarks))
         return np.asarray(xsecs)
 
@@ -317,7 +239,7 @@ class AsymptoticLimits:
             madminer_event_loader(self.madminer_filename, start=start_event, end=end_event, batch_size=None)
         )
 
-        theta_matrix = get_theta_benchmark_matrix("morphing", theta, self.benchmarks, self.morpher)
+        theta_matrix = self._get_theta_benchmark_matrix(theta)
         weights_theta = mdot(theta_matrix, weights_benchmarks)
         weights_theta /= np.sum(weights_theta)
 
@@ -345,7 +267,7 @@ class AsymptoticLimits:
 
     def _make_histo_data(self, thetas, n_samples, test_split=0.2):
         sampler = SampleAugmenter(self.madminer_filename, include_nuisance_parameters=self.include_nuisance_parameters)
-        x, theta = sampler.extract_samples_train_plain(
+        x, theta, _ = sampler.sample_train_plain(
             theta=sampling.morphing_points(thetas),
             n_samples=n_samples,
             test_split=test_split,
@@ -365,7 +287,8 @@ class AsymptoticLimits:
         logger.debug("Using x indices %s", x_indices)
         return x_indices
 
-    def _calculate_log_likelihood_histo(self, x, theta_grid, histo):
+    @staticmethod
+    def _calculate_log_likelihood_histo(x, theta_grid, histo):
         log_p = []
         for theta in theta_grid:
             log_p.append(histo.log_likelihood(theta, x))
