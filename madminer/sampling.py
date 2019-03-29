@@ -268,7 +268,7 @@ class SampleAugmenter(DataAnalyzer):
             np.save(folder + "/x_" + filename + ".npy", x)
             np.save(folder + "/t_xz_" + filename + ".npy", t_xz)
 
-        return x, theta, nu, t_xz, min(effective_n_samples)
+        return x, theta, t_xz, min(effective_n_samples)
 
     def sample_train_density(
         self,
