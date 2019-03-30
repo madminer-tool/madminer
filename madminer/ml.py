@@ -17,6 +17,11 @@ from madminer.utils.ml.utils import check_required_data
 from madminer.utils.various import create_missing_folders, load_and_check, shuffle, restrict_samplesize
 from madminer.utils.ml.methods import get_method_type, get_trainer, get_loss, package_training_data
 
+try:
+    FileNotFoundError
+except NameError:
+    FileNotFoundError = IOError
+
 logger = logging.getLogger(__name__)
 
 
@@ -228,7 +233,8 @@ class MLForge:
 
         Returns
         -------
-            None
+        results: ndarray
+            Results from SingleParameterizedRatioTrainer.train or DoubleParameterizedRatioTrainer.train for example
 
         """
 

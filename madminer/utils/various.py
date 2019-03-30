@@ -94,6 +94,7 @@ def shuffle(*arrays):
         assert a.shape[0] == n_samples
         shuffled_a = a[permutation]
         shuffled_arrays.append(shuffled_a)
+        a = None
 
     return shuffled_arrays
 
