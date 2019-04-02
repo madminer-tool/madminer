@@ -47,7 +47,9 @@ class Histo:
         elif len(self.n_bins_thetas) == n_parameters:
             all_n_bins_theta = self.n_bins_thetas
         else:
-            raise RuntimeError("Inconsistent bin numbers for parameteers: {} vs {} parameters".format(self.n_bins_thetas, n_parameters))
+            raise RuntimeError(
+                "Inconsistent bin numbers for parameteers: {} vs {} parameters".format(self.n_bins_thetas, n_parameters)
+            )
 
         all_n_bins = all_n_bins_theta + all_n_bins_x
 

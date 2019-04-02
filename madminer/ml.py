@@ -15,6 +15,7 @@ from madminer.utils.ml.models.score import DenseLocalScoreModel
 from madminer.utils.ml.eval import evaluate_flow_model, evaluate_ratio_model, evaluate_local_score_model
 from madminer.utils.ml.utils import get_optimizer, get_loss
 from madminer.utils.various import create_missing_folders, load_and_check, shuffle, restrict_samplesize
+from madminer.utils.various import separate_information_blocks
 from madminer.utils.ml.trainer import SingleParameterizedRatioTrainer, DoubleParameterizedRatioTrainer
 from madminer.utils.ml.trainer import LocalScoreTrainer, FlowTrainer
 
@@ -24,7 +25,7 @@ logger = logging.getLogger(__name__)
 class Estimator(object):
     """
     Abstract class for any ML estimator. Subclassed by ParameterizedRatioEstimator, DoubleParameterizedRatioEstimator,
-    LocalScoreEstimator, and LikelihoodEstimator.
+    ScoreEstimator, and LikelihoodEstimator.
 
     Each instance of this class represents one neural estimator. The most important functions are:
 
@@ -166,7 +167,7 @@ class Estimator(object):
 
         # Load state dict
         logger.debug("Loading state dictionary from %s_state_dict.pt", filename)
-        self.model.load_state_dict(torch.load(filename + "_state_dict.pt"))
+        self.model.load_state_dict(torch.load(filename + "_state_dict.pt", map_location="cpu"))
 
     def _initialize_input_transform(self, x, transform=True):
         if transform:
@@ -223,7 +224,7 @@ class ParameterizedRatioEstimator(Estimator):
     """
     A neural estimator of the likelihood ratio as a function of the observation x as well as
     the numerator hypothesis theta. The reference (denominator) hypothesis is kept fixed at some
-    reference value.
+    reference value and NOT modeled by the network.
 
     Parameters
     ----------
@@ -450,8 +451,8 @@ class ParameterizedRatioEstimator(Estimator):
 
     def evaluate_log_likelihood_ratio(self, x, theta, test_all_combinations=True, evaluate_score=False):
         """
-        Evaluates a trained estimator of the log likelihood ratio, the log likelihood, or the score, depending on the
-        method.
+        Evaluates the log likelihood ratio for given observations x betwen the given parameter point theta and the
+        reference hypothesis.
 
         Parameters
         ----------
@@ -833,8 +834,8 @@ class DoubleParameterizedRatioEstimator(Estimator):
 
     def evaluate_log_likelihood_ratio(self, x, theta0, theta1, test_all_combinations=True, evaluate_score=False):
         """
-        Evaluates a trained estimator of the log likelihood ratio, the log likelihood, or the score, depending on the
-        method.
+        Evaluates the log likelihood ratio as a function of the observation x, the numerator hypothesis theta0, and
+        the denominator hypothesis theta1.
 
         Parameters
         ----------
@@ -1001,7 +1002,7 @@ class DoubleParameterizedRatioEstimator(Estimator):
 
 
 class ScoreEstimator(Estimator):
-    """ A neural estimator of the score evaluated at a reference hypothesis as a function of the
+    """ A neural estimator of the score evaluated at a fixed reference hypothesis as a function of the
      observation x.
 
     Parameters
@@ -1018,6 +1019,13 @@ class ScoreEstimator(Estimator):
         Activation function. Default value: 'tanh'.
 
     """
+
+    def __init__(self, features=None, n_components=1, n_mades=5, n_hidden=(100,), activation="tanh", batch_norm=None):
+        super(ScoreEstimator, self).__init__(features, n_hidden, activation)
+
+        self.nuisance_profile_matrix = None
+        self.nuisance_project_matrix = None
+        self.nuisance_mode_default = "keep"
 
     def train(
         self,
@@ -1044,8 +1052,8 @@ class ScoreEstimator(Estimator):
         Parameters
         ----------
         method : str
-            The inference method used for training. Allowed values are 'alice', 'alices', 'carl', 'cascal', 'rascal',
-            and 'rolr'.
+            The inference method used for training. Currently values are 'sally' and 'sallino', but at the training
+            stage they are identical. So right now it doesn't matter which one you use.
 
         x : ndarray or str
             Path to an unweighted sample of observations, as saved by the `madminer.sampling.SampleAugmenter` functions.
@@ -1101,8 +1109,11 @@ class ScoreEstimator(Estimator):
 
         """
 
+        if method not in ["sally", "sallino"]:
+            logger.warning("Method %s not allowed for score estimators. Using 'sally' instead.", method)
+            method = "sally"
+
         logger.info("Starting training")
-        logger.info("  Method:                 %s", method)
         logger.info("  Batch size:             %s", batch_size)
         logger.info("  Optimizer:              %s", optimizer)
         logger.info("  Epochs:                 %s", n_epochs)
@@ -1202,7 +1213,57 @@ class ScoreEstimator(Estimator):
         )
         return result
 
-    def evaluate_score(self, x):
+    def set_nuisance(self, fisher_information, parameters_of_interest):
+        """
+        Prepares the calculation of profiled scores, see https://arxiv.org/pdf/1903.01473.pdf.
+
+        Parameters
+        ----------
+        fisher_information : ndarray
+            Fisher informatioin with shape `(n_parameters, n_parameters)`.
+
+        parameters_of_interest : list of int
+            List of int, with 0 <= remaining_compoinents[i] < n_parameters. Denotes which parameters are kept in the
+            profiling, and their new order.
+
+        Returns
+        -------
+            None
+
+        """
+        if fisher_information.shape != (self.n_parameters, self.n_parameters):
+            raise ValueError(
+                "Fisher information has wrong shape {}, expected {}".format(
+                    fisher_information.shape, (self.n_parameters, self.n_parameters)
+                )
+            )
+
+        n_parameters_of_interest = len(parameters_of_interest)
+
+        # Separate Fisher information parts
+        nuisance_parameters, information_phys, information_mix, information_nuisance = separate_information_blocks(
+            fisher_information, parameters_of_interest
+        )
+
+        # Calculate projection matrix
+        self.nuisance_project_matrix = np.zeros((n_parameters_of_interest, self.n_parameters))  # (n_phys, n_all)
+        for theta_new, theta_old in enumerate(parameters_of_interest):
+            self.nuisance_project_matrix[theta_new, theta_old] = 1.0
+
+        logger.debug("Nuisance projection matrix:/n%s", self.nuisance_project_matrix)
+
+        # Calculate profiling matrix
+        inverse_information_nuisance = np.linalg.inv(information_nuisance)  # (n_nuisance, n_nuisance)
+        profiling_matrix = -information_mix.T.dot(inverse_information_nuisance)  # (n_phys, n_nuisance)
+
+        self.nuisance_profile_matrix = np.copy(self.nuisance_project_matrix)  # (n_phys, n_all)
+        for theta_new, theta_old in enumerate(parameters_of_interest):
+            for nuis_new, nuis_old in enumerate(nuisance_parameters):
+                self.nuisance_profile_matrix[theta_new, nuis_old] += profiling_matrix[theta_new, nuis_new]
+
+        logger.debug("Nuisance profiling matrix:/n%s", self.nuisance_project_matrix)
+
+    def evaluate_score(self, x, nuisance_mode="auto"):
         """
         Evaluates the score.
 
@@ -1210,6 +1271,14 @@ class ScoreEstimator(Estimator):
         ----------
         x : str or ndarray
             Observations, or filename of a pickled numpy array.
+
+        nuisance_mode : {"auto", "keep", "profile", "project"}
+            Decides how nuisance parameters are treated. If nuisance_mode is "auto", the returned score is the (n+k)-
+            dimensional score in the space of n parameters of interest and k nuisance parameters if `set_profiling`
+            has not been called, and the n-dimensional profiled score in the space of the parameters of interest
+            if it has been called. For "keep", the returned score is always (n+k)-dimensional. For "profile", it is
+            the n-dimensional profiled score. For "project", it is the n-dimensional projected score, i.e. ignoring
+            the nuisance parameters.
 
         Returns
         -------
@@ -1219,6 +1288,10 @@ class ScoreEstimator(Estimator):
 
         if self.model is None:
             raise ValueError("No model -- train or load model before evaluating it!")
+
+        if nuisance_mode == "auto":
+            logger.debug("Using nuisance mode %s", self.nuisance_mode_default)
+            nuisance_mode = self.nuisance_mode_default
 
         # Load training data
         logger.debug("Loading evaluation data")
@@ -1233,9 +1306,34 @@ class ScoreEstimator(Estimator):
 
         # Evaluation
         logger.debug("Starting score evaluation")
-        all_t_hat = evaluate_local_score_model(model=self.model, xs=x)
+        t_hat = evaluate_local_score_model(model=self.model, xs=x)
 
-        return all_t_hat
+        # Treatment of nuisance paramters
+        if nuisance_mode == "keep":
+            logging.debug("Keeping nuisance parameter score")
+
+        elif nuisance_mode == "project":
+            if self.nuisance_project_matrix is None:
+                raise ValueError(
+                    "evaluate_score() was called with nuisance_mode = project, but nuisance parameters "
+                    "have not been set up yet. Please call set_nuisance() first!"
+                )
+            logging.debug("Projecting nuisance parameter score")
+            t_hat = np.einsum("ij,xj->xi", self.nuisance_project_matrix, t_hat)
+
+        elif nuisance_mode == "profile":
+            if self.nuisance_profile_matrix is None:
+                raise ValueError(
+                    "evaluate_score() was called with nuisance_mode = profile, but nuisance parameters "
+                    "have not been set up yet. Please call set_nuisance() first!"
+                )
+            logging.debug("Profiling nuisance parameter score")
+            t_hat = np.einsum("ij,xj->xi", self.nuisance_profile_matrix, t_hat)
+
+        else:
+            raise ValueError("Unknown nuisance_mode {}".format(nuisance_mode))
+
+        return t_hat
 
     def evaluate_log_likelihood(self, *args, **kwargs):
         raise TheresAGoodReasonThisDoesntWork("This estimator can only estimate the score, not the likelihood!")
@@ -1310,6 +1408,37 @@ class ScoreEstimator(Estimator):
 
         return fisher_information
 
+    def save(self, filename, save_model=False):
+        super(ScoreEstimator, self).save(filename, save_model)
+
+        # Also save Fisher information information for profiling / projections
+        if self.nuisance_profile_matrix is not None and self.nuisance_project_matrix is not None:
+            logger.debug(
+                "Saving nuisance profiling / projection information to %s_nuisance_profile_matrix.npy and "
+                "%s_nuisance_project_matrix.npy",
+                filename,
+                filename,
+            )
+            np.save(filename + "_nuisance_profile_matrix.npy", self.nuisance_profile_matrix)
+            np.save(filename + "_nuisance_project_matrix.npy", self.nuisance_project_matrix)
+
+    def load(self, filename):
+        super(ScoreEstimator, self).load(filename)
+
+        # Load scaling
+        try:
+            self.nuisance_profile_matrix = np.load(filename + "_nuisance_profile_matrix.npy")
+            self.nuisance_project_matrix = np.load(filename + "_nuisance_project_matrix.npy")
+            logger.debug(
+                "  Found nuisance profiling / projection matrices:\nProfiling:\n%s\nProjection:\n%s",
+                self.nuisance_profile_matrix,
+                self.nuisance_project_matrix,
+            )
+        except:
+            logger.debug("Did not find nuisance profiling / projection setup in %s", filename)
+            self.nuisance_profile_matrix = None
+            self.nuisance_project_matrix = None
+
     def _create_model(self):
         self.model = DenseLocalScoreModel(
             n_observables=self.n_observables,
@@ -1328,6 +1457,8 @@ class ScoreEstimator(Estimator):
     def _wrap_settings(self):
         settings = super(ScoreEstimator, self)._wrap_settings()
         settings["estimator_type"] = "score"
+        settings["estimator_type"] = "score"
+        settings["nuisance_mode_default"] = self.nuisance_mode_default
         return settings
 
     def _unwrap_settings(self, settings):
@@ -1336,6 +1467,12 @@ class ScoreEstimator(Estimator):
         estimator_type = str(settings["estimator_type"])
         if estimator_type != "score":
             raise RuntimeError("Saved model is an incompatible estimator type {}.".format(estimator_type))
+
+        try:
+            self.nuisance_mode_default = str(settings["nuisance_mode_default"])
+        except KeyError:
+            self.nuisance_mode_default = "keep"
+            logger.warning("Did not find entry nuisance_mode_default in saved model, using default 'keep'.")
 
 
 class LikelihoodEstimator(Estimator):
@@ -1404,8 +1541,7 @@ class LikelihoodEstimator(Estimator):
         Parameters
         ----------
         method : str
-            The inference method used for training. Allowed values are 'alice', 'alices', 'carl', 'cascal', 'rascal',
-            and 'rolr'.
+            The inference method used for training. Allowed values are 'nde' and 'scandal'.
 
         x : ndarray or str
             Path to an unweighted sample of observations, as saved by the `madminer.sampling.SampleAugmenter` functions.
@@ -1470,7 +1606,7 @@ class LikelihoodEstimator(Estimator):
 
         logger.info("Starting training")
         logger.info("  Method:                 %s", method)
-        if method == ["scandal"]:
+        if method == "scandal":
             logger.info("  alpha:                  %s", alpha)
         logger.info("  Batch size:             %s", batch_size)
         logger.info("  Optimizer:              %s", optimizer)
@@ -1577,16 +1713,15 @@ class LikelihoodEstimator(Estimator):
     def evaluate_log_likelihood(self, x, theta, test_all_combinations=True, evaluate_score=False):
 
         """
-        Evaluates a trained estimator of the log likelihood.
+        Evaluates the log likelihood as a function of the observation x and the parameter point theta.
 
         Parameters
         ----------
         x : ndarray or str
-            Sample of observations, or path to numpy file with observations, as saved by the
-            `madminer.sampling.SampleAugmenter` functions.
+            Sample of observations, or path to numpy file with observations.
 
         theta : ndarray or str
-            Parameter point
+            Parameter points, or path to numpy file with parameter points.
 
         test_all_combinations : bool, optional
             If method is not 'sally' and not 'sallino': If False, the number of samples in the observable and theta
@@ -1605,9 +1740,9 @@ class LikelihoodEstimator(Estimator):
             The estimated log likelihood. If test_all_combinations is True, the result has shape `(n_thetas, n_x)`.
             Otherwise, it has shape `(n_samples,)`.
 
-        score_theta0 : ndarray or None
+        score : ndarray or None
             None if
-            evaluate_score is False. Otherwise the derived estimated score at `theta0`. If test_all_combinations is
+            evaluate_score is False. Otherwise the derived estimated score at `theta`. If test_all_combinations is
             True, the result has shape `(n_thetas, n_x, n_parameters)`. Otherwise, it has shape
             `(n_samples, n_parameters)`.
 
@@ -1659,6 +1794,46 @@ class LikelihoodEstimator(Estimator):
         return all_log_p_hat, all_t_hat
 
     def evaluate_log_likelihood_ratio(self, x, theta0, theta1, test_all_combinations, evaluate_score=False):
+
+        """
+        Evaluates the log likelihood ratio as a function of the observation x, the numerator parameter point theta0,
+        and the denominator parameter point theta1.
+
+        Parameters
+        ----------
+        x : ndarray or str
+            Sample of observations, or path to numpy file with observations.
+
+        theta0 : ndarray or str
+            Numerator parameters, or path to numpy file.
+
+        theta1 : ndarray or str
+            Denominator parameters, or path to numpy file.
+
+        test_all_combinations : bool, optional
+            If method is not 'sally' and not 'sallino': If False, the number of samples in the observable and theta
+            files has to match, and the likelihood ratio is evaluated only for the combinations
+            `r(x_i | theta0_i, theta1_i)`. If True, `r(x_i | theta0_j, theta1_j)` for all pairwise combinations `i, j`
+            are evaluated. Default value: True.
+
+        evaluate_score : bool, optional
+            If method is not 'sally' and not 'sallino', this sets whether in addition to the likelihood ratio the score
+            is evaluated. Default value: False.
+
+        Returns
+        -------
+
+        log_likelihood : ndarray
+            The estimated log likelihood. If test_all_combinations is True, the result has shape `(n_thetas, n_x)`.
+            Otherwise, it has shape `(n_samples,)`.
+
+        score : ndarray or None
+            None if
+            evaluate_score is False. Otherwise the derived estimated score at `theta`. If test_all_combinations is
+            True, the result has shape `(n_thetas, n_x, n_parameters)`. Otherwise, it has shape
+            `(n_samples, n_parameters)`.
+
+        """
 
         if self.model is None:
             raise ValueError("No model -- train or load model before evaluating it!")

@@ -764,11 +764,82 @@ class NuisanceMorpher:
 
         """
 
+        if nuisance_parameters is None:
+            nuisance_parameters = np.zeros(self.n_nuisance_parameters)
+
         a = self.calculate_a(benchmark_weights)  # Shape (n_nuisance_parameters, n_events)
         b = self.calculate_b(benchmark_weights)  # Shape (n_nuisance_parameters, n_events)
 
         exponent = np.sum(a * nuisance_parameters[:, np.newaxis] + b * nuisance_parameters[:, np.newaxis] ** 2, axis=0)
-
         nuisance_factors = np.exp(exponent)
 
         return nuisance_factors
+
+    def calculate_log_nuisance_factor_gradients(self, nuisance_parameters, benchmark_weights):
+        """
+        Calculates the gradient of the log of the nuisance factors with respect to the nuisance parameters.
+
+        Parameters
+        ----------
+        nuisance_parameters : ndarray
+            Values of the nuisance parameters `nu`, with shape `(n_nuisance_parameters,)`.
+
+        benchmark_weights : ndarray
+            Event weights `dsigma(x | theta_i, nu_i)` with shape `(n_events, n_benchmarks)`. The benchmarks are expected
+            to be sorted in the same order as the keyword benchmark_names used during initialization, and the
+            nuisance benchmarks are expected to be rescaled to have the same physics parameters theta as the
+            reference_benchmark given during initialization.
+
+        Returns
+        -------
+        log_nuisance_factor_gradients : ndarray
+            Log nuisance factor gradients `grad_nu log (dsigma(x | theta, nu) / dsigma(x | theta, 0))` with shape
+            `(n_parameters, n_events)`.
+
+        """
+
+        if nuisance_parameters is None:
+            nuisance_parameters = np.zeros(self.n_nuisance_parameters)
+
+        a = self.calculate_a(benchmark_weights)  # Shape (n_nuisance_parameters, n_events)
+        b = self.calculate_b(benchmark_weights)  # Shape (n_nuisance_parameters, n_events)
+
+        log_gradients = a + 2.0 * b * nuisance_parameters[:, np.newaxis]
+
+        return log_gradients
+
+    def calculate_nuisance_factor_gradients(self, nuisance_parameters, benchmark_weights):
+        """
+        Calculates the gradient of the nuisance factors with respect to the nuisance parameters.
+
+        Parameters
+        ----------
+        nuisance_parameters : ndarray
+            Values of the nuisance parameters `nu`, with shape `(n_nuisance_parameters,)`.
+
+        benchmark_weights : ndarray
+            Event weights `dsigma(x | theta_i, nu_i)` with shape `(n_events, n_benchmarks)`. The benchmarks are expected
+            to be sorted in the same order as the keyword benchmark_names used during initialization, and the
+            nuisance benchmarks are expected to be rescaled to have the same physics parameters theta as the
+            reference_benchmark given during initialization.
+
+        Returns
+        -------
+        nuisance_factor_gradients : ndarray
+            Nuisance factor gradients `grad_nu (dsigma(x | theta, nu) / dsigma(x | theta, 0))` with shape
+            `(n_parameters, n_events)`.
+
+        """
+
+        if nuisance_parameters is None:
+            nuisance_parameters = np.zeros(self.n_nuisance_parameters)
+
+        a = self.calculate_a(benchmark_weights)  # Shape (n_nuisance_parameters, n_events)
+        b = self.calculate_b(benchmark_weights)  # Shape (n_nuisance_parameters, n_events)
+
+        exponent = np.sum(a * nuisance_parameters[:, np.newaxis] + b * nuisance_parameters[:, np.newaxis] ** 2, axis=0)
+        nuisance_factors = np.exp(exponent)
+        log_gradients = a + 2.0 * b * nuisance_parameters[:, np.newaxis]
+        gradients = log_gradients * nuisance_factors[np.newaxis, :]
+
+        return gradients

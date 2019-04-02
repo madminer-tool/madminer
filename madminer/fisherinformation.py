@@ -2,19 +2,18 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import logging
 import numpy as np
-import six
 import os
 
-from madminer.utils.interfaces.madminer_hdf5 import load_madminer_settings, madminer_event_loader
-from madminer.utils.analysis import get_theta_benchmark_matrix, get_dtheta_benchmark_matrix, mdot
-from madminer.utils.morphing import PhysicsMorpher, NuisanceMorpher
-from madminer.utils.various import format_benchmark, math_commands, weighted_quantile, sanitize_array
+from madminer.analysis import DataAnalyzer
+from madminer.utils.interfaces.madminer_hdf5 import madminer_event_loader
+from madminer.utils.various import math_commands, weighted_quantile, sanitize_array, mdot
+from madminer.utils.various import separate_information_blocks
 from madminer.ml import ScoreEstimator, Ensemble
 
 logger = logging.getLogger(__name__)
 
 
-class FisherInformation:
+class FisherInformation(DataAnalyzer):
     """
     Functions to calculate expected Fisher information matrices.
 
@@ -50,83 +49,7 @@ class FisherInformation:
     """
 
     def __init__(self, filename, include_nuisance_parameters=True):
-        # Save settings
-        self.madminer_filename = filename
-        self.include_nuisance_parameters = include_nuisance_parameters
-
-        logger.info("Loading data from %s", filename)
-
-        # Load data
-        (
-            self.parameters,
-            self.benchmarks,
-            self.benchmark_is_nuisance,
-            self.morphing_components,
-            self.morphing_matrix,
-            self.observables,
-            self.n_samples,
-            _,
-            self.reference_benchmark,
-            self.nuisance_parameters,
-        ) = load_madminer_settings(filename, include_nuisance_benchmarks=include_nuisance_parameters)
-        self.n_parameters = len(self.parameters)
-        self.n_benchmarks = len(self.benchmarks)
-        self.n_benchmarks_phys = np.sum(np.logical_not(self.benchmark_is_nuisance))
-
-        self.n_nuisance_parameters = 0
-        if self.nuisance_parameters is not None and include_nuisance_parameters:
-            self.n_nuisance_parameters = len(self.nuisance_parameters)
-        else:
-            self.nuisance_parameters = None
-
-        logger.info("Found %s parameters", len(self.parameters))
-        for key, values in six.iteritems(self.parameters):
-            logger.debug(
-                "   %s (LHA: %s %s, maximal power in squared ME: %s, range: %s)",
-                key,
-                values[0],
-                values[1],
-                values[2],
-                values[3],
-            )
-
-        if self.nuisance_parameters is not None and include_nuisance_parameters:
-            logger.info("Found %s nuisance parameters", self.n_nuisance_parameters)
-            for key, values in six.iteritems(self.nuisance_parameters):
-                logger.debug("   %s (%s)", key, values)
-        elif include_nuisance_parameters:
-            self.include_nuisance_parameters = False
-            logger.warning("Did not find nuisance parameters!")
-
-        logger.info("Found %s benchmarks, of which %s physical", self.n_benchmarks, self.n_benchmarks_phys)
-        for (key, values), is_nuisance in zip(six.iteritems(self.benchmarks), self.benchmark_is_nuisance):
-            if is_nuisance:
-                logger.debug("   %s: nuisance parameter", key)
-            else:
-                logger.debug("   %s: %s", key, format_benchmark(values))
-
-        logger.info("Found %s observables: %s", len(self.observables), ", ".join(self.observables))
-        logger.info("Found %s events", self.n_samples)
-
-        # Morphing
-        self.morpher = None
-        if self.morphing_matrix is not None and self.morphing_components is not None:
-            self.morpher = PhysicsMorpher(self.parameters)
-            self.morpher.set_components(self.morphing_components)
-            self.morpher.set_basis(self.benchmarks, morphing_matrix=self.morphing_matrix)
-
-            logger.info("Found morphing setup with %s components", len(self.morphing_components))
-
-        else:
-            raise RuntimeError("Did not find morphing setup.")
-
-        # Nuisance morphing
-        self.nuisance_morpher = None
-        if self.include_nuisance_parameters:
-            self.nuisance_morpher = NuisanceMorpher(
-                self.nuisance_parameters, list(self.benchmarks.keys()), self.reference_benchmark
-            )
-            logger.info("Found nuisance morphing setup")
+        super(FisherInformation, self).__init__(filename, False, include_nuisance_parameters)
 
     def calculate_fisher_information_full_truth(
         self, theta, luminosity=300000.0, cuts=None, efficiency_functions=None, include_nuisance_parameters=True
@@ -351,7 +274,7 @@ class FisherInformation:
                 total_sum_weights_theta = total_xsec
 
             # Theta morphing matrix
-            theta_matrix = get_theta_benchmark_matrix("morphing", theta, self.benchmarks, self.morpher)
+            theta_matrix = self._get_theta_benchmark_matrix(theta)
 
             # Prepare output
             fisher_info_kin = None
@@ -808,7 +731,8 @@ class FisherInformation:
 
         model_file : str or None, optional
             If None, the truth-level Fisher information is calculated. If str, filename of a trained local score
-            regression model that was trained on samples from `theta` (see `madminer.ml.Estimator`). Default value: None.
+            regression model that was trained on samples from `theta` (see `madminer.ml.Estimator`). Default value:
+            None.
 
         luminosity : float, optional
             Luminosity in pb^-1. Default value: 300000.
@@ -854,7 +778,7 @@ class FisherInformation:
             efficiency_functions = []
 
         # Theta morphing matrix
-        theta_matrix = get_theta_benchmark_matrix("morphing", theta, self.benchmarks, self.morpher)
+        theta_matrix = self._get_theta_benchmark_matrix(theta)
 
         # Number of bins
         n_bins_total = nbins + 2
@@ -1045,69 +969,6 @@ class FisherInformation:
         diagonal = np.array([0.0 for _ in range(self.n_parameters)] + [1.0 for _ in range(self.n_nuisance_parameters)])
         return np.diag(diagonal)
 
-    def extract_raw_data(self, theta=None):
-
-        """
-        Returns all events together with the benchmark weights (if theta is None) or weights for a given theta.
-
-        Parameters
-        ----------
-        theta : None or ndarray, optional
-            If None, the function returns the benchmark weights. Otherwise it uses morphing to calculate the weights for
-            this value of theta. Default value: None.
-
-        Returns
-        -------
-        x : ndarray
-            Observables with shape `(n_unweighted_samples, n_observables)`.
-
-        weights : ndarray
-            If theta is None, benchmark weights with shape  `(n_unweighted_samples, n_benchmarks_phys)` in pb. Otherwise,
-            weights for the given parameter theta with shape `(n_unweighted_samples,)` in pb.
-
-        """
-
-        x, weights_benchmarks = next(madminer_event_loader(self.madminer_filename, batch_size=None))
-
-        if theta is not None:
-            theta_matrix = get_theta_benchmark_matrix("morphing", theta, self.benchmarks, self.morpher)
-
-            weights_theta = mdot(theta_matrix, weights_benchmarks)
-
-            return x, weights_theta
-
-        return x, weights_benchmarks
-
-    def extract_observables_and_weights(self, thetas):
-        """
-        Extracts observables and weights for given parameter points.
-
-        Parameters
-        ----------
-        thetas : ndarray
-            Parameter points, with shape `(n_thetas, n_parameters)`.
-
-        Returns
-        -------
-        x : ndarray
-            Observations `x` with shape `(n_events, n_observables)`.
-
-        weights : ndarray
-            Weights `dsigma(x|theta)` in pb with shape `(n_thetas, n_events)`.
-
-        """
-
-        x, weights_benchmarks = next(madminer_event_loader(self.madminer_filename, batch_size=None))
-
-        weights_thetas = []
-        for theta in thetas:
-            theta_matrix = get_theta_benchmark_matrix("morphing", theta, self.benchmarks, self.morpher)
-            weights_thetas.append(mdot(theta_matrix, weights_benchmarks))
-
-        weights_thetas = np.array(weights_thetas)
-
-        return x, weights_thetas
-
     def _calculate_fisher_information(
         self,
         theta,
@@ -1165,12 +1026,8 @@ class FisherInformation:
         """
 
         # Get morphing matrices
-        theta_matrix = get_theta_benchmark_matrix(
-            "morphing", theta, self.benchmarks, self.morpher
-        )  # (n_benchmarks_phys,)
-        dtheta_matrix = get_dtheta_benchmark_matrix(
-            "morphing", theta, self.benchmarks, self.morpher
-        )  # (n_parameters, n_benchmarks_phys)
+        theta_matrix = self._get_theta_benchmark_matrix(theta, zero_pad=False)  # (n_benchmarks_phys,)
+        dtheta_matrix = self._get_dtheta_benchmark_matrix(theta, zero_pad=False)  # (n_parameters, n_benchmarks_phys)
 
         # Get differential xsec per event, and the derivative wrt to theta
         sigma = mdot(theta_matrix, weights_benchmarks)  # Shape (n_events,)
@@ -1466,7 +1323,7 @@ class FisherInformation:
             return xsecs_benchmarks
 
         # Translate to xsec for theta
-        theta_matrix = get_theta_benchmark_matrix("morphing", theta, self.benchmarks, self.morpher)
+        theta_matrix = self._get_theta_benchmark_matrix(theta)
         xsec = mdot(theta_matrix, xsecs_benchmarks)
         xsec_error = mdot(theta_matrix, xsecs_uncertainty_benchmarks)
 
@@ -1505,7 +1362,7 @@ class FisherInformation:
         histo_observables_pilot = np.asarray([self._eval_observable(x, observable) for x in x_pilot])
 
         # Weights at theta
-        theta_matrix = get_theta_benchmark_matrix("morphing", theta, self.benchmarks, self.morpher)
+        theta_matrix = self._get_theta_benchmark_matrix(theta)
         weight_theta_pilot = mdot(theta_matrix, weights_pilot)
 
         # Bin boundaries
@@ -1609,21 +1466,12 @@ def profile_information(
     """
 
     logger.debug("Profiling Fisher information")
-
-    # Group components
     n_components = len(fisher_information)
     n_remaining_components = len(remaining_components)
 
-    remaining_components_checked = []
-    profiled_components = []
-
-    for i in range(n_components):
-        if i in remaining_components:
-            remaining_components_checked.append(i)
-        else:
-            profiled_components.append(i)
-
-    assert n_remaining_components == len(remaining_components_checked), "Inconsistent input"
+    _, information_phys, information_mix, information_nuisance = separate_information_blocks(
+        fisher_information, remaining_components
+    )
 
     # Error propagation
     if covariance is not None:
@@ -1660,11 +1508,6 @@ def profile_information(
         logger.debug("Central Fisher info:\n%s\nToy mean Fisher info:\n%s", profiled_information, toy_mean)
 
         return profiled_information, profiled_information_covariance
-
-    # Separate Fisher information parts
-    information_phys = fisher_information[remaining_components, :][:, remaining_components]
-    information_mix = fisher_information[profiled_components, :][:, remaining_components]
-    information_nuisance = fisher_information[profiled_components, :][:, profiled_components]
 
     # Calculate profiled information
     inverse_information_nuisance = np.linalg.inv(information_nuisance)
