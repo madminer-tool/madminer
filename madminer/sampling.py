@@ -997,6 +997,7 @@ class SampleAugmenter(DataAnalyzer):
         nuisance_score=True,
         use_train_events=True,
         test_split=0.2,
+        verbose="some",
     ):
         """
         Low-level function for the extraction of information from the event samples. Do not use this function directly.
@@ -1069,8 +1070,28 @@ class SampleAugmenter(DataAnalyzer):
         n_stats_warnings = 0
         n_neg_weights_warnings = 0
 
+        # Verbosity
+        if verbose == "all":  # Print output after every epoch
+            n_sets_verbose = 1
+        elif verbose == "many":  # Print output after 2%, 4%, ..., 100% progress
+            n_sets_verbose = max(int(round(n_sets / 50, 0)), 1)
+        elif verbose == "some":  # Print output after 10%, 20%, ..., 100% progress
+            n_sets_verbose = max(int(round(n_sets / 20, 0)), 1)
+        elif verbose == "few":  # Print output after 20%, 40%, ..., 100% progress
+            n_sets_verbose = max(int(round(n_sets / 5, 0)), 1)
+        elif verbose == "none":  # Never print output
+            n_sets_verbose = n_sets + 2
+        else:
+            raise ValueError("Unknown value %s for keyword verbose", verbose)
+        logger.debug("Will print training progress every %s sets", n_sets_verbose)
+
         # Loop over sets
-        for set_ in sets:
+        for i_set, set_ in enumerate(sets):
+            if (i_set + 1) % n_sets_verbose == 0:
+                logger.info("Sampling from parameter point %s / %s", i_set + 1, n_sets)
+            else:
+                logger.debug("Sampling from parameter point %s / %s", i_set + 1, n_sets)
+
             x, thetas, nus, augmented_data, eff_n_samples, n_stats_warnings, n_neg_weights_warnings = self._sample_set(
                 set_,
                 n_samples_per_set,
