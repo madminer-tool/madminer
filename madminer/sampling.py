@@ -1,5 +1,6 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+import time
 import logging
 import numpy as np
 import multiprocessing
@@ -1001,6 +1002,7 @@ class SampleAugmenter(DataAnalyzer):
         test_split=0.2,
         verbose="some",
         n_workers=None,
+        update_patience=0.1
     ):
         """
         Low-level function for the extraction of information from the event samples. Do not use this function directly.
@@ -1042,6 +1044,9 @@ class SampleAugmenter(DataAnalyzer):
         n_workers : None or int, optional
             If None or larger than 1, MadMiner will use multiprocessing to parallelize the sampling. In this case,
             n_workers sets the number of jobs running in parallel, and None will use the number of CPUs.
+
+        update_patience : float, optional
+            Wait time between log updates with n_workers > 1 (or None).
 
         Returns
         -------
@@ -1095,12 +1100,27 @@ class SampleAugmenter(DataAnalyzer):
                 n_neg_weights_warnings=1000,
             )
 
-            logger.info("Starting sampling jobs in parallel, using %s workers", n_workers)
+            logger.info("Starting sampling jobs in parallel, using %s processes", n_workers)
 
             pool = multiprocessing.Pool(processes=n_workers)
-            results = pool.map(job, sets)
+            r = pool.map_async(job, sets, chunksize=1)
 
-            for x, thetas, nus, augmented_data, eff_n_samples, _, _ in results:
+            next_verbose = 0
+            verbose_steps = n_sets // 10
+
+            while not r.ready():
+                n_done = max(n_sets - r._number_left * r._chunksize, 0)
+                if n_done >= next_verbose:
+                    logger.info("%s / %s jobs done", max(n_sets - r._number_left * r._chunksize, 0), n_sets)
+                    while next_verbose <= n_done:
+                        next_verbose += verbose_steps
+                time.sleep(update_patience)
+
+            r.wait()
+
+            logger.info("All jobs done!")
+
+            for x, thetas, nus, augmented_data, eff_n_samples, _, _ in r.get():
                 all_x.append(x)
                 for i, values in enumerate(augmented_data):
                     all_augmented_data[i].append(values)

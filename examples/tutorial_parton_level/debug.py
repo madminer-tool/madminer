@@ -23,3 +23,5 @@ x, theta0, theta1, y, r_xz, t_xz, n_effective_samples = sampler.sample_train_rat
     nu1=sampling.nominal_nuisance_parameters(),
     n_samples=10000,
 )
+
+logging.info("x: %s", x)
