@@ -1,7 +1,10 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+import time
 import logging
 import numpy as np
+import multiprocessing
+from functools import partial
 
 from madminer.analysis import DataAnalyzer
 from madminer.utils.interfaces.madminer_hdf5 import madminer_event_loader
@@ -998,6 +1001,8 @@ class SampleAugmenter(DataAnalyzer):
         use_train_events=True,
         test_split=0.2,
         verbose="some",
+        n_workers=None,
+        update_patience=0.1
     ):
         """
         Low-level function for the extraction of information from the event samples. Do not use this function directly.
@@ -1036,6 +1041,13 @@ class SampleAugmenter(DataAnalyzer):
             Fraction of events reserved for the evaluation sample (that will not be used for any training samples).
             Default value: 0.2.
 
+        n_workers : None or int, optional
+            If None or larger than 1, MadMiner will use multiprocessing to parallelize the sampling. In this case,
+            n_workers sets the number of jobs running in parallel, and None will use the number of CPUs.
+
+        update_patience : float, optional
+            Wait time between log updates with n_workers > 1 (or None).
+
         Returns
         -------
         x :  ndarray
@@ -1070,49 +1082,101 @@ class SampleAugmenter(DataAnalyzer):
         n_stats_warnings = 0
         n_neg_weights_warnings = 0
 
-        # Verbosity
-        if verbose == "all":  # Print output after every epoch
-            n_sets_verbose = 1
-        elif verbose == "many":  # Print output after 2%, 4%, ..., 100% progress
-            n_sets_verbose = max(int(round(n_sets / 50, 0)), 1)
-        elif verbose == "some":  # Print output after 10%, 20%, ..., 100% progress
-            n_sets_verbose = max(int(round(n_sets / 20, 0)), 1)
-        elif verbose == "few":  # Print output after 20%, 40%, ..., 100% progress
-            n_sets_verbose = max(int(round(n_sets / 5, 0)), 1)
-        elif verbose == "none":  # Never print output
-            n_sets_verbose = n_sets + 2
-        else:
-            raise ValueError("Unknown value %s for keyword verbose", verbose)
-        logger.debug("Will print training progress every %s sets", n_sets_verbose)
+        # Multiprocessing approach
+        if n_workers is None or n_workers > 0:
+            if n_workers is None:
+                n_workers = multiprocessing.cpu_count()
 
-        # Loop over sets
-        for i_set, set_ in enumerate(sets):
-            if (i_set + 1) % n_sets_verbose == 0:
-                logger.info("Sampling from parameter point %s / %s", i_set + 1, n_sets)
-            else:
-                logger.debug("Sampling from parameter point %s / %s", i_set + 1, n_sets)
-
-            x, thetas, nus, augmented_data, eff_n_samples, n_stats_warnings, n_neg_weights_warnings = self._sample_set(
-                set_,
-                n_samples_per_set,
-                augmented_data_definitions,
+            job = partial(
+                self._sample_set,
+                n_samples=n_samples_per_set,
+                augmented_data_definitions=augmented_data_definitions,
                 sampling_index=sampling_index,
                 needs_gradients=needs_gradients,
                 use_train_events=use_train_events,
                 test_split=test_split,
                 nuisance_score=nuisance_score,
-                n_stats_warnings=n_stats_warnings,
-                n_neg_weights_warnings=n_neg_weights_warnings,
+                n_stats_warnings=1000,
+                n_neg_weights_warnings=1000,
             )
 
-            all_x.append(x)
-            for i, values in enumerate(augmented_data):
-                all_augmented_data[i].append(values)
-            for i, values in enumerate(thetas):
-                all_thetas[i].append(values)
-            for i, values in enumerate(nus):
-                all_nus[i].append(values)
-            all_effective_n_samples.append(eff_n_samples)
+            logger.info("Starting sampling jobs in parallel, using %s processes", n_workers)
+
+            pool = multiprocessing.Pool(processes=n_workers)
+            r = pool.map_async(job, sets, chunksize=1)
+
+            next_verbose = 0
+            verbose_steps = n_sets // 10
+
+            while not r.ready():
+                n_done = max(n_sets - r._number_left * r._chunksize, 0)
+                if n_done >= next_verbose:
+                    logger.info("%s / %s jobs done", max(n_sets - r._number_left * r._chunksize, 0), n_sets)
+                    while next_verbose <= n_done:
+                        next_verbose += verbose_steps
+                time.sleep(update_patience)
+
+            r.wait()
+
+            logger.info("All jobs done!")
+
+            for x, thetas, nus, augmented_data, eff_n_samples, _, _ in r.get():
+                all_x.append(x)
+                for i, values in enumerate(augmented_data):
+                    all_augmented_data[i].append(values)
+                for i, values in enumerate(thetas):
+                    all_thetas[i].append(values)
+                for i, values in enumerate(nus):
+                    all_nus[i].append(values)
+                all_effective_n_samples.append(eff_n_samples)
+
+        # Serial approach
+        else:
+            logger.info("Starting sampling serially")
+
+            # Verbosity
+            if verbose == "all":  # Print output after every epoch
+                n_sets_verbose = 1
+            elif verbose == "many":  # Print output after 2%, 4%, ..., 100% progress
+                n_sets_verbose = max(int(round(n_sets / 50, 0)), 1)
+            elif verbose == "some":  # Print output after 10%, 20%, ..., 100% progress
+                n_sets_verbose = max(int(round(n_sets / 20, 0)), 1)
+            elif verbose == "few":  # Print output after 20%, 40%, ..., 100% progress
+                n_sets_verbose = max(int(round(n_sets / 5, 0)), 1)
+            elif verbose == "none":  # Never print output
+                n_sets_verbose = n_sets + 2
+            else:
+                raise ValueError("Unknown value %s for keyword verbose", verbose)
+            logger.debug("Will print training progress every %s sets", n_sets_verbose)
+
+            # Loop over sets
+            for i_set, set_ in enumerate(sets):
+                if (i_set + 1) % n_sets_verbose == 0:
+                    logger.info("Sampling from parameter point %s / %s", i_set + 1, n_sets)
+                else:
+                    logger.debug("Sampling from parameter point %s / %s", i_set + 1, n_sets)
+
+                x, thetas, nus, augmented_data, eff_n_samples, n_stats_warnings, n_neg_weights_warnings = self._sample_set(
+                    set_,
+                    n_samples=n_samples_per_set,
+                    augmented_data_definitions=augmented_data_definitions,
+                    sampling_index=sampling_index,
+                    needs_gradients=needs_gradients,
+                    use_train_events=use_train_events,
+                    test_split=test_split,
+                    nuisance_score=nuisance_score,
+                    n_stats_warnings=n_stats_warnings,
+                    n_neg_weights_warnings=n_neg_weights_warnings,
+                )
+
+                all_x.append(x)
+                for i, values in enumerate(augmented_data):
+                    all_augmented_data[i].append(values)
+                for i, values in enumerate(thetas):
+                    all_thetas[i].append(values)
+                for i, values in enumerate(nus):
+                    all_nus[i].append(values)
+                all_effective_n_samples.append(eff_n_samples)
 
         # Combine and return results
         all_x = np.vstack(all_x)
