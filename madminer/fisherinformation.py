@@ -5,7 +5,6 @@ import numpy as np
 import os
 
 from madminer.analysis import DataAnalyzer
-from madminer.utils.interfaces.madminer_hdf5 import madminer_event_loader
 from madminer.utils.various import math_commands, weighted_quantile, sanitize_array, mdot
 from madminer.utils.various import separate_information_blocks
 from madminer.ml import ScoreEstimator, Ensemble
@@ -104,9 +103,7 @@ class FisherInformation(DataAnalyzer):
         fisher_info = np.zeros((n_all_parameters, n_all_parameters))
         covariance = np.zeros((n_all_parameters, n_all_parameters, n_all_parameters, n_all_parameters))
 
-        for observations, weights in madminer_event_loader(
-            self.madminer_filename, include_nuisance_parameters=include_nuisance_parameters
-        ):
+        for observations, weights in self.event_loader():
             # Cuts
             cut_filter = [self._pass_cuts(obs_event, cuts) for obs_event in observations]
             observations = observations[cut_filter]
@@ -285,11 +282,8 @@ class FisherInformation(DataAnalyzer):
             n_batches_verbose = max(int(round(n_batches / 10, 0)), 1)
 
             for i_batch, (observations, weights_benchmarks) in enumerate(
-                madminer_event_loader(
-                    self.madminer_filename,
-                    batch_size=batch_size,
-                    start=start_event,
-                    include_nuisance_parameters=include_nuisance_parameters,
+                self.event_loader(
+                    batch_size=batch_size, start=start_event, include_nuisance_parameters=include_nuisance_parameters
                 )
             ):
                 if (i_batch + 1) % n_batches_verbose == 0:
@@ -498,7 +492,7 @@ class FisherInformation(DataAnalyzer):
         weights_benchmarks = np.zeros((n_bins_total, self.n_benchmarks))
         weights_squared_benchmarks = np.zeros((n_bins_total, self.n_benchmarks))
 
-        for observations, weights in madminer_event_loader(self.madminer_filename):
+        for observations, weights in self.event_loader():
             # Cuts
             cut_filter = [self._pass_cuts(obs_event, cuts) for obs_event in observations]
             observations = observations[cut_filter]
@@ -645,7 +639,7 @@ class FisherInformation(DataAnalyzer):
         weights_benchmarks = np.zeros((n_bins1_total, n_bins2_total, self.n_benchmarks))
         weights_squared_benchmarks = np.zeros((n_bins1_total, n_bins2_total, self.n_benchmarks))
 
-        for observations, weights in madminer_event_loader(self.madminer_filename):
+        for observations, weights in self.event_loader():
             # Cuts
             cut_filter = [self._pass_cuts(obs_event, cuts) for obs_event in observations]
             observations = observations[cut_filter]
@@ -790,7 +784,7 @@ class FisherInformation(DataAnalyzer):
 
         # Main loop: truth-level case
         if model_file is None:
-            for observations, weights in madminer_event_loader(self.madminer_filename):
+            for observations, weights in self.event_loader():
                 # Cuts
                 cut_filter = [self._pass_cuts(obs_event, cuts) for obs_event in observations]
                 observations = observations[cut_filter]
@@ -873,11 +867,8 @@ class FisherInformation(DataAnalyzer):
 
             # ML main loop
             for i_batch, (observations, weights_benchmarks) in enumerate(
-                madminer_event_loader(
-                    self.madminer_filename,
-                    batch_size=batch_size,
-                    start=start_event,
-                    include_nuisance_parameters=include_nuisance_parameters,
+                self.event_loader(
+                    batch_size=batch_size, start=start_event, include_nuisance_parameters=include_nuisance_parameters
                 )
             ):
                 if (i_batch + 1) % n_batches_verbose == 0:
@@ -1025,6 +1016,8 @@ class FisherInformation(DataAnalyzer):
 
         """
 
+        include_nuisance_parameters = include_nuisance_parameters and self.include_nuisance_parameters
+
         # Get morphing matrices
         theta_matrix = self._get_theta_benchmark_matrix(theta, zero_pad=False)  # (n_benchmarks_phys,)
         dtheta_matrix = self._get_dtheta_benchmark_matrix(theta, zero_pad=False)  # (n_parameters, n_benchmarks_phys)
@@ -1039,7 +1032,7 @@ class FisherInformation(DataAnalyzer):
         fisher_info_phys = luminosity * np.einsum("n,in,jn->nij", inv_sigma, dsigma, dsigma)
 
         # Nuisance parameter Fisher info
-        if include_nuisance_parameters and self.include_nuisance_parameters:
+        if include_nuisance_parameters:
             nuisance_a = self.nuisance_morpher.calculate_a(weights_benchmarks)  # Shape (n_nuisance_params, n_events)
             # grad_i dsigma(x), where i is a nuisance parameter, is given by
             # sigma[np.newaxis, :] * a
@@ -1061,10 +1054,12 @@ class FisherInformation(DataAnalyzer):
 
         # Error propagation
         if calculate_uncertainty:
-            weights_benchmarks_phys = weights_benchmarks[:, np.logical_not(self.benchmark_is_nuisance)]
+            if weights_benchmarks.shape[1] > self.n_benchmarks_phys:
+                weights_benchmarks_phys = weights_benchmarks[:, np.logical_not(self.benchmark_is_nuisance)]
+            else:
+                weights_benchmarks_phys = weights_benchmarks
 
             n_events = weights_benchmarks_phys.shape[0]
-            n_benchmarks_phys = weights_benchmarks_phys.shape[1]
 
             # Input uncertainties
             if weights_benchmark_uncertainties is None:
@@ -1072,10 +1067,10 @@ class FisherInformation(DataAnalyzer):
 
             # Build covariance matrix of inputs
             # We assume full correlation between weights_benchmarks[i, b1] and weights_benchmarks[i, b2]
-            covariance_inputs = np.zeros((n_events, n_benchmarks_phys, n_benchmarks_phys))
+            covariance_inputs = np.zeros((n_events, self.n_benchmarks_phys, self.n_benchmarks_phys))
             for i in range(n_events):
-                for b1 in range(n_benchmarks_phys):
-                    for b2 in range(n_benchmarks_phys):
+                for b1 in range(self.n_benchmarks_phys):
+                    for b2 in range(self.n_benchmarks_phys):
 
                         if b1 == b2:  # Diagonal
                             covariance_inputs[i, b1, b2] = weights_benchmark_uncertainties[i, b1] ** 2
@@ -1289,8 +1284,8 @@ class FisherInformation(DataAnalyzer):
         xsecs_benchmarks = None
         xsecs_uncertainty_benchmarks = None
 
-        for observations, weights in madminer_event_loader(
-            self.madminer_filename, start=start_event, include_nuisance_parameters=include_nuisance_parameters
+        for observations, weights in self.event_loader(
+            start=start_event, include_nuisance_parameters=include_nuisance_parameters
         ):
             # Cuts
             cut_filter = [self._pass_cuts(obs_event, cuts) for obs_event in observations]
@@ -1347,7 +1342,7 @@ class FisherInformation(DataAnalyzer):
         quantile_values = np.linspace(0.0, 1.0, n_bins + 1)
 
         # Get data
-        x_pilot, weights_pilot = next(madminer_event_loader(self.madminer_filename, batch_size=n_events))
+        x_pilot, weights_pilot = next(self.event_loader(batch_size=n_events))
 
         # Cuts
         cut_filter = [self._pass_cuts(x, cuts) for x in x_pilot]
