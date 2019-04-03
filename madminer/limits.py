@@ -6,7 +6,6 @@ import os
 from scipy.stats import chi2, poisson
 
 from madminer.analysis import DataAnalyzer
-from madminer.utils.interfaces.madminer_hdf5 import madminer_event_loader
 from madminer.utils.various import mdot
 from madminer.ml import ParameterizedRatioEstimator, Ensemble
 from madminer.utils.histo import Histo
@@ -223,7 +222,7 @@ class AsymptoticLimits(DataAnalyzer):
 
         # Total xsecs for benchmarks
         xsecs_benchmarks = 0.0
-        for observations, weights in madminer_event_loader(self.madminer_filename, start=start_event, end=end_event):
+        for observations, weights in self.event_loader(start=start_event, end=end_event):
             xsecs_benchmarks += np.sum(weights, axis=0)
 
         # xsecs at thetas
@@ -236,7 +235,7 @@ class AsymptoticLimits(DataAnalyzer):
     def _asimov_data(self, theta, test_split=0.2):
         start_event, end_event = self._train_test_split(False, test_split)
         x, weights_benchmarks = next(
-            madminer_event_loader(self.madminer_filename, start=start_event, end=end_event, batch_size=None)
+            self.event_loader(start=start_event, end=end_event, batch_size=None)
         )
 
         theta_matrix = self._get_theta_benchmark_matrix(theta)

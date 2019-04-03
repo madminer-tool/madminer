@@ -110,6 +110,12 @@ class DataAnalyzer(object):
             )
             logger.info("Found nuisance morphing setup")
 
+    def event_loader(self, start=0, end=None, batch_size=100000,include_nuisance_parameters=None):
+        if include_nuisance_parameters is None:
+            include_nuisance_parameters = self.include_nuisance_parameters
+        for data in madminer_event_loader(self.madminer_filename, start, end, batch_size, include_nuisance_parameters):
+            yield data
+
     def weighted_events(self, theta=None, nu=None, start_event=None, end_event=None, derivative=False):
         """
         Returns all events together with the benchmark weights (if theta is None) or weights for a given theta.
@@ -149,7 +155,7 @@ class DataAnalyzer(object):
         """
 
         x, weights_benchmarks = next(
-            madminer_event_loader(self.madminer_filename, batch_size=None, start=start_event, end=end_event)
+            self.event_loader(batch_size=None, start=start_event, end=end_event)
         )
 
         if theta is None:

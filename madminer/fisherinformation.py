@@ -5,7 +5,6 @@ import numpy as np
 import os
 
 from madminer.analysis import DataAnalyzer
-from madminer.utils.interfaces.madminer_hdf5 import madminer_event_loader
 from madminer.utils.various import math_commands, weighted_quantile, sanitize_array, mdot
 from madminer.utils.various import separate_information_blocks
 from madminer.ml import ScoreEstimator, Ensemble
@@ -104,9 +103,7 @@ class FisherInformation(DataAnalyzer):
         fisher_info = np.zeros((n_all_parameters, n_all_parameters))
         covariance = np.zeros((n_all_parameters, n_all_parameters, n_all_parameters, n_all_parameters))
 
-        for observations, weights in madminer_event_loader(
-            self.madminer_filename, include_nuisance_parameters=include_nuisance_parameters
-        ):
+        for observations, weights in self.event_loader():
             # Cuts
             cut_filter = [self._pass_cuts(obs_event, cuts) for obs_event in observations]
             observations = observations[cut_filter]
@@ -285,8 +282,7 @@ class FisherInformation(DataAnalyzer):
             n_batches_verbose = max(int(round(n_batches / 10, 0)), 1)
 
             for i_batch, (observations, weights_benchmarks) in enumerate(
-                madminer_event_loader(
-                    self.madminer_filename,
+                self.event_loader(
                     batch_size=batch_size,
                     start=start_event,
                     include_nuisance_parameters=include_nuisance_parameters,
@@ -498,7 +494,7 @@ class FisherInformation(DataAnalyzer):
         weights_benchmarks = np.zeros((n_bins_total, self.n_benchmarks))
         weights_squared_benchmarks = np.zeros((n_bins_total, self.n_benchmarks))
 
-        for observations, weights in madminer_event_loader(self.madminer_filename):
+        for observations, weights in self.event_loader():
             # Cuts
             cut_filter = [self._pass_cuts(obs_event, cuts) for obs_event in observations]
             observations = observations[cut_filter]
@@ -645,7 +641,7 @@ class FisherInformation(DataAnalyzer):
         weights_benchmarks = np.zeros((n_bins1_total, n_bins2_total, self.n_benchmarks))
         weights_squared_benchmarks = np.zeros((n_bins1_total, n_bins2_total, self.n_benchmarks))
 
-        for observations, weights in madminer_event_loader(self.madminer_filename):
+        for observations, weights in self.event_loader():
             # Cuts
             cut_filter = [self._pass_cuts(obs_event, cuts) for obs_event in observations]
             observations = observations[cut_filter]
@@ -790,7 +786,7 @@ class FisherInformation(DataAnalyzer):
 
         # Main loop: truth-level case
         if model_file is None:
-            for observations, weights in madminer_event_loader(self.madminer_filename):
+            for observations, weights in self.event_loader():
                 # Cuts
                 cut_filter = [self._pass_cuts(obs_event, cuts) for obs_event in observations]
                 observations = observations[cut_filter]
@@ -873,8 +869,7 @@ class FisherInformation(DataAnalyzer):
 
             # ML main loop
             for i_batch, (observations, weights_benchmarks) in enumerate(
-                madminer_event_loader(
-                    self.madminer_filename,
+                self.event_loader(
                     batch_size=batch_size,
                     start=start_event,
                     include_nuisance_parameters=include_nuisance_parameters,
@@ -1289,8 +1284,8 @@ class FisherInformation(DataAnalyzer):
         xsecs_benchmarks = None
         xsecs_uncertainty_benchmarks = None
 
-        for observations, weights in madminer_event_loader(
-            self.madminer_filename, start=start_event, include_nuisance_parameters=include_nuisance_parameters
+        for observations, weights in self.event_loader(
+            start=start_event, include_nuisance_parameters=include_nuisance_parameters
         ):
             # Cuts
             cut_filter = [self._pass_cuts(obs_event, cuts) for obs_event in observations]
@@ -1347,7 +1342,7 @@ class FisherInformation(DataAnalyzer):
         quantile_values = np.linspace(0.0, 1.0, n_bins + 1)
 
         # Get data
-        x_pilot, weights_pilot = next(madminer_event_loader(self.madminer_filename, batch_size=n_events))
+        x_pilot, weights_pilot = next(self.event_loader(batch_size=n_events))
 
         # Cuts
         cut_filter = [self._pass_cuts(x, cuts) for x in x_pilot]
