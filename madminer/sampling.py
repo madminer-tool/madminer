@@ -146,11 +146,9 @@ class SampleAugmenter(DataAnalyzer):
         # Save data
         if filename is not None and folder is not None:
             np.save(folder + "/theta_" + filename + ".npy", theta)
-            if nu is not None and None not in nu:
-                np.save(folder + "/nu_" + filename + ".npy", nu)
             np.save(folder + "/x_" + filename + ".npy", x)
 
-        return x, theta, nu, min(effective_n_samples)
+        return x, theta, min(effective_n_samples)
 
     def sample_train_local(
         self,
