@@ -1020,6 +1020,8 @@ class FisherInformation(DataAnalyzer):
 
         """
 
+        include_nuisance_parameters = include_nuisance_parameters and self.include_nuisance_parameters
+
         # Get morphing matrices
         theta_matrix = self._get_theta_benchmark_matrix(theta, zero_pad=False)  # (n_benchmarks_phys,)
         dtheta_matrix = self._get_dtheta_benchmark_matrix(theta, zero_pad=False)  # (n_parameters, n_benchmarks_phys)
@@ -1034,7 +1036,7 @@ class FisherInformation(DataAnalyzer):
         fisher_info_phys = luminosity * np.einsum("n,in,jn->nij", inv_sigma, dsigma, dsigma)
 
         # Nuisance parameter Fisher info
-        if include_nuisance_parameters and self.include_nuisance_parameters:
+        if include_nuisance_parameters:
             nuisance_a = self.nuisance_morpher.calculate_a(weights_benchmarks)  # Shape (n_nuisance_params, n_events)
             # grad_i dsigma(x), where i is a nuisance parameter, is given by
             # sigma[np.newaxis, :] * a
@@ -1056,10 +1058,12 @@ class FisherInformation(DataAnalyzer):
 
         # Error propagation
         if calculate_uncertainty:
-            weights_benchmarks_phys = weights_benchmarks[:, np.logical_not(self.benchmark_is_nuisance)]
+            if weights_benchmarks.shape[1] > self.n_benchmarks_phys:
+                weights_benchmarks_phys = weights_benchmarks[:, np.logical_not(self.benchmark_is_nuisance)]
+            else:
+                weights_benchmarks_phys = weights_benchmarks
 
             n_events = weights_benchmarks_phys.shape[0]
-            n_benchmarks_phys = weights_benchmarks_phys.shape[1]
 
             # Input uncertainties
             if weights_benchmark_uncertainties is None:
@@ -1067,10 +1071,10 @@ class FisherInformation(DataAnalyzer):
 
             # Build covariance matrix of inputs
             # We assume full correlation between weights_benchmarks[i, b1] and weights_benchmarks[i, b2]
-            covariance_inputs = np.zeros((n_events, n_benchmarks_phys, n_benchmarks_phys))
+            covariance_inputs = np.zeros((n_events, self.n_benchmarks_phys, self.n_benchmarks_phys))
             for i in range(n_events):
-                for b1 in range(n_benchmarks_phys):
-                    for b2 in range(n_benchmarks_phys):
+                for b1 in range(self.n_benchmarks_phys):
+                    for b2 in range(self.n_benchmarks_phys):
 
                         if b1 == b2:  # Diagonal
                             covariance_inputs[i, b1, b2] = weights_benchmark_uncertainties[i, b1] ** 2

@@ -113,7 +113,7 @@ class DataAnalyzer(object):
     def event_loader(self, start=0, end=None, batch_size=100000,include_nuisance_parameters=None):
         if include_nuisance_parameters is None:
             include_nuisance_parameters = self.include_nuisance_parameters
-        for data in madminer_event_loader(self.madminer_filename, start, end, batch_size, include_nuisance_parameters):
+        for data in madminer_event_loader(self.madminer_filename, start, end, batch_size, include_nuisance_parameters, benchmark_is_nuisance=self.benchmark_is_nuisance):
             yield data
 
     def weighted_events(self, theta=None, nu=None, start_event=None, end_event=None, derivative=False):
