@@ -234,9 +234,7 @@ class AsymptoticLimits(DataAnalyzer):
 
     def _asimov_data(self, theta, test_split=0.2):
         start_event, end_event = self._train_test_split(False, test_split)
-        x, weights_benchmarks = next(
-            self.event_loader(start=start_event, end=end_event, batch_size=None)
-        )
+        x, weights_benchmarks = next(self.event_loader(start=start_event, end=end_event, batch_size=None))
 
         theta_matrix = self._get_theta_benchmark_matrix(theta)
         weights_theta = mdot(theta_matrix, weights_benchmarks)

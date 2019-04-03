@@ -283,9 +283,7 @@ class FisherInformation(DataAnalyzer):
 
             for i_batch, (observations, weights_benchmarks) in enumerate(
                 self.event_loader(
-                    batch_size=batch_size,
-                    start=start_event,
-                    include_nuisance_parameters=include_nuisance_parameters,
+                    batch_size=batch_size, start=start_event, include_nuisance_parameters=include_nuisance_parameters
                 )
             ):
                 if (i_batch + 1) % n_batches_verbose == 0:
@@ -870,9 +868,7 @@ class FisherInformation(DataAnalyzer):
             # ML main loop
             for i_batch, (observations, weights_benchmarks) in enumerate(
                 self.event_loader(
-                    batch_size=batch_size,
-                    start=start_event,
-                    include_nuisance_parameters=include_nuisance_parameters,
+                    batch_size=batch_size, start=start_event, include_nuisance_parameters=include_nuisance_parameters
                 )
             ):
                 if (i_batch + 1) % n_batches_verbose == 0:
