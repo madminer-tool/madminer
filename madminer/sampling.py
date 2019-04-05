@@ -1001,7 +1001,7 @@ class SampleAugmenter(DataAnalyzer):
         use_train_events=True,
         test_split=0.2,
         verbose="some",
-        n_workers=None,
+        n_workers=1,
         update_patience=0.1
     ):
         """
@@ -1043,7 +1043,7 @@ class SampleAugmenter(DataAnalyzer):
 
         n_workers : None or int, optional
             If None or larger than 1, MadMiner will use multiprocessing to parallelize the sampling. In this case,
-            n_workers sets the number of jobs running in parallel, and None will use the number of CPUs.
+            n_workers sets the number of jobs running in parallel, and None will use the number of CPUs. Default value: 1.
 
         update_patience : float, optional
             Wait time between log updates with n_workers > 1 (or None).
