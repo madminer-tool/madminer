@@ -243,6 +243,9 @@ def load_madminer_settings(filename, include_nuisance_benchmarks=False):
 def madminer_event_loader(
     filename, start=0, end=None, batch_size=100000, include_nuisance_parameters=True, benchmark_is_nuisance=None
 ):
+    if start is None:
+        start = 0
+
     # Nuisance parameter filtering
     if not include_nuisance_parameters:
         if benchmark_is_nuisance is None:

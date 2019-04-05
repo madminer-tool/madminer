@@ -1,6 +1,5 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-import six
 import numpy as np
 from matplotlib import pyplot as plt
 import matplotlib
@@ -8,9 +7,8 @@ from matplotlib import gridspec
 import logging
 
 from madminer.sampling import SampleAugmenter
-from madminer.utils.analysis import mdot, get_theta_benchmark_matrix
-from madminer.morphing import NuisanceMorpher
-from madminer.utils.various import weighted_quantile, sanitize_array, shuffle
+from madminer.utils.morphing import NuisanceMorpher
+from madminer.utils.various import weighted_quantile, sanitize_array, shuffle, mdot
 
 logger = logging.getLogger(__name__)
 
@@ -93,11 +91,11 @@ def plot_uncertainty(
     obs_idx = list(sa.observables.keys()).index(observable)
 
     # Get event data (observations and weights)
-    x, weights_benchmarks = sa.extract_raw_data()
+    x, weights_benchmarks = sa.weighted_events()
     x = x[:, obs_idx]
 
     # Theta matrix
-    theta_matrix = get_theta_benchmark_matrix("morphing", theta, sa.benchmarks, sa.morpher)
+    theta_matrix = sa._get_theta_benchmark_matrix(theta)
     weights = mdot(theta_matrix, weights_benchmarks)
 
     # Remove negative weights
@@ -412,7 +410,7 @@ def plot_distributions(
         observable_labels = [all_observables[obs] for obs in observable_indices]
 
     # Get event data (observations and weights)
-    x, weights_benchmarks = sa.extract_raw_data()
+    x, weights_benchmarks = sa.weighted_events()
     logger.debug("Loaded raw data with shapes %s, %s", x.shape, weights_benchmarks.shape)
 
     # Remove negative weights
@@ -443,14 +441,7 @@ def plot_distributions(
     if draw_nuisance_toys is not None:
         n_nuisance_toys_drawn = draw_nuisance_toys
 
-    theta_matrices = []
-    for theta in parameter_points:
-        if isinstance(theta, six.string_types):
-            matrix = get_theta_benchmark_matrix("benchmark", theta, sa.benchmarks)
-        else:
-            matrix = get_theta_benchmark_matrix("morphing", theta, sa.benchmarks, sa.morpher)
-        theta_matrices.append(matrix)
-
+    theta_matrices = [sa._get_theta_benchmark_matrix(theta) for theta in parameter_points]
     logger.debug("Calculated %s theta matrices", len(theta_matrices))
 
     # Nuisance parameters
@@ -611,8 +602,8 @@ def plot_2d_morphing_basis(
 
     Parameters
     ----------
-    morpher : Morpher
-        Morpher instance with defined basis.
+    morpher : PhysicsMorpher
+        PhysicsMorpher instance with defined basis.
 
     xlabel : str, optional
         Label for the x axis. Default value: r'$\theta_0$'.
@@ -682,8 +673,8 @@ def plot_nd_morphing_basis_scatter(morpher, crange=(1.0, 100.0), n_test_thetas=1
 
     Parameters
     ----------
-    morpher : Morpher
-        Morpher instance with defined basis.
+    morpher : PhysicsMorpher
+        PhysicsMorpher instance with defined basis.
 
     crange : tuple of float, optional
         Range `(min, max)` for the color map. Default value: (1. 100.).
@@ -741,8 +732,8 @@ def plot_nd_morphing_basis_slices(morpher, crange=(1.0, 100.0), resolution=50):
 
     Parameters
     ----------
-    morpher : Morpher
-        Morpher instance with defined basis.
+    morpher : PhysicsMorpher
+        PhysicsMorpher instance with defined basis.
 
     crange : tuple of float, optional
         Range `(min, max)` for the color map.
@@ -1091,7 +1082,6 @@ def plot_fisherinfo_barplot(
 
     if eigenvalue_colors is None:
         eigenvalue_colors = ["C{}".format(str(i)) for i in range(10)]
-    operator_order = [i for i in range(0, size_upper)]
     eigenvalue_linewidth = 1.5
 
     # Upper plot
@@ -1134,7 +1124,7 @@ def plot_fisherinfo_barplot(
     ax1.set_ylim(0.0001 * y_max, 2.0 * y_max)
 
     ax1.set_xticks(xpos_ticks)
-    ax1.set_xticklabels(["" for l in labels], rotation=40, ha="right")
+    ax1.set_xticklabels(["" for _ in labels], rotation=40, ha="right")
     ax1.set_ylabel(r"$I_{ij}$ eigenvalues")
 
     # Lower plot

@@ -2,177 +2,17 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import logging
 import numpy as np
-import six
 import os
 
-from madminer.utils.interfaces.madminer_hdf5 import load_madminer_settings, madminer_event_loader
-from madminer.utils.analysis import get_theta_benchmark_matrix, get_dtheta_benchmark_matrix, mdot
-from madminer.morphing import Morpher, NuisanceMorpher
-from madminer.utils.various import format_benchmark, math_commands, weighted_quantile, sanitize_array
-from madminer.ml import MLForge, EnsembleForge
+from madminer.analysis import DataAnalyzer
+from madminer.utils.various import math_commands, weighted_quantile, sanitize_array, mdot
+from madminer.utils.various import separate_information_blocks
+from madminer.ml import ScoreEstimator, Ensemble
 
 logger = logging.getLogger(__name__)
 
 
-def project_information(fisher_information, remaining_components, covariance=None):
-    """
-    Calculates projections of a Fisher information matrix, that is, "deletes" the rows and columns corresponding to
-    some parameters not of interest.
-
-    Parameters
-    ----------
-    fisher_information : ndarray
-        Original n x n Fisher information.
-
-    remaining_components : list of int
-        List with m entries, each an int with 0 <= remaining_compoinents[i] < n. Denotes which parameters are kept, and
-        their new order. All other parameters or projected out.
-
-    covariance : ndarray or None, optional
-        The covariance matrix of the original Fisher information with shape (n, n, n, n). If None, the error on the
-        profiled information is not calculated. Default value: None.
-
-    Returns
-    -------
-    projected_fisher_information : ndarray
-        Projected m x m Fisher information, where the `i`-th row or column corresponds to the
-        `remaining_components[i]`-th row or column of fisher_information.
-
-    profiled_fisher_information_covariance : ndarray
-        Covariance matrix of the projected Fisher information matrix with shape (m, m, m, m). Only returned if
-        covariance is not None.
-
-    """
-    n_new = len(remaining_components)
-    fisher_information_new = np.zeros([n_new, n_new])
-
-    # Project information
-    for xnew, xold in enumerate(remaining_components):
-        for ynew, yold in enumerate(remaining_components):
-            fisher_information_new[xnew, ynew] = fisher_information[xold, yold]
-
-    # Project covariance matrix
-    if covariance is not None:
-        covariance_new = np.zeros([n_new, n_new, n_new, n_new])
-        for xnew, xold in enumerate(remaining_components):
-            for ynew, yold in enumerate(remaining_components):
-                for znew, zold in enumerate(remaining_components):
-                    for zznew, zzold in enumerate(remaining_components):
-                        covariance_new[xnew, ynew, znew, zznew] = covariance[xold, yold, zold, zzold]
-
-        return fisher_information_new, covariance_new
-
-    return fisher_information_new
-
-
-def profile_information(
-    fisher_information,
-    remaining_components,
-    covariance=None,
-    error_propagation_n_ensemble=1000,
-    error_propagation_factor=1.0e-3,
-):
-    """
-    Calculates the profiled Fisher information matrix as defined in Appendix A.4 of arXiv:1612.05261.
-
-    Parameters
-    ----------
-    fisher_information : ndarray
-        Original n x n Fisher information.
-
-    remaining_components : list of int
-        List with m entries, each an int with 0 <= remaining_compoinents[i] < n. Denotes which parameters are kept, and
-        their new order. All other parameters or profiled out.
-
-    covariance : ndarray or None, optional
-        The covariance matrix of the original Fisher information with shape (n, n, n, n). If None, the error on the
-        profiled information is not calculated. Default value: None.
-
-    error_propagation_n_ensemble : int, optional
-        If covariance is not None, this sets the number of Fisher information matrices drawn from a normal distribution
-        for the Monte-Carlo error propagation. Default value: 1000.
-
-    error_propagation_factor : float, optional
-        If covariance is not None, this factor multiplies the covariance of the distribution of Fisher information
-        matrices. Smaller factors can avoid problems with ill-behaved Fisher information matrices. Default value: 1.e-3.
-
-    Returns
-    -------
-    profiled_fisher_information : ndarray
-        Profiled m x m Fisher information, where the `i`-th row or column corresponds to the
-        `remaining_components[i]`-th row or column of fisher_information.
-
-    profiled_fisher_information_covariance : ndarray
-        Covariance matrix of the profiled Fishere information matrix with shape (m, m, m, m).
-
-    """
-
-    logger.debug("Profiling Fisher information")
-
-    # Group components
-    n_components = len(fisher_information)
-    n_remaining_components = len(remaining_components)
-
-    remaining_components_checked = []
-    profiled_components = []
-
-    for i in range(n_components):
-        if i in remaining_components:
-            remaining_components_checked.append(i)
-        else:
-            profiled_components.append(i)
-
-    assert n_remaining_components == len(remaining_components_checked), "Inconsistent input"
-
-    # Error propagation
-    if covariance is not None:
-        # Central value
-        profiled_information = profile_information(
-            fisher_information, remaining_components=remaining_components, covariance=None
-        )
-
-        # Draw toys
-        information_toys = np.random.multivariate_normal(
-            mean=fisher_information.reshape((-1,)),
-            cov=error_propagation_factor * covariance.reshape(n_components ** 2, n_components ** 2),
-            size=error_propagation_n_ensemble,
-        )
-        information_toys = information_toys.reshape(-1, n_components, n_components)
-
-        # Profile each toy
-        profiled_information_toys = np.array(
-            [
-                profile_information(info, remaining_components=remaining_components, covariance=None)
-                for info in information_toys
-            ]
-        )
-
-        # Calculate ensemble covariance
-        toy_covariance = np.cov(profiled_information_toys.reshape(-1, n_remaining_components ** 2).T)
-        toy_covariance = toy_covariance.reshape(
-            (n_remaining_components, n_remaining_components, n_remaining_components, n_remaining_components)
-        )
-        profiled_information_covariance = toy_covariance / error_propagation_factor
-
-        # Cross-check: toy mean
-        toy_mean = np.mean(profiled_information_toys, axis=0)
-        logger.debug("Central Fisher info:\n%s\nToy mean Fisher info:\n%s", profiled_information, toy_mean)
-
-        return profiled_information, profiled_information_covariance
-
-    # Separate Fisher information parts
-    information_phys = fisher_information[remaining_components, :][:, remaining_components]
-    information_mix = fisher_information[profiled_components, :][:, remaining_components]
-    information_nuisance = fisher_information[profiled_components, :][:, profiled_components]
-
-    # Calculate profiled information
-    inverse_information_nuisance = np.linalg.inv(information_nuisance)
-    profiled_information = information_phys - information_mix.T.dot(inverse_information_nuisance.dot(information_mix))
-
-    return profiled_information
-
-
-class FisherInformation:
+class FisherInformation(DataAnalyzer):
     """
     Functions to calculate expected Fisher information matrices.
 
@@ -208,83 +48,7 @@ class FisherInformation:
     """
 
     def __init__(self, filename, include_nuisance_parameters=True):
-        # Save settings
-        self.madminer_filename = filename
-        self.include_nuisance_parameters = include_nuisance_parameters
-
-        logger.info("Loading data from %s", filename)
-
-        # Load data
-        (
-            self.parameters,
-            self.benchmarks,
-            self.benchmark_is_nuisance,
-            self.morphing_components,
-            self.morphing_matrix,
-            self.observables,
-            self.n_samples,
-            _,
-            self.reference_benchmark,
-            self.nuisance_parameters,
-        ) = load_madminer_settings(filename, include_nuisance_benchmarks=include_nuisance_parameters)
-        self.n_parameters = len(self.parameters)
-        self.n_benchmarks = len(self.benchmarks)
-        self.n_benchmarks_phys = np.sum(np.logical_not(self.benchmark_is_nuisance))
-
-        self.n_nuisance_parameters = 0
-        if self.nuisance_parameters is not None and include_nuisance_parameters:
-            self.n_nuisance_parameters = len(self.nuisance_parameters)
-        else:
-            self.nuisance_parameters = None
-
-        logger.info("Found %s parameters", len(self.parameters))
-        for key, values in six.iteritems(self.parameters):
-            logger.debug(
-                "   %s (LHA: %s %s, maximal power in squared ME: %s, range: %s)",
-                key,
-                values[0],
-                values[1],
-                values[2],
-                values[3],
-            )
-
-        if self.nuisance_parameters is not None and include_nuisance_parameters:
-            logger.info("Found %s nuisance parameters", self.n_nuisance_parameters)
-            for key, values in six.iteritems(self.nuisance_parameters):
-                logger.debug("   %s (%s)", key, values)
-        elif include_nuisance_parameters:
-            self.include_nuisance_parameters = False
-            logger.warning("Did not find nuisance parameters!")
-
-        logger.info("Found %s benchmarks, of which %s physical", self.n_benchmarks, self.n_benchmarks_phys)
-        for (key, values), is_nuisance in zip(six.iteritems(self.benchmarks), self.benchmark_is_nuisance):
-            if is_nuisance:
-                logger.debug("   %s: nuisance parameter", key)
-            else:
-                logger.debug("   %s: %s", key, format_benchmark(values))
-
-        logger.info("Found %s observables: %s", len(self.observables), ", ".join(self.observables))
-        logger.info("Found %s events", self.n_samples)
-
-        # Morphing
-        self.morpher = None
-        if self.morphing_matrix is not None and self.morphing_components is not None:
-            self.morpher = Morpher(self.parameters)
-            self.morpher.set_components(self.morphing_components)
-            self.morpher.set_basis(self.benchmarks, morphing_matrix=self.morphing_matrix)
-
-            logger.info("Found morphing setup with %s components", len(self.morphing_components))
-
-        else:
-            raise RuntimeError("Did not find morphing setup.")
-
-        # Nuisance morphing
-        self.nuisance_morpher = None
-        if self.include_nuisance_parameters:
-            self.nuisance_morpher = NuisanceMorpher(
-                self.nuisance_parameters, list(self.benchmarks.keys()), self.reference_benchmark
-            )
-            logger.info("Found nuisance morphing setup")
+        super(FisherInformation, self).__init__(filename, False, include_nuisance_parameters)
 
     def calculate_fisher_information_full_truth(
         self, theta, luminosity=300000.0, cuts=None, efficiency_functions=None, include_nuisance_parameters=True
@@ -339,9 +103,7 @@ class FisherInformation:
         fisher_info = np.zeros((n_all_parameters, n_all_parameters))
         covariance = np.zeros((n_all_parameters, n_all_parameters, n_all_parameters, n_all_parameters))
 
-        for observations, weights in madminer_event_loader(
-            self.madminer_filename, include_nuisance_parameters=include_nuisance_parameters
-        ):
+        for observations, weights in self.event_loader():
             # Cuts
             cut_filter = [self._pass_cuts(obs_event, cuts) for obs_event in observations]
             observations = observations[cut_filter]
@@ -375,10 +137,9 @@ class FisherInformation:
         luminosity=300000.0,
         include_xsec_info=True,
         mode="score",
-        uncertainty="ensemble",
-        ensemble_vote_expectation_weight=None,
+        calculate_covariance=True,
         batch_size=100000,
-        test_split=0.5,
+        test_split=0.2,
     ):
         """
         Calculates the full Fisher information in realistic detector-level observations, estimated with neural networks.
@@ -393,7 +154,7 @@ class FisherInformation:
 
         model_file : str
             Filename of a trained local score regression model that was trained on samples from `theta` (see
-            `madminer.ml.MLForge`).
+            `madminer.ml.Estimator`).
 
         unweighted_x_sample_file : str or None
             Filename of an unweighted x sample that is sampled according to theta and obeys the cuts
@@ -412,24 +173,15 @@ class FisherInformation:
             are the sample mean and covariance calculated. If mode is "score", the sample mean is
             calculated for the score for each event. Default value: "score".
 
-        uncertainty : {"ensemble", "expectation", "sum"}, optional
-            How the covariance matrix of the Fisher information estimate is calculated. With "ensemble", the ensemble
-            covariance is used. With "expectation", the expectation of the score is used as a measure of the uncertainty
-            of the score estimator, and this uncertainty is propagated through to the covariance matrix. With "sum",
-            both terms are summed. Default value: "ensemble".
-
-        ensemble_vote_expectation_weight : float or list of float or None, optional
-            For ensemble models, the factor that determines how much more weight is given to those estimators with small
-            expectation value. If a list is given, results are returned for each element in the list. If None, or if
-            `EnsembleForge.calculate_expectation()` has not been called, all estimators are treated equal. Default
-            value: None.
+        calculate_covariance : bool, optional
+            If True, the covariance between the different estimators is calculated. Default value: True.
 
         batch_size : int, optional
             Batch size. Default value: 100000.
 
         test_split : float or None, optional
             If unweighted_x_sample_file is None, this determines the fraction of weighted events used for evaluation.
-            If None, all events are used (this will probably include events used during training!). Default value: 0.5.
+            If None, all events are used (this will probably include events used during training!). Default value: 0.2.
 
         Returns
         -------
@@ -451,13 +203,13 @@ class FisherInformation:
             raise ValueError("Unknown mode {}, has to be 'score' or 'information'!".format(mode))
 
         # Load SALLY model
-        if os.path.isdir(model_file):
+        if os.path.isdir(model_file) and os.path.exists(model_file + "/ensemble.json"):
             model_is_ensemble = True
-            model = EnsembleForge()
+            model = Ensemble()
             model.load(model_file)
         else:
             model_is_ensemble = False
-            model = MLForge()
+            model = ScoreEstimator()
             model.load(model_file)
 
         # Nuisance parameters?
@@ -519,7 +271,7 @@ class FisherInformation:
                 total_sum_weights_theta = total_xsec
 
             # Theta morphing matrix
-            theta_matrix = get_theta_benchmark_matrix("morphing", theta, self.benchmarks, self.morpher)
+            theta_matrix = self._get_theta_benchmark_matrix(theta)
 
             # Prepare output
             fisher_info_kin = None
@@ -530,11 +282,8 @@ class FisherInformation:
             n_batches_verbose = max(int(round(n_batches / 10, 0)), 1)
 
             for i_batch, (observations, weights_benchmarks) in enumerate(
-                madminer_event_loader(
-                    self.madminer_filename,
-                    batch_size=batch_size,
-                    start=start_event,
-                    include_nuisance_parameters=include_nuisance_parameters,
+                self.event_loader(
+                    batch_size=batch_size, start=start_event, include_nuisance_parameters=include_nuisance_parameters
                 )
             ):
                 if (i_batch + 1) % n_batches_verbose == 0:
@@ -550,9 +299,8 @@ class FisherInformation:
                         x=observations,
                         obs_weights=weights_theta,
                         n_events=luminosity * total_xsec * np.sum(weights_theta) / total_sum_weights_theta,
-                        vote_expectation_weight=ensemble_vote_expectation_weight,
+                        calculate_covariance=calculate_covariance,
                         mode=mode,
-                        uncertainty=uncertainty,
                     )
                 else:
                     this_fisher_info = model.calculate_fisher_information(
@@ -584,30 +332,20 @@ class FisherInformation:
         else:
             if model_is_ensemble:
                 fisher_info_kin, covariance = model.calculate_fisher_information(
-                    unweighted_x_sample_file,
+                    x=unweighted_x_sample_file,
                     n_events=luminosity * total_xsec,
-                    vote_expectation_weight=ensemble_vote_expectation_weight,
                     mode=mode,
-                    uncertainty=uncertainty,
+                    calculate_covariance=calculate_covariance,
                 )
             else:
                 fisher_info_kin = model.calculate_fisher_information(
-                    unweighted_x_sample_file, n_events=luminosity * total_xsec
+                    x=unweighted_x_sample_file, n_events=luminosity * total_xsec
                 )
                 covariance = None
 
         # Returns
         if model_is_ensemble:
-            if isinstance(ensemble_vote_expectation_weight, list) and len(ensemble_vote_expectation_weight) > 1:
-                fisher_info_results = [
-                    fisher_info_rate + this_fisher_info_kin for this_fisher_info_kin in fisher_info_kin
-                ]
-                covariance_results = [rate_covariance + this_covariance for this_covariance in covariance]
-
-                return fisher_info_results, covariance_results
-
-            else:
-                return fisher_info_rate + fisher_info_kin, rate_covariance + covariance
+            return fisher_info_rate + fisher_info_kin, rate_covariance + covariance
 
         return fisher_info_rate + fisher_info_kin, rate_covariance
 
@@ -754,7 +492,7 @@ class FisherInformation:
         weights_benchmarks = np.zeros((n_bins_total, self.n_benchmarks))
         weights_squared_benchmarks = np.zeros((n_bins_total, self.n_benchmarks))
 
-        for observations, weights in madminer_event_loader(self.madminer_filename):
+        for observations, weights in self.event_loader():
             # Cuts
             cut_filter = [self._pass_cuts(obs_event, cuts) for obs_event in observations]
             observations = observations[cut_filter]
@@ -901,7 +639,7 @@ class FisherInformation:
         weights_benchmarks = np.zeros((n_bins1_total, n_bins2_total, self.n_benchmarks))
         weights_squared_benchmarks = np.zeros((n_bins1_total, n_bins2_total, self.n_benchmarks))
 
-        for observations, weights in madminer_event_loader(self.madminer_filename):
+        for observations, weights in self.event_loader():
             # Cuts
             cut_filter = [self._pass_cuts(obs_event, cuts) for obs_event in observations]
             observations = observations[cut_filter]
@@ -963,7 +701,7 @@ class FisherInformation:
         cuts=None,
         efficiency_functions=None,
         batch_size=100000,
-        test_split=0.5,
+        test_split=0.2,
     ):
         """
         Calculates the full and rate-only Fisher information in slices of one observable. For the full
@@ -987,7 +725,8 @@ class FisherInformation:
 
         model_file : str or None, optional
             If None, the truth-level Fisher information is calculated. If str, filename of a trained local score
-            regression model that was trained on samples from `theta` (see `madminer.ml.MLForge`). Default value: None.
+            regression model that was trained on samples from `theta` (see `madminer.ml.Estimator`). Default value:
+            None.
 
         luminosity : float, optional
             Luminosity in pb^-1. Default value: 300000.
@@ -1006,7 +745,7 @@ class FisherInformation:
         test_split : float or None, optional
             If model_file is not None: If unweighted_x_sample_file is None, this determines the fraction of weighted
             events used for evaluation.
-            If None, all events are used (this will probably include events used during training!). Default value: 0.5.
+            If None, all events are used (this will probably include events used during training!). Default value: 0.2.
 
 
         Returns
@@ -1033,7 +772,7 @@ class FisherInformation:
             efficiency_functions = []
 
         # Theta morphing matrix
-        theta_matrix = get_theta_benchmark_matrix("morphing", theta, self.benchmarks, self.morpher)
+        theta_matrix = self._get_theta_benchmark_matrix(theta)
 
         # Number of bins
         n_bins_total = nbins + 2
@@ -1045,7 +784,7 @@ class FisherInformation:
 
         # Main loop: truth-level case
         if model_file is None:
-            for observations, weights in madminer_event_loader(self.madminer_filename):
+            for observations, weights in self.event_loader():
                 # Cuts
                 cut_filter = [self._pass_cuts(obs_event, cuts) for obs_event in observations]
                 observations = observations[cut_filter]
@@ -1081,13 +820,13 @@ class FisherInformation:
         # ML case
         else:
             # Load SALLY model
-            if os.path.isdir(model_file):
+            if os.path.isdir(model_file) and os.path.exists(model_file + "/ensemble.json"):
                 model_is_ensemble = True
-                model = EnsembleForge()
+                model = Ensemble()
                 model.load(model_file)
             else:
                 model_is_ensemble = False
-                model = MLForge()
+                model = ScoreEstimator()
                 model.load(model_file)
 
             # Nuisance parameters?
@@ -1128,11 +867,8 @@ class FisherInformation:
 
             # ML main loop
             for i_batch, (observations, weights_benchmarks) in enumerate(
-                madminer_event_loader(
-                    self.madminer_filename,
-                    batch_size=batch_size,
-                    start=start_event,
-                    include_nuisance_parameters=include_nuisance_parameters,
+                self.event_loader(
+                    batch_size=batch_size, start=start_event, include_nuisance_parameters=include_nuisance_parameters
                 )
             ):
                 if (i_batch + 1) % n_batches_verbose == 0:
@@ -1160,7 +896,7 @@ class FisherInformation:
                         obs_weights=weights_theta,
                         n_events=luminosity * np.sum(weights_theta),
                         mode="score",
-                        uncertainty="none",
+                        calculate_covariance=False,
                         sum_events=False,
                     )
                 else:
@@ -1224,69 +960,6 @@ class FisherInformation:
         diagonal = np.array([0.0 for _ in range(self.n_parameters)] + [1.0 for _ in range(self.n_nuisance_parameters)])
         return np.diag(diagonal)
 
-    def extract_raw_data(self, theta=None):
-
-        """
-        Returns all events together with the benchmark weights (if theta is None) or weights for a given theta.
-
-        Parameters
-        ----------
-        theta : None or ndarray, optional
-            If None, the function returns the benchmark weights. Otherwise it uses morphing to calculate the weights for
-            this value of theta. Default value: None.
-
-        Returns
-        -------
-        x : ndarray
-            Observables with shape `(n_unweighted_samples, n_observables)`.
-
-        weights : ndarray
-            If theta is None, benchmark weights with shape  `(n_unweighted_samples, n_benchmarks_phys)` in pb. Otherwise,
-            weights for the given parameter theta with shape `(n_unweighted_samples,)` in pb.
-
-        """
-
-        x, weights_benchmarks = next(madminer_event_loader(self.madminer_filename, batch_size=None))
-
-        if theta is not None:
-            theta_matrix = get_theta_benchmark_matrix("morphing", theta, self.benchmarks, self.morpher)
-
-            weights_theta = mdot(theta_matrix, weights_benchmarks)
-
-            return x, weights_theta
-
-        return x, weights_benchmarks
-
-    def extract_observables_and_weights(self, thetas):
-        """
-        Extracts observables and weights for given parameter points.
-
-        Parameters
-        ----------
-        thetas : ndarray
-            Parameter points, with shape `(n_thetas, n_parameters)`.
-
-        Returns
-        -------
-        x : ndarray
-            Observations `x` with shape `(n_events, n_observables)`.
-
-        weights : ndarray
-            Weights `dsigma(x|theta)` in pb with shape `(n_thetas, n_events)`.
-
-        """
-
-        x, weights_benchmarks = next(madminer_event_loader(self.madminer_filename, batch_size=None))
-
-        weights_thetas = []
-        for theta in thetas:
-            theta_matrix = get_theta_benchmark_matrix("morphing", theta, self.benchmarks, self.morpher)
-            weights_thetas.append(mdot(theta_matrix, weights_benchmarks))
-
-        weights_thetas = np.array(weights_thetas)
-
-        return x, weights_thetas
-
     def _calculate_fisher_information(
         self,
         theta,
@@ -1343,13 +1016,11 @@ class FisherInformation:
 
         """
 
+        include_nuisance_parameters = include_nuisance_parameters and self.include_nuisance_parameters
+
         # Get morphing matrices
-        theta_matrix = get_theta_benchmark_matrix(
-            "morphing", theta, self.benchmarks, self.morpher
-        )  # (n_benchmarks_phys,)
-        dtheta_matrix = get_dtheta_benchmark_matrix(
-            "morphing", theta, self.benchmarks, self.morpher
-        )  # (n_parameters, n_benchmarks_phys)
+        theta_matrix = self._get_theta_benchmark_matrix(theta, zero_pad=False)  # (n_benchmarks_phys,)
+        dtheta_matrix = self._get_dtheta_benchmark_matrix(theta, zero_pad=False)  # (n_parameters, n_benchmarks_phys)
 
         # Get differential xsec per event, and the derivative wrt to theta
         sigma = mdot(theta_matrix, weights_benchmarks)  # Shape (n_events,)
@@ -1361,7 +1032,7 @@ class FisherInformation:
         fisher_info_phys = luminosity * np.einsum("n,in,jn->nij", inv_sigma, dsigma, dsigma)
 
         # Nuisance parameter Fisher info
-        if include_nuisance_parameters and self.include_nuisance_parameters:
+        if include_nuisance_parameters:
             nuisance_a = self.nuisance_morpher.calculate_a(weights_benchmarks)  # Shape (n_nuisance_params, n_events)
             # grad_i dsigma(x), where i is a nuisance parameter, is given by
             # sigma[np.newaxis, :] * a
@@ -1383,10 +1054,12 @@ class FisherInformation:
 
         # Error propagation
         if calculate_uncertainty:
-            weights_benchmarks_phys = weights_benchmarks[:, np.logical_not(self.benchmark_is_nuisance)]
+            if weights_benchmarks.shape[1] > self.n_benchmarks_phys:
+                weights_benchmarks_phys = weights_benchmarks[:, np.logical_not(self.benchmark_is_nuisance)]
+            else:
+                weights_benchmarks_phys = weights_benchmarks
 
             n_events = weights_benchmarks_phys.shape[0]
-            n_benchmarks_phys = weights_benchmarks_phys.shape[1]
 
             # Input uncertainties
             if weights_benchmark_uncertainties is None:
@@ -1394,10 +1067,10 @@ class FisherInformation:
 
             # Build covariance matrix of inputs
             # We assume full correlation between weights_benchmarks[i, b1] and weights_benchmarks[i, b2]
-            covariance_inputs = np.zeros((n_events, n_benchmarks_phys, n_benchmarks_phys))
+            covariance_inputs = np.zeros((n_events, self.n_benchmarks_phys, self.n_benchmarks_phys))
             for i in range(n_events):
-                for b1 in range(n_benchmarks_phys):
-                    for b2 in range(n_benchmarks_phys):
+                for b1 in range(self.n_benchmarks_phys):
+                    for b2 in range(self.n_benchmarks_phys):
 
                         if b1 == b2:  # Diagonal
                             covariance_inputs[i, b1, b2] = weights_benchmark_uncertainties[i, b1] ** 2
@@ -1611,8 +1284,8 @@ class FisherInformation:
         xsecs_benchmarks = None
         xsecs_uncertainty_benchmarks = None
 
-        for observations, weights in madminer_event_loader(
-            self.madminer_filename, start=start_event, include_nuisance_parameters=include_nuisance_parameters
+        for observations, weights in self.event_loader(
+            start=start_event, include_nuisance_parameters=include_nuisance_parameters
         ):
             # Cuts
             cut_filter = [self._pass_cuts(obs_event, cuts) for obs_event in observations]
@@ -1645,7 +1318,7 @@ class FisherInformation:
             return xsecs_benchmarks
 
         # Translate to xsec for theta
-        theta_matrix = get_theta_benchmark_matrix("morphing", theta, self.benchmarks, self.morpher)
+        theta_matrix = self._get_theta_benchmark_matrix(theta)
         xsec = mdot(theta_matrix, xsecs_benchmarks)
         xsec_error = mdot(theta_matrix, xsecs_uncertainty_benchmarks)
 
@@ -1669,7 +1342,7 @@ class FisherInformation:
         quantile_values = np.linspace(0.0, 1.0, n_bins + 1)
 
         # Get data
-        x_pilot, weights_pilot = next(madminer_event_loader(self.madminer_filename, batch_size=n_events))
+        x_pilot, weights_pilot = next(self.event_loader(batch_size=n_events))
 
         # Cuts
         cut_filter = [self._pass_cuts(x, cuts) for x in x_pilot]
@@ -1684,7 +1357,7 @@ class FisherInformation:
         histo_observables_pilot = np.asarray([self._eval_observable(x, observable) for x in x_pilot])
 
         # Weights at theta
-        theta_matrix = get_theta_benchmark_matrix("morphing", theta, self.benchmarks, self.morpher)
+        theta_matrix = self._get_theta_benchmark_matrix(theta)
         weight_theta_pilot = mdot(theta_matrix, weights_pilot)
 
         # Bin boundaries
@@ -1692,3 +1365,147 @@ class FisherInformation:
         bin_boundaries = bin_boundaries[1:-1]
 
         return bin_boundaries
+
+
+def project_information(fisher_information, remaining_components, covariance=None):
+    """
+    Calculates projections of a Fisher information matrix, that is, "deletes" the rows and columns corresponding to
+    some parameters not of interest.
+
+    Parameters
+    ----------
+    fisher_information : ndarray
+        Original n x n Fisher information.
+
+    remaining_components : list of int
+        List with m entries, each an int with 0 <= remaining_compoinents[i] < n. Denotes which parameters are kept, and
+        their new order. All other parameters or projected out.
+
+    covariance : ndarray or None, optional
+        The covariance matrix of the original Fisher information with shape (n, n, n, n). If None, the error on the
+        profiled information is not calculated. Default value: None.
+
+    Returns
+    -------
+    projected_fisher_information : ndarray
+        Projected m x m Fisher information, where the `i`-th row or column corresponds to the
+        `remaining_components[i]`-th row or column of fisher_information.
+
+    profiled_fisher_information_covariance : ndarray
+        Covariance matrix of the projected Fisher information matrix with shape (m, m, m, m). Only returned if
+        covariance is not None.
+
+    """
+    n_new = len(remaining_components)
+    fisher_information_new = np.zeros([n_new, n_new])
+
+    # Project information
+    for xnew, xold in enumerate(remaining_components):
+        for ynew, yold in enumerate(remaining_components):
+            fisher_information_new[xnew, ynew] = fisher_information[xold, yold]
+
+    # Project covariance matrix
+    if covariance is not None:
+        covariance_new = np.zeros([n_new, n_new, n_new, n_new])
+        for xnew, xold in enumerate(remaining_components):
+            for ynew, yold in enumerate(remaining_components):
+                for znew, zold in enumerate(remaining_components):
+                    for zznew, zzold in enumerate(remaining_components):
+                        covariance_new[xnew, ynew, znew, zznew] = covariance[xold, yold, zold, zzold]
+
+        return fisher_information_new, covariance_new
+
+    return fisher_information_new
+
+
+def profile_information(
+    fisher_information,
+    remaining_components,
+    covariance=None,
+    error_propagation_n_ensemble=1000,
+    error_propagation_factor=1.0e-3,
+):
+    """
+    Calculates the profiled Fisher information matrix as defined in Appendix A.4 of arXiv:1612.05261.
+
+    Parameters
+    ----------
+    fisher_information : ndarray
+        Original n x n Fisher information.
+
+    remaining_components : list of int
+        List with m entries, each an int with 0 <= remaining_compoinents[i] < n. Denotes which parameters are kept, and
+        their new order. All other parameters or profiled out.
+
+    covariance : ndarray or None, optional
+        The covariance matrix of the original Fisher information with shape (n, n, n, n). If None, the error on the
+        profiled information is not calculated. Default value: None.
+
+    error_propagation_n_ensemble : int, optional
+        If covariance is not None, this sets the number of Fisher information matrices drawn from a normal distribution
+        for the Monte-Carlo error propagation. Default value: 1000.
+
+    error_propagation_factor : float, optional
+        If covariance is not None, this factor multiplies the covariance of the distribution of Fisher information
+        matrices. Smaller factors can avoid problems with ill-behaved Fisher information matrices. Default value: 1.e-3.
+
+    Returns
+    -------
+    profiled_fisher_information : ndarray
+        Profiled m x m Fisher information, where the `i`-th row or column corresponds to the
+        `remaining_components[i]`-th row or column of fisher_information.
+
+    profiled_fisher_information_covariance : ndarray
+        Covariance matrix of the profiled Fishere information matrix with shape (m, m, m, m).
+
+    """
+
+    logger.debug("Profiling Fisher information")
+    n_components = len(fisher_information)
+    n_remaining_components = len(remaining_components)
+
+    _, information_phys, information_mix, information_nuisance = separate_information_blocks(
+        fisher_information, remaining_components
+    )
+
+    # Error propagation
+    if covariance is not None:
+        # Central value
+        profiled_information = profile_information(
+            fisher_information, remaining_components=remaining_components, covariance=None
+        )
+
+        # Draw toys
+        information_toys = np.random.multivariate_normal(
+            mean=fisher_information.reshape((-1,)),
+            cov=error_propagation_factor * covariance.reshape(n_components ** 2, n_components ** 2),
+            size=error_propagation_n_ensemble,
+        )
+        information_toys = information_toys.reshape(-1, n_components, n_components)
+
+        # Profile each toy
+        profiled_information_toys = np.array(
+            [
+                profile_information(info, remaining_components=remaining_components, covariance=None)
+                for info in information_toys
+            ]
+        )
+
+        # Calculate ensemble covariance
+        toy_covariance = np.cov(profiled_information_toys.reshape(-1, n_remaining_components ** 2).T)
+        toy_covariance = toy_covariance.reshape(
+            (n_remaining_components, n_remaining_components, n_remaining_components, n_remaining_components)
+        )
+        profiled_information_covariance = toy_covariance / error_propagation_factor
+
+        # Cross-check: toy mean
+        toy_mean = np.mean(profiled_information_toys, axis=0)
+        logger.debug("Central Fisher info:\n%s\nToy mean Fisher info:\n%s", profiled_information, toy_mean)
+
+        return profiled_information, profiled_information_covariance
+
+    # Calculate profiled information
+    inverse_information_nuisance = np.linalg.inv(information_nuisance)
+    profiled_information = information_phys - information_mix.T.dot(inverse_information_nuisance.dot(information_mix))
+
+    return profiled_information

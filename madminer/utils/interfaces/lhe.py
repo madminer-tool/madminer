@@ -29,6 +29,8 @@ def parse_lhe_file(
     observables_defaults=None,
     cuts=None,
     cuts_default_pass=None,
+    efficiencies=None,
+    efficiencies_default_pass=None,
     benchmark_names=None,
     is_background=False,
     energy_resolutions=None,
@@ -67,6 +69,12 @@ def parse_lhe_file(
 
     if cuts_default_pass is None:
         cuts_default_pass = {key: False for key in six.iterkeys(cuts)}
+
+    if efficiencies is None:
+        efficiencies = OrderedDict()
+
+    if efficiencies_default_pass is None:
+        efficiencies_default_pass = {key: 1.0 for key in six.iterkeys(efficiencies)}
 
     # Untar and open LHE file
     root, filename = _untar_and_parse_lhe_file(filename)
@@ -126,6 +134,9 @@ def parse_lhe_file(
     pass_cuts = [0 for _ in cuts]
     fail_cuts = [0 for _ in cuts]
 
+    pass_efficiencies = [0 for _ in efficiencies]
+    fail_efficiencies = [0 for _ in efficiencies]
+    avg_efficiencies = [0 for _ in efficiencies]
     # Option one: XML parsing
     if parse_events_as_xml:
 
@@ -150,7 +161,7 @@ def parse_lhe_file(
 
             if weight_names_all_events is None:
                 weight_names_all_events = list(weights.keys())
-            weights = list(weights.values())
+            weights = np.array(list(weights.values()))
 
             # Apply smearing
             particles = _smear_particles(
@@ -162,13 +173,14 @@ def parse_lhe_file(
 
             # Calculate observables
             observations = []
+            pass_all_observation = True
             for obs_name, obs_definition in six.iteritems(observables):
                 if isinstance(obs_definition, six.string_types):
                     try:
                         observations.append(eval(obs_definition, variables))
                     except (SyntaxError, NameError, TypeError, ZeroDivisionError, IndexError):
                         if observables_required[obs_name]:
-                            continue
+                            pass_all_abservation = False
 
                         default = observables_defaults[obs_name]
                         if default is None:
@@ -179,12 +191,15 @@ def parse_lhe_file(
                         observations.append(obs_definition(particles))
                     except RuntimeError:
                         if observables_required[obs_name]:
-                            continue
+                            pass_all_abservation = False
 
                         default = observables_defaults[obs_name]
                         if default is None:
                             default = np.nan
                         observations.append(default)
+
+            if not pass_all_observation:
+                continue
 
             # Objects for cuts
             for obs_name, obs_value in zip(observables.keys(), observations):
@@ -209,6 +224,34 @@ def parse_lhe_file(
                         pass_all_cuts = False
 
             if not pass_all_cuts:
+                continue
+
+            # Apply efficiencies
+            pass_all_efficiencies = True
+            total_efficiency = 1.0
+            for i_efficiency, (efficiency, default_pass) in enumerate(zip(efficiencies, efficiencies_default_pass)):
+                try:
+                    efficiency_result = eval(efficiency, variables)
+                    if efficiency_result > 0.0:
+                        pass_efficiencies[i_efficiency] += 1
+                        total_efficiency *= efficiency_result
+                        avg_efficiencies[i_efficiency] += efficiency_result
+                    else:
+                        fail_efficiencies[i_efficiency] += 1
+                        pass_all_efficiencies = False
+
+                except (SyntaxError, NameError, TypeError, ZeroDivisionError, IndexError):
+                    if default_pass > 0.0:
+                        pass_efficiencies[i_efficiency] += 1
+                        total_efficiency *= default_pass
+                        avg_efficiencies[i_efficiency] += default_pass
+                    else:
+                        fail_efficiencies[i_efficiency] += 1
+                        pass_all_efficiencies = False
+
+            if pass_all_efficiencies:
+                weights *= total_efficiency
+            else:
                 continue
 
             # Store results
@@ -238,7 +281,7 @@ def parse_lhe_file(
 
             if weight_names_all_events is None:
                 weight_names_all_events = list(weights.keys())
-            weights = list(weights.values())
+            weights = np.array(list(weights.values()))
 
             # Apply smearing
             particles = _smear_particles(
@@ -250,13 +293,14 @@ def parse_lhe_file(
 
             # Calculate observables
             observations = []
+            pass_all_observation = True
             for obs_name, obs_definition in six.iteritems(observables):
                 if isinstance(obs_definition, six.string_types):
                     try:
                         observations.append(eval(obs_definition, variables))
                     except (SyntaxError, NameError, TypeError, ZeroDivisionError, IndexError):
                         if observables_required[obs_name]:
-                            continue
+                            pass_all_observation = False
 
                         default = observables_defaults[obs_name]
                         if default is None:
@@ -267,12 +311,15 @@ def parse_lhe_file(
                         observations.append(obs_definition(particles))
                     except RuntimeError:
                         if observables_required[obs_name]:
-                            continue
+                            pass_all_observation = False
 
                         default = observables_defaults[obs_name]
                         if default is None:
                             default = np.nan
                         observations.append(default)
+
+            if not pass_all_observation:
+                continue
 
             # Objects for cuts
             for obs_name, obs_value in zip(observables.keys(), observations):
@@ -299,6 +346,34 @@ def parse_lhe_file(
             if not pass_all_cuts:
                 continue
 
+            # Apply efficiencies
+            pass_all_efficiencies = True
+            total_efficiency = 1.0
+            for i_efficiency, (efficiency, default_pass) in enumerate(zip(efficiencies, efficiencies_default_pass)):
+                try:
+                    efficiency_result = eval(efficiency, variables)
+                    if efficiency_result > 0.0:
+                        pass_efficiencies[i_efficiency] += 1
+                        total_efficiency *= efficiency_result
+                        avg_efficiencies[i_efficiency] += efficiency_result
+                    else:
+                        fail_efficiencies[i_efficiency] += 1
+                        pass_all_efficiencies = False
+
+                except (SyntaxError, NameError, TypeError, ZeroDivisionError, IndexError):
+                    if default_pass > 0.0:
+                        pass_efficiencies[i_efficiency] += 1
+                        total_efficiency *= default_pass
+                        avg_efficiencies[i_efficiency] += default_pass
+                    else:
+                        fail_efficiencies[i_efficiency] += 1
+                        pass_all_efficiencies = False
+
+            if pass_all_efficiencies:
+                weights *= total_efficiency
+            else:
+                continue
+
             # Store results
             observations_all_events.append(observations)
             weights_all_events.append(weights)
@@ -306,9 +381,14 @@ def parse_lhe_file(
     # Check results
     for n_pass, n_fail, cut in zip(pass_cuts, fail_cuts, cuts):
         logger.debug("  %s / %s events pass cut %s", n_pass, n_pass + n_fail, cut)
+    for n_pass, n_fail, efficiency in zip(pass_efficiencies, fail_efficiencies, efficiencies):
+        logger.debug("  %s / %s events pass efficiency %s", n_pass, n_pass + n_fail, efficiency)
+    for n_eff, efficiency, n_pass, n_fail in zip(avg_efficiencies, efficiencies, pass_efficiencies, fail_efficiencies):
+        logger.debug("  average efficiency for %s is %s", efficiency, n_eff / (n_pass + n_fail))
+
     n_events_pass = len(observations_all_events)
     if len(cuts) > 0:
-        logger.info("  %s events pass all cuts", n_events_pass)
+        logger.info("  %s events pass all cuts/efficiencies", n_events_pass)
     if n_events_with_negative_weights > 0:
         logger.warning("  %s events contain negative weights", n_events_with_negative_weights)
 

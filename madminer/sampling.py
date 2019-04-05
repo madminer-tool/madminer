@@ -1,215 +1,25 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+import time
 import logging
 import numpy as np
-import collections
-import six
+import multiprocessing
+from functools import partial
 
-from madminer.utils.interfaces.madminer_hdf5 import load_madminer_settings, madminer_event_loader
+from madminer.analysis import DataAnalyzer
+from madminer.utils.interfaces.madminer_hdf5 import madminer_event_loader
 from madminer.utils.interfaces.madminer_hdf5 import save_preformatted_events_to_madminer_file
-from madminer.utils.analysis import get_theta_value, get_theta_benchmark_matrix, get_dtheta_benchmark_matrix
-from madminer.utils.analysis import calculate_augmented_data, parse_theta, mdot
-from madminer.morphing import Morpher, NuisanceMorpher
-from madminer.utils.various import format_benchmark, create_missing_folders, shuffle, balance_thetas
+from madminer.utils.various import create_missing_folders, shuffle
 
 logger = logging.getLogger(__name__)
 
 
-def combine_and_shuffle(
-    input_filenames, output_filename, k_factors=None, overwrite_existing_file=True, shuffle_sample=True
-):
+class SampleAugmenter(DataAnalyzer):
     """
-    Combines multiple MadMiner files into one, and shuffles the order of the events.
-
-    Note that this function assumes that all samples are generated with the same setup, including identical benchmarks
-    (and thus morphing setup). If it is used with samples with different settings, there will be wrong results!
-    There are no explicit cross checks in place yet!
-
-    Parameters
-    ----------
-    input_filenames : list of str
-        List of paths to the input MadMiner files.
-
-    output_filename : str
-        Path to the combined MadMiner file.
-
-    k_factors : float or list of float, optional
-        Multiplies the weights in input_filenames with a universal factor (if k_factors is a float) or with independent
-        factors (if it is a list of float). Default value: None.
-
-    overwrite_existing_file : bool, optional
-        If True and if the output file exists, it is overwritten. Default value: True.
-
-    shuffle_sample : bool, optional
-        If True, the output shuffle will be shuffled. Default value: True.
-
-    Returns
-    -------
-        None
-
-    """
-
-    logger.debug("Combining and shuffling samples")
-
-    if len(input_filenames) > 1:
-        logger.warning(
-            "Careful: this tool assumes that all samples are generated with the same setup, including"
-            " identical benchmarks (and thus morphing setup). If it is used with samples with different"
-            " settings, there will be wrong results! There are no explicit cross checks in place yet."
-        )
-
-    # k factors
-    if k_factors is None:
-        k_factors = [1.0 for _ in input_filenames]
-    elif isinstance(k_factors, float):
-        k_factors = [k_factors for _ in input_filenames]
-
-    # Copy first file to output_filename
-    logger.info("Copying setup from %s to %s", input_filenames[0], output_filename)
-
-    # TODO: More memory efficient strategy
-
-    # Load events
-    all_observations = None
-    all_weights = None
-
-    for i, (filename, k_factor) in enumerate(zip(input_filenames, k_factors)):
-        logger.info(
-            "Loading samples from file %s / %s at %s, multiplying weights with k factor %s",
-            i + 1,
-            len(input_filenames),
-            filename,
-            k_factor,
-        )
-
-        for observations, weights in madminer_event_loader(filename):
-            if all_observations is None:
-                all_observations = observations
-                all_weights = k_factor * weights
-            else:
-                all_observations = np.vstack((all_observations, observations))
-                all_weights = np.vstack((all_weights, k_factor * weights))
-
-    # Shuffle
-    if shuffle_sample:
-        all_observations, all_weights = shuffle(all_observations, all_weights)
-
-    # Save result
-    save_preformatted_events_to_madminer_file(
-        filename=output_filename,
-        observations=all_observations,
-        weights=all_weights,
-        copy_setup_from=input_filenames[0],
-        overwrite_existing_samples=overwrite_existing_file,
-    )
-
-
-def constant_benchmark_theta(benchmark_name):
-    """
-    Utility function to be used as input to various SampleAugmenter functions, specifying a single parameter benchmark.
-
-    Parameters
-    ----------
-    benchmark_name : str
-        Name of the benchmark (as in `madminer.core.MadMiner.add_benchmark`)
-        
-
-    Returns
-    -------
-    output : tuple
-        Input to various SampleAugmenter functions
-
-    """
-    return "benchmark", benchmark_name
-
-
-def multiple_benchmark_thetas(benchmark_names):
-    """
-    Utility function to be used as input to various SampleAugmenter functions, specifying multiple parameter benchmarks.
-
-    Parameters
-    ----------
-    benchmark_names : list of str
-        List of names of the benchmarks (as in `madminer.core.MadMiner.add_benchmark`)
-
-
-    Returns
-    -------
-    output : tuple
-        Input to various SampleAugmenter functions
-
-    """
-    return "benchmarks", benchmark_names
-
-
-def constant_morphing_theta(theta):
-    """
-    Utility function to be used as input to various SampleAugmenter functions, specifying a single parameter point theta
-    in a morphing setup.
-
-    Parameters
-    ----------
-    theta : ndarray or list
-        Parameter point with shape `(n_parameters,)`
-
-    Returns
-    -------
-    output : tuple
-        Input to various SampleAugmenter functions
-
-    """
-    return "theta", np.asarray(theta)
-
-
-def multiple_morphing_thetas(thetas):
-    """
-    Utility function to be used as input to various SampleAugmenter functions, specifying multiple parameter points
-    theta in a morphing setup.
-
-    Parameters
-    ----------
-    thetas : ndarray or list of lists or list of ndarrays
-        Parameter points with shape `(n_thetas, n_parameters)`
-
-    Returns
-    -------
-    output : tuple
-        Input to various SampleAugmenter functions
-
-    """
-    return "thetas", [np.asarray(theta) for theta in thetas]
-
-
-def random_morphing_thetas(n_thetas, priors):
-    """
-    Utility function to be used as input to various SampleAugmenter functions, specifying random parameter points
-    sampled from a prior in a morphing setup.
-
-    Parameters
-    ----------
-    n_thetas : int
-        Number of parameter points to be sampled
-
-    priors : list of tuples
-        Priors for each parameter is characterized by a tuple of the form `(prior_shape, prior_param_0, prior_param_1)`.
-        Currently, the supported prior_shapes are `flat`, in which case the two other parameters are the lower and upper
-        bound of the flat prior, and `gaussian`, in which case they are the mean and standard deviation of a Gaussian.
-
-    Returns
-    -------
-    output : tuple
-        Input to various SampleAugmenter functions
-
-    """
-    return "random", (n_thetas, priors)
-
-
-class SampleAugmenter:
-    """
-    Sampling and data augmentation.
+    Sampling / unweighting and data augmentation.
 
     After the generated events have been analyzed and the observables and weights have been saved into a MadMiner file,
-    for instance with `madminer.delphes.DelphesProcessor` or `madminer.lhe.LHEProcessor`, the next step is typically
+    for instance with `madminer.delphes.DelphesReader` or `madminer.lhe.LHEReader`, the next step is typically
     the generation of training and evaluation data for the machine learning algorithms. This generally involves two
     (related) tasks: unweighting, i.e. the creation of samples that do not carry individual weights but follow some
     distribution, and the extraction of the joint likelihood ratio and / or joint score (the "augmented data").
@@ -217,18 +27,18 @@ class SampleAugmenter:
     After inializing `SampleAugmenter` with the filename of a MadMiner file, this is done with a single function call.
     Depending on the downstream inference algorithm, there are different possibilities:
 
-    * `SampleAugmenter.extract_samples_train_plain()` creates plain training samples without augmented data.
-    * `SampleAugmenter.extract_samples_train_local()` creates training samples for local methods based on the score,
+    * `SampleAugmenter.sample_train_plain()` creates plain training samples without augmented data.
+    * `SampleAugmenter.sample_train_local()` creates training samples for local methods based on the score,
       such as SALLY and SALLINO.
-    * `SampleAugmenter.extract_samples_train_global()` creates training samples for non-local methods based on density
+    * `SampleAugmenter.sample_train_density()` creates training samples for non-local methods based on density
       estimation and the score, such as SCANDAL.
-    * `SampleAugmenter.extract_samples_train_ratio()` creates training samples for non-local, ratio-based methods
+    * `SampleAugmenter.sample_train_ratio()` creates training samples for non-local, ratio-based methods
       like RASCAL or ALICE.
-    * `SampleAugmenter.extract_samples_train_more_ratios()` does the same, but can extract joint ratios and scores
+    * `SampleAugmenter.sample_train_more_ratios()` does the same, but can extract joint ratios and scores
       at more parameter points. This additional information  can be used efficiently in the setup with a "doubly
       parameterized" likelihood ratio estimator that models the dependence on both the numerator and denominator
       hypothesis.
-    * `SampleAugmenter.extract_samples_test()` creates evaluation samples for all methods.
+    * `SampleAugmenter.sample_test()` creates evaluation samples for all methods.
 
     Please see the tutorial for a walkthrough.
 
@@ -262,88 +72,18 @@ class SampleAugmenter:
     """
 
     def __init__(self, filename, disable_morphing=False, include_nuisance_parameters=True):
-        # Save setup
-        self.include_nuisance_parameters = include_nuisance_parameters
-        self.madminer_filename = filename
+        super(SampleAugmenter, self).__init__(filename, disable_morphing, include_nuisance_parameters)
 
-        logger.info("Loading data from %s", filename)
-
-        # Load data
-        (
-            self.parameters,
-            self.benchmarks,
-            self.benchmark_is_nuisance,
-            self.morphing_components,
-            self.morphing_matrix,
-            self.observables,
-            self.n_samples,
-            _,
-            self.reference_benchmark,
-            self.nuisance_parameters,
-        ) = load_madminer_settings(filename, include_nuisance_benchmarks=include_nuisance_parameters)
-
-        self.n_parameters = len(self.parameters)
-        self.n_benchmarks = len(self.benchmarks)
-        self.n_benchmarks_phys = np.sum(np.logical_not(self.benchmark_is_nuisance))
-
-        self.n_nuisance_parameters = 0
-        if self.nuisance_parameters is not None and include_nuisance_parameters:
-            self.n_nuisance_parameters = len(self.nuisance_parameters)
-        else:
-            self.nuisance_parameters = None
-
-        logger.info("Found %s parameters", self.n_parameters)
-        for key, values in six.iteritems(self.parameters):
-            logger.debug(
-                "   %s (LHA: %s %s, maximal power in squared ME: %s, range: %s)",
-                key,
-                values[0],
-                values[1],
-                values[2],
-                values[3],
-            )
-
-        if self.nuisance_parameters is not None:
-            logger.info("Found %s nuisance parameters", self.n_nuisance_parameters)
-            for key, values in six.iteritems(self.nuisance_parameters):
-                logger.debug("   %s (%s)", key, values)
-        else:
-            logger.info("Did not find nuisance parameters")
-
-        logger.info("Found %s benchmarks, of which %s physical", self.n_benchmarks, self.n_benchmarks_phys)
-        for (key, values), is_nuisance in zip(six.iteritems(self.benchmarks), self.benchmark_is_nuisance):
-            if is_nuisance:
-                logger.debug("   %s: nuisance parameter", key)
-            else:
-                logger.debug("   %s: %s", key, format_benchmark(values))
-
-        logger.info("Found %s observables", len(self.observables))
-        for i, obs in enumerate(self.observables):
-            logger.debug("  %2.2s %s", i, obs)
-        logger.info("Found %s events", self.n_samples)
-
-        # Morphing
-        self.morpher = None
-        if self.morphing_matrix is not None and self.morphing_components is not None and not disable_morphing:
-            self.morpher = Morpher(self.parameters)
-            self.morpher.set_components(self.morphing_components)
-            self.morpher.set_basis(self.benchmarks, morphing_matrix=self.morphing_matrix)
-
-            logger.info("Found morphing setup with %s components", len(self.morphing_components))
-
-        else:
-            logger.info("Did not find morphing setup.")
-
-        # Nuisance morphing
-        self.nuisance_morpher = None
-        if self.nuisance_parameters is not None:
-            self.nuisance_morpher = NuisanceMorpher(
-                self.nuisance_parameters, list(self.benchmarks.keys()), self.reference_benchmark
-            )
-            logger.info("Found nuisance morphing setup")
-
-    def extract_samples_train_plain(
-        self, theta, n_samples, folder, filename, test_split=0.5, switch_train_test_events=False
+    def sample_train_plain(
+        self,
+        theta,
+        n_samples,
+        nu=None,
+        folder=None,
+        filename=None,
+        test_split=0.2,
+        switch_train_test_events=False,
+        n_processes=1,
     ):
         """
         Extracts plain training samples `x ~ p(x|theta)` without any augmented data. This can be use for standard
@@ -360,20 +100,31 @@ class SampleAugmenter:
         n_samples : int
             Total number of events to be drawn.
 
-        folder : str
-            Path to the folder where the resulting samples should be saved (ndarrays in .npy format).
+        nu : None or tuple, optional
+            Tuple (type, value) that defines the nuisance parameter point or prior over parameter points for the
+            sampling. Default value: None
 
-        filename : str
+        folder : str or None
+            Path to the folder where the resulting samples should be saved (ndarrays in .npy format). Default value:
+            None.
+
+        filename : str or None
             Filenames for the resulting samples. A prefix such as 'x' or 'theta0' as well as the extension
-            '.npy' will be added automatically.
+            '.npy' will be added automatically. Default value:
+            None.
 
         test_split : float or None, optional
             Fraction of events reserved for the evaluation sample (that will not be used for any training samples).
-            Default value: 0.5.
+            Default value: 0.2.
 
         switch_train_test_events : bool, optional
             If True, this function generates a training sample from the events normally reserved for test samples.
             Default value: False.
+
+        n_processes : None or int, optional
+            If None or larger than 1, MadMiner will use multiprocessing to parallelize the sampling. In this case,
+            n_workers sets the number of jobs running in parallel, and None will use the number of CPUs. Default value:
+            1.
 
         Returns
         -------
@@ -385,25 +136,28 @@ class SampleAugmenter:
             Parameter points used for sampling with shape `(n_samples, n_parameters)`. The same information is saved as
             a file in the given folder.
 
+        effective_n_samples : int
+            Effective number of samples, defined as 1/max(event_probabilities), where event_probabilities are the
+            fractions of the cross section carried by each event.
+
         """
 
         logger.info("Extracting plain training sample. Sampling according to %s", theta)
 
         create_missing_folders([folder])
 
-        # Thetas
-        theta_types, theta_values, n_samples_per_theta = parse_theta(theta, n_samples)
-
-        # Train / test split
-        start_event, end_event = self._train_test_split(not switch_train_test_events, test_split)
+        # Parameters
+        parsed_thetas, n_samples_per_theta = self._parse_theta(theta, n_samples)
+        parsed_nus = self._parse_nu(nu, len(parsed_thetas))
+        sets = self._build_sets([parsed_thetas], [parsed_nus])
 
         # Start
-        x, _, (theta,) = self._extract_sample(
-            theta_sets_types=[theta_types],
-            theta_sets_values=[theta_values],
-            n_samples_per_theta=n_samples_per_theta,
-            start_event=start_event,
-            end_event=end_event,
+        x, _, (theta,), effective_n_samples = self._sample(
+            sets=sets,
+            n_samples_per_set=n_samples_per_theta,
+            use_train_events=not switch_train_test_events,
+            test_split=test_split,
+            n_processes=n_processes,
         )
 
         # Save data
@@ -411,17 +165,19 @@ class SampleAugmenter:
             np.save(folder + "/theta_" + filename + ".npy", theta)
             np.save(folder + "/x_" + filename + ".npy", x)
 
-        return x, theta
+        return x, theta, min(effective_n_samples)
 
-    def extract_samples_train_local(
+    def sample_train_local(
         self,
         theta,
         n_samples,
-        folder,
-        filename,
-        nuisance_score=False,
-        test_split=0.5,
+        nu=None,
+        folder=None,
+        filename=None,
+        nuisance_score="auto",
+        test_split=0.2,
         switch_train_test_events=False,
+        n_processes=1,
         log_message=True,
     ):
         """
@@ -437,25 +193,36 @@ class SampleAugmenter:
         n_samples : int
             Total number of events to be drawn.
 
-        folder : str
-            Path to the folder where the resulting samples should be saved (ndarrays in .npy format).
+        nu : None or tuple, optional
+            Tuple (type, value) that defines the nuisance parameter point or prior over parameter points for the
+            sampling. Default value: None
 
-        filename : str
+        folder : str or None
+            Path to the folder where the resulting samples should be saved (ndarrays in .npy format). Default value:
+            None.
+
+        filename : str or None
             Filenames for the resulting samples. A prefix such as 'x' or 'theta0' as well as the extension
-            '.npy' will be added automatically.
+            '.npy' will be added automatically. Default value:
+            None.
 
-        nuisance_score : bool, optional
-            If True and if the sample contains nuisance parameters, the score with respect to the nuisance parameters
-            (at the default position) will also be calculated. Otherwise, only the score with respect to the
-            physics parameters is calculated. Default: False.
+        nuisance_score : bool or "auto", optional
+            If True, the score with respect to the nuisance parameters (at the default position) will also be
+            calculated. If False, only the score with respect to the physics parameters is calculated. For "auto",
+            the nuisance score will be calculated if a nuisance setup is defined. Default: True.
 
         test_split : float or None, optional
             Fraction of events reserved for the evaluation sample (that will not be used for any training samples).
-            Default value: 0.5.
+            Default value: 0.2.
 
         switch_train_test_events : bool, optional
             If True, this function generates a training sample from the events normally reserved for test samples.
             Default value: False.
+
+        n_processes : None or int, optional
+            If None or larger than 1, MadMiner will use multiprocessing to parallelize the sampling. In this case,
+            n_workers sets the number of jobs running in parallel, and None will use the number of CPUs. Default value:
+            1.
 
         log_message : bool, optional
             If True, logging output. This option is only designed for internal use.
@@ -475,6 +242,10 @@ class SampleAugmenter:
             nuisance_score is True) or `(n_samples, n_parameters)`. The same information is saved as a
             file in the given folder.
 
+        effective_n_samples : int
+            Effective number of samples, defined as 1/max(event_probabilities), where event_probabilities are the
+            fractions of the cross section carried by each event.
+
         """
 
         if log_message:
@@ -486,47 +257,32 @@ class SampleAugmenter:
         create_missing_folders([folder])
 
         # Check setup
+        if nuisance_score == "auto":
+            nuisance_score = self.nuisance_morpher is not None
         if self.morpher is None:
             raise RuntimeError("No morphing setup loaded. Cannot calculate score.")
-
         if self.nuisance_morpher is None and nuisance_score:
             raise RuntimeError("No nuisance parameters defined. Cannot calculate nuisance score.")
 
-        # Thetas
-        theta_types, theta_values, n_samples_per_theta = parse_theta(theta, n_samples)
+        # Parameters
+        parsed_thetas, n_samples_per_theta = self._parse_theta(theta, n_samples)
+        parsed_nus = self._parse_nu(nu, len(parsed_thetas))
+        sets = self._build_sets([parsed_thetas], [parsed_nus])
 
         # Augmented data (gold)
         augmented_data_definitions = [("score", 0)]
-        if nuisance_score:
-            augmented_data_definitions += [("nuisance_score",)]
-
-        # Train / test split
-        start_event, end_event = self._train_test_split(not switch_train_test_events, test_split)
 
         # Start
-        x, augmented_data, (theta,) = self._extract_sample(
-            theta_sets_types=[theta_types],
-            theta_sets_values=[theta_values],
-            n_samples_per_theta=n_samples_per_theta,
+        x, augmented_data, (theta,), effective_n_samples = self._sample(
+            sets=sets,
+            n_samples_per_set=n_samples_per_theta,
             augmented_data_definitions=augmented_data_definitions,
             nuisance_score=nuisance_score,
-            start_event=start_event,
-            end_event=end_event,
+            use_train_events=not switch_train_test_events,
+            test_split=test_split,
+            n_processes=n_processes,
         )
-
-        t_xz_physics = augmented_data[0]
-        if nuisance_score:
-            t_xz_nuisance = augmented_data[1]
-            t_xz = np.hstack([t_xz_physics, t_xz_nuisance])
-
-            logger.debug(
-                "Found physical score with shape %s, nuisance score with shape %s, combined shape %s",
-                t_xz_physics.shape,
-                t_xz_nuisance.shape,
-                t_xz.shape,
-            )
-        else:
-            t_xz = t_xz_physics
+        t_xz = augmented_data[0]
 
         # Save data
         if filename is not None and folder is not None:
@@ -534,10 +290,19 @@ class SampleAugmenter:
             np.save(folder + "/x_" + filename + ".npy", x)
             np.save(folder + "/t_xz_" + filename + ".npy", t_xz)
 
-        return x, theta, t_xz
+        return x, theta, t_xz, min(effective_n_samples)
 
-    def extract_samples_train_global(
-        self, theta, n_samples, folder, filename, test_split=0.5, switch_train_test_events=False
+    def sample_train_density(
+        self,
+        theta,
+        n_samples,
+        nu=None,
+        folder=None,
+        filename=None,
+        nuisance_score="auto",
+        test_split=0.2,
+        switch_train_test_events=False,
+        n_processes=1,
     ):
         """
         Extracts training samples x ~ p(x|theta) as well as the joint score t(x, z|theta), where theta is sampled
@@ -553,20 +318,35 @@ class SampleAugmenter:
         n_samples : int
             Total number of events to be drawn.
 
-        folder : str
-            Path to the folder where the resulting samples should be saved (ndarrays in .npy format).
+        nu : None or tuple, optional
+            Tuple (type, value) that defines the nuisance parameter point or prior over parameter points for the
+            sampling. Default value: None
 
-        filename : str
+        folder : str or None
+            Path to the folder where the resulting samples should be saved (ndarrays in .npy format). Default value:
+            None.
+
+        filename : str or None
             Filenames for the resulting samples. A prefix such as 'x' or 'theta0' as well as the extension
-            '.npy' will be added automatically.
+            '.npy' will be added automatically. Default value: None.
+
+        nuisance_score : bool or "auto", optional
+            If True, the score with respect to the nuisance parameters (at the default position) will also be
+            calculated. If False, only the score with respect to the physics parameters is calculated. For "auto",
+            the nuisance score will be calculated if a nuisance setup is defined. Default: True.
 
         test_split : float or None, optional
             Fraction of events reserved for the evaluation sample (that will not be used for any training samples).
-            Default value: 0.5.
+            Default value: 0.2.
 
         switch_train_test_events : bool, optional
             If True, this function generates a training sample from the events normally reserved for test samples.
             Default value: False.
+
+        n_processes : None or int, optional
+            If None or larger than 1, MadMiner will use multiprocessing to parallelize the sampling. In this case,
+            n_workers sets the number of jobs running in parallel, and None will use the number of CPUs. Default value:
+            1.
 
         Returns
         -------
@@ -582,6 +362,10 @@ class SampleAugmenter:
             Joint score evaluated at theta with shape `(n_samples, n_parameters)`. The same information is saved as a
             file in the given folder.
 
+        effective_n_samples : int
+            Effective number of samples, defined as 1/max(event_probabilities), where event_probabilities are the
+            fractions of the cross section carried by each event.
+
         """
 
         logger.info(
@@ -590,18 +374,32 @@ class SampleAugmenter:
             theta,
         )
 
-        return self.extract_samples_train_local(
-            theta,
-            n_samples,
-            folder,
-            filename,
+        return self.sample_train_local(
+            theta=theta,
+            n_samples=n_samples,
+            nu=nu,
+            folder=folder,
+            filename=filename,
+            nuisance_score=nuisance_score,
             test_split=test_split,
             switch_train_test_events=switch_train_test_events,
+            n_processes=n_processes,
             log_message=False,
         )
 
-    def extract_samples_train_ratio(
-        self, theta0, theta1, n_samples, folder, filename, test_split=0.5, switch_train_test_events=False
+    def sample_train_ratio(
+        self,
+        theta0,
+        theta1,
+        n_samples,
+        nu0=None,
+        nu1=None,
+        folder=None,
+        filename=None,
+        nuisance_score="auto",
+        test_split=0.2,
+        switch_train_test_events=False,
+        n_processes=1,
     ):
         """
         Extracts training samples `x ~ p(x|theta0)` and `x ~ p(x|theta1)` together with the class label `y`, the joint
@@ -623,20 +421,40 @@ class SampleAugmenter:
         n_samples : int
             Total number of events to be drawn.
 
-        folder : str
-            Path to the folder where the resulting samples should be saved (ndarrays in .npy format).
+        nu0 : None or tuple, optional
+            Tuple (type, value) that defines the numerator nuisance parameter point or prior over parameter points for
+            the sampling. Default value: None
 
-        filename : str
+        nu1 : None or tuple, optional
+            Tuple (type, value) that defines the denominator nuisance parameter point or prior over parameter points for
+            the sampling. Default value: None
+
+        folder : str or None
+            Path to the folder where the resulting samples should be saved (ndarrays in .npy format). Default value:
+            None.
+
+        filename : str or None
             Filenames for the resulting samples. A prefix such as 'x' or 'theta0' as well as the extension
-            '.npy' will be added automatically.
+            '.npy' will be added automatically. Default value:
+            None.
+
+        nuisance_score : bool or "auto", optional
+            If True, the score with respect to the nuisance parameters (at the default position) will also be
+            calculated. If False, only the score with respect to the physics parameters is calculated. For "auto",
+            the nuisance score will be calculated if a nuisance setup is defined. Default: True.
 
         test_split : float or None, optional
             Fraction of events reserved for the evaluation sample (that will not be used for any training samples).
-            Default value: 0.5.
+            Default value: 0.2.
 
         switch_train_test_events : bool, optional
             If True, this function generates a training sample from the events normally reserved for test samples.
             Default value: False.
+
+        n_processes : None or int, optional
+            If None or larger than 1, MadMiner will use multiprocessing to parallelize the sampling. In this case,
+            n_workers sets the number of jobs running in parallel, and None will use the number of CPUs. Default value:
+            1.
 
         Returns
         -------
@@ -665,6 +483,10 @@ class SampleAugmenter:
             information is saved as a file in the given folder. If morphing is not set up, None is returned (and no
             file is saved).
 
+        effective_n_samples : int
+            Effective number of samples, defined as 1/max(event_probabilities), where event_probabilities are the
+            fractions of the cross section carried by each event.
+
         """
 
         logger.info(
@@ -674,76 +496,87 @@ class SampleAugmenter:
             theta1,
         )
 
+        create_missing_folders([folder])
+
+        # Check setup
+        if nuisance_score == "auto":
+            nuisance_score = self.nuisance_morpher is not None
         if self.morpher is None:
             logging.warning("No morphing setup loaded. Cannot calculate joint score.")
-
-        create_missing_folders([folder])
+        if self.nuisance_morpher is None and nuisance_score:
+            raise RuntimeError("No nuisance parameters defined. Cannot calculate nuisance score.")
 
         # Augmented data (gold)
         augmented_data_definitions = [("ratio", 0, 1)]
         if self.morpher is not None:
             augmented_data_definitions.append(("score", 0))
 
-        # Train / test split
-        start_event, end_event = self._train_test_split(not switch_train_test_events, test_split)
-
         # Thetas for theta0 sampling
-        theta0_types, theta0_values, n_samples_per_theta0 = parse_theta(theta0, n_samples // 2)
-        theta1_types, theta1_values, n_samples_per_theta1 = parse_theta(theta1, n_samples // 2)
+        parsed_theta0s, n_samples_per_theta0 = self._parse_theta(theta0, n_samples // 2)
+        parsed_theta1s, n_samples_per_theta1 = self._parse_theta(theta1, n_samples // 2)
+        parsed_nu0s = self._parse_nu(nu0, len(parsed_theta0s))
+        parsed_nu1s = self._parse_nu(nu1, len(parsed_theta1s))
+        sets = self._build_sets([parsed_theta0s, parsed_theta1s], [parsed_nu0s, parsed_nu1s])
 
         n_samples_per_theta = min(n_samples_per_theta0, n_samples_per_theta1)
 
         # Start for theta0
-
         if self.morpher is None:
-            x0, (r_xz0,), (theta0_0, theta1_0) = self._extract_sample(
-                theta_sets_types=[theta0_types, theta1_types],
-                theta_sets_values=[theta0_values, theta1_values],
-                sampling_theta_index=0,
-                n_samples_per_theta=n_samples_per_theta,
+            x0, (r_xz0,), (theta0_0, theta1_0), n_effective_samples_0 = self._sample(
+                sets=sets,
+                sampling_index=0,
+                n_samples_per_set=n_samples_per_theta,
                 augmented_data_definitions=augmented_data_definitions,
-                start_event=start_event,
-                end_event=end_event,
+                nuisance_score=nuisance_score,
+                use_train_events=not switch_train_test_events,
+                test_split=test_split,
+                n_processes=n_processes,
             )
             t_xz0 = None
         else:
-            x0, (r_xz0, t_xz0), (theta0_0, theta1_0) = self._extract_sample(
-                theta_sets_types=[theta0_types, theta1_types],
-                theta_sets_values=[theta0_values, theta1_values],
-                sampling_theta_index=0,
-                n_samples_per_theta=n_samples_per_theta,
+            x0, (r_xz0, t_xz0), (theta0_0, theta1_0), n_effective_samples_0 = self._sample(
+                sets=sets,
+                sampling_index=0,
+                n_samples_per_set=n_samples_per_theta,
                 augmented_data_definitions=augmented_data_definitions,
-                start_event=start_event,
-                end_event=end_event,
+                nuisance_score=nuisance_score,
+                use_train_events=not switch_train_test_events,
+                test_split=test_split,
+                n_processes=n_processes,
             )
 
         # Thetas for theta1 sampling (could be different if num or denom are random)
-        theta0_types, theta0_values, n_samples_per_theta0 = parse_theta(theta0, n_samples // 2)
-        theta1_types, theta1_values, n_samples_per_theta1 = parse_theta(theta1, n_samples // 2)
+        parsed_theta0s, n_samples_per_theta0 = self._parse_theta(theta0, n_samples // 2)
+        parsed_theta1s, n_samples_per_theta1 = self._parse_theta(theta1, n_samples // 2)
+        parsed_nu0s = self._parse_nu(nu0, len(parsed_theta0s))
+        parsed_nu1s = self._parse_nu(nu1, len(parsed_theta1s))
+        sets = self._build_sets([parsed_theta0s, parsed_theta1s], [parsed_nu0s, parsed_nu1s])
 
         n_samples_per_theta = min(n_samples_per_theta0, n_samples_per_theta1)
 
         # Start for theta1
         if self.morpher is None:
-            x1, (r_xz1,), (theta0_1, theta1_1) = self._extract_sample(
-                theta_sets_types=[theta0_types, theta1_types],
-                theta_sets_values=[theta0_values, theta1_values],
-                sampling_theta_index=1,
-                n_samples_per_theta=n_samples_per_theta,
+            x1, (r_xz1,), (theta0_1, theta1_1), n_effective_samples_1 = self._sample(
+                sets=sets,
+                sampling_index=1,
+                n_samples_per_set=n_samples_per_theta,
                 augmented_data_definitions=augmented_data_definitions,
-                start_event=start_event,
-                end_event=end_event,
+                nuisance_score=nuisance_score,
+                use_train_events=not switch_train_test_events,
+                test_split=test_split,
+                n_processes=n_processes,
             )
             t_xz1 = None
         else:
-            x1, (r_xz1, t_xz1), (theta0_1, theta1_1) = self._extract_sample(
-                theta_sets_types=[theta0_types, theta1_types],
-                theta_sets_values=[theta0_values, theta1_values],
-                sampling_theta_index=1,
-                n_samples_per_theta=n_samples_per_theta,
+            x1, (r_xz1, t_xz1), (theta0_1, theta1_1), n_effective_samples_1 = self._sample(
+                sets=sets,
+                sampling_index=1,
+                n_samples_per_set=n_samples_per_theta,
                 augmented_data_definitions=augmented_data_definitions,
-                start_event=start_event,
-                end_event=end_event,
+                nuisance_score=nuisance_score,
+                use_train_events=not switch_train_test_events,
+                test_split=test_split,
+                n_processes=n_processes,
             )
 
         # Combine
@@ -774,18 +607,22 @@ class SampleAugmenter:
             if self.morpher is not None:
                 np.save(folder + "/t_xz_" + filename + ".npy", t_xz)
 
-        return x, theta0, theta1, y, r_xz, t_xz
+        return x, theta0, theta1, y, r_xz, t_xz, min(min(n_effective_samples_0), min(n_effective_samples_1))
 
-    def extract_samples_train_more_ratios(
+    def sample_train_more_ratios(
         self,
         theta0,
         theta1,
         n_samples,
-        folder,
-        filename,
+        nu0=None,
+        nu1=None,
+        folder=None,
+        filename=None,
         additional_thetas=None,
-        test_split=0.5,
+        nuisance_score="auto",
+        test_split=0.2,
         switch_train_test_events=False,
+        n_processes=1,
     ):
         """
         Extracts training samples `x ~ p(x|theta0)` and `x ~ p(x|theta1)` together with the class label `y`, the joint
@@ -812,12 +649,22 @@ class SampleAugmenter:
         n_samples : int
             Total number of events to be drawn.
 
-        folder : str
-            Path to the folder where the resulting samples should be saved (ndarrays in .npy format).
+        nu0 : None or tuple, optional
+            Tuple (type, value) that defines the numerator nuisance parameter point or prior over parameter points for
+            the sampling. Default value: None
 
-        filename : str
+        nu1 : None or tuple, optional
+            Tuple (type, value) that defines the denominator nuisance parameter point or prior over parameter points for
+            the sampling. Default value: None
+
+        folder : str or None
+            Path to the folder where the resulting samples should be saved (ndarrays in .npy format). Default value:
+            None.
+
+        filename : str or None
             Filenames for the resulting samples. A prefix such as 'x' or 'theta0' as well as the extension
-            '.npy' will be added automatically.
+            '.npy' will be added automatically. Default value:
+            None.
 
         additional_thetas : list of tuple or None
             list of tuples `(type, value)` that defines additional theta points at which ratio and score are evaluated,
@@ -827,13 +674,23 @@ class SampleAugmenter:
             `constant_benchmark_theta()`, `multiple_benchmark_thetas()`, `constant_morphing_theta()`,
             `multiple_morphing_thetas()`, or `random_morphing_thetas()`. Default value: None.
 
+        nuisance_score : bool or "auto", optional
+            If True, the score with respect to the nuisance parameters (at the default position) will also be
+            calculated. If False, only the score with respect to the physics parameters is calculated. For "auto",
+            the nuisance score will be calculated if a nuisance setup is defined. Default: True.
+
         test_split : float or None, optional
             Fraction of events reserved for the evaluation sample (that will not be used for any training samples).
-            Default value: 0.5.
+            Default value: 0.2.
 
         switch_train_test_events : bool, optional
             If True, this function generates a training sample from the events normally reserved for test samples.
             Default value: False.
+
+        n_processes : None or int, optional
+            If None or larger than 1, MadMiner will use multiprocessing to parallelize the sampling. In this case,
+            n_workers sets the number of jobs running in parallel, and None will use the number of CPUs. Default value:
+            1.
 
         Returns
         -------
@@ -861,6 +718,10 @@ class SampleAugmenter:
             Joint score evaluated at theta0 with shape `(n_samples, n_parameters)`. The same information is saved as a
             file in the given folder.
 
+        effective_n_samples : int
+            Effective number of samples, defined as 1/max(event_probabilities), where event_probabilities are the
+            fractions of the cross section carried by each event.
+
         """
 
         logger.info(
@@ -870,11 +731,15 @@ class SampleAugmenter:
             theta1,
         )
 
-        if self.morpher is None:
-            raise RuntimeError("No morphing setup loaded. Cannot calculate score.")
-
         create_missing_folders([folder])
 
+        # Check setup
+        if nuisance_score == "auto":
+            nuisance_score = self.nuisance_morpher is not None
+        if self.morpher is None:
+            raise RuntimeError("No morphing setup loaded. Cannot calculate score.")
+        if self.nuisance_morpher is None and nuisance_score:
+            raise RuntimeError("No nuisance parameters defined. Cannot calculate nuisance score.")
         if additional_thetas is None:
             additional_thetas = []
         n_additional_thetas = len(additional_thetas)
@@ -888,41 +753,42 @@ class SampleAugmenter:
             augmented_data_definitions_1.append(("ratio", i + 2, 1))
             augmented_data_definitions_1.append(("score", i + 2))
 
-        # Train / test split
-        start_event, end_event = self._train_test_split(not switch_train_test_events, test_split)
-
         # Parse thetas for theta0 sampling
-        theta_types = []
-        theta_values = []
+        parsed_thetas = []
+        parsed_nus = []
         n_samples_per_theta = 1000000
 
-        theta0_types, theta0_values, this_n_samples = parse_theta(theta0, n_samples // 2)
-        theta_types.append(theta0_types)
-        theta_values.append(theta0_values)
+        parsed_theta0s, this_n_samples = self._parse_theta(theta0, n_samples // 2)
+        parsed_nu0s = self._parse_nu(nu0, len(parsed_theta0s))
+        parsed_thetas.append(parsed_theta0s)
+        parsed_nus.append(parsed_nu0s)
         n_samples_per_theta = min(this_n_samples, n_samples_per_theta)
 
-        theta1_types, theta1_values, this_n_samples = parse_theta(theta1, n_samples // 2)
-        theta_types.append(theta1_types)
-        theta_values.append(theta1_values)
+        parsed_theta1s, this_n_samples = self._parse_theta(theta1, n_samples // 2)
+        parsed_nu1s = self._parse_nu(nu1, len(parsed_theta1s))
+        parsed_thetas.append(parsed_theta1s)
+        parsed_nus.append(parsed_nu1s)
         n_samples_per_theta = min(this_n_samples, n_samples_per_theta)
 
         for additional_theta in additional_thetas:
-            additional_theta_types, additional_theta_values, this_n_samples = parse_theta(
-                additional_theta, n_samples // 2
-            )
-            theta_types.append(additional_theta_types)
-            theta_values.append(additional_theta_values)
+            additional_parsed_thetas, this_n_samples = self._parse_theta(additional_theta, n_samples // 2)
+            parsed_thetas.append(additional_parsed_thetas)
+            additional_parsed_nu = self._parse_nu(nu1, len(additional_parsed_thetas))
+            parsed_nus.append(additional_parsed_nu)
             n_samples_per_theta = min(this_n_samples, n_samples_per_theta)
 
+        sets = self._build_sets(parsed_thetas, parsed_nus)
+
         # Start for theta0
-        x_0, augmented_data_0, thetas_0 = self._extract_sample(
-            theta_sets_types=theta_types,
-            theta_sets_values=theta_values,
-            n_samples_per_theta=n_samples_per_theta,
+        x_0, augmented_data_0, thetas_0, n_effective_samples_0 = self._sample(
+            sets=sets,
+            n_samples_per_set=n_samples_per_theta,
             augmented_data_definitions=augmented_data_definitions_0,
-            sampling_theta_index=0,
-            start_event=start_event,
-            end_event=end_event,
+            sampling_index=0,
+            nuisance_score=nuisance_score,
+            use_train_events=not switch_train_test_events,
+            test_split=test_split,
+            n_processes=n_processes,
         )
         n_actual_samples = x_0.shape[0]
 
@@ -950,37 +816,41 @@ class SampleAugmenter:
         theta1_0 = np.vstack([theta1_0] + thetas_eval)
 
         # Parse thetas for theta1 sampling
-        theta_types = []
-        theta_values = []
+        parsed_thetas = []
+        parsed_nus = []
         n_samples_per_theta = 1000000
 
-        theta0_types, theta0_values, this_n_samples = parse_theta(theta0, n_samples // 2)
-        theta_types.append(theta0_types)
-        theta_values.append(theta0_values)
+        parsed_thetas0, this_n_samples = self._parse_theta(theta0, n_samples // 2)
+        parsed_nu0s = self._parse_nu(nu0, len(parsed_theta0s))
+        parsed_thetas.append(parsed_thetas0)
+        parsed_nus.append(parsed_nu0s)
         n_samples_per_theta = min(this_n_samples, n_samples_per_theta)
 
-        theta1_types, theta1_values, this_n_samples = parse_theta(theta1, n_samples // 2)
-        theta_types.append(theta1_types)
-        theta_values.append(theta1_values)
+        parsed_thetas1, this_n_samples = self._parse_theta(theta1, n_samples // 2)
+        parsed_nu1s = self._parse_nu(nu1, len(parsed_theta1s))
+        parsed_thetas.append(parsed_thetas1)
+        parsed_nus.append(parsed_nu1s)
         n_samples_per_theta = min(this_n_samples, n_samples_per_theta)
 
         for additional_theta in additional_thetas:
-            additional_theta_types, additional_theta_values, this_n_samples = parse_theta(
-                additional_theta, n_samples // 2
-            )
-            theta_types.append(additional_theta_types)
-            theta_values.append(additional_theta_values)
+            additional_parsed_thetas, this_n_samples = self._parse_theta(additional_theta, n_samples // 2)
+            additional_parsed_nu = self._parse_nu(nu0, len(additional_parsed_thetas))
+            parsed_thetas.append(additional_parsed_thetas)
+            parsed_nus.append(additional_parsed_nu)
             n_samples_per_theta = min(this_n_samples, n_samples_per_theta)
 
+        sets = self._build_sets(parsed_thetas, parsed_nus)
+
         # Start for theta1
-        x_1, augmented_data_1, thetas_1 = self._extract_sample(
-            theta_sets_types=theta_types,
-            theta_sets_values=theta_values,
-            n_samples_per_theta=n_samples_per_theta,
+        x_1, augmented_data_1, thetas_1, n_effective_samples_1 = self._sample(
+            sets=sets,
+            n_samples_per_set=n_samples_per_theta,
             augmented_data_definitions=augmented_data_definitions_1,
-            sampling_theta_index=1,
-            start_event=start_event,
-            end_event=end_event,
+            sampling_index=1,
+            nuisance_score=nuisance_score,
+            use_train_events=not switch_train_test_events,
+            test_split=test_split,
+            n_processes=n_processes,
         )
         n_actual_samples += x_1.shape[0]
 
@@ -1040,9 +910,19 @@ class SampleAugmenter:
             np.save(folder + "/t_xz0_" + filename + ".npy", t_xz0)
             np.save(folder + "/t_xz1_" + filename + ".npy", t_xz1)
 
-        return x, theta0, theta1, y, r_xz, t_xz0, t_xz1
+        return x, theta0, theta1, y, r_xz, t_xz0, t_xz1, min(min(n_effective_samples_0), min(n_effective_samples_1))
 
-    def extract_samples_test(self, theta, n_samples, folder, filename, test_split=0.5, switch_train_test_events=False):
+    def sample_test(
+        self,
+        theta,
+        n_samples,
+        nu=None,
+        folder=None,
+        filename=None,
+        test_split=0.2,
+        switch_train_test_events=False,
+        n_processes=1,
+    ):
         """
         Extracts evaluation samples `x ~ p(x|theta)` without any augmented data.
 
@@ -1056,20 +936,31 @@ class SampleAugmenter:
         n_samples : int
             Total number of events to be drawn.
 
-        folder : str
-            Path to the folder where the resulting samples should be saved (ndarrays in .npy format).
+        nu : None or tuple, optional
+            Tuple (type, value) that defines the nuisance parameter point or prior over parameter points for the
+            sampling. Default value: None
 
-        filename : str
+        folder : str or None
+            Path to the folder where the resulting samples should be saved (ndarrays in .npy format). Default value:
+            None.
+
+        filename : str or None
             Filenames for the resulting samples. A prefix such as 'x' or 'theta0' as well as the extension
-            '.npy' will be added automatically.
+            '.npy' will be added automatically. Default value:
+            None.
 
         test_split : float or None, optional
             Fraction of events reserved for the evaluation sample (that will not be used for any training samples).
-            Default value: 0.5.
+            Default value: 0.2.
 
         switch_train_test_events : bool, optional
             If True, this function generates a test sample from the events normally reserved for training samples.
             Default value: False.
+
+        n_processes : None or int, optional
+            If None or larger than 1, MadMiner will use multiprocessing to parallelize the sampling. In this case,
+            n_workers sets the number of jobs running in parallel, and None will use the number of CPUs. Default value:
+            1.
 
         Returns
         -------
@@ -1081,6 +972,10 @@ class SampleAugmenter:
             Parameter points used for sampling with shape `(n_samples, n_parameters)`. The same information is saved as
             a file in the given folder.
 
+        effective_n_samples : int
+            Effective number of samples, defined as 1/max(event_probabilities), where event_probabilities are the
+            fractions of the cross section carried by each event.
+
         """
 
         logger.info("Extracting evaluation sample. Sampling according to %s", theta)
@@ -1088,18 +983,17 @@ class SampleAugmenter:
         create_missing_folders([folder])
 
         # Thetas
-        theta_types, theta_values, n_samples_per_theta = parse_theta(theta, n_samples)
-
-        # Train / test split
-        start_event, end_event = self._train_test_split(switch_train_test_events, test_split)
+        parsed_thetas, n_samples_per_theta = self._parse_theta(theta, n_samples)
+        parsed_nus = self._parse_nu(nu, len(parsed_thetas))
+        sets = self._build_sets([parsed_thetas], [parsed_nus])
 
         # Extract information
-        x, _, (theta,) = self._extract_sample(
-            theta_sets_types=[theta_types],
-            theta_sets_values=[theta_values],
-            n_samples_per_theta=n_samples_per_theta,
-            start_event=start_event,
-            end_event=end_event,
+        x, _, (theta,), n_effective_samples = self._sample(
+            sets=sets,
+            n_samples_per_set=n_samples_per_theta,
+            use_train_events=switch_train_test_events,
+            test_split=test_split,
+            n_processes=n_processes,
         )
 
         # Save data
@@ -1107,9 +1001,9 @@ class SampleAugmenter:
             np.save(folder + "/theta_" + filename + ".npy", theta)
             np.save(folder + "/x_" + filename + ".npy", x)
 
-        return x, theta
+        return x, theta, min(n_effective_samples)
 
-    def extract_cross_sections(self, theta):
+    def cross_sections(self, theta, nu=None):
 
         """
         Calculates the total cross sections for all specified thetas.
@@ -1118,14 +1012,21 @@ class SampleAugmenter:
         ----------
         theta : tuple
             Tuple (type, value) that defines the parameter point or prior over parameter points at which the cross
-            section is calculated. Pass the output of the functions `constant_benchmark_theta()`,
-            `multiple_benchmark_thetas()`, `constant_morphing_theta()`, `multiple_morphing_thetas()`, or
-            `random_morphing_thetas()`.
+            section is calculated. Pass the output of the functions `benchmark()`,
+            `benchmarks()`, `morphing_point()`, `morphing_points()`, or
+            `random_morphing_points()`.
+
+        nu : tuple or None, optional
+            Tuple (type, value) that defines the nuisance parameter point or prior over nuisance parameter points at
+            which the cross section is calculated. Pass the output of the functions `benchmark()`,
+            `benchmarks()`, `morphing_point()`, `morphing_points()`, or
+            `random_morphing_points()`. Default valuee: None.
 
         Returns
         -------
         thetas : ndarray
-            Parameter points with shape `(n_thetas, n_parameters)`.
+            Parameter points with shape `(n_thetas, n_parameters)` or
+            `(n_thetas, n_parameters + n_nuisance_parameters)`.
 
         xsecs : ndarray
             Total cross sections in pb with shape `(n_thetas, )`.
@@ -1134,133 +1035,54 @@ class SampleAugmenter:
             Statistical uncertainties on the total cross sections in pb with shape `(n_thetas, )`.
 
         """
-
         logger.info("Starting cross-section calculation")
+        parsed_thetas, _ = self._parse_theta(theta, None)
+        theta_values = np.asarray([self._get_theta_value(parsed_theta) for parsed_theta in parsed_thetas])
 
-        # Total xsecs for benchmarks
-        xsecs_benchmarks = None
-        squared_weight_sum_benchmarks = None
-
-        for obs, weights in madminer_event_loader(self.madminer_filename):
-            if xsecs_benchmarks is None:
-                xsecs_benchmarks = np.sum(weights, axis=0)
-                squared_weight_sum_benchmarks = np.sum(weights * weights, axis=0)
-            else:
-                xsecs_benchmarks += np.sum(weights, axis=0)
-                squared_weight_sum_benchmarks += np.sum(weights * weights, axis=0)
-
-        # Parse thetas for evaluation
-        theta_types, theta_values, _ = parse_theta(theta, 1)
-
-        # Loop over thetas
-        all_thetas = []
-        all_xsecs = []
-        all_xsec_uncertainties = []
-
-        for (theta_type, theta_value) in zip(theta_types, theta_values):
-
-            if self.morpher is None and theta_type == "morphing":
-                raise RuntimeError("Theta defined through morphing, but no morphing setup has been loaded.")
-
-            theta = get_theta_value(theta_type, theta_value, self.benchmarks)
-            theta_matrix = get_theta_benchmark_matrix(theta_type, theta_value, self.benchmarks, self.morpher)
-
-            # Total xsec for this theta
-            xsec_theta = mdot(theta_matrix, xsecs_benchmarks)
-            rms_xsec_theta = mdot(theta_matrix * theta_matrix, squared_weight_sum_benchmarks) ** 0.5
-
-            all_thetas.append(theta)
-            all_xsecs.append(xsec_theta)
-            all_xsec_uncertainties.append(rms_xsec_theta)
-
-            logger.debug("theta %s: xsec = (%s +/- %s) pb", theta, xsec_theta, rms_xsec_theta)
-
-        # Return
-        all_thetas = np.array(all_thetas)
-        all_xsecs = np.array(all_xsecs)
-        all_xsec_uncertainties = np.array(all_xsec_uncertainties)
-
-        return all_thetas, all_xsecs, all_xsec_uncertainties
-
-    def extract_raw_data(self, theta=None, derivative=False):
-
-        """
-        Returns all events together with the benchmark weights (if theta is None) or weights for a given theta.
-
-        Parameters
-        ----------
-        theta : None or ndarray or str, optional
-            If None, the function returns all benchmark weights. If str, the function returns the weights for a given
-            benchmark name. If ndarray, it uses morphing to calculate the weights for this value of theta. Default
-            value: None.
-
-        derivative : bool, optional
-            If True and if theta is not None, the derivative of the weights with respect to theta are returned. Default
-            value: False.
-
-        Returns
-        -------
-        x : ndarray
-            Observables with shape `(n_unweighted_samples, n_observables)`.
-
-        weights : ndarray
-            If theta is None and derivative is False, benchmark weights with shape
-            `(n_unweighted_samples, n_benchmarks_phys)` in pb. If theta is not None and derivative is True, the gradient of
-            the weight for the given parameter with respect to theta with shape `(n_unweighted_samples, n_gradients)`
-            in pb. Otherwise, weights for the given parameter theta with shape `(n_unweighted_samples,)` in pb.
-
-        """
-
-        x, weights_benchmarks = next(madminer_event_loader(self.madminer_filename, batch_size=None))
-
-        if theta is None:
-            return x, weights_benchmarks
-
-        elif isinstance(theta, six.string_types):
-            i_benchmark = list(self.benchmarks.keys()).index(theta)
-            return x, weights_benchmarks[:, i_benchmark]
-
-        elif derivative:
-            dtheta_matrix = get_dtheta_benchmark_matrix("morphing", theta, self.benchmarks, self.morpher)
-
-            gradients_theta = mdot(dtheta_matrix, weights_benchmarks)  # (n_gradients, n_samples)
-            gradients_theta = gradients_theta.T
-
-            return x, gradients_theta
-
+        if nu is not None:
+            parsed_nus = self._parse_nu(nu, len(parsed_thetas))
+            nu_values = np.asarray([self._get_nu_value(parsed_nu for parsed_nu in parsed_nus)])
+            param_values = np.hstack((theta_values, nu_values))
         else:
-            theta_matrix = get_theta_benchmark_matrix("morphing", theta, self.benchmarks, self.morpher)
+            parsed_nus = None
+            param_values = theta_values
 
-            weights_theta = mdot(theta_matrix, weights_benchmarks)
+        xsecs, uncertainties = self.xsecs(thetas=parsed_thetas, nus=parsed_nus)
 
-            return x, weights_theta
+        return param_values, xsecs, uncertainties
 
-    def _extract_sample(
+    def _sample(
         self,
-        theta_sets_types,
-        theta_sets_values,
-        n_samples_per_theta,
-        sampling_theta_index=0,
+        sets,
+        n_samples_per_set,
+        sampling_index=0,
         augmented_data_definitions=None,
-        nuisance_score=False,
-        start_event=0,
-        end_event=None,
+        nuisance_score=True,
+        use_train_events=True,
+        test_split=0.2,
+        verbose="some",
+        n_processes=1,
+        update_patience=0.01,
     ):
         """
         Low-level function for the extraction of information from the event samples. Do not use this function directly.
 
+        The sampling is organized in terms of "sets". For each set, a number of parameter points (thetas and nus) is
+        fixed, and `n_samples_per_theta` events are sampled from one of them.
+
         Parameters
         ----------
-        theta_sets_types :  list of list of str
-            Each entry can be 'benchmark' or 'morphing'.
+        sets : list of list of tuples
+            The outer list goes over sets, the inner list goes over parameter points, the tuples have the form
+            (theta, nu). Here theta can be a str or int (for benchmarks) or ndarray (with morphing), while nu can be
+            None (for nominal value) or ndarray (for nuisance morphing).
 
-        theta_sets_values : list of list
-            Each entry is int and labels the benchmark index (if the corresponding
-            theta_sampling_types entry is 'benchmark') or a numpy array with the theta values
-            (of the corresponding theta_sampling_types entry is 'morphing')
-
-        n_samples_per_theta : int
+        n_samples_per_set : int
             Number of samples to be drawn per entry in theta_sampling_types.
+
+        sampling_index : int
+            Marking the index of the theta set defined through thetas_types and
+            thetas_values that should be used for sampling. Default value: 0.
 
         augmented_data_definitions : list of tuple or None
             Each tuple can either be ('ratio', num_theta, den_theta) or
@@ -1269,19 +1091,23 @@ class SampleAugmenter:
             used. Default value: None.
 
         nuisance_score : bool, optional
-            If True and if the sample contains nuisance parameters, any joint score in the augmented data definitions
-            is also calculated with respect to the nuisance parameters (evaluated at their default position). Default
-            value: False.
+            If True, any joint score in the augmented data definitions is also calculated with respect to the nuisance
+            parameters. Default value: True.
 
-        sampling_theta_index : int
-            Marking the index of the theta set defined through thetas_types and
-            thetas_values that should be used for sampling. Default value: 0.
+        use_train_events : bool, optional
+            Decides whether to use the train or test split of the events. Default value: True.
 
-        start_event : int
-            Index of first event to consider. Default value: 0.
+        test_split : float or None, optional
+            Fraction of events reserved for the evaluation sample (that will not be used for any training samples).
+            Default value: 0.2.
 
-        end_event : int or None
-            Index of last event to consider. If None, use the last event. Default value: None.
+        n_processes : None or int, optional
+            If None or larger than 1, MadMiner will use multiprocessing to parallelize the sampling. In this case,
+            n_workers sets the number of jobs running in parallel, and None will use the number of CPUs. Default value:
+            1.
+
+        update_patience : float, optional
+            Wait time (in s) between log updates with n_workers > 1 (or None). Default value: 0.01
 
         Returns
         -------
@@ -1291,277 +1117,394 @@ class SampleAugmenter:
         augmented_data : list of ndarray
             Augmented data.
 
-        theta : list of ndarray
+        theta_values : list of ndarray
             Parameter values.
 
         """
 
         logger.debug("Starting sample extraction")
 
-        assert n_samples_per_theta > 0, "Requested {} samples per theta!".format(n_samples_per_theta)
-
+        # Check inputs
         if augmented_data_definitions is None:
             augmented_data_definitions = []
 
-        logger.debug("Augmented data requested:")
-        for augmented_data_definition in augmented_data_definitions:
-            logger.debug("  %s", augmented_data_definition)
+        n_sets, n_params = self._check_sets(sets)
 
-        # Nuisance parameters?
-        include_nuisance_parameters = self.include_nuisance_parameters and nuisance_score
+        # What needs to be calculated?
+        needs_gradients = self._check_gradient_need(augmented_data_definitions)
 
-        # Calculate total xsecs for benchmarks
-        xsecs_benchmarks = None
-        squared_weight_sum_benchmarks = None
-        n_observables = 0
-
-        for obs, weights in madminer_event_loader(
-            self.madminer_filename,
-            start=start_event,
-            end=end_event,
-            include_nuisance_parameters=include_nuisance_parameters,
-            benchmark_is_nuisance=self.benchmark_is_nuisance,
-        ):
-            # obs has shape (n_events, n_observables)
-            # weights has shape (n_events, n_benchmarks_phys)
-            # sampled_from_benchmark has shape (n_events,)
-
-            if xsecs_benchmarks is None:
-                xsecs_benchmarks = np.sum(weights, axis=0)
-                squared_weight_sum_benchmarks = np.sum(weights * weights, axis=0)
-            else:
-                xsecs_benchmarks += np.sum(weights, axis=0)
-                squared_weight_sum_benchmarks += np.sum(weights * weights, axis=0)
-
-            n_observables = obs.shape[1]
-
-        logger.debug("Benchmark cross sections [pb]: %s", xsecs_benchmarks)
-
-        # Balance thetas
-        theta_sets_types, theta_sets_values = balance_thetas(theta_sets_types, theta_sets_values)
-
-        # Check whether we need to calculate scores (which will require the gradients of the morphing matrices)
-        needs_gradients = False
-        for augmented_data_definition in augmented_data_definitions:
-            if augmented_data_definition[0] == "score":
-                needs_gradients = True
-
-                if self.morpher is None:
-                    raise RuntimeError("Cannot calculate score without morphing setup!")
-
-        # Consistency checks
-        n_benchmarks = xsecs_benchmarks.shape[0]
-        expected_n_benchmarks = self.n_benchmarks if include_nuisance_parameters else self.n_benchmarks_phys
-        if self.morphing_matrix is None:
-            if n_benchmarks != expected_n_benchmarks:
-                raise ValueError(
-                    "Inconsistent numbers of benchmarks: {} in observations,"
-                    "{} in benchmark list".format(n_benchmarks, len(self.benchmarks))
-                )
-        else:
-            if n_benchmarks != expected_n_benchmarks or n_benchmarks < self.morphing_matrix.shape[0]:
-                raise ValueError(
-                    "Inconsistent numbers of benchmarks: {} in observations, {} in benchmark list, "
-                    "{} in morphing matrix".format(n_benchmarks, len(self.benchmarks), self.morphing_matrix.shape[0])
-                )
-
-        if n_observables != len(self.observables):
-            raise ValueError(
-                "Inconsistent numbers of observables: {} in observations,"
-                "{} in observable list".format(n_observables, len(self.observables))
-            )
-
-        n_thetas = len(theta_sets_types)
-        assert n_thetas == len(theta_sets_values)
-        # Sets (within each set, all thetas (sampling, numerator, ...) have a constant value)
-        n_sets = len(theta_sets_types[sampling_theta_index])
-        for theta_types, theta_values in zip(theta_sets_types, theta_sets_values):
-            assert n_sets == len(theta_types) == len(theta_values)
-
-        # Number of samples to be drawn
-        if not isinstance(n_samples_per_theta, collections.Iterable):
-            n_samples_per_theta = [n_samples_per_theta] * n_sets
-        elif len(n_samples_per_theta) == 1:
-            n_samples_per_theta = [n_samples_per_theta[0]] * n_sets
-
-        # Prepare output
+        # Prepare outputs
         all_x = []
         all_augmented_data = [[] for _ in augmented_data_definitions]
-        all_thetas = [[] for _ in range(n_thetas)]
+        all_thetas = [[] for _ in range(n_params)]
+        all_nus = [[] for _ in range(n_params)]
         all_effective_n_samples = []
 
-        n_statistics_warnings = 0
-        n_negative_weights_warnings = 0
+        n_stats_warnings = 0
+        n_neg_weights_warnings = 0
 
-        # Main loop over thetas
-        for i_set in range(n_sets):
+        # Multiprocessing approach
+        if n_processes is None or n_processes > 1:
+            if n_processes is None:
+                n_processes = multiprocessing.cpu_count()
 
-            # Setup for set
-            n_samples = n_samples_per_theta[i_set]
+            job = partial(
+                self._sample_set,
+                n_samples=n_samples_per_set,
+                augmented_data_definitions=augmented_data_definitions,
+                sampling_index=sampling_index,
+                needs_gradients=needs_gradients,
+                use_train_events=use_train_events,
+                test_split=test_split,
+                nuisance_score=nuisance_score,
+                n_stats_warnings=1000,
+                n_neg_weights_warnings=1000,
+            )
 
-            theta_types = [t[i_set] for t in theta_sets_types]
-            theta_values = [t[i_set] for t in theta_sets_values]
+            logger.info("Starting sampling jobs in parallel, using %s processes", n_processes)
 
-            if self.morpher is None and "morphing" in theta_types:
-                raise RuntimeError("Theta defined through morphing, but no morphing setup has been loaded.")
+            pool = multiprocessing.Pool(processes=n_processes)
+            r = pool.map_async(job, sets, chunksize=1)
 
-            # Parse thetas and calculate the w_c(theta) for them
-            thetas = []
-            theta_matrices = []
-            theta_gradient_matrices = []
+            next_verbose = 0
+            verbose_steps = n_sets // 10
 
-            logger.debug("Drawing %s events for the following thetas:", n_samples)
+            while not r.ready():
+                n_done = max(n_sets - r._number_left * r._chunksize, 0)
+                if n_done >= next_verbose:
+                    logger.info("%s / %s jobs done", max(n_sets - r._number_left * r._chunksize, 0), n_sets)
+                    while next_verbose <= n_done:
+                        next_verbose += verbose_steps
+                        time.sleep(update_patience)
 
-            for i_theta, (theta_type, theta_value) in enumerate(zip(theta_types, theta_values)):
-                theta = get_theta_value(theta_type, theta_value, self.benchmarks)
-                theta = np.broadcast_to(theta, (n_samples, theta.size))
-                thetas.append(theta)
+            r.wait()
 
-                theta_matrices.append(
-                    get_theta_benchmark_matrix(theta_type, theta_value, self.benchmarks, self.morpher)
+            logger.info("All jobs done!")
+
+            for x, thetas, nus, augmented_data, eff_n_samples, _, _ in r.get():
+                all_x.append(x)
+                for i, values in enumerate(augmented_data):
+                    all_augmented_data[i].append(values)
+                for i, values in enumerate(thetas):
+                    all_thetas[i].append(values)
+                for i, values in enumerate(nus):
+                    all_nus[i].append(values)
+                all_effective_n_samples.append(eff_n_samples)
+
+        # Serial approach
+        else:
+            logger.info("Starting sampling serially")
+
+            # Verbosity
+            if verbose == "all":  # Print output after every epoch
+                n_sets_verbose = 1
+            elif verbose == "many":  # Print output after 2%, 4%, ..., 100% progress
+                n_sets_verbose = max(int(round(n_sets / 50, 0)), 1)
+            elif verbose == "some":  # Print output after 10%, 20%, ..., 100% progress
+                n_sets_verbose = max(int(round(n_sets / 20, 0)), 1)
+            elif verbose == "few":  # Print output after 20%, 40%, ..., 100% progress
+                n_sets_verbose = max(int(round(n_sets / 5, 0)), 1)
+            elif verbose == "none":  # Never print output
+                n_sets_verbose = n_sets + 2
+            else:
+                raise ValueError("Unknown value %s for keyword verbose", verbose)
+            logger.debug("Will print training progress every %s sets", n_sets_verbose)
+
+            # Loop over sets
+            for i_set, set_ in enumerate(sets):
+                if (i_set + 1) % n_sets_verbose == 0:
+                    logger.info("Sampling from parameter point %s / %s", i_set + 1, n_sets)
+                else:
+                    logger.debug("Sampling from parameter point %s / %s", i_set + 1, n_sets)
+
+                x, thetas, nus, augmented_data, eff_n_samples, n_stats_warnings, n_neg_weights_warnings = self._sample_set(
+                    set_,
+                    n_samples=n_samples_per_set,
+                    augmented_data_definitions=augmented_data_definitions,
+                    sampling_index=sampling_index,
+                    needs_gradients=needs_gradients,
+                    use_train_events=use_train_events,
+                    test_split=test_split,
+                    nuisance_score=nuisance_score,
+                    n_stats_warnings=n_stats_warnings,
+                    n_neg_weights_warnings=n_neg_weights_warnings,
                 )
-                if needs_gradients:
-                    theta_gradient_matrices.append(
-                        get_dtheta_benchmark_matrix(theta_type, theta_value, self.benchmarks, self.morpher)
-                    )
 
-                logger.debug(
-                    "  theta %s = %s%s", i_theta, theta[0, :], " (sampling)" if i_theta == sampling_theta_index else ""
-                )
-
-            sampling_theta_matrix = theta_matrices[sampling_theta_index]
-
-            # Total xsec for sampling theta
-            xsec_sampling_theta = mdot(sampling_theta_matrix, xsecs_benchmarks)
-            rms_xsec_sampling_theta = (
-                mdot(sampling_theta_matrix * sampling_theta_matrix, squared_weight_sum_benchmarks)
-            ) ** 0.5
-
-            if rms_xsec_sampling_theta > 0.1 * xsec_sampling_theta:
-                n_statistics_warnings += 1
-
-                if n_statistics_warnings <= 1:
-                    logger.warning(
-                        "Large statistical uncertainty on the total cross section for theta = %s: "
-                        "(%4f +/- %4f) pb. Skipping these warnings in the future...",
-                        thetas[sampling_theta_index][0],
-                        xsec_sampling_theta,
-                        rms_xsec_sampling_theta,
-                    )
-
-            # Prepare output
-            samples_done = np.zeros(n_samples, dtype=np.bool)
-            samples_x = np.zeros((n_samples, n_observables))
-            samples_augmented_data = []
-            for definition in augmented_data_definitions:
-                if definition[0] == "ratio":
-                    samples_augmented_data.append(np.zeros((n_samples, 1)))
-                elif definition[0] == "score":
-                    samples_augmented_data.append(np.zeros((n_samples, self.n_parameters)))
-                elif definition[0] == "nuisance_score":
-                    samples_augmented_data.append(np.zeros((n_samples, self.n_nuisance_parameters)))
-
-            largest_weight = 0.0
-
-            # Main sampling loop
-            while not np.all(samples_done):
-
-                # Draw random numbers in [0, 1]
-                u = np.random.rand(n_samples)  # Shape: (n_samples,)
-
-                # Loop over weighted events
-                cumulative_p = np.array([0.0])
-
-                for x_batch, weights_benchmarks_batch in madminer_event_loader(
-                    self.madminer_filename, start=start_event, end=end_event
-                ):
-                    # Evaluate p(x | sampling theta)
-                    weights_theta = mdot(sampling_theta_matrix, weights_benchmarks_batch)  # Shape (n_batch_size,)
-                    p_theta = weights_theta / xsec_sampling_theta  # Shape: (n_batch_size,)
-
-                    # Handle negative weights (should be rare)
-                    n_negative_weights = np.sum(p_theta < 0.0)
-                    if n_negative_weights > 0:
-                        n_negative_weights_warnings += 1
-                        # n_negative_benchmark_weights = np.sum(weights_benchmarks_batch < 0.0)
-
-                        if n_negative_weights_warnings <= 3:
-                            logger.warning(
-                                "For this value of theta, %s / %s events have negative weight and will be ignored",
-                                n_negative_weights,
-                                p_theta.size,
-                            )
-                            if n_negative_weights_warnings == 3:
-                                logger.warning("Skipping warnings about negative weights in the future...")
-
-                        # filter_negative_weights = p_theta < 0.0
-                        # for weight_theta_neg, weight_benchmarks_neg in zip(
-                        #     weights_theta[filter_negative_weights], weights_benchmarks_batch[filter_negative_weights]
-                        # ):
-                        #     logger.debug(
-                        #         "  weight(theta): %s, benchmark weights: %s", weight_theta_neg, weight_benchmarks_neg
-                        #     )
-
-                    p_theta[p_theta < 0.0] = 0.0
-
-                    # Remember largest weights (to calculate effective number of samples)
-                    largest_weight = max(largest_weight, np.max(p_theta))
-
-                    # Calculate cumulative p (summing up all events until here)
-                    cumulative_p = cumulative_p.flatten()[-1] + np.cumsum(p_theta)  # Shape: (n_batch_size,)
-
-                    # When cumulative_p hits u, we store the events
-                    indices = np.searchsorted(cumulative_p, u, side="left").flatten()
-                    # Shape: (n_samples,), values: [0, ..., n_batch_size]
-
-                    found_now = np.invert(samples_done) & (indices < len(cumulative_p))  # Shape: (n_samples,)
-                    samples_x[found_now] = x_batch[indices[found_now]]
-                    samples_done[found_now] = True
-
-                    # Extract augmented data
-                    relevant_augmented_data = calculate_augmented_data(
-                        augmented_data_definitions,
-                        weights_benchmarks_batch[indices[found_now], :],
-                        xsecs_benchmarks,
-                        theta_matrices,
-                        theta_gradient_matrices,
-                        nuisance_morpher=self.nuisance_morpher,
-                    )
-
-                    for i, this_relevant_augmented_data in enumerate(relevant_augmented_data):
-                        samples_augmented_data[i][found_now] = this_relevant_augmented_data
-
-                    if np.all(samples_done):
-                        break
-
-                # Cross-check cumulative probabilities at end
-                logger.debug("  Cumulative probability (should be close to 1): %s", cumulative_p[-1])
-
-                # Check that we got 'em all, otherwise repeat
-                if not np.all(samples_done):
-                    logger.debug(
-                        "  After full pass through event files, {} / {} samples not found, u = {}".format(
-                            np.sum(np.invert(samples_done)), samples_done.size, u[np.invert(samples_done)]
-                        )
-                    )
-
-            all_x.append(samples_x)
-            for i, theta in enumerate(thetas):
-                all_thetas[i].append(theta)
-            for i, this_samples_augmented_data in enumerate(samples_augmented_data):
-                all_augmented_data[i].append(this_samples_augmented_data)
-            all_effective_n_samples.append(1.0 / max(1.0e-12, largest_weight))
+                all_x.append(x)
+                for i, values in enumerate(augmented_data):
+                    all_augmented_data[i].append(values)
+                for i, values in enumerate(thetas):
+                    all_thetas[i].append(values)
+                for i, values in enumerate(nus):
+                    all_nus[i].append(values)
+                all_effective_n_samples.append(eff_n_samples)
 
         # Combine and return results
         all_x = np.vstack(all_x)
-        for i in range(n_thetas):
-            all_thetas[i] = np.vstack(all_thetas[i])
-        for i in range(len(all_augmented_data)):
-            all_augmented_data[i] = np.vstack(all_augmented_data[i])
+        for i, values in enumerate(all_thetas):
+            all_thetas[i] = np.vstack(values)
+        for i, values in enumerate(all_nus):
+            all_nus[i] = np.vstack(values)
+        for i, values in enumerate(all_augmented_data):
+            all_augmented_data[i] = np.vstack(values)
         all_effective_n_samples = np.array(all_effective_n_samples)
+        all_thetas = self._combine_thetas_nus(all_thetas, all_nus)
 
         # Report effective number of samples
-        if n_sets > 1:
+        self._report_effective_n_samples(all_effective_n_samples)
+
+        return all_x, all_augmented_data, all_thetas, all_effective_n_samples
+
+    @staticmethod
+    def _check_sets(sets):
+        n_sets = len(sets)
+        n_params = None
+        for set_ in sets:
+            if n_params is None:
+                n_params = len(set_)
+            assert len(set_) == n_params
+            for param_point in set_:
+                assert len(param_point) == 2
+
+        return n_sets, n_params
+
+    @staticmethod
+    def _check_gradient_need(augmented_data_definitions):
+        for definition in augmented_data_definitions:
+            if definition[0] == "score":
+                return True
+        return False
+
+    def _sample_set(
+        self,
+        set_,
+        n_samples,
+        augmented_data_definitions,
+        sampling_index=0,
+        needs_gradients=True,
+        nuisance_score=True,
+        use_train_events=True,
+        test_split=0.2,
+        n_stats_warnings=0,
+        n_neg_weights_warnings=0,
+    ):
+        # Parse thetas and nus
+        thetas, nus = [], []
+        theta_values, nu_values = [], []
+        theta_matrices, theta_gradient_matrices = [], []
+
+        logger.debug("Drawing %s events for the following parameter points:", n_samples)
+
+        for i_param, (theta, nu) in enumerate(set_):
+            thetas.append(theta)
+            nus.append(nu)
+
+            theta_value = self._get_theta_value(theta)
+            theta_value = np.broadcast_to(theta_value, (n_samples, theta_value.size))
+            theta_values.append(theta_value)
+
+            if nu is None:
+                nu_value = None
+                nu_values.append([[None] for _ in range(n_samples)])
+            else:
+                nu_value = self._get_nu_value(nu)
+                nu_values.append(np.broadcast_to(nu_value, (n_samples, nu_value.size)))
+
+            theta_matrices.append(self._get_theta_benchmark_matrix(theta))
+            if needs_gradients:
+                theta_gradient_matrices.append(self._get_dtheta_benchmark_matrix(theta))
+
+            if i_param == sampling_index:
+                logger.debug("  %s: theta = %s, nu = %s (sampling)", i_param, theta_value[0, :], nu_value)
+            else:
+                logger.debug("  %s: theta = %s, nu = %s", i_param, theta_value[0, :], nu_value)
+
+        # Cross sections
+        xsecs, xsec_uncertainties = self.xsecs(
+            thetas, nus, events="train" if use_train_events else "test", test_split=test_split
+        )
+        if needs_gradients:
+            xsec_gradients = self.xsec_gradients(
+                thetas,
+                nus,
+                gradients="all" if nuisance_score else "theta",
+                events="train" if use_train_events else "test",
+                test_split=test_split,
+            )
+        else:
+            xsec_gradients = None
+
+        # Report large uncertainties
+        if xsec_uncertainties[sampling_index] > 0.1 * xsecs[sampling_index]:
+            n_stats_warnings += 1
+            if n_stats_warnings <= 1:
+                logger.warning(
+                    "Large statistical uncertainty on the total cross section when sampling from theta = %s: "
+                    "(%4f +/- %4f) pb (%s %%). Skipping these warnings in the future...",
+                    theta_values[sampling_index][0],
+                    xsecs[sampling_index],
+                    xsec_uncertainties[sampling_index],
+                    100.0 * xsec_uncertainties[sampling_index] / xsecs[sampling_index],
+                )
+
+        # Prepare output
+        done = np.zeros(n_samples, dtype=np.bool)
+        x = np.zeros((n_samples, self.n_observables))
+        augmented_data = []
+        for definition in augmented_data_definitions:
+            if definition[0] == "ratio":
+                augmented_data.append(np.zeros((n_samples, 1)))
+            elif definition[0] == "score":
+                if nuisance_score:
+                    augmented_data.append(np.zeros((n_samples, self.n_parameters + self.n_nuisance_parameters)))
+                else:
+                    augmented_data.append(np.zeros((n_samples, self.n_parameters)))
+        largest_event_probability = 0.0
+
+        # Main sampling loop
+        start_event, end_event, correction_factor = self._train_test_split(use_train_events, test_split)
+        while not np.all(done):
+            # Draw random numbers in [0, 1]
+            u = np.random.rand(n_samples)  # Shape: (n_samples,)
+            cumulative_p = np.array([0.0])
+
+            # Loop over weighted events
+            for x_batch, weights_benchmarks_batch in madminer_event_loader(
+                self.madminer_filename, start=start_event, end=end_event
+            ):
+                weights_benchmarks_batch *= correction_factor
+
+                # Weights
+                weights = self._weights(thetas, nus, weights_benchmarks_batch, theta_matrices)
+                if needs_gradients:
+                    weight_gradients = self._weight_gradients(
+                        thetas,
+                        nus,
+                        weights_benchmarks_batch,
+                        gradients="all" if nuisance_score else "theta",
+                        theta_matrices=theta_matrices,
+                        theta_gradient_matrices=theta_gradient_matrices,
+                    )
+                else:
+                    weight_gradients = None
+
+                # Evaluate p(x | sampling theta)
+                p_sampling = weights[sampling_index] / xsecs[sampling_index]  # Shape: (n_batch_size,)
+
+                # Handle negative weights (should be rare)
+                n_negative_weights = np.sum(p_sampling < 0.0)
+                if n_negative_weights > 0:
+                    n_neg_weights_warnings += 1
+                    if n_neg_weights_warnings <= 3:
+                        logger.warning(
+                            "For this value of theta, %s / %s events have negative weight and will be ignored",
+                            n_negative_weights,
+                            p_sampling.size,
+                        )
+                        if n_neg_weights_warnings == 3:
+                            logger.warning("Skipping warnings about negative weights in the future...")
+                    p_sampling[p_sampling < 0.0] = 0.0
+
+                # Remember largest weights (to calculate effective number of samples)
+                largest_event_probability = max(largest_event_probability, np.max(p_sampling))
+
+                # Calculate cumulative p (summing up all events until here)
+                cumulative_p = cumulative_p.flatten()[-1] + np.cumsum(p_sampling)  # Shape: (n_batch_size,)
+
+                # When cumulative_p hits u, we store the events
+                indices = np.searchsorted(cumulative_p, u, side="left").flatten()
+                # Shape: (n_samples,), values: [0, ..., n_batch_size]
+
+                found_now = np.invert(done) & (indices < len(cumulative_p))  # Shape: (n_samples,)
+                x[found_now] = x_batch[indices[found_now]]
+                done[found_now] = True
+
+                # Extract augmented data
+                relevant_augmented_data = self._calculate_augmented_data(
+                    augmented_data_definitions=augmented_data_definitions,
+                    weights=weights[:, indices[found_now]],
+                    weight_gradients=None if weight_gradients is None else weight_gradients[:, :, indices[found_now]],
+                    xsecs=xsecs,
+                    xsec_gradients=xsec_gradients,
+                )
+                for i, this_relevant_augmented_data in enumerate(relevant_augmented_data):
+                    augmented_data[i][found_now] = this_relevant_augmented_data
+
+                # Finished?
+                if np.all(done):
+                    break
+
+            # Cross-check cumulative probabilities at end
+            logger.debug("  Cumulative probability (should be close to 1): %s", cumulative_p[-1])
+
+            # Check that we got 'em all, otherwise repeat
+            if not np.all(done):
+                logger.debug(
+                    "  After full pass through event files, {} / {} samples not found, with u = {}".format(
+                        np.sum(np.invert(done)), done.size, u[np.invert(done)]
+                    )
+                )
+
+        n_eff_samples = 1.0 / max(1.0e-12, largest_event_probability)
+
+        return x, theta_values, nu_values, augmented_data, n_eff_samples, n_stats_warnings, n_neg_weights_warnings
+
+    @staticmethod
+    def _calculate_augmented_data(
+        augmented_data_definitions,
+        weights,  # shape (n_thetas, n_events)
+        weight_gradients,  # grad_theta dsigma(theta, nu) with shape (n_thetas, n_gradients, n_events)
+        xsecs,  # shape (n_thetas,)
+        xsec_gradients,  # grad_theta sigma(theta, nu) with shape (n_params, n_gradients)
+    ):
+        augmented_data = []
+        for definition in augmented_data_definitions:
+            if definition[0] == "ratio":
+                _, i_num, i_den = definition
+                ratio = (weights[i_num] / xsecs[i_num]) / (weights[i_den] / xsecs[i_den])
+                ratio = ratio.reshape((-1, 1))  # (n_samples, 1)
+                augmented_data.append(ratio)
+            elif definition[0] == "score":
+                _, i = definition
+                score = weight_gradients[i, :, :] / weights[i, np.newaxis, :]  # (n_gradients, n_samples)
+                score = score - xsec_gradients[i, :, np.newaxis] / xsecs[i, np.newaxis, np.newaxis]
+                score = score.T  # (n_samples, n_gradients)
+                augmented_data.append(score)
+            else:
+                raise ValueError("Unknown augmented data type {}".format(definition[0]))
+
+        return augmented_data
+
+    def _combine_thetas_nus(self, all_thetas, all_nus):
+        n_thetas = len(all_thetas)
+        assert n_thetas == len(all_nus)
+
+        # all_nus is a list of a list of (None or ndarray)
+        # Figure out if there's anything nontrivial in there
+        add_nuisance_params = False
+        for nus in all_nus:
+            if self._any_nontrivial_nus(nus):
+                add_nuisance_params = True
+
+        # No nuisance params?
+        if not add_nuisance_params or self.nuisance_morpher is None or self.n_nuisance_parameters == 0:
+            return all_thetas
+
+        all_combined = []
+        for thetas, nus in zip(all_thetas, all_nus):
+            combined = []
+            if nus is None:
+                nus = [None for _ in range(thetas)]
+            for theta, nu in zip(thetas, nus):
+                if nu is None or None in nu:
+                    nu = np.zeros(self.n_nuisance_parameters)
+                combined.append(np.hstack((theta, nu)))
+            all_combined.append(np.asarray(combined))
+        return all_combined
+
+    @staticmethod
+    def _report_effective_n_samples(all_effective_n_samples):
+        if len(all_effective_n_samples) > 1:
             logger.info(
                 "Effective number of samples: mean %s, with individual thetas ranging from %s to %s",
                 np.mean(all_effective_n_samples),
@@ -1572,47 +1515,345 @@ class SampleAugmenter:
         else:
             logger.info("Effective number of samples: %s", all_effective_n_samples[0])
 
-        return all_x, all_augmented_data, all_thetas
+    @staticmethod
+    def _parse_theta(theta, n_samples):
+        theta_type_in = theta[0]
+        theta_value_in = theta[1]
 
-    def _train_test_split(self, train, test_split):
-        """
-        Returns the start and end event for train samples (train = True) or test samples (train = False).
-
-        Parameters
-        ----------
-        train : bool
-            True if training data is generated, False if test data is generated.
-
-        test_split : float
-            Fraction of events reserved for testing.
-
-        Returns
-        -------
-        start_event : int
-            Index of the first unweighted event to consider.
-
-        end_event : int
-            Index of the last unweighted event to consider.
-
-        """
-        if train:
-            start_event = 0
-
-            if test_split is None or test_split <= 0.0 or test_split >= 1.0:
-                end_event = None
+        if theta_type_in == "benchmark":
+            thetas_out = [theta_value_in]
+            if n_samples is None:
+                n_samples_per_theta = 1
             else:
-                end_event = int(round((1.0 - test_split) * self.n_samples, 0))
-                if end_event < 0 or end_event > self.n_samples:
-                    raise ValueError("Irregular train / test split: sample {} / {}", end_event, self.n_samples)
+                n_samples_per_theta = n_samples
+
+        elif theta_type_in == "benchmarks":
+            n_benchmarks = len(theta_value_in)
+            if n_samples is None:
+                n_samples_per_theta = 1
+            else:
+                n_samples_per_theta = max(int(round(n_samples / n_benchmarks, 0)), 1)
+            thetas_out = theta_value_in
+
+        elif theta_type_in == "morphing_point":
+            thetas_out = [np.asarray(theta_value_in)]
+            if n_samples is None:
+                n_samples_per_theta = 1
+            else:
+                n_samples_per_theta = n_samples
+
+        elif theta_type_in == "morphing_points":
+            n_benchmarks = len(theta_value_in)
+            if n_samples is None:
+                n_samples_per_theta = 1
+            else:
+                n_samples_per_theta = max(int(round(n_samples / n_benchmarks, 0)), 1)
+            thetas_out = theta_value_in
+
+        elif theta_type_in == "random_morphing_points":
+            n_benchmarks, priors = theta_value_in
+            if n_benchmarks is None or n_benchmarks <= 0 or (n_samples is not None and n_benchmarks > n_samples):
+                n_benchmarks = n_samples
+            if n_samples is None:
+                n_samples_per_theta = 1
+            else:
+                n_samples_per_theta = max(int(round(n_samples / n_benchmarks, 0)), 1)
+
+            thetas_out = []
+            for prior in priors:
+                if prior[0] == "flat":
+                    prior_min = prior[1]
+                    prior_max = prior[2]
+                    thetas_out.append(prior_min + (prior_max - prior_min) * np.random.rand(n_benchmarks))
+                elif prior[0] == "gaussian":
+                    prior_mean = prior[1]
+                    prior_std = prior[2]
+                    thetas_out.append(np.random.normal(loc=prior_mean, scale=prior_std, size=n_benchmarks))
+                else:
+                    raise ValueError("Unknown prior {}".format(prior))
+            thetas_out = np.array(thetas_out).T
 
         else:
-            if test_split is None or test_split <= 0.0 or test_split >= 1.0:
-                start_event = 0
+            raise ValueError("Unknown theta specification {}".format(theta))
+
+        return thetas_out, n_samples_per_theta
+
+    def _parse_nu(self, nu, n_thetas):
+        if nu is None:
+            nu_type_in = "nominal"
+            nu_value_in = None
+        else:
+            nu_type_in = nu[0]
+            nu_value_in = nu[1]
+
+        if nu_type_in == "nominal":
+            nu_out = [None for _ in range(n_thetas)]
+
+        elif nu_type_in == "iid":
+            priors = [nu_value_in for _ in range(self.n_nuisance_parameters)]
+            return self._parse_nu(("random_morphing_points", (None, priors)), n_thetas)
+
+        elif nu_type_in == "morphing_point":
+            nu_out = np.asarray([nu_value_in for _ in range(n_thetas)])
+
+        elif nu_type_in == "morphing_points":
+            n_nus = len(nu_value_in)
+            nu_out = np.asarray([nu_value_in[i % n_nus] for i in range(n_thetas)])
+
+        elif nu_type_in == "random_morphing_points":
+            _, priors = nu_value_in
+
+            nu_out = []
+            for prior in priors:
+                if prior[0] == "flat":
+                    prior_min = prior[1]
+                    prior_max = prior[2]
+                    nu_out.append(prior_min + (prior_max - prior_min) * np.random.rand(n_thetas))
+                elif prior[0] == "gaussian":
+                    prior_mean = prior[1]
+                    prior_std = prior[2]
+                    nu_out.append(np.random.normal(loc=prior_mean, scale=prior_std, size=n_thetas))
+                else:
+                    raise ValueError("Unknown prior {}".format(prior))
+            nu_out = np.array(nu_out).T
+
+        else:
+            raise ValueError("Unknown nu specification {}".format(nu))
+
+        return nu_out
+
+    @staticmethod
+    def _build_sets(thetas, nus):
+        if len(nus) != len(thetas):
+            raise RuntimeError("Mismatching thetas and nus: {} vs {}".format(len(thetas), len(nus)))
+
+        n_sets = max([len(param) for param in thetas + nus])
+        sets = [[] for _ in range(n_sets)]
+
+        for (theta, nu) in zip(thetas, nus):
+            n_theta_sets_before = len(theta)
+            n_nu_sets_before = len(nu)
+
+            for i_set in range(n_sets):
+                sets[i_set].append((theta[i_set % n_theta_sets_before], nu[i_set % n_nu_sets_before]))
+
+        return sets
+
+
+def combine_and_shuffle(input_filenames, output_filename, k_factors=None, overwrite_existing_file=True):
+    """
+    Combines multiple MadMiner files into one, and shuffles the order of the events.
+
+    Note that this function assumes that all samples are generated with the same setup, including identical benchmarks
+    (and thus morphing setup). If it is used with samples with different settings, there will be wrong results!
+    There are no explicit cross checks in place yet!
+
+    Parameters
+    ----------
+    input_filenames : list of str
+        List of paths to the input MadMiner files.
+
+    output_filename : str
+        Path to the combined MadMiner file.
+
+    k_factors : float or list of float, optional
+        Multiplies the weights in input_filenames with a universal factor (if k_factors is a float) or with independent
+        factors (if it is a list of float). Default value: None.
+
+    overwrite_existing_file : bool, optional
+        If True and if the output file exists, it is overwritten. Default value: True.
+
+    Returns
+    -------
+        None
+
+    """
+
+    logger.debug("Combining and shuffling samples")
+
+    if len(input_filenames) > 1:
+        logger.warning(
+            "Careful: this tool assumes that all samples are generated with the same setup, including"
+            " identical benchmarks (and thus morphing setup). If it is used with samples with different"
+            " settings, there will be wrong results! There are no explicit cross checks in place yet."
+        )
+
+    # k factors
+    if k_factors is None:
+        k_factors = [1.0 for _ in input_filenames]
+    elif isinstance(k_factors, float):
+        k_factors = [k_factors for _ in input_filenames]
+
+    # Copy first file to output_filename
+    logger.info("Copying setup from %s to %s", input_filenames[0], output_filename)
+
+    # TODO: More memory efficient strategy
+
+    # Load events
+    all_observations = None
+    all_weights = None
+
+    for i, (filename, k_factor) in enumerate(zip(input_filenames, k_factors)):
+        logger.info(
+            "Loading samples from file %s / %s at %s, multiplying weights with k factor %s",
+            i + 1,
+            len(input_filenames),
+            filename,
+            k_factor,
+        )
+
+        for observations, weights in madminer_event_loader(filename):
+            if all_observations is None:
+                all_observations = observations
+                all_weights = k_factor * weights
             else:
-                start_event = int(round((1.0 - test_split) * self.n_samples, 0)) + 1
-                if start_event < 0 or start_event > self.n_samples:
-                    raise ValueError("Irregular train / test split: sample {} / {}", start_event, self.n_samples)
+                all_observations = np.vstack((all_observations, observations))
+                all_weights = np.vstack((all_weights, k_factor * weights))
 
-            end_event = None
+    # Shuffle
+    all_observations, all_weights = shuffle(all_observations, all_weights)
 
-        return start_event, end_event
+    # Save result
+    save_preformatted_events_to_madminer_file(
+        filename=output_filename,
+        observations=all_observations,
+        weights=all_weights,
+        copy_setup_from=input_filenames[0],
+        overwrite_existing_samples=overwrite_existing_file,
+    )
+
+
+def benchmark(benchmark_name):
+    """
+    Utility function to be used as input to various SampleAugmenter functions, specifying a single parameter benchmark.
+
+    Parameters
+    ----------
+    benchmark_name : str
+        Name of the benchmark (as in `madminer.core.MadMiner.add_benchmark`)
+
+
+    Returns
+    -------
+    output : tuple
+        Input to various SampleAugmenter functions
+
+    """
+    return "benchmark", benchmark_name
+
+
+def benchmarks(benchmark_names):
+    """
+    Utility function to be used as input to various SampleAugmenter functions, specifying multiple parameter benchmarks.
+
+    Parameters
+    ----------
+    benchmark_names : list of str
+        List of names of the benchmarks (as in `madminer.core.MadMiner.add_benchmark`)
+
+
+    Returns
+    -------
+    output : tuple
+        Input to various SampleAugmenter functions
+
+    """
+    return "benchmarks", benchmark_names
+
+
+def morphing_point(theta):
+    """
+    Utility function to be used as input to various SampleAugmenter functions, specifying a single parameter point theta
+    in a morphing setup.
+
+    Parameters
+    ----------
+    theta : ndarray or list
+        Parameter point with shape `(n_parameters,)`
+
+    Returns
+    -------
+    output : tuple
+        Input to various SampleAugmenter functions
+
+    """
+    return "morphing_point", np.asarray(theta)
+
+
+def morphing_points(thetas):
+    """
+    Utility function to be used as input to various SampleAugmenter functions, specifying multiple parameter points
+    theta in a morphing setup.
+
+    Parameters
+    ----------
+    thetas : ndarray or list of lists or list of ndarrays
+        Parameter points with shape `(n_thetas, n_parameters)`
+
+    Returns
+    -------
+    output : tuple
+        Input to various SampleAugmenter functions
+
+    """
+    return "morphing_points", [np.asarray(theta) for theta in thetas]
+
+
+def random_morphing_points(n_thetas, priors):
+    """
+    Utility function to be used as input to various SampleAugmenter functions, specifying random parameter points
+    sampled from a prior in a morphing setup.
+
+    Parameters
+    ----------
+    n_thetas : int
+        Number of parameter points to be sampled
+
+    priors : list of tuples
+        Priors for each parameter is characterized by a tuple of the form `(prior_shape, prior_param_0, prior_param_1)`.
+        Currently, the supported prior_shapes are `flat`, in which case the two other parameters are the lower and upper
+        bound of the flat prior, and `gaussian`, in which case they are the mean and standard deviation of a Gaussian.
+
+    Returns
+    -------
+    output : tuple
+        Input to various SampleAugmenter functions
+
+    """
+    return "random_morphing_points", (n_thetas, priors)
+
+
+def iid_nuisance_parameters(shape="gaussian", param0=0.0, param1=1.0):
+    """
+    Utility function to be used as input to various SampleAugmenter functions, specifying that nuisance parameters are
+    fixed at their nominal valuees.
+
+    Parameters
+    ----------
+    prior : tuple
+        Prior for all nuisance parameters with form `(prior_shape, prior_param_0, prior_param_1)`.
+        Currently, the supported prior_shapes are `flat`, in which case the two other parameters are the lower and upper
+        bound of the flat prior, and `gaussian`, in which case they are the mean and standard deviation of a Gaussian.
+
+    Returns
+    -------
+    output : tuple
+        Input to various SampleAugmenter functions
+
+    """
+    return "iid", (shape, param0, param1)
+
+
+def nominal_nuisance_parameters():
+    """
+    Utility function to be used as input to various SampleAugmenter functions, specifying that nuisance parameters are
+    fixed at their nominal valuees.
+
+
+    Returns
+    -------
+    output : tuple
+        Input to various SampleAugmenter functions
+
+    """
+    return "nominal", None

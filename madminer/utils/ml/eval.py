@@ -5,7 +5,7 @@ import numpy as np
 import torch
 from torch import tensor
 
-from madminer.utils.ml.models.ratio import ParameterizedRatioEstimator, DoublyParameterizedRatioEstimator
+from madminer.utils.ml.models.ratio import DenseSingleParameterizedRatioModel, DenseDoublyParameterizedRatioModel
 
 logger = logging.getLogger(__name__)
 
@@ -77,9 +77,9 @@ def evaluate_ratio_model(
 
     # Figure out method type
     if method_type is None:
-        if isinstance(model, ParameterizedRatioEstimator):
+        if isinstance(model, DenseSingleParameterizedRatioModel):
             method_type = "parameterized"
-        elif isinstance(model, DoublyParameterizedRatioEstimator):
+        elif isinstance(model, DenseDoublyParameterizedRatioModel):
             method_type = "doubly_parameterized"
         else:
             raise RuntimeError("Cannot infer method type automatically")
@@ -111,7 +111,7 @@ def evaluate_ratio_model(
     if evaluate_score or return_grad_x:
         model.eval()
 
-        if method_type == "parameterized":
+        if method_type == "parameterized_ratio":
             if return_grad_x:
                 s_hat, log_r_hat, t_hat0, x_gradients = model(
                     theta0s, xs, return_grad_x=True, track_score=evaluate_score, create_gradient_graph=False
@@ -120,7 +120,7 @@ def evaluate_ratio_model(
                 s_hat, log_r_hat, t_hat0 = model(theta0s, xs, track_score=evaluate_score, create_gradient_graph=False)
                 x_gradients = None
             t_hat1 = None
-        elif method_type == "doubly_parameterized":
+        elif method_type == "double_parameterized_ratio":
             if return_grad_x:
                 s_hat, log_r_hat, t_hat0, t_hat1, x_gradients = model(
                     theta0s, theta1s, xs, return_grad_x=True, track_score=evaluate_score, create_gradient_graph=False
@@ -155,9 +155,9 @@ def evaluate_ratio_model(
         with torch.no_grad():
             model.eval()
 
-            if method_type == "parameterized":
+            if method_type == "parameterized_ratio":
                 s_hat, log_r_hat, _ = model(theta0s, xs, track_score=False, create_gradient_graph=False)
-            elif method_type == "doubly_parameterized":
+            elif method_type == "double_parameterized_ratio":
                 s_hat, log_r_hat, _, _ = model(theta0s, theta1s, xs, track_score=False, create_gradient_graph=False)
             else:
                 raise ValueError("Unknown method type %s", method_type)
