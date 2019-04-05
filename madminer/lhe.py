@@ -452,9 +452,9 @@ class LHEReader:
 
         self.cuts.append(definition)
         self.cuts_default_pass.append(pass_if_not_parsed)
-    
-    def add_efficiency(self, definition, value_if_not_parsed=1.):
-        
+
+    def add_efficiency(self, definition, value_if_not_parsed=1.0):
+
         """
             Adds an efficiency as a string that can be parsed by Python's `eval()` function and returns a bool.
             
@@ -481,7 +481,7 @@ class LHEReader:
             
             """
         logger.debug("Adding efficiency %s", definition)
-        
+
         self.efficiencies.append(definition)
         self.efficiencies_default_pass.append(value_if_not_parsed)
 
@@ -501,12 +501,12 @@ class LHEReader:
 
         self.cuts = []
         self.cuts_default_pass = []
-    
+
     def reset_efficiencies(self):
         """ Resets all efficiencies. """
-        
+
         logger.debug("Resetting efficiencies")
-        
+
         self.efficiencies = []
         self.efficiencies_default_pass = []
 
@@ -634,7 +634,7 @@ class LHEReader:
         n_events = None
         for key, obs in six.iteritems(this_observations):
             this_n_events = len(obs)
-            logger.debug("Found {} events in Obs {}".format(this_n_events, key) )
+            logger.debug("Found {} events in Obs {}".format(this_n_events, key))
             if n_events is None:
                 n_events = this_n_events
                 logger.debug("Found %s events", n_events)

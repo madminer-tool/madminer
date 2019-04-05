@@ -75,7 +75,15 @@ class SampleAugmenter(DataAnalyzer):
         super(SampleAugmenter, self).__init__(filename, disable_morphing, include_nuisance_parameters)
 
     def sample_train_plain(
-        self, theta, n_samples, nu=None, folder=None, filename=None, test_split=0.2, switch_train_test_events=False
+        self,
+        theta,
+        n_samples,
+        nu=None,
+        folder=None,
+        filename=None,
+        test_split=0.2,
+        switch_train_test_events=False,
+        n_processes=1,
     ):
         """
         Extracts plain training samples `x ~ p(x|theta)` without any augmented data. This can be use for standard
@@ -113,6 +121,11 @@ class SampleAugmenter(DataAnalyzer):
             If True, this function generates a training sample from the events normally reserved for test samples.
             Default value: False.
 
+        n_processes : None or int, optional
+            If None or larger than 1, MadMiner will use multiprocessing to parallelize the sampling. In this case,
+            n_workers sets the number of jobs running in parallel, and None will use the number of CPUs. Default value:
+            1.
+
         Returns
         -------
         x : ndarray
@@ -144,6 +157,7 @@ class SampleAugmenter(DataAnalyzer):
             n_samples_per_set=n_samples_per_theta,
             use_train_events=not switch_train_test_events,
             test_split=test_split,
+            n_processes=n_processes,
         )
 
         # Save data
@@ -163,6 +177,7 @@ class SampleAugmenter(DataAnalyzer):
         nuisance_score="auto",
         test_split=0.2,
         switch_train_test_events=False,
+        n_processes=1,
         log_message=True,
     ):
         """
@@ -203,6 +218,11 @@ class SampleAugmenter(DataAnalyzer):
         switch_train_test_events : bool, optional
             If True, this function generates a training sample from the events normally reserved for test samples.
             Default value: False.
+
+        n_processes : None or int, optional
+            If None or larger than 1, MadMiner will use multiprocessing to parallelize the sampling. In this case,
+            n_workers sets the number of jobs running in parallel, and None will use the number of CPUs. Default value:
+            1.
 
         log_message : bool, optional
             If True, logging output. This option is only designed for internal use.
@@ -260,6 +280,7 @@ class SampleAugmenter(DataAnalyzer):
             nuisance_score=nuisance_score,
             use_train_events=not switch_train_test_events,
             test_split=test_split,
+            n_processes=n_processes,
         )
         t_xz = augmented_data[0]
 
@@ -281,6 +302,7 @@ class SampleAugmenter(DataAnalyzer):
         nuisance_score="auto",
         test_split=0.2,
         switch_train_test_events=False,
+        n_processes=1,
     ):
         """
         Extracts training samples x ~ p(x|theta) as well as the joint score t(x, z|theta), where theta is sampled
@@ -321,6 +343,11 @@ class SampleAugmenter(DataAnalyzer):
             If True, this function generates a training sample from the events normally reserved for test samples.
             Default value: False.
 
+        n_processes : None or int, optional
+            If None or larger than 1, MadMiner will use multiprocessing to parallelize the sampling. In this case,
+            n_workers sets the number of jobs running in parallel, and None will use the number of CPUs. Default value:
+            1.
+
         Returns
         -------
         x : ndarray
@@ -356,6 +383,7 @@ class SampleAugmenter(DataAnalyzer):
             nuisance_score=nuisance_score,
             test_split=test_split,
             switch_train_test_events=switch_train_test_events,
+            n_processes=n_processes,
             log_message=False,
         )
 
@@ -371,6 +399,7 @@ class SampleAugmenter(DataAnalyzer):
         nuisance_score="auto",
         test_split=0.2,
         switch_train_test_events=False,
+        n_processes=1,
     ):
         """
         Extracts training samples `x ~ p(x|theta0)` and `x ~ p(x|theta1)` together with the class label `y`, the joint
@@ -421,6 +450,11 @@ class SampleAugmenter(DataAnalyzer):
         switch_train_test_events : bool, optional
             If True, this function generates a training sample from the events normally reserved for test samples.
             Default value: False.
+
+        n_processes : None or int, optional
+            If None or larger than 1, MadMiner will use multiprocessing to parallelize the sampling. In this case,
+            n_workers sets the number of jobs running in parallel, and None will use the number of CPUs. Default value:
+            1.
 
         Returns
         -------
@@ -496,6 +530,7 @@ class SampleAugmenter(DataAnalyzer):
                 nuisance_score=nuisance_score,
                 use_train_events=not switch_train_test_events,
                 test_split=test_split,
+                n_processes=n_processes,
             )
             t_xz0 = None
         else:
@@ -507,6 +542,7 @@ class SampleAugmenter(DataAnalyzer):
                 nuisance_score=nuisance_score,
                 use_train_events=not switch_train_test_events,
                 test_split=test_split,
+                n_processes=n_processes,
             )
 
         # Thetas for theta1 sampling (could be different if num or denom are random)
@@ -528,6 +564,7 @@ class SampleAugmenter(DataAnalyzer):
                 nuisance_score=nuisance_score,
                 use_train_events=not switch_train_test_events,
                 test_split=test_split,
+                n_processes=n_processes,
             )
             t_xz1 = None
         else:
@@ -539,6 +576,7 @@ class SampleAugmenter(DataAnalyzer):
                 nuisance_score=nuisance_score,
                 use_train_events=not switch_train_test_events,
                 test_split=test_split,
+                n_processes=n_processes,
             )
 
         # Combine
@@ -584,6 +622,7 @@ class SampleAugmenter(DataAnalyzer):
         nuisance_score="auto",
         test_split=0.2,
         switch_train_test_events=False,
+        n_processes=1,
     ):
         """
         Extracts training samples `x ~ p(x|theta0)` and `x ~ p(x|theta1)` together with the class label `y`, the joint
@@ -647,6 +686,11 @@ class SampleAugmenter(DataAnalyzer):
         switch_train_test_events : bool, optional
             If True, this function generates a training sample from the events normally reserved for test samples.
             Default value: False.
+
+        n_processes : None or int, optional
+            If None or larger than 1, MadMiner will use multiprocessing to parallelize the sampling. In this case,
+            n_workers sets the number of jobs running in parallel, and None will use the number of CPUs. Default value:
+            1.
 
         Returns
         -------
@@ -744,6 +788,7 @@ class SampleAugmenter(DataAnalyzer):
             nuisance_score=nuisance_score,
             use_train_events=not switch_train_test_events,
             test_split=test_split,
+            n_processes=n_processes,
         )
         n_actual_samples = x_0.shape[0]
 
@@ -805,6 +850,7 @@ class SampleAugmenter(DataAnalyzer):
             nuisance_score=nuisance_score,
             use_train_events=not switch_train_test_events,
             test_split=test_split,
+            n_processes=n_processes,
         )
         n_actual_samples += x_1.shape[0]
 
@@ -867,7 +913,15 @@ class SampleAugmenter(DataAnalyzer):
         return x, theta0, theta1, y, r_xz, t_xz0, t_xz1, min(min(n_effective_samples_0), min(n_effective_samples_1))
 
     def sample_test(
-        self, theta, n_samples, nu=None, folder=None, filename=None, test_split=0.2, switch_train_test_events=False
+        self,
+        theta,
+        n_samples,
+        nu=None,
+        folder=None,
+        filename=None,
+        test_split=0.2,
+        switch_train_test_events=False,
+        n_processes=1,
     ):
         """
         Extracts evaluation samples `x ~ p(x|theta)` without any augmented data.
@@ -903,6 +957,11 @@ class SampleAugmenter(DataAnalyzer):
             If True, this function generates a test sample from the events normally reserved for training samples.
             Default value: False.
 
+        n_processes : None or int, optional
+            If None or larger than 1, MadMiner will use multiprocessing to parallelize the sampling. In this case,
+            n_workers sets the number of jobs running in parallel, and None will use the number of CPUs. Default value:
+            1.
+
         Returns
         -------
         x : ndarray
@@ -934,6 +993,7 @@ class SampleAugmenter(DataAnalyzer):
             n_samples_per_set=n_samples_per_theta,
             use_train_events=switch_train_test_events,
             test_split=test_split,
+            n_processes=n_processes,
         )
 
         # Save data
@@ -1001,8 +1061,8 @@ class SampleAugmenter(DataAnalyzer):
         use_train_events=True,
         test_split=0.2,
         verbose="some",
-        n_workers=1,
-        update_patience=0.1
+        n_processes=1,
+        update_patience=0.01,
     ):
         """
         Low-level function for the extraction of information from the event samples. Do not use this function directly.
@@ -1041,12 +1101,13 @@ class SampleAugmenter(DataAnalyzer):
             Fraction of events reserved for the evaluation sample (that will not be used for any training samples).
             Default value: 0.2.
 
-        n_workers : None or int, optional
+        n_processes : None or int, optional
             If None or larger than 1, MadMiner will use multiprocessing to parallelize the sampling. In this case,
-            n_workers sets the number of jobs running in parallel, and None will use the number of CPUs.
+            n_workers sets the number of jobs running in parallel, and None will use the number of CPUs. Default value:
+            1.
 
         update_patience : float, optional
-            Wait time between log updates with n_workers > 1 (or None).
+            Wait time (in s) between log updates with n_workers > 1 (or None). Default value: 0.01
 
         Returns
         -------
@@ -1083,9 +1144,9 @@ class SampleAugmenter(DataAnalyzer):
         n_neg_weights_warnings = 0
 
         # Multiprocessing approach
-        if n_workers is None or n_workers > 1:
-            if n_workers is None:
-                n_workers = multiprocessing.cpu_count()
+        if n_processes is None or n_processes > 1:
+            if n_processes is None:
+                n_processes = multiprocessing.cpu_count()
 
             job = partial(
                 self._sample_set,
@@ -1100,14 +1161,14 @@ class SampleAugmenter(DataAnalyzer):
                 n_neg_weights_warnings=1000,
             )
 
-            logger.info("Starting sampling jobs in parallel, using %s processes", n_workers)
+            logger.info("Starting sampling jobs in parallel, using %s processes", n_processes)
 
-            pool = multiprocessing.Pool(processes=n_workers)
+            pool = multiprocessing.Pool(processes=n_processes)
             r = pool.map_async(job, sets, chunksize=1)
 
             next_verbose = 0
             verbose_steps = n_sets // 10
-            
+
             while not r.ready():
                 n_done = max(n_sets - r._number_left * r._chunksize, 0)
                 if n_done >= next_verbose:

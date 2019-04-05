@@ -72,9 +72,9 @@ def parse_lhe_file(
 
     if efficiencies is None:
         efficiencies = OrderedDict()
-    
+
     if efficiencies_default_pass is None:
-        efficiencies_default_pass = {key: 1. for key in six.iterkeys(efficiencies)}
+        efficiencies_default_pass = {key: 1.0 for key in six.iterkeys(efficiencies)}
 
     # Untar and open LHE file
     root, filename = _untar_and_parse_lhe_file(filename)
@@ -136,7 +136,7 @@ def parse_lhe_file(
 
     pass_efficiencies = [0 for _ in efficiencies]
     fail_efficiencies = [0 for _ in efficiencies]
-    avg_efficiencies  = [0 for _ in efficiencies]
+    avg_efficiencies = [0 for _ in efficiencies]
     # Option one: XML parsing
     if parse_events_as_xml:
 
@@ -180,7 +180,7 @@ def parse_lhe_file(
                         observations.append(eval(obs_definition, variables))
                     except (SyntaxError, NameError, TypeError, ZeroDivisionError, IndexError):
                         if observables_required[obs_name]:
-                            pass_all_abservation=False
+                            pass_all_abservation = False
 
                         default = observables_defaults[obs_name]
                         if default is None:
@@ -191,13 +191,13 @@ def parse_lhe_file(
                         observations.append(obs_definition(particles))
                     except RuntimeError:
                         if observables_required[obs_name]:
-                            pass_all_abservation=False
+                            pass_all_abservation = False
 
                         default = observables_defaults[obs_name]
                         if default is None:
                             default = np.nan
                         observations.append(default)
-                            
+
             if not pass_all_observation:
                 continue
 
@@ -225,14 +225,14 @@ def parse_lhe_file(
 
             if not pass_all_cuts:
                 continue
-            
+
             # Apply efficiencies
             pass_all_efficiencies = True
-            total_efficiency = 1.
+            total_efficiency = 1.0
             for i_efficiency, (efficiency, default_pass) in enumerate(zip(efficiencies, efficiencies_default_pass)):
                 try:
                     efficiency_result = eval(efficiency, variables)
-                    if efficiency_result>0.:
+                    if efficiency_result > 0.0:
                         pass_efficiencies[i_efficiency] += 1
                         total_efficiency *= efficiency_result
                         avg_efficiencies[i_efficiency] += efficiency_result
@@ -241,16 +241,16 @@ def parse_lhe_file(
                         pass_all_efficiencies = False
 
                 except (SyntaxError, NameError, TypeError, ZeroDivisionError, IndexError):
-                    if default_pass>0.:
+                    if default_pass > 0.0:
                         pass_efficiencies[i_efficiency] += 1
                         total_efficiency *= default_pass
                         avg_efficiencies[i_efficiency] += default_pass
                     else:
                         fail_efficiencies[i_efficiency] += 1
                         pass_all_efficiencies = False
-            
+
             if pass_all_efficiencies:
-                weights*=total_efficiency
+                weights *= total_efficiency
             else:
                 continue
 
@@ -293,14 +293,14 @@ def parse_lhe_file(
 
             # Calculate observables
             observations = []
-            pass_all_observation=True
+            pass_all_observation = True
             for obs_name, obs_definition in six.iteritems(observables):
                 if isinstance(obs_definition, six.string_types):
                     try:
                         observations.append(eval(obs_definition, variables))
                     except (SyntaxError, NameError, TypeError, ZeroDivisionError, IndexError):
                         if observables_required[obs_name]:
-                            pass_all_observation=False
+                            pass_all_observation = False
 
                         default = observables_defaults[obs_name]
                         if default is None:
@@ -311,7 +311,7 @@ def parse_lhe_file(
                         observations.append(obs_definition(particles))
                     except RuntimeError:
                         if observables_required[obs_name]:
-                            pass_all_observation=False
+                            pass_all_observation = False
 
                         default = observables_defaults[obs_name]
                         if default is None:
@@ -345,14 +345,14 @@ def parse_lhe_file(
 
             if not pass_all_cuts:
                 continue
-            
+
             # Apply efficiencies
             pass_all_efficiencies = True
-            total_efficiency = 1.
+            total_efficiency = 1.0
             for i_efficiency, (efficiency, default_pass) in enumerate(zip(efficiencies, efficiencies_default_pass)):
                 try:
                     efficiency_result = eval(efficiency, variables)
-                    if efficiency_result>0.:
+                    if efficiency_result > 0.0:
                         pass_efficiencies[i_efficiency] += 1
                         total_efficiency *= efficiency_result
                         avg_efficiencies[i_efficiency] += efficiency_result
@@ -361,7 +361,7 @@ def parse_lhe_file(
                         pass_all_efficiencies = False
 
                 except (SyntaxError, NameError, TypeError, ZeroDivisionError, IndexError):
-                    if default_pass>0.:
+                    if default_pass > 0.0:
                         pass_efficiencies[i_efficiency] += 1
                         total_efficiency *= default_pass
                         avg_efficiencies[i_efficiency] += default_pass
@@ -370,7 +370,7 @@ def parse_lhe_file(
                         pass_all_efficiencies = False
 
             if pass_all_efficiencies:
-                weights*=total_efficiency
+                weights *= total_efficiency
             else:
                 continue
 
@@ -383,8 +383,8 @@ def parse_lhe_file(
         logger.debug("  %s / %s events pass cut %s", n_pass, n_pass + n_fail, cut)
     for n_pass, n_fail, efficiency in zip(pass_efficiencies, fail_efficiencies, efficiencies):
         logger.debug("  %s / %s events pass efficiency %s", n_pass, n_pass + n_fail, efficiency)
-    for n_eff, efficiency, n_pass, n_fail in zip(avg_efficiencies, efficiencies,pass_efficiencies, fail_efficiencies):
-        logger.debug("  average efficiency for %s is %s", efficiency,  n_eff/(n_pass + n_fail))
+    for n_eff, efficiency, n_pass, n_fail in zip(avg_efficiencies, efficiencies, pass_efficiencies, fail_efficiencies):
+        logger.debug("  average efficiency for %s is %s", efficiency, n_eff / (n_pass + n_fail))
 
     n_events_pass = len(observations_all_events)
     if len(cuts) > 0:
