@@ -173,6 +173,8 @@ examples/example3_systematics/data
 examples/example3_systematics/mg_processes
 examples/example3_systematics/models
 
+examples/example4_tth
+
 # MG / Pythia / Delphes patch
 patches/
 

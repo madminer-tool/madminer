@@ -247,7 +247,7 @@ def parse_delphes_root_file(
 
 
 def _get_n_events(tree):
-    es = tree.array("Particle.E")
+    es = tree.array("Event")
     n_events = len(es)
     return n_events
 

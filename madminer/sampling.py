@@ -1083,7 +1083,7 @@ class SampleAugmenter(DataAnalyzer):
         n_neg_weights_warnings = 0
 
         # Multiprocessing approach
-        if n_workers is None or n_workers > 0:
+        if n_workers is None or n_workers > 1:
             if n_workers is None:
                 n_workers = multiprocessing.cpu_count()
 
@@ -1107,14 +1107,14 @@ class SampleAugmenter(DataAnalyzer):
 
             next_verbose = 0
             verbose_steps = n_sets // 10
-
+            
             while not r.ready():
                 n_done = max(n_sets - r._number_left * r._chunksize, 0)
                 if n_done >= next_verbose:
                     logger.info("%s / %s jobs done", max(n_sets - r._number_left * r._chunksize, 0), n_sets)
                     while next_verbose <= n_done:
                         next_verbose += verbose_steps
-                time.sleep(update_patience)
+                        time.sleep(update_patience)
 
             r.wait()
 
