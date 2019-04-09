@@ -19,6 +19,22 @@ other aspects, the two tutorials are identical.
 [Other provided examples](https://github.com/johannbrehmer/madminer/tree/master/examples) show MadMiner in action in
 different processes.
 
+## Typical work flows
+
+Here we illustrate the structure of data analysis with MadMiner in three examples.
+
+### Exclusion limits
+
+![Delphes-level work flow to exclusion limits](img/workflow_delphes_limits.jpg)
+
+### Fisher information
+
+![Delphes-level work flow to Fisher information](img/workflow_delphes_info.jpg)
+
+### Parton-level analysis
+
+![Parton-level work flow](img/workflow_lhe.jpg)
+
 ## Package structure
 
 - `madminer.core` contains the functions to set up the process, parameter space, morphing, and to steer MadGraph and

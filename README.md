@@ -7,14 +7,10 @@ Mining gold from MadGraph to improve limit setting in particle physics.
 Note that this is an early development version. Do not expect anything to be stable. If you have any questions, please
 contact us at [johann.brehmer@nyu.edu](johann.brehmer@nyu.edu).
 
-*Note: Consider working with the `future` branch, where we develop a refactored and cleaned up version of MadMiner.
-The API and even the file format for trained neural ntworks is different from the `master` version (v0.2.x).
-We expect these changes to make it into MadMiner v0.3.0.*
-
 [![PyPI version](https://badge.fury.io/py/madminer.svg)](https://badge.fury.io/py/madminer)
 [![Documentation Status](https://readthedocs.org/projects/madminer/badge/?version=latest)](https://madminer.readthedocs.io/en/latest/?badge=latest)
 [![Build Status](https://travis-ci.com/johannbrehmer/madminer.svg?branch=master)](https://travis-ci.com/johannbrehmer/madminer)
-[![Docker pulls](https://img.shields.io/docker/pulls/irinahub/docker-madminer.svg)](https://hub.docker.com/r/irinahub/docker-madminer)
+[![Docker pulls](https://img.shields.io/docker/pulls/madminertool/docker-madminer.svg)](https://cloud.docker.com/u/madminertool/repository/docker/madminertool/docker-madminer)
 [![Binder](https://mybinder.org/badge.svg)](https://mybinder.org/v2/gh/johannbrehmer/madminer/master)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/ambv/black)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -76,9 +72,7 @@ with Geant4. In this case, the user has to implement code that runs the detector
 and stores the observables and weights in the HDF5 file. The `DelphesProcessor` and `LHEProcessor` classes might provide
 some guidance for this.
 
-We're currently working on a [reference Docker image](https://hub.docker.com/r/irinahub/docker-madminer-madgraph) that
-has all these dependencies and the needed patches installed.
-
+You can find here [DockerHub  madminertool](https://cloud.docker.com/u/madminertool/) the docker images for the lastest version of: the MadMiner library, the MadMiner physics section (MadGraph, Delphes, custom software dependencies and code for configuration, generation and Delphes processing deployment) and the MadMiner ML section (code for configuration, training and evaluation). Please email [iem244@nyu.edu]() for any inquiries about the Docker images.
 ### Install MadMiner
 
 To install the MadMiner package with all its Python dependencies, run `pip install madminer`.

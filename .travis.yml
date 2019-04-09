@@ -3,13 +3,13 @@ notifications:
     recipients:
     - iem244@nyu.edu
 sudo: required
+services:
+- docker
 language: python
 python:
 - '2.7'
 - '3.5'
 - '3.6'
-services:
-- docker
 install:
 - pip install -q --no-cache-dir -e .
 - travis_wait pip install -q --no-cache-dir -e .
@@ -28,10 +28,9 @@ jobs:
       provider: script
       script: sh docker_push.sh
       on:
-        branch:
-        - master
+        branch: master
         condition: "$TRAVIS_PULL_REQUEST = false"
 env:
   global:
-  - secure: koCF/aaS8oyAzxt+FJRt2iG9eBSabegSg7zEYqtFq0RlAJUmN6X+UQlFj4xneC+Gn6DYuRvN/814h0oVW+fAWvuur/Inb1OB81rlYJJLGjE1EJRb5DttLe+Dmn45uokLM1MkZD73ckGbTGKCoMbdD+tyyBfNNdBjwR3sD/NaprRjwitO7HGe+W5IMFd58iVw9slVYlKdHRqQ1RIBNnRwbX7aZMSnSaSK3QiRL4Me46lK/A2iGOoXpoIzQtIL2XgiNJzf72Cx7W5hx4Qrtce9laEzJywnt5tbcHk8ZjgxXjk5+6NUZ179hTkA4vfiYKU8KCZRld7Me1bDwYBU7p+4i88eTuDcutYHNZTER45qPJWLVqPvTkVSvnqW48ix8fiPk2oYk6z5c2dVSYPr8buI2ewBiLB2D/cORjAU/37E4uRdnTHmNqHqh8/90h63M1arpqDvrpCSuHZZfbsSzGVnh9xV0kr9lhCLUhMsWyIAivGnkNPi+7rGGalvLZi79WeE1L2neDQnbv3YzY7JYBf12ryN2UqbH4bRvlE4vC48kkGkqSy48hIEyPGN+bAUcZWTxhMxHbcH5fgcU9Juz+XdIYsttusQUd05vJXZ3Frx3sfUE5i2UZU/b6wUm1OS+Y7gqsBGRd9NcB8qZBPm55frIrLimJDB6rvuXYaRa323asM=
-  - secure: kZGomcLsvNU9fuqe6i+JHfHn6/ROXKdwEAxj69zwy/ecjnciVIkY/sAEmHuAjzVaf4uv+WN7o0o+3fg3PdX7+krDaQ5VEI5wvItXNSOYlpY9hxg2Au1Y40NfjsS7SNFrgtSZKVyRKNwd2h5j3lK1kBECaCmjyghu3RncM+fXtJdP98l0Hn5wow9gbiKF7H9nSW0Cc8gosz4mC9f5NAD7VFj5Tb6UMoVpibWzLlYtwqUIXqM2EWJlwO4iKcn5O3o1KYc6KqV/cJtKzkDaSKbkTwPN/2mp3YkNTVboN17PmKaLsKTnKfdDBVUFkn3Cw3JHqrwGBKE6qd64uMU0coge1GNCK4dGE9WG8exnu6cE03//XCAzwCPoShYriF9dt0ZVYL2Wxa9SzqqR1CKKKsWFbo3vbPYb1gZSdJXL6gTElFVO9reOHyKiQAx9haZNS8k4Z+CuQHEvUtcPwOQbbeRrWsw44+xAv/cU7/37JG56jy0+zfnWXZV0eRF2F/moGBLy5MeBz0te75S4D5i1ax4i8dVx0kQrr7KLlvnR7XYO6hGXOdyCvoMLEBPNOoMnEgk9MvbOziHht67wICw8gsh4NbYxMMU/C05ZUuVwsUjA9Upc/KeD8yRdqCmFG7raysjtupArGjP0x09vHEmsAqC0B59m0+HLBbJ3wWy2bNX7S7w=
+  - secure: cU+FdjzZoFhkkE5kyyulL021VFz4lJaslrF5Ynwqh8djMC3h0VD3YgFGqFpv+/t/yMy9nUXB2zHHVO9XVLG50kqBUPfmAUVr6WxZwedfcLA2Q+HVOri1jNVE3BACHBcCPUMpdqI+PMPq/laSiJwCkUfCresVPyhe9yn2Ab+ftFbDx/KsWwlODXxHp1HCO25fdExtwPCyycWgRVy3FJNQlRicCR412K1JvOCBJOukngkoSZptp2NHYyiG3/LrGVsXywoapdoaygn+ZJzNVAXOFeMqHfimOelwmOySYiQUkhXc9gIOMQ1aWvUu1sMTZs6AHFj6y1x2T1Xs5aA9qfrfd76ifknmKbhIbixvFHWbXPLpHljLw7FwKnVZcaYWaM45SaCNy+kteMJGwQ4Rru42RnV5WCFdkfi3uuV6PNJzpWZx28PWoE6bXtG94w3maRdb7Z+rcHCB419upMflRMIDohUVn7B2pAiKHiQfzgF5JG0NHheZamEpfVTQoTUaLqctZKMAZPZfc7K6aKZn4gKHHKobkACjNDxcLaZSjMH/zglPIEqyNE7pdcE6DgCkSQTm8utHURGaUKv+GSxS1FVU2EvrUojneKV+bHJ8pMoPe5jIF8glpqVmZp+M5yIoQ9UtGwuas6Po12rmEk8AKIyYGXtI256QdfeDAqYQoNJkpzI=
+  - secure: KyLvbVw3fhrJE+qqfwh20WerkBUK0+8Mh4uaUKxpvq9EUhfuNJ+9kkMj45CZGthghg3OvKdthtRB7cnCK0SQ2/1wGBMmZA9wHNwGOeaqleyk2f+tRCFuhyJLhuO0Vou17NOa7lF5Jzgcf7p8qltooiSygTOb2uZqb7bkhXp10QWdhRvC7A59cttnt8x3D6ZGBNCipaG55sINeIYGg7Og0iVCata5gogCwjfEl0pwgLR6FHT8i5URsBk/L1V4qM4SHfHyWN8dR+CACYlJjjEWCOh6icWVU3JtcLrZMfT24QFEZLcTCLCX+XouFYTC7DvxyHiTgh/vZ1OBA09M6iqL77AXL+EibS6Vak1FrA2bWuUrrMlmGO89ciJTFoi1NK6CgfwAXIELUztBiFM3z4vp1WxwZgce18S1S+UGiLiUinsLRVVE4p32jIsTI5rY9/IHfcqRmSM39ei6SiTlgxQpkmTJ6256EdQsnu47Iw9PMUnwrTUyhbtaXOatMGQueQGdr53uYzvJlrR2cYiOis0TzzXQpl+x3MZ370ZNQR36Wg9EtCtEBuiHVsvcbNPkJxbXFWKS1DF4cq4OB3OPlnVM6GON35mfiDqHUApduJRXP67Wf6Qk9DeaDR9C+rjvHQi0q8+93cAhf+Htv1hJ4vXxX7UDRoVpEwitH+MFKGbr+1s=
