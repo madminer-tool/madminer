@@ -110,9 +110,46 @@ class DataAnalyzer(object):
             )
             logger.info("Found nuisance morphing setup")
 
-    def event_loader(self, start=0, end=None, batch_size=100000, include_nuisance_parameters=None):
+    def event_loader(
+        self, start=0, end=None, batch_size=100000, include_nuisance_parameters=None, generated_close_to=None
+    ):
+        """
+        Yields batches of events in the MadMiner file.
+
+        Parameters
+        ----------
+        start : int
+            First event index to load
+
+        end : int or None
+            Last event index to load
+
+        batch_size : int
+            Batch size
+
+        include_nuisance_parameters : bool
+            Whether nuisance parameter benchmarks are included in the returned data
+
+        generated_close_to : None or ndarray
+            If None, this function yields all events. Otherwise, it just yields just the events that were generated
+            at the closest benchmark point to a given parameter point.
+
+        Yields
+        ------
+        observations : ndarray
+            Event data
+
+        weights : ndarray
+            Event weights
+
+        """
         if include_nuisance_parameters is None:
             include_nuisance_parameters = self.include_nuisance_parameters
+
+        sampling_benchmark = None
+        if generated_close_to is not None:
+            sampling_benchmark = self._find_closest_benchmark(generated_close_to)
+
         for data in madminer_event_loader(
             self.madminer_filename,
             start,
@@ -120,8 +157,24 @@ class DataAnalyzer(object):
             batch_size,
             include_nuisance_parameters,
             benchmark_is_nuisance=self.benchmark_is_nuisance,
+            sampling_benchmark=sampling_benchmark,
         ):
             yield data
+
+    def _find_closest_benchmark(self, theta):
+        if theta is None:
+            return None
+
+        benchmarks = self._benchmark_array()
+        distances = [np.linalg.norm(benchmark - theta) for benchmark in benchmarks]
+        closest_idx = np.argmin(distances)
+        return closest_idx
+
+    def _benchmark_array(self):
+        benchmarks_array = []
+        for benchmark in six.itervalues(self.benchmarks):
+            benchmarks_array.append(list(six.itervalues(benchmark)))
+        return np.asarray(benchmarks_array)
 
     def weighted_events(self, theta=None, nu=None, start_event=None, end_event=None, derivative=False):
         """

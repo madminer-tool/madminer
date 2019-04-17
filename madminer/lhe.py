@@ -592,7 +592,9 @@ class LHEReader:
                 assert key in this_observations, "Observable {} not found in Delphes sample!".format(key)
                 self.observations[key] = np.hstack([self.observations[key], this_observations[key]])
 
-            self.events_sampling_benchmark_ids = np.hstack([self.events_sampling_benchmark_ids, this_events_sampling_benchmark_ids])
+            self.events_sampling_benchmark_ids = np.hstack(
+                [self.events_sampling_benchmark_ids, this_events_sampling_benchmark_ids]
+            )
 
     def _parse_sample(
         self, is_background, k_factor, lhe_file, parse_events_as_xml, reference_benchmark, sampling_benchmark
@@ -712,4 +714,6 @@ class LHEReader:
         )
 
         # Save events
-        save_events_to_madminer_file(filename_out, self.observables, self.observations, self.weights, self.events_sampling_benchmark_ids)
+        save_events_to_madminer_file(
+            filename_out, self.observables, self.observations, self.weights, self.events_sampling_benchmark_ids
+        )

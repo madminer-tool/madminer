@@ -620,7 +620,9 @@ class DelphesReader:
                 assert key in this_observations, "Observable {} not found in Delphes sample!".format(key)
                 self.observations[key] = np.hstack([self.observations[key], this_observations[key]])
 
-            self.events_sampling_benchmark_ids = np.hstack([self.events_sampling_benchmark_ids, this_events_sampling_benchmark_ids])
+            self.events_sampling_benchmark_ids = np.hstack(
+                [self.events_sampling_benchmark_ids, this_events_sampling_benchmark_ids]
+            )
 
     def _analyse_delphes_sample(
         self,
@@ -788,4 +790,6 @@ class DelphesReader:
         )
 
         # Save events
-        save_events_to_madminer_file(filename_out, self.observables, self.observations, self.weights, self.events_sampling_benchmark_ids)
+        save_events_to_madminer_file(
+            filename_out, self.observables, self.observations, self.weights, self.events_sampling_benchmark_ids
+        )

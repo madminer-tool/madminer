@@ -241,7 +241,13 @@ def load_madminer_settings(filename, include_nuisance_benchmarks=False):
 
 
 def madminer_event_loader(
-    filename, start=0, end=None, batch_size=100000, include_nuisance_parameters=True, benchmark_is_nuisance=None
+    filename,
+    start=0,
+    end=None,
+    batch_size=100000,
+    include_nuisance_parameters=True,
+    benchmark_is_nuisance=None,
+    sampling_benchmark=None,
 ):
     if start is None:
         start = 0
@@ -265,6 +271,10 @@ def madminer_event_loader(
         except KeyError:
             logger.warning("No events found!")
             return
+        try:
+            sampling_ids = f["samples/sampling_benchmarks"]
+        except KeyError:
+            sampling_ids = None
 
         # Preparations
         n_samples = observations.shape[0]
@@ -290,7 +300,14 @@ def madminer_event_loader(
             else:
                 this_weights = np.array(weights[current:this_end, benchmark_filter])
 
-            yield (this_observations, this_weights)
+            # Only return data matching sampling_benchmark
+            if sampling_benchmark is not None and sampling_ids is not None:
+                this_sampling_ids = np.array(sampling_ids[current:this_end])
+                this_observations = this_observations[this_sampling_ids == sampling_benchmark]
+                this_weights = this_weights[this_sampling_ids == sampling_benchmark]
+
+            if len(this_observations) > 0:
+                yield (this_observations, this_weights)
 
             current += batch_size
 
@@ -475,7 +492,13 @@ def save_nuisance_setup_to_madminer_file(
 
 
 def save_events_to_madminer_file(
-    filename, observables, observations, weights, sampling_benchmarks=None, copy_from=None, overwrite_existing_samples=True
+    filename,
+    observables,
+    observations,
+    weights,
+    sampling_benchmarks=None,
+    copy_from=None,
+    overwrite_existing_samples=True,
 ):
     if copy_from is not None:
         try:
