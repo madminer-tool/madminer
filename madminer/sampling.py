@@ -80,6 +80,7 @@ class SampleAugmenter(DataAnalyzer):
         theta,
         n_samples,
         nu=None,
+        sample_only_from_closest_benchmark=False,
         folder=None,
         filename=None,
         test_split=0.2,
@@ -159,6 +160,7 @@ class SampleAugmenter(DataAnalyzer):
             use_train_events=not switch_train_test_events,
             test_split=test_split,
             n_processes=n_processes,
+            sample_only_from_closest_benchmark=sample_only_from_closest_benchmark,
         )
 
         # Save data
@@ -173,6 +175,7 @@ class SampleAugmenter(DataAnalyzer):
         theta,
         n_samples,
         nu=None,
+        sample_only_from_closest_benchmark=False,
         folder=None,
         filename=None,
         nuisance_score="auto",
@@ -282,6 +285,7 @@ class SampleAugmenter(DataAnalyzer):
             use_train_events=not switch_train_test_events,
             test_split=test_split,
             n_processes=n_processes,
+            sample_only_from_closest_benchmark=sample_only_from_closest_benchmark,
         )
         t_xz = augmented_data[0]
 
@@ -298,6 +302,7 @@ class SampleAugmenter(DataAnalyzer):
         theta,
         n_samples,
         nu=None,
+        sample_only_from_closest_benchmark=False,
         folder=None,
         filename=None,
         nuisance_score="auto",
@@ -379,6 +384,7 @@ class SampleAugmenter(DataAnalyzer):
             theta=theta,
             n_samples=n_samples,
             nu=nu,
+            sample_only_from_closest_benchmark=sample_only_from_closest_benchmark,
             folder=folder,
             filename=filename,
             nuisance_score=nuisance_score,
@@ -395,6 +401,7 @@ class SampleAugmenter(DataAnalyzer):
         n_samples,
         nu0=None,
         nu1=None,
+        sample_only_from_closest_benchmark=False,
         folder=None,
         filename=None,
         nuisance_score="auto",
@@ -532,6 +539,7 @@ class SampleAugmenter(DataAnalyzer):
                 use_train_events=not switch_train_test_events,
                 test_split=test_split,
                 n_processes=n_processes,
+                sample_only_from_closest_benchmark=sample_only_from_closest_benchmark,
             )
             t_xz0 = None
         else:
@@ -544,6 +552,7 @@ class SampleAugmenter(DataAnalyzer):
                 use_train_events=not switch_train_test_events,
                 test_split=test_split,
                 n_processes=n_processes,
+                sample_only_from_closest_benchmark=sample_only_from_closest_benchmark,
             )
 
         # Thetas for theta1 sampling (could be different if num or denom are random)
@@ -566,6 +575,7 @@ class SampleAugmenter(DataAnalyzer):
                 use_train_events=not switch_train_test_events,
                 test_split=test_split,
                 n_processes=n_processes,
+                sample_only_from_closest_benchmark=sample_only_from_closest_benchmark,
             )
             t_xz1 = None
         else:
@@ -578,6 +588,7 @@ class SampleAugmenter(DataAnalyzer):
                 use_train_events=not switch_train_test_events,
                 test_split=test_split,
                 n_processes=n_processes,
+                sample_only_from_closest_benchmark=sample_only_from_closest_benchmark,
             )
 
         # Combine
@@ -617,6 +628,7 @@ class SampleAugmenter(DataAnalyzer):
         n_samples,
         nu0=None,
         nu1=None,
+        sample_only_from_closest_benchmark=False,
         folder=None,
         filename=None,
         additional_thetas=None,
@@ -790,6 +802,7 @@ class SampleAugmenter(DataAnalyzer):
             use_train_events=not switch_train_test_events,
             test_split=test_split,
             n_processes=n_processes,
+            sample_only_from_closest_benchmark=sample_only_from_closest_benchmark,
         )
         n_actual_samples = x_0.shape[0]
 
@@ -852,6 +865,7 @@ class SampleAugmenter(DataAnalyzer):
             use_train_events=not switch_train_test_events,
             test_split=test_split,
             n_processes=n_processes,
+            sample_only_from_closest_benchmark=sample_only_from_closest_benchmark,
         )
         n_actual_samples += x_1.shape[0]
 
@@ -918,6 +932,7 @@ class SampleAugmenter(DataAnalyzer):
         theta,
         n_samples,
         nu=None,
+        sample_only_from_closest_benchmark=False,
         folder=None,
         filename=None,
         test_split=0.2,
@@ -995,6 +1010,7 @@ class SampleAugmenter(DataAnalyzer):
             use_train_events=switch_train_test_events,
             test_split=test_split,
             n_processes=n_processes,
+            sample_only_from_closest_benchmark=sample_only_from_closest_benchmark,
         )
 
         # Save data
