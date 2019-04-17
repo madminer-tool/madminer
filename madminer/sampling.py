@@ -1753,6 +1753,7 @@ def combine_and_shuffle(input_filenames, output_filename, k_factors=None, overwr
             all_n_events_background += n_background_events
 
         for observations, weights, sampling_ids in madminer_event_loader(filename, return_sampling_ids=True):
+            logger.debug("Sampling benchmarks: %s", sampling_ids)
             if all_observations is None:
                 all_observations = observations
                 all_weights = k_factor * weights
@@ -1762,8 +1763,10 @@ def combine_and_shuffle(input_filenames, output_filename, k_factors=None, overwr
 
             if all_sampling_ids is None:
                 all_sampling_ids = sampling_ids
-            else:
+            elif sampling_ids is not None:
                 all_sampling_ids = np.hstack(all_sampling_ids, sampling_ids)
+
+        logger.debug("Combined sampling benchmarks: %s", all_sampling_ids)
 
     # Shuffle
     all_observations, all_weights, all_sampling_ids = shuffle(all_observations, all_weights, all_sampling_ids)

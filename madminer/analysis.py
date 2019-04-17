@@ -350,6 +350,7 @@ class DataAnalyzer(object):
         # Loop over events
         xsecs = 0.0
         xsec_uncertainties = 0.0
+        n_events = 0
 
         for i_batch, (_, benchmark_weights) in enumerate(
             self.event_loader(
@@ -361,6 +362,7 @@ class DataAnalyzer(object):
             )
         ):
             n_batch, _ = benchmark_weights.shape
+            n_events += n_batch
             logger.debug("Batch %s with %s events", i_batch + 1, n_batch)
 
             # Benchmark xsecs
@@ -384,6 +386,9 @@ class DataAnalyzer(object):
                 # Sum up
                 xsecs += np.sum(weights, axis=1)
                 xsec_uncertainties += np.sum(weights_sq, axis=1)
+
+        if n_events == 0:
+            raise RuntimeError("Did not find events with test_split = %s and generated_close_to = %s", test_split, generated_close_to)
 
         xsec_uncertainties = xsec_uncertainties ** 0.5
 

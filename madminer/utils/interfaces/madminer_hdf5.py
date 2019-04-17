@@ -316,24 +316,26 @@ def madminer_event_loader(
             else:
                 this_weights = np.array(weights[current:this_end, benchmark_filter])
 
-            # Only return data matching sampling_benchmark
-            this_sampling_ids = None
-            if sampling_benchmark is not None and sampling_ids is not None:
+            if sampling_ids is not None:
                 this_sampling_ids = np.array(sampling_ids[current:this_end])
 
-                cut = np.logical_or(this_sampling_ids == sampling_benchmark, this_sampling_ids < 0)
+                # Only return data matching sampling_benchmark
+                if sampling_benchmark is not None:
+                    cut = np.logical_or(this_sampling_ids == sampling_benchmark, this_sampling_ids < 0)
 
-                this_observations = this_observations[cut]
-                this_weights = this_weights[cut]
-                this_sampling_ids = this_sampling_ids[cut]
+                    this_observations = this_observations[cut]
+                    this_weights = this_weights[cut]
+                    this_sampling_ids = this_sampling_ids[cut]
 
-            # Rescale weights based on sampling
-            if sampling_benchmark is None and sampling_factors is not None and sampling_ids is not None:
-                this_sampling_ids = np.array(sampling_ids[current:this_end])
-                logger.debug("Sampling IDs: %s", this_sampling_ids)
-                k_factors = sampling_factors[this_sampling_ids]
-                logger.debug("k-factors: %s", k_factors)
-                this_weights = k_factors[:, np.newaxis] * this_weights
+                # Rescale weights based on sampling
+                if sampling_benchmark is None and sampling_factors is not None:
+                    logger.debug("Sampling IDs: %s", this_sampling_ids)
+                    k_factors = sampling_factors[this_sampling_ids]
+                    logger.debug("k-factors: %s", k_factors)
+                    this_weights = k_factors[:, np.newaxis] * this_weights
+
+            else:
+                this_sampling_ids = None
 
             if len(this_observations) > 0:
                 if return_sampling_ids:
