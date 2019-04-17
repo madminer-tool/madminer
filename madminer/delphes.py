@@ -89,6 +89,9 @@ class DelphesReader:
         # Initialize nuisance parameters
         self.nuisance_parameters = None
 
+        # Initialize event summary
+        self.events_per_benchmark = None
+
         # Information from .h5 file
         self.filename = filename
         (parameters, benchmarks, _, _, _, _, _, self.systematics, _, _) = load_madminer_settings(
@@ -548,6 +551,7 @@ class DelphesReader:
         self.weights = None
         self.nuisance_parameters = None
         self.events_sampling_benchmark_ids = None
+        self.events_per_benchmark = [0 for _ in self.benchmark_names_phys]
 
         for (
             delphes_file,
@@ -588,6 +592,7 @@ class DelphesReader:
 
             # Store sampling id for each event
             idx = self.benchmark_names_phys.index(sampling_benchmark)
+            self.events_per_benchmark[idx] += this_n_events
             this_events_sampling_benchmark_ids = np.array([idx] * this_n_events, dtype=np.int32)
 
             # First results
@@ -623,6 +628,10 @@ class DelphesReader:
             self.events_sampling_benchmark_ids = np.hstack(
                 [self.events_sampling_benchmark_ids, this_events_sampling_benchmark_ids]
             )
+
+        logger.info("Analysed number of events per sampling benchmark:")
+        for name, n_events in zip(self.benchmark_names_phys, self.events_per_benchmark):
+            logger.info("  %s from %s", n_events, name)
 
     def _analyse_delphes_sample(
         self,
@@ -791,5 +800,5 @@ class DelphesReader:
 
         # Save events
         save_events_to_madminer_file(
-            filename_out, self.observables, self.observations, self.weights, self.events_sampling_benchmark_ids
+            filename_out, self.observables, self.observations, self.weights, self.events_sampling_benchmark_ids, self.events_per_benchmark
         )
