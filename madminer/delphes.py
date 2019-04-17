@@ -94,7 +94,7 @@ class DelphesReader:
 
         # Information from .h5 file
         self.filename = filename
-        (parameters, benchmarks, _, _, _, _, _, self.systematics, _, _) = load_madminer_settings(
+        (parameters, benchmarks, _, _, _, _, _, self.systematics, _, _, _) = load_madminer_settings(
             filename, include_nuisance_benchmarks=False
         )
         self.benchmark_names_phys = list(benchmarks.keys())
@@ -800,5 +800,10 @@ class DelphesReader:
 
         # Save events
         save_events_to_madminer_file(
-            filename_out, self.observables, self.observations, self.weights, self.events_sampling_benchmark_ids, self.events_per_benchmark
+            filename_out,
+            self.observables,
+            self.observations,
+            self.weights,
+            self.events_sampling_benchmark_ids,
+            self.events_per_benchmark,
         )

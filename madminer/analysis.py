@@ -47,6 +47,7 @@ class DataAnalyzer(object):
             _,
             self.reference_benchmark,
             self.nuisance_parameters,
+            self.events_generated_per_benchmark,
         ) = load_madminer_settings(filename, include_nuisance_benchmarks=include_nuisance_parameters)
 
         self.n_parameters = len(self.parameters)
@@ -88,7 +89,14 @@ class DataAnalyzer(object):
         logger.info("Found %s observables", len(self.observables))
         for i, obs in enumerate(self.observables):
             logger.debug("  %2.2s %s", i, obs)
+
         logger.info("Found %s events", self.n_samples)
+        if self.events_generated_per_benchmark is not None:
+            for events, name in zip(self.events_generated_per_benchmark, six.iterkeys(self.benchmarks)):
+                if events > 0:
+                    logger.info("  %s generated from %s", events, name)
+        else:
+            logger.debug("  Did not find sample summary information")
 
         # Morphing
         self.morpher = None
@@ -167,6 +175,11 @@ class DataAnalyzer(object):
 
         benchmarks = self._benchmark_array()
         distances = [np.linalg.norm(benchmark - theta) for benchmark in benchmarks]
+
+        # Don't use benchmarks where we don't actually have events
+        if self.events_generated_per_benchmark is not None:
+            distances[self.events_generated_per_benchmark == 0] = 1.0e9
+
         closest_idx = np.argmin(distances)
         return closest_idx
 
