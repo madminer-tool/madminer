@@ -318,8 +318,9 @@ def madminer_event_loader(
             # Only return data matching sampling_benchmark
             if sampling_benchmark is not None and sampling_ids is not None:
                 this_sampling_ids = np.array(sampling_ids[current:this_end])
-                this_observations = this_observations[this_sampling_ids == sampling_benchmark]
-                this_weights = this_weights[this_sampling_ids == sampling_benchmark]
+                cut = np.logical_or(this_sampling_ids == sampling_benchmark, this_sampling_ids < 0)
+                this_observations = this_observations[cut]
+                this_weights = this_weights[cut]
 
             # Rescale weights based on sampling
             elif sampling_factors is not None and sampling_ids is not None:

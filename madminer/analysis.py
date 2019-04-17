@@ -177,6 +177,7 @@ class DataAnalyzer(object):
     def _calculate_sampling_factors(self):
         events = np.asarray(self.n_events_generated_per_benchmark, dtype=np.float)
         factors = events / np.sum(events)
+        factors = np.hstack((factors, 1.))  # background events
         return factors
 
     def _find_closest_benchmark(self, theta):
