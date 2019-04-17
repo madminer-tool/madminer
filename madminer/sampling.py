@@ -1056,6 +1056,7 @@ class SampleAugmenter(DataAnalyzer):
         sets,
         n_samples_per_set,
         sampling_index=0,
+        sample_only_from_closest_benchmark=False,
         augmented_data_definitions=None,
         nuisance_score=True,
         use_train_events=True,
@@ -1279,6 +1280,7 @@ class SampleAugmenter(DataAnalyzer):
         self,
         set_,
         n_samples,
+        sample_only_from_closest_benchmark,
         augmented_data_definitions,
         sampling_index=0,
         needs_gradients=True,
@@ -1321,7 +1323,11 @@ class SampleAugmenter(DataAnalyzer):
 
         # Cross sections
         xsecs, xsec_uncertainties = self.xsecs(
-            thetas, nus, events="train" if use_train_events else "test", test_split=test_split
+            thetas,
+            nus,
+            events="train" if use_train_events else "test",
+            test_split=test_split,
+            generated_close_to=None if not sample_only_from_closest_benchmark else theta_value[0, :],
         )
         if needs_gradients:
             xsec_gradients = self.xsec_gradients(
@@ -1330,6 +1336,7 @@ class SampleAugmenter(DataAnalyzer):
                 gradients="all" if nuisance_score else "theta",
                 events="train" if use_train_events else "test",
                 test_split=test_split,
+                generated_close_to=None if not sample_only_from_closest_benchmark else theta_value[0, :],
             )
         else:
             xsec_gradients = None
@@ -1369,8 +1376,10 @@ class SampleAugmenter(DataAnalyzer):
             cumulative_p = np.array([0.0])
 
             # Loop over weighted events
-            for x_batch, weights_benchmarks_batch in madminer_event_loader(
-                self.madminer_filename, start=start_event, end=end_event
+            for x_batch, weights_benchmarks_batch in self.event_loader(
+                start=start_event,
+                end=end_event,
+                generated_close_to=None if not sample_only_from_closest_benchmark else theta_value[0, :],
             ):
                 weights_benchmarks_batch *= correction_factor
 

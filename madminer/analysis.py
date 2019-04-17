@@ -242,7 +242,14 @@ class DataAnalyzer(object):
             return x, weights_theta
 
     def xsecs(
-        self, thetas=None, nus=None, events="all", test_split=0.2, include_nuisance_benchmarks=True, batch_size=100000
+        self,
+        thetas=None,
+        nus=None,
+        events="all",
+        test_split=0.2,
+        include_nuisance_benchmarks=True,
+        batch_size=100000,
+        generated_close_to=None,
     ):
         """
         Returns the total cross sections for benchmarks or parameter points.
@@ -311,13 +318,12 @@ class DataAnalyzer(object):
         xsec_uncertainties = 0.0
 
         for i_batch, (_, benchmark_weights) in enumerate(
-            madminer_event_loader(
-                self.madminer_filename,
+            self.event_loader(
                 start=start_event,
                 end=end_event,
                 include_nuisance_parameters=include_nuisance_benchmarks,
-                benchmark_is_nuisance=self.benchmark_is_nuisance,
                 batch_size=batch_size,
+                generated_close_to=generated_close_to,
             )
         ):
             n_batch, _ = benchmark_weights.shape
@@ -374,7 +380,16 @@ class DataAnalyzer(object):
                 return True
         return False
 
-    def xsec_gradients(self, thetas, nus=None, events="all", test_split=0.2, gradients="all", batch_size=100000):
+    def xsec_gradients(
+        self,
+        thetas,
+        nus=None,
+        events="all",
+        test_split=0.2,
+        gradients="all",
+        batch_size=100000,
+        generated_close_to=None,
+    ):
         """
         Returns the gradient of total cross sections with respect to parameters.
 
@@ -441,13 +456,12 @@ class DataAnalyzer(object):
         xsec_gradients = 0.0
 
         for i_batch, (_, benchmark_weights) in enumerate(
-            madminer_event_loader(
-                self.madminer_filename,
+            self.event_loader(
                 start=start_event,
                 end=end_event,
                 include_nuisance_parameters=include_nuisance_benchmarks,
-                benchmark_is_nuisance=self.benchmark_is_nuisance,
                 batch_size=batch_size,
+                generated_close_to=generated_close_to,
             )
         ):
             n_batch, _ = benchmark_weights.shape
