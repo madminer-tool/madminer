@@ -127,9 +127,13 @@ class LHEReader:
         # Initialize nuisance parameters
         self.nuisance_parameters = None
 
+        # Initialize event summary
+        self.signal_events_per_benchmark = None
+        self.background_events = None
+
         # Information from .h5 file
         self.filename = filename
-        (parameters, benchmarks, _, _, _, _, _, self.systematics, _, _, _) = load_madminer_settings(
+        (parameters, benchmarks, _, _, _, _, _, self.systematics, _, _, _, _) = load_madminer_settings(
             filename, include_nuisance_benchmarks=False
         )
         self.benchmark_names_phys = list(benchmarks.keys())
@@ -544,6 +548,8 @@ class LHEReader:
         self.weights = None
         self.nuisance_parameters = None
         self.events_sampling_benchmark_ids = None
+        self.signal_events_per_benchmark = [0 for _ in range(self.n_benchmarks_phys)]
+        self.background_events = 0
 
         for lhe_file, is_background, sampling_benchmark, k_factor in zip(
             self.lhe_sample_filenames, self.sample_is_backgrounds, self.sampling_benchmarks, self.sample_k_factors
@@ -559,8 +565,13 @@ class LHEReader:
                 continue
 
             # Store sampling id for each event
-            idx = self.benchmark_names_phys.index(sampling_benchmark)
-            this_events_sampling_benchmark_ids = np.array([idx] * this_n_events, dtype=np.int32)
+            if is_background:
+                idx = -1
+                self.background_events += this_n_events
+            else:
+                idx = self.benchmark_names_phys.index(sampling_benchmark)
+                self.signal_events_per_benchmark[idx] += this_n_events
+            this_events_sampling_benchmark_ids = np.array([idx] * this_n_events, dtype=np.int)
 
             # First results
             if self.observations is None and self.weights is None:
@@ -595,6 +606,13 @@ class LHEReader:
             self.events_sampling_benchmark_ids = np.hstack(
                 [self.events_sampling_benchmark_ids, this_events_sampling_benchmark_ids]
             )
+
+        logger.info("Analysed number of events per sampling benchmark:")
+        for name, n_events in zip(self.benchmark_names_phys, self.signal_events_per_benchmark):
+            if n_events > 0:
+                logger.info("  %s from %s", n_events, name)
+        if self.background_events > 0:
+            logger.info("  %s from backgrounds", self.background_events)
 
     def _parse_sample(
         self, is_background, k_factor, lhe_file, parse_events_as_xml, reference_benchmark, sampling_benchmark
@@ -715,5 +733,10 @@ class LHEReader:
 
         # Save events
         save_events_to_madminer_file(
-            filename_out, self.observables, self.observations, self.weights, self.events_sampling_benchmark_ids
+            filename_out,
+            self.observables,
+            self.observations,
+            self.weights,
+            self.events_sampling_benchmark_ids,
+            self.background_events,
         )

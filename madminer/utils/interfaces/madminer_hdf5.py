@@ -195,9 +195,11 @@ def load_madminer_settings(filename, include_nuisance_benchmarks=False):
 
         # Sample summary (number if events generated from each benchmark)
         try:
-            events_generated_per_benchmark = f["sample_summary/events_per_benchmark"]
+            n_signal_events_generated_per_benchmark = f["sample_summary/signal_events_per_benchmark"]
+            n_background_events = int(f["sample_summary/background_events"])
         except KeyError:
-            events_generated_per_benchmark = None
+            n_signal_events_generated_per_benchmark = None
+            n_background_events = None
 
         # Systematics setup
         try:
@@ -243,7 +245,8 @@ def load_madminer_settings(filename, include_nuisance_benchmarks=False):
             systematics,
             reference_benchmark,
             nuisance_parameters,
-            events_generated_per_benchmark,
+            n_signal_events_generated_per_benchmark,
+            n_background_events,
         )
 
 
@@ -515,7 +518,8 @@ def save_events_to_madminer_file(
     observations,
     weights,
     sampling_benchmarks=None,
-    events_per_sampling_benchmark=None,
+    n_events_per_sampling_benchmark=None,
+    n_events_background=None,
     copy_from=None,
     overwrite_existing_samples=True,
 ):
@@ -594,10 +598,12 @@ def save_events_to_madminer_file(
         if sampling_benchmarks is not None:
             f.create_dataset("samples/sampling_benchmarks", data=np.array(sampling_benchmarks, dtype=np.int))
 
-        if events_per_sampling_benchmark is not None:
+        if n_events_per_sampling_benchmark is not None:
             f.create_dataset(
-                "sample_summary/events_per_benchmark", data=np.array(events_per_sampling_benchmark, dtype=np.int)
+                "sample_summary/signal_events_per_benchmark",
+                data=np.array(n_events_per_sampling_benchmark, dtype=np.int),
             )
+            f.create_dataset("sample_summary/background_events", data=np.array(n_events_background, dtype=np.int))
 
 
 def save_madminer_file_from_lhe(

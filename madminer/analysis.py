@@ -47,7 +47,8 @@ class DataAnalyzer(object):
             _,
             self.reference_benchmark,
             self.nuisance_parameters,
-            self.events_generated_per_benchmark,
+            self.n_events_generated_per_benchmark,
+            self.n_events_backgrounds,
         ) = load_madminer_settings(filename, include_nuisance_benchmarks=include_nuisance_parameters)
 
         self.n_parameters = len(self.parameters)
@@ -91,8 +92,8 @@ class DataAnalyzer(object):
             logger.debug("  %2.2s %s", i, obs)
 
         logger.info("Found %s events", self.n_samples)
-        if self.events_generated_per_benchmark is not None:
-            for events, name in zip(self.events_generated_per_benchmark, six.iterkeys(self.benchmarks)):
+        if self.n_events_generated_per_benchmark is not None:
+            for events, name in zip(self.n_events_generated_per_benchmark, six.iterkeys(self.benchmarks)):
                 if events > 0:
                     logger.info("  %s generated from %s", events, name)
         else:
@@ -174,7 +175,7 @@ class DataAnalyzer(object):
             yield data
 
     def _calculate_sampling_factors(self):
-        events = np.asarray(self.events_generated_per_benchmark, dtype=np.float)
+        events = np.asarray(self.n_events_generated_per_benchmark, dtype=np.float)
         factors = events / np.sum(events)
         return factors
 
@@ -186,8 +187,8 @@ class DataAnalyzer(object):
         distances = [np.linalg.norm(benchmark - theta) for benchmark in benchmarks]
 
         # Don't use benchmarks where we don't actually have events
-        if self.events_generated_per_benchmark is not None:
-            distances[self.events_generated_per_benchmark == 0] = 1.0e9
+        if self.n_events_generated_per_benchmark is not None:
+            distances[self.n_events_generated_per_benchmark == 0] = 1.0e9
 
         closest_idx = np.argmin(distances)
         return closest_idx
