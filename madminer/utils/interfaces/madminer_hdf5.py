@@ -317,6 +317,7 @@ def madminer_event_loader(
                 this_weights = np.array(weights[current:this_end, benchmark_filter])
 
             # Only return data matching sampling_benchmark
+            this_sampling_ids = None
             if sampling_benchmark is not None and sampling_ids is not None:
                 this_sampling_ids = np.array(sampling_ids[current:this_end])
 
@@ -337,7 +338,8 @@ def madminer_event_loader(
             if len(this_observations) > 0:
                 if return_sampling_ids:
                     yield (this_observations, this_weights, this_sampling_ids)
-                yield (this_observations, this_weights)
+                else:
+                    yield (this_observations, this_weights)
 
             current += batch_size
 
@@ -399,7 +401,8 @@ def save_preformatted_events_to_madminer_file(
         # Save data
         f.create_dataset("samples/weights", data=weights)
         f.create_dataset("samples/observations", data=observations)
-        f.create_dataset("samples/sampling_benchmarks", data=sampling_benchmarks)
+        if sampling_benchmarks is not None:
+            f.create_dataset("samples/sampling_benchmarks", data=sampling_benchmarks)
 
 
 def save_nuisance_setup_to_madminer_file(
