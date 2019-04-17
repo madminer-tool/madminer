@@ -475,7 +475,7 @@ def save_nuisance_setup_to_madminer_file(
 
 
 def save_events_to_madminer_file(
-    filename, observables, observations, weights, copy_from=None, overwrite_existing_samples=True
+    filename, observables, observations, weights, sampling_benchmarks=None, copy_from=None, overwrite_existing_samples=True
 ):
     if copy_from is not None:
         try:
@@ -546,6 +546,9 @@ def save_events_to_madminer_file(
             observations = np.array([observations[oname] for oname in observable_names]).T
             f.create_dataset("samples/observations", data=observations)
 
+            if sampling_benchmarks is not None:
+                f.create_dataset("samples/sampling_benchmarks", data=sampling_benchmarks)
+                
 
 def save_madminer_file_from_lhe(
     filename, observables, observations, weights, copy_from=None, overwrite_existing_samples=True
