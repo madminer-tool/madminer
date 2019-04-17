@@ -122,6 +122,7 @@ class LHEReader:
         self.reference_benchmark = None
         self.observations = None
         self.weights = None
+        self.events_sampling_benchmark_ids = None
 
         # Initialize nuisance parameters
         self.nuisance_parameters = None
@@ -542,13 +543,14 @@ class LHEReader:
         self.observations = None
         self.weights = None
         self.nuisance_parameters = None
+        self.events_sampling_benchmark_ids = None
 
         for lhe_file, is_background, sampling_benchmark, k_factor in zip(
             self.lhe_sample_filenames, self.sample_is_backgrounds, self.sampling_benchmarks, self.sample_k_factors
         ):
             logger.info("Analysing LHE sample %s", lhe_file)
 
-            this_observations, this_weights = self._parse_sample(
+            this_observations, this_weights, this_n_events = self._parse_sample(
                 is_background, k_factor, lhe_file, parse_events_as_xml, reference_benchmark, sampling_benchmark
             )
 
@@ -556,10 +558,15 @@ class LHEReader:
             if this_observations is None:
                 continue
 
+            # Store sampling id for each event
+            idx = self.benchmark_names_phys.index(sampling_benchmark)
+            this_events_sampling_benchmark_ids = np.array([idx] * this_n_events, dtype=np.int32)
+
             # First results
             if self.observations is None and self.weights is None:
                 self.observations = this_observations
                 self.weights = this_weights
+                self.events_sampling_benchmark_ids = this_events_sampling_benchmark_ids
                 continue
 
             # Following results: check consistency with previous results
@@ -584,6 +591,8 @@ class LHEReader:
             for key in self.observations:
                 assert key in this_observations, "Observable {} not found in Delphes sample!".format(key)
                 self.observations[key] = np.hstack([self.observations[key], this_observations[key]])
+
+            self.events_sampling_benchmark_ids = np.hstack([self.events_sampling_benchmark_ids, this_events_sampling_benchmark_ids])
 
     def _parse_sample(
         self, is_background, k_factor, lhe_file, parse_events_as_xml, reference_benchmark, sampling_benchmark
@@ -664,7 +673,8 @@ class LHEReader:
         for key in this_weights:
             if key not in self.benchmark_names_phys:  # Only rescale nuisance benchmarks
                 this_weights[key] = reference_weights / sampling_weights * this_weights[key]
-        return this_observations, this_weights
+
+        return this_observations, this_weights, n_events
 
     def save(self, filename_out):
         """
@@ -702,4 +712,4 @@ class LHEReader:
         )
 
         # Save events
-        save_events_to_madminer_file(filename_out, self.observables, self.observations, self.weights)
+        save_events_to_madminer_file(filename_out, self.observables, self.observations, self.weights, self.events_sampling_benchmark_ids)

@@ -84,6 +84,7 @@ class DelphesReader:
         self.reference_benchmark = None
         self.observations = None
         self.weights = None
+        self.events_sampling_benchmark_ids = None
 
         # Initialize nuisance parameters
         self.nuisance_parameters = None
@@ -787,4 +788,4 @@ class DelphesReader:
         )
 
         # Save events
-        save_events_to_madminer_file(filename_out, self.observables, self.observations, self.weights)
+        save_events_to_madminer_file(filename_out, self.observables, self.observations, self.weights, self.events_sampling_benchmark_ids)

@@ -548,7 +548,7 @@ def save_events_to_madminer_file(
 
             if sampling_benchmarks is not None:
                 f.create_dataset("samples/sampling_benchmarks", data=sampling_benchmarks)
-                
+
 
 def save_madminer_file_from_lhe(
     filename, observables, observations, weights, copy_from=None, overwrite_existing_samples=True
