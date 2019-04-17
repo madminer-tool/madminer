@@ -156,11 +156,13 @@ class DataAnalyzer(object):
             include_nuisance_parameters = self.include_nuisance_parameters
 
         sampling_benchmark = self._find_closest_benchmark(generated_close_to)
+        logger.debug("Sampling benchmark closest to %s: %s", generated_close_to, sampling_benchmark)
 
         if sampling_benchmark is None:
-            sampling_factors = 1.0
-        else:
             sampling_factors = self._calculate_sampling_factors()
+        else:
+            sampling_factors = np.ones(self.n_benchmarks_phys + 1)
+        logger.debug("Sampling factors: %s", sampling_factors)
 
         for data in madminer_event_loader(
             self.madminer_filename,
@@ -176,6 +178,7 @@ class DataAnalyzer(object):
 
     def _calculate_sampling_factors(self):
         events = np.asarray(self.n_events_generated_per_benchmark, dtype=np.float)
+        logger.debug("Events per benchmark: %s", events)
         factors = events / np.sum(events)
         factors = np.hstack((factors, 1.0))  # background events
         return factors

@@ -329,8 +329,10 @@ def madminer_event_loader(
             # Rescale weights based on sampling
             if sampling_benchmark is None and sampling_factors is not None and sampling_ids is not None:
                 this_sampling_ids = np.array(sampling_ids[current:this_end])
+                logger.debug("Sampling IDs: %s", this_sampling_ids)
                 k_factors = sampling_factors[this_sampling_ids]
-                this_weights *= k_factors
+                logger.debug("k-factors: %s", k_factors)
+                this_weights = k_factors[:, np.newaxis] * this_weights
 
             if len(this_observations) > 0:
                 if return_sampling_ids:

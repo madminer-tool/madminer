@@ -731,6 +731,8 @@ class LHEReader:
             copy_from=self.filename,
         )
 
+        logger.debug("Saving sample summaries: %s, %s")
+
         # Save events
         save_events_to_madminer_file(
             filename_out,
@@ -738,5 +740,6 @@ class LHEReader:
             self.observations,
             self.weights,
             self.events_sampling_benchmark_ids,
+            self.signal_events_per_benchmark,
             self.background_events,
         )
