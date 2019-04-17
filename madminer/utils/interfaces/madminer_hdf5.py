@@ -259,6 +259,7 @@ def madminer_event_loader(
     benchmark_is_nuisance=None,
     sampling_benchmark=None,
     sampling_factors=None,
+    return_sampling_ids=False,
 ):
     if start is None:
         start = 0
@@ -318,17 +319,22 @@ def madminer_event_loader(
             # Only return data matching sampling_benchmark
             if sampling_benchmark is not None and sampling_ids is not None:
                 this_sampling_ids = np.array(sampling_ids[current:this_end])
+
                 cut = np.logical_or(this_sampling_ids == sampling_benchmark, this_sampling_ids < 0)
+
                 this_observations = this_observations[cut]
                 this_weights = this_weights[cut]
+                this_sampling_ids = this_sampling_ids[cut]
 
             # Rescale weights based on sampling
-            elif sampling_factors is not None and sampling_ids is not None:
+            if sampling_benchmark is None and sampling_factors is not None and sampling_ids is not None:
                 this_sampling_ids = np.array(sampling_ids[current:this_end])
                 k_factors = sampling_factors[this_sampling_ids]
                 this_weights *= k_factors
 
             if len(this_observations) > 0:
+                if return_sampling_ids:
+                    yield (this_observations, this_weights, this_sampling_ids)
                 yield (this_observations, this_weights)
 
             current += batch_size
@@ -368,7 +374,7 @@ def load_benchmarks_from_madminer_file(filename, include_nuisance_benchmarks=Fal
 
 
 def save_preformatted_events_to_madminer_file(
-    filename, observations, weights, copy_setup_from, overwrite_existing_samples=True
+    filename, observations, weights, sampling_benchmarks, copy_setup_from, overwrite_existing_samples=True
 ):
     if copy_setup_from is not None:
         try:
@@ -388,11 +394,10 @@ def save_preformatted_events_to_madminer_file(
             except Exception:
                 pass
 
-        # Save weights
+        # Save data
         f.create_dataset("samples/weights", data=weights)
-
-        # Prepare observable values
         f.create_dataset("samples/observations", data=observations)
+        f.create_dataset("samples/sampling_benchmarks", data=sampling_benchmarks)
 
 
 def save_nuisance_setup_to_madminer_file(
@@ -604,6 +609,41 @@ def save_events_to_madminer_file(
                 "sample_summary/signal_events_per_benchmark",
                 data=np.array(n_events_per_sampling_benchmark, dtype=np.int),
             )
+        if n_events_background is not None:
+            f.create_dataset("sample_summary/background_events", data=np.array(n_events_background, dtype=np.int))
+
+
+def save_sample_summary_to_madminer_file(
+    filename,
+    n_events_per_sampling_benchmark=None,
+    n_events_background=None,
+    copy_from=None,
+    overwrite_existing_samples=True,
+):
+    if copy_from is not None:
+        try:
+            shutil.copyfile(copy_from, filename)
+        except IOError:
+            if not overwrite_existing_samples:
+                raise ()
+
+    io_tag = "a"  # Read-write if file exists, otherwise create
+
+    with h5py.File(filename, io_tag) as f:
+
+        # Check if groups exist already
+        if overwrite_existing_samples:
+            try:
+                del f["sample_summary"]
+            except Exception:
+                pass
+
+        if n_events_per_sampling_benchmark is not None:
+            f.create_dataset(
+                "sample_summary/signal_events_per_benchmark",
+                data=np.array(n_events_per_sampling_benchmark, dtype=np.int),
+            )
+        if n_events_background is not None:
             f.create_dataset("sample_summary/background_events", data=np.array(n_events_background, dtype=np.int))
 
 

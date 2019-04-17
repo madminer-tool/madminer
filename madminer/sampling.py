@@ -7,8 +7,9 @@ import multiprocessing
 from functools import partial
 
 from madminer.analysis import DataAnalyzer
-from madminer.utils.interfaces.madminer_hdf5 import madminer_event_loader
+from madminer.utils.interfaces.madminer_hdf5 import madminer_event_loader, load_madminer_settings
 from madminer.utils.interfaces.madminer_hdf5 import save_preformatted_events_to_madminer_file
+from madminer.utils.interfaces.madminer_hdf5 import save_sample_summary_to_madminer_file
 from madminer.utils.various import create_missing_folders, shuffle
 
 logger = logging.getLogger(__name__)
@@ -1701,6 +1702,10 @@ def combine_and_shuffle(input_filenames, output_filename, k_factors=None, overwr
     # Load events
     all_observations = None
     all_weights = None
+    all_sampling_ids = None
+
+    all_n_events_background = 0
+    all_n_events_signal_per_benchmark = 0
 
     for i, (filename, k_factor) in enumerate(zip(input_filenames, k_factors)):
         logger.info(
@@ -1711,7 +1716,26 @@ def combine_and_shuffle(input_filenames, output_filename, k_factors=None, overwr
             k_factor,
         )
 
-        for observations, weights in madminer_event_loader(filename):
+        (
+            _,
+            _,
+            _,
+            _,
+            _,
+            _,
+            _,
+            _,
+            _,
+            _,
+            n_signal_events_generated_per_benchmark,
+            n_background_events,
+        ) = load_madminer_settings(filename)
+
+        if n_signal_events_generated_per_benchmark is not None and n_background_events is not None:
+            all_n_events_signal_per_benchmark += n_signal_events_generated_per_benchmark
+            all_n_events_background += n_background_events
+
+        for observations, weights, sampling_ids in madminer_event_loader(filename, return_sampling_ids=True):
             if all_observations is None:
                 all_observations = observations
                 all_weights = k_factor * weights
@@ -1719,17 +1743,29 @@ def combine_and_shuffle(input_filenames, output_filename, k_factors=None, overwr
                 all_observations = np.vstack((all_observations, observations))
                 all_weights = np.vstack((all_weights, k_factor * weights))
 
+            if all_sampling_ids is None:
+                all_sampling_ids = sampling_ids
+            else:
+                all_sampling_ids = np.hstack(all_sampling_ids, sampling_ids)
+
     # Shuffle
-    all_observations, all_weights = shuffle(all_observations, all_weights)
+    all_observations, all_weights, all_sampling_ids = shuffle(all_observations, all_weights, all_sampling_ids)
 
     # Save result
     save_preformatted_events_to_madminer_file(
         filename=output_filename,
         observations=all_observations,
         weights=all_weights,
+        sampling_benchmarks=all_sampling_ids,
         copy_setup_from=input_filenames[0],
         overwrite_existing_samples=overwrite_existing_file,
     )
+    if all_n_events_background + np.sum(all_n_events_signal_per_benchmark) > 0:
+        save_sample_summary_to_madminer_file(
+            filename=output_filename,
+            n_events_background=all_n_events_background,
+            n_events_per_sampling_benchmark=all_n_events_signal_per_benchmark,
+        )
 
 
 def benchmark(benchmark_name):
