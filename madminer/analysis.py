@@ -190,9 +190,12 @@ class DataAnalyzer(object):
         benchmarks = self._benchmark_array()
         distances = [np.linalg.norm(benchmark - theta) for benchmark in benchmarks]
 
+        logger.debug("Distances: %s", distances)
+
         # Don't use benchmarks where we don't actually have events
         if self.n_events_generated_per_benchmark is not None:
-            distances[self.n_events_generated_per_benchmark == 0] = 1.0e9
+            logger.debug("n_events_generated_per_benchmark: %s", self.n_events_generated_per_benchmark)
+            distances = distances + 1.0e9 * (self.n_events_generated_per_benchmark == 0).astype(np.float)
 
         closest_idx = np.argmin(distances)
         return closest_idx
@@ -203,7 +206,9 @@ class DataAnalyzer(object):
             benchmarks_array.append(list(six.itervalues(benchmark)))
         return np.asarray(benchmarks_array)
 
-    def weighted_events(self, theta=None, nu=None, start_event=None, end_event=None, derivative=False):
+    def weighted_events(
+        self, theta=None, nu=None, start_event=None, end_event=None, derivative=False, generated_close_to=None
+    ):
         """
         Returns all events together with the benchmark weights (if theta is None) or weights for a given theta.
 
@@ -241,7 +246,9 @@ class DataAnalyzer(object):
 
         """
 
-        x, weights_benchmarks = next(self.event_loader(batch_size=None, start=start_event, end=end_event))
+        x, weights_benchmarks = next(
+            self.event_loader(batch_size=None, start=start_event, end=end_event, generated_close_to=generated_close_to)
+        )
 
         if theta is None:
             return x, weights_benchmarks

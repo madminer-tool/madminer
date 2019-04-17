@@ -1230,6 +1230,7 @@ class SampleAugmenter(DataAnalyzer):
                     nuisance_score=nuisance_score,
                     n_stats_warnings=n_stats_warnings,
                     n_neg_weights_warnings=n_neg_weights_warnings,
+                    sample_only_from_closest_benchmark=sample_only_from_closest_benchmark,
                 )
 
                 all_x.append(x)

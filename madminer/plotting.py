@@ -262,6 +262,7 @@ def plot_distributions(
     n_toys=100,
     n_cols=3,
     quantiles_for_range=(0.025, 0.975),
+    generated_close_to=None,
 ):
     """
     Plots one-dimensional histograms of observables in a MadMiner file for a given set of benchmarks.
@@ -410,7 +411,7 @@ def plot_distributions(
         observable_labels = [all_observables[obs] for obs in observable_indices]
 
     # Get event data (observations and weights)
-    x, weights_benchmarks = sa.weighted_events()
+    x, weights_benchmarks = sa.weighted_events(generated_close_to=generated_close_to)
     logger.debug("Loaded raw data with shapes %s, %s", x.shape, weights_benchmarks.shape)
 
     # Remove negative weights

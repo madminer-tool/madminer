@@ -195,8 +195,8 @@ def load_madminer_settings(filename, include_nuisance_benchmarks=False):
 
         # Sample summary (number if events generated from each benchmark)
         try:
-            n_signal_events_generated_per_benchmark = f["sample_summary/signal_events_per_benchmark"]
-            n_background_events = int(f["sample_summary/background_events"])
+            n_signal_events_generated_per_benchmark = f["sample_summary/signal_events_per_benchmark"][()]
+            n_background_events = int(f["sample_summary/background_events"][()])
         except KeyError:
             n_signal_events_generated_per_benchmark = None
             n_background_events = None
