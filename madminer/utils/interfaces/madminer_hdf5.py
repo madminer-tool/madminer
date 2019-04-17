@@ -255,6 +255,7 @@ def madminer_event_loader(
     include_nuisance_parameters=True,
     benchmark_is_nuisance=None,
     sampling_benchmark=None,
+    sampling_factors=None,
 ):
     if start is None:
         start = 0
@@ -316,6 +317,12 @@ def madminer_event_loader(
                 this_sampling_ids = np.array(sampling_ids[current:this_end])
                 this_observations = this_observations[this_sampling_ids == sampling_benchmark]
                 this_weights = this_weights[this_sampling_ids == sampling_benchmark]
+
+            # Rescale weights based on sampling
+            elif sampling_factors is not None and sampling_ids is not None:
+                this_sampling_ids = np.array(sampling_ids[current:this_end])
+                k_factors = sampling_factors[this_sampling_ids]
+                this_weights *= k_factors
 
             if len(this_observations) > 0:
                 yield (this_observations, this_weights)

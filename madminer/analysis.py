@@ -154,9 +154,12 @@ class DataAnalyzer(object):
         if include_nuisance_parameters is None:
             include_nuisance_parameters = self.include_nuisance_parameters
 
-        sampling_benchmark = None
-        if generated_close_to is not None:
-            sampling_benchmark = self._find_closest_benchmark(generated_close_to)
+        sampling_benchmark = self._find_closest_benchmark(generated_close_to)
+
+        if sampling_benchmark is None:
+            sampling_factors = 1.0
+        else:
+            sampling_factors = self._calculate_sampling_factors()
 
         for data in madminer_event_loader(
             self.madminer_filename,
@@ -166,8 +169,14 @@ class DataAnalyzer(object):
             include_nuisance_parameters,
             benchmark_is_nuisance=self.benchmark_is_nuisance,
             sampling_benchmark=sampling_benchmark,
+            sampling_factors=sampling_factors,
         ):
             yield data
+
+    def _calculate_sampling_factors(self):
+        events = np.asarray(self.events_generated_per_benchmark, dtype=np.float)
+        factors = events / np.sum(events)
+        return factors
 
     def _find_closest_benchmark(self, theta):
         if theta is None:
