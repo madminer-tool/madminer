@@ -218,7 +218,7 @@ class AsymptoticLimits(DataAnalyzer):
 
     def _calculate_xsecs(self, thetas, test_split=0.2):
         # Test split
-        start_event, end_event = self._train_test_split(False, test_split)
+        start_event, end_event, correction_factor = self._train_test_split(False, test_split)
 
         # Total xsecs for benchmarks
         xsecs_benchmarks = 0.0
@@ -233,8 +233,9 @@ class AsymptoticLimits(DataAnalyzer):
         return np.asarray(xsecs)
 
     def _asimov_data(self, theta, test_split=0.2):
-        start_event, end_event = self._train_test_split(False, test_split)
+        start_event, end_event, correction_factor = self._train_test_split(False, test_split)
         x, weights_benchmarks = next(self.event_loader(start=start_event, end=end_event, batch_size=None))
+        weights_benchmarks *= correction_factor
 
         theta_matrix = self._get_theta_benchmark_matrix(theta)
         weights_theta = mdot(theta_matrix, weights_benchmarks)
@@ -333,46 +334,3 @@ class AsymptoticLimits(DataAnalyzer):
             logger.warning("Removing %s inf / nan results from calculation")
             array[:, not_finite] = 0.0
         return array
-
-    def _train_test_split(self, train, test_split):
-        """
-        Returns the start and end event for train samples (train = True) or test samples (train = False).
-
-        Parameters
-        ----------
-        train : bool
-            True if training data is generated, False if test data is generated.
-
-        test_split : float
-            Fraction of events reserved for testing.
-
-        Returns
-        -------
-        start_event : int
-            Index of the first unweighted event to consider.
-
-        end_event : int
-            Index of the last unweighted event to consider.
-
-        """
-        if train:
-            start_event = 0
-
-            if test_split is None or test_split <= 0.0 or test_split >= 1.0:
-                end_event = None
-            else:
-                end_event = int(round((1.0 - test_split) * self.n_samples, 0))
-                if end_event < 0 or end_event > self.n_samples:
-                    raise ValueError("Irregular train / test split: sample {} / {}", end_event, self.n_samples)
-
-        else:
-            if test_split is None or test_split <= 0.0 or test_split >= 1.0:
-                start_event = 0
-            else:
-                start_event = int(round((1.0 - test_split) * self.n_samples, 0)) + 1
-                if start_event < 0 or start_event > self.n_samples:
-                    raise ValueError("Irregular train / test split: sample {} / {}", start_event, self.n_samples)
-
-            end_event = None
-
-        return start_event, end_event
