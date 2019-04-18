@@ -543,11 +543,15 @@ def plot_distributions(
 
         for i_theta, theta_matrix in enumerate(theta_matrices):
             theta_weights = mdot(theta_matrix, all_weights_benchmarks)  # Shape (n_events,)
-            indiv_theta_weights = mdot(theta_matrix, indiv_weights_benchmarks[i_theta])  # Shape (n_events,)
 
             if sample_only_from_closest_benchmark:
+                indiv_theta_weights = mdot(theta_matrix, indiv_weights_benchmarks[i_theta])  # Shape (n_events,)
                 histo, bin_edges = np.histogram(
-                    indiv_x[i_theta][:, i_obs], bins=n_bins, range=x_range, weights=indiv_theta_weights, density=normalize
+                    indiv_x[i_theta][:, i_obs],
+                    bins=n_bins,
+                    range=x_range,
+                    weights=indiv_theta_weights,
+                    density=normalize,
                 )
             else:
                 histo, bin_edges = np.histogram(

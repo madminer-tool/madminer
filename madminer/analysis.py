@@ -388,7 +388,9 @@ class DataAnalyzer(object):
                 xsec_uncertainties += np.sum(weights_sq, axis=1)
 
         if n_events == 0:
-            raise RuntimeError("Did not find events with test_split = %s and generated_close_to = %s", test_split, generated_close_to)
+            raise RuntimeError(
+                "Did not find events with test_split = %s and generated_close_to = %s", test_split, generated_close_to
+            )
 
         xsec_uncertainties = xsec_uncertainties ** 0.5
 
