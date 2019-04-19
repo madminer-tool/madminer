@@ -58,7 +58,7 @@ class AsymptoticLimits(DataAnalyzer):
             include_xsec,
             None,
             luminosity,
-            n_samples_per_theta
+            n_samples_per_theta,
         )
         return theta_grid, p_values, i_ml
 
@@ -153,7 +153,7 @@ class AsymptoticLimits(DataAnalyzer):
             summary_stats = summary_function(x)
 
             logger.info("Creating histogram with %s bins for the summary statistics", hist_bins)
-            histo = self._make_histo(summary_function, hist_bins, theta_grid, theta_resolutions,n_samples_per_theta)
+            histo = self._make_histo(summary_function, hist_bins, theta_grid, theta_resolutions, n_samples_per_theta)
 
             logger.info("Calculating kinematic log likelihood with histograms")
             log_r_kin = self._calculate_log_likelihood_histo(summary_stats, theta_grid, histo)
@@ -229,12 +229,12 @@ class AsymptoticLimits(DataAnalyzer):
         xsecs_benchmarks = 0.0
         for observations, weights in self.event_loader(start=start_event, end=end_event):
             xsecs_benchmarks += np.sum(weights, axis=0)
-        
+
         # xsecs at thetas
         xsecs = []
         for theta in thetas:
             theta_matrix = self._get_theta_benchmark_matrix(theta)
-            xsecs.append(mdot(theta_matrix, xsecs_benchmarks) * correction_factor )
+            xsecs.append(mdot(theta_matrix, xsecs_benchmarks) * correction_factor)
         return np.asarray(xsecs)
 
     def _asimov_data(self, theta, test_split=0.2):
