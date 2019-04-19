@@ -1648,7 +1648,7 @@ class SampleAugmenter(DataAnalyzer):
             return str(theta[1])
         elif theta[0] == "benchmarks":
             return "{} benchmarks, starting with {}".format(len(theta[1]), theta[1][:3])
-        elif theta[0] == "morphing_point":
+        elif theta[0] == "morphing_points":
             return "{} morphing points, starting with {}".format(len(theta[1]), theta[1][:3])
         elif theta[0] == "random_morphing_points":
             prior_str = ""
