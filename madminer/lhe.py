@@ -229,7 +229,7 @@ class LHEReader:
         smearing of these particles (set with `set_smearing()`). But often the MET is in fact more affected by
         additional soft activity than by mismeasurements of the hard particles. This function adds a Gaussian random
         to each of the x and y components of the MET vector. The Gaussian has mean 0 and standard deviation
-        `abs + rel * E`, where `E` is the scalar sum of the true energies of all particles in the process. Everything
+        `abs + rel * HT`, where `HT` is the scalar sum of the pT of all particles in the process. Everything
         is given in GeV.
 
         Parameters
@@ -238,7 +238,7 @@ class LHEReader:
             Absolute contribution to MET noise. Default value: 0.
 
         rel : float, optional
-            Relative (to the scalar sum of all particle energies) contribution to MET noise. Default value: 0.
+            Relative (to HT) contribution to MET noise. Default value: 0.
 
         Returns
         -------
