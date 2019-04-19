@@ -408,6 +408,7 @@ class SampleAugmenter(DataAnalyzer):
         test_split=0.2,
         switch_train_test_events=False,
         n_processes=1,
+        return_individual_n_effective=False,
     ):
         """
         Extracts training samples `x ~ p(x|theta0)` and `x ~ p(x|theta1)` together with the class label `y`, the joint
@@ -555,6 +556,9 @@ class SampleAugmenter(DataAnalyzer):
                 sample_only_from_closest_benchmark=sample_only_from_closest_benchmark,
             )
 
+        if return_individual_n_effective:
+            n_effective_samples_0 = np.repeat(n_effective_samples_0, n_samples_per_theta)
+
         # Thetas for theta1 sampling (could be different if num or denom are random)
         parsed_theta0s, n_samples_per_theta0 = self._parse_theta(theta0, n_samples // 2)
         parsed_theta1s, n_samples_per_theta1 = self._parse_theta(theta1, n_samples // 2)
@@ -591,6 +595,9 @@ class SampleAugmenter(DataAnalyzer):
                 sample_only_from_closest_benchmark=sample_only_from_closest_benchmark,
             )
 
+        if return_individual_n_effective:
+            n_effective_samples_1 = np.repeat(n_effective_samples_1, n_samples_per_theta)
+
         # Combine
         x = np.vstack([x0, x1])
         r_xz = np.vstack([r_xz0, r_xz1])
@@ -602,9 +609,10 @@ class SampleAugmenter(DataAnalyzer):
         theta1 = np.vstack([theta1_0, theta1_1])
         y = np.zeros(x.shape[0])
         y[x0.shape[0] :] = 1.0
+        n_effective = np.hstack((n_effective_samples_0, n_effective_samples_1))
 
         # Shuffle
-        x, r_xz, t_xz, theta0, theta1, y = shuffle(x, r_xz, t_xz, theta0, theta1, y)
+        x, r_xz, t_xz, theta0, theta1, y, n_effective = shuffle(x, r_xz, t_xz, theta0, theta1, y, n_effective)
 
         # y shape
         y = y.reshape((-1, 1))
@@ -619,7 +627,9 @@ class SampleAugmenter(DataAnalyzer):
             if self.morpher is not None:
                 np.save(folder + "/t_xz_" + filename + ".npy", t_xz)
 
-        return x, theta0, theta1, y, r_xz, t_xz, min(min(n_effective_samples_0), min(n_effective_samples_1))
+        if not return_individual_n_effective:
+            n_effective = np.min(n_effective)
+        return x, theta0, theta1, y, r_xz, t_xz, n_effective
 
     def sample_train_more_ratios(
         self,
