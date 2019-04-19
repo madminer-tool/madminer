@@ -911,30 +911,30 @@ def _get_objects(particles, met_resolution=None):
     jets = sorted(jets, reverse=True, key=lambda x: x.pt)
 
     # Sum over all particles
-    scalar_energy_sum = 0.
+    ht = 0.0
     visible_sum = MadMinerParticle()
     visible_sum.setpxpypze(0.0, 0.0, 0.0, 0.0)
 
     for particle in particles:
-        scalar_energy_sum += particle.e
+        ht += particle.pt
         pdgid = abs(particle.pdgid)
         if pdgid in [1, 2, 3, 4, 5, 6, 9, 11, 13, 15, 21, 22, 23, 24, 25]:
             visible_sum += particle
 
     # Soft noise
     if met_resolution is not None:
-        noise_std = met_resolution[0] + met_resolution[1] * scalar_energy_sum
-        noise_x = np.random.normal(0., noise_std, size=None)
-        noise_y = np.random.normal(0., noise_std, size=None)
+        noise_std = met_resolution[0] + met_resolution[1] * ht
+        noise_x = np.random.normal(0.0, noise_std, size=None)
+        noise_y = np.random.normal(0.0, noise_std, size=None)
     else:
-        noise_x = 0.
-        noise_y = 0.
+        noise_x = 0.0
+        noise_y = 0.0
 
     # MET
     met_x = -visible_sum.px + noise_x
     met_y = -visible_sum.px + noise_y
     met = MadMinerParticle()
-    met.setpxpypze(met_x, met_y, 0.0, (met_x**2 + met_y**2)**0.5)
+    met.setpxpypze(met_x, met_y, 0.0, (met_x ** 2 + met_y ** 2) ** 0.5)
 
     # Build objects
     objects = math_commands()
