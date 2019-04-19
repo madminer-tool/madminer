@@ -94,6 +94,7 @@ class FisherInformation(DataAnalyzer):
             cuts = []
         if efficiency_functions is None:
             efficiency_functions = []
+        include_nuisance_parameters = include_nuisance_parameters and (self.nuisance_parameters is not None)
 
         # Loop over batches
         n_all_parameters = self.n_parameters
@@ -214,14 +215,14 @@ class FisherInformation(DataAnalyzer):
 
         # Nuisance parameters?
         if model.n_parameters == self.n_parameters:
-            logger.debug(
+            logger.info(
                 "Found %s parameters in SALLY model, matching %s physical parameters in MadMiner file",
                 model.n_parameters,
                 self.n_parameters,
             )
             include_nuisance_parameters = False
         elif model.n_parameters == self.n_parameters + self.n_nuisance_parameters:
-            logger.debug(
+            logger.info(
                 "Found %s parameters in SALLY model, matching %s physical parameters + %s nuisance parameters"
                 + " in MadMiner file",
                 model.n_parameters,
@@ -386,6 +387,7 @@ class FisherInformation(DataAnalyzer):
             propagation.
 
         """
+        include_nuisance_parameters = include_nuisance_parameters and (self.nuisance_parameters is not None)
 
         # Get weights at benchmarks
         weights_benchmarks, weights_benchmark_uncertainties = self._calculate_xsec(
@@ -407,6 +409,7 @@ class FisherInformation(DataAnalyzer):
             sum_events=True,
             calculate_uncertainty=True,
             weights_benchmark_uncertainties=weights_benchmark_uncertainties,
+            include_nuisance_parameters=include_nuisance_parameters,
         )
 
         return fisher_info, covariance
@@ -475,6 +478,7 @@ class FisherInformation(DataAnalyzer):
             cuts = []
         if efficiency_functions is None:
             efficiency_functions = []
+        include_nuisance_parameters = include_nuisance_parameters and (self.nuisance_parameters is not None)
 
         # Binning
         dynamic_binning = histrange is None
