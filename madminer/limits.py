@@ -229,12 +229,12 @@ class AsymptoticLimits(DataAnalyzer):
         xsecs_benchmarks = 0.0
         for observations, weights in self.event_loader(start=start_event, end=end_event):
             xsecs_benchmarks += np.sum(weights, axis=0)
-
+        
         # xsecs at thetas
         xsecs = []
         for theta in thetas:
             theta_matrix = self._get_theta_benchmark_matrix(theta)
-            xsecs.append(mdot(theta_matrix, xsecs_benchmarks))
+            xsecs.append(mdot(theta_matrix, xsecs_benchmarks) * correction_factor )
         return np.asarray(xsecs)
 
     def _asimov_data(self, theta, test_split=0.2):
