@@ -44,6 +44,7 @@ class AsymptoticLimits(DataAnalyzer):
         include_xsec=True,
         resolutions=25,
         luminosity=300000.0,
+        n_samples_per_theta=1000,
     ):
         theta_grid, p_values, i_ml = self._analyse(
             len(x_observed),
@@ -57,6 +58,7 @@ class AsymptoticLimits(DataAnalyzer):
             include_xsec,
             None,
             luminosity,
+            n_samples_per_theta
         )
         return theta_grid, p_values, i_ml
 
@@ -71,6 +73,7 @@ class AsymptoticLimits(DataAnalyzer):
         include_xsec=True,
         resolutions=25,
         luminosity=300000.0,
+        n_samples_per_theta=1000,
     ):
         x_asimov, x_weights = self._asimov_data(theta_true)
         n_observed = luminosity * self._calculate_xsecs([theta_true])[0]
@@ -86,6 +89,7 @@ class AsymptoticLimits(DataAnalyzer):
             include_xsec,
             x_weights,
             luminosity,
+            n_samples_per_theta,
         )
         return theta_grid, p_values, i_ml
 
@@ -107,6 +111,7 @@ class AsymptoticLimits(DataAnalyzer):
         include_xsec=True,
         obs_weights=None,
         luminosity=300000.0,
+        n_samples_per_theta=1000,
     ):
         logger.debug("Calculating p-values for %s expected events", n_events)
 
@@ -148,7 +153,7 @@ class AsymptoticLimits(DataAnalyzer):
             summary_stats = summary_function(x)
 
             logger.info("Creating histogram with %s bins for the summary statistics", hist_bins)
-            histo = self._make_histo(summary_function, hist_bins, theta_grid, theta_resolutions)
+            histo = self._make_histo(summary_function, hist_bins, theta_grid, theta_resolutions,n_samples_per_theta)
 
             logger.info("Calculating kinematic log likelihood with histograms")
             log_r_kin = self._calculate_log_likelihood_histo(summary_stats, theta_grid, histo)
