@@ -1,0 +1,126 @@
+#************************************************************
+#*                     MadGraph5_aMC@NLO                    *
+#*                                                          *
+#*                *                       *                 *
+#*                  *        * *        *                   *
+#*                    * * * * 5 * * * *                     *
+#*                  *        * *        *                   *
+#*                *                       *                 *
+#*                                                          *
+#*                                                          *
+#*         VERSION 2.6.5                 2018-02-03         *
+#*                                                          *
+#*    The MadGraph5_aMC@NLO Development Team - Find us at   *
+#*    https://server06.fynu.ucl.ac.be/projects/madgraph     *
+#*                                                          *
+#************************************************************
+#*                                                          *
+#*               Command File for MadGraph5_aMC@NLO         *
+#*                                                          *
+#*     run as ./bin/mg5_aMC  filename                       *
+#*                                                          *
+#************************************************************
+set default_unset_couplings 99
+set group_subprocesses Auto
+set ignore_six_quark_processes False
+set loop_optimized_output True
+set loop_color_flows False
+set gauge unitary
+set complex_mass_scheme False
+set max_npoint_for_channel 0
+import model EWdim6-full
+define p = g u c d s u~ c~ d~ s~
+define j = g u c d s u~ c~ d~ s~
+define l+ = e+ mu+
+define l- = e- mu-
+define vl = ve vm vt
+define vl~ = ve~ vm~ vt~
+generate u d > u d h / a z QCD=0 QED=99 NP=2, h > a a QCD=0 QED=99 NP=0
+output ./mg_processes/signal
+Traceback (most recent call last):
+  File "/Users/johannbrehmer/work/projects/madminer/MG5_aMC_v2_6_5/madgraph/interface/extended_cmd.py", line 1514, in onecmd
+    return self.onecmd_orig(line, **opt)
+  File "/Users/johannbrehmer/work/projects/madminer/MG5_aMC_v2_6_5/madgraph/interface/extended_cmd.py", line 1463, in onecmd_orig
+    return func(arg, **opt)
+  File "/Users/johannbrehmer/work/projects/madminer/MG5_aMC_v2_6_5/madgraph/interface/master_interface.py", line 274, in do_import
+    self.cmd.do_import(self, *args, **opts)
+  File "/Users/johannbrehmer/work/projects/madminer/MG5_aMC_v2_6_5/madgraph/interface/madgraph_interface.py", line 5273, in do_import
+    self.import_command_file(args[1])
+  File "/Users/johannbrehmer/work/projects/madminer/MG5_aMC_v2_6_5/madgraph/interface/extended_cmd.py", line 1660, in import_command_file
+    self.exec_cmd(line, precmd=True)
+  File "/Users/johannbrehmer/work/projects/madminer/MG5_aMC_v2_6_5/madgraph/interface/extended_cmd.py", line 1543, in exec_cmd
+    stop = Cmd.onecmd_orig(current_interface, line, **opt)
+  File "/Users/johannbrehmer/work/projects/madminer/MG5_aMC_v2_6_5/madgraph/interface/extended_cmd.py", line 1463, in onecmd_orig
+    return func(arg, **opt)
+  File "/Users/johannbrehmer/work/projects/madminer/MG5_aMC_v2_6_5/madgraph/interface/master_interface.py", line 292, in do_output
+    self.cmd.do_output(self, line, *args, **opts)
+  File "/Users/johannbrehmer/work/projects/madminer/MG5_aMC_v2_6_5/madgraph/interface/madgraph_interface.py", line 7598, in do_output
+    shutil.rmtree(self._export_dir)
+  File "/Users/johannbrehmer/anaconda3/envs/python2/lib/python2.7/shutil.py", line 270, in rmtree
+    onerror(os.rmdir, path, sys.exc_info())
+  File "/Users/johannbrehmer/anaconda3/envs/python2/lib/python2.7/shutil.py", line 268, in rmtree
+    os.rmdir(path)
+OSError: [Errno 66] Directory not empty: '/Users/johannbrehmer/work/projects/madminer/madminer/examples/tutorial_particle_physics/mg_processes/signal'
+Related File: /Users/johannbrehmer/work/projects/madminer/madminer/examples/tutorial_particle_physics/mg_processes/signal
+                          MadGraph5_aMC@NLO Options    
+                          ----------------    
+        complex_mass_scheme 	:	False
+    default_unset_couplings 	:	99
+                      gauge 	:	unitary
+         group_subprocesses 	:	Auto
+  ignore_six_quark_processes 	:	False
+           loop_color_flows 	:	False
+      loop_optimized_output 	:	True
+  low_mem_multicore_nlo_generation 	:	False
+     max_npoint_for_channel 	:	0
+               stdout_level 	:	20 (user set)
+
+                         MadEvent Options    
+                          ----------------    
+     automatic_html_opening 	:	True
+                    nb_core 	:	None
+        notification_center 	:	True
+                   run_mode 	:	2
+
+                      Configuration Options    
+                      ---------------------    
+                        OLP 	:	MadLoop
+                    amcfast 	:	amcfast-config
+                   applgrid 	:	applgrid-config
+                auto_update 	:	7
+         cluster_local_path 	:	None
+           cluster_nb_retry 	:	1
+              cluster_queue 	:	None (user set)
+         cluster_retry_wait 	:	300
+               cluster_size 	:	100
+      cluster_status_update 	:	(600, 30)
+          cluster_temp_path 	:	None
+               cluster_type 	:	condor
+                    collier 	:	./HEPTools/lib
+               cpp_compiler 	:	None
+             crash_on_error 	:	False
+               delphes_path 	:	./Delphes
+                 eps_viewer 	:	None
+        exrootanalysis_path 	:	./ExRootAnalysis
+              f2py_compiler 	:	None
+                    fastjet 	:	None (user set)
+           fortran_compiler 	:	None
+                      golem 	:	None (user set)
+                 hepmc_path 	:	None (user set)
+                  hwpp_path 	:	None (user set)
+                     lhapdf 	:	lhapdf-config
+          madanalysis5_path 	:	None (user set)
+           madanalysis_path 	:	./MadAnalysis
+  mg5amc_py8_interface_path 	:	/Users/johannbrehmer/work/projects/madminer/MG5_aMC_v2_6_5/HEPTools/MG5aMC_PY8_interface (user set)
+                      ninja 	:	./HEPTools/lib
+        output_dependencies 	:	external
+                      pjfry 	:	None (user set)
+            pythia-pgs_path 	:	./pythia-pgs
+               pythia8_path 	:	/Users/johannbrehmer/work/projects/madminer/MG5_aMC_v2_6_5/HEPTools/pythia8 (user set)
+                    samurai 	:	None
+               syscalc_path 	:	./SysCalc
+                    td_path 	:	./td
+                text_editor 	:	None
+                thepeg_path 	:	None (user set)
+                    timeout 	:	60
+                web_browser 	:	None
