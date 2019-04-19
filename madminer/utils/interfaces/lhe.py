@@ -201,6 +201,9 @@ def parse_lhe_file(
             if not pass_all_observation:
                 continue
 
+            if not pass_all_observation:
+                continue
+
             # Objects for cuts
             for obs_name, obs_value in zip(observables.keys(), observations):
                 variables[obs_name] = obs_value
@@ -224,6 +227,34 @@ def parse_lhe_file(
                         pass_all_cuts = False
 
             if not pass_all_cuts:
+                continue
+
+            # Apply efficiencies
+            pass_all_efficiencies = True
+            total_efficiency = 1.
+            for i_efficiency, (efficiency, default_pass) in enumerate(zip(efficiencies, efficiencies_default_pass)):
+                try:
+                    efficiency_result = eval(efficiency, variables)
+                    if efficiency_result>0.:
+                        pass_efficiencies[i_efficiency] += 1
+                        total_efficiency *= efficiency_result
+                        avg_efficiencies[i_efficiency] += efficiency_result
+                    else:
+                        fail_efficiencies[i_efficiency] += 1
+                        pass_all_efficiencies = False
+
+                except (SyntaxError, NameError, TypeError, ZeroDivisionError, IndexError):
+                    if default_pass>0.:
+                        pass_efficiencies[i_efficiency] += 1
+                        total_efficiency *= default_pass
+                        avg_efficiencies[i_efficiency] += default_pass
+                    else:
+                        fail_efficiencies[i_efficiency] += 1
+                        pass_all_efficiencies = False
+
+            if pass_all_efficiencies:
+                weights*=total_efficiency
+            else:
                 continue
 
             # Apply efficiencies
@@ -344,6 +375,34 @@ def parse_lhe_file(
                         pass_all_cuts = False
 
             if not pass_all_cuts:
+                continue
+
+            # Apply efficiencies
+            pass_all_efficiencies = True
+            total_efficiency = 1.
+            for i_efficiency, (efficiency, default_pass) in enumerate(zip(efficiencies, efficiencies_default_pass)):
+                try:
+                    efficiency_result = eval(efficiency, variables)
+                    if efficiency_result>0.:
+                        pass_efficiencies[i_efficiency] += 1
+                        total_efficiency *= efficiency_result
+                        avg_efficiencies[i_efficiency] += efficiency_result
+                    else:
+                        fail_efficiencies[i_efficiency] += 1
+                        pass_all_efficiencies = False
+
+                except (SyntaxError, NameError, TypeError, ZeroDivisionError, IndexError):
+                    if default_pass>0.:
+                        pass_efficiencies[i_efficiency] += 1
+                        total_efficiency *= default_pass
+                        avg_efficiencies[i_efficiency] += default_pass
+                    else:
+                        fail_efficiencies[i_efficiency] += 1
+                        pass_all_efficiencies = False
+
+            if pass_all_efficiencies:
+                weights*=total_efficiency
+            else:
                 continue
 
             # Apply efficiencies
