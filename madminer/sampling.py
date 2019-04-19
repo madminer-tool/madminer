@@ -1639,7 +1639,6 @@ class SampleAugmenter(DataAnalyzer):
 
         return sets
 
-
     @staticmethod
     def _format_sampling(theta):
         if theta[0] == "benchmark":
@@ -1663,7 +1662,6 @@ class SampleAugmenter(DataAnalyzer):
                 return "Maximally many random morphing points, drawn from the following priors:%s".format(prior_str)
             else:
                 return "{} random morphing points, drawn from the following priors:%s".format(theta[1][0], prior_str)
-
 
 
 def combine_and_shuffle(input_filenames, output_filename, k_factors=None, overwrite_existing_file=True):
