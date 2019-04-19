@@ -1678,7 +1678,7 @@ class SampleAugmenter(DataAnalyzer):
             return "{} morphing points, starting with {}".format(len(theta[1]), theta[1][:3])
         elif theta[0] == "random_morphing_points":
             prior_str = ""
-            for i, type, arg0, arg1 in enumerate(theta[1][1]):
+            for i, (type, arg0, arg1) in enumerate(theta[1][1]):
                 prior_str += "\n"
                 if type == "gaussian":
                     prior_str += "  theta_{} ~ Gaussian with mean {} and std {}".format(i, arg0, arg1)
@@ -1686,7 +1686,7 @@ class SampleAugmenter(DataAnalyzer):
                     prior_str += "  theta_{} ~ flat from {} to {}".format(i, arg0, arg1)
 
             if theta[1][0] is None:
-                return "Maximally many random morphing points, drawn from the following priors:%s".format(prior_str)
+                return "Maximally many random morphing points, drawn from the following priors:{}".format(prior_str)
             else:
                 return "{} random morphing points, drawn from the following priors:%s".format(theta[1][0], prior_str)
 
