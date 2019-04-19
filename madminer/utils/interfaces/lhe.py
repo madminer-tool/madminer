@@ -169,7 +169,10 @@ def parse_lhe_file(
             )
 
             # Objects in event
-            variables = _get_objects(particles, pt_resolutions["met"])
+            try:
+                variables = _get_objects(particles, pt_resolutions["met"])
+            except (TypeError, IndexError):
+                variables = _get_objects(particles)
 
             # Calculate observables
             observations = []
@@ -320,7 +323,10 @@ def parse_lhe_file(
             )
 
             # Objects in event
-            variables = _get_objects(particles, pt_resolutions["met"])
+            try:
+                variables = _get_objects(particles, pt_resolutions["met"])
+            except (TypeError, IndexError):
+                variables = _get_objects(particles)
 
             # Calculate observables
             observations = []
