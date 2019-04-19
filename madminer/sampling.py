@@ -1349,13 +1349,15 @@ class SampleAugmenter(DataAnalyzer):
             else:
                 logger.debug("  %s: theta = %s, nu = %s", i_param, theta_value[0, :], nu_value)
 
+        theta_value_sampling = theta_values[sampling_index][0, :]
+
         # Cross sections
         xsecs, xsec_uncertainties = self.xsecs(
             thetas,
             nus,
             events="train" if use_train_events else "test",
             test_split=test_split,
-            generated_close_to=None if not sample_only_from_closest_benchmark else theta_value[0, :],
+            generated_close_to=None if not sample_only_from_closest_benchmark else theta_value_sampling,
         )
         if needs_gradients:
             xsec_gradients = self.xsec_gradients(
@@ -1364,7 +1366,7 @@ class SampleAugmenter(DataAnalyzer):
                 gradients="all" if nuisance_score else "theta",
                 events="train" if use_train_events else "test",
                 test_split=test_split,
-                generated_close_to=None if not sample_only_from_closest_benchmark else theta_value[0, :],
+                generated_close_to=None if not sample_only_from_closest_benchmark else theta_value_sampling,
             )
         else:
             xsec_gradients = None
@@ -1407,7 +1409,7 @@ class SampleAugmenter(DataAnalyzer):
             for x_batch, weights_benchmarks_batch in self.event_loader(
                 start=start_event,
                 end=end_event,
-                generated_close_to=None if not sample_only_from_closest_benchmark else theta_value[0, :],
+                generated_close_to=None if not sample_only_from_closest_benchmark else theta_value_sampling,
             ):
                 weights_benchmarks_batch *= correction_factor
 
