@@ -542,12 +542,12 @@ class FisherInformation(DataAnalyzer):
         order = np.argsort(rel_uncertainties)[::-1]
 
         logger.info("Bins with largest statistical uncertainties on rates:")
-        for i_bin in order:
+        for i_bin in order[:report]:
             bin_nd = i_bin + 1
             if n_bins_first_axis is not None:
                 bin_nd = (i_bin // n_bins_first_axis + 1, i_bin % n_bins_first_axis + 1)
             logger.info(
-                "  Bin %s: (%.4f +/- %.4f) fb (%.4f %%)",
+                "  Bin %s: (%.5f +/- %.5f) fb (%.0f %%)",
                 bin_nd,
                 1000.0 * sigma[i_bin],
                 1000.0 * sigma_uncertainties[i_bin],
