@@ -119,7 +119,7 @@ def run_test():
     return rmse
 
 
-def test_toy_workflow():
+def test_ratio_estimation():
     rmse = run_test()
 
     print("Root mean squared error of true log r vs ALICES log r: {}".format(rmse))
