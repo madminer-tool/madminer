@@ -151,7 +151,7 @@ def test_ratio_estimation():
     print(" Method  |  100 samples  |  10k samples ")
     print("------------------------------------------")
     for method, this_rmses in zip(methods, rmses):
-        print(" {:>6s}  |    {:11.3f}  |  {:11.3f} ".format(method, this_rmses[0], this_rmses[1]))
+        print(" {:>6s}  |  {:11.3f}  |  {:11.3f} ".format(method, this_rmses[0], this_rmses[1]))
 
     print("")
 
