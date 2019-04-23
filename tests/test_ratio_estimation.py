@@ -122,7 +122,7 @@ def run_test(method, alpha, sample_size):
     )
 
     # Calculate error
-    rmse = np.mean((log_r_test_true - log_r_tests_alices) ** 2) ** 0.5
+    rmse = np.mean((log_r_test_true - log_r_tests_alices) ** 2)
 
     return rmse
 
@@ -130,7 +130,7 @@ def run_test(method, alpha, sample_size):
 def test_ratio_estimation():
     methods = ["carl", "rolr", "alice", "cascal", "rascal", "alices"]
     alphas = [0.0, 0.0, 0.0, 1.0, 1.0, 1.0]
-    sample_sizes = [100, 100000]
+    sample_sizes = [100, 10000]
     rmses = []
 
     print("Generating data for ratio estimation")
@@ -141,12 +141,12 @@ def test_ratio_estimation():
         for sample_size in sample_sizes:
             print("Training method {} on {} samples".format(method, sample_size))
             this_rmses.append(run_test(method, alpha, sample_size))
-            print(this_rmses[-1])
+            print("  -> MSE =", this_rmses[-1])
         rmses.append(this_rmses)
     rmses = np.asarray(rmses)
 
     print("")
-    print("Results: Root mean squared error of log r")
+    print("Results: Mean squared error of log r")
     print("")
     print(" Method  |  100 samples  |  10k samples ")
     print("------------------------------------------")
@@ -155,7 +155,7 @@ def test_ratio_estimation():
 
     print("")
 
-    assert np.max(rmses[:, -1]) < 10.0
+    assert np.max(rmses[:, -1]) < 100.0
 
 
 if __name__ == "__main__":
