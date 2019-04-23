@@ -507,7 +507,7 @@ class FisherInformation(DataAnalyzer):
 
             # Find bins
             i_bins = np.searchsorted(bin_boundaries, histo_observables)
-            assert ((0 <= bins) & (bins < n_bins_total)).all(), "Wrong bin {}".format(i_bins)
+            assert ((0 <= i_bins) & (i_bins < n_bins_total)).all(), "Wrong bin {}".format(i_bins)
 
             # Add up
             for i in range(n_bins_total):
@@ -539,18 +539,19 @@ class FisherInformation(DataAnalyzer):
         sigma_uncertainties = mdot(theta_matrix, weights_benchmark_uncertainties)  # Shape (n_bins,)
         rel_uncertainties = sigma_uncertainties / np.maximum(sigma, 1.0e-12)
 
-        order = rel_uncertainties.argsort()
-        sorted_bins = list(range(len(rel_uncertainties)))[order]
+        order = np.argsort(rel_uncertainties)[::-1]
 
         logger.info("Bins with largest statistical uncertainties on rates:")
-        for i_bin in sorted_bins:
+        for i_bin in order:
             bin_nd = i_bin + 1
             if n_bins_first_axis is not None:
                 bin_nd = (i_bin // n_bins_first_axis + 1, i_bin % n_bins_first_axis + 1)
             logger.info(
-                "  Bin %s: (%.4f +/- %.4f) fb (%.4f %%)".format(
-                    bin_nd, 1000.0 * sigma[i_bin], 1000.0 * sigma_uncertainties[i_bin], 100.0 * rel_uncertainties[i_bin]
-                )
+                "  Bin %s: (%.4f +/- %.4f) fb (%.4f %%)",
+                bin_nd,
+                1000.0 * sigma[i_bin],
+                1000.0 * sigma_uncertainties[i_bin],
+                100.0 * rel_uncertainties[i_bin],
             )
 
     def _calculate_binning(
