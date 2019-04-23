@@ -419,7 +419,7 @@ class FisherInformation(DataAnalyzer):
         theta,
         luminosity,
         observable,
-        nbins,
+        bins,
         histrange=None,
         cuts=None,
         efficiency_functions=None,
@@ -441,12 +441,14 @@ class FisherInformation(DataAnalyzer):
             Expression for the observable to be histogrammed. The str will be parsed by Python's `eval()` function
             and can use the names of the observables in the MadMiner files.
 
-        nbins : int
-            Number of bins in the histogram, excluding overflow bins.
+        bins : int or ndarray
+            If int: number of bins in the histogram, excluding overflow bins. Otherwise, defines the bin boundaries
+            (excluding overflow bins).
 
         histrange : tuple of float or None, optional
             Minimum and maximum value of the histogram in the form `(min, max)`. Overflow bins are always added. If
-            None, variable-width bins with equal cross section are constructed automatically. Default value: None.
+            None and bins is an int, variable-width bins with equal cross section are constructed automatically.
+            Default value: None.
 
         cuts : None or list of str, optional
             Cuts. Each entry is a parseable Python expression that returns a bool (True if the event should pass a cut,
@@ -478,19 +480,11 @@ class FisherInformation(DataAnalyzer):
             cuts = []
         if efficiency_functions is None:
             efficiency_functions = []
-        include_nuisance_parameters = include_nuisance_parameters and (self.nuisance_parameters is not None)
 
         # Binning
-        dynamic_binning = histrange is None
-        if dynamic_binning:
-            n_bins_total = nbins
-            bin_boundaries = self._calculate_dynamic_binning(
-                observable, theta, nbins, n_events_dynamic_binning, cuts, efficiency_functions
-            )
-            logger.debug("Automatic dynamic binning: bin boundaries %s", bin_boundaries)
-        else:
-            n_bins_total = nbins + 2
-            bin_boundaries = np.linspace(histrange[0], histrange[1], num=nbins + 1)
+        bin_boundaries, n_bins_total = self._calculate_binning(
+            bins, cuts, efficiency_functions, histrange, n_events_dynamic_binning, observable, theta
+        )
 
         # Loop over batches
         weights_benchmarks = np.zeros((n_bins_total, self.n_benchmarks))
@@ -512,16 +506,19 @@ class FisherInformation(DataAnalyzer):
             histo_observables = np.asarray([self._eval_observable(obs_event, observable) for obs_event in observations])
 
             # Find bins
-            bins = np.searchsorted(bin_boundaries, histo_observables)
-            assert ((0 <= bins) & (bins < n_bins_total)).all(), "Wrong bin {}".format(bins)
+            i_bins = np.searchsorted(bin_boundaries, histo_observables)
+            assert ((0 <= i_bins) & (i_bins < n_bins_total)).all(), "Wrong bin {}".format(i_bins)
 
             # Add up
             for i in range(n_bins_total):
-                if len(weights[bins == i]) > 0:
-                    weights_benchmarks[i] += np.sum(weights[bins == i], axis=0)
-                    weights_squared_benchmarks[i] += np.sum(weights[bins == i] ** 2, axis=0)
+                if len(weights[i_bins == i]) > 0:
+                    weights_benchmarks[i] += np.sum(weights[i_bins == i], axis=0)
+                    weights_squared_benchmarks[i] += np.sum(weights[i_bins == i] ** 2, axis=0)
 
         weights_benchmark_uncertainties = weights_squared_benchmarks ** 0.5
+
+        # Check cross sections per bin
+        self._check_binning_stats(weights_benchmarks, weights_benchmark_uncertainties, theta)
 
         # Calculate Fisher information in histogram
         fisher_info, covariance = self._calculate_fisher_information(
@@ -534,14 +531,55 @@ class FisherInformation(DataAnalyzer):
         )
         return fisher_info, covariance
 
+    def _check_binning_stats(
+        self, weights_benchmarks, weights_benchmark_uncertainties, theta, report=5, n_bins_first_axis=None
+    ):
+        theta_matrix = self._get_theta_benchmark_matrix(theta, zero_pad=False)  # (n_benchmarks_phys,)
+        sigma = mdot(theta_matrix, weights_benchmarks)  # Shape (n_bins,)
+        sigma_uncertainties = mdot(theta_matrix, weights_benchmark_uncertainties)  # Shape (n_bins,)
+        rel_uncertainties = sigma_uncertainties / np.maximum(sigma, 1.0e-12)
+
+        order = np.argsort(rel_uncertainties)[::-1]
+
+        logger.info("Bins with largest statistical uncertainties on rates:")
+        for i_bin in order[:report]:
+            bin_nd = i_bin + 1
+            if n_bins_first_axis is not None:
+                bin_nd = (i_bin // n_bins_first_axis + 1, i_bin % n_bins_first_axis + 1)
+            logger.info(
+                "  Bin %s: (%.5f +/- %.5f) fb (%.0f %%)",
+                bin_nd,
+                1000.0 * sigma[i_bin],
+                1000.0 * sigma_uncertainties[i_bin],
+                100.0 * rel_uncertainties[i_bin],
+            )
+
+    def _calculate_binning(
+        self, bins, cuts, efficiency_functions, histrange, n_events_dynamic_binning, observable, theta
+    ):
+        dynamic_binning = histrange is None and isinstance(bins, int)
+        if dynamic_binning:
+            n_bins_total = bins
+            bin_boundaries = self._calculate_dynamic_binning(
+                observable, theta, bins, n_events_dynamic_binning, cuts, efficiency_functions
+            )
+            logger.debug("Automatic dynamic binning: bin boundaries %s", bin_boundaries)
+        elif isinstance(bins, int):
+            n_bins_total = bins + 2
+            bin_boundaries = np.linspace(histrange[0], histrange[1], num=bins + 1)
+        else:
+            bin_boundaries = bins
+            n_bins_total = len(bins) + 1
+        return bin_boundaries, n_bins_total
+
     def calculate_fisher_information_hist2d(
         self,
         theta,
         luminosity,
         observable1,
-        nbins1,
+        bins1,
         observable2,
-        nbins2,
+        bins2,
         histrange1=None,
         histrange2=None,
         cuts=None,
@@ -565,15 +603,17 @@ class FisherInformation(DataAnalyzer):
             Expression for the first observable to be histogrammed. The str will be parsed by Python's `eval()` function
             and can use the names of the observables in the MadMiner files.
 
-        nbins1 : int
-            Number of bins along the first axis in the histogram, excluding overflow bins.
+        bins1 : int or ndarray
+            If int: number of bins along the first axis in the histogram in the histogram, excluding overflow bins.
+            Otherwise, defines the bin boundaries along the first axis in the histogram (excluding overflow bins).
 
         observable2 : str
             Expression for the first observable to be histogrammed. The str will be parsed by Python's `eval()` function
             and can use the names of the observables in the MadMiner files.
 
-        nbins2 : int
-            Number of bins along the first axis in the histogram, excluding overflow bins.
+        bins2 : int or ndarray
+            If int: number of bins along the second axis in the histogram in the histogram, excluding overflow bins.
+            Otherwise, defines the bin boundaries along the second axis in the histogram (excluding overflow bins).
 
         histrange1 : tuple of float or None, optional
             Minimum and maximum value of the first axis of the histogram in the form `(min, max)`. Overflow bins are
@@ -617,27 +657,12 @@ class FisherInformation(DataAnalyzer):
             efficiency_functions = []
 
         # Binning
-        dynamic_binning1 = histrange1 is None
-        if dynamic_binning1:
-            n_bins1_total = nbins1
-            bin1_boundaries = self._calculate_dynamic_binning(
-                observable1, theta, nbins1, n_events_dynamic_binning, cuts, efficiency_functions
-            )
-            logger.debug("Automatic dynamic binning for observable 1: bin boundaries %s", bin1_boundaries)
-        else:
-            n_bins1_total = nbins1 + 2
-            bin1_boundaries = np.linspace(histrange1[0], histrange1[1], num=nbins1 + 1)
-
-        dynamic_binning2 = histrange2 is None
-        if dynamic_binning2:
-            n_bins2_total = nbins2
-            bin2_boundaries = self._calculate_dynamic_binning(
-                observable2, theta, nbins2, n_events_dynamic_binning, cuts, efficiency_functions
-            )
-            logger.debug("Automatic dynamic binning for observable 2: bin boundaries %s", bin2_boundaries)
-        else:
-            n_bins2_total = nbins1 + 2
-            bin2_boundaries = np.linspace(histrange2[0], histrange2[1], num=nbins2 + 1)
+        bin1_boundaries, n_bins1_total = self._calculate_binning(
+            bins1, cuts, efficiency_functions, histrange1, n_events_dynamic_binning, observable1, theta
+        )
+        bin2_boundaries, n_bins2_total = self._calculate_binning(
+            bins2, cuts, efficiency_functions, histrange2, n_events_dynamic_binning, observable2, theta
+        )
 
         # Loop over batches
         weights_benchmarks = np.zeros((n_bins1_total, n_bins2_total, self.n_benchmarks))
@@ -664,24 +689,30 @@ class FisherInformation(DataAnalyzer):
             )
 
             # Find bins
-            bins1 = np.searchsorted(bin1_boundaries, histo1_observables)
-            bins2 = np.searchsorted(bin2_boundaries, histo2_observables)
+            i_bins1 = np.searchsorted(bin1_boundaries, histo1_observables)
+            i_bins2 = np.searchsorted(bin2_boundaries, histo2_observables)
 
-            assert ((0 <= bins1) & (bins1 < n_bins1_total)).all(), "Wrong bin {}".format(bins1)
-            assert ((0 <= bins1) & (bins1 < n_bins1_total)).all(), "Wrong bin {}".format(bins1)
+            assert ((0 <= i_bins1) & (i_bins1 < n_bins1_total)).all(), "Wrong bin {}".format(i_bins1)
+            assert ((0 <= i_bins2) & (i_bins2 < n_bins1_total)).all(), "Wrong bin {}".format(i_bins2)
 
             # Add up
             for i in range(n_bins1_total):
                 for j in range(n_bins2_total):
-                    if len(weights[(bins1 == i) & (bins2 == j)]) > 0:
-                        weights_benchmarks[i, j] += np.sum(weights[(bins1 == i) & (bins2 == j)], axis=0)
-                        weights_squared_benchmarks[i, j] += np.sum(weights[(bins1 == i) & (bins2 == j)] ** 2, axis=0)
+                    if len(weights[(i_bins1 == i) & (i_bins2 == j)]) > 0:
+                        weights_benchmarks[i, j] += np.sum(weights[(i_bins1 == i) & (i_bins2 == j)], axis=0)
+                        weights_squared_benchmarks[i, j] += np.sum(
+                            weights[(i_bins1 == i) & (i_bins2 == j)] ** 2, axis=0
+                        )
 
         weights_benchmark_uncertainties = weights_squared_benchmarks ** 0.5
 
         # Calculate Fisher information in histogram
         weights_benchmarks = weights_benchmarks.reshape(-1, self.n_benchmarks)
         weights_benchmark_uncertainties = weights_benchmark_uncertainties.reshape(-1, self.n_benchmarks)
+
+        self._check_binning_stats(
+            weights_benchmarks, weights_benchmark_uncertainties, theta, n_bins_first_axis=n_bins1_total
+        )
 
         fisher_info, covariance = self._calculate_fisher_information(
             theta,

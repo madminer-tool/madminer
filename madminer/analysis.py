@@ -79,6 +79,7 @@ class DataAnalyzer(object):
                 logger.debug("   %s (%s)", key, values)
         else:
             logger.info("Did not find nuisance parameters")
+            self.include_nuisance_parameters = False
 
         logger.info("Found %s benchmarks, of which %s physical", self.n_benchmarks, self.n_benchmarks_phys)
         for (key, values), is_nuisance in zip(six.iteritems(self.benchmarks), self.benchmark_is_nuisance):
@@ -118,6 +119,9 @@ class DataAnalyzer(object):
                 self.nuisance_parameters, list(self.benchmarks.keys()), self.reference_benchmark
             )
             logger.info("Found nuisance morphing setup")
+        else:
+            logger.info("Did not find nuisance morphing setup")
+            self.include_nuisance_parameters = False
 
     def event_loader(
         self, start=0, end=None, batch_size=100000, include_nuisance_parameters=None, generated_close_to=None
