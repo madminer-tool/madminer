@@ -7,7 +7,7 @@ from scipy.stats import norm
 
 # MadMiner output
 logging.basicConfig(
-    format="%(asctime)-5.5s %(name)-20.20s %(levelname)-7.7s %(message)s", datefmt="%H:%M", level=logging.INFO
+    format="%(asctime)-5.5s %(name)-20.20s %(levelname)-7.7s %(message)s", datefmt="%H:%M", level=logging.WARNING
 )
 
 # Output of all other modules (e.g. matplotlib)
@@ -121,13 +121,6 @@ def run_test(method, alpha, sample_size):
         theta="tests/data/theta_grid.npy", x="tests/data/x_test.npy", evaluate_score=False
     )
 
-    logging.info("Log likelihood ratio results for method %s with %s samples:", method, sample_size)
-    logging.info(" theta  |  true  |  est. ")
-    logging.info("----------------------------")
-    for theta, all_true, all_est in zip(theta_grid, log_r_test_true, log_r_tests_alices):
-        for true, est in zip(all_true[:1], all_est[:1]):
-            logging.info(" {:5.2f}  |  {:4.1f}  |  {:4.1f} ".format(theta[0], true, est))
-
     # Calculate error
     rmse = np.mean((log_r_test_true - log_r_tests_alices) ** 2) ** 0.5
 
@@ -155,10 +148,10 @@ def test_ratio_estimation():
     print("")
     print("Results: Root mean squared error of log r")
     print("")
-    print(" Method  |   100 samples  |  100k samples ")
+    print(" Method  |  100 samples  |  10k samples ")
     print("------------------------------------------")
     for method, this_rmses in zip(methods, rmses):
-        print(" {:>6s}  |    {:12.3f}  |  {:12.3f} ".format(method, this_rmses[0], this_rmses[1]))
+        print(" {:>6s}  |    {:11.3f}  |  {:11.3f} ".format(method, this_rmses[0], this_rmses[1]))
 
     print("")
 
