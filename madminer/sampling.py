@@ -1159,6 +1159,7 @@ class SampleAugmenter(DataAnalyzer):
                 nuisance_score=nuisance_score,
                 n_stats_warnings=1000,
                 n_neg_weights_warnings=1000,
+                sample_only_from_closest_benchmark=sample_only_from_closest_benchmark
             )
 
             logger.info("Starting sampling jobs in parallel, using %s processes", n_processes)
