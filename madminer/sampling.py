@@ -26,7 +26,7 @@ class SampleAugmenter(DataAnalyzer):
     distribution, and the extraction of the joint likelihood ratio and / or joint score (the "augmented data").
 
     After inializing `SampleAugmenter` with the filename of a MadMiner file, this is done with a single function call.
-    Depending on the downstream inference algorithm, there are different possibilities:
+    Depending on the downstream infference algorithm, there are different possibilities:
 
     * `SampleAugmenter.sample_train_plain()` creates plain training samples without augmented data.
     * `SampleAugmenter.sample_train_local()` creates training samples for local methods based on the score,
@@ -1486,6 +1486,7 @@ class SampleAugmenter(DataAnalyzer):
                 )
 
         n_eff_samples = 1.0 / max(1.0e-12, largest_event_probability)
+        n_eff_samples = [n_eff_samples for _ in range(n_samples)]
 
         return x, theta_values, nu_values, augmented_data, n_eff_samples, n_stats_warnings, n_neg_weights_warnings
 
