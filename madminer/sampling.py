@@ -1701,7 +1701,7 @@ class SampleAugmenter(DataAnalyzer):
             if theta[1][0] is None:
                 return "Maximally many random morphing points, drawn from the following priors:{}".format(prior_str)
             else:
-                return "{} random morphing points, drawn from the following priors:%s".format(theta[1][0], prior_str)
+                return "{} random morphing points, drawn from the following priors:{}".format(theta[1][0], prior_str)
 
 
 def combine_and_shuffle(input_filenames, output_filename, k_factors=None, overwrite_existing_file=True):
