@@ -591,8 +591,6 @@ class SampleAugmenter(DataAnalyzer):
         y = np.zeros(x.shape[0])
         y[x0.shape[0] :] = 1.0
 
-        logger.debug("y: %s", y.shape)
-
         # Shuffle
         x, r_xz, t_xz, theta0, theta1, y = shuffle(x, r_xz, t_xz, theta0, theta1, y)
 
