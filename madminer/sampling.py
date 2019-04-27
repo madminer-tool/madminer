@@ -1277,7 +1277,7 @@ class SampleAugmenter(DataAnalyzer):
             all_nus[i] = np.vstack(values)
         for i, values in enumerate(all_augmented_data):
             all_augmented_data[i] = np.vstack(values)
-        all_effective_n_samples = np.vstack(all_effective_n_samples)
+        all_effective_n_samples = np.hstack(all_effective_n_samples)
         all_thetas = self._combine_thetas_nus(all_thetas, all_nus)
 
         # Report effective number of samples
