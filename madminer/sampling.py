@@ -1809,7 +1809,7 @@ def combine_and_shuffle(input_filenames, output_filename, k_factors=None, overwr
             if all_sampling_ids is None:
                 all_sampling_ids = sampling_ids
             elif sampling_ids is not None:
-                all_sampling_ids = np.hstack(all_sampling_ids, sampling_ids)
+                all_sampling_ids = np.hstack((all_sampling_ids, sampling_ids))
 
         logger.debug("Combined sampling benchmarks: %s", all_sampling_ids)
 
