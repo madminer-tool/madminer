@@ -1091,6 +1091,7 @@ class SampleAugmenter(DataAnalyzer):
         verbose="some",
         n_processes=1,
         update_patience=0.01,
+        force_update_patience=15*60.,
     ):
         """
         Low-level function for the extraction of information from the event samples. Do not use this function directly.
@@ -1135,7 +1136,11 @@ class SampleAugmenter(DataAnalyzer):
             1.
 
         update_patience : float, optional
-            Wait time (in s) between log updates with n_workers > 1 (or None). Default value: 0.01
+            Wait time (in s) between log update checks if n_workers > 1 (or None). Default value: 0.01
+
+        force_update_patience : float, optional
+            Wait time (in s) between log updates (independent of actual progress) if n_workers > 1 (or None). Default
+            value: 15 * 60. (15 minutes).
 
         Returns
         -------
@@ -1197,11 +1202,13 @@ class SampleAugmenter(DataAnalyzer):
 
             next_verbose = 0
             verbose_steps = n_sets // 10
+            last_update = time.time()
 
             while not r.ready():
                 n_done = max(n_sets - r._number_left * r._chunksize, 0)
-                if n_done >= next_verbose:
+                if n_done >= next_verbose or time.time() - last_update > force_update_patience:
                     logger.info("%s / %s jobs done", max(n_sets - r._number_left * r._chunksize, 0), n_sets)
+                    last_update = time.time()
                     while next_verbose <= n_done:
                         next_verbose += verbose_steps
                         time.sleep(update_patience)
