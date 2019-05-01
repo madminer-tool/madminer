@@ -79,44 +79,14 @@ class LHEReader:
         self.eta_resolution = {}
         self.phi_resolution = {}
 
-        pdgids = [
-            1,
-            -1,
-            2,
-            -2,
-            3,
-            -3,
-            4,
-            -4,
-            5,
-            -5,
-            6,
-            -6,
-            9,
-            11,
-            -11,
-            12,
-            -12,
-            13,
-            -13,
-            14,
-            -14,
-            15,
-            -15,
-            16,
-            -16,
-            21,
-            22,
-            23,
-            24,
-            -24,
-            25,
-        ]
+        pdgids = [1, -1, 2, -2, 3, -3, 4, -4, 5, -5, 6, -6, 9]
+        pdgids += [11, -11, 12, -12, 13, -13, 14, -14, 15, -15, 16, -16, 21, 22, 23, 24, -24, 25]
         for pdgid in pdgids:
             self.energy_resolution[pdgid] = (0.0, 0.0)
             self.pt_resolution[pdgid] = (0.0, 0.0)
             self.eta_resolution[pdgid] = (0.0, 0.0)
             self.phi_resolution[pdgid] = (0.0, 0.0)
+        self.pt_resolution["met"] = (0.0, 0.0)
 
         # Initialize samples
         self.reference_benchmark = None
@@ -250,6 +220,33 @@ class LHEReader:
             self.pt_resolution[pdgid] = (pt_resolution_abs, pt_resolution_rel)
             self.eta_resolution[pdgid] = (eta_resolution_abs, eta_resolution_rel)
             self.phi_resolution[pdgid] = (phi_resolution_abs, phi_resolution_rel)
+
+    def set_met_noise(self, abs=0.0, rel=0.0):
+        """
+        Sets up additional noise in the MET variable from shower and detector effects.
+
+        By default, the MET is calculated based on all reconstructed visible particles, including the effect of the
+        smearing of these particles (set with `set_smearing()`). But often the MET is in fact more affected by
+        additional soft activity than by mismeasurements of the hard particles. This function adds a Gaussian random
+        to each of the x and y components of the MET vector. The Gaussian has mean 0 and standard deviation
+        `abs + rel * HT`, where `HT` is the scalar sum of the pT of all particles in the process. Everything
+        is given in GeV.
+
+        Parameters
+        ----------
+        abs : float, optional
+            Absolute contribution to MET noise. Default value: 0.
+
+        rel : float, optional
+            Relative (to HT) contribution to MET noise. Default value: 0.
+
+        Returns
+        -------
+            None
+
+        """
+
+        self.pt_resolution["met"] = (abs, rel)
 
     def add_observable(self, name, definition, required=False, default=None):
         """
@@ -453,7 +450,7 @@ class LHEReader:
         self.cuts.append(definition)
         self.cuts_default_pass.append(pass_if_not_parsed)
 
-    def add_efficiency(self, definition, value_if_not_parsed=1.):
+    def add_efficiency(self, definition, value_if_not_parsed=1.0):
 
         """
             Adds an efficiency as a string that can be parsed by Python's `eval()` function and returns a bool.

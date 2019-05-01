@@ -76,7 +76,7 @@ def generate_mg_process(
         initial_command = initial_command + "; "
 
     # Explicitly call Python 2 if necessary
-    python_call = "python2 " if explicit_python_call else ""
+    python_call = "python2.7 " if explicit_python_call else ""
 
     _ = call_command(
         initial_command + python_call + mg_directory + "/bin/mg5_aMC " + temp_proc_card_file, log_file=log_file
@@ -253,7 +253,7 @@ def setup_mg_with_scripts(
     )
 
     # Explicitly call Python 2 if necessary
-    python_call = "python2 " if explicit_python_call else ""
+    python_call = "python2.7 " if explicit_python_call else ""
 
     # Put together script
     script = (
@@ -401,7 +401,7 @@ def run_mg(
         initial_command = initial_command + "; "
 
     # Python 2 support
-    python_call = "python2 " if explicit_python_call else ""
+    python_call = "python2.7 " if explicit_python_call else ""
     _ = call_command(
         initial_command + python_call + mg_directory + "/bin/mg5_aMC " + proc_card_filename, log_file=log_file
     )

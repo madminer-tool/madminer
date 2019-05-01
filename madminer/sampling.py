@@ -142,7 +142,7 @@ class SampleAugmenter(DataAnalyzer):
 
         """
 
-        logger.info("Extracting plain training sample. Sampling according to %s", theta)
+        logger.info("Extracting plain training sample. Sampling according to %s", self._format_sampling(theta))
 
         create_missing_folders([folder])
 
@@ -251,7 +251,7 @@ class SampleAugmenter(DataAnalyzer):
         if log_message:
             logger.info(
                 "Extracting training sample for local score regression. Sampling and score evaluation according to %s",
-                theta,
+                self._format_sampling(theta),
             )
 
         create_missing_folders([folder])
@@ -492,8 +492,8 @@ class SampleAugmenter(DataAnalyzer):
         logger.info(
             "Extracting training sample for ratio-based methods. Numerator hypothesis: %s, denominator "
             "hypothesis: %s",
-            theta0,
-            theta1,
+            self._format_sampling(theta0),
+            self._format_sampling(theta1),
         )
 
         create_missing_folders([folder])
@@ -727,8 +727,8 @@ class SampleAugmenter(DataAnalyzer):
         logger.info(
             "Extracting training sample for ratio-based methods. Numerator hypothesis: %s, denominator "
             "hypothesis: %s",
-            theta0,
-            theta1,
+            self._format_sampling(theta0),
+            self._format_sampling(theta1),
         )
 
         create_missing_folders([folder])
@@ -978,7 +978,7 @@ class SampleAugmenter(DataAnalyzer):
 
         """
 
-        logger.info("Extracting evaluation sample. Sampling according to %s", theta)
+        logger.info("Extracting evaluation sample. Sampling according to %s", self._format_sampling(theta))
 
         create_missing_folders([folder])
 
@@ -1159,6 +1159,7 @@ class SampleAugmenter(DataAnalyzer):
                 nuisance_score=nuisance_score,
                 n_stats_warnings=1000,
                 n_neg_weights_warnings=1000,
+                sample_only_from_closest_benchmark=sample_only_from_closest_benchmark
             )
 
             logger.info("Starting sampling jobs in parallel, using %s processes", n_processes)
@@ -1638,6 +1639,30 @@ class SampleAugmenter(DataAnalyzer):
                 sets[i_set].append((theta[i_set % n_theta_sets_before], nu[i_set % n_nu_sets_before]))
 
         return sets
+
+    @staticmethod
+    def _format_sampling(theta):
+        if theta[0] == "benchmark":
+            return str(theta[1])
+        elif theta[0] == "morphing_point":
+            return str(theta[1])
+        elif theta[0] == "benchmarks":
+            return "{} benchmarks, starting with {}".format(len(theta[1]), theta[1][:3])
+        elif theta[0] == "morphing_points":
+            return "{} morphing points, starting with {}".format(len(theta[1]), theta[1][:3])
+        elif theta[0] == "random_morphing_points":
+            prior_str = ""
+            for i, (type, arg0, arg1) in enumerate(theta[1][1]):
+                prior_str += "\n"
+                if type == "gaussian":
+                    prior_str += "  theta_{} ~ Gaussian with mean {} and std {}".format(i, arg0, arg1)
+                elif type == "flat":
+                    prior_str += "  theta_{} ~ flat from {} to {}".format(i, arg0, arg1)
+
+            if theta[1][0] is None:
+                return "Maximally many random morphing points, drawn from the following priors:%s".format(prior_str)
+            else:
+                return "{} random morphing points, drawn from the following priors:%s".format(theta[1][0], prior_str)
 
 
 def combine_and_shuffle(input_filenames, output_filename, k_factors=None, overwrite_existing_file=True):
