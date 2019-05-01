@@ -954,6 +954,117 @@ class FisherInformation(DataAnalyzer):
 
         return bin_boundaries, sigma_bins, fisher_info_rate_bins, fisher_info_full_bins
 
+    def histogram_of_sigma_dsigma(
+        self,
+        theta,
+        observable,
+        nbins,
+        histrange,
+        cuts=None,
+        efficiency_functions=None,
+    ):
+        """
+        Fills events into histograms and calculates the cross section and first derivative for each bin
+                                                
+        Parameters
+        ----------
+        theta : ndarray
+        Parameter point `theta` at which the Fisher information matrix `I_ij(theta)` is evaluated.
+                                                
+        observable : str
+        Expression for the observable to be sliced. The str will be parsed by Python's `eval()` function
+        and can use the names of the observables in the MadMiner files.
+                                                
+        nbins : int
+        Number of bins in the slicing, excluding overflow bins.
+                                                
+        histrange : tuple of float
+        Minimum and maximum value of the slicing in the form `(min, max)`. Overflow bins are always added.
+                                                
+        cuts : None or list of str, optional
+        Cuts. Each entry is a parseable Python expression that returns a bool (True if the event should pass a cut,
+        False otherwise). Default value: None.
+                                                
+        efficiency_functions : list of str or None
+        Efficiencies. Each entry is a parseable Python expression that returns a float for the efficiency of one
+        component. Default value: None.
+
+        Returns
+        -------
+        bin_boundaries : ndarray
+        Observable slice boundaries.
+                                                
+        sigma_bins : ndarray
+        Cross section in pb in each of the slices.
+        
+        dsigma_bins : ndarray
+        Cross section in pb in each of the slices.
+        """
+        
+        # Input
+        if cuts is None:
+            cuts = []
+        if efficiency_functions is None:
+            efficiency_functions = []
+        
+        
+        # Binning
+        dynamic_binning = histrange is None
+        if dynamic_binning:
+            n_bins_total = nbins
+            bin_boundaries = self._calculate_dynamic_binning(
+                observable, theta, nbins, None, cuts, efficiency_functions
+            )
+        else:
+            n_bins_total = nbins + 2
+            bin_boundaries = np.linspace(histrange[0], histrange[1], num=nbins + 1)
+        
+        
+        #        # Number of bins
+        #n_bins_total = nbins + 2
+        #bin_boundaries = np.linspace(histrange[0], histrange[1], num=nbins + 1)
+
+        # Prepare output
+        weights_benchmarks_bins = np.zeros((n_bins_total, self.n_benchmarks))
+            
+        # Main loop: truth-level case
+        for observations, weights in self.event_loader():
+            
+            # Cuts
+            cut_filter = [self._pass_cuts(obs_event, cuts) for obs_event in observations]
+            observations = observations[cut_filter]
+            weights = weights[cut_filter]
+        
+            # Efficiencies
+            efficiencies = np.array(
+                [self._eval_efficiency(obs_event, efficiency_functions) for obs_event in observations]
+            )
+            weights *= efficiencies[:, np.newaxis]
+             
+            # Evaluate histogrammed observable
+            histo_observables = np.asarray(
+                [self._eval_observable(obs_event, observable) for obs_event in observations]
+            )
+                
+            # Find bins
+            bins = np.searchsorted(bin_boundaries, histo_observables)
+            assert ((0 <= bins) & (bins < n_bins_total)).all(), "Wrong bin {}".format(bins)
+                                               
+            # Add up
+            for i in range(n_bins_total):
+                if len(weights[bins == i]) > 0:
+                    weights_benchmarks_bins[i] += np.sum(weights[bins == i], axis=0)
+    
+        # Get morphing matrices
+        theta_matrix = self._get_theta_benchmark_matrix(theta, zero_pad=False)  # (n_benchmarks_phys,)
+        dtheta_matrix = self._get_dtheta_benchmark_matrix(theta, zero_pad=False)  # (n_parameters, n_benchmarks_phys)
+        
+        # Calculate xsecs in bins
+        sigma_bins = mdot(theta_matrix, weights_benchmarks_bins)  # (n_bins,)
+        dsigma_bins = mdot(dtheta_matrix, weights_benchmarks_bins)  # (n_parameters,n_bins,)
+
+        return bin_boundaries, sigma_bins, dsigma_bins
+
     def calculate_fisher_information_nuisance_constraints(self):
         """ Builds the Fisher information term representing the Gaussian constraints on the nuisance parameters """
 
