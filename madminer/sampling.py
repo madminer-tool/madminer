@@ -1189,6 +1189,7 @@ class SampleAugmenter(DataAnalyzer):
 
         n_stats_warnings = 0
         n_neg_weights_warnings = 0
+        n_too_large_weights_warnings=0
 
         # Multiprocessing approach
         if n_processes is None or n_processes > 1:
@@ -1206,6 +1207,7 @@ class SampleAugmenter(DataAnalyzer):
                 nuisance_score=nuisance_score,
                 n_stats_warnings=1000,
                 n_neg_weights_warnings=1000,
+                n_too_large_weights_warnings=1000,
                 sample_only_from_closest_benchmark=sample_only_from_closest_benchmark,
                 n_eff_forced=n_eff_forced,
             )
@@ -1230,7 +1232,7 @@ class SampleAugmenter(DataAnalyzer):
 
             logger.info("All jobs done!")
 
-            for x, thetas, nus, augmented_data, eff_n_samples, _, _ in r.get():
+            for x, thetas, nus, augmented_data, eff_n_samples, _, _, _ in r.get():
                 all_x.append(x)
                 for i, values in enumerate(augmented_data):
                     all_augmented_data[i].append(values)
@@ -1266,7 +1268,7 @@ class SampleAugmenter(DataAnalyzer):
                 else:
                     logger.debug("Sampling from parameter point %s / %s", i_set + 1, n_sets)
 
-                x, thetas, nus, augmented_data, eff_n_samples, n_stats_warnings, n_neg_weights_warnings = self._sample_set(
+                x, thetas, nus, augmented_data, eff_n_samples, n_stats_warnings, n_neg_weights_warnings, n_too_large_weights_warnings = self._sample_set(
                     set_,
                     n_samples=n_samples_per_set,
                     augmented_data_definitions=augmented_data_definitions,
@@ -1276,6 +1278,7 @@ class SampleAugmenter(DataAnalyzer):
                     test_split=test_split,
                     nuisance_score=nuisance_score,
                     n_stats_warnings=n_stats_warnings,
+                    n_too_large_weights_warnings=n_too_large_weights_warnings,
                     n_neg_weights_warnings=n_neg_weights_warnings,
                     n_eff_forced=n_eff_forced,
                 )
@@ -1517,7 +1520,7 @@ class SampleAugmenter(DataAnalyzer):
 
         n_eff_samples = 1.0 / max(1.0e-12, largest_event_probability)
 
-        return x, theta_values, nu_values, augmented_data, n_eff_samples, n_stats_warnings, n_neg_weights_warnings
+        return x, theta_values, nu_values, augmented_data, n_eff_samples, n_stats_warnings, n_neg_weights_warnings, n_too_large_weights_warnings
 
     @staticmethod
     def _calculate_augmented_data(
