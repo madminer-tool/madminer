@@ -7,8 +7,9 @@ import multiprocessing
 from functools import partial
 
 from madminer.analysis import DataAnalyzer
-from madminer.utils.interfaces.madminer_hdf5 import madminer_event_loader
+from madminer.utils.interfaces.madminer_hdf5 import madminer_event_loader, load_madminer_settings
 from madminer.utils.interfaces.madminer_hdf5 import save_preformatted_events_to_madminer_file
+from madminer.utils.interfaces.madminer_hdf5 import save_sample_summary_to_madminer_file
 from madminer.utils.various import create_missing_folders, shuffle
 
 logger = logging.getLogger(__name__)
@@ -25,7 +26,7 @@ class SampleAugmenter(DataAnalyzer):
     distribution, and the extraction of the joint likelihood ratio and / or joint score (the "augmented data").
 
     After inializing `SampleAugmenter` with the filename of a MadMiner file, this is done with a single function call.
-    Depending on the downstream inference algorithm, there are different possibilities:
+    Depending on the downstream infference algorithm, there are different possibilities:
 
     * `SampleAugmenter.sample_train_plain()` creates plain training samples without augmented data.
     * `SampleAugmenter.sample_train_local()` creates training samples for local methods based on the score,
@@ -79,6 +80,7 @@ class SampleAugmenter(DataAnalyzer):
         theta,
         n_samples,
         nu=None,
+        sample_only_from_closest_benchmark=False,
         folder=None,
         filename=None,
         test_split=0.2,
@@ -158,6 +160,7 @@ class SampleAugmenter(DataAnalyzer):
             use_train_events=not switch_train_test_events,
             test_split=test_split,
             n_processes=n_processes,
+            sample_only_from_closest_benchmark=sample_only_from_closest_benchmark,
         )
 
         # Save data
@@ -172,6 +175,7 @@ class SampleAugmenter(DataAnalyzer):
         theta,
         n_samples,
         nu=None,
+        sample_only_from_closest_benchmark=False,
         folder=None,
         filename=None,
         nuisance_score="auto",
@@ -281,6 +285,7 @@ class SampleAugmenter(DataAnalyzer):
             use_train_events=not switch_train_test_events,
             test_split=test_split,
             n_processes=n_processes,
+            sample_only_from_closest_benchmark=sample_only_from_closest_benchmark,
         )
         t_xz = augmented_data[0]
 
@@ -297,6 +302,7 @@ class SampleAugmenter(DataAnalyzer):
         theta,
         n_samples,
         nu=None,
+        sample_only_from_closest_benchmark=False,
         folder=None,
         filename=None,
         nuisance_score="auto",
@@ -378,6 +384,7 @@ class SampleAugmenter(DataAnalyzer):
             theta=theta,
             n_samples=n_samples,
             nu=nu,
+            sample_only_from_closest_benchmark=sample_only_from_closest_benchmark,
             folder=folder,
             filename=filename,
             nuisance_score=nuisance_score,
@@ -394,12 +401,14 @@ class SampleAugmenter(DataAnalyzer):
         n_samples,
         nu0=None,
         nu1=None,
+        sample_only_from_closest_benchmark=False,
         folder=None,
         filename=None,
         nuisance_score="auto",
         test_split=0.2,
         switch_train_test_events=False,
         n_processes=1,
+        return_individual_n_effective=False,
     ):
         """
         Extracts training samples `x ~ p(x|theta0)` and `x ~ p(x|theta1)` together with the class label `y`, the joint
@@ -531,6 +540,7 @@ class SampleAugmenter(DataAnalyzer):
                 use_train_events=not switch_train_test_events,
                 test_split=test_split,
                 n_processes=n_processes,
+                sample_only_from_closest_benchmark=sample_only_from_closest_benchmark,
             )
             t_xz0 = None
         else:
@@ -543,7 +553,11 @@ class SampleAugmenter(DataAnalyzer):
                 use_train_events=not switch_train_test_events,
                 test_split=test_split,
                 n_processes=n_processes,
+                sample_only_from_closest_benchmark=sample_only_from_closest_benchmark,
             )
+
+        if return_individual_n_effective:
+            n_effective_samples_0 = np.repeat(n_effective_samples_0, n_samples_per_theta)
 
         # Thetas for theta1 sampling (could be different if num or denom are random)
         parsed_theta0s, n_samples_per_theta0 = self._parse_theta(theta0, n_samples // 2)
@@ -565,6 +579,7 @@ class SampleAugmenter(DataAnalyzer):
                 use_train_events=not switch_train_test_events,
                 test_split=test_split,
                 n_processes=n_processes,
+                sample_only_from_closest_benchmark=sample_only_from_closest_benchmark,
             )
             t_xz1 = None
         else:
@@ -577,7 +592,11 @@ class SampleAugmenter(DataAnalyzer):
                 use_train_events=not switch_train_test_events,
                 test_split=test_split,
                 n_processes=n_processes,
+                sample_only_from_closest_benchmark=sample_only_from_closest_benchmark,
             )
+
+        if return_individual_n_effective:
+            n_effective_samples_1 = np.repeat(n_effective_samples_1, n_samples_per_theta)
 
         # Combine
         x = np.vstack([x0, x1])
@@ -590,9 +609,10 @@ class SampleAugmenter(DataAnalyzer):
         theta1 = np.vstack([theta1_0, theta1_1])
         y = np.zeros(x.shape[0])
         y[x0.shape[0] :] = 1.0
+        n_effective = np.hstack((n_effective_samples_0, n_effective_samples_1))
 
         # Shuffle
-        x, r_xz, t_xz, theta0, theta1, y = shuffle(x, r_xz, t_xz, theta0, theta1, y)
+        x, r_xz, t_xz, theta0, theta1, y, n_effective = shuffle(x, r_xz, t_xz, theta0, theta1, y, n_effective)
 
         # y shape
         y = y.reshape((-1, 1))
@@ -607,7 +627,9 @@ class SampleAugmenter(DataAnalyzer):
             if self.morpher is not None:
                 np.save(folder + "/t_xz_" + filename + ".npy", t_xz)
 
-        return x, theta0, theta1, y, r_xz, t_xz, min(min(n_effective_samples_0), min(n_effective_samples_1))
+        if not return_individual_n_effective:
+            n_effective = np.min(n_effective)
+        return x, theta0, theta1, y, r_xz, t_xz, n_effective
 
     def sample_train_more_ratios(
         self,
@@ -616,6 +638,7 @@ class SampleAugmenter(DataAnalyzer):
         n_samples,
         nu0=None,
         nu1=None,
+        sample_only_from_closest_benchmark=False,
         folder=None,
         filename=None,
         additional_thetas=None,
@@ -789,6 +812,7 @@ class SampleAugmenter(DataAnalyzer):
             use_train_events=not switch_train_test_events,
             test_split=test_split,
             n_processes=n_processes,
+            sample_only_from_closest_benchmark=sample_only_from_closest_benchmark,
         )
         n_actual_samples = x_0.shape[0]
 
@@ -851,6 +875,7 @@ class SampleAugmenter(DataAnalyzer):
             use_train_events=not switch_train_test_events,
             test_split=test_split,
             n_processes=n_processes,
+            sample_only_from_closest_benchmark=sample_only_from_closest_benchmark,
         )
         n_actual_samples += x_1.shape[0]
 
@@ -917,6 +942,7 @@ class SampleAugmenter(DataAnalyzer):
         theta,
         n_samples,
         nu=None,
+        sample_only_from_closest_benchmark=False,
         folder=None,
         filename=None,
         test_split=0.2,
@@ -994,6 +1020,7 @@ class SampleAugmenter(DataAnalyzer):
             use_train_events=switch_train_test_events,
             test_split=test_split,
             n_processes=n_processes,
+            sample_only_from_closest_benchmark=sample_only_from_closest_benchmark,
         )
 
         # Save data
@@ -1056,6 +1083,7 @@ class SampleAugmenter(DataAnalyzer):
         sets,
         n_samples_per_set,
         sampling_index=0,
+        sample_only_from_closest_benchmark=False,
         augmented_data_definitions=None,
         nuisance_score=True,
         use_train_events=True,
@@ -1063,6 +1091,7 @@ class SampleAugmenter(DataAnalyzer):
         verbose="some",
         n_processes=1,
         update_patience=0.01,
+        force_update_patience=15*60.,
     ):
         """
         Low-level function for the extraction of information from the event samples. Do not use this function directly.
@@ -1107,7 +1136,11 @@ class SampleAugmenter(DataAnalyzer):
             1.
 
         update_patience : float, optional
-            Wait time (in s) between log updates with n_workers > 1 (or None). Default value: 0.01
+            Wait time (in s) between log update checks if n_workers > 1 (or None). Default value: 0.01
+
+        force_update_patience : float, optional
+            Wait time (in s) between log updates (independent of actual progress) if n_workers > 1 (or None). Default
+            value: 15 * 60. (15 minutes).
 
         Returns
         -------
@@ -1169,11 +1202,13 @@ class SampleAugmenter(DataAnalyzer):
 
             next_verbose = 0
             verbose_steps = n_sets // 10
+            last_update = time.time()
 
             while not r.ready():
                 n_done = max(n_sets - r._number_left * r._chunksize, 0)
-                if n_done >= next_verbose:
+                if n_done >= next_verbose or time.time() - last_update > force_update_patience:
                     logger.info("%s / %s jobs done", max(n_sets - r._number_left * r._chunksize, 0), n_sets)
+                    last_update = time.time()
                     while next_verbose <= n_done:
                         next_verbose += verbose_steps
                         time.sleep(update_patience)
@@ -1229,6 +1264,7 @@ class SampleAugmenter(DataAnalyzer):
                     nuisance_score=nuisance_score,
                     n_stats_warnings=n_stats_warnings,
                     n_neg_weights_warnings=n_neg_weights_warnings,
+                    sample_only_from_closest_benchmark=sample_only_from_closest_benchmark,
                 )
 
                 all_x.append(x)
@@ -1248,7 +1284,7 @@ class SampleAugmenter(DataAnalyzer):
             all_nus[i] = np.vstack(values)
         for i, values in enumerate(all_augmented_data):
             all_augmented_data[i] = np.vstack(values)
-        all_effective_n_samples = np.array(all_effective_n_samples)
+        all_effective_n_samples = np.hstack(all_effective_n_samples)
         all_thetas = self._combine_thetas_nus(all_thetas, all_nus)
 
         # Report effective number of samples
@@ -1280,6 +1316,7 @@ class SampleAugmenter(DataAnalyzer):
         self,
         set_,
         n_samples,
+        sample_only_from_closest_benchmark,
         augmented_data_definitions,
         sampling_index=0,
         needs_gradients=True,
@@ -1320,9 +1357,15 @@ class SampleAugmenter(DataAnalyzer):
             else:
                 logger.debug("  %s: theta = %s, nu = %s", i_param, theta_value[0, :], nu_value)
 
+        theta_value_sampling = theta_values[sampling_index][0, :]
+
         # Cross sections
         xsecs, xsec_uncertainties = self.xsecs(
-            thetas, nus, events="train" if use_train_events else "test", test_split=test_split
+            thetas,
+            nus,
+            events="train" if use_train_events else "test",
+            test_split=test_split,
+            generated_close_to=None if not sample_only_from_closest_benchmark else theta_value_sampling,
         )
         if needs_gradients:
             xsec_gradients = self.xsec_gradients(
@@ -1331,6 +1374,7 @@ class SampleAugmenter(DataAnalyzer):
                 gradients="all" if nuisance_score else "theta",
                 events="train" if use_train_events else "test",
                 test_split=test_split,
+                generated_close_to=None if not sample_only_from_closest_benchmark else theta_value_sampling,
             )
         else:
             xsec_gradients = None
@@ -1370,8 +1414,10 @@ class SampleAugmenter(DataAnalyzer):
             cumulative_p = np.array([0.0])
 
             # Loop over weighted events
-            for x_batch, weights_benchmarks_batch in madminer_event_loader(
-                self.madminer_filename, start=start_event, end=end_event
+            for x_batch, weights_benchmarks_batch in self.event_loader(
+                start=start_event,
+                end=end_event,
+                generated_close_to=None if not sample_only_from_closest_benchmark else theta_value_sampling,
             ):
                 weights_benchmarks_batch *= correction_factor
 
@@ -1447,6 +1493,7 @@ class SampleAugmenter(DataAnalyzer):
                 )
 
         n_eff_samples = 1.0 / max(1.0e-12, largest_event_probability)
+        n_eff_samples = [n_eff_samples for _ in range(n_samples)]
 
         return x, theta_values, nu_values, augmented_data, n_eff_samples, n_stats_warnings, n_neg_weights_warnings
 
@@ -1660,9 +1707,9 @@ class SampleAugmenter(DataAnalyzer):
                     prior_str += "  theta_{} ~ flat from {} to {}".format(i, arg0, arg1)
 
             if theta[1][0] is None:
-                return "Maximally many random morphing points, drawn from the following priors:%s".format(prior_str)
+                return "Maximally many random morphing points, drawn from the following priors:{}".format(prior_str)
             else:
-                return "{} random morphing points, drawn from the following priors:%s".format(theta[1][0], prior_str)
+                return "{} random morphing points, drawn from the following priors:{}".format(theta[1][0], prior_str)
 
 
 def combine_and_shuffle(input_filenames, output_filename, k_factors=None, overwrite_existing_file=True):
@@ -1717,6 +1764,10 @@ def combine_and_shuffle(input_filenames, output_filename, k_factors=None, overwr
     # Load events
     all_observations = None
     all_weights = None
+    all_sampling_ids = None
+
+    all_n_events_background = 0
+    all_n_events_signal_per_benchmark = 0
 
     for i, (filename, k_factor) in enumerate(zip(input_filenames, k_factors)):
         logger.info(
@@ -1727,7 +1778,27 @@ def combine_and_shuffle(input_filenames, output_filename, k_factors=None, overwr
             k_factor,
         )
 
-        for observations, weights in madminer_event_loader(filename):
+        (
+            _,
+            _,
+            _,
+            _,
+            _,
+            _,
+            _,
+            _,
+            _,
+            _,
+            n_signal_events_generated_per_benchmark,
+            n_background_events,
+        ) = load_madminer_settings(filename)
+
+        if n_signal_events_generated_per_benchmark is not None and n_background_events is not None:
+            all_n_events_signal_per_benchmark += n_signal_events_generated_per_benchmark
+            all_n_events_background += n_background_events
+
+        for observations, weights, sampling_ids in madminer_event_loader(filename, return_sampling_ids=True):
+            logger.debug("Sampling benchmarks: %s", sampling_ids)
             if all_observations is None:
                 all_observations = observations
                 all_weights = k_factor * weights
@@ -1735,17 +1806,31 @@ def combine_and_shuffle(input_filenames, output_filename, k_factors=None, overwr
                 all_observations = np.vstack((all_observations, observations))
                 all_weights = np.vstack((all_weights, k_factor * weights))
 
+            if all_sampling_ids is None:
+                all_sampling_ids = sampling_ids
+            elif sampling_ids is not None:
+                all_sampling_ids = np.hstack((all_sampling_ids, sampling_ids))
+
+        logger.debug("Combined sampling benchmarks: %s", all_sampling_ids)
+
     # Shuffle
-    all_observations, all_weights = shuffle(all_observations, all_weights)
+    all_observations, all_weights, all_sampling_ids = shuffle(all_observations, all_weights, all_sampling_ids)
 
     # Save result
     save_preformatted_events_to_madminer_file(
         filename=output_filename,
         observations=all_observations,
         weights=all_weights,
+        sampling_benchmarks=all_sampling_ids,
         copy_setup_from=input_filenames[0],
         overwrite_existing_samples=overwrite_existing_file,
     )
+    if all_n_events_background + np.sum(all_n_events_signal_per_benchmark) > 0:
+        save_sample_summary_to_madminer_file(
+            filename=output_filename,
+            n_events_background=all_n_events_background,
+            n_events_per_sampling_benchmark=all_n_events_signal_per_benchmark,
+        )
 
 
 def benchmark(benchmark_name):

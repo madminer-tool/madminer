@@ -84,13 +84,18 @@ class DelphesReader:
         self.reference_benchmark = None
         self.observations = None
         self.weights = None
+        self.events_sampling_benchmark_ids = None
 
         # Initialize nuisance parameters
         self.nuisance_parameters = None
 
+        # Initialize event summary
+        self.signal_events_per_benchmark = None
+        self.background_events = None
+
         # Information from .h5 file
         self.filename = filename
-        (parameters, benchmarks, _, _, _, _, _, self.systematics, _, _) = load_madminer_settings(
+        (parameters, benchmarks, _, _, _, _, _, self.systematics, _, _, _, _) = load_madminer_settings(
             filename, include_nuisance_benchmarks=False
         )
         self.benchmark_names_phys = list(benchmarks.keys())
@@ -546,6 +551,9 @@ class DelphesReader:
         self.observations = None
         self.weights = None
         self.nuisance_parameters = None
+        self.events_sampling_benchmark_ids = None
+        self.signal_events_per_benchmark = [0 for _ in range(self.n_benchmarks_phys)]
+        self.background_events = 0
 
         for (
             delphes_file,
@@ -566,7 +574,7 @@ class DelphesReader:
         ):
             logger.info("Analysing Delphes sample %s", delphes_file)
 
-            this_observations, this_weights = self._analyse_delphes_sample(
+            this_observations, this_weights, this_n_events = self._analyse_delphes_sample(
                 delete_delphes_files,
                 delphes_file,
                 generator_truth,
@@ -584,10 +592,20 @@ class DelphesReader:
             if this_observations is None:
                 continue
 
+            # Store sampling id for each event
+            if is_background:
+                idx = -1
+                self.background_events += this_n_events
+            else:
+                idx = self.benchmark_names_phys.index(sampling_benchmark)
+                self.signal_events_per_benchmark[idx] += this_n_events
+            this_events_sampling_benchmark_ids = np.array([idx] * this_n_events, dtype=np.int)
+
             # First results
             if self.observations is None and self.weights is None:
                 self.observations = this_observations
                 self.weights = this_weights
+                self.events_sampling_benchmark_ids = this_events_sampling_benchmark_ids
                 continue
 
             # Following results: check consistency with previous results
@@ -612,6 +630,17 @@ class DelphesReader:
             for key in self.observations:
                 assert key in this_observations, "Observable {} not found in Delphes sample!".format(key)
                 self.observations[key] = np.hstack([self.observations[key], this_observations[key]])
+
+            self.events_sampling_benchmark_ids = np.hstack(
+                [self.events_sampling_benchmark_ids, this_events_sampling_benchmark_ids]
+            )
+
+        logger.info("Analysed number of events per sampling benchmark:")
+        for name, n_events in zip(self.benchmark_names_phys, self.signal_events_per_benchmark):
+            if n_events > 0:
+                logger.info("  %s from %s", n_events, name)
+        if self.background_events > 0:
+            logger.info("  %s from backgrounds", self.background_events)
 
     def _analyse_delphes_sample(
         self,
@@ -741,7 +770,7 @@ class DelphesReader:
             if key not in self.benchmark_names_phys:  # Only rescale nuisance benchmarks
                 this_weights[key] = reference_weights / sampling_weights * this_weights[key]
 
-        return this_observations, this_weights
+        return this_observations, this_weights, n_events
 
     def save(self, filename_out):
         """
@@ -779,4 +808,12 @@ class DelphesReader:
         )
 
         # Save events
-        save_events_to_madminer_file(filename_out, self.observables, self.observations, self.weights)
+        save_events_to_madminer_file(
+            filename_out,
+            self.observables,
+            self.observations,
+            self.weights,
+            self.events_sampling_benchmark_ids,
+            self.signal_events_per_benchmark,
+            self.background_events,
+        )

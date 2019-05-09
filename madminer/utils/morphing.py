@@ -694,11 +694,12 @@ class NuisanceMorpher:
         """
         a = []
 
-        for i_pos, i_neg, degree in zip(self.i_benchmarks_pos, self.i_benchmarks_neg, self.degrees):
-            if degree == 1:
-                a.append(np.log(benchmark_weights[:, i_pos] / benchmark_weights[:, self.i_benchmark_ref]))
-            elif degree == 2:
-                a.append(0.5 * np.log(benchmark_weights[:, i_pos] / benchmark_weights[:, i_neg]))
+        with np.errstate(divide='ignore', invalid='ignore'):
+            for i_pos, i_neg, degree in zip(self.i_benchmarks_pos, self.i_benchmarks_neg, self.degrees):
+                if degree == 1:
+                    a.append(np.log(benchmark_weights[:, i_pos] / benchmark_weights[:, self.i_benchmark_ref]))
+                elif degree == 2:
+                    a.append(0.5 * np.log(benchmark_weights[:, i_pos] / benchmark_weights[:, i_neg]))
 
         a = np.array(a)  # Shape (n_nuisance_parameters, n_events)
         a = sanitize_array(a, min_value=-10.0, max_value=10.0)
