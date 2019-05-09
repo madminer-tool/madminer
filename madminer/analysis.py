@@ -47,6 +47,8 @@ class DataAnalyzer(object):
             _,
             self.reference_benchmark,
             self.nuisance_parameters,
+            self.n_events_generated_per_benchmark,
+            self.n_events_backgrounds,
         ) = load_madminer_settings(filename, include_nuisance_benchmarks=include_nuisance_parameters)
 
         self.n_parameters = len(self.parameters)
@@ -89,7 +91,14 @@ class DataAnalyzer(object):
         logger.info("Found %s observables", len(self.observables))
         for i, obs in enumerate(self.observables):
             logger.debug("  %2.2s %s", i, obs)
+
         logger.info("Found %s events", self.n_samples)
+        if self.n_events_generated_per_benchmark is not None:
+            for events, name in zip(self.n_events_generated_per_benchmark, six.iterkeys(self.benchmarks)):
+                if events > 0:
+                    logger.info("  %s generated from %s", events, name)
+        else:
+            logger.debug("  Did not find sample summary information")
 
         # Morphing
         self.morpher = None
@@ -114,9 +123,51 @@ class DataAnalyzer(object):
             logger.info("Did not find nuisance morphing setup")
             self.include_nuisance_parameters = False
 
-    def event_loader(self, start=0, end=None, batch_size=100000, include_nuisance_parameters=None):
+    def event_loader(
+        self, start=0, end=None, batch_size=100000, include_nuisance_parameters=None, generated_close_to=None
+    ):
+        """
+        Yields batches of events in the MadMiner file.
+
+        Parameters
+        ----------
+        start : int
+            First event index to load
+
+        end : int or None
+            Last event index to load
+
+        batch_size : int
+            Batch size
+
+        include_nuisance_parameters : bool
+            Whether nuisance parameter benchmarks are included in the returned data
+
+        generated_close_to : None or ndarray
+            If None, this function yields all events. Otherwise, it just yields just the events that were generated
+            at the closest benchmark point to a given parameter point.
+
+        Yields
+        ------
+        observations : ndarray
+            Event data
+
+        weights : ndarray
+            Event weights
+
+        """
         if include_nuisance_parameters is None:
             include_nuisance_parameters = self.include_nuisance_parameters
+
+        sampling_benchmark = self._find_closest_benchmark(generated_close_to)
+        logger.debug("Sampling benchmark closest to %s: %s", generated_close_to, sampling_benchmark)
+
+        if sampling_benchmark is None:
+            sampling_factors = self._calculate_sampling_factors()
+        else:
+            sampling_factors = np.ones(self.n_benchmarks_phys + 1)
+        logger.debug("Sampling factors: %s", sampling_factors)
+
         for data in madminer_event_loader(
             self.madminer_filename,
             start,
@@ -124,10 +175,44 @@ class DataAnalyzer(object):
             batch_size,
             include_nuisance_parameters,
             benchmark_is_nuisance=self.benchmark_is_nuisance,
+            sampling_benchmark=sampling_benchmark,
+            sampling_factors=sampling_factors,
         ):
             yield data
 
-    def weighted_events(self, theta=None, nu=None, start_event=None, end_event=None, derivative=False):
+    def _calculate_sampling_factors(self):
+        events = np.asarray(self.n_events_generated_per_benchmark, dtype=np.float)
+        logger.debug("Events per benchmark: %s", events)
+        factors = events / np.sum(events)
+        factors = np.hstack((factors, 1.0))  # background events
+        return factors
+
+    def _find_closest_benchmark(self, theta):
+        if theta is None:
+            return None
+
+        benchmarks = self._benchmark_array()
+        distances = [np.linalg.norm(benchmark - theta) for benchmark in benchmarks]
+
+        logger.debug("Distances from %s: %s", theta, distances)
+
+        # Don't use benchmarks where we don't actually have events
+        if self.n_events_generated_per_benchmark is not None:
+            logger.debug("n_events_generated_per_benchmark: %s", self.n_events_generated_per_benchmark)
+            distances = distances + 1.0e9 * (self.n_events_generated_per_benchmark == 0).astype(np.float)
+
+        closest_idx = np.argmin(distances)
+        return closest_idx
+
+    def _benchmark_array(self):
+        benchmarks_array = []
+        for benchmark in six.itervalues(self.benchmarks):
+            benchmarks_array.append(list(six.itervalues(benchmark)))
+        return np.asarray(benchmarks_array)
+
+    def weighted_events(
+        self, theta=None, nu=None, start_event=None, end_event=None, derivative=False, generated_close_to=None
+    ):
         """
         Returns all events together with the benchmark weights (if theta is None) or weights for a given theta.
 
@@ -165,7 +250,9 @@ class DataAnalyzer(object):
 
         """
 
-        x, weights_benchmarks = next(self.event_loader(batch_size=None, start=start_event, end=end_event))
+        x, weights_benchmarks = next(
+            self.event_loader(batch_size=None, start=start_event, end=end_event, generated_close_to=generated_close_to)
+        )
 
         if theta is None:
             return x, weights_benchmarks
@@ -193,7 +280,14 @@ class DataAnalyzer(object):
             return x, weights_theta
 
     def xsecs(
-        self, thetas=None, nus=None, events="all", test_split=0.2, include_nuisance_benchmarks=True, batch_size=100000
+        self,
+        thetas=None,
+        nus=None,
+        events="all",
+        test_split=0.2,
+        include_nuisance_benchmarks=True,
+        batch_size=100000,
+        generated_close_to=None,
     ):
         """
         Returns the total cross sections for benchmarks or parameter points.
@@ -260,18 +354,19 @@ class DataAnalyzer(object):
         # Loop over events
         xsecs = 0.0
         xsec_uncertainties = 0.0
+        n_events = 0
 
         for i_batch, (_, benchmark_weights) in enumerate(
-            madminer_event_loader(
-                self.madminer_filename,
+            self.event_loader(
                 start=start_event,
                 end=end_event,
                 include_nuisance_parameters=include_nuisance_benchmarks,
-                benchmark_is_nuisance=self.benchmark_is_nuisance,
                 batch_size=batch_size,
+                generated_close_to=generated_close_to,
             )
         ):
             n_batch, _ = benchmark_weights.shape
+            n_events += n_batch
             logger.debug("Batch %s with %s events", i_batch + 1, n_batch)
 
             # Benchmark xsecs
@@ -296,7 +391,12 @@ class DataAnalyzer(object):
                 xsecs += np.sum(weights, axis=1)
                 xsec_uncertainties += np.sum(weights_sq, axis=1)
 
-        xsec_uncertainties = xsec_uncertainties ** 0.5
+        if n_events == 0:
+            raise RuntimeError(
+                "Did not find events with test_split = %s and generated_close_to = %s", test_split, generated_close_to
+            )
+
+        xsec_uncertainties = np.maximum(xsec_uncertainties, 0.) ** 0.5
 
         # Correct for not using all events
         xsecs *= correction_factor
@@ -325,7 +425,16 @@ class DataAnalyzer(object):
                 return True
         return False
 
-    def xsec_gradients(self, thetas, nus=None, events="all", test_split=0.2, gradients="all", batch_size=100000):
+    def xsec_gradients(
+        self,
+        thetas,
+        nus=None,
+        events="all",
+        test_split=0.2,
+        gradients="all",
+        batch_size=100000,
+        generated_close_to=None,
+    ):
         """
         Returns the gradient of total cross sections with respect to parameters.
 
@@ -392,13 +501,12 @@ class DataAnalyzer(object):
         xsec_gradients = 0.0
 
         for i_batch, (_, benchmark_weights) in enumerate(
-            madminer_event_loader(
-                self.madminer_filename,
+            self.event_loader(
                 start=start_event,
                 end=end_event,
                 include_nuisance_parameters=include_nuisance_benchmarks,
-                benchmark_is_nuisance=self.benchmark_is_nuisance,
                 batch_size=batch_size,
+                generated_close_to=generated_close_to,
             )
         ):
             n_batch, _ = benchmark_weights.shape
