@@ -32,6 +32,7 @@ contact us at `johann.brehmer@nyu.edu`_.
    madminer.delphes
    madminer.fisherinformation
    madminer.lhe
+   madminer.limits
    madminer.ml
    madminer.morphing
    madminer.plotting
