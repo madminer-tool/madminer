@@ -92,8 +92,10 @@ def shuffle(*arrays):
             permutation = np.random.permutation(n_samples)
 
         if a.shape[0] != n_samples:
-            raise RuntimeError("Mismatching shapes when trying to simultaneously shuffle: {}".format(
-                [None if val is None else val.shape for val in arrays])
+            raise RuntimeError(
+                "Mismatching shapes when trying to simultaneously shuffle: {}".format(
+                    [None if val is None else val.shape for val in arrays]
+                )
             )
 
         shuffled_a = a[permutation]
