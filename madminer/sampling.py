@@ -1091,7 +1091,7 @@ class SampleAugmenter(DataAnalyzer):
         verbose="some",
         n_processes=1,
         update_patience=0.01,
-        force_update_patience=15*60.,
+        force_update_patience=15 * 60.0,
     ):
         """
         Low-level function for the extraction of information from the event samples. Do not use this function directly.
@@ -1192,7 +1192,7 @@ class SampleAugmenter(DataAnalyzer):
                 nuisance_score=nuisance_score,
                 n_stats_warnings=1000,
                 n_neg_weights_warnings=1000,
-                sample_only_from_closest_benchmark=sample_only_from_closest_benchmark
+                sample_only_from_closest_benchmark=sample_only_from_closest_benchmark,
             )
 
             logger.info("Starting sampling jobs in parallel, using %s processes", n_processes)
