@@ -4,6 +4,7 @@ import six
 import logging
 from collections import OrderedDict
 import numpy as np
+import time
 import torch
 import torch.optim as optim
 from torch.utils.data import TensorDataset, DataLoader
