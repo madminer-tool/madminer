@@ -262,6 +262,7 @@ def plot_distributions(
     n_toys=100,
     n_cols=3,
     quantiles_for_range=(0.025, 0.975),
+    sample_only_from_closest_benchmark=False,
 ):
     """
     Plots one-dimensional histograms of observables in a MadMiner file for a given set of benchmarks.
@@ -409,30 +410,54 @@ def plot_distributions(
         all_observables = list(sa.observables.keys())
         observable_labels = [all_observables[obs] for obs in observable_indices]
 
+    # Parse thetas
+    theta_values = [sa._get_theta_value(theta) for theta in parameter_points]
+    theta_matrices = [sa._get_theta_benchmark_matrix(theta) for theta in parameter_points]
+    logger.debug("Calculated %s theta matrices", len(theta_matrices))
+
     # Get event data (observations and weights)
-    x, weights_benchmarks = sa.weighted_events()
-    logger.debug("Loaded raw data with shapes %s, %s", x.shape, weights_benchmarks.shape)
+    all_x, all_weights_benchmarks = sa.weighted_events(generated_close_to=None)
+    logger.debug("Loaded raw data with shapes %s, %s", all_x.shape, all_weights_benchmarks.shape)
+
+    indiv_x, indiv_weights_benchmarks = [], []
+    if sample_only_from_closest_benchmark:
+        for theta in theta_values:
+            this_x, this_weights = sa.weighted_events(generated_close_to=theta)
+            indiv_x.append(this_x)
+            indiv_weights_benchmarks.append(this_weights)
 
     # Remove negative weights
-    sane_event_filter = np.all(weights_benchmarks >= 0.0, axis=1)
+    sane_event_filter = np.all(all_weights_benchmarks >= 0.0, axis=1)
 
-    n_events_before = weights_benchmarks.shape[0]
-    x = x[sane_event_filter]
-    weights_benchmarks = weights_benchmarks[sane_event_filter]
-    n_events_removed = n_events_before - weights_benchmarks.shape[0]
+    n_events_before = all_weights_benchmarks.shape[0]
+    all_x = all_x[sane_event_filter]
+    all_weights_benchmarks = all_weights_benchmarks[sane_event_filter]
+    n_events_removed = n_events_before - all_weights_benchmarks.shape[0]
 
     if int(np.sum(sane_event_filter, dtype=np.int)) < len(sane_event_filter):
         logger.warning("Removed %s / %s events with negative weights", n_events_removed, n_events_before)
 
+    for i, (x, weights) in enumerate(zip(indiv_x, indiv_weights_benchmarks)):
+        sane_event_filter = np.all(weights >= 0.0, axis=1)
+        indiv_x[i] = x[sane_event_filter]
+        indiv_weights_benchmarks[i] = weights[sane_event_filter]
+
     # Shuffle events
-    x, weights_benchmarks = shuffle(x, weights_benchmarks)
+    all_x, all_weights_benchmarks = shuffle(all_x, all_weights_benchmarks)
+
+    for i, (x, weights) in enumerate(zip(indiv_x, indiv_weights_benchmarks)):
+        indiv_x[i], indiv_weights_benchmarks[i] = shuffle(x, weights)
 
     # Only analyze n_events
-    if n_events is not None and n_events < x.shape[0]:
-        logger.debug("Only analyzing first %s / %s events", n_events, x.shape[0])
+    if n_events is not None and n_events < all_x.shape[0]:
+        logger.debug("Only analyzing first %s / %s events", n_events, all_x.shape[0])
 
-        x = x[:n_events]
-        weights_benchmarks = weights_benchmarks[:n_events]
+        all_x = all_x[:n_events]
+        all_weights_benchmarks = all_weights_benchmarks[:n_events]
+
+        for i, (x, weights) in enumerate(zip(indiv_x, indiv_weights_benchmarks)):
+            indiv_x[i] = x[:n_events]
+            indiv_weights_benchmarks[i] = weights[:n_events]
 
     if uncertainties != "nuisance":
         n_toys = 0
@@ -440,9 +465,6 @@ def plot_distributions(
     n_nuisance_toys_drawn = 0
     if draw_nuisance_toys is not None:
         n_nuisance_toys_drawn = draw_nuisance_toys
-
-    theta_matrices = [sa._get_theta_benchmark_matrix(theta) for theta in parameter_points]
-    logger.debug("Calculated %s theta matrices", len(theta_matrices))
 
     # Nuisance parameters
     nuisance_toy_factors = []
@@ -468,7 +490,7 @@ def plot_distributions(
 
         nuisance_toy_factors = np.array(
             [
-                nuisance_morpher.calculate_nuisance_factors(nuisance_toy, weights_benchmarks)
+                nuisance_morpher.calculate_nuisance_factors(nuisance_toy, all_weights_benchmarks)
                 for nuisance_toy in nuisance_toys
             ]
         )  # Shape (n_toys, n_events)
@@ -488,8 +510,8 @@ def plot_distributions(
         # Figure out x range
         xmins, xmaxs = [], []
         for theta_matrix in theta_matrices:
-            x_small = x[:n_events_for_range]
-            weights_small = mdot(theta_matrix, weights_benchmarks[:n_events_for_range])
+            x_small = all_x[:n_events_for_range]
+            weights_small = mdot(theta_matrix, all_weights_benchmarks[:n_events_for_range])
 
             xmin = weighted_quantile(x_small[:, i_obs], quantiles_for_range[0], weights_small)
             xmax = weighted_quantile(x_small[:, i_obs], quantiles_for_range[1], weights_small)
@@ -497,8 +519,8 @@ def plot_distributions(
             xmin -= xwidth * 0.1
             xmax += xwidth * 0.1
 
-            xmin = max(xmin, np.min(x[:, i_obs]))
-            xmax = min(xmax, np.max(x[:, i_obs]))
+            xmin = max(xmin, np.min(all_x[:, i_obs]))
+            xmax = min(xmax, np.max(all_x[:, i_obs]))
 
             xmins.append(xmin)
             xmaxs.append(xmax)
@@ -520,18 +542,28 @@ def plot_distributions(
         histos_toys = []
 
         for i_theta, theta_matrix in enumerate(theta_matrices):
-            theta_weights = mdot(theta_matrix, weights_benchmarks)  # Shape (n_events,)
+            theta_weights = mdot(theta_matrix, all_weights_benchmarks)  # Shape (n_events,)
 
-            histo, bin_edges = np.histogram(
-                x[:, i_obs], bins=n_bins, range=x_range, weights=theta_weights, density=normalize
-            )
+            if sample_only_from_closest_benchmark:
+                indiv_theta_weights = mdot(theta_matrix, indiv_weights_benchmarks[i_theta])  # Shape (n_events,)
+                histo, bin_edges = np.histogram(
+                    indiv_x[i_theta][:, i_obs],
+                    bins=n_bins,
+                    range=x_range,
+                    weights=indiv_theta_weights,
+                    density=normalize,
+                )
+            else:
+                histo, bin_edges = np.histogram(
+                    all_x[:, i_obs], bins=n_bins, range=x_range, weights=theta_weights, density=normalize
+                )
             histos.append(histo)
 
             if uncertainties == "nuisance":
                 histos_toys_this_theta = []
                 for i_toy, nuisance_toy_factors_this_toy in enumerate(nuisance_toy_factors):
                     toy_histo, _ = np.histogram(
-                        x[:, i_obs],
+                        all_x[:, i_obs],
                         bins=n_bins,
                         range=x_range,
                         weights=theta_weights * nuisance_toy_factors_this_toy,
