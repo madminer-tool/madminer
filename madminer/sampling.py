@@ -86,6 +86,7 @@ class SampleAugmenter(DataAnalyzer):
         test_split=0.2,
         switch_train_test_events=False,
         n_processes=1,
+        n_eff_forced=None,
     ):
         """
         Extracts plain training samples `x ~ p(x|theta)` without any augmented data. This can be use for standard
@@ -128,6 +129,12 @@ class SampleAugmenter(DataAnalyzer):
             n_workers sets the number of jobs running in parallel, and None will use the number of CPUs. Default value:
             1.
 
+        n_eff_forced : float, optional
+            If not None, MadMiner will require the relative weights of the events to be smaller than 1/n_eff_forced
+            and ignore other events. This can help to reduce statistical effects caused by a small number of events
+            with very large weights obtained by the morphing procedure. Default value: None
+
+
         Returns
         -------
         x : ndarray
@@ -161,6 +168,7 @@ class SampleAugmenter(DataAnalyzer):
             test_split=test_split,
             n_processes=n_processes,
             sample_only_from_closest_benchmark=sample_only_from_closest_benchmark,
+            n_eff_forced=n_eff_forced,
         )
 
         # Save data
@@ -183,6 +191,7 @@ class SampleAugmenter(DataAnalyzer):
         switch_train_test_events=False,
         n_processes=1,
         log_message=True,
+        n_eff_forced=None,
     ):
         """
         Extracts training samples x ~ p(x|theta) as well as the joint score t(x, z|theta). This can be used for
@@ -230,6 +239,11 @@ class SampleAugmenter(DataAnalyzer):
 
         log_message : bool, optional
             If True, logging output. This option is only designed for internal use.
+
+        n_eff_forced : float, optional
+            If not None, MadMiner will require the relative weights of the events to be smaller than 1/n_eff_forced
+            and ignore other events. This can help to reduce statistical effects caused by a small number of events
+            with very large weights obtained by the morphing procedure. Default value: None
 
         Returns
         -------
@@ -286,6 +300,7 @@ class SampleAugmenter(DataAnalyzer):
             test_split=test_split,
             n_processes=n_processes,
             sample_only_from_closest_benchmark=sample_only_from_closest_benchmark,
+            n_eff_forced=n_eff_forced,
         )
         t_xz = augmented_data[0]
 
@@ -309,6 +324,7 @@ class SampleAugmenter(DataAnalyzer):
         test_split=0.2,
         switch_train_test_events=False,
         n_processes=1,
+        n_eff_forced=None,
     ):
         """
         Extracts training samples x ~ p(x|theta) as well as the joint score t(x, z|theta), where theta is sampled
@@ -354,6 +370,11 @@ class SampleAugmenter(DataAnalyzer):
             n_workers sets the number of jobs running in parallel, and None will use the number of CPUs. Default value:
             1.
 
+        n_eff_forced : float, optional
+            If not None, MadMiner will require the relative weights of the events to be smaller than 1/n_eff_forced
+            and ignore other events. This can help to reduce statistical effects caused by a small number of events
+            with very large weights obtained by the morphing procedure. Default value: None
+
         Returns
         -------
         x : ndarray
@@ -392,6 +413,7 @@ class SampleAugmenter(DataAnalyzer):
             switch_train_test_events=switch_train_test_events,
             n_processes=n_processes,
             log_message=False,
+            n_eff_forced=n_eff_forced,
         )
 
     def sample_train_ratio(
@@ -409,6 +431,7 @@ class SampleAugmenter(DataAnalyzer):
         switch_train_test_events=False,
         n_processes=1,
         return_individual_n_effective=False,
+        n_eff_forced=None,
     ):
         """
         Extracts training samples `x ~ p(x|theta0)` and `x ~ p(x|theta1)` together with the class label `y`, the joint
@@ -464,6 +487,11 @@ class SampleAugmenter(DataAnalyzer):
             If None or larger than 1, MadMiner will use multiprocessing to parallelize the sampling. In this case,
             n_workers sets the number of jobs running in parallel, and None will use the number of CPUs. Default value:
             1.
+
+        n_eff_forced : float, optional
+            If not None, MadMiner will require the relative weights of the events to be smaller than 1/n_eff_forced
+            and ignore other events. This can help to reduce statistical effects caused by a small number of events
+            with very large weights obtained by the morphing procedure. Default value: None
 
         Returns
         -------
@@ -541,6 +569,7 @@ class SampleAugmenter(DataAnalyzer):
                 test_split=test_split,
                 n_processes=n_processes,
                 sample_only_from_closest_benchmark=sample_only_from_closest_benchmark,
+                n_eff_forced=n_eff_forced,
             )
             t_xz0 = None
         else:
@@ -554,6 +583,7 @@ class SampleAugmenter(DataAnalyzer):
                 test_split=test_split,
                 n_processes=n_processes,
                 sample_only_from_closest_benchmark=sample_only_from_closest_benchmark,
+                n_eff_forced=n_eff_forced,
             )
 
         if return_individual_n_effective:
@@ -580,6 +610,7 @@ class SampleAugmenter(DataAnalyzer):
                 test_split=test_split,
                 n_processes=n_processes,
                 sample_only_from_closest_benchmark=sample_only_from_closest_benchmark,
+                n_eff_forced=n_eff_forced,
             )
             t_xz1 = None
         else:
@@ -593,6 +624,7 @@ class SampleAugmenter(DataAnalyzer):
                 test_split=test_split,
                 n_processes=n_processes,
                 sample_only_from_closest_benchmark=sample_only_from_closest_benchmark,
+                n_eff_forced=n_eff_forced,
             )
 
         if return_individual_n_effective:
@@ -646,6 +678,7 @@ class SampleAugmenter(DataAnalyzer):
         test_split=0.2,
         switch_train_test_events=False,
         n_processes=1,
+        n_eff_forced=None,
     ):
         """
         Extracts training samples `x ~ p(x|theta0)` and `x ~ p(x|theta1)` together with the class label `y`, the joint
@@ -714,6 +747,11 @@ class SampleAugmenter(DataAnalyzer):
             If None or larger than 1, MadMiner will use multiprocessing to parallelize the sampling. In this case,
             n_workers sets the number of jobs running in parallel, and None will use the number of CPUs. Default value:
             1.
+
+        n_eff_forced : float, optional
+            If not None, MadMiner will require the relative weights of the events to be smaller than 1/n_eff_forced
+            and ignore other events. This can help to reduce statistical effects caused by a small number of events
+            with very large weights obtained by the morphing procedure. Default value: None
 
         Returns
         -------
@@ -813,6 +851,7 @@ class SampleAugmenter(DataAnalyzer):
             test_split=test_split,
             n_processes=n_processes,
             sample_only_from_closest_benchmark=sample_only_from_closest_benchmark,
+            n_eff_forced=n_eff_forced,
         )
         n_actual_samples = x_0.shape[0]
 
@@ -876,6 +915,7 @@ class SampleAugmenter(DataAnalyzer):
             test_split=test_split,
             n_processes=n_processes,
             sample_only_from_closest_benchmark=sample_only_from_closest_benchmark,
+            n_eff_forced=n_eff_forced,
         )
         n_actual_samples += x_1.shape[0]
 
@@ -948,6 +988,7 @@ class SampleAugmenter(DataAnalyzer):
         test_split=0.2,
         switch_train_test_events=False,
         n_processes=1,
+        n_eff_forced=None,
     ):
         """
         Extracts evaluation samples `x ~ p(x|theta)` without any augmented data.
@@ -1092,6 +1133,7 @@ class SampleAugmenter(DataAnalyzer):
         n_processes=1,
         update_patience=0.01,
         force_update_patience=15 * 60.0,
+        n_eff_forced=None,
     ):
         """
         Low-level function for the extraction of information from the event samples. Do not use this function directly.
@@ -1142,6 +1184,11 @@ class SampleAugmenter(DataAnalyzer):
             Wait time (in s) between log updates (independent of actual progress) if n_workers > 1 (or None). Default
             value: 15 * 60. (15 minutes).
 
+        n_eff_forced : float, optional
+            If not None, MadMiner will require the relative weights of the events to be smaller than 1/n_eff_forced
+            and ignore other events. This can help to reduce statistical effects caused by a small number of events
+            with very large weights obtained by the morphing procedure. Default value: None
+
         Returns
         -------
         x :  ndarray
@@ -1175,6 +1222,7 @@ class SampleAugmenter(DataAnalyzer):
 
         n_stats_warnings = 0
         n_neg_weights_warnings = 0
+        n_too_large_weights_warnings=0
 
         # Multiprocessing approach
         if n_processes is None or n_processes > 1:
@@ -1193,6 +1241,7 @@ class SampleAugmenter(DataAnalyzer):
                 n_stats_warnings=1000,
                 n_neg_weights_warnings=1000,
                 sample_only_from_closest_benchmark=sample_only_from_closest_benchmark,
+                n_eff_forced=n_eff_forced,
             )
 
             logger.info("Starting sampling jobs in parallel, using %s processes", n_processes)
@@ -1217,7 +1266,7 @@ class SampleAugmenter(DataAnalyzer):
 
             logger.info("All jobs done!")
 
-            for x, thetas, nus, augmented_data, eff_n_samples, _, _ in r.get():
+            for x, thetas, nus, augmented_data, eff_n_samples, _, _, _ in r.get():
                 all_x.append(x)
                 for i, values in enumerate(augmented_data):
                     all_augmented_data[i].append(values)
@@ -1253,7 +1302,7 @@ class SampleAugmenter(DataAnalyzer):
                 else:
                     logger.debug("Sampling from parameter point %s / %s", i_set + 1, n_sets)
 
-                x, thetas, nus, augmented_data, eff_n_samples, n_stats_warnings, n_neg_weights_warnings = self._sample_set(
+                x, thetas, nus, augmented_data, eff_n_samples, n_stats_warnings, n_neg_weights_warnings, n_too_large_weights_warnings = self._sample_set(
                     set_,
                     n_samples=n_samples_per_set,
                     augmented_data_definitions=augmented_data_definitions,
@@ -1263,8 +1312,10 @@ class SampleAugmenter(DataAnalyzer):
                     test_split=test_split,
                     nuisance_score=nuisance_score,
                     n_stats_warnings=n_stats_warnings,
+                    n_too_large_weights_warnings=n_too_large_weights_warnings,
                     n_neg_weights_warnings=n_neg_weights_warnings,
                     sample_only_from_closest_benchmark=sample_only_from_closest_benchmark,
+                    n_eff_forced=n_eff_forced,
                 )
 
                 all_x.append(x)
@@ -1325,7 +1376,10 @@ class SampleAugmenter(DataAnalyzer):
         test_split=0.2,
         n_stats_warnings=0,
         n_neg_weights_warnings=0,
+        n_too_large_weights_warnings=0,
+        n_eff_forced=None,
     ):
+
         # Parse thetas and nus
         thetas, nus = [], []
         theta_values, nu_values = [], []
@@ -1452,6 +1506,23 @@ class SampleAugmenter(DataAnalyzer):
                             logger.warning("Skipping warnings about negative weights in the future...")
                     p_sampling[p_sampling < 0.0] = 0.0
 
+                #####
+                #Remove Events with too large weights
+                if n_eff_forced is not None:
+                    n_too_large_weights = np.sum(p_sampling > 1./n_eff_forced)
+                    if n_too_large_weights > 0:
+                        n_too_large_weights_warnings += 1
+                        if n_too_large_weights_warnings <= 1:
+                            logger.warning(
+                                "For this value of theta, %s / %s events have too large weight and will be ignored",
+                                n_too_large_weights,
+                                p_sampling.size,
+                            )
+                            if n_too_large_weights_warnings == 1:
+                                logger.warning("Skipping warnings about too large weights in the future...")
+                        p_sampling[p_sampling > 1./n_eff_forced] = 0.0
+                #####
+
                 # Remember largest weights (to calculate effective number of samples)
                 largest_event_probability = max(largest_event_probability, np.max(p_sampling))
 
@@ -1495,7 +1566,7 @@ class SampleAugmenter(DataAnalyzer):
         n_eff_samples = 1.0 / max(1.0e-12, largest_event_probability)
         n_eff_samples = [n_eff_samples for _ in range(n_samples)]
 
-        return x, theta_values, nu_values, augmented_data, n_eff_samples, n_stats_warnings, n_neg_weights_warnings
+        return x, theta_values, nu_values, augmented_data, n_eff_samples, n_stats_warnings, n_neg_weights_warnings, n_too_large_weights_warnings
 
     @staticmethod
     def _calculate_augmented_data(
