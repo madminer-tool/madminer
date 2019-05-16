@@ -1467,13 +1467,13 @@ class SampleAugmenter(DataAnalyzer):
                     n_too_large_weights = np.sum(p_sampling > 1./n_eff_forced)
                     if n_too_large_weights > 0:
                         n_too_large_weights_warnings += 1
-                        if n_too_large_weights_warnings <= 3:
+                        if n_too_large_weights_warnings <= 1:
                             logger.warning(
                                 "For this value of theta, %s / %s events have too large weight and will be ignored",
                                 n_too_large_weights,
                                 p_sampling.size,
                             )
-                            if n_too_large_weights_warnings == 3:
+                            if n_too_large_weights_warnings == 1:
                                 logger.warning("Skipping warnings about too large weights in the future...")
                         p_sampling[p_sampling > 1./n_eff_forced] = 0.0
                 #####
