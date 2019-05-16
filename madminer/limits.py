@@ -45,6 +45,7 @@ class AsymptoticLimits(DataAnalyzer):
         resolutions=25,
         luminosity=300000.0,
         n_toys_per_theta=10000,
+        returns="pval",
     ):
         theta_grid, return_values, i_ml = self._analyse(
             len(x_observed),
@@ -59,7 +60,7 @@ class AsymptoticLimits(DataAnalyzer):
             None,
             luminosity,
             n_toys_per_theta,
-            returns="pval",
+            returns=returns,
         )
         return theta_grid, return_values, i_ml
 
@@ -75,6 +76,7 @@ class AsymptoticLimits(DataAnalyzer):
         resolutions=25,
         luminosity=300000.0,
         n_toys_per_theta=10000,
+        returns=returns,
     ):
         x_asimov, x_weights = self._asimov_data(theta_true)
         n_observed = luminosity * self._calculate_xsecs([theta_true])[0]
