@@ -367,7 +367,6 @@ class DataAnalyzer(object):
         ):
             n_batch, _ = benchmark_weights.shape
             n_events += n_batch
-            logger.debug("Batch %s with %s events", i_batch + 1, n_batch)
 
             # Benchmark xsecs
             if thetas is None:
