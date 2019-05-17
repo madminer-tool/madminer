@@ -379,13 +379,11 @@ class DataAnalyzer(object):
                 # Weights at nominal nuisance params (nu=0)
                 weights_nom = mdot(theta_matrices, benchmark_weights)  # Shape (n_thetas, n_batch)
                 weights_sq_nom = mdot(theta_matrices, benchmark_weights * benchmark_weights)  # same
-                logger.debug("Nominal weights: %s", weights_nom)
 
                 # Effect of nuisance parameters
                 nuisance_factors = self._calculate_nuisance_factors(nus, benchmark_weights)
                 weights = nuisance_factors * weights_nom
                 weights_sq = nuisance_factors * weights_sq_nom
-                logger.debug("Nuisance factors: %s", nuisance_factors)
 
                 # Sum up
                 xsecs += np.sum(weights, axis=1)

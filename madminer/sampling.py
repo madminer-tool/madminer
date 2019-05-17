@@ -1601,7 +1601,7 @@ class SampleAugmenter(DataAnalyzer):
         elif theta_type_in == "random_morphing_points":
             n_benchmarks, priors = theta_value_in
             if n_benchmarks is None or n_benchmarks <= 0 or (n_samples is not None and n_benchmarks > n_samples):
-                n_benchmarks = n_samples
+                n_benchmarks = max(n_samples, 1)
             if n_samples is None:
                 n_samples_per_theta = 1
             else:
@@ -1633,8 +1633,10 @@ class SampleAugmenter(DataAnalyzer):
         else:
             nu_type_in = nu[0]
             nu_value_in = nu[1]
+        if n_thetas < 1:
+            n_thetas = 1
 
-        if nu_type_in == "nominal":
+        if nu_type_in == "nominal" or self.n_nuisance_parameters == 0:
             nu_out = [None for _ in range(n_thetas)]
 
         elif nu_type_in == "iid":
@@ -1681,6 +1683,10 @@ class SampleAugmenter(DataAnalyzer):
         for (theta, nu) in zip(thetas, nus):
             n_theta_sets_before = len(theta)
             n_nu_sets_before = len(nu)
+
+            if n_theta_sets_before <= 0 or n_nu_sets_before <= 0:
+                raise RuntimeError(("Inconsistent number of sets in _build_sets: thetas = {}, nus = {}, theta = {}, "
+                                   "nu = {}").format(thetas, nus, theta, nu))
 
             for i_set in range(n_sets):
                 sets[i_set].append((theta[i_set % n_theta_sets_before], nu[i_set % n_nu_sets_before]))
