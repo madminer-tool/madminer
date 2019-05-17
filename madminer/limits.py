@@ -187,11 +187,15 @@ class AsymptoticLimits(DataAnalyzer):
             assert observables is not None
             x_indices = self._find_x_indices(observables)
 
+            logging.debug("Preparing observables %s as summary statistic function", x_indices)
+
             def summary_function(x):
                 return x[:, x_indices]
 
         elif mode == "sally":
             assert isinstance(model, ScoreEstimator)
+
+            logging.debug("Preparing score estimator as summary statistic function")
 
             def summary_function(x):
                 return model.evaluate_score(x)
@@ -261,10 +265,15 @@ class AsymptoticLimits(DataAnalyzer):
         return theta_grid
 
     def _make_histo(self, summary_function, x_bins, theta_grid, theta_bins, n_toys_per_theta=1000):
-        logger.info("Building histogram with %s bins per parameter and %s bins per observable")
+        logger.info("Building histogram with %s bins per parameter and %s bins per observable", x_bins, theta_bins)
         histo = Histo(theta_bins, x_bins)
+        logging.debug("Generating histo data")
         theta, x = self._make_histo_data(theta_grid, n_toys_per_theta * len(theta_grid))
+        logging.debug("Histo data has theta dimensions %s and x dimensions %s", theta.shape, x.shape)
+        logging.debug("Calculating summary statistics")
         summary_stats = summary_function(x)
+        logging.debug("Summary stats have dimensions %s", summary_stats.shape)
+        logging.debug("Filling histogram with summary statistics")
         histo.fit(theta, summary_stats, fill_empty_bins=True)
         return histo
 
