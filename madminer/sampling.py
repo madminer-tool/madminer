@@ -1203,6 +1203,11 @@ class SampleAugmenter(DataAnalyzer):
         """
 
         logger.debug("Starting sample extraction")
+        
+        if n_eff_forced is not None:
+            logger.warning("Trimmed sampling is turned on (n_eff_forced is not None). This option is potentially "
+                           "since requiring large values of n_eff_forced can significantly distort distributions."
+                           "Check if manually that the sampled distributions are still correct.")
 
         # Check inputs
         if augmented_data_definitions is None:
