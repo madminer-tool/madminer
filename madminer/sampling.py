@@ -1513,8 +1513,7 @@ class SampleAugmenter(DataAnalyzer):
                             logger.warning("Skipping warnings about negative weights in the future...")
                     p_sampling[p_sampling < 0.0] = 0.0
 
-                #####
-                # Remove Events with too large weights
+                # Remove events with too large weights
                 if n_eff_forced is not None:
                     n_too_large_weights = np.sum(p_sampling > 1.0 / n_eff_forced)
                     if n_too_large_weights > 0:
@@ -1528,7 +1527,6 @@ class SampleAugmenter(DataAnalyzer):
                             if n_too_large_weights_warnings == 1:
                                 logger.warning("Skipping warnings about too large weights in the future...")
                         p_sampling[p_sampling > 1.0 / n_eff_forced] = 0.0
-                #####
 
                 # Remember largest weights (to calculate effective number of samples)
                 largest_event_probability = max(largest_event_probability, np.max(p_sampling))
