@@ -46,6 +46,7 @@ class AsymptoticLimits(DataAnalyzer):
         luminosity=300000.0,
         n_toys_per_theta=10000,
         returns="pval",
+        dof=None,
     ):
         theta_grid, return_values, i_ml = self._analyse(
             len(x_observed),
@@ -61,6 +62,7 @@ class AsymptoticLimits(DataAnalyzer):
             luminosity,
             n_toys_per_theta,
             returns=returns,
+            dof=dof,
         )
         return theta_grid, return_values, i_ml
 
@@ -77,6 +79,7 @@ class AsymptoticLimits(DataAnalyzer):
         luminosity=300000.0,
         n_toys_per_theta=10000,
         returns="pval",
+        dof=None,
     ):
         x_asimov, x_weights = self._asimov_data(theta_true)
         n_observed = luminosity * self._calculate_xsecs([theta_true])[0]
@@ -94,12 +97,15 @@ class AsymptoticLimits(DataAnalyzer):
             luminosity,
             n_toys_per_theta,
             returns=returns,
+            dof=dof,
         )
         return theta_grid, return_values, i_ml
 
-    def asymptotic_p_value(self, log_likelihood_ratio):
+    def asymptotic_p_value(self, log_likelihood_ratio, dof=None):
+        if dof is None:
+            dof = self.n_parameters
         q = -2.0 * log_likelihood_ratio
-        p_value = chi2.sf(x=q, df=self.n_parameters)
+        p_value = chi2.sf(x=q, df=dof)
         return p_value
 
     def _analyse(
@@ -117,8 +123,11 @@ class AsymptoticLimits(DataAnalyzer):
         luminosity=300000.0,
         n_toys_per_theta=10000,
         returns="pval",
+        dof=None,
     ):
         logger.debug("Calculating p-values for %s expected events", n_events)
+
+        assert returns in ["pval", "llr"], "returns has to be either 'pval' or 'llr'!"
 
         # Observation weights
         if obs_weights is None:
@@ -183,10 +192,10 @@ class AsymptoticLimits(DataAnalyzer):
         logger.debug("Combined -2 log r: %s", -2.0 * log_r)
         log_r, i_ml = self._subtract_ml(log_r)
         logger.debug("Min-subtracted -2 log r: %s", -2.0 * log_r)
+        p_values = self.asymptotic_p_value(log_r, dof=dof)
+
         if returns == "llr":
             return theta_grid, log_r, i_ml
-        
-        p_values = self.asymptotic_p_value(log_r)
         return theta_grid, p_values, i_ml
 
     def _make_summary_statistic_function(self, mode, model=None, observables=None):
@@ -206,7 +215,7 @@ class AsymptoticLimits(DataAnalyzer):
 
             def summary_function(x):
                 score = model.evaluate_score(x)
-                score = score[:, :self.n_parameters]
+                score = score[:, : self.n_parameters]
                 return score
 
         else:

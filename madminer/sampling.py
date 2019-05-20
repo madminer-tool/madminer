@@ -1203,11 +1203,13 @@ class SampleAugmenter(DataAnalyzer):
         """
 
         logger.debug("Starting sample extraction")
-        
+
         if n_eff_forced is not None:
-            logger.warning("Trimmed sampling is turned on (n_eff_forced is not None). This option is potentially "
-                           "since requiring large values of n_eff_forced can significantly distort distributions."
-                           "Check if manually that the sampled distributions are still correct.")
+            logger.warning(
+                "Trimmed sampling is turned on (n_eff_forced is not None). This option is potentially "
+                "since requiring large values of n_eff_forced can significantly distort distributions."
+                "Check if manually that the sampled distributions are still correct."
+            )
 
         # Check inputs
         if augmented_data_definitions is None:
@@ -1227,7 +1229,7 @@ class SampleAugmenter(DataAnalyzer):
 
         n_stats_warnings = 0
         n_neg_weights_warnings = 0
-        n_too_large_weights_warnings=0
+        n_too_large_weights_warnings = 0
 
         # Multiprocessing approach
         if n_processes is None or n_processes > 1:
@@ -1511,10 +1513,9 @@ class SampleAugmenter(DataAnalyzer):
                             logger.warning("Skipping warnings about negative weights in the future...")
                     p_sampling[p_sampling < 0.0] = 0.0
 
-                #####
-                #Remove Events with too large weights
+                # Remove events with too large weights
                 if n_eff_forced is not None:
-                    n_too_large_weights = np.sum(p_sampling > 1./n_eff_forced)
+                    n_too_large_weights = np.sum(p_sampling > 1.0 / n_eff_forced)
                     if n_too_large_weights > 0:
                         n_too_large_weights_warnings += 1
                         if n_too_large_weights_warnings <= 1:
@@ -1525,8 +1526,7 @@ class SampleAugmenter(DataAnalyzer):
                             )
                             if n_too_large_weights_warnings == 1:
                                 logger.warning("Skipping warnings about too large weights in the future...")
-                        p_sampling[p_sampling > 1./n_eff_forced] = 0.0
-                #####
+                        p_sampling[p_sampling > 1.0 / n_eff_forced] = 0.0
 
                 # Remember largest weights (to calculate effective number of samples)
                 largest_event_probability = max(largest_event_probability, np.max(p_sampling))
@@ -1571,7 +1571,16 @@ class SampleAugmenter(DataAnalyzer):
         n_eff_samples = 1.0 / max(1.0e-12, largest_event_probability)
         n_eff_samples = [n_eff_samples for _ in range(n_samples)]
 
-        return x, theta_values, nu_values, augmented_data, n_eff_samples, n_stats_warnings, n_neg_weights_warnings, n_too_large_weights_warnings
+        return (
+            x,
+            theta_values,
+            nu_values,
+            augmented_data,
+            n_eff_samples,
+            n_stats_warnings,
+            n_neg_weights_warnings,
+            n_too_large_weights_warnings,
+        )
 
     @staticmethod
     def _calculate_augmented_data(
@@ -1761,8 +1770,11 @@ class SampleAugmenter(DataAnalyzer):
             n_nu_sets_before = len(nu)
 
             if n_theta_sets_before <= 0 or n_nu_sets_before <= 0:
-                raise RuntimeError(("Inconsistent number of sets in _build_sets: thetas = {}, nus = {}, theta = {}, "
-                                   "nu = {}").format(thetas, nus, theta, nu))
+                raise RuntimeError(
+                    (
+                        "Inconsistent number of sets in _build_sets: thetas = {}, nus = {}, theta = {}, " "nu = {}"
+                    ).format(thetas, nus, theta, nu)
+                )
 
             for i_set in range(n_sets):
                 sets[i_set].append((theta[i_set % n_theta_sets_before], nu[i_set % n_nu_sets_before]))
