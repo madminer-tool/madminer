@@ -185,7 +185,7 @@ class AsymptoticLimits(DataAnalyzer):
         logger.debug("Min-subtracted -2 log r: %s", -2.0 * log_r)
         if returns == "llr":
             return theta_grid, log_r, i_ml
-        
+
         p_values = self.asymptotic_p_value(log_r)
         return theta_grid, p_values, i_ml
 
@@ -206,7 +206,7 @@ class AsymptoticLimits(DataAnalyzer):
 
             def summary_function(x):
                 score = model.evaluate_score(x)
-                score = score[:, :self.n_parameters]
+                score = score[:, : self.n_parameters]
                 return score
 
         else:
