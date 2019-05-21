@@ -194,10 +194,10 @@ class Trainer(object):
         dataset = TensorDataset(*tensor_data)
         return data_labels, dataset
 
-    def make_dataloaders(self, dataset, validation_split, batch_size):
+    def make_dataloaders(self, dataset, validation_split, batch_size, n_workers=32):
         if validation_split is None or validation_split <= 0.0:
             train_loader = DataLoader(
-                dataset, batch_size=batch_size, shuffle=True, pin_memory=self.run_on_gpu, num_workers=8
+                dataset, batch_size=batch_size, shuffle=True, pin_memory=self.run_on_gpu, num_workers=n_workers
             )
             val_loader = None
 
@@ -214,10 +214,10 @@ class Trainer(object):
             val_sampler = SubsetRandomSampler(valid_idx)
 
             train_loader = DataLoader(
-                dataset, sampler=train_sampler, batch_size=batch_size, pin_memory=self.run_on_gpu, num_workers=8
+                dataset, sampler=train_sampler, batch_size=batch_size, pin_memory=self.run_on_gpu, num_workers=n_workers
             )
             val_loader = DataLoader(
-                dataset, sampler=val_sampler, batch_size=batch_size, pin_memory=self.run_on_gpu, num_workers=8
+                dataset, sampler=val_sampler, batch_size=batch_size, pin_memory=self.run_on_gpu, num_workers=n_workers
             )
 
         return train_loader, val_loader
