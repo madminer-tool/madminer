@@ -310,9 +310,10 @@ class LHEReader:
             spaces or special characters.
 
         fn : function
-            A function with signature `observable(particles)` where the input arguments are lists of
-            MadMinerParticle instances (ordered in the same way as in the LHE file) and a float is returned. The
-            function should raise a `RuntimeError` to signal that it is not defined.
+            A function with signature `observable(particles, leptons, photons, jets, met)` where all arguments are lists of
+            MadMinerParticle instances and a float is returned. `particles` are the truth-level particles, ordered in the
+            same way as in the LHE file, and no smearing is applied. `leptons`, `photons`, `jets`, and `met` have
+            smearing applied. The function should raise a `RuntimeError` to signal that it is not defined.
 
         required : bool, optional
             Whether the observable is required. If True, an event will only be retained if this observable is
@@ -487,38 +488,6 @@ class LHEReader:
         self.efficiencies.append(definition)
         self.efficiencies_default_pass.append(value_if_not_parsed)
 
-    def add_efficiency(self, definition, value_if_not_parsed=1.0):
-
-        """
-            Adds an efficiency as a string that can be parsed by Python's `eval()` function and returns a bool.
-
-            Parameters
-            ----------
-            definition : str
-            An expression that can be parsed by Python's `eval()` function and returns a floating number which reweights
-            the event weights. In the definition, all visible particles can be used: `e`, `mu`, `j`, `a`, and `l` provide
-            lists of electrons, muons, jets, photons, and leptons (electrons and muons combined), in each case sorted
-            by descending transverse momentum. `met` provides a missing ET object. `visible` and `all` provide access to
-            the sum of all visible particles and the sum of all visible particles plus MET, respectively. All these
-            objects are instances of `MadMinerParticle`, which inherits from scikit-hep's
-            [LorentzVector](http://scikit-hep.org/api/math.html#vector-classes). See the link for a
-            documentation of their properties. In addition, `MadMinerParticle` have  properties `charge` and `pdg_id`,
-            which return the charge in units of elementary charges (i.e. an electron has `e[0].charge = -1.`), and the
-            PDG particle ID.
-
-            value_if_not_parsed : float, optional
-            Value if te efficiency function cannot be parsed. Default value: 1.
-
-            Returns
-            -------
-            None
-
-            """
-        logger.debug("Adding efficiency %s", definition)
-
-        self.efficiencies.append(definition)
-        self.efficiencies_default_pass.append(value_if_not_parsed)
-
     def reset_observables(self):
         """ Resets all observables. """
 
@@ -535,14 +504,6 @@ class LHEReader:
 
         self.cuts = []
         self.cuts_default_pass = []
-
-    def reset_efficiencies(self):
-        """ Resets all efficiencies. """
-
-        logger.debug("Resetting efficiencies")
-
-        self.efficiencies = []
-        self.efficiencies_default_pass = []
 
     def reset_efficiencies(self):
         """ Resets all efficiencies. """
