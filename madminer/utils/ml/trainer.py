@@ -25,7 +25,7 @@ class NanException(Exception):
 class Trainer(object):
     """ Trainer class. Any subclass has to implement the forward_pass() function. """
 
-    def __init__(self, model, run_on_gpu=True, double_precision=False):
+    def __init__(self, model, run_on_gpu=True, double_precision=False, n_workers=8):
         self._init_timer()
         self._timer(start="ALL")
         self._timer(start="initialize model")
@@ -33,6 +33,7 @@ class Trainer(object):
         self.run_on_gpu = run_on_gpu and torch.cuda.is_available()
         self.device = torch.device("cuda" if self.run_on_gpu else "cpu")
         self.dtype = torch.double if double_precision else torch.float
+        self.n_workers = n_workers
 
         self.model = self.model.to(self.device, self.dtype)
 
@@ -197,7 +198,7 @@ class Trainer(object):
     def make_dataloaders(self, dataset, validation_split, batch_size):
         if validation_split is None or validation_split <= 0.0:
             train_loader = DataLoader(
-                dataset, batch_size=batch_size, shuffle=True, pin_memory=self.run_on_gpu, num_workers=8
+                dataset, batch_size=batch_size, shuffle=True, pin_memory=self.run_on_gpu, num_workers=self.n_workers
             )
             val_loader = None
 
@@ -214,10 +215,10 @@ class Trainer(object):
             val_sampler = SubsetRandomSampler(valid_idx)
 
             train_loader = DataLoader(
-                dataset, sampler=train_sampler, batch_size=batch_size, pin_memory=self.run_on_gpu, num_workers=8
+                dataset, sampler=train_sampler, batch_size=batch_size, pin_memory=self.run_on_gpu, num_workers=self.n_workers
             )
             val_loader = DataLoader(
-                dataset, sampler=val_sampler, batch_size=batch_size, pin_memory=self.run_on_gpu, num_workers=8
+                dataset, sampler=val_sampler, batch_size=batch_size, pin_memory=self.run_on_gpu, num_workers=self.n_workers
             )
 
         return train_loader, val_loader
