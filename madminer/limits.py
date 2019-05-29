@@ -277,7 +277,7 @@ class AsymptoticLimits(DataAnalyzer):
         theta_each = []
         for resolution, (theta_min, theta_max) in zip(resolutions, theta_ranges):
             theta_each.append(np.linspace(theta_min, theta_max, resolution))
-        theta_grid_each = np.meshgrid(*theta_each)
+        theta_grid_each = np.meshgrid(*theta_each, indexing="ij")
         theta_grid_each = [theta.flatten() for theta in theta_grid_each]
         theta_grid = np.vstack(theta_grid_each).T
         return theta_grid
