@@ -215,10 +215,18 @@ class Trainer(object):
             val_sampler = SubsetRandomSampler(valid_idx)
 
             train_loader = DataLoader(
-                dataset, sampler=train_sampler, batch_size=batch_size, pin_memory=self.run_on_gpu, num_workers=self.n_workers
+                dataset,
+                sampler=train_sampler,
+                batch_size=batch_size,
+                pin_memory=self.run_on_gpu,
+                num_workers=self.n_workers,
             )
             val_loader = DataLoader(
-                dataset, sampler=val_sampler, batch_size=batch_size, pin_memory=self.run_on_gpu, num_workers=self.n_workers
+                dataset,
+                sampler=val_sampler,
+                batch_size=batch_size,
+                pin_memory=self.run_on_gpu,
+                num_workers=self.n_workers,
             )
 
         return train_loader, val_loader

@@ -124,28 +124,37 @@ class DataAnalyzer(object):
             self.include_nuisance_parameters = False
 
     def event_loader(
-        self, start=0, end=None, batch_size=100000, include_nuisance_parameters=None, generated_close_to=None
+        self,
+        start=0,
+        end=None,
+        batch_size=100000,
+        include_nuisance_parameters=None,
+        generated_close_to=None,
+        return_sampling_ids=False,
     ):
         """
         Yields batches of events in the MadMiner file.
 
         Parameters
         ----------
-        start : int
+        start : int, optional
             First event index to load
 
-        end : int or None
+        end : int or None, optional
             Last event index to load
 
-        batch_size : int
+        batch_size : int, optional
             Batch size
 
-        include_nuisance_parameters : bool
+        include_nuisance_parameters : bool, optional
             Whether nuisance parameter benchmarks are included in the returned data
 
-        generated_close_to : None or ndarray
+        generated_close_to : None or ndarray, optional
             If None, this function yields all events. Otherwise, it just yields just the events that were generated
             at the closest benchmark point to a given parameter point.
+
+        return_sampling_ids : bool, optional
+            If True, the iterator returns the sampling IDs in additioin to observables and weights.
 
         Yields
         ------
@@ -154,6 +163,10 @@ class DataAnalyzer(object):
 
         weights : ndarray
             Event weights
+
+        sampling_ids : int
+            Sampling IDs (benchmark used for sampling for signal events, -1 for background events). Only returned if
+            return_sampling_ids = True was set.
 
         """
         if include_nuisance_parameters is None:
@@ -177,6 +190,7 @@ class DataAnalyzer(object):
             benchmark_is_nuisance=self.benchmark_is_nuisance,
             sampling_benchmark=sampling_benchmark,
             sampling_factors=sampling_factors,
+            return_sampling_ids=return_sampling_ids,
         ):
             yield data
 
