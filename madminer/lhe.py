@@ -672,7 +672,8 @@ class LHEReader:
 
         return this_observations, this_weights, n_events
 
-    def _check_sample_observations_and_weights(self, this_observations, this_weights):
+    @staticmethod
+    def _check_sample_observations_and_weights(this_observations, this_weights):
         """ Sanity checks """
 
         # Check number of events in observables, and their dtype
