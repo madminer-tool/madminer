@@ -663,6 +663,7 @@ class LHEReader:
         # Sanity checks
         n_events = self._check_sample_observations_and_weights(this_observations, this_weights)
 
+        # Rescale nuisance parameters to reference benchmark
         reference_weights = this_weights[reference_benchmark]
         sampling_weights = this_weights[sampling_benchmark]
         for key in this_weights:
@@ -718,8 +719,6 @@ class LHEReader:
                     weights.dtype,
                     weights,
                 )
-
-                # Rescale nuisance parameters to reference benchmark
         return n_events
 
     def save(self, filename_out):
