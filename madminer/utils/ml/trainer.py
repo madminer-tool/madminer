@@ -524,7 +524,7 @@ class DoubleParameterizedRatioTrainer(Trainer):
             raise ValueError("Missing required information 'x', 'theta0', 'theta1', or 'y' in training data!")
 
         for key in data_keys:
-            if key not in ["x", "theta0", "theta1" "y", "r_xz", "t_xz0", "t_xz1"]:
+            if key not in ["x", "theta0", "theta1", "y", "r_xz", "t_xz0", "t_xz1"]:
                 logger.warning("Unknown key %s in training data! Ignoring it.", key)
 
         self.calculate_model_score = "t_xz0" in data_keys or "t_xz1" in data_keys

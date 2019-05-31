@@ -1681,7 +1681,6 @@ class LikelihoodEstimator(Estimator):
 
         # Create model
         if self.model is None:
-            logger.info("Creating model", method)
             self._create_model()
 
         # Losses

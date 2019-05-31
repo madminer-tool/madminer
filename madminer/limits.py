@@ -300,11 +300,12 @@ class AsymptoticLimits(DataAnalyzer):
         all_summary_stats, all_theta = None, None
         for theta in thetas:
             x, theta, _ = sampler.sample_train_plain(
-                theta=sampling.morphing_points(thetas),
+                theta=sampling.morphing_points([theta]),
                 n_samples=n_samples,
                 test_split=test_split,
                 filename=None,
                 folder=None,
+                suppress_logging=True
             )
             summary_stats = summary_function(x)
             all_theta = theta if all_theta is None else np.hstack((all_theta, theta))
