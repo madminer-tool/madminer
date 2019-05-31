@@ -165,6 +165,7 @@ class AsymptoticLimits(DataAnalyzer):
             else:
                 raise RuntimeError("For 'histo' mode, either provide histo_vars or model_file!")
             summary_stats = summary_function(x)
+            del x
 
             logger.info("Creating histogram with %s bins for the summary statistics", hist_bins)
             histo = self._make_histo(summary_function, hist_bins, theta_grid, theta_resolutions, n_toys_per_theta)
@@ -286,25 +287,31 @@ class AsymptoticLimits(DataAnalyzer):
         logger.info("Building histogram with %s bins per parameter and %s bins per observable", theta_bins, x_bins)
         histo = Histo(theta_bins, x_bins)
         logger.debug("Generating histo data")
-        theta, x = self._make_histo_data(theta_grid, n_toys_per_theta * len(theta_grid))
-        logger.debug("Histo data has theta dimensions %s and x dimensions %s", theta.shape, x.shape)
-        logger.debug("Calculating summary statistics")
-        summary_stats = summary_function(x)
-        logger.debug("Summary stats have dimensions %s", summary_stats.shape)
+        theta, summary_stats = self._make_histo_data(summary_function, theta_grid, n_toys_per_theta * len(theta_grid))
+        logger.debug(
+            "Histo data has theta dimensions %s and summary stats dimensions %s", theta.shape, summary_stats.shape
+        )
         logger.debug("Filling histogram with summary statistics")
         histo.fit(theta, summary_stats, fill_empty_bins=True)
         return histo
 
-    def _make_histo_data(self, thetas, n_samples, test_split=0.2):
+    def _make_histo_data(self, summary_function, thetas, n_samples, test_split=0.2):
         sampler = SampleAugmenter(self.madminer_filename, include_nuisance_parameters=self.include_nuisance_parameters)
-        x, theta, _ = sampler.sample_train_plain(
-            theta=sampling.morphing_points(thetas),
-            n_samples=n_samples,
-            test_split=test_split,
-            filename=None,
-            folder=None,
-        )
-        return theta, x
+        all_summary_stats, all_theta = None, None
+        for theta in thetas:
+            x, theta, _ = sampler.sample_train_plain(
+                theta=sampling.morphing_points(thetas),
+                n_samples=n_samples,
+                test_split=test_split,
+                filename=None,
+                folder=None,
+            )
+            summary_stats = summary_function(x)
+            all_theta = theta if all_theta is None else np.hstack((all_theta, theta))
+            all_summary_stats = (
+                summary_stats if all_summary_stats is None else np.hstack((all_summary_stats, summary_stats))
+            )
+        return all_theta, all_summary_stats
 
     def _find_x_indices(self, observables):
         x_names = list(self.observables.keys())
