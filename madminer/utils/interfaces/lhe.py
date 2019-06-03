@@ -404,23 +404,23 @@ def parse_lhe_file(
         logger.warning("  No observations remaining!")
         return None, None
 
-    # Reformat data
-    observations_all_events = np.array(observations_all_events)  # (n_events, n_observables)
+    # Reformat observations to OrderedDicts with entries {name : (n_events,)}
+    observations_all_events = list(map(list, zip(*observations_all_events)))  # transposes to (n_observables, n_events)
+    observations_dict = OrderedDict()
+    for key, values in zip(observables.keys(), observations_all_events):
+        observations_dict[key] = np.asarray(values)
+
+    # Reformat weightss and add k-factors to weights
     weights_all_events = np.array(weights_all_events)  # (n_events, n_weights)
-
-    # k factor
     weights_all_events = k_factor * weights_all_events
-
-    # Bring both to OrderedDicts with entries {name : (n_events,)}
     weights_all_events = OrderedDict(zip(weight_names_all_events, weights_all_events.T))
-    observations_all_events = OrderedDict(zip(observables.keys(), observations_all_events.T))
 
     # Background events
     if is_background:
         for benchmark_name in benchmark_names:
             weights_all_events[benchmark_name] = weights_all_events[sampling_benchmark]
 
-    return observations_all_events, weights_all_events
+    return observations_dict, weights_all_events
 
 
 def extract_nuisance_parameters_from_lhe_file(filename, systematics):

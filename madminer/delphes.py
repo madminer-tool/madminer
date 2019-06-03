@@ -703,20 +703,8 @@ class DelphesReader:
         else:
             logger.debug("Did not extract weights from Delphes file")
 
-        # Check number of events in observables
-        n_events = None
-        for key, obs in six.iteritems(this_observations):
-            this_n_events = len(obs)
-            if n_events is None:
-                n_events = this_n_events
-                logger.debug("Found %s events", n_events)
-
-            if this_n_events != n_events:
-                raise RuntimeError(
-                    "Mismatching number of events in Delphes observations for {}: {} vs {}".format(
-                        key, n_events, this_n_events
-                    )
-                )
+        # Sanity checks
+        n_events = self._check_sample_observations(this_observations)
 
         # Find weights in LHE file
         if lhe_file_for_weights is not None:
@@ -738,17 +726,8 @@ class DelphesReader:
         if this_weights is None:
             raise RuntimeError("Could not extract weights from Delphes ROOT file or LHE file.")
 
-        # Check number of events in weights
-        for key, weights in six.iteritems(this_weights):
-            this_n_events = len(weights)
-            if n_events is None:
-                n_events = this_n_events
-                logger.debug("Found %s events", n_events)
-
-            if this_n_events != n_events:
-                raise RuntimeError(
-                    "Mismatching number of events in weights {}: {} vs {}".format(key, n_events, this_n_events)
-                )
+        # Sanity checks
+        n_events = self._check_sample_weights(n_events, this_weights)
 
         # k factors
         if k_factor is not None:
@@ -771,6 +750,57 @@ class DelphesReader:
                 this_weights[key] = reference_weights / sampling_weights * this_weights[key]
 
         return this_observations, this_weights, n_events
+
+    def _check_sample_observations(self, this_observations):
+        """ Sanity checks """
+        # Check number of events in observables
+        n_events = None
+        for key, obs in six.iteritems(this_observations):
+            this_n_events = len(obs)
+            if n_events is None:
+                n_events = this_n_events
+                logger.debug("Found %s events", n_events)
+
+            if this_n_events != n_events:
+                raise RuntimeError(
+                    "Mismatching number of events in Delphes observations for {}: {} vs {}".format(
+                        key, n_events, this_n_events
+                    )
+                )
+
+            if not np.issubdtype(obs.dtype, np.number):
+                logger.warning(
+                    "Observations for observable %s have non-numeric dtype %s. This usually means something "
+                    "is wrong in the definition of the observable. Data: %s",
+                    key,
+                    obs.dtype,
+                    obs,
+                )
+        return n_events
+
+    def _check_sample_weights(self, n_events, this_weights):
+        """ Sanity checks """
+        # Check number of events in weights
+        for key, weights in six.iteritems(this_weights):
+            this_n_events = len(weights)
+            if n_events is None:
+                n_events = this_n_events
+                logger.debug("Found %s events", n_events)
+
+            if this_n_events != n_events:
+                raise RuntimeError(
+                    "Mismatching number of events in weights {}: {} vs {}".format(key, n_events, this_n_events)
+                )
+
+            if not np.issubdtype(weights.dtype, np.number):
+                logger.warning(
+                    "Weights %s have non-numeric dtype %s. This usually means something "
+                    "is wrong in the definition of the observable. Data: %s",
+                    key,
+                    weights.dtype,
+                    weights,
+                )
+        return n_events
 
     def save(self, filename_out):
         """

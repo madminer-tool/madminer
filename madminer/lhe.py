@@ -621,6 +621,7 @@ class LHEReader:
         logger.debug("Found %s nuisance parameters with matching benchmarks:", len(nuisance_parameters))
         for key, value in six.iteritems(nuisance_parameters):
             logger.debug("  %s: %s", key, value)
+
         # Compare to existing data
         if self.nuisance_parameters is None:
             self.nuisance_parameters = nuisance_parameters
@@ -631,6 +632,7 @@ class LHEReader:
                         self.nuisance_parameters, nuisance_parameters
                     )
                 )
+
         # Calculate observables and weights in LHE file
         this_observations, this_weights = parse_lhe_file(
             filename=lhe_file,
@@ -651,13 +653,30 @@ class LHEReader:
             k_factor=k_factor,
             parse_events_as_xml=parse_events_as_xml,
         )
+
         # No events found?
         if this_observations is None:
             logger.debug("No observations in this LHE file, skipping it")
             return None, None
         logger.debug("Found weights %s in LHE file", list(this_weights.keys()))
 
-        # Check number of events in observables
+        # Sanity checks
+        n_events = self._check_sample_observations_and_weights(this_observations, this_weights)
+
+        # Rescale nuisance parameters to reference benchmark
+        reference_weights = this_weights[reference_benchmark]
+        sampling_weights = this_weights[sampling_benchmark]
+        for key in this_weights:
+            if key not in self.benchmark_names_phys:  # Only rescale nuisance benchmarks
+                this_weights[key] = reference_weights / sampling_weights * this_weights[key]
+
+        return this_observations, this_weights, n_events
+
+    @staticmethod
+    def _check_sample_observations_and_weights(this_observations, this_weights):
+        """ Sanity checks """
+
+        # Check number of events in observables, and their dtype
         n_events = None
         for key, obs in six.iteritems(this_observations):
             this_n_events = len(obs)
@@ -673,7 +692,15 @@ class LHEReader:
                     )
                 )
 
-        # Check number of events in weights
+            if not np.issubdtype(obs.dtype, np.number):
+                logger.warning(
+                    "Observations for observable %s have non-numeric dtype %s. This usually means something "
+                    "is wrong in the definition of the observable. Data: %s",
+                    key,
+                    obs.dtype,
+                    obs,
+                )
+        # Check number of events in weights, and thier dtype
         for key, weights in six.iteritems(this_weights):
             this_n_events = len(weights)
             if n_events is None:
@@ -685,14 +712,15 @@ class LHEReader:
                     "Mismatching number of events in weights {}: {} vs {}".format(key, n_events, this_n_events)
                 )
 
-        # Rescale nuisance parameters to reference benchmark
-        reference_weights = this_weights[reference_benchmark]
-        sampling_weights = this_weights[sampling_benchmark]
-        for key in this_weights:
-            if key not in self.benchmark_names_phys:  # Only rescale nuisance benchmarks
-                this_weights[key] = reference_weights / sampling_weights * this_weights[key]
-
-        return this_observations, this_weights, n_events
+            if not np.issubdtype(weights.dtype, np.number):
+                logger.warning(
+                    "Weights %s have non-numeric dtype %s. This usually means something "
+                    "is wrong in the definition of the observable. Data: %s",
+                    key,
+                    weights.dtype,
+                    weights,
+                )
+        return n_events
 
     def save(self, filename_out):
         """
@@ -712,7 +740,7 @@ class LHEReader:
         """
 
         if self.observations is None or self.weights is None:
-            logger.warning("No observations to save!")
+            logger.warning("No events to save!")
             return
 
         logger.debug("Loading HDF5 data from %s and saving file to %s", self.filename, filename_out)
@@ -728,8 +756,6 @@ class LHEReader:
             reference_benchmark=self.reference_benchmark,
             copy_from=self.filename,
         )
-
-        logger.debug("Saving sample summaries: %s, %s")
 
         # Save events
         save_events_to_madminer_file(

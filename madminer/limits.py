@@ -48,6 +48,7 @@ class AsymptoticLimits(DataAnalyzer):
         returns="pval",
         dof=None,
         n_observed=None,
+        histo_theta_batchsize=100,
     ):
         if n_observed is None:
             n_observed=len(x_observed)
@@ -66,6 +67,7 @@ class AsymptoticLimits(DataAnalyzer):
             n_toys_per_theta,
             returns=returns,
             dof=dof,
+            histo_theta_batchsize=histo_theta_batchsize,
         )
         return theta_grid, return_values, i_ml
 
@@ -83,9 +85,12 @@ class AsymptoticLimits(DataAnalyzer):
         n_toys_per_theta=10000,
         returns="pval",
         dof=None,
+        histo_theta_batchsize=100,
     ):
+        logger.info("Generating Asimov data")
         x_asimov, x_weights = self._asimov_data(theta_true)
         n_observed = luminosity * self._calculate_xsecs([theta_true])[0]
+        logger.info("Expected events: %s", n_observed)
         theta_grid, return_values, i_ml = self._analyse(
             n_observed,
             x_asimov,
@@ -101,6 +106,7 @@ class AsymptoticLimits(DataAnalyzer):
             n_toys_per_theta,
             returns=returns,
             dof=dof,
+            histo_theta_batchsize=histo_theta_batchsize,
         )
         return theta_grid, return_values, i_ml
 
@@ -127,6 +133,7 @@ class AsymptoticLimits(DataAnalyzer):
         n_toys_per_theta=10000,
         returns="pval",
         dof=None,
+        histo_theta_batchsize=100,
     ):
         logger.debug("Calculating p-values for %s expected events", n_events)
 
@@ -168,9 +175,17 @@ class AsymptoticLimits(DataAnalyzer):
             else:
                 raise RuntimeError("For 'histo' mode, either provide histo_vars or model_file!")
             summary_stats = summary_function(x)
+            del x
 
             logger.info("Creating histogram with %s bins for the summary statistics", hist_bins)
-            histo = self._make_histo(summary_function, hist_bins, theta_grid, theta_resolutions, n_toys_per_theta)
+            histo = self._make_histo(
+                summary_function,
+                hist_bins,
+                theta_grid,
+                theta_resolutions,
+                n_toys_per_theta,
+                histo_theta_batchsize=histo_theta_batchsize,
+            )
 
             logger.info("Calculating kinematic log likelihood with histograms")
             log_r_kin = self._calculate_log_likelihood_histo(summary_stats, theta_grid, histo)
@@ -288,29 +303,48 @@ class AsymptoticLimits(DataAnalyzer):
         theta_grid = np.vstack(theta_grid_each).T
         return theta_grid
 
-    def _make_histo(self, summary_function, x_bins, theta_grid, theta_bins, n_toys_per_theta=1000):
+    def _make_histo(
+        self, summary_function, x_bins, theta_grid, theta_bins, n_toys_per_theta=1000, histo_theta_batchsize=100
+    ):
         logger.info("Building histogram with %s bins per parameter and %s bins per observable", theta_bins, x_bins)
         histo = Histo(theta_bins, x_bins)
         logger.debug("Generating histo data")
-        theta, x = self._make_histo_data(theta_grid, n_toys_per_theta * len(theta_grid))
-        logger.debug("Histo data has theta dimensions %s and x dimensions %s", theta.shape, x.shape)
-        logger.debug("Calculating summary statistics")
-        summary_stats = summary_function(x)
-        logger.debug("Summary stats have dimensions %s", summary_stats.shape)
+        theta, summary_stats = self._make_histo_data(
+            summary_function,
+            theta_grid,
+            n_toys_per_theta * len(theta_grid),
+            histo_theta_batchsize=histo_theta_batchsize,
+        )
+        logger.debug(
+            "Histo data has theta dimensions %s and summary stats dimensions %s", theta.shape, summary_stats.shape
+        )
         logger.debug("Filling histogram with summary statistics")
         histo.fit(theta, summary_stats, fill_empty_bins=True)
         return histo
 
-    def _make_histo_data(self, thetas, n_samples, test_split=0.2):
+    def _make_histo_data(self, summary_function, thetas, n_samples, test_split=0.2, histo_theta_batchsize=100):
         sampler = SampleAugmenter(self.madminer_filename, include_nuisance_parameters=self.include_nuisance_parameters)
-        x, theta, _ = sampler.sample_train_plain(
-            theta=sampling.morphing_points(thetas),
-            n_samples=n_samples,
-            test_split=test_split,
-            filename=None,
-            folder=None,
-        )
-        return theta, x
+        all_summary_stats, all_theta = None, None
+
+        n_thetas = len(thetas)
+        n_batches = (n_thetas - 1) // histo_theta_batchsize + 1
+        for i_batch in range(n_batches):
+            logger.debug("Generating histogram data for batch %s / %s", i_batch + 1, n_batches)
+            theta_batch = thetas[i_batch * histo_theta_batchsize : (i_batch + 1) * histo_theta_batchsize]
+            x, theta, _ = sampler.sample_train_plain(
+                theta=sampling.morphing_points(theta_batch),
+                n_samples=n_samples,
+                test_split=test_split,
+                filename=None,
+                folder=None,
+                suppress_logging=True,
+            )
+            summary_stats = summary_function(x)
+            all_theta = theta if all_theta is None else np.vstack((all_theta, theta))
+            all_summary_stats = (
+                summary_stats if all_summary_stats is None else np.vstack((all_summary_stats, summary_stats))
+            )
+        return all_theta, all_summary_stats
 
     def _find_x_indices(self, observables):
         x_names = list(self.observables.keys())
