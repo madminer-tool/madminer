@@ -87,7 +87,7 @@ class SampleAugmenter(DataAnalyzer):
         switch_train_test_events=False,
         n_processes=1,
         n_eff_forced=None,
-        suppress_logging=False
+        suppress_logging=False,
     ):
         """
         Extracts plain training samples `x ~ p(x|theta)` without any augmented data. This can be use for standard
