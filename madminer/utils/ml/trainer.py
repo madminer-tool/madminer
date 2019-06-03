@@ -641,18 +641,6 @@ class FlowTrainer(Trainer):
         else:
             logger.debug("Model score will not be calculated")
 
-    def make_dataset(self, data):
-        tensor_data = []
-        data_labels = []
-        for key, value in six.iteritems(data):
-            data_labels.append(key)
-            if key == "theta":
-                tensor_data.append(torch.tensor(value, requires_grad=True))
-            else:
-                tensor_data.append(torch.from_numpy(value))
-        dataset = TensorDataset(*tensor_data)
-        return data_labels, dataset
-
     def forward_pass(self, batch_data, loss_functions):
         self._timer(start="fwd: move data")
         x = batch_data["x"].to(self.device, self.dtype, non_blocking=True)
