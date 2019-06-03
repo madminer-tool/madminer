@@ -51,7 +51,7 @@ class AsymptoticLimits(DataAnalyzer):
         histo_theta_batchsize=100,
     ):
         if n_observed is None:
-            n_observed=len(x_observed)
+            n_observed = len(x_observed)
         theta_grid, return_values, i_ml = self._analyse(
             n_observed,
             x_observed,
@@ -137,7 +137,7 @@ class AsymptoticLimits(DataAnalyzer):
     ):
         logger.debug("Calculating p-values for %s expected events", n_events)
 
-        assert returns in ["pval", "llr","llr_raw"], "returns has to be either 'pval','llr' or 'llr_raw'!"
+        assert returns in ["pval", "llr", "llr_raw"], "returns has to be either 'pval','llr' or 'llr_raw'!"
 
         # Observation weights
         if obs_weights is None:
@@ -209,7 +209,7 @@ class AsymptoticLimits(DataAnalyzer):
         log_r = log_r_kin + log_p_xsec
         if returns == "llr_raw":
             return theta_grid, log_r, 0
-        
+
         logger.debug("Combined -2 log r: %s", -2.0 * log_r)
         log_r, i_ml = self._subtract_ml(log_r)
         logger.debug("Min-subtracted -2 log r: %s", -2.0 * log_r)
