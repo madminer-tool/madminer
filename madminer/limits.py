@@ -334,9 +334,9 @@ class AsymptoticLimits(DataAnalyzer):
                 suppress_logging=True,
             )
             summary_stats = summary_function(x)
-            all_theta = theta if all_theta is None else np.hstack((all_theta, theta))
+            all_theta = theta if all_theta is None else np.vstack((all_theta, theta))
             all_summary_stats = (
-                summary_stats if all_summary_stats is None else np.hstack((all_summary_stats, summary_stats))
+                summary_stats if all_summary_stats is None else np.vstack((all_summary_stats, summary_stats))
             )
         return all_theta, all_summary_stats
 
