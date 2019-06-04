@@ -849,6 +849,7 @@ def plot_fisher_information_contours_2d(
     linewidths=1.5,
     alphas=1.0,
     alphas_uncertainties=0.25,
+    ax=None,
 ):
     """
     Visualizes 2x2 Fisher information matrices as contours of constant Fisher distance from a reference point `theta0`.
@@ -909,6 +910,8 @@ def plot_fisher_information_contours_2d(
     alphas_uncertainties : float or list of float, optional
         Opacities for the error bands. Default value: 0.25.
 
+    ax: axes or None, optional
+        Predefined axes as part of figure instead of standalone figure. Default: None
     Returns
     -------
     figure : Figure
@@ -988,7 +991,10 @@ def plot_fisher_information_contours_2d(
         logger.debug("Std: %s", uncertainties)
 
     # Plot results
-    fig = plt.figure(figsize=(5.0, 5.0))
+    do_fig=False
+    if ax is None:
+        do_fig=True
+        fig,ax = plt.figure(figsize=(5.0, 5.0))
 
     # Error bands
     for i in range(n_matrices):
@@ -1001,7 +1007,7 @@ def plot_fisher_information_contours_2d(
 
     # Predictions
     for i in range(n_matrices):
-        cs = plt.contour(
+        cs = ax.contour(
             xi,
             yi,
             fisher_distances_squared[i],
@@ -1014,21 +1020,21 @@ def plot_fisher_information_contours_2d(
         )
 
         if inline_labels is not None and inline_labels[i] is not None and len(inline_labels[i]) > 0:
-            plt.clabel(cs, cs.levels, inline=True, fontsize=12, fmt={d2_threshold: inline_labels[i]})
+            ax.clabel(cs, cs.levels, inline=True, fontsize=12, fmt={d2_threshold: inline_labels[i]})
 
     # Legend and decorations
     if labels is not None:
-        plt.legend()
+        ax.legend()
 
-    plt.axes().set_xlim(xrange)
-    plt.axes().set_ylim(yrange)
-    plt.xlabel(xlabel)
-    plt.ylabel(ylabel)
-
-    plt.tight_layout()
-
-    return fig
-
+    if do_fig:
+        plt.axes().set_xlim(xrange)
+        plt.axes().set_ylim(yrange)
+        plt.xlabel(xlabel)
+        plt.ylabel(ylabel)
+        plt.tight_layout()
+        return fig
+    else:
+        return ax
 
 def plot_fisherinfo_barplot(
     fisher_information_matrices, labels, determinant_indices=None, eigenvalue_colors=None, bar_colors=None
