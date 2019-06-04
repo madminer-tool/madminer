@@ -312,7 +312,7 @@ class AsymptoticLimits(DataAnalyzer):
         theta, summary_stats = self._make_histo_data(
             summary_function,
             theta_grid,
-            n_toys_per_theta * len(theta_grid),
+            n_toys_per_theta,
             histo_theta_batchsize=histo_theta_batchsize,
         )
         logger.debug(
@@ -322,7 +322,7 @@ class AsymptoticLimits(DataAnalyzer):
         histo.fit(theta, summary_stats, fill_empty_bins=True)
         return histo
 
-    def _make_histo_data(self, summary_function, thetas, n_samples, test_split=0.2, histo_theta_batchsize=100):
+    def _make_histo_data(self, summary_function, thetas, n_toys_per_theta, test_split=0.2, histo_theta_batchsize=100):
         sampler = SampleAugmenter(self.madminer_filename, include_nuisance_parameters=self.include_nuisance_parameters)
         all_summary_stats, all_theta = None, None
 
@@ -331,19 +331,23 @@ class AsymptoticLimits(DataAnalyzer):
         for i_batch in range(n_batches):
             logger.debug("Generating histogram data for batch %s / %s", i_batch + 1, n_batches)
             theta_batch = thetas[i_batch * histo_theta_batchsize : (i_batch + 1) * histo_theta_batchsize]
+            logger.debug("Theta data: indices %s to %s, shape %s", i_batch * histo_theta_batchsize, (i_batch + 1) * histo_theta_batchsize, theta_batch.shape)
             x, theta, _ = sampler.sample_train_plain(
                 theta=sampling.morphing_points(theta_batch),
-                n_samples=n_samples,
+                n_samples=n_toys_per_theta*len(theta_batch),
                 test_split=test_split,
                 filename=None,
                 folder=None,
                 suppress_logging=True,
             )
             summary_stats = summary_function(x)
-            all_theta = theta if all_theta is None else np.vstack((all_theta, theta))
-            all_summary_stats = (
-                summary_stats if all_summary_stats is None else np.vstack((all_summary_stats, summary_stats))
-            )
+            logger.debug("Output: x has shape %s, summary_stats %s, theta %s", x.shape, summary_stats.shape, theta.shape)
+            if all_theta is None or all_summary_stats is None:
+                all_theta = theta
+                all_summary_stats = summary_stats
+            else:
+                all_theta = np.concatenate((all_theta, theta), 0)
+                all_summary_stats = np.concatenate((all_summary_stats, summary_stats), 0)
         return all_theta, all_summary_stats
 
     def _find_x_indices(self, observables):
