@@ -1196,6 +1196,8 @@ def plot_distribution_of_information(
     log_xsec=False,
     norm_xsec=True,
     epsilon=1.0e-9,
+    figsize=(5.4, 4.5),
+    fontsize=None,
 ):
     """
     Plots the distribution of the cross section together with the distribution of the Fisher information.
@@ -1231,6 +1233,12 @@ def plot_distribution_of_information(
 
     epsilon : float, optional
         Numerical factor.
+        
+    figsize : tuple of float, optional
+        Figure size, default: (5.4, 4.5)
+        
+    fontsize: float, optional
+        Fontsize, default None
 
     Returns
     -------
@@ -1238,6 +1246,10 @@ def plot_distribution_of_information(
         Plot as Matplotlib Figure instance.
 
     """
+    #prepare Plot
+    if fontsize is not None:
+        matplotlib.rcParams.update({'font.size': fontsize})
+    
     # Prepare data
     n_entries = len(fisher_information_matrices)
     size = len(fisher_information_matrices[1])
@@ -1278,9 +1290,9 @@ def plot_distribution_of_information(
     det_aux_linewidth = 1.5
 
     # xsec plot
-    fig = plt.figure(figsize=(5.4, 4.5))
+    fig = plt.figure(figsize=figsize)
     ax1 = plt.subplot(111)
-    fig.subplots_adjust(left=0.1667, right=0.8333, bottom=0.17, top=0.97)
+    #fig.subplots_adjust(left=0.1667, right=0.8333, bottom=0.17, top=0.97)
 
     if log_xsec:
         ax1.set_yscale("log")
