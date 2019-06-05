@@ -890,11 +890,20 @@ class FisherInformation(DataAnalyzer):
                     self.n_nuisance_parameters,
                 )
 
+            # Total xsec
+            total_xsec = self._calculate_xsec(theta=theta)
+            logger.debug("Total cross section: %s pb", total_xsec)
+
             # Which events to sum over
             if test_split is None or test_split <= 0.0 or test_split >= 1.0:
                 start_event = 0
             else:
                 start_event = int(round((1.0 - test_split) * self.n_samples, 0)) + 1
+
+            if start_event > 0:
+                total_sum_weights_theta = self._calculate_xsec(theta=theta, start_event=start_event)
+            else:
+                total_sum_weights_theta = total_xsec
 
             # Number of batches
             n_batches = int(np.ceil((self.n_samples - start_event) / batch_size))
@@ -929,7 +938,7 @@ class FisherInformation(DataAnalyzer):
                     fisher_info_events, _ = model.calculate_fisher_information(
                         x=observations,
                         obs_weights=weights_theta,
-                        n_events=luminosity * np.sum(weights_theta),
+                        n_events=luminosity * np.sum(weights_theta) * total_xsec / total_sum_weights_theta,
                         mode="score",
                         calculate_covariance=False,
                         sum_events=False,
@@ -938,7 +947,7 @@ class FisherInformation(DataAnalyzer):
                     fisher_info_events = model.calculate_fisher_information(
                         x=observations,
                         weights=weights_theta,
-                        n_events=luminosity * np.sum(weights_theta),
+                        n_events=luminosity * np.sum(weights_theta) * total_xsec / total_sum_weights_theta,
                         sum_events=False,
                     )
 
