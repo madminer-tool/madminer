@@ -289,10 +289,7 @@ class AsymptoticLimits(DataAnalyzer):
         histo = Histo(theta_bins, x_bins)
         logger.debug("Generating histo data")
         theta, summary_stats = self._make_histo_data(
-            summary_function,
-            theta_grid,
-            n_toys_per_theta,
-            histo_theta_batchsize=histo_theta_batchsize,
+            summary_function, theta_grid, n_toys_per_theta, histo_theta_batchsize=histo_theta_batchsize
         )
         logger.debug(
             "Histo data has theta dimensions %s and summary stats dimensions %s", theta.shape, summary_stats.shape
@@ -310,17 +307,24 @@ class AsymptoticLimits(DataAnalyzer):
         for i_batch in range(n_batches):
             logger.debug("Generating histogram data for batch %s / %s", i_batch + 1, n_batches)
             theta_batch = thetas[i_batch * histo_theta_batchsize : (i_batch + 1) * histo_theta_batchsize]
-            logger.debug("Theta data: indices %s to %s, shape %s", i_batch * histo_theta_batchsize, (i_batch + 1) * histo_theta_batchsize, theta_batch.shape)
+            logger.debug(
+                "Theta data: indices %s to %s, shape %s",
+                i_batch * histo_theta_batchsize,
+                (i_batch + 1) * histo_theta_batchsize,
+                theta_batch.shape,
+            )
             x, theta, _ = sampler.sample_train_plain(
                 theta=sampling.morphing_points(theta_batch),
-                n_samples=n_toys_per_theta*len(theta_batch),
+                n_samples=n_toys_per_theta * len(theta_batch),
                 test_split=test_split,
                 filename=None,
                 folder=None,
                 suppress_logging=True,
             )
             summary_stats = summary_function(x)
-            logger.debug("Output: x has shape %s, summary_stats %s, theta %s", x.shape, summary_stats.shape, theta.shape)
+            logger.debug(
+                "Output: x has shape %s, summary_stats %s, theta %s", x.shape, summary_stats.shape, theta.shape
+            )
             if all_theta is None or all_summary_stats is None:
                 all_theta = theta
                 all_summary_stats = summary_stats
