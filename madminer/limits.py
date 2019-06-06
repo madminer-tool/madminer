@@ -7,11 +7,10 @@ from scipy.stats import chi2, poisson
 
 from madminer.analysis import DataAnalyzer
 from madminer.utils.various import mdot
-from madminer.ml import ParameterizedRatioEstimator, Ensemble
+from madminer.ml import ParameterizedRatioEstimator, Ensemble, ScoreEstimator, load_estimator
 from madminer.utils.histo import Histo
 from madminer.sampling import SampleAugmenter
 from madminer import sampling
-from madminer.ml import ScoreEstimator
 
 logger = logging.getLogger(__name__)
 
@@ -154,7 +153,7 @@ class AsymptoticLimits(DataAnalyzer):
         elif mode == "ml":
             assert model_file is not None
             logger.info("Loading kinematic likelihood ratio estimator")
-            model = self._load_ratio_model(model_file)
+            model = load_estimator(model_file)
 
             logger.info("Calculating kinematic log likelihood ratio with estimator")
             log_r_kin = self._calculate_log_likelihood_ratio_kinematics(x, theta_grid, model)
@@ -170,7 +169,7 @@ class AsymptoticLimits(DataAnalyzer):
                 summary_function = self._make_summary_statistic_function("observables", observables=hist_vars)
             elif model_file is not None:
                 logger.info("Loading score estimator and setting it up as summary statistics")
-                model = self._load_score_model(model_file)
+                model = load_estimator(model_file)
                 summary_function = self._make_summary_statistic_function("sally", model=model)
             else:
                 raise RuntimeError("For 'histo' mode, either provide histo_vars or model_file!")
@@ -243,26 +242,6 @@ class AsymptoticLimits(DataAnalyzer):
             raise RuntimeError("Unknown mode {}, has to be 'observables' or 'sally'".format(mode))
 
         return summary_function
-
-    @staticmethod
-    def _load_ratio_model(filename):
-        if os.path.isdir(filename):
-            model = Ensemble()
-            model.load(filename)
-        else:
-            model = ParameterizedRatioEstimator()
-            model.load(filename)
-        return model
-
-    @staticmethod
-    def _load_score_model(filename):
-        if os.path.isdir(filename):
-            model = Ensemble()
-            model.load(filename)
-        else:
-            model = ScoreEstimator()
-            model.load(filename)
-        return model
 
     def _calculate_xsecs(self, thetas, test_split=0.2):
         # Test split
