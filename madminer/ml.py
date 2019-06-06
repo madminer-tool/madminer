@@ -2572,5 +2572,34 @@ class Ensemble:
             raise RuntimeError("Unknown estimator type {}!".format(estimator_type))
 
 
+def load_estimator(filename):
+    if os.path.isdir(filename):
+        model = Ensemble()
+        model.load(filename)
+
+    else:
+        with open(filename + "_settings.json", "r") as f:
+            settings = json.load(f)
+        try:
+            estimator_type = settings["estimator_type"]
+        except KeyError:
+            raise RuntimeError("Undefined estimator type")
+
+        if estimator_type == "parameterized_ratio":
+            model = ParameterizedRatioEstimator()
+        elif estimator_type == "double_parameterized_ratio":
+            model = DoubleParameterizedRatioEstimator()
+        elif estimator_type == "score":
+            model = ScoreEstimator()
+        elif estimator_type == "likelihood":
+            model = LikelihoodEstimator()
+        else:
+            raise RuntimeError("Unknown estimator type {}!".format(estimator_type))
+
+        model.load(filename)
+
+    return model
+
+
 class TheresAGoodReasonThisDoesntWork(Exception):
     pass

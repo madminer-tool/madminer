@@ -171,3 +171,4 @@ patches/
 # Shell scripts
 black.sh
 run_sphinx.sh
+publish.sh
