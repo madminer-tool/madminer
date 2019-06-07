@@ -7,7 +7,7 @@ from scipy.stats import chi2, poisson
 
 from madminer.analysis import DataAnalyzer
 from madminer.utils.various import mdot
-from madminer.ml import ParameterizedRatioEstimator, Ensemble, ScoreEstimator, load_estimator
+from madminer.ml import ParameterizedRatioEstimator, Ensemble, ScoreEstimator, LikelihoodEstimator, load_estimator
 from madminer.utils.histo import Histo
 from madminer.sampling import SampleAugmenter
 from madminer import sampling
@@ -364,6 +364,14 @@ class AsymptoticLimits(DataAnalyzer):
         if isinstance(model, ParameterizedRatioEstimator):
             log_r, _ = model.evaluate_log_likelihood_ratio(
                 x=x_observed, theta=theta_grid, test_all_combinations=True, evaluate_score=False
+            )
+        elif isinstance(model, LikelihoodEstimator):
+            raise NotImplementedError(
+                "LikelihoodEstimator is not implemented!"
+            )
+            theta1=theta_grid-theta_grid
+            log_r, _ = model.evaluate_log_likelihood_ratio(
+                x=x_observed, theta0=theta_grid, theta1=theta1, test_all_combinations=True, evaluate_score=False
             )
         elif isinstance(model, Ensemble) and model.estimator_type == "parameterized_ratio":
             log_r, _ = model.evaluate_log_likelihood_ratio(
