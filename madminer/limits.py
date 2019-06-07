@@ -7,11 +7,10 @@ from scipy.stats import chi2, poisson
 
 from madminer.analysis import DataAnalyzer
 from madminer.utils.various import mdot
-from madminer.ml import ParameterizedRatioEstimator, Ensemble
+from madminer.ml import ParameterizedRatioEstimator, Ensemble, ScoreEstimator, load_estimator
 from madminer.utils.histo import Histo
 from madminer.sampling import SampleAugmenter
 from madminer import sampling
-from madminer.ml import ScoreEstimator
 
 logger = logging.getLogger(__name__)
 
@@ -154,7 +153,7 @@ class AsymptoticLimits(DataAnalyzer):
         elif mode == "ml":
             assert model_file is not None
             logger.info("Loading kinematic likelihood ratio estimator")
-            model = self._load_ratio_model(model_file)
+            model = load_estimator(model_file)
 
             logger.info("Calculating kinematic log likelihood ratio with estimator")
             log_r_kin = self._calculate_log_likelihood_ratio_kinematics(x, theta_grid, model)
@@ -170,7 +169,7 @@ class AsymptoticLimits(DataAnalyzer):
                 summary_function = self._make_summary_statistic_function("observables", observables=hist_vars)
             elif model_file is not None:
                 logger.info("Loading score estimator and setting it up as summary statistics")
-                model = self._load_score_model(model_file)
+                model = load_estimator(model_file)
                 summary_function = self._make_summary_statistic_function("sally", model=model)
             else:
                 raise RuntimeError("For 'histo' mode, either provide histo_vars or model_file!")
@@ -244,26 +243,6 @@ class AsymptoticLimits(DataAnalyzer):
 
         return summary_function
 
-    @staticmethod
-    def _load_ratio_model(filename):
-        if os.path.isdir(filename):
-            model = Ensemble()
-            model.load(filename)
-        else:
-            model = ParameterizedRatioEstimator()
-            model.load(filename)
-        return model
-
-    @staticmethod
-    def _load_score_model(filename):
-        if os.path.isdir(filename):
-            model = Ensemble()
-            model.load(filename)
-        else:
-            model = ScoreEstimator()
-            model.load(filename)
-        return model
-
     def _calculate_xsecs(self, thetas, test_split=0.2):
         # Test split
         start_event, end_event, correction_factor = self._train_test_split(False, test_split)
@@ -310,10 +289,7 @@ class AsymptoticLimits(DataAnalyzer):
         histo = Histo(theta_bins, x_bins)
         logger.debug("Generating histo data")
         theta, summary_stats = self._make_histo_data(
-            summary_function,
-            theta_grid,
-            n_toys_per_theta,
-            histo_theta_batchsize=histo_theta_batchsize,
+            summary_function, theta_grid, n_toys_per_theta, histo_theta_batchsize=histo_theta_batchsize
         )
         logger.debug(
             "Histo data has theta dimensions %s and summary stats dimensions %s", theta.shape, summary_stats.shape
@@ -331,17 +307,24 @@ class AsymptoticLimits(DataAnalyzer):
         for i_batch in range(n_batches):
             logger.debug("Generating histogram data for batch %s / %s", i_batch + 1, n_batches)
             theta_batch = thetas[i_batch * histo_theta_batchsize : (i_batch + 1) * histo_theta_batchsize]
-            logger.debug("Theta data: indices %s to %s, shape %s", i_batch * histo_theta_batchsize, (i_batch + 1) * histo_theta_batchsize, theta_batch.shape)
+            logger.debug(
+                "Theta data: indices %s to %s, shape %s",
+                i_batch * histo_theta_batchsize,
+                (i_batch + 1) * histo_theta_batchsize,
+                theta_batch.shape,
+            )
             x, theta, _ = sampler.sample_train_plain(
                 theta=sampling.morphing_points(theta_batch),
-                n_samples=n_toys_per_theta*len(theta_batch),
+                n_samples=n_toys_per_theta * len(theta_batch),
                 test_split=test_split,
                 filename=None,
                 folder=None,
                 suppress_logging=True,
             )
             summary_stats = summary_function(x)
-            logger.debug("Output: x has shape %s, summary_stats %s, theta %s", x.shape, summary_stats.shape, theta.shape)
+            logger.debug(
+                "Output: x has shape %s, summary_stats %s, theta %s", x.shape, summary_stats.shape, theta.shape
+            )
             if all_theta is None or all_summary_stats is None:
                 all_theta = theta
                 all_summary_stats = summary_stats
