@@ -106,6 +106,7 @@ class AsymptoticLimits(DataAnalyzer):
             returns=returns,
             dof=dof,
             histo_theta_batchsize=histo_theta_batchsize,
+            theta_true=theta_true,
         )
         return theta_grid, return_values, i_ml
 
@@ -133,6 +134,7 @@ class AsymptoticLimits(DataAnalyzer):
         returns="pval",
         dof=None,
         histo_theta_batchsize=100,
+        theta_true=None,
     ):
         logger.debug("Calculating p-values for %s expected events", n_events)
 
@@ -156,7 +158,7 @@ class AsymptoticLimits(DataAnalyzer):
             model = load_estimator(model_file)
 
             logger.info("Calculating kinematic log likelihood ratio with estimator")
-            log_r_kin = self._calculate_log_likelihood_ratio_kinematics(x, theta_grid, model)
+            log_r_kin = self._calculate_log_likelihood_ratio_kinematics(x, theta_grid, model,theta_true)
             log_r_kin = log_r_kin.astype(np.float64)
             log_r_kin = self._clean_nans(log_r_kin)
             logger.debug("Raw mean -2 log r: %s", np.mean(-2.0 * log_r_kin, axis=1))
@@ -369,9 +371,8 @@ class AsymptoticLimits(DataAnalyzer):
             raise NotImplementedError(
                 "LikelihoodEstimator is not implemented!"
             )
-            theta1=theta_grid-theta_grid
             log_r, _ = model.evaluate_log_likelihood_ratio(
-                x=x_observed, theta0=theta_grid, theta1=theta1, test_all_combinations=True, evaluate_score=False
+                x=x_observed, theta0=theta_grid, theta1=np.array(theta1), test_all_combinations=True, evaluate_score=False
             )
         elif isinstance(model, Ensemble) and model.estimator_type == "parameterized_ratio":
             log_r, _ = model.evaluate_log_likelihood_ratio(
