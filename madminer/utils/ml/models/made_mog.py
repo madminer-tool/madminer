@@ -201,7 +201,7 @@ class ConditionalMixtureMADE(BaseConditionalFlow):
         self.to_args = args
         self.to_kwargs = kwargs
 
-        self = super().to(*args, **kwargs)
+        self = super(ConditionalMixtureMADE, self).to(*args, **kwargs)
 
         for i, M in enumerate(self.Ms):
             self.Ms[i] = M.to(*args, **kwargs)

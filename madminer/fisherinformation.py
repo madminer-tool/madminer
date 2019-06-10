@@ -933,9 +933,7 @@ class FisherInformation(DataAnalyzer):
 
                 # Rescale for test_split
                 if test_split is not None:
-                    correction = np.array(
-                        [1./test_split for obs_event in observations]
-                    )
+                    correction = np.array([1.0 / test_split for obs_event in observations])
                     weights_benchmarks *= correction[:, np.newaxis]
 
                 weights_theta = mdot(theta_matrix, weights_benchmarks)
@@ -954,7 +952,7 @@ class FisherInformation(DataAnalyzer):
                     fisher_info_events = model.calculate_fisher_information(
                         x=observations,
                         weights=weights_theta,
-                         n_events=luminosity * np.sum(weights_theta) ,
+                        n_events=luminosity * np.sum(weights_theta),
                         sum_events=False,
                     )
 

@@ -139,7 +139,7 @@ class GaussianMADE(BaseFlow):
         self.to_args = args
         self.to_kwargs = kwargs
 
-        self = super().to(*args, **kwargs)
+        self = super(GaussianMADE, self).to(*args, **kwargs)
 
         for i, (M, W, b) in enumerate(zip(self.Ms, self.Ws, self.bs)):
             self.Ms[i] = M.to(*args, **kwargs)
@@ -314,7 +314,7 @@ class ConditionalGaussianMADE(BaseConditionalFlow):
         self.to_args = args
         self.to_kwargs = kwargs
 
-        self = super().to(*args, **kwargs)
+        self = super(ConditionalGaussianMADE, self).to(*args, **kwargs)
 
         for i, (M, W, b) in enumerate(zip(self.Ms, self.Ws, self.bs)):
             self.Ms[i] = M.to(*args, **kwargs)
