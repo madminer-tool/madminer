@@ -931,6 +931,13 @@ class FisherInformation(DataAnalyzer):
                 )
                 weights_benchmarks *= efficiencies[:, np.newaxis]
 
+                # Rescale for test_split
+                if test_split is not None:
+                    correction = np.array(
+                        [1./test_split for obs_event in observations]
+                    )
+                    weights_benchmarks *= correction[:, np.newaxis]
+
                 weights_theta = mdot(theta_matrix, weights_benchmarks)
 
                 # Calculate Fisher info on this batch
@@ -938,7 +945,7 @@ class FisherInformation(DataAnalyzer):
                     fisher_info_events, _ = model.calculate_fisher_information(
                         x=observations,
                         obs_weights=weights_theta,
-                        n_events=luminosity * np.sum(weights_theta) * total_xsec / total_sum_weights_theta,
+                        n_events=luminosity * np.sum(weights_theta),
                         mode="score",
                         calculate_covariance=False,
                         sum_events=False,
@@ -947,7 +954,7 @@ class FisherInformation(DataAnalyzer):
                     fisher_info_events = model.calculate_fisher_information(
                         x=observations,
                         weights=weights_theta,
-                        n_events=luminosity * np.sum(weights_theta) * total_xsec / total_sum_weights_theta,
+                         n_events=luminosity * np.sum(weights_theta) ,
                         sum_events=False,
                     )
 
@@ -981,19 +988,8 @@ class FisherInformation(DataAnalyzer):
         # Get rid of nuisance parameters
         fisher_info_rate_bins = fisher_info_rate_bins[:, : self.n_parameters, : self.n_parameters]
 
-        # If ML: full info is still missing right normalisation and xsec info!
+        # If ML: xsec info is still missing !
         if model_file is not None:
-            # Normalization to total xsec
-            total_xsec = np.sum(sigma_bins)
-
-            if start_event > 0:
-                total_sum_weights_theta = self._calculate_xsec(theta=theta, start_event=start_event)
-            else:
-                total_sum_weights_theta = total_xsec
-
-            fisher_info_full_bins *= total_xsec / total_sum_weights_theta
-
-            # Add xsec part
             fisher_info_full_bins += fisher_info_rate_bins
 
         return bin_boundaries, sigma_bins, fisher_info_rate_bins, fisher_info_full_bins

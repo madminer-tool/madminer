@@ -952,12 +952,12 @@ def _smear_particles(particles, energy_resolutions, pt_resolutions, eta_resoluti
         e = None
         if None not in energy_resolutions[pdgid]:
             e = min_e - 1.0
-            while e < min_e:
+            while e <= min_e:
                 e = _smear_variable(particle.e, energy_resolutions, pdgid)
         pt = None
         if None not in pt_resolutions[pdgid]:
             pt = min_pt - 1.0
-            while pt < min_pt:
+            while pt <= min_pt:
                 pt = _smear_variable(particle.pt, pt_resolutions, pdgid)
         eta = _smear_variable(particle.eta, eta_resolutions, pdgid)
         phi = _smear_variable(particle.phi(), phi_resolutions, pdgid)
@@ -975,7 +975,7 @@ def _smear_particles(particles, energy_resolutions, pt_resolutions, eta_resoluti
 
         elif None in pt_resolutions[pdgid]:
             # Calculate pT from on-shell conditions
-            if e > particle.m:
+            if e > m:
                 pt = (e ** 2 - m ** 2) ** 0.5 / np.cosh(eta)
             else:
                 pt = 0.0
