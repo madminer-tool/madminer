@@ -260,7 +260,7 @@ class ConditionalMaskedAutoregressiveFlow(BaseConditionalFlow):
         self.to_args = args
         self.to_kwargs = kwargs
 
-        self = super(MaskedAutoregressiveFlow, self).to(*args, **kwargs)
+        self = super(ConditionalMaskedAutoregressiveFlow, self).to(*args, **kwargs)
 
         for i, (made) in enumerate(self.mades):
             self.mades[i] = made.to(*args, **kwargs)
