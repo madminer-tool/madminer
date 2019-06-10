@@ -158,7 +158,7 @@ class AsymptoticLimits(DataAnalyzer):
             model = load_estimator(model_file)
 
             logger.info("Calculating kinematic log likelihood ratio with estimator")
-            log_r_kin = self._calculate_log_likelihood_ratio_kinematics(x, theta_grid, model,theta_true)
+            log_r_kin = self._calculate_log_likelihood_ratio_kinematics(x, theta_grid, model, theta_true)
             log_r_kin = log_r_kin.astype(np.float64)
             log_r_kin = self._clean_nans(log_r_kin)
             logger.debug("Raw mean -2 log r: %s", np.mean(-2.0 * log_r_kin, axis=1))
@@ -368,11 +368,13 @@ class AsymptoticLimits(DataAnalyzer):
                 x=x_observed, theta=theta_grid, test_all_combinations=True, evaluate_score=False
             )
         elif isinstance(model, LikelihoodEstimator):
-            raise NotImplementedError(
-                "LikelihoodEstimator is not implemented!"
-            )
+            raise NotImplementedError("LikelihoodEstimator is not implemented!")
             log_r, _ = model.evaluate_log_likelihood_ratio(
-                x=x_observed, theta0=theta_grid, theta1=np.array(theta1), test_all_combinations=True, evaluate_score=False
+                x=x_observed,
+                theta0=theta_grid,
+                theta1=np.array(theta1),
+                test_all_combinations=True,
+                evaluate_score=False,
             )
         elif isinstance(model, Ensemble) and model.estimator_type == "parameterized_ratio":
             log_r, _ = model.evaluate_log_likelihood_ratio(

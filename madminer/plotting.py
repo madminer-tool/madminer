@@ -991,10 +991,10 @@ def plot_fisher_information_contours_2d(
         logger.debug("Std: %s", uncertainties)
 
     # Plot results
-    do_fig=False
+    do_fig = False
     if ax is None:
-        do_fig=True
-        fig,ax = plt.figure(figsize=(5.0, 5.0))
+        do_fig = True
+        fig, ax = plt.figure(figsize=(5.0, 5.0))
 
     # Error bands
     for i in range(n_matrices):
@@ -1035,6 +1035,7 @@ def plot_fisher_information_contours_2d(
         return fig
     else:
         return ax
+
 
 def plot_fisherinfo_barplot(
     fisher_information_matrices, labels, determinant_indices=None, eigenvalue_colors=None, bar_colors=None
@@ -1246,10 +1247,10 @@ def plot_distribution_of_information(
         Plot as Matplotlib Figure instance.
 
     """
-    #prepare Plot
+    # prepare Plot
     if fontsize is not None:
-        matplotlib.rcParams.update({'font.size': fontsize})
-    
+        matplotlib.rcParams.update({"font.size": fontsize})
+
     # Prepare data
     n_entries = len(fisher_information_matrices)
     size = len(fisher_information_matrices[1])
@@ -1292,7 +1293,7 @@ def plot_distribution_of_information(
     # xsec plot
     fig = plt.figure(figsize=figsize)
     ax1 = plt.subplot(111)
-    #fig.subplots_adjust(left=0.1667, right=0.8333, bottom=0.17, top=0.97)
+    # fig.subplots_adjust(left=0.1667, right=0.8333, bottom=0.17, top=0.97)
 
     if log_xsec:
         ax1.set_yscale("log")

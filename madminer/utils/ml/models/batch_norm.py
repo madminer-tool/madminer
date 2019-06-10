@@ -74,7 +74,7 @@ class BatchNorm(BaseFlow):
     def to(self, *args, **kwargs):
         logger.debug("Transforming BatchNorm to %s", args)
 
-        self = super().to(*args, **kwargs)
+        self = super(BatchNorm, self).to(*args, **kwargs)
 
         self.running_mean = self.running_mean.to(*args, **kwargs)
         self.running_var = self.running_var.to(*args, **kwargs)

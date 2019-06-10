@@ -137,7 +137,7 @@ class ConditionalMixtureMaskedAutoregressiveFlow(BaseConditionalFlow):
         self.to_args = args
         self.to_kwargs = kwargs
 
-        self = super().to(*args, **kwargs)
+        self = super(ConditionalMixtureMaskedAutoregressiveFlow, self).to(*args, **kwargs)
 
         for i, (made) in enumerate(self.mades):
             self.mades[i] = made.to(*args, **kwargs)
