@@ -1,5 +1,5 @@
-madminer.sampling module
-========================
+madminer\.sampling module
+=========================
 
 .. automodule:: madminer.sampling
     :members:

@@ -1,5 +1,5 @@
-madminer.analysis module
-========================
+madminer\.analysis module
+=========================
 
 .. automodule:: madminer.analysis
     :members:

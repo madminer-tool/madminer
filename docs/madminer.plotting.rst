@@ -1,5 +1,5 @@
-madminer.plotting module
-========================
+madminer\.plotting module
+=========================
 
 .. automodule:: madminer.plotting
     :members:

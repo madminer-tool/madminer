@@ -1,5 +1,5 @@
-madminer.delphes module
-=======================
+madminer\.delphes module
+========================
 
 .. automodule:: madminer.delphes
     :members:
