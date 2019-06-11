@@ -1,5 +1,5 @@
-madminer\.lhe module
-====================
+madminer.lhe module
+===================
 
 .. automodule:: madminer.lhe
     :members:

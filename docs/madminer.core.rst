@@ -1,5 +1,5 @@
-madminer\.core module
-=====================
+madminer.core module
+====================
 
 .. automodule:: madminer.core
     :members:

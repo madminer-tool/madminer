@@ -1,5 +1,5 @@
-madminer\.limits module
-=======================
+madminer.limits module
+======================
 
 .. automodule:: madminer.limits
     :members:

@@ -1,5 +1,5 @@
-madminer\.ml module
-===================
+madminer.ml module
+==================
 
 .. automodule:: madminer.ml
     :members:
