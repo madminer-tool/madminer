@@ -53,15 +53,13 @@ class DataAnalyzer(object):
         self.n_parameters = len(self.parameters)
         self.n_benchmarks = len(self.benchmarks)
         self.n_benchmarks_phys = np.sum(np.logical_not(self.benchmark_is_nuisance))
-        self.n_observables = len(self.observables)
+        self.n_observables = 0 if self.observables is None else len(self.observables)
 
         self.n_nuisance_parameters = 0
         if self.nuisance_parameters is not None and include_nuisance_parameters:
             self.n_nuisance_parameters = len(self.nuisance_parameters)
         else:
             self.nuisance_parameters = None
-
-        self._report_setup()
 
         # Morphing
         self.morpher = None
@@ -79,50 +77,7 @@ class DataAnalyzer(object):
         else:
             self.include_nuisance_parameters = False
 
-    def _report_setup(self):
-        logger.info("Found %s parameters", self.n_parameters)
-        for key, values in six.iteritems(self.parameters):
-            logger.debug(
-                "   %s (LHA: %s %s, maximal power in squared ME: %s, range: %s)",
-                key,
-                values[0],
-                values[1],
-                values[2],
-                values[3],
-            )
-        if self.nuisance_parameters is not None:
-            logger.info("Found %s nuisance parameters", self.n_nuisance_parameters)
-            for key, values in six.iteritems(self.nuisance_parameters):
-                logger.debug("   %s (%s)", key, values)
-        else:
-            logger.info("Did not find nuisance parameters")
-            self.include_nuisance_parameters = False
-        logger.info("Found %s benchmarks, of which %s physical", self.n_benchmarks, self.n_benchmarks_phys)
-        for (key, values), is_nuisance in zip(six.iteritems(self.benchmarks), self.benchmark_is_nuisance):
-            if is_nuisance:
-                logger.debug("   %s: systematics", key)
-            else:
-                logger.debug("   %s: %s", key, format_benchmark(values))
-        logger.info("Found %s observables", len(self.observables))
-        for i, obs in enumerate(self.observables):
-            logger.debug("  %2.2s %s", i, obs)
-        logger.info("Found %s events", self.n_samples)
-        if self.n_events_generated_per_benchmark is not None:
-            for events, name in zip(self.n_events_generated_per_benchmark, six.iterkeys(self.benchmarks)):
-                if events > 0:
-                    logger.info("  %s generated from %s", events, name)
-        else:
-            logger.debug("  Did not find sample summary information")
-
-        if self.morpher is not None:
-            logger.info("Found morphing setup with %s components", len(self.morphing_components))
-        else:
-            logger.info("Did not find morphing setup.")
-
-        if self.nuisance_morpher is not None:
-            logger.info("Found nuisance morphing setup")
-        else:
-            logger.info("Did not find nuisance morphing setup")
+        self._report_setup()
 
     def event_loader(
         self,
@@ -194,36 +149,6 @@ class DataAnalyzer(object):
             return_sampling_ids=return_sampling_ids,
         ):
             yield data
-
-    def _calculate_sampling_factors(self):
-        events = np.asarray(self.n_events_generated_per_benchmark, dtype=np.float)
-        logger.debug("Events per benchmark: %s", events)
-        factors = events / np.sum(events)
-        factors = np.hstack((factors, 1.0))  # background events
-        return factors
-
-    def _find_closest_benchmark(self, theta):
-        if theta is None:
-            return None
-
-        benchmarks = self._benchmark_array()
-        distances = [np.linalg.norm(benchmark - theta) for benchmark in benchmarks]
-
-        logger.debug("Distances from %s: %s", theta, distances)
-
-        # Don't use benchmarks where we don't actually have events
-        if self.n_events_generated_per_benchmark is not None:
-            logger.debug("n_events_generated_per_benchmark: %s", self.n_events_generated_per_benchmark)
-            distances = distances + 1.0e9 * (self.n_events_generated_per_benchmark == 0).astype(np.float)
-
-        closest_idx = np.argmin(distances)
-        return closest_idx
-
-    def _benchmark_array(self):
-        benchmarks_array = []
-        for benchmark in six.itervalues(self.benchmarks):
-            benchmarks_array.append(list(six.itervalues(benchmark)))
-        return np.asarray(benchmarks_array)
 
     def weighted_events(
         self, theta=None, nu=None, start_event=None, end_event=None, derivative=False, generated_close_to=None
@@ -420,23 +345,6 @@ class DataAnalyzer(object):
 
         return xsecs, xsec_uncertainties
 
-    def _calculate_nuisance_factors(self, nus, benchmark_weights):
-        if self._any_nontrivial_nus(nus):
-            return np.asarray(
-                [self.nuisance_morpher.calculate_nuisance_factors(nu, benchmark_weights) for nu in nus]
-            )  # Shape (n_thetas, n_batch)
-        else:
-            return 1.0
-
-    @staticmethod
-    def _any_nontrivial_nus(nus):
-        if nus is None:
-            return False
-        for nu in nus:
-            if nu is not None:
-                return True
-        return False
-
     def xsec_gradients(
         self,
         thetas,
@@ -553,6 +461,73 @@ class DataAnalyzer(object):
         xsec_gradients *= correction_factor
 
         return xsec_gradients
+
+    def _report_setup(self):
+        logger.info("Found %s parameters", self.n_parameters)
+        for key, values in six.iteritems(self.parameters):
+            logger.debug(
+                "   %s (LHA: %s %s, maximal power in squared ME: %s, range: %s)",
+                key,
+                values[0],
+                values[1],
+                values[2],
+                values[3],
+            )
+
+        if self.nuisance_parameters is not None:
+            logger.info("Found %s nuisance parameters", self.n_nuisance_parameters)
+            for key, values in six.iteritems(self.nuisance_parameters):
+                logger.debug("   %s (%s)", key, values)
+        else:
+            logger.info("Did not find nuisance parameters")
+            self.include_nuisance_parameters = False
+
+        logger.info("Found %s benchmarks, of which %s physical", self.n_benchmarks, self.n_benchmarks_phys)
+        for (key, values), is_nuisance in zip(six.iteritems(self.benchmarks), self.benchmark_is_nuisance):
+            if is_nuisance:
+                logger.debug("   %s: systematics", key)
+            else:
+                logger.debug("   %s: %s", key, format_benchmark(values))
+
+        logger.info("Found %s observables", self.n_observables)
+        if self.observables is not None:
+            for i, obs in enumerate(self.observables):
+                logger.debug("  %2.2s %s", i, obs)
+
+        logger.info("Found %s events", self.n_samples)
+        if self.n_events_generated_per_benchmark is not None:
+            for events, name in zip(self.n_events_generated_per_benchmark, six.iterkeys(self.benchmarks)):
+                if events > 0:
+                    logger.info("  %s generated from %s", events, name)
+        else:
+            logger.debug("  Did not find sample summary information")
+
+        if self.morpher is not None:
+            logger.info("Found morphing setup with %s components", len(self.morphing_components))
+        else:
+            logger.info("Did not find morphing setup.")
+
+        if self.nuisance_morpher is not None:
+            logger.info("Found nuisance morphing setup")
+        else:
+            logger.info("Did not find nuisance morphing setup")
+
+    def _calculate_nuisance_factors(self, nus, benchmark_weights):
+        if self._any_nontrivial_nus(nus):
+            return np.asarray(
+                [self.nuisance_morpher.calculate_nuisance_factors(nu, benchmark_weights) for nu in nus]
+            )  # Shape (n_thetas, n_batch)
+        else:
+            return 1.0
+
+    @staticmethod
+    def _any_nontrivial_nus(nus):
+        if nus is None:
+            return False
+        for nu in nus:
+            if nu is not None:
+                return True
+        return False
 
     def _weights(self, thetas, nus, benchmark_weights, theta_matrices=None):
         """
@@ -787,3 +762,33 @@ class DataAnalyzer(object):
             )  # Shape (n_parameters, n_benchmarks_phys)
 
         return dtheta_matrix
+
+    def _calculate_sampling_factors(self):
+        events = np.asarray(self.n_events_generated_per_benchmark, dtype=np.float)
+        logger.debug("Events per benchmark: %s", events)
+        factors = events / np.sum(events)
+        factors = np.hstack((factors, 1.0))  # background events
+        return factors
+
+    def _find_closest_benchmark(self, theta):
+        if theta is None:
+            return None
+
+        benchmarks = self._benchmark_array()
+        distances = [np.linalg.norm(benchmark - theta) for benchmark in benchmarks]
+
+        logger.debug("Distances from %s: %s", theta, distances)
+
+        # Don't use benchmarks where we don't actually have events
+        if self.n_events_generated_per_benchmark is not None:
+            logger.debug("n_events_generated_per_benchmark: %s", self.n_events_generated_per_benchmark)
+            distances = distances + 1.0e9 * (self.n_events_generated_per_benchmark == 0).astype(np.float)
+
+        closest_idx = np.argmin(distances)
+        return closest_idx
+
+    def _benchmark_array(self):
+        benchmarks_array = []
+        for benchmark in six.itervalues(self.benchmarks):
+            benchmarks_array.append(list(six.itervalues(benchmark)))
+        return np.asarray(benchmarks_array)
