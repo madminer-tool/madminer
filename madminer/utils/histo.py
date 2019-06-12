@@ -24,7 +24,7 @@ class Histo:
         self.edges = None
         self.histos = None
 
-    def fit(self, theta, x, weights=None, fill_empty_bins=False):
+    def fit(self, theta, x, weights=None, fill_empty_bins=False, epsilon=1.0):
         n_samples = x.shape[0]
         self.n_parameters = theta.shape[1]
         self.n_observables = x.shape[1]
@@ -46,14 +46,16 @@ class Histo:
 
         if self.separate_1d_x_histos:
             for observable in range(self.n_observables):
-                histo_n_bins, histo_edges, histo_ranges = self._calculate_binning(theta, x, weights, [observable])
+                histo_n_bins, histo_edges, histo_ranges = self._calculate_binning(
+                    theta, x, weights=None, observables=[observable]
+                )
 
                 self.n_bins.append(histo_n_bins)
                 self.edges.append(histo_edges)
                 ranges.append(histo_ranges)
 
         else:
-            histo_n_bins, histo_edges, histo_ranges = self._calculate_binning(theta, x, weights)
+            histo_n_bins, histo_edges, histo_ranges = self._calculate_binning(theta, x, weights=None)
 
             self.n_bins.append(histo_n_bins)
             self.edges.append(histo_edges)
@@ -83,7 +85,7 @@ class Histo:
 
             # Avoid empty bins
             if fill_empty_bins:
-                histo[histo <= 1.0] = 1.0
+                histo[histo <= epsilon] = epsilon
 
             # Calculate cell volumes
             original_shape = tuple(histo_n_bins)
@@ -140,7 +142,7 @@ class Histo:
 
                 histo_indices.append(indices)
 
-            log_p += np.log(histo[histo_indices])
+            log_p += np.log(histo[tuple(histo_indices)])
 
         return log_p
 
@@ -183,6 +185,7 @@ class Histo:
                 data,
                 quantiles=np.linspace(lower_cutoff_percentile / 100.0, upper_cutoff_percentile / 100.0, n_bins + 1),
                 sample_weight=weights,
+                old_style=True,
             )
             range_ = (np.nanmin(data) - 0.01, np.nanmax(data) + 0.01)
             edges[0], edges[-1] = range_

@@ -325,12 +325,12 @@ class AsymptoticLimits(DataAnalyzer):
             )
 
         logger.debug("Filling histogram with summary statistics")
-        histo.fit(theta, summary_stats, weights=weights, fill_empty_bins=True)
+        histo.fit(theta, summary_stats, weights=weights, fill_empty_bins=True, epsilon=1.0e-3)
 
         return histo
 
     def _make_weighted_histo_data(self, summary_function, thetas, n_toys, test_split=0.2):
-        all_summary_stats, all_theta = None, None
+        n_thetas = len(thetas)
 
         # Get weighted events
         start_event, end_event, _ = self._train_test_split(True, test_split)
@@ -344,7 +344,7 @@ class AsymptoticLimits(DataAnalyzer):
 
         # Reformat for histos
         all_thetas, all_weights, all_summary_stats = [], [], []
-        for theta, this_weights in zip(thetas, weights.T):
+        for theta, this_weights in zip(thetas, weights):
             all_thetas.append(np.asarray([theta] * len(this_weights)))
             all_weights.append(this_weights)
             all_summary_stats.append(summary_stats)
@@ -352,7 +352,10 @@ class AsymptoticLimits(DataAnalyzer):
         all_weights = np.concatenate(all_weights, 0)
         all_summary_stats = np.concatenate(all_summary_stats, 0)
 
-        return all_theta, all_summary_stats, all_weights
+        # Rescale weights to be 1 on average
+        all_weights = all_weights / np.mean(all_weights)
+
+        return all_thetas, all_summary_stats, all_weights
 
     def _make_sampled_histo_data(
         self, summary_function, thetas, n_toys_per_theta, test_split=0.2, histo_theta_batchsize=100

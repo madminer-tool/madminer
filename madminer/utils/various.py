@@ -249,7 +249,7 @@ def weighted_quantile(values, quantiles, sample_weight=None, values_sorted=False
     if sample_weight is None:
         sample_weight = np.ones(len(values))
     sample_weight = np.array(sample_weight, dtype=np.float64)
-    assert np.all(quantiles >= 0) and np.all(quantiles <= 1), "quantiles should be in [0, 1]"
+    assert np.all(quantiles >= 0.0) and np.all(quantiles <= 1.0), "quantiles should be in [0, 1]"
 
     # Sort
     if not values_sorted:
