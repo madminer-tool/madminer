@@ -2,6 +2,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import numpy as np
 import logging
+from madminer.utils.various import weighted_quantile
 
 logger = logging.getLogger(__name__)
 
@@ -23,57 +24,7 @@ class Histo:
         self.edges = None
         self.histos = None
 
-    def _calculate_binning(
-        self, theta, x, observables=None, lower_cutoff_percentile=0.0, upper_cutoff_percentile=100.0
-    ):
-        all_theta_x = np.hstack([theta, x]).T
-
-        # Number of bins
-        n_samples = x.shape[0]
-        n_parameters = theta.shape[1]
-        n_all_observables = x.shape[1]
-
-        # Observables to actually use
-        if observables is None:
-            observables = list(range(n_all_observables))
-
-        # Number of bins
-        all_n_bins_x = [1 for _ in range(n_all_observables)]
-        for i in observables:
-            all_n_bins_x[i] = self.n_bins_x
-
-        if isinstance(self.n_bins_thetas, int):
-            all_n_bins_theta = [self.n_bins_thetas for _ in range(n_parameters)]
-        elif len(self.n_bins_thetas) == n_parameters:
-            all_n_bins_theta = self.n_bins_thetas
-        else:
-            raise RuntimeError(
-                "Inconsistent bin numbers for parameters: {} vs {} parameters".format(self.n_bins_thetas, n_parameters)
-            )
-
-        all_n_bins = all_n_bins_theta + all_n_bins_x
-
-        # Find edges based on percentiles
-        all_edges = []
-        all_ranges = []
-
-        for i, (data, n_bins) in enumerate(zip(all_theta_x, all_n_bins)):
-            edges = np.percentile(data, np.linspace(lower_cutoff_percentile, upper_cutoff_percentile, n_bins + 1))
-            range_ = (np.nanmin(data) - 0.01, np.nanmax(data) + 0.01)
-            edges[0], edges[-1] = range_
-
-            # Remove zero-width bins
-            widths = np.array(list(edges[1:] - edges[:-1]) + [1.0])
-            edges = edges[widths > 1.0e-9]
-
-            all_n_bins[i] = len(edges) - 1
-            all_edges.append(edges)
-            all_ranges.append(range_)
-
-        return all_n_bins, all_edges, all_ranges
-
-    def fit(self, theta, x, fill_empty_bins=False):
-
+    def fit(self, theta, x, weights=None, fill_empty_bins=False, epsilon=1.0):
         n_samples = x.shape[0]
         self.n_parameters = theta.shape[1]
         self.n_observables = x.shape[1]
@@ -83,6 +34,7 @@ class Histo:
         logger.debug("  Samples:       %s", n_samples)
         logger.debug("  Parameters:    %s with means %s", self.n_parameters, np.mean(theta, axis=0))
         logger.debug("  Observables:   %s with means %s", self.n_observables, np.mean(x, axis=0))
+        logger.debug("  Weights:       %s", weights is not None)
         logger.debug("  No empty bins: %s", fill_empty_bins)
 
         # Find bins
@@ -94,14 +46,16 @@ class Histo:
 
         if self.separate_1d_x_histos:
             for observable in range(self.n_observables):
-                histo_n_bins, histo_edges, histo_ranges = self._calculate_binning(theta, x, [observable])
+                histo_n_bins, histo_edges, histo_ranges = self._calculate_binning(
+                    theta, x, weights=None, observables=[observable]
+                )
 
                 self.n_bins.append(histo_n_bins)
                 self.edges.append(histo_edges)
                 ranges.append(histo_ranges)
 
         else:
-            histo_n_bins, histo_edges, histo_ranges = self._calculate_binning(theta, x)
+            histo_n_bins, histo_edges, histo_ranges = self._calculate_binning(theta, x, weights=None)
 
             self.n_bins.append(histo_n_bins)
             self.edges.append(histo_edges)
@@ -127,11 +81,11 @@ class Histo:
         theta_x = np.hstack([theta, x])
 
         for histo_edges, histo_ranges, histo_n_bins in zip(self.edges, ranges, self.n_bins):
-            histo, _ = np.histogramdd(theta_x, bins=histo_edges, range=histo_ranges, normed=False, weights=None)
+            histo, _ = np.histogramdd(theta_x, bins=histo_edges, range=histo_ranges, normed=False, weights=weights)
 
             # Avoid empty bins
             if fill_empty_bins:
-                histo[histo <= 1.0] = 1.0
+                histo[histo <= epsilon] = epsilon
 
             # Calculate cell volumes
             original_shape = tuple(histo_n_bins)
@@ -188,6 +142,60 @@ class Histo:
 
                 histo_indices.append(indices)
 
-            log_p += np.log(histo[histo_indices])
+            log_p += np.log(histo[tuple(histo_indices)])
 
         return log_p
+
+    def _calculate_binning(
+        self, theta, x, weights=None, observables=None, lower_cutoff_percentile=0.0, upper_cutoff_percentile=100.0
+    ):
+        all_theta_x = np.hstack([theta, x]).T
+
+        # Number of bins
+        n_samples = x.shape[0]
+        n_parameters = theta.shape[1]
+        n_all_observables = x.shape[1]
+
+        # Observables to actually use
+        if observables is None:
+            observables = list(range(n_all_observables))
+
+        # Number of bins
+        all_n_bins_x = [1 for _ in range(n_all_observables)]
+        for i in observables:
+            all_n_bins_x[i] = self.n_bins_x
+
+        if isinstance(self.n_bins_thetas, int):
+            all_n_bins_theta = [self.n_bins_thetas for _ in range(n_parameters)]
+        elif len(self.n_bins_thetas) == n_parameters:
+            all_n_bins_theta = self.n_bins_thetas
+        else:
+            raise RuntimeError(
+                "Inconsistent bin numbers for parameters: {} vs {} parameters".format(self.n_bins_thetas, n_parameters)
+            )
+
+        all_n_bins = all_n_bins_theta + all_n_bins_x
+
+        # Find edges based on percentiles
+        all_edges = []
+        all_ranges = []
+
+        for i, (data, n_bins) in enumerate(zip(all_theta_x, all_n_bins)):
+            edges = weighted_quantile(
+                data,
+                quantiles=np.linspace(lower_cutoff_percentile / 100.0, upper_cutoff_percentile / 100.0, n_bins + 1),
+                sample_weight=weights,
+                old_style=True,
+            )
+            range_ = (np.nanmin(data) - 0.01, np.nanmax(data) + 0.01)
+            edges[0], edges[-1] = range_
+
+            # Remove zero-width bins
+            widths = np.array(list(edges[1:] - edges[:-1]) + [1.0])
+            edges = edges[widths > 1.0e-9]
+
+            all_n_bins[i] = len(edges) - 1
+            all_edges.append(edges)
+            all_ranges.append(range_)
+
+        return all_n_bins, all_edges, all_ranges

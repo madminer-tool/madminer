@@ -48,7 +48,9 @@ def save_nuisance_setup_to_madminer_file(
 
     _save_nuisance_parameters(filename, nuisance_parameters, overwrite_existing_nuisance_parameters)
     benchmark_is_nuisance, benchmark_names, benchmark_values, _ = _load_benchmarks(filename, True, None, False)
-    benchmark_names, benchmark_values, benchmark_is_nuisance = _process_new_benchmarks(benchmark_is_nuisance, benchmark_names, benchmark_values, sort, weight_names)
+    benchmark_names, benchmark_values, benchmark_is_nuisance = _process_new_benchmarks(
+        benchmark_is_nuisance, benchmark_names, benchmark_values, sort, weight_names
+    )
     _save_benchmarks2(benchmark_is_nuisance, benchmark_names, benchmark_values, filename, reference_benchmark)
 
 
