@@ -47,7 +47,7 @@ def save_nuisance_setup_to_madminer_file(
             pass
 
     _save_nuisance_parameters(filename, nuisance_parameters, overwrite_existing_nuisance_parameters)
-    benchmark_is_nuisance, benchmark_names, benchmark_values = _load_benchmarks2(filename)
+    benchmark_is_nuisance, benchmark_names, benchmark_values, _ = _load_benchmarks(filename, True, None, False)
     _process_new_benchmarks(benchmark_is_nuisance, benchmark_names, benchmark_values, sort, weight_names)
     _save_benchmarks2(benchmark_is_nuisance, benchmark_names, benchmark_values, filename, reference_benchmark)
 
@@ -56,7 +56,9 @@ def save_preformatted_events_to_madminer_file(
     filename, observations, weights, sampling_benchmarks, copy_setup_from, overwrite_existing_samples=True
 ):
     _copy_madminer_file(copy_setup_from, filename, overwrite_existing_samples)
-    _save_events_preformatted(filename, observations, overwrite_existing_samples, sampling_benchmarks, weights)
+    _save_events(
+        filename, None, observations, overwrite_existing_samples, sampling_benchmarks, weights, preformatted=True
+    )
 
 
 def save_events_to_madminer_file(
@@ -76,7 +78,9 @@ def save_events_to_madminer_file(
 
     if weights is None or observations is None:
         return
-    benchmark_names = _load_benchmarks3(filename, weights)
+
+    _, benchmark_names, _, _ = _load_benchmarks(filename, True, None, return_dict=False)
+    logger.debug("Weight names found in event file: %s", [key for key in weights])
     logger.debug("Benchmarks found in MadMiner file: %s", benchmark_names)
     weights_sorted = _sort_weights(benchmark_names, weights)
 
@@ -97,15 +101,6 @@ def save_sample_summary_to_madminer_file(
 ):
     _copy_madminer_file(copy_from, filename, overwrite_existing_samples)
     _save_n_events(filename, n_events_background, n_events_per_sampling_benchmark, overwrite_existing_samples)
-
-
-def save_madminer_file_from_lhe(
-    filename, observables, observations, weights, copy_from=None, overwrite_existing_samples=True
-):
-    _copy_madminer_file(copy_from, filename, overwrite_existing_samples)
-
-    observable_names = _save_observables2(filename, observables, overwrite_existing_samples)
-    _save_events2(filename, observable_names, observations, overwrite_existing_samples, weights)
 
 
 def load_madminer_settings(filename, include_nuisance_benchmarks=False):
@@ -431,7 +426,13 @@ def _save_n_events(filename, n_events_background, n_events_per_sampling_benchmar
 
 
 def _save_events(
-    filename, observable_names, observations, overwrite_existing_samples, sampling_benchmarks, weights_sorted
+    filename,
+    observable_names,
+    observations,
+    overwrite_existing_samples,
+    sampling_benchmarks,
+    weights,
+    preformatted=False,
 ):
     io_tag = "a"  # Read-write if file exists, otherwise create
     with h5py.File(filename, io_tag) as f:
@@ -443,87 +444,25 @@ def _save_events(
                 pass
 
         # Save weights
-        weights_sorted = np.array(weights_sorted)
-        weights_sorted = weights_sorted.T  # Shape (n_events, n_weights)
-        f.create_dataset("samples/weights", data=weights_sorted)
+        if not preformatted:
+            weights = np.array(weights)
+            weights = weights.T  # Shape (n_events, n_weights)
+        f.create_dataset("samples/weights", data=weights)
 
-        # Prepare and save observable values
-        observations = np.array([observations[oname] for oname in observable_names]).T
+        # Save observable values
+        if not preformatted:
+            observations = np.array([observations[oname] for oname in observable_names]).T
         f.create_dataset("samples/observations", data=observations)
 
         if sampling_benchmarks is not None:
             f.create_dataset("samples/sampling_benchmarks", data=np.array(sampling_benchmarks, dtype=np.int))
 
 
-def _save_events2(filename, observable_names, observations, overwrite_existing_samples, weights):
-    io_tag = "a"  # Read-write if file exists, otherwise create
-    with h5py.File(filename, io_tag) as f:
-        # Check if groups exist already
-        if overwrite_existing_samples:
-            try:
-                del f["samples"]
-            except Exception:
-                pass
-
-        # Save weights
-        weights_event_benchmark = weights.T
-        f.create_dataset("samples/weights", data=weights_event_benchmark)
-
-        # Save observable values
-        observations = np.array([observations[oname] for oname in observable_names]).T
-        f.create_dataset("samples/observations", data=observations)
-
-
-def _save_events_preformatted(filename, observations, overwrite_existing_samples, sampling_benchmarks, weights):
-    io_tag = "a"  # Read-write if file exists, otherwise create
-    with h5py.File(filename, io_tag) as f:
-
-        # Check if groups exist already
-        if overwrite_existing_samples:
-            try:
-                del f["samples"]
-            except Exception:
-                pass
-
-        # Save data
-        f.create_dataset("samples/weights", data=weights)
-        f.create_dataset("samples/observations", data=observations)
-        if sampling_benchmarks is not None:
-            f.create_dataset("samples/sampling_benchmarks", data=sampling_benchmarks)
-
-
 def _save_observables(filename, observables, overwrite_existing_samples):
     io_tag = "a"  # Read-write if file exists, otherwise create
-    with h5py.File(filename, io_tag) as f:
+    if observables is None:
+        return None
 
-        # Check if groups exist already
-        if overwrite_existing_samples:
-            try:
-                del f["observables"]
-            except Exception:
-                pass
-
-        if observables is not None:
-            # Prepare observable definitions
-            observable_names = [oname for oname in observables]
-            n_observables = len(observable_names)
-            observable_names_ascii = [oname.encode("ascii", "ignore") for oname in observable_names]
-            observable_definitions = []
-            for key in observable_names:
-                definition = observables[key]
-                if isinstance(definition, six.string_types):
-                    observable_definitions.append(definition.encode("ascii", "ignore"))
-                else:
-                    observable_definitions.append("".encode("ascii", "ignore"))
-
-            # Store observable definitions
-            f.create_dataset("observables/names", (n_observables,), dtype="S256", data=observable_names_ascii)
-            f.create_dataset("observables/definitions", (n_observables,), dtype="S256", data=observable_definitions)
-    return observable_names
-
-
-def _save_observables2(filename, observables, overwrite_existing_samples):
-    io_tag = "a"  # Read-write if file exists, otherwise create
     with h5py.File(filename, io_tag) as f:
         # Check if groups exist already
         if overwrite_existing_samples:
@@ -532,22 +471,22 @@ def _save_observables2(filename, observables, overwrite_existing_samples):
             except Exception:
                 pass
 
-        if observables is not None:
-            # Prepare observable definitions
-            observable_names = [oname for oname in observables]
-            n_observables = len(observable_names)
-            observable_names_ascii = [oname.encode("ascii", "ignore") for oname in observable_names]
-            observable_definitions = []
-            for key in observable_names:
-                definition = observables[key]
-                if isinstance(definition, six.string_types):
-                    observable_definitions.append(definition.encode("ascii", "ignore"))
-                else:
-                    observable_definitions.append("".encode("ascii", "ignore"))
+        # Prepare observable definitions
+        observable_names = [oname for oname in observables]
+        n_observables = len(observable_names)
+        observable_names_ascii = [oname.encode("ascii", "ignore") for oname in observable_names]
+        observable_definitions = []
+        for key in observable_names:
+            definition = observables[key]
+            if isinstance(definition, six.string_types):
+                observable_definitions.append(definition.encode("ascii", "ignore"))
+            else:
+                observable_definitions.append("".encode("ascii", "ignore"))
 
-            # Store observable definitions
-            f.create_dataset("observables/names", (n_observables,), dtype="S256", data=observable_names_ascii)
-            f.create_dataset("observables/definitions", (n_observables,), dtype="S256", data=observable_definitions)
+        # Store observable definitions
+        f.create_dataset("observables/names", (n_observables,), dtype="S256", data=observable_names_ascii)
+        f.create_dataset("observables/definitions", (n_observables,), dtype="S256", data=observable_definitions)
+
     return observable_names
 
 
@@ -587,7 +526,7 @@ def _load_parameters(filename):
     return parameter_names, parameters
 
 
-def _load_benchmarks(filename, include_nuisance_benchmarks, parameter_names):
+def _load_benchmarks(filename, include_nuisance_benchmarks, parameter_names, return_dict=True):
     with h5py.File(filename, "r") as f:
         # Benchmarks
         try:
@@ -614,52 +553,18 @@ def _load_benchmarks(filename, include_nuisance_benchmarks, parameter_names):
         except KeyError:
             logger.debug("HDF5 file does not contain is_reference field.")
 
+    if return_dict:
         benchmarks = OrderedDict()
-
         for bname, bvalue_matrix, is_nuisance in zip(benchmark_names, benchmark_values, benchmark_is_nuisance):
             if include_nuisance_benchmarks or (not is_nuisance):
                 bvalues = OrderedDict()
                 for pname, pvalue in zip(parameter_names, bvalue_matrix):
                     bvalues[pname] = pvalue
-
                 benchmarks[bname] = bvalues
-    return benchmark_is_nuisance, benchmarks, reference_benchmark
 
+        return benchmark_is_nuisance, benchmarks, reference_benchmark
 
-def _load_benchmarks2(filename):
-    io_tag = "r"  # Read-write if file exists, otherwise create
-    with h5py.File(filename, io_tag) as f:
-        # Load existing benchmarks
-        try:
-            benchmark_names = list(f["benchmarks/names"][()])
-            benchmark_values = list(f["benchmarks/values"][()])
-        except KeyError:
-            raise IOError("Cannot read benchmarks from HDF5 file")
-
-        benchmark_names = [bname.decode("ascii") for bname in benchmark_names]
-
-        try:
-            benchmark_is_nuisance = list(f["benchmarks/is_nuisance"][()])
-            benchmark_is_nuisance = [False if is_nuisance == 0 else True for is_nuisance in benchmark_is_nuisance]
-        except KeyError:
-            logger.info("HDF5 file does not contain is_nuisance field. Assuming is_nuisance=False for all benchmarks.")
-            benchmark_is_nuisance = [False for _ in benchmark_names]
-
-        logger.debug("Benchmarks found in HDF5 file: %s", benchmark_names)
-    return benchmark_is_nuisance, benchmark_names, benchmark_values
-
-
-def _load_benchmarks3(filename, weights):
-    io_tag = "r"  # Read-write if file exists, otherwise create
-    with h5py.File(filename, io_tag) as f:
-        # Try to find benchmarks in file
-        logger.debug("Weight names found in event file: %s", [key for key in weights])
-        try:
-            benchmark_names = f["benchmarks/names"][()]
-            benchmark_names = [bname.decode("ascii") for bname in benchmark_names]
-        except KeyError:
-            raise IOError("Cannot read benchmarks from HDF5 file")
-    return benchmark_names
+    return benchmark_is_nuisance, benchmark_names, benchmark_values, reference_benchmark
 
 
 def _load_n_samples(filename):
