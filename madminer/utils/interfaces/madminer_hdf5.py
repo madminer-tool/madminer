@@ -23,9 +23,9 @@ def save_madminer_settings(
     """Saves all MadMiner settings into an HDF5 file."""
 
     parameter_names = _save_parameters(filename, overwrite_existing_files, parameters)
-    _save_benchmarks(benchmarks, benchmarks_is_nuisance, filename, overwrite_existing_files, parameter_names)
-    _save_morphing(filename, morphing_components, morphing_matrix, overwrite_existing_files)
-    _save_systematics(filename, overwrite_existing_files, systematics)
+    _save_benchmarks(benchmarks, benchmarks_is_nuisance, filename, parameter_names)
+    _save_morphing(filename, morphing_components, morphing_matrix)
+    _save_systematics(filename, systematics)
 
 
 def save_nuisance_setup_to_madminer_file(
@@ -290,8 +290,8 @@ def _save_parameters(filename, overwrite_existing_files, parameters):
     return parameter_names
 
 
-def _save_benchmarks(benchmarks, benchmarks_is_nuisance, filename, overwrite_existing_files, parameter_names):
-    io_tag = "w" if overwrite_existing_files else "x"
+def _save_benchmarks(benchmarks, benchmarks_is_nuisance, filename, parameter_names):
+    io_tag = "a"  # Read-write if file exists, otherwise create
     with h5py.File(filename, io_tag) as f:
         # Prepare benchmarks
         benchmark_names = [bname for bname in benchmarks]
@@ -340,8 +340,8 @@ def _save_benchmarks2(benchmark_is_nuisance, benchmark_names, benchmark_values, 
         f.create_dataset("benchmarks/is_reference", data=benchmark_is_reference)
 
 
-def _save_morphing(filename, morphing_components, morphing_matrix, overwrite_existing_files):
-    io_tag = "w" if overwrite_existing_files else "x"
+def _save_morphing(filename, morphing_components, morphing_matrix):
+    io_tag = "a"  # Read-write if file exists, otherwise create
     with h5py.File(filename, io_tag) as f:
         # Store morphing info
         if morphing_components is not None:
