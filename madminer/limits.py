@@ -43,11 +43,12 @@ class AsymptoticLimits(DataAnalyzer):
         include_xsec=True,
         resolutions=25,
         luminosity=300000.0,
-        n_toys_per_theta=10000,
+        n_histo_toys=10000,
         returns="pval",
         dof=None,
         n_observed=None,
         histo_theta_batchsize=100,
+        weighted_histo=True,
     ):
         if n_observed is None:
             n_observed = len(x_observed)
@@ -63,10 +64,11 @@ class AsymptoticLimits(DataAnalyzer):
             include_xsec,
             None,
             luminosity,
-            n_toys_per_theta,
+            n_histo_toys,
             returns=returns,
             dof=dof,
             histo_theta_batchsize=histo_theta_batchsize,
+            weighted_histo=weighted_histo,
         )
         return theta_grid, return_values, i_ml
 
@@ -81,10 +83,11 @@ class AsymptoticLimits(DataAnalyzer):
         include_xsec=True,
         resolutions=25,
         luminosity=300000.0,
-        n_toys_per_theta=10000,
+        n_histo_toys=10000,
         returns="pval",
         dof=None,
         histo_theta_batchsize=100,
+        weighted_histo=True,
     ):
         logger.info("Generating Asimov data")
         x_asimov, x_weights = self._asimov_data(theta_true)
@@ -102,11 +105,12 @@ class AsymptoticLimits(DataAnalyzer):
             include_xsec,
             x_weights,
             luminosity,
-            n_toys_per_theta,
+            n_histo_toys,
             returns=returns,
             dof=dof,
             histo_theta_batchsize=histo_theta_batchsize,
             theta_true=theta_true,
+            weighted_histo=weighted_histo,
         )
         return theta_grid, return_values, i_ml
 
@@ -130,11 +134,12 @@ class AsymptoticLimits(DataAnalyzer):
         include_xsec=True,
         obs_weights=None,
         luminosity=300000.0,
-        n_toys_per_theta=10000,
+        n_histo_toys=10000,
         returns="pval",
         dof=None,
         histo_theta_batchsize=100,
         theta_true=None,
+        weighted_histo=True,
     ):
         logger.debug("Calculating p-values for %s expected events", n_events)
 
@@ -152,6 +157,7 @@ class AsymptoticLimits(DataAnalyzer):
         # Kinematic part
         if mode == "rate":
             log_r_kin = 0.0
+
         elif mode == "ml":
             assert model_file is not None
             logger.info("Loading kinematic likelihood ratio estimator")
@@ -184,8 +190,9 @@ class AsymptoticLimits(DataAnalyzer):
                 hist_bins,
                 theta_grid,
                 theta_resolutions,
-                n_toys_per_theta,
+                n_histo_toys,
                 histo_theta_batchsize=histo_theta_batchsize,
+                weighted_histo=weighted_histo,
             )
 
             logger.info("Calculating kinematic log likelihood with histograms")
@@ -285,22 +292,71 @@ class AsymptoticLimits(DataAnalyzer):
         return theta_grid
 
     def _make_histo(
-        self, summary_function, x_bins, theta_grid, theta_bins, n_toys_per_theta=1000, histo_theta_batchsize=100
+        self,
+        summary_function,
+        x_bins,
+        theta_grid,
+        theta_bins,
+        n_histo_toys=1000,
+        histo_theta_batchsize=100,
+        weighted_histo=True,
     ):
         logger.info("Building histogram with %s bins per parameter and %s bins per observable", theta_bins, x_bins)
         histo = Histo(theta_bins, x_bins)
-        logger.debug("Generating histo data")
-        theta, summary_stats = self._make_histo_data(
-            summary_function, theta_grid, n_toys_per_theta, histo_theta_batchsize=histo_theta_batchsize
-        )
-        logger.debug(
-            "Histo data has theta dimensions %s and summary stats dimensions %s", theta.shape, summary_stats.shape
-        )
+
+        if weighted_histo:
+            logger.debug("Generating weighted histo data")
+            theta, summary_stats, weights = self._make_weighted_histo_data(summary_function, theta_grid, n_histo_toys)
+            logger.debug(
+                "Histo data has theta dimensions %s, summary stats dimensions %s, and weight dimension %s",
+                theta.shape,
+                summary_stats.shape,
+                weights.shape,
+            )
+
+        else:
+            logger.debug("Generating sampled histo data")
+            theta, summary_stats = self._make_sampled_histo_data(
+                summary_function, theta_grid, n_histo_toys, histo_theta_batchsize=histo_theta_batchsize
+            )
+            weights = None
+            logger.debug(
+                "Histo data has theta dimensions %s and summary stats dimensions %s", theta.shape, summary_stats.shape
+            )
+
         logger.debug("Filling histogram with summary statistics")
-        histo.fit(theta, summary_stats, fill_empty_bins=True)
+        histo.fit(theta, summary_stats, weights=weights, fill_empty_bins=True)
+
         return histo
 
-    def _make_histo_data(self, summary_function, thetas, n_toys_per_theta, test_split=0.2, histo_theta_batchsize=100):
+    def _make_weighted_histo_data(self, summary_function, thetas, n_toys, test_split=0.2):
+        all_summary_stats, all_theta = None, None
+
+        # Get weighted events
+        start_event, end_event, _ = self._train_test_split(True, test_split)
+        x, weights_benchmarks = self.weighted_events(start_event=start_event, end_event=end_event, n_draws=n_toys)
+
+        # Calculate summary stats
+        summary_stats = summary_function(x)
+
+        # Calculate weights for thetas
+        weights = self._weights(thetas, None, weights_benchmarks)
+
+        # Reformat for histos
+        all_thetas, all_weights, all_summary_stats = [], [], []
+        for theta, this_weights in zip(thetas, weights.T):
+            all_thetas.append(np.asarray([theta] * len(this_weights)))
+            all_weights.append(this_weights)
+            all_summary_stats.append(summary_stats)
+        all_thetas = np.concatenate(all_thetas, 0)
+        all_weights = np.concatenate(all_weights, 0)
+        all_summary_stats = np.concatenate(all_summary_stats, 0)
+
+        return all_theta, all_summary_stats, all_weights
+
+    def _make_sampled_histo_data(
+        self, summary_function, thetas, n_toys_per_theta, test_split=0.2, histo_theta_batchsize=100
+    ):
         sampler = SampleAugmenter(self.madminer_filename, include_nuisance_parameters=self.include_nuisance_parameters)
         all_summary_stats, all_theta = None, None
 

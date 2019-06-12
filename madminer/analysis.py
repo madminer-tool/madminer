@@ -151,7 +151,14 @@ class DataAnalyzer(object):
             yield data
 
     def weighted_events(
-        self, theta=None, nu=None, start_event=None, end_event=None, derivative=False, generated_close_to=None
+        self,
+        theta=None,
+        nu=None,
+        start_event=None,
+        end_event=None,
+        derivative=False,
+        generated_close_to=None,
+        n_draws=None,
     ):
         """
         Returns all events together with the benchmark weights (if theta is None) or weights for a given theta.
@@ -177,6 +184,12 @@ class DataAnalyzer(object):
             If True and if theta is not None, the derivative of the weights with respect to theta are returned. Default
             value: False.
 
+        generated_close_to : None or int, optional
+            Only returns benchmarks generated from this benchmark (and background events). Default value: None.
+
+        n_draws : None or int, optional
+            If not None, returns only this number of events, drawn randomly.
+
         Returns
         -------
         x : ndarray
@@ -194,29 +207,32 @@ class DataAnalyzer(object):
             self.event_loader(batch_size=None, start=start_event, end=end_event, generated_close_to=generated_close_to)
         )
 
+        # Pick events randomly
+        n_events = len(x)
+        if n_draws is not None and n_draws < n_events:
+            idx = np.random.choice(n_events, n_draws, replace=False)
+            x = x[idx]
+            weights_benchmarks = weights_benchmarks[idx]
+        elif n_draws is not None:
+            logger.warning("Requested %s events, but only %s available", n_draws, n_events)
+
+        # Process and return appropriate weights
         if theta is None:
             return x, weights_benchmarks
-
         elif isinstance(theta, six.string_types):
             i_benchmark = list(self.benchmarks.keys()).index(theta)
             return x, weights_benchmarks[:, i_benchmark]
-
         elif derivative:
             dtheta_matrix = self._get_dtheta_benchmark_matrix(theta)
-
             gradients_theta = mdot(dtheta_matrix, weights_benchmarks)  # (n_gradients, n_samples)
             gradients_theta = gradients_theta.T
-
             return x, gradients_theta
-
         else:
             # TODO: nuisance params
             if nu is not None:
                 raise NotImplementedError
-
             theta_matrix = self._get_theta_benchmark_matrix(theta)
             weights_theta = mdot(theta_matrix, weights_benchmarks)
-
             return x, weights_theta
 
     def xsecs(
