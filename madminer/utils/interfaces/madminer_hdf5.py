@@ -350,8 +350,8 @@ def _save_morphing(filename, morphing_components, morphing_matrix):
             f.create_dataset("morphing/morphing_matrix", data=morphing_matrix.astype(np.float))
 
 
-def _save_systematics(filename, overwrite_existing_files, systematics):
-    io_tag = "w" if overwrite_existing_files else "x"
+def _save_systematics(filename, systematics):
+    io_tag = "a"
     with h5py.File(filename, io_tag) as f:
         # Prepare and store systematics setup
         if systematics is not None:
