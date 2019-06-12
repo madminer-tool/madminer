@@ -266,52 +266,6 @@ def madminer_event_loader(
             current += batch_size
 
 
-def _save_systematics(filename, overwrite_existing_files, systematics):
-    io_tag = "w" if overwrite_existing_files else "x"
-    with h5py.File(filename, io_tag) as f:
-        # Prepare and store systematics setup
-        if systematics is not None:
-            systematics_names = [key for key in systematics]
-            n_systematics = len(systematics_names)
-            systematics_names_ascii = _encode(systematics_names)
-            systematics_values = _encode([systematics[key] for key in systematics_names])
-
-            f.create_dataset("systematics/names", (n_systematics,), dtype="S256", data=systematics_names_ascii)
-            f.create_dataset("systematics/values", (n_systematics,), dtype="S256", data=systematics_values)
-
-
-def _save_morphing(filename, morphing_components, morphing_matrix, overwrite_existing_files):
-    io_tag = "w" if overwrite_existing_files else "x"
-    with h5py.File(filename, io_tag) as f:
-        # Store morphing info
-        if morphing_components is not None:
-            f.create_dataset("morphing/components", data=morphing_components.astype(np.int))
-        if morphing_matrix is not None:
-            f.create_dataset("morphing/morphing_matrix", data=morphing_matrix.astype(np.float))
-
-
-def _save_benchmarks(benchmarks, benchmarks_is_nuisance, filename, overwrite_existing_files, parameter_names):
-    io_tag = "w" if overwrite_existing_files else "x"
-    with h5py.File(filename, io_tag) as f:
-        # Prepare benchmarks
-        benchmark_names = [bname for bname in benchmarks]
-        n_benchmarks = len(benchmark_names)
-        benchmark_names_ascii = _encode(benchmark_names)
-        benchmark_values = np.array(
-            [[benchmarks[bname][pname] for pname in parameter_names] for bname in benchmark_names]
-        )
-        if benchmarks_is_nuisance is None:
-            benchmark_is_nuisance = [False for _ in benchmarks]
-        benchmark_is_nuisance = np.array(
-            [1 if is_nuisance else 0 for is_nuisance in benchmark_is_nuisance], dtype=np.int
-        )
-
-        # Store benchmarks
-        f.create_dataset("benchmarks/names", (n_benchmarks,), dtype="S256", data=benchmark_names_ascii)
-        f.create_dataset("benchmarks/values", data=benchmark_values)
-        f.create_dataset("benchmarks/is_nuisance", data=benchmark_is_nuisance)
-
-
 def _save_parameters(filename, overwrite_existing_files, parameters):
     io_tag = "w" if overwrite_existing_files else "x"
     with h5py.File(filename, io_tag) as f:
@@ -339,6 +293,122 @@ def _save_parameters(filename, overwrite_existing_files, parameters):
         f.create_dataset("parameters/ranges", data=parameter_ranges)
         f.create_dataset("parameters/transforms", (n_parameters,), dtype="S256", data=parameter_transforms)
     return parameter_names
+
+
+def _save_benchmarks(benchmarks, benchmarks_is_nuisance, filename, overwrite_existing_files, parameter_names):
+    io_tag = "w" if overwrite_existing_files else "x"
+    with h5py.File(filename, io_tag) as f:
+        # Prepare benchmarks
+        benchmark_names = [bname for bname in benchmarks]
+        n_benchmarks = len(benchmark_names)
+        benchmark_names_ascii = _encode(benchmark_names)
+        benchmark_values = np.array(
+            [[benchmarks[bname][pname] for pname in parameter_names] for bname in benchmark_names]
+        )
+        if benchmarks_is_nuisance is None:
+            benchmark_is_nuisance = [False for _ in benchmarks]
+        benchmark_is_nuisance = np.array(
+            [1 if is_nuisance else 0 for is_nuisance in benchmark_is_nuisance], dtype=np.int
+        )
+
+        # Store benchmarks
+        f.create_dataset("benchmarks/names", (n_benchmarks,), dtype="S256", data=benchmark_names_ascii)
+        f.create_dataset("benchmarks/values", data=benchmark_values)
+        f.create_dataset("benchmarks/is_nuisance", data=benchmark_is_nuisance)
+
+
+def _save_benchmarks2(benchmark_is_nuisance, benchmark_names, benchmark_values, filename, reference_benchmark):
+    io_tag = "a"  # Read-write if file exists, otherwise create
+    with h5py.File(filename, io_tag) as f:
+        # Prepare benchmarks for saving
+        n_benchmarks = len(benchmark_names)
+        benchmark_names_ascii = [bname.encode("ascii", "ignore") for bname in benchmark_names]
+        benchmark_values = np.array(benchmark_values)
+        benchmark_is_nuisance = np.array(
+            [1 if is_nuisance else 0 for is_nuisance in benchmark_is_nuisance], dtype=np.int
+        )
+        benchmark_is_reference = np.array(
+            [1 if bname == reference_benchmark else 0 for bname in benchmark_names], dtype=np.int
+        )
+
+        logger.debug("Combined benchmark names: %s", benchmark_names)
+        logger.debug("Combined is_nuisance: %s", benchmark_is_nuisance)
+        logger.debug("Combined is_reference: %s", benchmark_is_reference)
+
+        # Make room for saving all this glorious data
+        del f["benchmarks"]
+
+        # Store benchmarks
+        f.create_dataset("benchmarks/names", (n_benchmarks,), dtype="S256", data=benchmark_names_ascii)
+        f.create_dataset("benchmarks/values", data=benchmark_values)
+        f.create_dataset("benchmarks/is_nuisance", data=benchmark_is_nuisance)
+        f.create_dataset("benchmarks/is_reference", data=benchmark_is_reference)
+
+
+def _save_morphing(filename, morphing_components, morphing_matrix, overwrite_existing_files):
+    io_tag = "w" if overwrite_existing_files else "x"
+    with h5py.File(filename, io_tag) as f:
+        # Store morphing info
+        if morphing_components is not None:
+            f.create_dataset("morphing/components", data=morphing_components.astype(np.int))
+        if morphing_matrix is not None:
+            f.create_dataset("morphing/morphing_matrix", data=morphing_matrix.astype(np.float))
+
+
+def _save_systematics(filename, overwrite_existing_files, systematics):
+    io_tag = "w" if overwrite_existing_files else "x"
+    with h5py.File(filename, io_tag) as f:
+        # Prepare and store systematics setup
+        if systematics is not None:
+            systematics_names = [key for key in systematics]
+            n_systematics = len(systematics_names)
+            systematics_names_ascii = _encode(systematics_names)
+            systematics_values = _encode([systematics[key] for key in systematics_names])
+
+            f.create_dataset("systematics/names", (n_systematics,), dtype="S256", data=systematics_names_ascii)
+            f.create_dataset("systematics/values", (n_systematics,), dtype="S256", data=systematics_values)
+
+
+def _save_nuisance_parameters(filename, nuisance_parameters, overwrite_existing_nuisance_parameters):
+    io_tag = "a"  # Read-write if file exists, otherwise create
+    with h5py.File(filename, io_tag) as f:
+        # Make space for nuisance params
+        if overwrite_existing_nuisance_parameters:
+            try:
+                del f["nuisance_parameters"]
+            except Exception:
+                pass
+
+        if nuisance_parameters is not None and len(nuisance_parameters) > 0:
+            # Prepare nuisance parameters
+            nuisance_names = [pname for pname in nuisance_parameters]
+            n_nuisance_params = len(nuisance_names)
+            nuisance_names_ascii = _encode(nuisance_names)
+
+            nuisance_benchmarks_pos = [
+                "" if nuisance_parameters[key][0] is None else nuisance_parameters[key][0] for key in nuisance_names
+            ]
+            nuisance_benchmarks_pos = _encode(nuisance_benchmarks_pos)
+
+            nuisance_benchmarks_neg = [
+                "" if nuisance_parameters[key][1] is None else nuisance_parameters[key][1] for key in nuisance_names
+            ]
+            nuisance_benchmarks_neg = _encode(nuisance_benchmarks_neg)
+
+            # Save nuisance parameters
+            f.create_dataset("nuisance_parameters/names", (n_nuisance_params,), dtype="S256", data=nuisance_names_ascii)
+            f.create_dataset(
+                "nuisance_parameters/benchmark_positive",
+                (n_nuisance_params,),
+                dtype="S256",
+                data=nuisance_benchmarks_pos,
+            )
+            f.create_dataset(
+                "nuisance_parameters/benchmark_negative",
+                (n_nuisance_params,),
+                dtype="S256",
+                data=nuisance_benchmarks_neg,
+            )
 
 
 def _save_n_events(filename, n_events_background, n_events_per_sampling_benchmark, overwrite_existing_samples):
@@ -404,63 +474,22 @@ def _save_events2(filename, observable_names, observations, overwrite_existing_s
         f.create_dataset("samples/observations", data=observations)
 
 
-def _save_observables2(filename, observables, overwrite_existing_samples):
+def _save_events_preformatted(filename, observations, overwrite_existing_samples, sampling_benchmarks, weights):
     io_tag = "a"  # Read-write if file exists, otherwise create
     with h5py.File(filename, io_tag) as f:
+
         # Check if groups exist already
         if overwrite_existing_samples:
             try:
-                del f["observables"]
+                del f["samples"]
             except Exception:
                 pass
 
-        if observables is not None:
-            # Prepare observable definitions
-            observable_names = [oname for oname in observables]
-            n_observables = len(observable_names)
-            observable_names_ascii = [oname.encode("ascii", "ignore") for oname in observable_names]
-            observable_definitions = []
-            for key in observable_names:
-                definition = observables[key]
-                if isinstance(definition, six.string_types):
-                    observable_definitions.append(definition.encode("ascii", "ignore"))
-                else:
-                    observable_definitions.append("".encode("ascii", "ignore"))
-
-            # Store observable definitions
-            f.create_dataset("observables/names", (n_observables,), dtype="S256", data=observable_names_ascii)
-            f.create_dataset("observables/definitions", (n_observables,), dtype="S256", data=observable_definitions)
-    return observable_names
-
-
-def _sort_weights(benchmark_names, weights):
-    try:
-        # Sort weights: First the benchmarks in the right order, then the rest alphabetically
-        weights_sorted = []
-        for key in benchmark_names:
-            weights_sorted.append(weights[key])
-        for key in sorted(weights.keys()):
-            if key not in benchmark_names:
-                weights_sorted.append(key)
-
-        logger.debug("Sorted benchmarks: %s", benchmark_names)
-    except Exception as e:
-        logger.warning("Issue matching weight names in HepMC file to benchmark names in MadMiner file:\n%s", e)
-        weights_sorted = [weights[key] for key in weights]
-    return weights_sorted
-
-
-def _load_benchmarks3(filename, weights):
-    io_tag = "r"  # Read-write if file exists, otherwise create
-    with h5py.File(filename, io_tag) as f:
-        # Try to find benchmarks in file
-        logger.debug("Weight names found in event file: %s", [key for key in weights])
-        try:
-            benchmark_names = f["benchmarks/names"][()]
-            benchmark_names = [bname.decode("ascii") for bname in benchmark_names]
-        except KeyError:
-            raise IOError("Cannot read benchmarks from HDF5 file")
-    return benchmark_names
+        # Save data
+        f.create_dataset("samples/weights", data=weights)
+        f.create_dataset("samples/observations", data=observations)
+        if sampling_benchmarks is not None:
+            f.create_dataset("samples/sampling_benchmarks", data=sampling_benchmarks)
 
 
 def _save_observables(filename, observables, overwrite_existing_samples):
@@ -491,6 +520,184 @@ def _save_observables(filename, observables, overwrite_existing_samples):
             f.create_dataset("observables/names", (n_observables,), dtype="S256", data=observable_names_ascii)
             f.create_dataset("observables/definitions", (n_observables,), dtype="S256", data=observable_definitions)
     return observable_names
+
+
+def _save_observables2(filename, observables, overwrite_existing_samples):
+    io_tag = "a"  # Read-write if file exists, otherwise create
+    with h5py.File(filename, io_tag) as f:
+        # Check if groups exist already
+        if overwrite_existing_samples:
+            try:
+                del f["observables"]
+            except Exception:
+                pass
+
+        if observables is not None:
+            # Prepare observable definitions
+            observable_names = [oname for oname in observables]
+            n_observables = len(observable_names)
+            observable_names_ascii = [oname.encode("ascii", "ignore") for oname in observable_names]
+            observable_definitions = []
+            for key in observable_names:
+                definition = observables[key]
+                if isinstance(definition, six.string_types):
+                    observable_definitions.append(definition.encode("ascii", "ignore"))
+                else:
+                    observable_definitions.append("".encode("ascii", "ignore"))
+
+            # Store observable definitions
+            f.create_dataset("observables/names", (n_observables,), dtype="S256", data=observable_names_ascii)
+            f.create_dataset("observables/definitions", (n_observables,), dtype="S256", data=observable_definitions)
+    return observable_names
+
+
+def _load_parameters(filename):
+    with h5py.File(filename, "r") as f:
+        # Parameters
+        try:
+            parameter_names = f["parameters/names"][()]
+            parameter_lha_blocks = f["parameters/lha_blocks"][()]
+            parameter_lha_ids = f["parameters/lha_ids"][()]
+            parameter_ranges = f["parameters/ranges"][()]
+            parameter_max_power = f["parameters/max_power"][()]
+            parameter_transforms = f["parameters/transforms"][()]
+
+            parameter_names = [pname.decode("ascii") for pname in parameter_names]
+            parameter_lha_blocks = [pblock.decode("ascii") for pblock in parameter_lha_blocks]
+            parameter_transforms = [ptrf.decode("ascii") for ptrf in parameter_transforms]
+            parameter_transforms = [None if ptrf == "" else ptrf for ptrf in parameter_transforms]
+            parameter_max_power = np.array(parameter_max_power)
+            if len(parameter_max_power.shape) < 2:
+                parameter_max_power = parameter_max_power.reshape((-1, 1))
+
+            parameters = OrderedDict()
+
+            for pname, prange, pblock, pid, p_maxpower, ptrf in zip(
+                parameter_names,
+                parameter_ranges,
+                parameter_lha_blocks,
+                parameter_lha_ids,
+                parameter_max_power,
+                parameter_transforms,
+            ):
+                parameters[pname] = (pblock, int(pid), tuple(p_maxpower), tuple(prange), ptrf)
+
+        except KeyError:
+            raise IOError("Cannot read parameters from HDF5 file")
+    return parameter_names, parameters
+
+
+def _load_benchmarks(filename, include_nuisance_benchmarks, parameter_names):
+    with h5py.File(filename, "r") as f:
+        # Benchmarks
+        try:
+            benchmark_names = f["benchmarks/names"][()]
+            benchmark_values = f["benchmarks/values"][()]
+        except KeyError:
+            raise IOError("Cannot read benchmarks from HDF5 file")
+
+        try:
+            benchmark_is_nuisance = f["benchmarks/is_nuisance"][()]
+            benchmark_is_nuisance = [False if is_nuisance == 0 else True for is_nuisance in benchmark_is_nuisance]
+        except KeyError:
+            logger.info("HDF5 file does not contain is_nuisance field. Assuming is_nuisance=False for all benchmarks.")
+            benchmark_is_nuisance = [False for _ in benchmark_names]
+
+        benchmark_names = [bname.decode("ascii") for bname in benchmark_names]
+
+        reference_benchmark = None
+        try:
+            benchmark_is_reference = f["benchmarks/is_reference"][()]
+            for is_reference, bname in zip(benchmark_is_reference, benchmark_names):
+                if is_reference:
+                    reference_benchmark = bname
+        except KeyError:
+            logger.debug("HDF5 file does not contain is_reference field.")
+
+        benchmarks = OrderedDict()
+
+        for bname, bvalue_matrix, is_nuisance in zip(benchmark_names, benchmark_values, benchmark_is_nuisance):
+            if include_nuisance_benchmarks or (not is_nuisance):
+                bvalues = OrderedDict()
+                for pname, pvalue in zip(parameter_names, bvalue_matrix):
+                    bvalues[pname] = pvalue
+
+                benchmarks[bname] = bvalues
+    return benchmark_is_nuisance, benchmarks, reference_benchmark
+
+
+def _load_benchmarks2(filename):
+    io_tag = "r"  # Read-write if file exists, otherwise create
+    with h5py.File(filename, io_tag) as f:
+        # Load existing benchmarks
+        try:
+            benchmark_names = list(f["benchmarks/names"][()])
+            benchmark_values = list(f["benchmarks/values"][()])
+        except KeyError:
+            raise IOError("Cannot read benchmarks from HDF5 file")
+
+        benchmark_names = [bname.decode("ascii") for bname in benchmark_names]
+
+        try:
+            benchmark_is_nuisance = list(f["benchmarks/is_nuisance"][()])
+            benchmark_is_nuisance = [False if is_nuisance == 0 else True for is_nuisance in benchmark_is_nuisance]
+        except KeyError:
+            logger.info("HDF5 file does not contain is_nuisance field. Assuming is_nuisance=False for all benchmarks.")
+            benchmark_is_nuisance = [False for _ in benchmark_names]
+
+        logger.debug("Benchmarks found in HDF5 file: %s", benchmark_names)
+    return benchmark_is_nuisance, benchmark_names, benchmark_values
+
+
+def _load_benchmarks3(filename, weights):
+    io_tag = "r"  # Read-write if file exists, otherwise create
+    with h5py.File(filename, io_tag) as f:
+        # Try to find benchmarks in file
+        logger.debug("Weight names found in event file: %s", [key for key in weights])
+        try:
+            benchmark_names = f["benchmarks/names"][()]
+            benchmark_names = [bname.decode("ascii") for bname in benchmark_names]
+        except KeyError:
+            raise IOError("Cannot read benchmarks from HDF5 file")
+    return benchmark_names
+
+
+def _load_n_samples(filename):
+    with h5py.File(filename, "r") as f:
+        # Number of samples
+        try:
+            observations = f["samples/observations"]
+            weights = f["samples/weights"]
+
+            n_samples = observations.shape[0]
+
+            if weights.shape[0] != n_samples:
+                raise ValueError("Number of weights and observations don't match: {}, {}", weights.shape[0], n_samples)
+
+        except KeyError:
+            n_samples = 0
+
+        # Sample summary (number if events generated from each benchmark)
+        try:
+            n_signal_events_generated_per_benchmark = f["sample_summary/signal_events_per_benchmark"][()]
+            n_background_events = int(f["sample_summary/background_events"][()])
+        except KeyError:
+            n_signal_events_generated_per_benchmark = None
+            n_background_events = None
+    return n_background_events, n_samples, n_signal_events_generated_per_benchmark
+
+
+def _load_morphing(filename):
+    with h5py.File(filename, "r") as f:
+        # Morphing
+        try:
+            morphing_components = np.asarray(f["morphing/components"][()], dtype=np.int)
+            morphing_matrix = np.asarray(f["morphing/morphing_matrix"][()])
+
+        except KeyError:
+            morphing_components = None
+            morphing_matrix = None
+    return morphing_components, morphing_matrix
 
 
 def _load_nuisance_params(filename):
@@ -534,44 +741,6 @@ def _load_systematics(filename):
     return systematics
 
 
-def _load_n_samples(filename):
-    with h5py.File(filename, "r") as f:
-        # Number of samples
-        try:
-            observations = f["samples/observations"]
-            weights = f["samples/weights"]
-
-            n_samples = observations.shape[0]
-
-            if weights.shape[0] != n_samples:
-                raise ValueError("Number of weights and observations don't match: {}, {}", weights.shape[0], n_samples)
-
-        except KeyError:
-            n_samples = 0
-
-        # Sample summary (number if events generated from each benchmark)
-        try:
-            n_signal_events_generated_per_benchmark = f["sample_summary/signal_events_per_benchmark"][()]
-            n_background_events = int(f["sample_summary/background_events"][()])
-        except KeyError:
-            n_signal_events_generated_per_benchmark = None
-            n_background_events = None
-    return n_background_events, n_samples, n_signal_events_generated_per_benchmark
-
-
-def _load_morphing(filename):
-    with h5py.File(filename, "r") as f:
-        # Morphing
-        try:
-            morphing_components = np.asarray(f["morphing/components"][()], dtype=np.int)
-            morphing_matrix = np.asarray(f["morphing/morphing_matrix"][()])
-
-        except KeyError:
-            morphing_components = None
-            morphing_matrix = None
-    return morphing_components, morphing_matrix
-
-
 def _load_observables(filename):
     with h5py.File(filename, "r") as f:
         # Observables
@@ -588,109 +757,6 @@ def _load_observables(filename):
         except KeyError:
             observables = None
     return observables
-
-
-def _load_benchmarks(filename, include_nuisance_benchmarks, parameter_names):
-    with h5py.File(filename, "r") as f:
-        # Benchmarks
-        try:
-            benchmark_names = f["benchmarks/names"][()]
-            benchmark_values = f["benchmarks/values"][()]
-        except KeyError:
-            raise IOError("Cannot read benchmarks from HDF5 file")
-
-        try:
-            benchmark_is_nuisance = f["benchmarks/is_nuisance"][()]
-            benchmark_is_nuisance = [False if is_nuisance == 0 else True for is_nuisance in benchmark_is_nuisance]
-        except KeyError:
-            logger.info("HDF5 file does not contain is_nuisance field. Assuming is_nuisance=False for all benchmarks.")
-            benchmark_is_nuisance = [False for _ in benchmark_names]
-
-        benchmark_names = [bname.decode("ascii") for bname in benchmark_names]
-
-        reference_benchmark = None
-        try:
-            benchmark_is_reference = f["benchmarks/is_reference"][()]
-            for is_reference, bname in zip(benchmark_is_reference, benchmark_names):
-                if is_reference:
-                    reference_benchmark = bname
-        except KeyError:
-            logger.debug("HDF5 file does not contain is_reference field.")
-
-        benchmarks = OrderedDict()
-
-        for bname, bvalue_matrix, is_nuisance in zip(benchmark_names, benchmark_values, benchmark_is_nuisance):
-            if include_nuisance_benchmarks or (not is_nuisance):
-                bvalues = OrderedDict()
-                for pname, pvalue in zip(parameter_names, bvalue_matrix):
-                    bvalues[pname] = pvalue
-
-                benchmarks[bname] = bvalues
-    return benchmark_is_nuisance, benchmarks, reference_benchmark
-
-
-def _load_parameters(filename):
-    with h5py.File(filename, "r") as f:
-        # Parameters
-        try:
-            parameter_names = f["parameters/names"][()]
-            parameter_lha_blocks = f["parameters/lha_blocks"][()]
-            parameter_lha_ids = f["parameters/lha_ids"][()]
-            parameter_ranges = f["parameters/ranges"][()]
-            parameter_max_power = f["parameters/max_power"][()]
-            parameter_transforms = f["parameters/transforms"][()]
-
-            parameter_names = [pname.decode("ascii") for pname in parameter_names]
-            parameter_lha_blocks = [pblock.decode("ascii") for pblock in parameter_lha_blocks]
-            parameter_transforms = [ptrf.decode("ascii") for ptrf in parameter_transforms]
-            parameter_transforms = [None if ptrf == "" else ptrf for ptrf in parameter_transforms]
-            parameter_max_power = np.array(parameter_max_power)
-            if len(parameter_max_power.shape) < 2:
-                parameter_max_power = parameter_max_power.reshape((-1, 1))
-
-            parameters = OrderedDict()
-
-            for pname, prange, pblock, pid, p_maxpower, ptrf in zip(
-                parameter_names,
-                parameter_ranges,
-                parameter_lha_blocks,
-                parameter_lha_ids,
-                parameter_max_power,
-                parameter_transforms,
-            ):
-                parameters[pname] = (pblock, int(pid), tuple(p_maxpower), tuple(prange), ptrf)
-
-        except KeyError:
-            raise IOError("Cannot read parameters from HDF5 file")
-    return parameter_names, parameters
-
-
-def _save_benchmarks2(benchmark_is_nuisance, benchmark_names, benchmark_values, filename, reference_benchmark):
-    io_tag = "a"  # Read-write if file exists, otherwise create
-    with h5py.File(filename, io_tag) as f:
-        # Prepare benchmarks for saving
-        n_benchmarks = len(benchmark_names)
-        benchmark_names_ascii = [bname.encode("ascii", "ignore") for bname in benchmark_names]
-        benchmark_values = np.array(benchmark_values)
-        benchmark_is_nuisance = np.array(
-            [1 if is_nuisance else 0 for is_nuisance in benchmark_is_nuisance], dtype=np.int
-        )
-        benchmark_is_reference = np.array(
-            [1 if bname == reference_benchmark else 0 for bname in benchmark_names], dtype=np.int
-        )
-
-        logger.debug("Combined benchmark names: %s", benchmark_names)
-        logger.debug("Combined is_nuisance: %s", benchmark_is_nuisance)
-        logger.debug("Combined is_reference: %s", benchmark_is_reference)
-
-        # Make room for saving all this glorious data
-        del f["benchmarks"]
-
-        # Store benchmarks
-        f.create_dataset("benchmarks/names", (n_benchmarks,), dtype="S256", data=benchmark_names_ascii)
-        f.create_dataset("benchmarks/values", data=benchmark_values)
-        f.create_dataset("benchmarks/is_nuisance", data=benchmark_is_nuisance)
-        f.create_dataset("benchmarks/is_reference", data=benchmark_is_reference)
 
 
 def _process_new_benchmarks(benchmark_is_nuisance, benchmark_names, benchmark_values, sort, weight_names):
@@ -710,87 +776,21 @@ def _process_new_benchmarks(benchmark_is_nuisance, benchmark_names, benchmark_va
         benchmark_values.append(np.zeros_like(benchmark_values[0]))
 
 
-def _load_benchmarks2(filename):
-    io_tag = "r"  # Read-write if file exists, otherwise create
-    with h5py.File(filename, io_tag) as f:
-        # Load existing benchmarks
-        try:
-            benchmark_names = list(f["benchmarks/names"][()])
-            benchmark_values = list(f["benchmarks/values"][()])
-        except KeyError:
-            raise IOError("Cannot read benchmarks from HDF5 file")
+def _sort_weights(benchmark_names, weights):
+    try:
+        # Sort weights: First the benchmarks in the right order, then the rest alphabetically
+        weights_sorted = []
+        for key in benchmark_names:
+            weights_sorted.append(weights[key])
+        for key in sorted(weights.keys()):
+            if key not in benchmark_names:
+                weights_sorted.append(key)
 
-        benchmark_names = [bname.decode("ascii") for bname in benchmark_names]
-
-        try:
-            benchmark_is_nuisance = list(f["benchmarks/is_nuisance"][()])
-            benchmark_is_nuisance = [False if is_nuisance == 0 else True for is_nuisance in benchmark_is_nuisance]
-        except KeyError:
-            logger.info("HDF5 file does not contain is_nuisance field. Assuming is_nuisance=False for all benchmarks.")
-            benchmark_is_nuisance = [False for _ in benchmark_names]
-
-        logger.debug("Benchmarks found in HDF5 file: %s", benchmark_names)
-    return benchmark_is_nuisance, benchmark_names, benchmark_values
-
-
-def _save_nuisance_parameters(filename, nuisance_parameters, overwrite_existing_nuisance_parameters):
-    io_tag = "a"  # Read-write if file exists, otherwise create
-    with h5py.File(filename, io_tag) as f:
-        # Make space for nuisance params
-        if overwrite_existing_nuisance_parameters:
-            try:
-                del f["nuisance_parameters"]
-            except Exception:
-                pass
-
-        if nuisance_parameters is not None and len(nuisance_parameters) > 0:
-            # Prepare nuisance parameters
-            nuisance_names = [pname for pname in nuisance_parameters]
-            n_nuisance_params = len(nuisance_names)
-            nuisance_names_ascii = _encode(nuisance_names)
-
-            nuisance_benchmarks_pos = [
-                "" if nuisance_parameters[key][0] is None else nuisance_parameters[key][0] for key in nuisance_names
-            ]
-            nuisance_benchmarks_pos = _encode(nuisance_benchmarks_pos)
-
-            nuisance_benchmarks_neg = [
-                "" if nuisance_parameters[key][1] is None else nuisance_parameters[key][1] for key in nuisance_names
-            ]
-            nuisance_benchmarks_neg = _encode(nuisance_benchmarks_neg)
-
-            # Save nuisance parameters
-            f.create_dataset("nuisance_parameters/names", (n_nuisance_params,), dtype="S256", data=nuisance_names_ascii)
-            f.create_dataset(
-                "nuisance_parameters/benchmark_positive",
-                (n_nuisance_params,),
-                dtype="S256",
-                data=nuisance_benchmarks_pos,
-            )
-            f.create_dataset(
-                "nuisance_parameters/benchmark_negative",
-                (n_nuisance_params,),
-                dtype="S256",
-                data=nuisance_benchmarks_neg,
-            )
-
-
-def _save_events_preformatted(filename, observations, overwrite_existing_samples, sampling_benchmarks, weights):
-    io_tag = "a"  # Read-write if file exists, otherwise create
-    with h5py.File(filename, io_tag) as f:
-
-        # Check if groups exist already
-        if overwrite_existing_samples:
-            try:
-                del f["samples"]
-            except Exception:
-                pass
-
-        # Save data
-        f.create_dataset("samples/weights", data=weights)
-        f.create_dataset("samples/observations", data=observations)
-        if sampling_benchmarks is not None:
-            f.create_dataset("samples/sampling_benchmarks", data=sampling_benchmarks)
+        logger.debug("Sorted benchmarks: %s", benchmark_names)
+    except Exception as e:
+        logger.warning("Issue matching weight names in HepMC file to benchmark names in MadMiner file:\n%s", e)
+        weights_sorted = [weights[key] for key in weights]
+    return weights_sorted
 
 
 def _encode(inputs):
