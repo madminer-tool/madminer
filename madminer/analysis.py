@@ -33,9 +33,8 @@ class DataAnalyzer(object):
         self.include_nuisance_parameters = include_nuisance_parameters
         self.madminer_filename = filename
 
-        logger.info("Loading data from %s", filename)
-
         # Load data
+        logger.info("Loading data from %s", filename)
         (
             self.parameters,
             self.benchmarks,
@@ -62,6 +61,25 @@ class DataAnalyzer(object):
         else:
             self.nuisance_parameters = None
 
+        self._report_setup()
+
+        # Morphing
+        self.morpher = None
+        if self.morphing_matrix is not None and self.morphing_components is not None and not disable_morphing:
+            self.morpher = PhysicsMorpher(self.parameters)
+            self.morpher.set_components(self.morphing_components)
+            self.morpher.set_basis(self.benchmarks, morphing_matrix=self.morphing_matrix)
+
+        # Nuisance morphing
+        self.nuisance_morpher = None
+        if self.nuisance_parameters is not None:
+            self.nuisance_morpher = NuisanceMorpher(
+                self.nuisance_parameters, list(self.benchmarks.keys()), self.reference_benchmark
+            )
+        else:
+            self.include_nuisance_parameters = False
+
+    def _report_setup(self):
         logger.info("Found %s parameters", self.n_parameters)
         for key, values in six.iteritems(self.parameters):
             logger.debug(
@@ -72,7 +90,6 @@ class DataAnalyzer(object):
                 values[2],
                 values[3],
             )
-
         if self.nuisance_parameters is not None:
             logger.info("Found %s nuisance parameters", self.n_nuisance_parameters)
             for key, values in six.iteritems(self.nuisance_parameters):
@@ -80,18 +97,15 @@ class DataAnalyzer(object):
         else:
             logger.info("Did not find nuisance parameters")
             self.include_nuisance_parameters = False
-
         logger.info("Found %s benchmarks, of which %s physical", self.n_benchmarks, self.n_benchmarks_phys)
         for (key, values), is_nuisance in zip(six.iteritems(self.benchmarks), self.benchmark_is_nuisance):
             if is_nuisance:
                 logger.debug("   %s: systematics", key)
             else:
                 logger.debug("   %s: %s", key, format_benchmark(values))
-
         logger.info("Found %s observables", len(self.observables))
         for i, obs in enumerate(self.observables):
             logger.debug("  %2.2s %s", i, obs)
-
         logger.info("Found %s events", self.n_samples)
         if self.n_events_generated_per_benchmark is not None:
             for events, name in zip(self.n_events_generated_per_benchmark, six.iterkeys(self.benchmarks)):
@@ -100,28 +114,15 @@ class DataAnalyzer(object):
         else:
             logger.debug("  Did not find sample summary information")
 
-        # Morphing
-        self.morpher = None
-        if self.morphing_matrix is not None and self.morphing_components is not None and not disable_morphing:
-            self.morpher = PhysicsMorpher(self.parameters)
-            self.morpher.set_components(self.morphing_components)
-            self.morpher.set_basis(self.benchmarks, morphing_matrix=self.morphing_matrix)
-
+        if self.morpher is not None:
             logger.info("Found morphing setup with %s components", len(self.morphing_components))
-
         else:
             logger.info("Did not find morphing setup.")
 
-        # Nuisance morphing
-        self.nuisance_morpher = None
-        if self.nuisance_parameters is not None:
-            self.nuisance_morpher = NuisanceMorpher(
-                self.nuisance_parameters, list(self.benchmarks.keys()), self.reference_benchmark
-            )
+        if self.nuisance_morpher is not None:
             logger.info("Found nuisance morphing setup")
         else:
             logger.info("Did not find nuisance morphing setup")
-            self.include_nuisance_parameters = False
 
     def event_loader(
         self,
