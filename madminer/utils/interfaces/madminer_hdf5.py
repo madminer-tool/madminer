@@ -48,7 +48,7 @@ def save_nuisance_setup_to_madminer_file(
 
     _save_nuisance_parameters(filename, nuisance_parameters, overwrite_existing_nuisance_parameters)
     benchmark_is_nuisance, benchmark_names, benchmark_values, _ = _load_benchmarks(filename, True, None, False)
-    _process_new_benchmarks(benchmark_is_nuisance, benchmark_names, benchmark_values, sort, weight_names)
+    benchmark_names, benchmark_values, benchmark_is_nuisance = _process_new_benchmarks(benchmark_is_nuisance, benchmark_names, benchmark_values, sort, weight_names)
     _save_benchmarks2(benchmark_is_nuisance, benchmark_names, benchmark_values, filename, reference_benchmark)
 
 
@@ -669,6 +669,9 @@ def _process_new_benchmarks(benchmark_is_nuisance, benchmark_names, benchmark_va
     if sort:
         weight_names = sorted(weight_names)
     # Add weights not found before
+
+    benchmark_values = list(benchmark_values)
+
     for weight_name in weight_names:
         if weight_name in benchmark_names:
             logger.debug("Benchmark %s already in benchmark_names_phys", weight_name)
@@ -679,6 +682,8 @@ def _process_new_benchmarks(benchmark_is_nuisance, benchmark_names, benchmark_va
         benchmark_names.append(weight_name)
         benchmark_is_nuisance.append(True)
         benchmark_values.append(np.zeros_like(benchmark_values[0]))
+
+    return benchmark_names, benchmark_values, benchmark_is_nuisance
 
 
 def _sort_weights(benchmark_names, weights):
