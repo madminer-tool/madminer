@@ -43,7 +43,7 @@ class AsymptoticLimits(DataAnalyzer):
         include_xsec=True,
         resolutions=25,
         luminosity=300000.0,
-        n_histo_toys=10000,
+        n_histo_toys=None,
         returns="pval",
         dof=None,
         n_observed=None,
@@ -83,7 +83,7 @@ class AsymptoticLimits(DataAnalyzer):
         include_xsec=True,
         resolutions=25,
         luminosity=300000.0,
-        n_histo_toys=10000,
+        n_histo_toys=None,
         returns="pval",
         dof=None,
         histo_theta_batchsize=100,
@@ -362,6 +362,9 @@ class AsymptoticLimits(DataAnalyzer):
     ):
         sampler = SampleAugmenter(self.madminer_filename, include_nuisance_parameters=self.include_nuisance_parameters)
         all_summary_stats, all_theta = None, None
+
+        if n_toys_per_theta is None:
+            n_toys_per_theta = 10000
 
         n_thetas = len(thetas)
         n_batches = (n_thetas - 1) // histo_theta_batchsize + 1
