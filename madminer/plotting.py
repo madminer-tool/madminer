@@ -849,6 +849,7 @@ def plot_fisher_information_contours_2d(
     linewidths=1.5,
     alphas=1.0,
     alphas_uncertainties=0.25,
+    sigma_uncertainties=1,
     ax=None,
 ):
     """
@@ -909,6 +910,9 @@ def plot_fisher_information_contours_2d(
 
     alphas_uncertainties : float or list of float, optional
         Opacities for the error bands. Default value: 0.25.
+        
+    sigma_uncertainties : float, optional
+        Number of gaussian sigmas used when presenting uncertainty bands. Default value: 1.
 
     ax: axes or None, optional
         Predefined axes as part of figure instead of standalone figure. Default: None
@@ -994,13 +998,14 @@ def plot_fisher_information_contours_2d(
     do_fig = False
     if ax is None:
         do_fig = True
-        fig, ax = plt.figure(figsize=(5.0, 5.0))
+        fig = plt.figure(figsize=(5, 5))
+        ax = plt.gca()
 
     # Error bands
     for i in range(n_matrices):
         if fisher_information_covariances[i] is not None:
-            d2_up = fisher_distances_squared[i] + fisher_distances_squared_uncertainties[i]
-            d2_down = fisher_distances_squared[i] - fisher_distances_squared_uncertainties[i]
+            d2_up = fisher_distances_squared[i] + sigma_uncertainties*fisher_distances_squared_uncertainties[i]
+            d2_down = fisher_distances_squared[i] - sigma_uncertainties*fisher_distances_squared_uncertainties[i]
             band = (d2_up > d2_threshold) * (d2_down < d2_threshold) + (d2_up < d2_threshold) * (d2_down > d2_threshold)
 
             plt.contourf(xi, yi, band, [0.5, 2.5], colors=colors[i], alpha=alphas_uncertainties[i])
