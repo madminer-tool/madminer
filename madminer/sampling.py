@@ -80,7 +80,7 @@ class SampleAugmenter(DataAnalyzer):
         theta,
         n_samples,
         nu=None,
-        sample_only_from_closest_benchmark=False,
+        sample_only_from_closest_benchmark=True,
         folder=None,
         filename=None,
         test_split=0.2,
@@ -188,7 +188,7 @@ class SampleAugmenter(DataAnalyzer):
         theta,
         n_samples,
         nu=None,
-        sample_only_from_closest_benchmark=False,
+        sample_only_from_closest_benchmark=True,
         folder=None,
         filename=None,
         nuisance_score="auto",
@@ -324,7 +324,7 @@ class SampleAugmenter(DataAnalyzer):
         theta,
         n_samples,
         nu=None,
-        sample_only_from_closest_benchmark=False,
+        sample_only_from_closest_benchmark=True,
         folder=None,
         filename=None,
         nuisance_score="auto",
@@ -431,7 +431,7 @@ class SampleAugmenter(DataAnalyzer):
         n_samples,
         nu0=None,
         nu1=None,
-        sample_only_from_closest_benchmark=False,
+        sample_only_from_closest_benchmark=True,
         folder=None,
         filename=None,
         nuisance_score="auto",
@@ -683,7 +683,7 @@ class SampleAugmenter(DataAnalyzer):
         n_samples,
         nu0=None,
         nu1=None,
-        sample_only_from_closest_benchmark=False,
+        sample_only_from_closest_benchmark=True,
         folder=None,
         filename=None,
         additional_thetas=None,
@@ -998,7 +998,7 @@ class SampleAugmenter(DataAnalyzer):
         theta,
         n_samples,
         nu=None,
-        sample_only_from_closest_benchmark=False,
+        sample_only_from_closest_benchmark=True,
         folder=None,
         filename=None,
         test_split=0.2,
@@ -1142,7 +1142,7 @@ class SampleAugmenter(DataAnalyzer):
         sets,
         n_samples_per_set,
         sampling_index=0,
-        sample_only_from_closest_benchmark=False,
+        sample_only_from_closest_benchmark=True,
         augmented_data_definitions=None,
         nuisance_score=True,
         use_train_events=True,
@@ -1839,7 +1839,9 @@ class SampleAugmenter(DataAnalyzer):
                 return "{} random morphing points, drawn from the following priors:{}".format(theta[1][0], prior_str)
 
 
-def combine_and_shuffle(input_filenames, output_filename, k_factors=None, overwrite_existing_file=True):
+def combine_and_shuffle(
+    input_filenames, output_filename, k_factors=None, overwrite_existing_file=True, recalculate_header=True
+):
     """
     Combines multiple MadMiner files into one, and shuffles the order of the events.
 
@@ -1877,11 +1879,19 @@ def combine_and_shuffle(input_filenames, output_filename, k_factors=None, overwr
             " settings, there will be wrong results! There are no explicit cross checks in place yet."
         )
 
+    if len(input_filenames) <= 0:
+        raise ValueError("Need to provide at least one input filename")
+
     # k factors
     if k_factors is None:
         k_factors = [1.0 for _ in input_filenames]
     elif isinstance(k_factors, float):
         k_factors = [k_factors for _ in input_filenames]
+
+    if len(input_filenames) != len(k_factors):
+        raise RuntimeError(
+            "Inconsistent length of input filenames and k factors: %s vs %s", len(input_filenames), len(k_factors)
+        )
 
     # Copy first file to output_filename
     logger.info("Copying setup from %s to %s", input_filenames[0], output_filename)
@@ -1907,7 +1917,7 @@ def combine_and_shuffle(input_filenames, output_filename, k_factors=None, overwr
 
         (
             _,
-            _,
+            benchmarks,
             _,
             _,
             _,
@@ -1919,6 +1929,7 @@ def combine_and_shuffle(input_filenames, output_filename, k_factors=None, overwr
             n_signal_events_generated_per_benchmark,
             n_background_events,
         ) = load_madminer_settings(filename)
+        n_benchmarks = len(benchmarks)
 
         if n_signal_events_generated_per_benchmark is not None and n_background_events is not None:
             all_n_events_signal_per_benchmark += n_signal_events_generated_per_benchmark
@@ -1943,6 +1954,16 @@ def combine_and_shuffle(input_filenames, output_filename, k_factors=None, overwr
     # Shuffle
     all_observations, all_weights, all_sampling_ids = shuffle(all_observations, all_weights, all_sampling_ids)
 
+    # Recalculate header info: number of events
+    if recalculate_header:
+        all_n_events_signal_per_benchmark, all_n_events_background = _calculate_n_events(all_sampling_ids, n_benchmarks)
+
+        logger.debug(
+            "Recalculated event numbers per benchmark: %s, background: %s",
+            all_n_events_signal_per_benchmark,
+            all_n_events_background,
+        )
+
     # Save result
     save_preformatted_events_to_madminer_file(
         filename=output_filename,
@@ -1958,6 +1979,16 @@ def combine_and_shuffle(input_filenames, output_filename, k_factors=None, overwr
             n_events_background=all_n_events_background,
             n_events_per_sampling_benchmark=all_n_events_signal_per_benchmark,
         )
+
+
+def _calculate_n_events(sampling_ids, n_benchmarks):
+    if sampling_ids is None:
+        return None, None
+    unique, counts = np.unique(sampling_ids, return_counts=True)
+    results = dict(zip(unique, counts))
+    n_events_backgrounds = results.get(-1, 0)
+    n_events_signal_per_benchmark = np.array([results.get(i, 0) for i in range(n_benchmarks)], dtype=np.int)
+    return n_events_signal_per_benchmark, n_events_backgrounds
 
 
 def benchmark(benchmark_name):
