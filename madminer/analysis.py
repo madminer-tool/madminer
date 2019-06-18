@@ -77,6 +77,9 @@ class DataAnalyzer(object):
         else:
             self.include_nuisance_parameters = False
 
+        # Check event numbers
+        self._check_n_events()
+
         self._report_setup()
 
     def event_loader(
@@ -478,6 +481,20 @@ class DataAnalyzer(object):
 
         return xsec_gradients
 
+    def _check_n_events(self):
+        if self.n_events_generated_per_benchmark is None:
+            return
+
+        n_events_check = sum(self.n_events_generated_per_benchmark)
+        if self.n_events_backgrounds is not None:
+            n_events_check += self.n_events_backgrounds
+
+        if self.n_samples != n_events_check:
+            logger.warning(
+                "Inconsistent event numbers in HDF5 file! Please recalculate them by calling "
+                "combine_and_shuffle(recalculate_header=True)."
+            )
+
     def _report_setup(self):
         logger.info("Found %s parameters", self.n_parameters)
         for key, values in six.iteritems(self.parameters):
@@ -514,7 +531,9 @@ class DataAnalyzer(object):
         if self.n_events_generated_per_benchmark is not None:
             for events, name in zip(self.n_events_generated_per_benchmark, six.iterkeys(self.benchmarks)):
                 if events > 0:
-                    logger.info("  %s generated from %s", events, name)
+                    logger.info("  %s signal events sampled from benchmark %s", events, name)
+            if self.n_events_backgrounds is not None and self.n_events_backgrounds > 0:
+                logger.info("  %s background events", self.n_events_backgrounds)
         else:
             logger.debug("  Did not find sample summary information")
 

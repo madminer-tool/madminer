@@ -91,9 +91,12 @@ class AsymptoticLimits(DataAnalyzer):
         histo_theta_batchsize=100,
         weighted_histo=True,
         score_components=None,
+        sample_only_from_closest_benchmark=True,
     ):
         logger.info("Generating Asimov data")
-        x_asimov, x_weights = self._asimov_data(theta_true)
+        x_asimov, x_weights = self._asimov_data(
+            theta_true, sample_only_from_closest_benchmark=sample_only_from_closest_benchmark
+        )
         n_observed = luminosity * self._calculate_xsecs([theta_true])[0]
         logger.info("Expected events: %s", n_observed)
         theta_grid, return_values, i_ml = self._analyse(
@@ -114,7 +117,7 @@ class AsymptoticLimits(DataAnalyzer):
             histo_theta_batchsize=histo_theta_batchsize,
             theta_true=theta_true,
             weighted_histo=weighted_histo,
-            score_components=None,
+            score_components=score_components,
         )
         return theta_grid, return_values, i_ml
 
@@ -282,9 +285,16 @@ class AsymptoticLimits(DataAnalyzer):
             xsecs.append(mdot(theta_matrix, xsecs_benchmarks) * correction_factor)
         return np.asarray(xsecs)
 
-    def _asimov_data(self, theta, test_split=0.2):
+    def _asimov_data(self, theta, test_split=0.2, sample_only_from_closest_benchmark=True):
         start_event, end_event, correction_factor = self._train_test_split(False, test_split)
-        x, weights_benchmarks = next(self.event_loader(start=start_event, end=end_event, batch_size=None))
+        x, weights_benchmarks = next(
+            self.event_loader(
+                start=start_event,
+                end=end_event,
+                batch_size=None,
+                generated_close_to=theta if sample_only_from_closest_benchmark else None,
+            )
+        )
         weights_benchmarks *= correction_factor
 
         theta_matrix = self._get_theta_benchmark_matrix(theta)
