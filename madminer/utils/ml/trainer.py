@@ -25,8 +25,9 @@ class NanException(Exception):
 class NumpyDataset(Dataset):
     """ Dataset for numpy arrays with explicit memmap support """
 
-    def __init__(self, *arrays, dtype=torch.float):
-        self.dtype = dtype
+    def __init__(self, *arrays, **kwargs):
+
+        self.dtype = kwargs.get("dtype", torch.float)
         self.memmap = []
         self.data = []
         self.n = None
