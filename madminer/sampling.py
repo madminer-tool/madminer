@@ -1839,7 +1839,9 @@ class SampleAugmenter(DataAnalyzer):
                 return "{} random morphing points, drawn from the following priors:{}".format(theta[1][0], prior_str)
 
 
-def combine_and_shuffle(input_filenames, output_filename, k_factors=None, overwrite_existing_file=True, recalculate_header=True):
+def combine_and_shuffle(
+    input_filenames, output_filename, k_factors=None, overwrite_existing_file=True, recalculate_header=True
+):
     """
     Combines multiple MadMiner files into one, and shuffles the order of the events.
 
@@ -1887,7 +1889,9 @@ def combine_and_shuffle(input_filenames, output_filename, k_factors=None, overwr
         k_factors = [k_factors for _ in input_filenames]
 
     if len(input_filenames) != len(k_factors):
-        raise RuntimeError("Inconsistent length of input filenames and k factors: %s vs %s", len(input_filenames), len(k_factors))
+        raise RuntimeError(
+            "Inconsistent length of input filenames and k factors: %s vs %s", len(input_filenames), len(k_factors)
+        )
 
     # Copy first file to output_filename
     logger.info("Copying setup from %s to %s", input_filenames[0], output_filename)
@@ -1954,7 +1958,11 @@ def combine_and_shuffle(input_filenames, output_filename, k_factors=None, overwr
     if recalculate_header:
         all_n_events_signal_per_benchmark, all_n_events_background = _calculate_n_events(all_sampling_ids, n_benchmarks)
 
-        logger.debug("Recalculated event numbers per benchmark: %s, background: %s", all_n_events_signal_per_benchmark, all_n_events_background)
+        logger.debug(
+            "Recalculated event numbers per benchmark: %s, background: %s",
+            all_n_events_signal_per_benchmark,
+            all_n_events_background,
+        )
 
     # Save result
     save_preformatted_events_to_madminer_file(
@@ -1978,7 +1986,7 @@ def _calculate_n_events(sampling_ids, n_benchmarks):
         return None, None
     unique, counts = np.unique(sampling_ids, return_counts=True)
     results = dict(zip(unique, counts))
-    n_events_backgrounds = results.get(-1,0)
+    n_events_backgrounds = results.get(-1, 0)
     n_events_signal_per_benchmark = np.array([results.get(i, 0) for i in range(n_benchmarks)], dtype=np.int)
     return n_events_signal_per_benchmark, n_events_backgrounds
 
