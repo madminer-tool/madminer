@@ -88,6 +88,7 @@ class SampleAugmenter(DataAnalyzer):
         n_processes=1,
         n_eff_forced=None,
         suppress_logging=False,
+        double_precision=False,
     ):
         """
         Extracts plain training samples `x ~ p(x|theta)` without any augmented data. This can be use for standard
@@ -172,6 +173,7 @@ class SampleAugmenter(DataAnalyzer):
             sample_only_from_closest_benchmark=sample_only_from_closest_benchmark,
             n_eff_forced=n_eff_forced,
             suppress_logging=suppress_logging,
+            double_precision=double_precision,
         )
 
         # Save data
@@ -195,6 +197,7 @@ class SampleAugmenter(DataAnalyzer):
         n_processes=1,
         log_message=True,
         n_eff_forced=None,
+        double_precision=False,
     ):
         """
         Extracts training samples x ~ p(x|theta) as well as the joint score t(x, z|theta). This can be used for
@@ -304,6 +307,7 @@ class SampleAugmenter(DataAnalyzer):
             n_processes=n_processes,
             sample_only_from_closest_benchmark=sample_only_from_closest_benchmark,
             n_eff_forced=n_eff_forced,
+            double_precision=double_precision,
         )
         t_xz = augmented_data[0]
 
@@ -328,6 +332,7 @@ class SampleAugmenter(DataAnalyzer):
         switch_train_test_events=False,
         n_processes=1,
         n_eff_forced=None,
+        double_precision=False,
     ):
         """
         Extracts training samples x ~ p(x|theta) as well as the joint score t(x, z|theta), where theta is sampled
@@ -435,6 +440,7 @@ class SampleAugmenter(DataAnalyzer):
         n_processes=1,
         return_individual_n_effective=False,
         n_eff_forced=None,
+        double_precision=False,
     ):
         """
         Extracts training samples `x ~ p(x|theta0)` and `x ~ p(x|theta1)` together with the class label `y`, the joint
@@ -573,6 +579,7 @@ class SampleAugmenter(DataAnalyzer):
                 n_processes=n_processes,
                 sample_only_from_closest_benchmark=sample_only_from_closest_benchmark,
                 n_eff_forced=n_eff_forced,
+                double_precision=double_precision,
             )
             t_xz0 = None
         else:
@@ -587,6 +594,7 @@ class SampleAugmenter(DataAnalyzer):
                 n_processes=n_processes,
                 sample_only_from_closest_benchmark=sample_only_from_closest_benchmark,
                 n_eff_forced=n_eff_forced,
+                double_precision=double_precision,
             )
 
         if return_individual_n_effective:
@@ -614,6 +622,7 @@ class SampleAugmenter(DataAnalyzer):
                 n_processes=n_processes,
                 sample_only_from_closest_benchmark=sample_only_from_closest_benchmark,
                 n_eff_forced=n_eff_forced,
+                double_precision=double_precision,
             )
             t_xz1 = None
         else:
@@ -628,6 +637,7 @@ class SampleAugmenter(DataAnalyzer):
                 n_processes=n_processes,
                 sample_only_from_closest_benchmark=sample_only_from_closest_benchmark,
                 n_eff_forced=n_eff_forced,
+                double_precision=double_precision,
             )
 
         if return_individual_n_effective:
@@ -682,6 +692,7 @@ class SampleAugmenter(DataAnalyzer):
         switch_train_test_events=False,
         n_processes=1,
         n_eff_forced=None,
+        double_precision=False,
     ):
         """
         Extracts training samples `x ~ p(x|theta0)` and `x ~ p(x|theta1)` together with the class label `y`, the joint
@@ -855,6 +866,7 @@ class SampleAugmenter(DataAnalyzer):
             n_processes=n_processes,
             sample_only_from_closest_benchmark=sample_only_from_closest_benchmark,
             n_eff_forced=n_eff_forced,
+            double_precision=double_precision,
         )
         n_actual_samples = x_0.shape[0]
 
@@ -919,6 +931,7 @@ class SampleAugmenter(DataAnalyzer):
             n_processes=n_processes,
             sample_only_from_closest_benchmark=sample_only_from_closest_benchmark,
             n_eff_forced=n_eff_forced,
+            double_precision=double_precision,
         )
         n_actual_samples += x_1.shape[0]
 
@@ -992,6 +1005,7 @@ class SampleAugmenter(DataAnalyzer):
         switch_train_test_events=False,
         n_processes=1,
         n_eff_forced=None,
+        double_precision=False,
     ):
         """
         Extracts evaluation samples `x ~ p(x|theta)` without any augmented data.
@@ -1065,6 +1079,7 @@ class SampleAugmenter(DataAnalyzer):
             test_split=test_split,
             n_processes=n_processes,
             sample_only_from_closest_benchmark=sample_only_from_closest_benchmark,
+            double_precision=double_precision,
         )
 
         # Save data
@@ -1138,6 +1153,7 @@ class SampleAugmenter(DataAnalyzer):
         force_update_patience=15 * 60.0,
         n_eff_forced=None,
         suppress_logging=False,
+        double_precision=False,
     ):
         """
         Low-level function for the extraction of information from the event samples. Do not use this function directly.
@@ -1253,6 +1269,7 @@ class SampleAugmenter(DataAnalyzer):
                 n_neg_weights_warnings=1000,
                 sample_only_from_closest_benchmark=sample_only_from_closest_benchmark,
                 n_eff_forced=n_eff_forced,
+                double_precision=double_precision,
             )
 
             logger.info("Starting sampling jobs in parallel, using %s processes", n_processes)
@@ -1331,6 +1348,7 @@ class SampleAugmenter(DataAnalyzer):
                     sample_only_from_closest_benchmark=sample_only_from_closest_benchmark,
                     n_eff_forced=n_eff_forced,
                     suppress_logging=suppress_logging,
+                    double_precision=double_precision,
                 )
 
                 all_x.append(x)
@@ -1395,7 +1413,10 @@ class SampleAugmenter(DataAnalyzer):
         n_too_large_weights_warnings=0,
         n_eff_forced=None,
         suppress_logging=False,
+        double_precision=False,
     ):
+        # Dtype
+        dtype = np.float64 if double_precision else np.float32
 
         # Parse thetas and nus
         thetas, nus = [], []
@@ -1409,7 +1430,7 @@ class SampleAugmenter(DataAnalyzer):
             nus.append(nu)
 
             theta_value = self._get_theta_value(theta)
-            theta_value = np.broadcast_to(theta_value, (n_samples, theta_value.size))
+            theta_value = np.broadcast_to(theta_value, (n_samples, theta_value.size)).astype(dtype)
             theta_values.append(theta_value)
 
             if nu is None:
@@ -1417,7 +1438,7 @@ class SampleAugmenter(DataAnalyzer):
                 nu_values.append([[None] for _ in range(n_samples)])
             else:
                 nu_value = self._get_nu_value(nu)
-                nu_values.append(np.broadcast_to(nu_value, (n_samples, nu_value.size)))
+                nu_values.append(np.broadcast_to(nu_value, (n_samples, nu_value.size)).astype(dtype))
 
             theta_matrices.append(self._get_theta_benchmark_matrix(theta))
             if needs_gradients:
@@ -1465,16 +1486,18 @@ class SampleAugmenter(DataAnalyzer):
 
         # Prepare output
         done = np.zeros(n_samples, dtype=np.bool)
-        x = np.zeros((n_samples, self.n_observables))
+        x = np.zeros((n_samples, self.n_observables), dtype=dtype)
         augmented_data = []
         for definition in augmented_data_definitions:
             if definition[0] == "ratio":
-                augmented_data.append(np.zeros((n_samples, 1)))
+                augmented_data.append(np.zeros((n_samples, 1), dtype=dtype))
             elif definition[0] == "score":
                 if nuisance_score:
-                    augmented_data.append(np.zeros((n_samples, self.n_parameters + self.n_nuisance_parameters)))
+                    augmented_data.append(
+                        np.zeros((n_samples, self.n_parameters + self.n_nuisance_parameters), dtype=dtype)
+                    )
                 else:
-                    augmented_data.append(np.zeros((n_samples, self.n_parameters)))
+                    augmented_data.append(np.zeros((n_samples, self.n_parameters), dtype=dtype))
         largest_event_probability = 0.0
 
         # Main sampling loop
