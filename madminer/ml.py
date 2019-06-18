@@ -262,6 +262,7 @@ class ParameterizedRatioEstimator(Estimator):
         scale_inputs=True,
         shuffle_labels=False,
         limit_samplesize=None,
+        memmap=False,
         verbose="some",
     ):
 
@@ -332,6 +333,9 @@ class ParameterizedRatioEstimator(Estimator):
         limit_samplesize : int or None, optional
             If not None, only this number of samples (events) is used to train the estimator. Default value: None.
 
+        memmap : bool, optional.
+            If True, training files larger than 1 GB will not be loaded into memory at once. Default value: False.
+
         verbose : {"all", "many", "some", "few", "none}, optional
             Determines verbosity of training. Default value: "some".
 
@@ -362,11 +366,12 @@ class ParameterizedRatioEstimator(Estimator):
 
         # Load training data
         logger.info("Loading training data")
-        theta = load_and_check(theta)
-        x = load_and_check(x)
-        y = load_and_check(y)
-        r_xz = load_and_check(r_xz)
-        t_xz = load_and_check(t_xz)
+        memmap_threshold = 1.0 if memmap else None
+        theta = load_and_check(theta, memmap_files_larger_than_gb=memmap_threshold)
+        x = load_and_check(x, memmap_files_larger_than_gb=memmap_threshold)
+        y = load_and_check(y, memmap_files_larger_than_gb=memmap_threshold)
+        r_xz = load_and_check(r_xz, memmap_files_larger_than_gb=memmap_threshold)
+        t_xz = load_and_check(t_xz, memmap_files_larger_than_gb=memmap_threshold)
 
         self._check_required_data(method, r_xz, t_xz)
 
@@ -635,6 +640,7 @@ class DoubleParameterizedRatioEstimator(Estimator):
         scale_inputs=True,
         shuffle_labels=False,
         limit_samplesize=None,
+        memmap=False,
         verbose="some",
     ):
 
@@ -711,6 +717,9 @@ class DoubleParameterizedRatioEstimator(Estimator):
         limit_samplesize : int or None, optional
             If not None, only this number of samples (events) is used to train the estimator. Default value: None.
 
+        memmap : bool, optional.
+            If True, training files larger than 1 GB will not be loaded into memory at once. Default value: False.
+
         verbose : {"all", "many", "some", "few", "none}, optional
             Determines verbosity of training. Default value: "some".
 
@@ -741,13 +750,15 @@ class DoubleParameterizedRatioEstimator(Estimator):
 
         # Load training data
         logger.info("Loading training data")
-        theta0 = load_and_check(theta0)
-        theta1 = load_and_check(theta1)
-        x = load_and_check(x)
-        y = load_and_check(y)
-        r_xz = load_and_check(r_xz)
-        t_xz0 = load_and_check(t_xz0)
-        t_xz1 = load_and_check(t_xz1)
+        logger.info("Loading training data")
+        memmap_threshold = 1.0 if memmap else None
+        theta0 = load_and_check(theta0, memmap_files_larger_than_gb=memmap_threshold)
+        theta1 = load_and_check(theta1, memmap_files_larger_than_gb=memmap_threshold)
+        x = load_and_check(x, memmap_files_larger_than_gb=memmap_threshold)
+        y = load_and_check(y, memmap_files_larger_than_gb=memmap_threshold)
+        r_xz = load_and_check(r_xz, memmap_files_larger_than_gb=memmap_threshold)
+        t_xz0 = load_and_check(t_xz0, memmap_files_larger_than_gb=memmap_threshold)
+        t_xz1 = load_and_check(t_xz1, memmap_files_larger_than_gb=memmap_threshold)
 
         self._check_required_data(method, r_xz, t_xz0, t_xz1)
 
@@ -1043,6 +1054,7 @@ class ScoreEstimator(Estimator):
         scale_inputs=True,
         shuffle_labels=False,
         limit_samplesize=None,
+        memmap=False,
         verbose="some",
     ):
 
@@ -1100,6 +1112,9 @@ class ScoreEstimator(Estimator):
         limit_samplesize : int or None, optional
             If not None, only this number of samples (events) is used to train the estimator. Default value: None.
 
+        memmap : bool, optional.
+            If True, training files larger than 1 GB will not be loaded into memory at once. Default value: False.
+
         verbose : {"all", "many", "some", "few", "none}, optional
             Determines verbosity of training. Default value: "some".
 
@@ -1131,8 +1146,9 @@ class ScoreEstimator(Estimator):
 
         # Load training data
         logger.info("Loading training data")
-        x = load_and_check(x)
-        t_xz = load_and_check(t_xz)
+        memmap_threshold = 1.0 if memmap else None
+        x = load_and_check(x, memmap_files_larger_than_gb=memmap_threshold)
+        t_xz = load_and_check(t_xz, memmap_files_larger_than_gb=memmap_threshold)
 
         # Infer dimensions of problem
         n_samples = x.shape[0]
@@ -1532,6 +1548,7 @@ class LikelihoodEstimator(Estimator):
         scale_inputs=True,
         shuffle_labels=False,
         limit_samplesize=None,
+        memmap=False,
         verbose="some",
     ):
 
@@ -1595,6 +1612,9 @@ class LikelihoodEstimator(Estimator):
         limit_samplesize : int or None, optional
             If not None, only this number of samples (events) is used to train the estimator. Default value: None.
 
+        memmap : bool, optional.
+            If True, training files larger than 1 GB will not be loaded into memory at once. Default value: False.
+
         verbose : {"all", "many", "some", "few", "none}, optional
             Determines verbosity of training. Default value: "some".
 
@@ -1625,9 +1645,10 @@ class LikelihoodEstimator(Estimator):
 
         # Load training data
         logger.info("Loading training data")
-        theta = load_and_check(theta)
-        x = load_and_check(x)
-        t_xz = load_and_check(t_xz)
+        memmap_threshold = 1.0 if memmap else None
+        theta = load_and_check(theta, memmap_files_larger_than_gb=memmap_threshold)
+        x = load_and_check(x, memmap_files_larger_than_gb=memmap_threshold)
+        t_xz = load_and_check(t_xz, memmap_files_larger_than_gb=memmap_threshold)
 
         self._check_required_data(method, t_xz)
 

@@ -49,6 +49,7 @@ class AsymptoticLimits(DataAnalyzer):
         n_observed=None,
         histo_theta_batchsize=100,
         weighted_histo=True,
+        score_components=None,
     ):
         if n_observed is None:
             n_observed = len(x_observed)
@@ -69,6 +70,7 @@ class AsymptoticLimits(DataAnalyzer):
             dof=dof,
             histo_theta_batchsize=histo_theta_batchsize,
             weighted_histo=weighted_histo,
+            score_components=score_components,
         )
         return theta_grid, return_values, i_ml
 
@@ -88,6 +90,7 @@ class AsymptoticLimits(DataAnalyzer):
         dof=None,
         histo_theta_batchsize=100,
         weighted_histo=True,
+        score_components=None,
     ):
         logger.info("Generating Asimov data")
         x_asimov, x_weights = self._asimov_data(theta_true)
@@ -111,6 +114,7 @@ class AsymptoticLimits(DataAnalyzer):
             histo_theta_batchsize=histo_theta_batchsize,
             theta_true=theta_true,
             weighted_histo=weighted_histo,
+            score_components=None,
         )
         return theta_grid, return_values, i_ml
 
@@ -140,6 +144,7 @@ class AsymptoticLimits(DataAnalyzer):
         histo_theta_batchsize=100,
         theta_true=None,
         weighted_histo=True,
+        score_components=None,
     ):
         logger.debug("Calculating p-values for %s expected events", n_events)
 
@@ -176,9 +181,16 @@ class AsymptoticLimits(DataAnalyzer):
                 logger.info("Setting up standard summary statistics")
                 summary_function = self._make_summary_statistic_function("observables", observables=hist_vars)
             elif model_file is not None:
-                logger.info("Loading score estimator and setting it up as summary statistics")
+                if score_components is None:
+                    logger.info("Loading score estimator and setting all components up as summary statistics")
+                else:
+                    logger.info(
+                        "Loading score estimator and setting components %s up as summary statistics", score_components
+                    )
                 model = load_estimator(model_file)
-                summary_function = self._make_summary_statistic_function("sally", model=model)
+                summary_function = self._make_summary_statistic_function(
+                    "sally", model=model, observables=score_components
+                )
             else:
                 raise RuntimeError("For 'histo' mode, either provide histo_vars or model_file!")
             summary_stats = summary_function(x)
@@ -245,6 +257,8 @@ class AsymptoticLimits(DataAnalyzer):
             def summary_function(x):
                 score = model.evaluate_score(x)
                 score = score[:, : self.n_parameters]
+                if observables is not None:
+                    score = score[:, observables]
                 return score
 
         else:
