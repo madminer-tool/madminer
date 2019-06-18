@@ -1907,7 +1907,7 @@ def combine_and_shuffle(input_filenames, output_filename, k_factors=None, overwr
 
         (
             _,
-            _,
+            benchmarks,
             _,
             _,
             _,
@@ -1919,6 +1919,7 @@ def combine_and_shuffle(input_filenames, output_filename, k_factors=None, overwr
             n_signal_events_generated_per_benchmark,
             n_background_events,
         ) = load_madminer_settings(filename)
+        n_benchmarks = len(benchmarks)
 
         if n_signal_events_generated_per_benchmark is not None and n_background_events is not None:
             all_n_events_signal_per_benchmark += n_signal_events_generated_per_benchmark
@@ -1945,7 +1946,9 @@ def combine_and_shuffle(input_filenames, output_filename, k_factors=None, overwr
 
     # Recalculate header info: number of events
     if recalculate_header:
-        all_n_events_signal_per_benchmark, all_n_events_background = _calculate_n_events(all_sampling_ids)
+        all_n_events_signal_per_benchmark, all_n_events_background = _calculate_n_events(all_sampling_ids, n_benchmarks)
+
+        logger.debug("Recalculated event numbers per benchmark: %s, background: %s", all_n_events_signal_per_benchmark, all_n_events_background)
 
     # Save result
     save_preformatted_events_to_madminer_file(
@@ -1965,9 +1968,10 @@ def combine_and_shuffle(input_filenames, output_filename, k_factors=None, overwr
 
 
 def _calculate_n_events(sampling_ids, n_benchmarks):
-    counts = np.unique(sampling_ids)
-    n_events_backgrounds = counts[-1]
-    n_events_signal_per_benchmark = np.array([counts.get(i, 0) for i in range(n_benchmarks)], dtype=np.int)
+    unique, counts = np.unique(sampling_ids, return_counts=True)
+    results = dict(zip(unique, counts))
+    n_events_backgrounds = results.get(-1,0)
+    n_events_signal_per_benchmark = np.array([results.get(i, 0) for i in range(n_benchmarks)], dtype=np.int)
     return n_events_signal_per_benchmark, n_events_backgrounds
 
 
