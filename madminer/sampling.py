@@ -1839,7 +1839,7 @@ class SampleAugmenter(DataAnalyzer):
                 return "{} random morphing points, drawn from the following priors:{}".format(theta[1][0], prior_str)
 
 
-def combine_and_shuffle(input_filenames, output_filename, k_factors=None, overwrite_existing_file=True):
+def combine_and_shuffle(input_filenames, output_filename, k_factors=None, overwrite_existing_file=True, recalculate_header=True):
     """
     Combines multiple MadMiner files into one, and shuffles the order of the events.
 
@@ -1943,6 +1943,10 @@ def combine_and_shuffle(input_filenames, output_filename, k_factors=None, overwr
     # Shuffle
     all_observations, all_weights, all_sampling_ids = shuffle(all_observations, all_weights, all_sampling_ids)
 
+    # Recalculate header info: number of events
+    if recalculate_header:
+        all_n_events_signal_per_benchmark, all_n_events_background = _calculate_n_events(all_sampling_ids)
+
     # Save result
     save_preformatted_events_to_madminer_file(
         filename=output_filename,
@@ -1958,6 +1962,13 @@ def combine_and_shuffle(input_filenames, output_filename, k_factors=None, overwr
             n_events_background=all_n_events_background,
             n_events_per_sampling_benchmark=all_n_events_signal_per_benchmark,
         )
+
+
+def _calculate_n_events(sampling_ids, n_benchmarks):
+    counts = np.unique(sampling_ids)
+    n_events_backgrounds = counts[-1]
+    n_events_signal_per_benchmark = np.array([counts.get(i, 0) for i in range(n_benchmarks)], dtype=np.int)
+    return n_events_signal_per_benchmark, n_events_backgrounds
 
 
 def benchmark(benchmark_name):
