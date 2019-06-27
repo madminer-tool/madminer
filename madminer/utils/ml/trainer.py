@@ -7,7 +7,7 @@ import numpy as np
 import time
 import torch
 import torch.optim as optim
-from torch.utils.data import TensorDataset, DataLoader
+from torch.utils.data import Dataset, DataLoader
 from torch.utils.data.sampler import SubsetRandomSampler
 from torch.nn.utils import clip_grad_norm_
 
@@ -20,6 +20,43 @@ class EarlyStoppingException(Exception):
 
 class NanException(Exception):
     pass
+
+
+class NumpyDataset(Dataset):
+    """ Dataset for numpy arrays with explicit memmap support """
+
+    def __init__(self, *arrays, **kwargs):
+
+        self.dtype = kwargs.get("dtype", torch.float)
+        self.memmap = []
+        self.data = []
+        self.n = None
+
+        for array in arrays:
+            if self.n is None:
+                self.n = array.shape[0]
+            assert array.shape[0] == self.n
+
+            if isinstance(array, np.memmap):
+                self.memmap.append(True)
+                self.data.append(array)
+            else:
+                self.memmap.append(False)
+                tensor = torch.from_numpy(array).to(self.dtype)
+                self.data.append(tensor)
+
+    def __getitem__(self, index):
+        items = []
+        for memmap, array in zip(self.memmap, self.data):
+            if memmap:
+                tensor = np.array(array[index])
+                items.append(torch.from_numpy(tensor).to(self.dtype))
+            else:
+                items.append(array[index])
+        return tuple(items)
+
+    def __len__(self):
+        return self.n
 
 
 class Trainer(object):
@@ -121,6 +158,7 @@ class Trainer(object):
             self.set_lr(opt, lr)
             logger.debug("Learning rate: %s", lr)
             self._timer(stop="set lr")
+            loss_val = None
 
             try:
                 loss_train, loss_val, loss_contributions_train, loss_contributions_val = self.epoch(
@@ -157,7 +195,7 @@ class Trainer(object):
 
         self._timer(start="early stopping")
         if early_stopping and len(losses_val) > 0:
-            self.wrap_up_early_stopping(best_model, losses_val[-1], best_loss, best_epoch)
+            self.wrap_up_early_stopping(best_model, loss_val, best_loss, best_epoch)
         self._timer(stop="early stopping")
 
         logger.debug("Training finished")
@@ -185,14 +223,13 @@ class Trainer(object):
     def check_data(data):
         pass
 
-    @staticmethod
-    def make_dataset(data):
-        tensor_data = []
+    def make_dataset(self, data):
+        data_arrays = []
         data_labels = []
         for key, value in six.iteritems(data):
             data_labels.append(key)
-            tensor_data.append(torch.from_numpy(value))
-        dataset = TensorDataset(*tensor_data)
+            data_arrays.append(value)
+        dataset = NumpyDataset(*data_arrays, dtype=self.dtype)
         return data_labels, dataset
 
     def make_dataloaders(self, dataset, validation_split, batch_size):
@@ -411,7 +448,7 @@ class Trainer(object):
 
     def wrap_up_early_stopping(self, best_model, currrent_loss, best_loss, best_epoch):
         if best_loss is None or not np.isfinite(best_loss):
-            logger.warning("Loss is None, cannot wrap up early stopping")
+            logger.warning("Best loss is None, cannot wrap up early stopping")
         elif currrent_loss is None or not np.isfinite(currrent_loss) or best_loss < currrent_loss:
             logger.info(
                 "Early stopping after epoch %s, with loss %8.5f compared to final loss %8.5f",
@@ -429,7 +466,7 @@ class Trainer(object):
             if tensor is None:
                 continue
             if torch.isnan(tensor).any():
-                logger.warning("%s contains NaNs, aborting training! Data:\n%s", label, tensor)
+                logger.warning("%s contains NaNs, aborting training!", label)
                 raise NanException
 
     def _init_timer(self):

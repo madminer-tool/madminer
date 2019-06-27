@@ -262,7 +262,7 @@ def plot_distributions(
     n_toys=100,
     n_cols=3,
     quantiles_for_range=(0.025, 0.975),
-    sample_only_from_closest_benchmark=False,
+    sample_only_from_closest_benchmark=True,
 ):
     """
     Plots one-dimensional histograms of observables in a MadMiner file for a given set of benchmarks.
