@@ -50,6 +50,7 @@ class AsymptoticLimits(DataAnalyzer):
         histo_theta_batchsize=100,
         weighted_histo=True,
         score_components=None,
+        test_split=0.2,
     ):
         if n_observed is None:
             n_observed = len(x_observed)
@@ -71,6 +72,7 @@ class AsymptoticLimits(DataAnalyzer):
             histo_theta_batchsize=histo_theta_batchsize,
             weighted_histo=weighted_histo,
             score_components=score_components,
+            test_split=test_split,
         )
         return theta_grid, return_values, i_ml
 
@@ -92,10 +94,11 @@ class AsymptoticLimits(DataAnalyzer):
         weighted_histo=True,
         score_components=None,
         sample_only_from_closest_benchmark=True,
+        test_split=0.2,
     ):
         logger.info("Generating Asimov data")
         x_asimov, x_weights = self._asimov_data(
-            theta_true, sample_only_from_closest_benchmark=sample_only_from_closest_benchmark
+            theta_true, sample_only_from_closest_benchmark=sample_only_from_closest_benchmark, test_split=test_split
         )
         n_observed = luminosity * self._calculate_xsecs([theta_true])[0]
         logger.info("Expected events: %s", n_observed)
@@ -118,6 +121,7 @@ class AsymptoticLimits(DataAnalyzer):
             theta_true=theta_true,
             weighted_histo=weighted_histo,
             score_components=score_components,
+            test_split=test_split,
         )
         return theta_grid, return_values, i_ml
 
@@ -148,6 +152,7 @@ class AsymptoticLimits(DataAnalyzer):
         theta_true=None,
         weighted_histo=True,
         score_components=None,
+        test_split=0.2,
     ):
         logger.debug("Calculating p-values for %s expected events", n_events)
 
@@ -208,6 +213,7 @@ class AsymptoticLimits(DataAnalyzer):
                 n_histo_toys,
                 histo_theta_batchsize=histo_theta_batchsize,
                 weighted_histo=weighted_histo,
+                test_split=test_split,
             )
 
             logger.info("Calculating kinematic log likelihood with histograms")
@@ -324,13 +330,16 @@ class AsymptoticLimits(DataAnalyzer):
         n_histo_toys=1000,
         histo_theta_batchsize=100,
         weighted_histo=True,
+        test_split=0.2,
     ):
         logger.info("Building histogram with %s bins per parameter and %s bins per observable", theta_bins, x_bins)
         histo = Histo(theta_bins, x_bins)
 
         if weighted_histo:
             logger.debug("Generating weighted histo data")
-            theta, summary_stats, weights = self._make_weighted_histo_data(summary_function, theta_grid, n_histo_toys)
+            theta, summary_stats, weights = self._make_weighted_histo_data(
+                summary_function, theta_grid, n_histo_toys, test_split=test_split
+            )
             logger.debug(
                 "Histo data has theta dimensions %s, summary stats dimensions %s, and weight dimension %s",
                 theta.shape,
@@ -341,7 +350,11 @@ class AsymptoticLimits(DataAnalyzer):
         else:
             logger.debug("Generating sampled histo data")
             theta, summary_stats = self._make_sampled_histo_data(
-                summary_function, theta_grid, n_histo_toys, histo_theta_batchsize=histo_theta_batchsize
+                summary_function,
+                theta_grid,
+                n_histo_toys,
+                histo_theta_batchsize=histo_theta_batchsize,
+                test_split=test_split,
             )
             weights = None
             logger.debug(
