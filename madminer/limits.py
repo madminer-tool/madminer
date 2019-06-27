@@ -141,7 +141,7 @@ class AsymptoticLimits(DataAnalyzer):
         mode="ml",
         model_file=None,
         hist_vars=None,
-        hist_bins=20,
+        hist_bins=10,
         include_xsec=True,
         obs_weights=None,
         luminosity=300000.0,
@@ -205,7 +205,11 @@ class AsymptoticLimits(DataAnalyzer):
             n_summary_stats = summary_stats.shape[1]
             del x
 
-            logger.info("Creating histogram with %s bins for each summary statistic (%s bins total)", hist_bins, hist_bins * n_summary_stats)
+            logger.info(
+                "Creating histogram with %s bins for each summary statistic (%s bins total)",
+                hist_bins,
+                hist_bins * n_summary_stats,
+            )
             histo = self._make_histo(
                 summary_function,
                 hist_bins,
