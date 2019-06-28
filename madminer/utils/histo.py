@@ -47,7 +47,7 @@ class Histo:
 
         logger.debug("Binning:")
         for i, (n_bins, edges) in enumerate(zip(self.n_bins, self.edges)):
-            logger.debug("  Observable %s: %s bins with edges %s", i+1, n_bins, edges)
+            logger.debug("  Observable %s: %s bins with edges %s", i + 1, n_bins, edges)
 
         # Fill histogram
         self.histo = self._fit(x, weights, fill_empty)
@@ -69,9 +69,7 @@ class Histo:
 
         return n_bins, bin_edges
 
-    def _adaptive_binning(
-        self, x, n_bins, weights=None, lower_cutoff_percentile=0.0, upper_cutoff_percentile=100.0
-    ):
+    def _adaptive_binning(self, x, n_bins, weights=None, lower_cutoff_percentile=0.0, upper_cutoff_percentile=100.0):
         edges = weighted_quantile(
             x,
             quantiles=np.linspace(lower_cutoff_percentile / 100.0, upper_cutoff_percentile / 100.0, n_bins + 1),

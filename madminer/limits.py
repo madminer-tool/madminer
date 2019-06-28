@@ -2,7 +2,6 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import logging
 import numpy as np
-import os
 from scipy.stats import chi2, poisson
 
 from madminer.analysis import DataAnalyzer
@@ -210,11 +209,10 @@ class AsymptoticLimits(DataAnalyzer):
                 hist_bins,
                 hist_bins * n_summary_stats,
             )
-            histo = self._make_histo(
+            histos = self._make_histos(
                 summary_function,
                 hist_bins,
                 theta_grid,
-                theta_resolutions,
                 n_histo_toys,
                 histo_theta_batchsize=histo_theta_batchsize,
                 weighted_histo=weighted_histo,
@@ -222,7 +220,7 @@ class AsymptoticLimits(DataAnalyzer):
             )
 
             logger.info("Calculating kinematic log likelihood with histograms")
-            log_r_kin = self._calculate_log_likelihood_histo(summary_stats, theta_grid, histo)
+            log_r_kin = self._calculate_log_likelihood_histo(summary_stats, theta_grid, histos)
             log_r_kin = log_r_kin.astype(np.float64)
             log_r_kin = self._clean_nans(log_r_kin)
             log_r_kin = n_events * np.sum(log_r_kin * obs_weights[np.newaxis, :], axis=1)
@@ -326,54 +324,46 @@ class AsymptoticLimits(DataAnalyzer):
         theta_grid = np.vstack(theta_grid_each).T
         return theta_grid
 
-    def _make_histo(
+    def _make_histos(
         self,
         summary_function,
         x_bins,
         theta_grid,
-        theta_bins,
         n_histo_toys=1000,
         histo_theta_batchsize=100,
         weighted_histo=True,
         test_split=0.2,
     ):
-        logger.info("Building histogram with %s bins per parameter and %s bins per observable", theta_bins, x_bins)
-        histo = Histo(theta_bins, x_bins)
-
         if weighted_histo:
             logger.debug("Generating weighted histo data")
-            theta, summary_stats, weights = self._make_weighted_histo_data(
+            summary_stats, all_weights = self._make_weighted_histo_data(
                 summary_function, theta_grid, n_histo_toys, test_split=test_split
             )
-            logger.debug(
-                "Histo data has theta dimensions %s, summary stats dimensions %s, and weight dimension %s",
-                theta.shape,
-                summary_stats.shape,
-                weights.shape,
-            )
+
+            logger.debug("Making histograms")
+            histos = []
+            for weights in all_weights:
+                histos.append(Histo(summary_stats, weights, x_bins, fill_empty=1.0e-3))
 
         else:
-            logger.debug("Generating sampled histo data")
-            theta, summary_stats = self._make_sampled_histo_data(
-                summary_function,
-                theta_grid,
-                n_histo_toys,
-                histo_theta_batchsize=histo_theta_batchsize,
-                test_split=test_split,
-            )
-            weights = None
-            logger.debug(
-                "Histo data has theta dimensions %s and summary stats dimensions %s", theta.shape, summary_stats.shape
-            )
+            logger.debug("Generating sampled histo data and making histograms")
+            histos = []
 
-        logger.debug("Filling histogram with summary statistics")
-        histo.fit(theta, summary_stats, weights=weights, fill_empty_bins=True, epsilon=1.0e-3)
+            n_thetas = len(theta_grid)
+            n_batches = (n_thetas - 1) // histo_theta_batchsize + 1
+            for i_batch in range(n_batches):
+                logger.debug("Generating histogram data for batch %s / %s", i_batch + 1, n_batches)
+                theta_batch = theta_grid[i_batch * histo_theta_batchsize : (i_batch + 1) * histo_theta_batchsize]
 
-        return histo
+                _, all_summary_stats = self._make_sampled_histo_data(
+                    summary_function, theta_batch, n_histo_toys, test_split=test_split
+                )
+                for summary_stats in all_summary_stats:
+                    histos.append(Histo(summary_stats, weights=None, bins=x_bins, fill_empty=1.0e-3))
+
+        return histos
 
     def _make_weighted_histo_data(self, summary_function, thetas, n_toys, test_split=0.2):
-        n_thetas = len(thetas)
-
         # Get weighted events
         start_event, end_event, _ = self._train_test_split(True, test_split)
         x, weights_benchmarks = self.weighted_events(start_event=start_event, end_event=end_event, n_draws=n_toys)
@@ -384,60 +374,27 @@ class AsymptoticLimits(DataAnalyzer):
         # Calculate weights for thetas
         weights = self._weights(thetas, None, weights_benchmarks)
 
-        # Reformat for histos
-        all_thetas, all_weights, all_summary_stats = [], [], []
-        for theta, this_weights in zip(thetas, weights):
-            all_thetas.append(np.asarray([theta] * len(this_weights)))
-            all_weights.append(this_weights)
-            all_summary_stats.append(summary_stats)
-        all_thetas = np.concatenate(all_thetas, 0)
-        all_weights = np.concatenate(all_weights, 0)
-        all_summary_stats = np.concatenate(all_summary_stats, 0)
+        return summary_stats, weights.T
 
-        # Rescale weights to be 1 on average
-        all_weights = all_weights / np.mean(all_weights)
-
-        return all_thetas, all_summary_stats, all_weights
-
-    def _make_sampled_histo_data(
-        self, summary_function, thetas, n_toys_per_theta, test_split=0.2, histo_theta_batchsize=100
-    ):
+    def _make_sampled_histo_data(self, summary_function, thetas, n_toys_per_theta, test_split=0.2):
         sampler = SampleAugmenter(self.madminer_filename, include_nuisance_parameters=self.include_nuisance_parameters)
-        all_summary_stats, all_theta = None, None
 
         if n_toys_per_theta is None:
             n_toys_per_theta = 10000
 
-        n_thetas = len(thetas)
-        n_batches = (n_thetas - 1) // histo_theta_batchsize + 1
-        for i_batch in range(n_batches):
-            logger.debug("Generating histogram data for batch %s / %s", i_batch + 1, n_batches)
-            theta_batch = thetas[i_batch * histo_theta_batchsize : (i_batch + 1) * histo_theta_batchsize]
-            logger.debug(
-                "Theta data: indices %s to %s, shape %s",
-                i_batch * histo_theta_batchsize,
-                (i_batch + 1) * histo_theta_batchsize,
-                theta_batch.shape,
-            )
-            x, theta, _ = sampler.sample_train_plain(
-                theta=sampling.morphing_points(theta_batch),
-                n_samples=n_toys_per_theta * len(theta_batch),
-                test_split=test_split,
-                filename=None,
-                folder=None,
-                suppress_logging=True,
-            )
-            summary_stats = summary_function(x)
-            logger.debug(
-                "Output: x has shape %s, summary_stats %s, theta %s", x.shape, summary_stats.shape, theta.shape
-            )
-            if all_theta is None or all_summary_stats is None:
-                all_theta = theta
-                all_summary_stats = summary_stats
-            else:
-                all_theta = np.concatenate((all_theta, theta), 0)
-                all_summary_stats = np.concatenate((all_summary_stats, summary_stats), 0)
-        return all_theta, all_summary_stats
+        x, theta, _ = sampler.sample_train_plain(
+            theta=sampling.morphing_points(thetas),
+            n_samples=n_toys_per_theta * len(thetas),
+            test_split=test_split,
+            filename=None,
+            folder=None,
+            suppress_logging=True,
+        )
+
+        summary_stats = summary_function(x)
+        summary_stats = summary_stats.reshape((len(thetas), n_toys_per_theta, -1))
+
+        return summary_stats
 
     def _find_x_indices(self, observables):
         x_names = list(self.observables.keys())
@@ -451,10 +408,10 @@ class AsymptoticLimits(DataAnalyzer):
         return x_indices
 
     @staticmethod
-    def _calculate_log_likelihood_histo(x, theta_grid, histo):
+    def _calculate_log_likelihood_histo(x, theta_grid, histos):
         log_p = []
-        for theta in theta_grid:
-            log_p.append(histo.log_likelihood(theta, x))
+        for theta, histo in zip(theta_grid, histos):
+            log_p.append(histo.log_likelihood(x))
         log_p = np.asarray(log_p)
         return log_p
 
