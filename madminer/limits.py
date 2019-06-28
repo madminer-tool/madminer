@@ -183,23 +183,33 @@ class AsymptoticLimits(DataAnalyzer):
             log_r_kin = n_events * np.sum(log_r_kin * obs_weights[np.newaxis, :], axis=1)
             logger.debug("Rescaled -2 log r: %s", -2.0 * log_r_kin)
 
-        elif mode == "histo":
-            if hist_vars is not None:
+
+        elif mode in ["histo", "sally", "adaptive-sally", "sallino"]:
+            if mode == "histo" and hist_vars is None:
+                logger.warning("SALLY inference with mode='histo' is deprecated. Please use mode='sally', "
+                               "mode='adaptive-sally', or mode='sallino' instead.")
+                mode = "sally"
+
+            # Make summary statistic
+            if mode == "histo":
+                assert hist_vars is not None,
                 logger.info("Setting up standard summary statistics")
                 summary_function = self._make_summary_statistic_function("observables", observables=hist_vars)
-            elif model_file is not None:
+
+            elif mode == "sally":
                 if score_components is None:
                     logger.info("Loading score estimator and setting all components up as summary statistics")
                 else:
-                    logger.info(
-                        "Loading score estimator and setting components %s up as summary statistics", score_components
-                    )
+                    logger.info("Loading score estimator and setting components %s up as summary statistics", score_components)
                 model = load_estimator(model_file)
-                summary_function = self._make_summary_statistic_function(
-                    "sally", model=model, observables=score_components
-                )
+                summary_function = self._make_summary_statistic_function("sally", model=model, observables=score_components)
+            elif mode == "adaptive-sally":
+                raise NotImplementedError  # TODO
+            elif mode == "sallino":
+                raise NotImplementedError  # TODO
             else:
                 raise RuntimeError("For 'histo' mode, either provide histo_vars or model_file!")
+
             summary_stats = summary_function(x)
             n_summary_stats = summary_stats.shape[1]
             del x
