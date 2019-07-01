@@ -256,7 +256,8 @@ class AsymptoticLimits(DataAnalyzer):
             elif isinstance(hist_bins, int):
                 total_n_bins = hist_bins ** n_summary_stats
             else:
-                total_n_bins = np.prod(hist_bins)
+                n_bins_each = [n_bins if isinstance(n_bins, int) else len(n_bins) - 1 for n_bins in hist_bins]
+                total_n_bins = np.prod(n_bins_each)
 
             logger.info(
                 "Creating histograms of %s summary statistics. Using %s bins each, or %s in total.",
@@ -444,7 +445,7 @@ class AsymptoticLimits(DataAnalyzer):
                     data = summary_stats
                 else:
                     data = processor(summary_stats, theta)
-                histos.append(Histo(data, weights, x_bins, fill_empty=1.0e-3))
+                histos.append(Histo(data, weights, x_bins, fill_empty=1.0e-9))
 
         else:
             logger.debug("Generating sampled histo data and making histograms")
@@ -464,7 +465,7 @@ class AsymptoticLimits(DataAnalyzer):
                         data = summary_stats
                     else:
                         data = processor(summary_stats, theta)
-                    histos.append(Histo(data, weights=None, bins=x_bins, fill_empty=1.0e-3))
+                    histos.append(Histo(data, weights=None, bins=x_bins, fill_empty=1.0e-9))
 
         return histos
 

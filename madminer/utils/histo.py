@@ -66,7 +66,7 @@ class Histo:
             if isinstance(this_bins, int):
                 bin_edges.append(self._adaptive_binning(this_x, this_bins))
             else:
-                n_bins.append(len(this_bins) - 1)
+                bin_edges.append(this_bins)
             n_bins.append(len(bin_edges[-1]) - 1)
 
         return n_bins, bin_edges
