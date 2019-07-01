@@ -161,11 +161,11 @@ class AsymptoticLimits(DataAnalyzer):
         logger.debug("Calculating p-values for %s expected events", n_events)
 
         # Inputs
-        assert returns in ["pval", "llr", "llr_raw"], "returns has to be either 'pval','llr' or 'llr_raw'!"
+        assert returns in ["pval", "llr", "llr_raw", "histos"], "returns has to be either 'pval','llr', 'llr_raw' or 'histos'!"
 
         if thetaref is None and mode in ["sallino", "adaptive-sally"]:
             thetaref = np.zeros(self.n_parameters)
-            logging.warning(
+            logger.warning(
                 "The SALLINO and adaptive SALLY methods require the reference point, but the argument thetaref was not"
                 " provided. Assuming thetaref = %s.",
                 thetaref,
@@ -253,8 +253,10 @@ class AsymptoticLimits(DataAnalyzer):
                 else:
                     hist_bins = 5
                     total_n_bins = 5 ** n_summary_stats
+                n_bins_each = hist_bins
             elif isinstance(hist_bins, int):
                 total_n_bins = hist_bins ** n_summary_stats
+                n_bins_each = hist_bins
             else:
                 n_bins_each = [n_bins if isinstance(n_bins, int) else len(n_bins) - 1 for n_bins in hist_bins]
                 total_n_bins = np.prod(n_bins_each)
@@ -262,7 +264,7 @@ class AsymptoticLimits(DataAnalyzer):
             logger.info(
                 "Creating histograms of %s summary statistics. Using %s bins each, or %s in total.",
                 n_summary_stats,
-                hist_bins,
+                n_bins_each,
                 total_n_bins,
             )
             histos = self._make_histos(
@@ -275,6 +277,9 @@ class AsymptoticLimits(DataAnalyzer):
                 test_split=test_split,
                 processor=processor,
             )
+
+            if returns == "histos":
+                return theta_grid, histos, None
 
             logger.info("Calculating kinematic log likelihood with histograms")
             log_r_kin = self._calculate_log_likelihood_histo(summary_stats, theta_grid, histos, processor=processor)
@@ -297,7 +302,7 @@ class AsymptoticLimits(DataAnalyzer):
         logger.info("Calculating p-values")
         log_r = log_r_kin + log_p_xsec
         if returns == "llr_raw":
-            return theta_grid, log_r, 0
+            return theta_grid, log_r, None
 
         logger.debug("Combined -2 log r: %s", -2.0 * log_r)
         log_r, i_ml = self._subtract_mle(log_r)
@@ -335,7 +340,7 @@ class AsymptoticLimits(DataAnalyzer):
 
         return summary_function
 
-    def _make_score_processor(self, mode, thetaref, epsilon=1.0e-9):
+    def _make_score_processor(self, mode, thetaref, epsilon=1.0e-6):
 
         """
         From old project code:
@@ -358,14 +363,19 @@ class AsymptoticLimits(DataAnalyzer):
 
             def processor(scores, theta):
                 delta_theta = theta - thetaref
-                h = scores.dot(delta_theta.flatten()).reshape((-1, 1))
+                if np.linalg.norm(delta_theta) > epsilon:
+                    h = scores.dot(delta_theta.flatten()).reshape((-1, 1)) / np.linalg.norm(delta_theta)
+                else:
+                    h = scores[:,0]
                 return np.concatenate((h, scores), axis=0)
 
         elif mode == "sallino":
-
             def processor(scores, theta):
                 delta_theta = theta - thetaref
-                h = scores.dot(delta_theta.flatten()).reshape((-1, 1))
+                if np.linalg.norm(delta_theta) > epsilon:
+                    h = scores.dot(delta_theta.flatten()).reshape((-1, 1)) / np.linalg.norm(delta_theta)
+                else:
+                    h = scores[:,0]
                 return h
 
         else:
