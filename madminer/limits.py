@@ -38,8 +38,9 @@ class AsymptoticLimits(DataAnalyzer):
         mode="ml",
         model_file=None,
         hist_vars=None,
-        hist_bins=10,
+        hist_bins=None,
         include_xsec=True,
+        thetaref=None,
         resolutions=25,
         luminosity=300000.0,
         n_histo_toys=None,
@@ -72,6 +73,7 @@ class AsymptoticLimits(DataAnalyzer):
             weighted_histo=weighted_histo,
             score_components=score_components,
             test_split=test_split,
+            thetaref=thetaref,
         )
         return theta_grid, return_values, i_ml
 
@@ -82,8 +84,9 @@ class AsymptoticLimits(DataAnalyzer):
         mode="ml",
         model_file=None,
         hist_vars=None,
-        hist_bins=10,
+        hist_bins=None,
         include_xsec=True,
+        thetaref=None,
         resolutions=25,
         luminosity=300000.0,
         n_histo_toys=None,
@@ -121,6 +124,7 @@ class AsymptoticLimits(DataAnalyzer):
             weighted_histo=weighted_histo,
             score_components=score_components,
             test_split=test_split,
+            thetaref=thetaref,
         )
         return theta_grid, return_values, i_ml
 
@@ -152,10 +156,20 @@ class AsymptoticLimits(DataAnalyzer):
         weighted_histo=True,
         score_components=None,
         test_split=0.2,
+        thetaref=None,
     ):
         logger.debug("Calculating p-values for %s expected events", n_events)
 
+        # Inputs
         assert returns in ["pval", "llr", "llr_raw"], "returns has to be either 'pval','llr' or 'llr_raw'!"
+
+        if thetaref is None and mode in ["sallino", "adaptive-sally"]:
+            thetaref = np.zeros(self.n_parameters)
+            logging.warning(
+                "The SALLINO and adaptive SALLY methods require the reference point, but the argument thetaref was not"
+                " provided. Assuming thetaref = %s.",
+                thetaref,
+            )
 
         # Observation weights
         if obs_weights is None:
@@ -209,7 +223,7 @@ class AsymptoticLimits(DataAnalyzer):
                 summary_function = self._make_summary_statistic_function(
                     "sally", model=model, observables=score_components
                 )
-                processor = self._make_score_processor(mode)
+                processor = self._make_score_processor(mode, thetaref=thetaref)
 
             else:
                 raise RuntimeError("For 'histo' mode, either provide histo_vars or model_file!")
@@ -240,7 +254,7 @@ class AsymptoticLimits(DataAnalyzer):
                     hist_bins = 5
                     total_n_bins = 5 ** n_summary_stats
             elif isinstance(hist_bins, int):
-                total_n_bins = hist_bins**n_summary_stats
+                total_n_bins = hist_bins ** n_summary_stats
             else:
                 total_n_bins = np.prod(hist_bins)
 
