@@ -140,7 +140,7 @@ class AsymptoticLimits(DataAnalyzer):
         mode="ml",
         model_file=None,
         hist_vars=None,
-        hist_bins=10,
+        hist_bins=None,
         include_xsec=True,
         obs_weights=None,
         luminosity=300000.0,
@@ -183,41 +183,68 @@ class AsymptoticLimits(DataAnalyzer):
             log_r_kin = n_events * np.sum(log_r_kin * obs_weights[np.newaxis, :], axis=1)
             logger.debug("Rescaled -2 log r: %s", -2.0 * log_r_kin)
 
-
         elif mode in ["histo", "sally", "adaptive-sally", "sallino"]:
             if mode == "histo" and hist_vars is None:
-                logger.warning("SALLY inference with mode='histo' is deprecated. Please use mode='sally', "
-                               "mode='adaptive-sally', or mode='sallino' instead.")
+                logger.warning(
+                    "SALLY inference with mode='histo' is deprecated. Please use mode='sally', "
+                    "mode='adaptive-sally', or mode='sallino' instead."
+                )
                 mode = "sally"
 
             # Make summary statistic
             if mode == "histo":
-                assert hist_vars is not None,
+                assert hist_vars is not None
                 logger.info("Setting up standard summary statistics")
                 summary_function = self._make_summary_statistic_function("observables", observables=hist_vars)
+                processor = None
 
-            elif mode == "sally":
+            elif mode in ["sally", "adaptive-sally", "sallino"]:
                 if score_components is None:
                     logger.info("Loading score estimator and setting all components up as summary statistics")
                 else:
-                    logger.info("Loading score estimator and setting components %s up as summary statistics", score_components)
+                    logger.info(
+                        "Loading score estimator and setting components %s up as summary statistics", score_components
+                    )
                 model = load_estimator(model_file)
-                summary_function = self._make_summary_statistic_function("sally", model=model, observables=score_components)
-            elif mode == "adaptive-sally":
-                raise NotImplementedError  # TODO
-            elif mode == "sallino":
-                raise NotImplementedError  # TODO
+                summary_function = self._make_summary_statistic_function(
+                    "sally", model=model, observables=score_components
+                )
+                processor = self._make_score_processor(mode)
+
             else:
                 raise RuntimeError("For 'histo' mode, either provide histo_vars or model_file!")
 
+            # Calculate summary stats (before SALLINO / adaptive-SALLY transforms)
             summary_stats = summary_function(x)
-            n_summary_stats = summary_stats.shape[1]
             del x
 
-            logger.info(
-                "Creating histogram with %s bins for each summary statistic (%s bins total)",
+            # Dimension of summary statistic space
+            n_summary_stats = summary_stats.shape[1]
+            if mode == "adaptive-sally":
+                n_summary_stats += 1
+            elif mode == "sallino":
+                n_summary_stats = 1
+
+            # Bin numbers
+            if hist_bins is None:
+                if mode == "adaptive-sally":
+                    hist_bins = tuple([20] + [5 for _ in range(n_summary_stats - 1)])
+                    total_n_bins = 20 * 5 ** (n_summary_stats - 1)
+                elif n_summary_stats == 1:
+                    hist_bins = 50
+                    total_n_bins = 50
+                elif n_summary_stats == 2:
+                    hist_bins = 10
+                    total_n_bins = 10 ** 2
+                else:
+                    hist_bins = 5
+                    total_n_bins = 5 ** n_summary_stats
+
+            logging.info(
+                "Creating histograms of %s summary statistics. Using %s bins each, or %s in total.",
+                n_summary_stats,
                 hist_bins,
-                hist_bins * n_summary_stats,
+                total_n_bins,
             )
             histos = self._make_histos(
                 summary_function,
@@ -227,10 +254,11 @@ class AsymptoticLimits(DataAnalyzer):
                 histo_theta_batchsize=histo_theta_batchsize,
                 weighted_histo=weighted_histo,
                 test_split=test_split,
+                processor=processor,
             )
 
             logger.info("Calculating kinematic log likelihood with histograms")
-            log_r_kin = self._calculate_log_likelihood_histo(summary_stats, theta_grid, histos)
+            log_r_kin = self._calculate_log_likelihood_histo(summary_stats, theta_grid, histos, processor=processor)
             log_r_kin = log_r_kin.astype(np.float64)
             log_r_kin = self._clean_nans(log_r_kin)
             log_r_kin = n_events * np.sum(log_r_kin * obs_weights[np.newaxis, :], axis=1)
@@ -253,7 +281,7 @@ class AsymptoticLimits(DataAnalyzer):
             return theta_grid, log_r, 0
 
         logger.debug("Combined -2 log r: %s", -2.0 * log_r)
-        log_r, i_ml = self._subtract_ml(log_r)
+        log_r, i_ml = self._subtract_mle(log_r)
         logger.debug("Min-subtracted -2 log r: %s", -2.0 * log_r)
         p_values = self.asymptotic_p_value(log_r, dof=dof)
 
@@ -287,6 +315,46 @@ class AsymptoticLimits(DataAnalyzer):
             raise RuntimeError("Unknown mode {}, has to be 'observables' or 'sally'".format(mode))
 
         return summary_function
+
+    def _make_score_processor(self, mode, thetaref, epsilon=1.0e-9):
+
+        """
+        From old project code:
+
+        # Delta_theta
+        delta_theta = theta - settings.thetas[theta1]
+        delta_theta_norm = np.linalg.norm(delta_theta)
+        if delta_theta_norm > settings.epsilon:
+            rotation_matrix = (np.array([[delta_theta[0], - delta_theta[1]], [delta_theta[1], delta_theta[0]]])
+                               / np.linalg.norm(delta_theta))
+        else:
+            rotation_matrix = np.identity(2)
+
+        # Prepare calibration data
+        tthat_calibration = that_calibration.dot(delta_theta)
+        that_rotated_calibration = that_calibration.dot(rotation_matrix)
+        """
+
+        if mode == "adaptive-score":
+
+            def processor(scores, theta):
+                delta_theta = theta - thetaref
+                h = scores.dot(delta_theta.flatten()).reshape((-1, 1))
+                return np.concatenate((h, scores), axis=0)
+
+        elif mode == "sallino":
+
+            def processor(scores, theta):
+                delta_theta = theta - thetaref
+                h = scores.dot(delta_theta.flatten()).reshape((-1, 1))
+                return h
+
+        else:
+
+            def processor(scores, theta):
+                return scores
+
+        return processor
 
     def _calculate_xsecs(self, thetas, test_split=0.2):
         # Test split
@@ -343,6 +411,7 @@ class AsymptoticLimits(DataAnalyzer):
         histo_theta_batchsize=100,
         weighted_histo=True,
         test_split=0.2,
+        processor=None,
     ):
         if weighted_histo:
             logger.debug("Generating weighted histo data")
@@ -352,8 +421,12 @@ class AsymptoticLimits(DataAnalyzer):
 
             logger.debug("Making histograms")
             histos = []
-            for weights in all_weights:
-                histos.append(Histo(summary_stats, weights, x_bins, fill_empty=1.0e-3))
+            for theta, weights in zip(theta_grid, all_weights):
+                if processor is None:
+                    data = summary_stats
+                else:
+                    data = processor(summary_stats, theta)
+                histos.append(Histo(data, weights, x_bins, fill_empty=1.0e-3))
 
         else:
             logger.debug("Generating sampled histo data and making histograms")
@@ -368,8 +441,12 @@ class AsymptoticLimits(DataAnalyzer):
                 _, all_summary_stats = self._make_sampled_histo_data(
                     summary_function, theta_batch, n_histo_toys, test_split=test_split
                 )
-                for summary_stats in all_summary_stats:
-                    histos.append(Histo(summary_stats, weights=None, bins=x_bins, fill_empty=1.0e-3))
+                for theta, summary_stats in zip(theta_batch, all_summary_stats):
+                    if processor is None:
+                        data = summary_stats
+                    else:
+                        data = processor(summary_stats, theta)
+                    histos.append(Histo(data, weights=None, bins=x_bins, fill_empty=1.0e-3))
 
         return histos
 
@@ -418,10 +495,14 @@ class AsymptoticLimits(DataAnalyzer):
         return x_indices
 
     @staticmethod
-    def _calculate_log_likelihood_histo(x, theta_grid, histos):
+    def _calculate_log_likelihood_histo(summary_stats, theta_grid, histos, processor=None):
         log_p = []
         for theta, histo in zip(theta_grid, histos):
-            log_p.append(histo.log_likelihood(x))
+            if processor is None:
+                data = summary_stats
+            else:
+                data = processor(summary_stats, theta)
+            log_p.append(histo.log_likelihood(data))
         log_p = np.asarray(log_p)
         return log_p
 
@@ -466,7 +547,7 @@ class AsymptoticLimits(DataAnalyzer):
         return log_r
 
     @staticmethod
-    def _subtract_ml(log_r):
+    def _subtract_mle(log_r):
         i_ml = np.argmax(log_r)
         log_r_subtracted = log_r[:] - log_r[i_ml]
         return log_r_subtracted, i_ml
