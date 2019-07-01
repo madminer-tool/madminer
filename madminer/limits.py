@@ -239,8 +239,12 @@ class AsymptoticLimits(DataAnalyzer):
                 else:
                     hist_bins = 5
                     total_n_bins = 5 ** n_summary_stats
+            elif isinstance(hist_bins, int):
+                total_n_bins = hist_bins**n_summary_stats
+            else:
+                total_n_bins = np.prod(hist_bins)
 
-            logging.info(
+            logger.info(
                 "Creating histograms of %s summary statistics. Using %s bins each, or %s in total.",
                 n_summary_stats,
                 hist_bins,
@@ -461,7 +465,7 @@ class AsymptoticLimits(DataAnalyzer):
         # Calculate weights for thetas
         weights = self._weights(thetas, None, weights_benchmarks)
 
-        return summary_stats, weights.T
+        return summary_stats, weights
 
     def _make_sampled_histo_data(self, summary_function, thetas, n_toys_per_theta, test_split=0.2):
         sampler = SampleAugmenter(self.madminer_filename, include_nuisance_parameters=self.include_nuisance_parameters)
