@@ -161,7 +161,12 @@ class AsymptoticLimits(DataAnalyzer):
         logger.debug("Calculating p-values for %s expected events", n_events)
 
         # Inputs
-        assert returns in ["pval", "llr", "llr_raw", "histos"], "returns has to be either 'pval','llr', 'llr_raw' or 'histos'!"
+        assert returns in [
+            "pval",
+            "llr",
+            "llr_raw",
+            "histos",
+        ], "returns has to be either 'pval','llr', 'llr_raw' or 'histos'!"
 
         if thetaref is None and mode in ["sallino", "adaptive-sally"]:
             thetaref = np.zeros(self.n_parameters)
@@ -359,29 +364,33 @@ class AsymptoticLimits(DataAnalyzer):
         that_rotated_calibration = that_calibration.dot(rotation_matrix)
         """
 
-        if mode == "adaptive-score":
+        if mode == "adaptive-sally":
 
             def processor(scores, theta):
                 delta_theta = theta - thetaref
                 if np.linalg.norm(delta_theta) > epsilon:
                     h = scores.dot(delta_theta.flatten()).reshape((-1, 1)) / np.linalg.norm(delta_theta)
                 else:
-                    h = scores[:,0]
+                    h = scores[:, 0]
                 return np.concatenate((h, scores), axis=0)
 
         elif mode == "sallino":
+
             def processor(scores, theta):
                 delta_theta = theta - thetaref
                 if np.linalg.norm(delta_theta) > epsilon:
                     h = scores.dot(delta_theta.flatten()).reshape((-1, 1)) / np.linalg.norm(delta_theta)
                 else:
-                    h = scores[:,0]
+                    h = scores[:, 0]
                 return h
 
-        else:
+        elif mode == "sally":
 
             def processor(scores, theta):
                 return scores
+
+        else:
+            raise RuntimeError("Unknown score processing mode {}".format(mode))
 
         return processor
 
