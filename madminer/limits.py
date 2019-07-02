@@ -16,8 +16,26 @@ logger = logging.getLogger(__name__)
 
 class AsymptoticLimits(DataAnalyzer):
     """
-    Functions to calculate observed and expected constraints, using asymptotic properties of the likelihood ratio as
+    Statistical inference based on asymptotic properties of the likelihood ratio as
     test statistics.
+
+    This class provides two high-level functions:
+
+    * `AsymptoticLimits.observed_limits()` calculates p-values over a grid in parameter space for a given set of
+      observed data.
+    * `AsymptoticLimits.expected_limits()` calculates expected p-values over a grid in parameter space based on
+      "Asimov data", a large hypothetical data set drawn from a given parameter point. This method is typically used
+      to define expected exclusion limits or significances.
+
+    Both functions support inference based on...
+
+    * histograms of kinematic observables,
+    * based on histograms of score vectors estimated with the `madminer.ml.ScoreEstimator` class (SALLY and SALLINO
+      techniques),
+    * based on likelihood or likelihood ratio functions estimated with the `madminer.ml.LikelihoodEstimator` and
+      `madminer.ml.ParameterizedRatioEstimator` classes (NDE, SCANDAL, CARL, RASCAL, ALICES, and so on).
+
+    Currently, this class requires a morphing setup. It does *not* yet support nuisance parameters.
 
     Parameters
     ----------
@@ -25,33 +43,94 @@ class AsymptoticLimits(DataAnalyzer):
         Path to MadMiner file (for instance the output of `madminer.delphes.DelphesProcessor.save()`).
 
     include_nuisance_parameters : bool, optional
-        If True, nuisance parameters are taken into account. Default value: False.
+        If True, nuisance parameters are taken into account. Currently not implemented. Default value: False.
     """
 
     def __init__(self, filename=None, include_nuisance_parameters=False):
-        super(AsymptoticLimits, self).__init__(filename, False, include_nuisance_parameters)
+        if include_nuisance_parameters:
+            raise NotImplementedError("AsymptoticLimits does not yet support nuisance parameters.")
+
+        super(AsymptoticLimits, self).__init__(filename, False, include_nuisance_parameters=False)
 
     def observed_limits(
         self,
         x_observed,
         theta_ranges,
-        mode="ml",
+        mode,
+        include_xsec=True,
         model_file=None,
         hist_vars=None,
         hist_bins=None,
-        include_xsec=True,
+        score_components=None,
         thetaref=None,
         resolutions=25,
         luminosity=300000.0,
-        n_histo_toys=None,
-        returns="pval",
-        dof=None,
-        n_observed=None,
-        histo_theta_batchsize=100,
         weighted_histo=True,
-        score_components=None,
+        n_histo_toys=50000,
+        histo_theta_batchsize=100,
+        n_observed=None,
+        dof=None,
         test_split=0.2,
+        returns="pval",
     ):
+        """
+        Calculates p-values over a grid in parameter space based on a given set of observed events.
+
+        `x_observed` specifies the observed data as an array of observables, using the same observables and their order
+        as used throughout the MadMiner workflow.
+
+        The p-values with frequentist hypothesis tests using the likelihood ratio as test statistic. The asymptotic
+        approximation is used, see https://arxiv.org/abs/1007.1727.
+
+        Depending on the keyword `mode`, the likelihood ratio is calculated with one of several different methods:
+
+        * With `mode="histo"`, the likelihood ratio is estimated with histograms of a small number of observables given
+          by the keyword `hist_vars`. `hist_bins` determines the binning of the histograms.
+        * With `mode="ml"`, the likelihood ratio is estimated with a parameterized neural network. `model_file` has to
+          point to the filename of a saved `LikelihoodEstimator` or `ParameterizedRatioEstimator` instance or a
+          corresponding `Ensemble` (i.e. be the same filename used when calling `estimator.save()`).
+        * With `mode="sally"`, the likelihood ratio is estimated with histograms of the components of the estimated
+          score vector. `model_file` has to point to the filename of a saved `ScoreEstimator` instance. With
+          `score_components`, the histogram can be restricted to some components of the score. `hist_bins` defines the
+          binning of the histograms.
+        * With `mode="adaptive-sally"`, the likelihood ratio is estimated with histograms of the components of the
+          estimated score vector. The approach is essentially the same as for `"sally"`, but the histogram binning is
+          optimized for every parameter point by adding a new `h = score * (theta - thetaref)` dimension to the
+          histogram.
+        * With `mode="sallino"`, the likelihood ratio is estimated with one-dimensional histograms of the scalar
+          variable `h = score * (theta - thetaref)` for each point `theta` along the parameter grid. `model_file` has to
+          point to the filename of a saved `ScoreEstimator` instance.  `hist_bins` defines the binning of the histogram.
+
+        MadMiner calculates one p-value for every parameter point on an evenly spaced grid specified by `theta_ranges`
+        and `resolutions`. For instance, in a three-dimensional parameter space,
+        `theta_ranges=[(-1., 1.), (-2., 2.), (-3., 3.)]` and `resolutions=[10,10,10]` will start the calculation along
+        10^3 parameter points in a cube with edges `(-1, 1)` in the first parameter and so on.
+
+        Parameters
+        ----------
+        x_observed
+        theta_ranges
+        mode
+        include_xsec
+        model_file
+        hist_vars
+        hist_bins
+        score_components
+        thetaref
+        resolutions
+        luminosity
+        weighted_histo
+        n_histo_toys
+        histo_theta_batchsize
+        n_observed
+        dof
+        test_split
+        returns
+
+        Returns
+        -------
+
+        """
         if n_observed is None:
             n_observed = len(x_observed)
         theta_grid, return_values, i_ml = self._analyse(
@@ -81,7 +160,7 @@ class AsymptoticLimits(DataAnalyzer):
         self,
         theta_true,
         theta_ranges,
-        mode="ml",
+        mode,
         model_file=None,
         hist_vars=None,
         hist_bins=None,
@@ -228,7 +307,7 @@ class AsymptoticLimits(DataAnalyzer):
                 summary_function = self._make_summary_statistic_function(
                     "sally", model=model, observables=score_components
                 )
-                processor = self._make_score_processor(mode, thetaref=thetaref)
+                processor = self._make_score_processor(mode, score_components=score_components, thetaref=thetaref)
 
             else:
                 raise RuntimeError("For 'histo' mode, either provide histo_vars or model_file!")
@@ -345,29 +424,13 @@ class AsymptoticLimits(DataAnalyzer):
 
         return summary_function
 
-    def _make_score_processor(self, mode, thetaref, epsilon=1.0e-6):
-
-        """
-        From old project code:
-
-        # Delta_theta
-        delta_theta = theta - settings.thetas[theta1]
-        delta_theta_norm = np.linalg.norm(delta_theta)
-        if delta_theta_norm > settings.epsilon:
-            rotation_matrix = (np.array([[delta_theta[0], - delta_theta[1]], [delta_theta[1], delta_theta[0]]])
-                               / np.linalg.norm(delta_theta))
-        else:
-            rotation_matrix = np.identity(2)
-
-        # Prepare calibration data
-        tthat_calibration = that_calibration.dot(delta_theta)
-        that_rotated_calibration = that_calibration.dot(rotation_matrix)
-        """
-
+    def _make_score_processor(self, mode, score_components, thetaref, epsilon=1.0e-6):
         if mode == "adaptive-sally":
 
             def processor(scores, theta):
                 delta_theta = theta - thetaref
+                if score_components is not None:
+                    delta_theta = delta_theta[score_components]
                 if np.linalg.norm(delta_theta) > epsilon:
                     h = scores.dot(delta_theta.flatten()).reshape((-1, 1)) / np.linalg.norm(delta_theta)
                 else:
@@ -378,6 +441,8 @@ class AsymptoticLimits(DataAnalyzer):
 
             def processor(scores, theta):
                 delta_theta = theta - thetaref
+                if score_components is not None:
+                    delta_theta = delta_theta[score_components]
                 if np.linalg.norm(delta_theta) > epsilon:
                     h = scores.dot(delta_theta.flatten()).reshape((-1, 1)) / np.linalg.norm(delta_theta)
                 else:
