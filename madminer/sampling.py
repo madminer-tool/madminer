@@ -1873,11 +1873,11 @@ class SampleAugmenter(DataAnalyzer):
             return "{} morphing points, starting with {}".format(len(theta[1]), theta[1][:3])
         elif theta[0] == "random_morphing_points":
             prior_str = ""
-            for i, (type, arg0, arg1) in enumerate(theta[1][1]):
+            for i, (type_, arg0, arg1) in enumerate(theta[1][1]):
                 prior_str += "\n"
-                if type == "gaussian":
+                if type_ == "gaussian":
                     prior_str += "  theta_{} ~ Gaussian with mean {} and std {}".format(i, arg0, arg1)
-                elif type == "flat":
+                elif type_ == "flat":
                     prior_str += "  theta_{} ~ flat from {} to {}".format(i, arg0, arg1)
 
             if theta[1][0] is None:

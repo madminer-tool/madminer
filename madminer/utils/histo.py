@@ -101,7 +101,8 @@ class Histo:
 
         return n_bins, bin_edges
 
-    def _adaptive_binning(self, x, n_bins, weights=None, lower_cutoff_percentile=1.0, upper_cutoff_percentile=99.0):
+    @staticmethod
+    def _adaptive_binning(x, n_bins, weights=None, lower_cutoff_percentile=1.0, upper_cutoff_percentile=99.0):
         edges = weighted_quantile(
             x,
             quantiles=np.linspace(lower_cutoff_percentile / 100.0, upper_cutoff_percentile / 100.0, n_bins + 1),

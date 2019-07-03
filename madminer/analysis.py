@@ -730,7 +730,7 @@ class DataAnalyzer(object):
                 correction_factor = 1.0
             else:
                 start_event = int(round((1.0 - test_split) * self.n_samples, 0)) + 1
-                correction_factor = 1.0 / (test_split)
+                correction_factor = 1.0 / test_split
                 if start_event < 0 or start_event > self.n_samples:
                     raise ValueError("Irregular train / test split: sample {} / {}", start_event, self.n_samples)
 
