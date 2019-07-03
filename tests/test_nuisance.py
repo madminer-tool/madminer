@@ -40,8 +40,8 @@ def theta_limit_madminer(xsec=0.001, lumi=1000000.0, effect_phys=0.1, effect_sys
 
     # Calculate Fisher information
     fisher = FisherInformation(".data2.h5")
-    info, cov = fisher.calculate_fisher_information_full_truth(theta=np.array([0.0]), luminosity=lumi)
-    constraint = fisher.calculate_fisher_information_nuisance_constraints()
+    info, cov = fisher.truth_information(theta=np.array([0.0]), luminosity=lumi)
+    constraint = fisher.nuisance_constraint_information()
     info = info + constraint
     profiled = profile_information(info, [0])
 
