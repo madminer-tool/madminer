@@ -380,14 +380,14 @@ class AsymptoticLimits(DataAnalyzer):
         # Bin numbers
         if hist_bins is None:
             if mode == "adaptive-sally":
-                hist_bins = tuple([20] + [5 for _ in range(n_summary_stats - 1)])
-                total_n_bins = 20 * 5 ** (n_summary_stats - 1)
+                hist_bins = tuple([12] + [5 for _ in range(n_summary_stats - 1)])
+                total_n_bins = 12 * 5 ** (n_summary_stats - 1)
             elif n_summary_stats == 1:
-                hist_bins = 50
-                total_n_bins = 50
+                hist_bins = 25
+                total_n_bins = 25
             elif n_summary_stats == 2:
-                hist_bins = 10
-                total_n_bins = 10 ** 2
+                hist_bins = 8
+                total_n_bins = 8 ** 2
             else:
                 hist_bins = 5
                 total_n_bins = 5 ** n_summary_stats
