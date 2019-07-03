@@ -435,7 +435,8 @@ class AsymptoticLimits(DataAnalyzer):
                     h = scores.dot(delta_theta.flatten()).reshape((-1, 1)) / np.linalg.norm(delta_theta)
                 else:
                     h = scores[:, 0]
-                return np.concatenate((h, scores), axis=0)
+                h = h.reshape((-1, 1))
+                return np.concatenate((h, scores), axis=1)
 
         elif mode == "sallino":
 
@@ -447,6 +448,7 @@ class AsymptoticLimits(DataAnalyzer):
                     h = scores.dot(delta_theta.flatten()).reshape((-1, 1)) / np.linalg.norm(delta_theta)
                 else:
                     h = scores[:, 0]
+                h = h.reshape((-1, 1))
                 return h
 
         elif mode == "sally":
