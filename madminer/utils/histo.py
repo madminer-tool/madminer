@@ -46,13 +46,42 @@ class Histo:
 
         # Calculate binning
         self.n_bins, self.edges = self._calculate_binning(x, bins, weights=weights)
-
-        logger.debug("Binning:")
-        for i, (n_bins, edges) in enumerate(zip(self.n_bins, self.edges)):
-            logger.debug("  Observable %s: %s bins with edges %s", i + 1, n_bins, edges)
+        self._report_binning()
 
         # Fill histogram
-        self.histo = self._fit(x, weights, fill_empty)
+        self.histo, self.histo_uncertainties = self._fit(x, weights, fill_empty)
+        self._report_uncertainties()
+
+    def log_likelihood(self, x):
+        """
+        Calculates the log likelihood with the histogram.
+
+        Parameters
+        ----------
+        x : ndarray
+            Data with shape (n_eval, n_observables)
+
+        Returns
+        -------
+        log_likelihood : float
+            Log likelihood.
+
+        """
+
+        if len(x.shape) == 1:
+            x = x.reshape((-1, 1))
+        assert x.shape[1] == self.n_observables
+
+        # Find hist indices
+        all_indices = []
+        for i in range(self.n_observables):
+            indices = np.searchsorted(self.edges[i], x[:, i], side="right") - 1
+            indices[indices < 0] = 0
+            indices[indices >= self.n_bins[i]] = self.n_bins[i] - 1
+            all_indices.append(indices)
+
+        # Return log likelihood
+        return np.log(self.histo[tuple(all_indices)])
 
     def _calculate_binning(self, x, bins_in, weights=None):
         if isinstance(bins_in, int):
@@ -92,10 +121,15 @@ class Histo:
         # Fill histograms
         ranges = [(edges[0], edges[-1]) for edges in self.edges]
         histo, _ = np.histogramdd(x, bins=self.edges, range=ranges, normed=False, weights=weights)
+        histo_w2, _ = np.histogramdd(x, bins=self.edges, range=ranges, normed=False, weights=weights ** 2)
 
         # Avoid empty bins
         if fill_empty is not None:
             histo[histo <= fill_empty] = fill_empty
+            histo_w2[histo <= fill_empty] = fill_empty ** 2
+
+        # Uncertainties
+        histo_uncertainties = histo_w2 ** 0.5
 
         # Fix edges for bvolume calculation (to avoid larger volumes for more training data)
         modified_histo_edges = []
@@ -118,41 +152,33 @@ class Histo:
             volumes[:] *= bin_widths_broadcasted
 
         # Normalize histograms (for each theta bin)
+        histo_uncertainties /= np.sum(histos)
+        histo_uncertainties /= volumes
         histo /= np.sum(histo)
         histo /= volumes
 
         # Avoid NaNs
+        histo_uncertainties[np.invert(np.isfinite(histo))] = 1000000.0
+        histo_uncertainties[np.invert(np.isfinite(histo_uncertainties))] = 0.0
         histo[np.invert(np.isfinite(histo))] = 0.0
 
-        return histo
+        return histo, histo_uncertainties
 
-    def log_likelihood(self, x):
-        """
-        Calculates the log likelihood with the histogram.
+    def _report_binning(self):
+        logger.debug("Binning:")
+        for i, (n_bins, edges) in enumerate(zip(self.n_bins, self.edges)):
+            logger.debug("  Observable %s: %s bins with edges %s", i + 1, n_bins, edges)
 
-        Parameters
-        ----------
-        x : ndarray
-            Data with shape (n_eval, n_observables)
+    def _report_uncertainties(self):
+        rel_uncertainties = np.where(self.histo > 0.0, self.histo_uncertainties / self.histo, np.nan)
+        if np.nanmax(rel_uncertainties) > 0.2:
+            logger.warning(
+                "Large statistical uncertainties in histogram! Relative uncertainties range from %s %% to %s %% with median %s %%.",
+                100.0 * np.argmin(rel_uncertainties),
+                100.0 * np.nanmax(rel_uncertainties),
+                100.0 * np.nadnmedian(rel_uncertainties),
+            )
 
-        Returns
-        -------
-        log_likelihood : float
-            Log likelihood.
-
-        """
-
-        if len(x.shape) == 1:
-            x = x.reshape((-1, 1))
-        assert x.shape[1] == self.n_observables
-
-        # Find hist indices
-        all_indices = []
-        for i in range(self.n_observables):
-            indices = np.searchsorted(self.edges[i], x[:, i], side="right") - 1
-            indices[indices < 0] = 0
-            indices[indices >= self.n_bins[i]] = self.n_bins[i] - 1
-            all_indices.append(indices)
-
-        # Return log likelihood
-        return np.log(self.histo[tuple(all_indices)])
+        logger.debug("Statistical uncertainties in histogram:")
+        for i, (histo, unc, rel_unc) in enumerate(zip(self.histo, self.histo_uncertainties, rel_uncertainties)):
+            logger.debug("  Bin %s: %.3f +/- %.3f (%.0f %%)", i + 1, histo, unc, 100.0 * rel_unc)
