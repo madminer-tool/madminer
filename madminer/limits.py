@@ -373,10 +373,6 @@ class AsymptoticLimits(DataAnalyzer):
             and if weighted_histo is True. A larger number speeds up the calculation, but requires more memory.
             Default value: 1000.
 
-        n_observed : int or None, optional
-            If not None, the likelihood ratio is rescaled to this number of observed events before calculating p-values.
-            Default value: None.
-
         dof : int or None, optional
             If not None, sets the number of parameters for the calculation of the p-values. If None, the overall number
             of parameters is used. Default value: None.
@@ -395,7 +391,7 @@ class AsymptoticLimits(DataAnalyzer):
 
         sample_only_from_closest_benchmark : bool, optional
             If True, only events originally generated from the closest benchmarks are used when generating
-            the Asimov data (and, if weighted_histo is False, the histogram data).
+            the Asimov data (and, if weighted_histo is False, the histogram data). Default value: True.
 
         Returns
         -------

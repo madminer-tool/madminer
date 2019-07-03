@@ -275,6 +275,10 @@ class DataAnalyzer(object):
         batch_size : int, optional
             Size of the batches of events that are loaded into memory at the same time. Default value: 100000.
 
+        generated_close_to : None or ndarray, optional
+            If not None, only events originally generated from the closest benchmark to this parameter point will be
+            used. Default value : None.
+
         Returns
         -------
         xsecs : ndarray
@@ -332,7 +336,7 @@ class DataAnalyzer(object):
                 xsecs += np.sum(benchmark_weights, axis=0)
                 xsec_uncertainties += np.sum(benchmark_weights * benchmark_weights, axis=0)
 
-            # xsecs at given parame ters(theta, nu)
+            # xsecs at given parameters(theta, nu)
             else:
                 # Weights at nominal nuisance params (nu=0)
                 weights_nom = mdot(theta_matrices, benchmark_weights)  # Shape (n_thetas, n_batch)
@@ -400,6 +404,10 @@ class DataAnalyzer(object):
 
         batch_size : int, optional
             Size of the batches of events that are loaded into memory at the same time. Default value: 100000.
+
+        generated_close_to : None or ndarray, optional
+            If not None, only events originally generated from the closest benchmark to this parameter point will be
+            used. Default value : None.
 
         Returns
         -------
