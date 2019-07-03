@@ -80,7 +80,7 @@ To get the [examples](examples/), including the tutorials, clone this repository
 
 ### Docker image
 
-At [https://cloud.docker.com/u/madminertool/](https://cloud.docker.com/u/madminertool/) we provide Docker images for
+At [https://hub.docker.com/u/madminertool/](https://hub.docker.com/u/madminertool/) we provide Docker images for
 the latest version of MadMiner and the physics simulator. Please email [iem244@nyu.edu](iem244@nyu.edu) for any
 questions about the Docker images.
 
