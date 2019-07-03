@@ -152,7 +152,7 @@ class Histo:
             volumes[:] *= bin_widths_broadcasted
 
         # Normalize histograms (for each theta bin)
-        histo_uncertainties /= np.sum(histos)
+        histo_uncertainties /= np.sum(histo)
         histo_uncertainties /= volumes
         histo /= np.sum(histo)
         histo /= volumes
@@ -170,15 +170,16 @@ class Histo:
             logger.debug("  Observable %s: %s bins with edges %s", i + 1, n_bins, edges)
 
     def _report_uncertainties(self):
-        rel_uncertainties = np.where(self.histo > 0.0, self.histo_uncertainties / self.histo, np.nan)
+        rel_uncertainties = np.where(self.histo > 0.0, self.histo_uncertainties.flatten() / self.histo.flatten(), np.nan)
         if np.nanmax(rel_uncertainties) > 0.2:
             logger.warning(
-                "Large statistical uncertainties in histogram! Relative uncertainties range from %s %% to %s %% with median %s %%.",
-                100.0 * np.argmin(rel_uncertainties),
+                "Large statistical uncertainties in histogram! Relative uncertainties range from %.0f%% to %.0f%% "
+                "with median %.0f%%.",
+                100.0 * np.nanmin(rel_uncertainties),
                 100.0 * np.nanmax(rel_uncertainties),
-                100.0 * np.nadnmedian(rel_uncertainties),
+                100.0 * np.nanmedian(rel_uncertainties),
             )
 
         logger.debug("Statistical uncertainties in histogram:")
-        for i, (histo, unc, rel_unc) in enumerate(zip(self.histo, self.histo_uncertainties, rel_uncertainties)):
-            logger.debug("  Bin %s: %.3f +/- %.3f (%.0f %%)", i + 1, histo, unc, 100.0 * rel_unc)
+        for i, (histo, unc, rel_unc) in enumerate(zip(self.histo.flatten(), self.histo_uncertainties.flatten(), rel_uncertainties)):
+            logger.debug("  Bin %s: %.5f +/- %.5f (%.0f%%)", i + 1, histo, unc, 100.0 * rel_unc)
