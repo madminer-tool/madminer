@@ -107,7 +107,10 @@ class Histo:
             sample_weight=weights,
             old_style=True,
         )
-        range_ = (np.nanmin(x) - 0.01, np.nanmax(x) + 0.01)
+
+        # Increase range by some safety margin
+        range_ = (np.nanmin(x) - 0.1 * (edges[1] - edges[0]), np.nanmax(x) + 0.1 * (edges[-1] - edges[-2]))
+        logger.debug("Increasing histogram range from %s to %s", (edges[0], edges[-1]), range_)
         edges[0], edges[-1] = range_
 
         # Remove zero-width bins
@@ -117,7 +120,6 @@ class Histo:
         return edges
 
     def _fit(self, x, weights=None, fill_empty=None):
-
         # Fill histograms
         ranges = [(edges[0], edges[-1]) for edges in self.edges]
         histo, _ = np.histogramdd(x, bins=self.edges, range=ranges, normed=False, weights=weights)
@@ -134,9 +136,9 @@ class Histo:
         # Fix edges for bvolume calculation (to avoid larger volumes for more training data)
         modified_histo_edges = []
         for i in range(x.shape[1]):
-            axis_edges = self.edges[i]
-            axis_edges[0] = min(np.percentile(x[:, i], 5.0), axis_edges[1] - 0.01)
-            axis_edges[-1] = max(np.percentile(x[:, i], 95.0), axis_edges[-2] + 0.01)
+            axis_edges = np.copy(self.edges[i])
+            # axis_edges[0] = min(np.percentile(x[:, i], 5.0), axis_edges[1] - 0.01)
+            # axis_edges[-1] = max(np.percentile(x[:, i], 95.0), axis_edges[-2] + 0.01)
             modified_histo_edges.append(axis_edges)
 
         # Calculate cell volumes
@@ -170,8 +172,10 @@ class Histo:
             logger.debug("  Observable %s: %s bins with edges %s", i + 1, n_bins, edges)
 
     def _report_uncertainties(self):
-        rel_uncertainties = np.where(self.histo > 0.0, self.histo_uncertainties.flatten() / self.histo.flatten(), np.nan)
-        if np.nanmax(rel_uncertainties) > 0.2:
+        rel_uncertainties = np.where(
+            self.histo.flatten() > 0.0, self.histo_uncertainties.flatten() / self.histo.flatten(), np.nan
+        )
+        if np.nanmax(rel_uncertainties) > 0.5:
             logger.warning(
                 "Large statistical uncertainties in histogram! Relative uncertainties range from %.0f%% to %.0f%% "
                 "with median %.0f%%.",
@@ -181,5 +185,7 @@ class Histo:
             )
 
         logger.debug("Statistical uncertainties in histogram:")
-        for i, (histo, unc, rel_unc) in enumerate(zip(self.histo.flatten(), self.histo_uncertainties.flatten(), rel_uncertainties)):
+        for i, (histo, unc, rel_unc) in enumerate(
+            zip(self.histo.flatten(), self.histo_uncertainties.flatten(), rel_uncertainties)
+        ):
             logger.debug("  Bin %s: %.5f +/- %.5f (%.0f%%)", i + 1, histo, unc, 100.0 * rel_unc)

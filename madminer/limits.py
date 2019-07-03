@@ -530,6 +530,7 @@ class AsymptoticLimits(DataAnalyzer):
             x_bins = self._fixed_adaptive_binning(
                 n_histo_toys, processor, summary_function, test_split, theta_binning, x_bins
             )
+            logger.debug("Fixed adaptive binning: %s", x_bins)
 
         if weighted_histo:
             logger.debug("Generating weighted histo data")
