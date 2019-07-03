@@ -72,6 +72,7 @@ class AsymptoticLimits(DataAnalyzer):
         dof=None,
         test_split=0.2,
         return_histos=True,
+        fix_adaptive_binning="auto",
     ):
         """
         Calculates p-values over a grid in parameter space based on a given set of observed events.
@@ -126,6 +127,7 @@ class AsymptoticLimits(DataAnalyzer):
         dof
         test_split
         return_histos
+        fix_adaptive_binning
 
         Returns
         -------
@@ -153,6 +155,7 @@ class AsymptoticLimits(DataAnalyzer):
             score_components=score_components,
             test_split=test_split,
             thetaref=thetaref,
+            fix_adaptive_binning=fix_adaptive_binning
         )
         return results
 
@@ -176,6 +179,7 @@ class AsymptoticLimits(DataAnalyzer):
         score_components=None,
         sample_only_from_closest_benchmark=True,
         test_split=0.2,
+        fix_adaptive_binning="auto",
     ):
         logger.info("Generating Asimov data")
         x_asimov, x_weights = self._asimov_data(
@@ -204,6 +208,7 @@ class AsymptoticLimits(DataAnalyzer):
             score_components=score_components,
             test_split=test_split,
             thetaref=thetaref,
+            fix_adaptive_binning=fix_adaptive_binning
         )
         return results
 
@@ -236,6 +241,7 @@ class AsymptoticLimits(DataAnalyzer):
         score_components=None,
         test_split=0.2,
         thetaref=None,
+            fix_adaptive_binning="auto"
     ):
         logger.debug("Calculating p-values for %s expected events", n_events)
 
@@ -248,6 +254,9 @@ class AsymptoticLimits(DataAnalyzer):
                 thetaref,
             )
 
+        if fix_adaptive_binning == "auto":
+            fix_adaptive_binning = mode in ["sally", "histo"]
+
         # Observation weights
         if obs_weights is None:
             obs_weights = np.ones(len(x))
@@ -255,7 +264,7 @@ class AsymptoticLimits(DataAnalyzer):
         obs_weights = obs_weights.astype(np.float64)
 
         # Theta grid
-        theta_grid = self._make_theta_grid(theta_ranges, theta_resolutions)
+        theta_grid, theta_middle = self._make_theta_grid(theta_ranges, theta_resolutions)
 
         histos = None
 
@@ -312,34 +321,9 @@ class AsymptoticLimits(DataAnalyzer):
             del x
 
             # Dimension of summary statistic space
-            n_summary_stats = summary_stats.shape[1]
-            if mode == "adaptive-sally":
-                n_summary_stats += 1
-            elif mode == "sallino":
-                n_summary_stats = 1
+            hist_bins, n_bins_each, n_summary_stats, total_n_bins = self._find_bins(mode, hist_bins, summary_stats)
 
-            # Bin numbers
-            if hist_bins is None:
-                if mode == "adaptive-sally":
-                    hist_bins = tuple([20] + [5 for _ in range(n_summary_stats - 1)])
-                    total_n_bins = 20 * 5 ** (n_summary_stats - 1)
-                elif n_summary_stats == 1:
-                    hist_bins = 50
-                    total_n_bins = 50
-                elif n_summary_stats == 2:
-                    hist_bins = 10
-                    total_n_bins = 10 ** 2
-                else:
-                    hist_bins = 5
-                    total_n_bins = 5 ** n_summary_stats
-                n_bins_each = hist_bins
-            elif isinstance(hist_bins, int):
-                total_n_bins = hist_bins ** n_summary_stats
-                n_bins_each = hist_bins
-            else:
-                n_bins_each = [n_bins if isinstance(n_bins, int) else len(n_bins) - 1 for n_bins in hist_bins]
-                total_n_bins = np.prod(n_bins_each)
-
+            # Make histograms
             logger.info(
                 "Creating histograms of %s summary statistics. Using %s bins each, or %s in total.",
                 n_summary_stats,
@@ -355,8 +339,10 @@ class AsymptoticLimits(DataAnalyzer):
                 weighted_histo=weighted_histo,
                 test_split=test_split,
                 processor=processor,
+                theta_binning=theta_middle if fix_adaptive_binning else None
             )
 
+            # Evaluate histograms
             logger.info("Calculating kinematic log likelihood with histograms")
             log_r_kin = self._calculate_log_likelihood_histo(summary_stats, theta_grid, histos, processor=processor)
             log_r_kin = log_r_kin.astype(np.float64)
@@ -384,6 +370,35 @@ class AsymptoticLimits(DataAnalyzer):
         p_values = self.asymptotic_p_value(log_r, dof=dof)
 
         return theta_grid, p_values, i_ml, -2.0 * log_r_kin, -2.0 * log_p_xsec, histos if return_histos else None
+
+    def _find_bins(self, mode, hist_bins, summary_stats):
+        n_summary_stats = summary_stats.shape[1]
+        if mode == "adaptive-sally":
+            n_summary_stats += 1
+        elif mode == "sallino":
+            n_summary_stats = 1
+        # Bin numbers
+        if hist_bins is None:
+            if mode == "adaptive-sally":
+                hist_bins = tuple([20] + [5 for _ in range(n_summary_stats - 1)])
+                total_n_bins = 20 * 5 ** (n_summary_stats - 1)
+            elif n_summary_stats == 1:
+                hist_bins = 50
+                total_n_bins = 50
+            elif n_summary_stats == 2:
+                hist_bins = 10
+                total_n_bins = 10 ** 2
+            else:
+                hist_bins = 5
+                total_n_bins = 5 ** n_summary_stats
+            n_bins_each = hist_bins
+        elif isinstance(hist_bins, int):
+            total_n_bins = hist_bins ** n_summary_stats
+            n_bins_each = hist_bins
+        else:
+            n_bins_each = [n_bins if isinstance(n_bins, int) else len(n_bins) - 1 for n_bins in hist_bins]
+            total_n_bins = np.prod(n_bins_each)
+        return hist_bins, n_bins_each, n_summary_stats, total_n_bins
 
     def _make_summary_statistic_function(self, mode, model=None, observables=None):
         if mode == "observables":
@@ -488,12 +503,15 @@ class AsymptoticLimits(DataAnalyzer):
         if isinstance(resolutions, int):
             resolutions = [resolutions for _ in range(theta_ranges)]
         theta_each = []
+        theta_middle = []
         for resolution, (theta_min, theta_max) in zip(resolutions, theta_ranges):
             theta_each.append(np.linspace(theta_min, theta_max, resolution))
+            theta_middle.append(0.5 * (theta_max + theta_min))
         theta_grid_each = np.meshgrid(*theta_each, indexing="ij")
         theta_grid_each = [theta.flatten() for theta in theta_grid_each]
         theta_grid = np.vstack(theta_grid_each).T
-        return theta_grid
+        theta_middle = np.asarray(theta_middle)
+        return theta_grid, theta_middle
 
     def _make_histos(
         self,
@@ -505,7 +523,13 @@ class AsymptoticLimits(DataAnalyzer):
         weighted_histo=True,
         test_split=0.2,
         processor=None,
+        theta_binning=None,
     ):
+        if theta_binning is not None:
+            logging.info("Determining fixed adaptive histogram binning for theta = %s", theta_binning)
+            x_bins = self._fixed_adaptive_binning(n_histo_toys, processor, summary_function, test_split, theta_binning,
+                                                  x_bins)
+
         if weighted_histo:
             logger.debug("Generating weighted histo data")
             summary_stats, all_weights = self._make_weighted_histo_data(
@@ -542,6 +566,18 @@ class AsymptoticLimits(DataAnalyzer):
                     histos.append(Histo(data, weights=None, bins=x_bins, fill_empty=1.0e-9))
 
         return histos
+
+    def _fixed_adaptive_binning(self, n_histo_toys, processor, summary_function, test_split, theta_binning, x_bins):
+        summary_stats, [weights] = self._make_weighted_histo_data(
+            summary_function, [theta_binning], n_histo_toys, test_split=test_split
+        )
+        if processor is None:
+            data = summary_stats
+        else:
+            data = processor(summary_stats, theta_binning)
+        histo = Histo(data, weights, x_bins, fill_empty=1.0e-9)
+        x_bins = histo.edges
+        return x_bins
 
     def _make_weighted_histo_data(self, summary_function, thetas, n_toys, test_split=0.2):
         # Get weighted events
