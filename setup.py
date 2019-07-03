@@ -30,7 +30,7 @@ REQUIRED = [
     "h5py",
     "scikit-hep",
     "scikit-learn>=0.19.0",
-    "torch>=0.4.0",
+    "torch>=1.0.0",
     "bqplot",
     "uproot",
     "matplotlib>=2.0.0",

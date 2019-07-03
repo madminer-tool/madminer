@@ -66,12 +66,12 @@ class AsymptoticLimits(DataAnalyzer):
         resolutions=25,
         luminosity=300000.0,
         weighted_histo=True,
-        n_histo_toys=50000,
+        n_histo_toys=100000,
         histo_theta_batchsize=100,
         n_observed=None,
         dof=None,
         test_split=0.2,
-        returns="pval",
+        return_histos=True,
     ):
         """
         Calculates p-values over a grid in parameter space based on a given set of observed events.
@@ -125,7 +125,7 @@ class AsymptoticLimits(DataAnalyzer):
         n_observed
         dof
         test_split
-        returns
+        return_histos
 
         Returns
         -------
@@ -133,7 +133,7 @@ class AsymptoticLimits(DataAnalyzer):
         """
         if n_observed is None:
             n_observed = len(x_observed)
-        theta_grid, return_values, i_ml = self._analyse(
+        results = self._analyse(
             n_observed,
             x_observed,
             theta_ranges,
@@ -146,7 +146,7 @@ class AsymptoticLimits(DataAnalyzer):
             None,
             luminosity,
             n_histo_toys,
-            returns=returns,
+            return_histos=return_histos,
             dof=dof,
             histo_theta_batchsize=histo_theta_batchsize,
             weighted_histo=weighted_histo,
@@ -154,7 +154,7 @@ class AsymptoticLimits(DataAnalyzer):
             test_split=test_split,
             thetaref=thetaref,
         )
-        return theta_grid, return_values, i_ml
+        return results
 
     def expected_limits(
         self,
@@ -169,7 +169,7 @@ class AsymptoticLimits(DataAnalyzer):
         resolutions=25,
         luminosity=300000.0,
         n_histo_toys=None,
-        returns="pval",
+        return_histos=True,
         dof=None,
         histo_theta_batchsize=100,
         weighted_histo=True,
@@ -183,7 +183,7 @@ class AsymptoticLimits(DataAnalyzer):
         )
         n_observed = luminosity * self._calculate_xsecs([theta_true])[0]
         logger.info("Expected events: %s", n_observed)
-        theta_grid, return_values, i_ml = self._analyse(
+        results = self._analyse(
             n_observed,
             x_asimov,
             theta_ranges,
@@ -196,7 +196,7 @@ class AsymptoticLimits(DataAnalyzer):
             x_weights,
             luminosity,
             n_histo_toys,
-            returns=returns,
+            return_histos=return_histos,
             dof=dof,
             histo_theta_batchsize=histo_theta_batchsize,
             theta_true=theta_true,
@@ -205,7 +205,7 @@ class AsymptoticLimits(DataAnalyzer):
             test_split=test_split,
             thetaref=thetaref,
         )
-        return theta_grid, return_values, i_ml
+        return results
 
     def asymptotic_p_value(self, log_likelihood_ratio, dof=None):
         if dof is None:
@@ -220,7 +220,7 @@ class AsymptoticLimits(DataAnalyzer):
         x,
         theta_ranges,
         theta_resolutions,
-        mode="ml",
+        mode,
         model_file=None,
         hist_vars=None,
         hist_bins=None,
@@ -228,7 +228,7 @@ class AsymptoticLimits(DataAnalyzer):
         obs_weights=None,
         luminosity=300000.0,
         n_histo_toys=10000,
-        returns="pval",
+        return_histos=False,
         dof=None,
         histo_theta_batchsize=100,
         theta_true=None,
@@ -240,13 +240,6 @@ class AsymptoticLimits(DataAnalyzer):
         logger.debug("Calculating p-values for %s expected events", n_events)
 
         # Inputs
-        assert returns in [
-            "pval",
-            "llr",
-            "llr_raw",
-            "histos",
-        ], "returns has to be either 'pval','llr', 'llr_raw' or 'histos'!"
-
         if thetaref is None and mode in ["sallino", "adaptive-sally"]:
             thetaref = np.zeros(self.n_parameters)
             logger.warning(
@@ -263,6 +256,8 @@ class AsymptoticLimits(DataAnalyzer):
 
         # Theta grid
         theta_grid = self._make_theta_grid(theta_ranges, theta_resolutions)
+
+        histos = None
 
         # Kinematic part
         if mode == "rate":
@@ -362,9 +357,6 @@ class AsymptoticLimits(DataAnalyzer):
                 processor=processor,
             )
 
-            if returns == "histos":
-                return theta_grid, histos, None
-
             logger.info("Calculating kinematic log likelihood with histograms")
             log_r_kin = self._calculate_log_likelihood_histo(summary_stats, theta_grid, histos, processor=processor)
             log_r_kin = log_r_kin.astype(np.float64)
@@ -385,17 +377,13 @@ class AsymptoticLimits(DataAnalyzer):
         # Combine and get p-values
         logger.info("Calculating p-values")
         log_r = log_r_kin + log_p_xsec
-        if returns == "llr_raw":
-            return theta_grid, log_r, None
 
         logger.debug("Combined -2 log r: %s", -2.0 * log_r)
         log_r, i_ml = self._subtract_mle(log_r)
         logger.debug("Min-subtracted -2 log r: %s", -2.0 * log_r)
         p_values = self.asymptotic_p_value(log_r, dof=dof)
 
-        if returns == "llr":
-            return theta_grid, log_r, i_ml
-        return theta_grid, p_values, i_ml
+        return theta_grid, p_values, i_ml, -2.0 * log_r_kin, -2.0 * log_p_xsec, histos if return_histos else None
 
     def _make_summary_statistic_function(self, mode, model=None, observables=None):
         if mode == "observables":
