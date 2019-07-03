@@ -45,7 +45,7 @@ class Histo:
         logger.debug("  Weights:       %s", weights is not None)
 
         # Calculate binning
-        self.n_bins, self.edges = self._calculate_binning(x, bins)
+        self.n_bins, self.edges = self._calculate_binning(x, bins, weights=weights)
 
         logger.debug("Binning:")
         for i, (n_bins, edges) in enumerate(zip(self.n_bins, self.edges)):
@@ -54,7 +54,7 @@ class Histo:
         # Fill histogram
         self.histo = self._fit(x, weights, fill_empty)
 
-    def _calculate_binning(self, x, bins_in):
+    def _calculate_binning(self, x, bins_in, weights=None):
         if isinstance(bins_in, int):
             bins_in = [bins_in for _ in range(self.n_observables)]
 
@@ -64,7 +64,7 @@ class Histo:
 
         for this_bins, this_x in zip(bins_in, x.T):
             if isinstance(this_bins, int):
-                bin_edges.append(self._adaptive_binning(this_x, this_bins))
+                bin_edges.append(self._adaptive_binning(this_x, this_bins, weights=weights))
             else:
                 bin_edges.append(this_bins)
             n_bins.append(len(bin_edges[-1]) - 1)
