@@ -171,7 +171,7 @@ class AsymptoticLimits(DataAnalyzer):
         thetaref=None,
         resolutions=25,
         luminosity=300000.0,
-        n_histo_toys=None,
+        n_histo_toys=100000,
         return_histos=True,
         dof=None,
         histo_theta_batchsize=100,
@@ -232,7 +232,7 @@ class AsymptoticLimits(DataAnalyzer):
         include_xsec=True,
         obs_weights=None,
         luminosity=300000.0,
-        n_histo_toys=10000,
+        n_histo_toys=100000,
         return_histos=False,
         dof=None,
         histo_theta_batchsize=100,
@@ -526,7 +526,7 @@ class AsymptoticLimits(DataAnalyzer):
         theta_binning=None,
     ):
         if theta_binning is not None:
-            logging.info("Determining fixed adaptive histogram binning for theta = %s", theta_binning)
+            logger.info("Determining fixed adaptive histogram binning for theta = %s", theta_binning)
             x_bins = self._fixed_adaptive_binning(n_histo_toys, processor, summary_function, test_split, theta_binning,
                                                   x_bins)
 
