@@ -18,13 +18,14 @@ class Histo:
             Data with shape (n_events, n_observables)
 
         weights : None or ndarray, optional
-            Weights with shape (n_events,)
+            Weights with shape (n_events,). Default: None.
 
-        bins : int or list of int or list of ndarray
-            Number of bins per observable (when int or list of int), or actual bin boundaries (when list of ndarray)
+        bins : int or list of int or list of ndarray, optional
+            Number of bins per observable (when int or list of int), or actual bin boundaries (when list of ndarray).
+            Default: None.
 
-        fill_empty : None or float
-            If not None, this number is added to all empty bins
+        fill_empty : None or float, optional
+            If not None, this number is added to all empty bins. Default: None.
 
         """
 
@@ -100,7 +101,7 @@ class Histo:
 
         return n_bins, bin_edges
 
-    def _adaptive_binning(self, x, n_bins, weights=None, lower_cutoff_percentile=1., upper_cutoff_percentile=99.0):
+    def _adaptive_binning(self, x, n_bins, weights=None, lower_cutoff_percentile=1.0, upper_cutoff_percentile=99.0):
         edges = weighted_quantile(
             x,
             quantiles=np.linspace(lower_cutoff_percentile / 100.0, upper_cutoff_percentile / 100.0, n_bins + 1),

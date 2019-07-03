@@ -67,7 +67,7 @@ class AsymptoticLimits(DataAnalyzer):
         luminosity=300000.0,
         weighted_histo=True,
         n_histo_toys=100000,
-        histo_theta_batchsize=100,
+        histo_theta_batchsize=1000,
         n_observed=None,
         dof=None,
         test_split=0.2,
@@ -85,22 +85,28 @@ class AsymptoticLimits(DataAnalyzer):
 
         Depending on the keyword `mode`, the likelihood ratio is calculated with one of several different methods:
 
-        * With `mode="histo"`, the likelihood ratio is estimated with histograms of a small number of observables given
-          by the keyword `hist_vars`. `hist_bins` determines the binning of the histograms.
+        * With `mode="rate"`, MadMiner only calculates the Poisson likelihood of the total number of events.
+        * With `mode="histo"`, the kinematic likelihood is estimated with histograms of a small number of observables
+          given by the keyword `hist_vars`. `hist_bins` determines the binning of the histograms. `include_xsec`
+          sets whether the Poisson likelihood of the total number of events is included or not.
         * With `mode="ml"`, the likelihood ratio is estimated with a parameterized neural network. `model_file` has to
           point to the filename of a saved `LikelihoodEstimator` or `ParameterizedRatioEstimator` instance or a
-          corresponding `Ensemble` (i.e. be the same filename used when calling `estimator.save()`).
+          corresponding `Ensemble` (i.e. be the same filename used when calling `estimator.save()`). `include_xsec`
+          sets whether the Poisson likelihood of the total number of events is included or not.
         * With `mode="sally"`, the likelihood ratio is estimated with histograms of the components of the estimated
           score vector. `model_file` has to point to the filename of a saved `ScoreEstimator` instance. With
           `score_components`, the histogram can be restricted to some components of the score. `hist_bins` defines the
-          binning of the histograms.
+          binning of the histograms. `include_xsec`
+          sets whether the Poisson likelihood of the total number of events is included or not.
         * With `mode="adaptive-sally"`, the likelihood ratio is estimated with histograms of the components of the
           estimated score vector. The approach is essentially the same as for `"sally"`, but the histogram binning is
           optimized for every parameter point by adding a new `h = score * (theta - thetaref)` dimension to the
-          histogram.
+          histogram. `include_xsec`
+          sets whether the Poisson likelihood of the total number of events is included or not.
         * With `mode="sallino"`, the likelihood ratio is estimated with one-dimensional histograms of the scalar
           variable `h = score * (theta - thetaref)` for each point `theta` along the parameter grid. `model_file` has to
           point to the filename of a saved `ScoreEstimator` instance.  `hist_bins` defines the binning of the histogram.
+          `include_xsec` sets whether the Poisson likelihood of the total number of events is included or not.
 
         MadMiner calculates one p-value for every parameter point on an evenly spaced grid specified by `theta_ranges`
         and `resolutions`. For instance, in a three-dimensional parameter space,
@@ -109,28 +115,110 @@ class AsymptoticLimits(DataAnalyzer):
 
         Parameters
         ----------
-        x_observed
-        theta_ranges
-        mode
-        include_xsec
-        model_file
-        hist_vars
-        hist_bins
-        score_components
-        thetaref
-        resolutions
-        luminosity
-        weighted_histo
-        n_histo_toys
-        histo_theta_batchsize
-        n_observed
-        dof
-        test_split
-        return_histos
-        fix_adaptive_binning
+        x_observed : ndarray
+            Observed data with shape `(n_events, n_observables)`. The observables have to be the same used throughout
+            the MadMiner analysis, for instance specified in the `DelphesReader` class with `add_observables`.
+
+        theta_ranges : list of tuple of float
+            Specifies the boundaries of the parameter grid on which the p-values are evaluated. It should be
+            `[(min, max), (min, max), ..., (min, max)]`, where the list goes over all parameters and `min` and `max` are
+            float.
+
+        mode : {"rate", "histo", "ml", "sally", "sallino", "adaptive-sally"}
+            Defines how the likelihood ratio test statistic is calculated. See above.
+
+        include_xsec : bool, optional
+            Whether the Poisson likelihood representing the total number of events is included in the analysis.
+            Default value: True.
+
+        model_file : str or None, optional
+            Filename of a saved neural network estimating the likelihood, likelihood ratio, or score. Required if
+            mode is anything except "rate" or "histo". Default value: None.
+
+        hist_vars : list of str or None, optional
+            Kinematic variables used in the histograms when mode is "histo". The names are the same as used for instance
+            in `DelphesReader`. Default value: None.
+
+        hist_bins : int or list of (int or ndarray) or None, optional
+            Defines the histogram binning when mode is "histo", "sally", "adaptive-sally", or "sallino". If int, gives
+            the number of bins automatically chosen for each summary statistic. If list, each entry corresponds to one
+            summary statistic (e.g. kinematic variable specified by hist_vars or estimated score component); an int
+            entry corresponds to the number of automatically chosen bins, an ndarray specifies the bin edges along
+            this dimension explicitly. If None, the bins are chosen according to the defaults, which depend on mode and
+            the number of summary statistics. When mode is "adaptive-sally", the first summary statistic is
+            `h = score * (theta - thetaref)`, the remaining ones are the score components. Default value: None.
+
+        score_components : None or list of int, optional
+            Defines the score components used when mode is "sally" or "adaptive-sally". Default value: None.
+
+        thetaref : ndarray or None, optional
+            Defines the reference parameter point at which the score is evaluated for mode "sallino" or
+            "adaptive-sally". If None, the origin in parameter space, [0., 0., ..., 0.], is used. Default value: None.
+
+        resolutions : int or list of int, optional
+            Resolution of the parameter space grid on which the p-values are evaluated. If int, the resolution is the
+            same along every dimension of the hypercube. If list of int, the individual entries specify the number of
+            points along each parameter individually. Default value: 25.
+
+        luminosity : float, optional
+            Integrated luminosity in pb^{-1} assumed in the analysis. Default value: 300000.
+
+        weighted_histo : bool, optional
+            If True, the histograms used for the modes "histo", "sally", "sallino", and "adaptive-sally" use one set of
+            weighted events to construct the histograms at every point along the parameter grid, only with different
+            weights for each parameter point on the grid. If False, independent unweighted event samples are drawn for
+            each parameter point on the grid. Default value: True.
+
+        n_histo_toys : int or None, optional
+            Number of events drawn to construct the histograms used for the modes "histo", "sally", "sallino", and
+            "adaptive-sally". If None and weighted_histo is True, all events in the training fraction of the MadMiner
+            file are used. If None and weighted_histo is False, 100000 events are used. Default value: 100000.
+
+        histo_theta_batchsize : int or None, optional
+            Number of histograms constructed in parallel for the modes "histo", "sally", "sallino", and "adaptive-sally"
+            and if weighted_histo is True. A larger number speeds up the calculation, but requires more memory.
+            Default value: 1000.
+
+        n_observed : int or None, optional
+            If not None, the likelihood ratio is rescaled to this number of observed events before calculating p-values.
+            Default value: None.
+
+        dof : int or None, optional
+            If not None, sets the number of parameters for the calculation of the p-values. If None, the overall number
+            of parameters is used. Default value: None.
+
+        test_split : float, optional
+            Fraction of weighted events in the MadMiner file reserved for evaluation. Default value: 0.2.
+
+        return_histos : bool, optional
+            If True and if mode is "histo", "sally", "adaptive-sally", or "sallino", the function returns histogram
+            objects for each point along the grid.
+
+        fix_adaptive_binning : bool or None, optional
+            If True and if mode is "histo", "sally", "adaptive-sally", or "sallino", the automatic histogram binning
+            is the same for every point along the parameter grid. If None, this option is turned on if mode is
+            "histo" or "sally", but not for "adaptive-sally" or "sallino". Default value: None.
 
         Returns
         -------
+        parameter_grid : ndarray
+            Parameter points at which the p-values are evaluated with shape `(n_grid_points, n_parameters)`.
+
+        p_values : ndarray
+            Observed p-values for each parameter point on the grid, with shape `(n_grid_points,)`.
+
+        mle : int
+            Index of the parameter point with the best fit (largest p-value / smallest -2 log likelihood ratio).
+
+        nllr_kin : ndarray or None
+            -2 log likelihood ratio based only on kinematics for each point of the grid, with shape `(n_grid_points,)`.
+
+        nll_rate : ndarray or None
+            -2 log likelihood based only on the total rate for each point of the grid, with shape `(n_grid_points,)`.
+
+        histos : None or list of Histogram
+            None if return_histos is False. Otherwise a list of histogram objects for each point on the grid. This
+            can be useful for debugging or for plotting the histograms.
 
         """
         if n_observed is None:
@@ -235,7 +323,7 @@ class AsymptoticLimits(DataAnalyzer):
         n_histo_toys=100000,
         return_histos=False,
         dof=None,
-        histo_theta_batchsize=100,
+        histo_theta_batchsize=1000,
         theta_true=None,
         weighted_histo=True,
         score_components=None,
@@ -598,7 +686,7 @@ class AsymptoticLimits(DataAnalyzer):
         sampler = SampleAugmenter(self.madminer_filename, include_nuisance_parameters=self.include_nuisance_parameters)
 
         if n_toys_per_theta is None:
-            n_toys_per_theta = 10000
+            n_toys_per_theta = 100000
 
         x, theta, _ = sampler.sample_train_plain(
             theta=sampling.morphing_points(thetas),
