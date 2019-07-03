@@ -1,20 +1,20 @@
-# MadMiner
+# MadMiner: An inference toolkit for particle physics
 
 **Johann Brehmer, Felix Kling, Irina Espejo, and Kyle Cranmer**
 
-Mining gold from MadGraph to improve limit setting in particle physics.
-
-Note that this is an early development version. Do not expect anything to be stable. If you have any questions, please
-contact us at [johann.brehmer@nyu.edu](johann.brehmer@nyu.edu).
-
 [![PyPI version](https://badge.fury.io/py/madminer.svg)](https://badge.fury.io/py/madminer)
 [![Documentation Status](https://readthedocs.org/projects/madminer/badge/?version=latest)](https://madminer.readthedocs.io/en/latest/?badge=latest)
+[![Gitter](https://badges.gitter.im/madminer/community.svg)](https://gitter.im/madminer/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
 [![Build Status](https://travis-ci.com/diana-hep/madminer.svg?branch=master)](https://travis-ci.com/diana-hep/madminer)
 [![Docker pulls](https://img.shields.io/docker/pulls/madminertool/docker-madminer.svg)](https://hub.docker.com/r/madminertool/docker-madminer)
 [![Binder](https://mybinder.org/badge.svg)](https://mybinder.org/v2/gh/johannbrehmer/madminer/master)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/ambv/black)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.1489147.svg)](https://doi.org/10.5281/zenodo.1489147)
+
+*Note that this is a development version. Do not expect anything to be stable. If you have any questions, please
+chat to us [in our Gitter community](https://gitter.im/madminer/community) or write us at 
+[johann.brehmer@nyu.edu](johann.brehmer@nyu.edu).*
 
 ## Introduction
 
