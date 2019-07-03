@@ -345,6 +345,9 @@ def plot_distributions(
         Tuple `(min_quantile, max_quantile)` that defines how the observable range is determined for each panel.
         Default: (0.025, 0.075).
 
+    sample_only_from_closest_benchmark : bool, optional
+        If True, only weighted events originally generated from the closest benchmarks are used. Default value: True.
+
     Returns
     -------
     figure : Figure

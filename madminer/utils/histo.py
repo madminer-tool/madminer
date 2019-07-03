@@ -8,194 +8,186 @@ logger = logging.getLogger(__name__)
 
 
 class Histo:
-    def __init__(self, n_bins_thetas, n_bins_x, separate_1d_histos=False):
-        self.n_bins_thetas = n_bins_thetas
-        self.n_bins_x = n_bins_x
-        self.separate_1d_x_histos = separate_1d_histos
+    def __init__(self, x, weights=None, bins=20, fill_empty=None):
+        """
+        Initialize and fit an n-dim histogram.
 
-        logger.debug("Initialized histogram with the following settings:")
-        logger.debug("  Bins per parameter:  %s", self.n_bins_thetas)
-        logger.debug("  Bins per observable: %s", self.n_bins_x)
+        Parameters
+        ----------
+        x : ndarray
+            Data with shape (n_events, n_observables)
 
-        # Not yet trained
-        self.n_parameters = None
-        self.n_observables = None
-        self.n_bins = None
-        self.edges = None
-        self.histos = None
+        weights : None or ndarray, optional
+            Weights with shape (n_events,). Default: None.
 
-    def fit(self, theta, x, weights=None, fill_empty_bins=False, epsilon=1.0):
-        n_samples = x.shape[0]
-        self.n_parameters = theta.shape[1]
-        self.n_observables = x.shape[1]
-        assert theta.shape[0] == n_samples
+        bins : int or list of int or list of ndarray, optional
+            Number of bins per observable (when int or list of int), or actual bin boundaries (when list of ndarray).
+            Default: None.
 
-        logger.debug("Filling histogram with settings:")
-        logger.debug("  Samples:       %s", n_samples)
-        logger.debug("  Parameters:    %s with means %s", self.n_parameters, np.mean(theta, axis=0))
+        fill_empty : None or float, optional
+            If not None, this number is added to all empty bins. Default: None.
+
+        """
+
+        # Data
+        if len(x.shape) == 1:
+            x = x.reshape((-1, 1))
+        self.n_samples, self.n_observables = x.shape
+
+        if weights is not None:
+            weights = weights.flatten()
+            assert weights.shape == (self.n_samples,), "Inconsistent weight shape {} should be {}".format(
+                weights.shape, (self.n_samples,)
+            )
+
+        logger.debug("Creating histogram:")
+        logger.debug("  Samples:       %s", self.n_samples)
         logger.debug("  Observables:   %s with means %s", self.n_observables, np.mean(x, axis=0))
         logger.debug("  Weights:       %s", weights is not None)
-        logger.debug("  No empty bins: %s", fill_empty_bins)
 
-        # Find bins
-        logger.debug("Calculating binning")
+        # Calculate binning
+        self.n_bins, self.edges = self._calculate_binning(x, bins, weights=weights)
+        self._report_binning()
 
-        self.n_bins = []
-        self.edges = []
-        ranges = []
+        # Fill histogram
+        self.histo, self.histo_uncertainties = self._fit(x, weights, fill_empty)
+        self._report_uncertainties()
 
-        if self.separate_1d_x_histos:
-            for observable in range(self.n_observables):
-                histo_n_bins, histo_edges, histo_ranges = self._calculate_binning(
-                    theta, x, weights=None, observables=[observable]
-                )
+    def log_likelihood(self, x):
+        """
+        Calculates the log likelihood with the histogram.
 
-                self.n_bins.append(histo_n_bins)
-                self.edges.append(histo_edges)
-                ranges.append(histo_ranges)
+        Parameters
+        ----------
+        x : ndarray
+            Data with shape (n_eval, n_observables)
 
-        else:
-            histo_n_bins, histo_edges, histo_ranges = self._calculate_binning(theta, x, weights=None)
+        Returns
+        -------
+        log_likelihood : float
+            Log likelihood.
 
-            self.n_bins.append(histo_n_bins)
-            self.edges.append(histo_edges)
-            ranges.append(histo_ranges)
+        """
 
-        for h, (histo_n_bins, histo_edges, histo_ranges) in enumerate(zip(self.n_bins, self.edges, ranges)):
-            logger.debug("Histogram %s: bin edges", h + 1)
-            for i, (axis_bins, axis_edges, axis_range) in enumerate(zip(histo_n_bins, histo_edges, histo_ranges)):
-                if i < theta.shape[1]:
-                    logger.debug("  theta %s: %s bins, range %s, edges %s", i + 1, axis_bins, axis_range, axis_edges)
-                else:
-                    logger.debug(
-                        "  x %s:     %s bins, range %s, edges %s",
-                        i + 1 - theta.shape[1],
-                        axis_bins,
-                        axis_range,
-                        axis_edges,
-                    )
+        if len(x.shape) == 1:
+            x = x.reshape((-1, 1))
+        assert x.shape[1] == self.n_observables
 
+        # Find hist indices
+        all_indices = []
+        for i in range(self.n_observables):
+            indices = np.searchsorted(self.edges[i], x[:, i], side="right") - 1
+            indices[indices < 0] = 0
+            indices[indices >= self.n_bins[i]] = self.n_bins[i] - 1
+            all_indices.append(indices)
+
+        # Return log likelihood
+        return np.log(self.histo[tuple(all_indices)])
+
+    def _calculate_binning(self, x, bins_in, weights=None):
+        if isinstance(bins_in, int):
+            bins_in = [bins_in for _ in range(self.n_observables)]
+
+        # Find binning along each observable direction
+        n_bins = []
+        bin_edges = []
+
+        for this_bins, this_x in zip(bins_in, x.T):
+            if isinstance(this_bins, int):
+                bin_edges.append(self._adaptive_binning(this_x, this_bins, weights=weights))
+            else:
+                bin_edges.append(this_bins)
+            n_bins.append(len(bin_edges[-1]) - 1)
+
+        return n_bins, bin_edges
+
+    @staticmethod
+    def _adaptive_binning(x, n_bins, weights=None, lower_cutoff_percentile=1.0, upper_cutoff_percentile=99.0):
+        edges = weighted_quantile(
+            x,
+            quantiles=np.linspace(lower_cutoff_percentile / 100.0, upper_cutoff_percentile / 100.0, n_bins + 1),
+            sample_weight=weights,
+            old_style=True,
+        )
+
+        # Increase range by some safety margin
+        range_ = (np.nanmin(x) - 0.5 * (edges[1] - edges[0]), np.nanmax(x) + 0.5 * (edges[-1] - edges[-2]))
+        logger.debug("Increasing histogram range from %s to %s", (edges[0], edges[-1]), range_)
+        edges[0], edges[-1] = range_
+
+        # Remove zero-width bins
+        widths = np.array(list(edges[1:] - edges[:-1]) + [1.0])
+        edges = edges[widths > 1.0e-9]
+
+        return edges
+
+    def _fit(self, x, weights=None, fill_empty=None):
         # Fill histograms
-        logger.debug("Filling histograms")
-        self.histos = []
-        theta_x = np.hstack([theta, x])
+        ranges = [(edges[0], edges[-1]) for edges in self.edges]
+        histo, _ = np.histogramdd(x, bins=self.edges, range=ranges, normed=False, weights=weights)
+        histo_w2, _ = np.histogramdd(x, bins=self.edges, range=ranges, normed=False, weights=weights ** 2)
 
-        for histo_edges, histo_ranges, histo_n_bins in zip(self.edges, ranges, self.n_bins):
-            histo, _ = np.histogramdd(theta_x, bins=histo_edges, range=histo_ranges, normed=False, weights=weights)
+        # Avoid empty bins
+        if fill_empty is not None:
+            histo[histo <= fill_empty] = fill_empty
+            histo_w2[histo <= fill_empty] = fill_empty ** 2
 
-            # Avoid empty bins
-            if fill_empty_bins:
-                histo[histo <= epsilon] = epsilon
+        # Uncertainties
+        histo_uncertainties = histo_w2 ** 0.5
 
-            # Calculate cell volumes
-            original_shape = tuple(histo_n_bins)
-            flat_shape = tuple([-1] + list(histo_n_bins[self.n_parameters :]))
+        # Fix edges for bvolume calculation (to avoid larger volumes for more training data)
+        modified_histo_edges = []
+        for i in range(x.shape[1]):
+            axis_edges = np.copy(self.edges[i])
+            # axis_edges[0] = min(np.percentile(x[:, i], 5.0), axis_edges[1] - 0.01)
+            # axis_edges[-1] = max(np.percentile(x[:, i], 95.0), axis_edges[-2] + 0.01)
+            modified_histo_edges.append(axis_edges)
 
-            # Fix edges for bvolume calculation (to avoid larger volumes for more training data)
-            modified_histo_edges = []
-            for i in range(x.shape[1]):
-                axis_edges = histo_edges[self.n_parameters + i]
-                axis_edges[0] = min(np.percentile(x[:, i], 5.0), axis_edges[1] - 0.01)
-                axis_edges[-1] = max(np.percentile(x[:, i], 95.0), axis_edges[-2] + 0.01)
-                modified_histo_edges.append(axis_edges)
+        # Calculate cell volumes
+        bin_widths = [axis_edges[1:] - axis_edges[:-1] for axis_edges in modified_histo_edges]
 
-            bin_widths = [axis_edges[1:] - axis_edges[:-1] for axis_edges in modified_histo_edges]
+        shape = tuple(self.n_bins)
+        volumes = np.ones(shape)
+        for obs in range(self.n_observables):
+            # Broadcast bin widths to array with shape like volumes
+            bin_widths_broadcasted = np.ones(shape)
+            for indices in np.ndindex(shape):
+                bin_widths_broadcasted[indices] = bin_widths[obs][indices[obs]]
+            volumes[:] *= bin_widths_broadcasted
 
-            volumes = np.ones(flat_shape[1:])
-            for obs in range(self.n_observables):
-                # Broadcast bin widths to array with shape like volumes
-                bin_widths_broadcasted = np.ones(flat_shape[1:])
-                for indices in np.ndindex(flat_shape[1:]):
-                    bin_widths_broadcasted[indices] = bin_widths[obs][indices[obs]]
-                volumes[:] *= bin_widths_broadcasted
+        # Normalize histograms (for each theta bin)
+        histo_uncertainties /= np.sum(histo)
+        histo_uncertainties /= volumes
+        histo /= np.sum(histo)
+        histo /= volumes
 
-            # Normalize histograms (for each theta bin)
-            histo = histo.reshape(flat_shape)
+        # Avoid NaNs
+        histo_uncertainties[np.invert(np.isfinite(histo))] = 1000000.0
+        histo_uncertainties[np.invert(np.isfinite(histo_uncertainties))] = 0.0
+        histo[np.invert(np.isfinite(histo))] = 0.0
 
-            for i in range(histo.shape[0]):
-                histo[i] /= np.sum(histo[i])
-                histo[i] /= volumes
+        return histo, histo_uncertainties
 
-            histo = histo.reshape(original_shape)
+    def _report_binning(self):
+        logger.debug("Binning:")
+        for i, (n_bins, edges) in enumerate(zip(self.n_bins, self.edges)):
+            logger.debug("  Observable %s: %s bins with edges %s", i + 1, n_bins, edges)
 
-            # Avoid NaNs
-            histo[np.invert(np.isfinite(histo))] = 0.0
-
-            self.histos.append(histo)
-
-    def log_likelihood(self, theta, x):
-        if len(theta.shape) == 1:
-            theta_ = np.broadcast_to(theta, (x.shape[0], theta.shape[0]))
-        else:
-            theta_ = theta
-        theta_x = np.hstack([theta_, x])
-
-        log_p = 0.0
-        for histo, histo_edges, n_bins in zip(self.histos, self.edges, self.n_bins):
-            histo_indices = []
-
-            for j in range(theta_x.shape[1]):
-                indices = np.searchsorted(histo_edges[j], theta_x[:, j], side="right") - 1
-
-                indices[indices < 0] = 0
-                indices[indices >= n_bins[j]] = n_bins[j] - 1
-
-                histo_indices.append(indices)
-
-            log_p += np.log(histo[tuple(histo_indices)])
-
-        return log_p
-
-    def _calculate_binning(
-        self, theta, x, weights=None, observables=None, lower_cutoff_percentile=0.0, upper_cutoff_percentile=100.0
-    ):
-        all_theta_x = np.hstack([theta, x]).T
-
-        # Number of bins
-        n_samples = x.shape[0]
-        n_parameters = theta.shape[1]
-        n_all_observables = x.shape[1]
-
-        # Observables to actually use
-        if observables is None:
-            observables = list(range(n_all_observables))
-
-        # Number of bins
-        all_n_bins_x = [1 for _ in range(n_all_observables)]
-        for i in observables:
-            all_n_bins_x[i] = self.n_bins_x
-
-        if isinstance(self.n_bins_thetas, int):
-            all_n_bins_theta = [self.n_bins_thetas for _ in range(n_parameters)]
-        elif len(self.n_bins_thetas) == n_parameters:
-            all_n_bins_theta = self.n_bins_thetas
-        else:
-            raise RuntimeError(
-                "Inconsistent bin numbers for parameters: {} vs {} parameters".format(self.n_bins_thetas, n_parameters)
+    def _report_uncertainties(self):
+        rel_uncertainties = np.where(
+            self.histo.flatten() > 0.0, self.histo_uncertainties.flatten() / self.histo.flatten(), np.nan
+        )
+        if np.nanmax(rel_uncertainties) > 0.5:
+            logger.warning(
+                "Large statistical uncertainties in histogram! Relative uncertainties range from %.0f%% to %.0f%% "
+                "with median %.0f%%.",
+                100.0 * np.nanmin(rel_uncertainties),
+                100.0 * np.nanmax(rel_uncertainties),
+                100.0 * np.nanmedian(rel_uncertainties),
             )
 
-        all_n_bins = all_n_bins_theta + all_n_bins_x
-
-        # Find edges based on percentiles
-        all_edges = []
-        all_ranges = []
-
-        for i, (data, n_bins) in enumerate(zip(all_theta_x, all_n_bins)):
-            edges = weighted_quantile(
-                data,
-                quantiles=np.linspace(lower_cutoff_percentile / 100.0, upper_cutoff_percentile / 100.0, n_bins + 1),
-                sample_weight=weights,
-                old_style=True,
-            )
-            range_ = (np.nanmin(data) - 0.01, np.nanmax(data) + 0.01)
-            edges[0], edges[-1] = range_
-
-            # Remove zero-width bins
-            widths = np.array(list(edges[1:] - edges[:-1]) + [1.0])
-            edges = edges[widths > 1.0e-9]
-
-            all_n_bins[i] = len(edges) - 1
-            all_edges.append(edges)
-            all_ranges.append(range_)
-
-        return all_n_bins, all_edges, all_ranges
+        logger.debug("Statistical uncertainties in histogram:")
+        for i, (histo, unc, rel_unc) in enumerate(
+            zip(self.histo.flatten(), self.histo_uncertainties.flatten(), rel_uncertainties)
+        ):
+            logger.debug("  Bin %s: %.5f +/- %.5f (%.0f%%)", i + 1, histo, unc, 100.0 * rel_unc)

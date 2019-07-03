@@ -184,8 +184,8 @@ class LHEReader:
             the last smearing function will take effect. Default value: None.
 
         energy_resolution_abs : float or None, optional
-            Absolute measurement uncertainty for the energy in GeV. None means that the energy is not smeared directly, but
-            calculated from the on-shell condition. Default value: 0.
+            Absolute measurement uncertainty for the energy in GeV. None means that the energy is not smeared directly,
+            but calculated from the on-shell condition. Default value: 0.
 
         energy_resolution_rel : float or None, optional
             Relative measurement uncertainty for the energy. None means that the energy is not smeared directly, but
@@ -226,7 +226,7 @@ class LHEReader:
             self.eta_resolution[pdgid] = (eta_resolution_abs, eta_resolution_rel)
             self.phi_resolution[pdgid] = (phi_resolution_abs, phi_resolution_rel)
 
-    def set_met_noise(self, abs=0.0, rel=0.0):
+    def set_met_noise(self, abs_=0.0, rel=0.0):
         """
         Sets up additional noise in the MET variable from shower and detector effects.
 
@@ -239,7 +239,7 @@ class LHEReader:
 
         Parameters
         ----------
-        abs : float, optional
+        abs_ : float, optional
             Absolute contribution to MET noise. Default value: 0.
 
         rel : float, optional
@@ -251,7 +251,7 @@ class LHEReader:
 
         """
 
-        self.pt_resolution["met"] = (abs, rel)
+        self.pt_resolution["met"] = (abs_, rel)
 
     def add_observable(self, name, definition, required=False, default=None):
         """
