@@ -210,11 +210,11 @@ class AsymptoticLimits(DataAnalyzer):
         mle : int
             Index of the parameter point with the best fit (largest p-value / smallest -2 log likelihood ratio).
 
-        nllr_kin : ndarray or None
-            -2 log likelihood ratio based only on kinematics for each point of the grid, with shape `(n_grid_points,)`.
+        log_likelihood_ratio_kin : ndarray or None
+            log likelihood ratio based only on kinematics for each point of the grid, with shape `(n_grid_points,)`.
 
-        nll_rate : ndarray or None
-            -2 log likelihood based only on the total rate for each point of the grid, with shape `(n_grid_points,)`.
+        log_likelihood_rate : ndarray or None
+            log likelihood based only on the total rate for each point of the grid, with shape `(n_grid_points,)`.
 
         histos : None or list of Histogram
             None if return_histos is False. Otherwise a list of histogram objects for each point on the grid. This
@@ -404,11 +404,11 @@ class AsymptoticLimits(DataAnalyzer):
         mle : int
             Index of the parameter point with the best fit (largest p-value / smallest -2 log likelihood ratio).
 
-        nllr_kin : ndarray or None
-            -2 log likelihood ratio based only on kinematics for each point of the grid, with shape `(n_grid_points,)`.
+        log_likelihood_ratio_kin : ndarray or None
+            log likelihood ratio based only on kinematics for each point of the grid, with shape `(n_grid_points,)`.
 
-        nll_rate : ndarray or None
-            -2 log likelihood based only on the total rate for each point of the grid, with shape `(n_grid_points,)`.
+        log_likelihood_rate : ndarray or None
+            log likelihood based only on the total rate for each point of the grid, with shape `(n_grid_points,)`.
 
         histos : None or list of Histogram
             None if return_histos is False. Otherwise a list of histogram objects for each point on the grid. This
@@ -623,7 +623,7 @@ class AsymptoticLimits(DataAnalyzer):
         logger.debug("Min-subtracted -2 log r: %s", -2.0 * log_r)
         p_values = self.asymptotic_p_value(log_r, dof=dof)
 
-        return theta_grid, p_values, i_ml, -2.0 * log_r_kin, -2.0 * log_p_xsec, histos if return_histos else None
+        return theta_grid, p_values, i_ml, log_r_kin, log_p_xsec, histos if return_histos else None
 
     def _find_bins(self, mode, hist_bins, summary_stats):
         n_summary_stats = summary_stats.shape[1]
