@@ -1,20 +1,20 @@
-# MadMiner
+# MadMiner: An inference toolkit for particle physics
 
 **Johann Brehmer, Felix Kling, Irina Espejo, and Kyle Cranmer**
 
-Mining gold from MadGraph to improve limit setting in particle physics.
-
-Note that this is an early development version. Do not expect anything to be stable. If you have any questions, please
-contact us at [johann.brehmer@nyu.edu](johann.brehmer@nyu.edu).
-
 [![PyPI version](https://badge.fury.io/py/madminer.svg)](https://badge.fury.io/py/madminer)
 [![Documentation Status](https://readthedocs.org/projects/madminer/badge/?version=latest)](https://madminer.readthedocs.io/en/latest/?badge=latest)
+[![Gitter](https://badges.gitter.im/madminer/community.svg)](https://gitter.im/madminer/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
 [![Build Status](https://travis-ci.com/diana-hep/madminer.svg?branch=master)](https://travis-ci.com/diana-hep/madminer)
 [![Docker pulls](https://img.shields.io/docker/pulls/madminertool/docker-madminer.svg)](https://hub.docker.com/r/madminertool/docker-madminer)
 [![Binder](https://mybinder.org/badge.svg)](https://mybinder.org/v2/gh/johannbrehmer/madminer/master)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/ambv/black)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.1489147.svg)](https://doi.org/10.5281/zenodo.1489147)
+
+*Note that this is a development version. Do not expect anything to be stable. If you have any questions, please
+chat to us [in our Gitter community](https://gitter.im/madminer/community) or write us at 
+[johann.brehmer@nyu.edu](johann.brehmer@nyu.edu).*
 
 ## Introduction
 
@@ -72,12 +72,17 @@ with Geant4. In this case, the user has to implement code that runs the detector
 and stores the observables and weights in the HDF5 file. The `DelphesProcessor` and `LHEProcessor` classes might provide
 some guidance for this.
 
-You can find here [DockerHub  madminertool](https://cloud.docker.com/u/madminertool/) the docker images for the lastest version of: the MadMiner library, the MadMiner physics section (MadGraph, Delphes, custom software dependencies and code for configuration, generation and Delphes processing deployment) and the MadMiner ML section (code for configuration, training and evaluation). Please email [iem244@nyu.edu]() for any inquiries about the Docker images.
 ### Install MadMiner
 
 To install the MadMiner package with all its Python dependencies, run `pip install madminer`.
 
 To get the [examples](examples/), including the tutorials, clone this repository.
+
+### Docker image
+
+At [https://cloud.docker.com/u/madminertool/](https://cloud.docker.com/u/madminertool/) we provide Docker images for
+the latest version of MadMiner and the physics simulator. Please email [iem244@nyu.edu](iem244@nyu.edu) for any
+questions about the Docker images.
 
 ## Using MadMiner
 
@@ -96,22 +101,11 @@ other aspects, the two tutorials are identical.
 
 [Other provided examples](examples/) show MadMiner in action in different processes.
 
-### Package structure
-
-- `madminer.core` contains the functions to set up the process, parameter space, morphing, and to steer MadGraph and
-   Pythia.
-- `madminer.lhe` and `madminer.delphes` contain two example implementations of a detector simulation and observable
-   calculation. This part can easily be swapped out depending on the use case.
-- In `madminer.sampling`, train and test samples for the machine learning part are generated and augmented with the
-  joint score and joint ratio.
-- `madminer.ml`  contains an implementation of the machine learning part. The user can train and evaluate estimators
-  for the likelihood ratio or score.
-- Finally,  `madminer.fisherinformation` contains functions to calculate the Fisher information, both on parton level
-  or detector level, in the full process, individual observables, or the total cross section.
-
 ### Documentation
 
-The madminer API is documented on [readthedocs](https://madminer.readthedocs.io/en/latest/?badge=latest).
+The madminer API is documented on [readthedocs](https://madminer.readthedocs.io/en/latest/?badge=latest), including
+a walk-through through the code.
+
 
 ## Acknowledgements
 

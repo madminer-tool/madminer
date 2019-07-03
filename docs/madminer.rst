@@ -20,6 +20,6 @@ Module contents
 ---------------
 
 .. automodule:: madminer
-    :members:
-    :undoc-members:
-    :show-inheritance:
+   :members:
+   :undoc-members:
+   :show-inheritance:

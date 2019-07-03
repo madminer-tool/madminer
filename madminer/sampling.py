@@ -109,6 +109,9 @@ class SampleAugmenter(DataAnalyzer):
             Tuple (type, value) that defines the nuisance parameter point or prior over parameter points for the
             sampling. Default value: None
 
+        sample_only_from_closest_benchmark : bool, optional
+            If True, only weighted events originally generated from the closest benchmarks are used. Default value: True.
+
         folder : str or None
             Path to the folder where the resulting samples should be saved (ndarrays in .npy format). Default value:
             None.
@@ -135,6 +138,12 @@ class SampleAugmenter(DataAnalyzer):
             If not None, MadMiner will require the relative weights of the events to be smaller than 1/n_eff_forced
             and ignore other events. This can help to reduce statistical effects caused by a small number of events
             with very large weights obtained by the morphing procedure. Default value: None
+
+        suppress_logging : bool, optional
+            Suppress logging messages. Default value: False.
+
+        double_precision : bool, optional
+            Use double floating-point precision. Default value: False.
 
 
         Returns
@@ -216,6 +225,9 @@ class SampleAugmenter(DataAnalyzer):
             Tuple (type, value) that defines the nuisance parameter point or prior over parameter points for the
             sampling. Default value: None
 
+        sample_only_from_closest_benchmark : bool, optional
+            If True, only weighted events originally generated from the closest benchmarks are used. Default value: True.
+
         folder : str or None
             Path to the folder where the resulting samples should be saved (ndarrays in .npy format). Default value:
             None.
@@ -250,6 +262,9 @@ class SampleAugmenter(DataAnalyzer):
             If not None, MadMiner will require the relative weights of the events to be smaller than 1/n_eff_forced
             and ignore other events. This can help to reduce statistical effects caused by a small number of events
             with very large weights obtained by the morphing procedure. Default value: None
+
+        double_precision : bool, optional
+            Use double floating-point precision. Default value: False.
 
         Returns
         -------
@@ -352,6 +367,9 @@ class SampleAugmenter(DataAnalyzer):
             Tuple (type, value) that defines the nuisance parameter point or prior over parameter points for the
             sampling. Default value: None
 
+        sample_only_from_closest_benchmark : bool, optional
+            If True, only weighted events originally generated from the closest benchmarks are used. Default value: True.
+
         folder : str or None
             Path to the folder where the resulting samples should be saved (ndarrays in .npy format). Default value:
             None.
@@ -382,6 +400,9 @@ class SampleAugmenter(DataAnalyzer):
             If not None, MadMiner will require the relative weights of the events to be smaller than 1/n_eff_forced
             and ignore other events. This can help to reduce statistical effects caused by a small number of events
             with very large weights obtained by the morphing procedure. Default value: None
+
+        double_precision : bool, optional
+            Use double floating-point precision. Default value: False.
 
         Returns
         -------
@@ -470,6 +491,9 @@ class SampleAugmenter(DataAnalyzer):
             Tuple (type, value) that defines the denominator nuisance parameter point or prior over parameter points for
             the sampling. Default value: None
 
+        sample_only_from_closest_benchmark : bool, optional
+            If True, only weighted events originally generated from the closest benchmarks are used. Default value: True.
+
         folder : str or None
             Path to the folder where the resulting samples should be saved (ndarrays in .npy format). Default value:
             None.
@@ -497,10 +521,16 @@ class SampleAugmenter(DataAnalyzer):
             n_workers sets the number of jobs running in parallel, and None will use the number of CPUs. Default value:
             1.
 
+        return_individual_n_effective : bool, optional
+            Returns number of effective samples for each set individually. Default value: False.
+
         n_eff_forced : float, optional
             If not None, MadMiner will require the relative weights of the events to be smaller than 1/n_eff_forced
             and ignore other events. This can help to reduce statistical effects caused by a small number of events
             with very large weights obtained by the morphing procedure. Default value: None
+
+        double_precision : bool, optional
+            Use double floating-point precision. Default value: False
 
         Returns
         -------
@@ -727,6 +757,9 @@ class SampleAugmenter(DataAnalyzer):
             Tuple (type, value) that defines the denominator nuisance parameter point or prior over parameter points for
             the sampling. Default value: None
 
+        sample_only_from_closest_benchmark : bool, optional
+            If True, only weighted events originally generated from the closest benchmarks are used. Default value: True.
+
         folder : str or None
             Path to the folder where the resulting samples should be saved (ndarrays in .npy format). Default value:
             None.
@@ -766,6 +799,9 @@ class SampleAugmenter(DataAnalyzer):
             If not None, MadMiner will require the relative weights of the events to be smaller than 1/n_eff_forced
             and ignore other events. This can help to reduce statistical effects caused by a small number of events
             with very large weights obtained by the morphing procedure. Default value: None
+
+        double_precision : bool, optional
+            Use double floating-point precision. Default value: False
 
         Returns
         -------
@@ -1024,6 +1060,9 @@ class SampleAugmenter(DataAnalyzer):
             Tuple (type, value) that defines the nuisance parameter point or prior over parameter points for the
             sampling. Default value: None
 
+        sample_only_from_closest_benchmark : bool, optional
+            If True, only weighted events originally generated from the closest benchmarks are used. Default value: True.
+
         folder : str or None
             Path to the folder where the resulting samples should be saved (ndarrays in .npy format). Default value:
             None.
@@ -1045,6 +1084,14 @@ class SampleAugmenter(DataAnalyzer):
             If None or larger than 1, MadMiner will use multiprocessing to parallelize the sampling. In this case,
             n_workers sets the number of jobs running in parallel, and None will use the number of CPUs. Default value:
             1.
+
+        n_eff_forced : float, optional
+            If not None, MadMiner will require the relative weights of the events to be smaller than 1/n_eff_forced
+            and ignore other events. This can help to reduce statistical effects caused by a small number of events
+            with very large weights obtained by the morphing procedure. Default value: None
+
+        double_precision : bool, optional
+            Use double floating-point precision. Default value: False
 
         Returns
         -------
@@ -1826,11 +1873,11 @@ class SampleAugmenter(DataAnalyzer):
             return "{} morphing points, starting with {}".format(len(theta[1]), theta[1][:3])
         elif theta[0] == "random_morphing_points":
             prior_str = ""
-            for i, (type, arg0, arg1) in enumerate(theta[1][1]):
+            for i, (type_, arg0, arg1) in enumerate(theta[1][1]):
                 prior_str += "\n"
-                if type == "gaussian":
+                if type_ == "gaussian":
                     prior_str += "  theta_{} ~ Gaussian with mean {} and std {}".format(i, arg0, arg1)
-                elif type == "flat":
+                elif type_ == "flat":
                     prior_str += "  theta_{} ~ flat from {} to {}".format(i, arg0, arg1)
 
             if theta[1][0] is None:
@@ -1863,6 +1910,9 @@ def combine_and_shuffle(
 
     overwrite_existing_file : bool, optional
         If True and if the output file exists, it is overwritten. Default value: True.
+
+    recalculate_header : bool, optional
+        Recalculates the total number of events. Default value: True.
 
     Returns
     -------
@@ -2098,15 +2148,19 @@ def iid_nuisance_parameters(shape="gaussian", param0=0.0, param1=1.0):
 
     Parameters
     ----------
-    prior : tuple
-        Prior for all nuisance parameters with form `(prior_shape, prior_param_0, prior_param_1)`.
-        Currently, the supported prior_shapes are `flat`, in which case the two other parameters are the lower and upper
-        bound of the flat prior, and `gaussian`, in which case they are the mean and standard deviation of a Gaussian.
+    shape : ["flat", "gaussian"], optional
+        Parameter prior shape. Default value: "gaussian".
+
+    param0 : float, optional
+        Gaussian mean or flat lower bound. Default value: 0.0.
+
+    param1 : float, optional
+        Gaussian std or flat upper bound. Default value: 1.0.
 
     Returns
     -------
     output : tuple
-        Input to various SampleAugmenter functions
+        Input to various SampleAugmenter functions.
 
     """
     return "iid", (shape, param0, param1)
@@ -2116,7 +2170,6 @@ def nominal_nuisance_parameters():
     """
     Utility function to be used as input to various SampleAugmenter functions, specifying that nuisance parameters are
     fixed at their nominal valuees.
-
 
     Returns
     -------

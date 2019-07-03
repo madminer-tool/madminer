@@ -48,6 +48,9 @@ def generate_mg_process(
     log_file : str or None, optional
         Path to a log file in which the MadGraph output is saved. Default value: None.
 
+    explicit_python_call : bool, optional
+        Calls `python2.7` instead of `python`.
+
     Returns
     -------
         None
@@ -109,7 +112,7 @@ def setup_mg_with_scripts(
         Filename for the MG command card that will be generated, relative from mg_process_directory. If None, a
         default filename in the MG process directory will be chosen.
 
-    param_card_file_from_mgprocdir : str or None, optional
+    run_card_file_from_mgprocdir : str or None, optional
         Path to the MadGraph run card, relative from mg_process_directory. If None, the card present in the process
         folder is used. Default value: None.
 
@@ -138,12 +141,15 @@ def setup_mg_with_scripts(
         Initial shell commands that have to be executed before MG is run (e.g. to load a virtual environment).
         Default value: None.
 
-    log_file_from_logdir : str or None, optional
+    log_dir : str or None, optional
         Log directory. Default value: None.
 
     log_file_from_logdir : str or None, optional
         Path to a log file in which the MadGraph output is saved, relative from the default log directory. Default
         value: None.
+
+    explicit_python_call : bool, optional
+        Calls `python2.7` instead of `python`.
 
     Returns
     -------
@@ -343,6 +349,9 @@ def run_mg(
 
     log_file : str or None, optional
         Path to a log file in which the MadGraph output is saved. Default value: None.
+
+    explicit_python_call : bool, optional
+        Calls `python2.7` instead of `python`.
 
     Returns
     -------
