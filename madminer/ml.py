@@ -1031,7 +1031,7 @@ class ScoreEstimator(Estimator):
 
     """
 
-    def __init__(self, features=None, n_components=1, n_mades=5, n_hidden=(100,), activation="tanh", batch_norm=None):
+    def __init__(self, features=None, n_hidden=(100,), activation="tanh"):
         super(ScoreEstimator, self).__init__(features, n_hidden, activation)
 
         self.nuisance_profile_matrix = None
