@@ -253,7 +253,7 @@ class ParameterizedRatioEstimator(Estimator):
         alpha=1.0,
         optimizer="amsgrad",
         n_epochs=50,
-        batch_size=200,
+        batch_size=128,
         initial_lr=0.001,
         final_lr=0.0001,
         nesterov_momentum=None,
@@ -302,7 +302,7 @@ class ParameterizedRatioEstimator(Estimator):
             Number of epochs. Default value: 50.
 
         batch_size : int, optional
-            Batch size. Default value: 200.
+            Batch size. Default value: 128.
 
         initial_lr : float, optional
             Learning rate during the first epoch, after which it exponentially decays to final_lr. Default value:
@@ -631,7 +631,7 @@ class DoubleParameterizedRatioEstimator(Estimator):
         alpha=1.0,
         optimizer="amsgrad",
         n_epochs=50,
-        batch_size=200,
+        batch_size=128,
         initial_lr=0.001,
         final_lr=0.0001,
         nesterov_momentum=None,
@@ -686,7 +686,7 @@ class DoubleParameterizedRatioEstimator(Estimator):
             Number of epochs. Default value: 50.
 
         batch_size : int, optional
-            Batch size. Default value: 200.
+            Batch size. Default value: 128.
 
         initial_lr : float, optional
             Learning rate during the first epoch, after which it exponentially decays to final_lr. Default value:
@@ -1045,7 +1045,7 @@ class ScoreEstimator(Estimator):
         t_xz,
         optimizer="amsgrad",
         n_epochs=50,
-        batch_size=200,
+        batch_size=128,
         initial_lr=0.001,
         final_lr=0.0001,
         nesterov_momentum=None,
@@ -1081,7 +1081,7 @@ class ScoreEstimator(Estimator):
             Number of epochs. Default value: 50.
 
         batch_size : int, optional
-            Batch size. Default value: 200.
+            Batch size. Default value: 128.
 
         initial_lr : float, optional
             Learning rate during the first epoch, after which it exponentially decays to final_lr. Default value:
@@ -1539,7 +1539,7 @@ class LikelihoodEstimator(Estimator):
         alpha=1.0,
         optimizer="amsgrad",
         n_epochs=50,
-        batch_size=200,
+        batch_size=128,
         initial_lr=0.001,
         final_lr=0.0001,
         nesterov_momentum=None,
@@ -1581,7 +1581,7 @@ class LikelihoodEstimator(Estimator):
             Number of epochs. Default value: 50.
 
         batch_size : int, optional
-            Batch size. Default value: 200.
+            Batch size. Default value: 128.
 
         initial_lr : float, optional
             Learning rate during the first epoch, after which it exponentially decays to final_lr. Default value:
