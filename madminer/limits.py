@@ -5,7 +5,7 @@ import numpy as np
 from scipy.stats import chi2, poisson
 
 from madminer.analysis import DataAnalyzer
-from madminer.utils.various import mdot
+from madminer.utils.various import mdot, less_logging
 from madminer.ml import ParameterizedRatioEstimator, Ensemble, ScoreEstimator, LikelihoodEstimator, load_estimator
 from madminer.utils.histo import Histo
 from madminer.sampling import SampleAugmenter
@@ -854,14 +854,14 @@ class AsymptoticLimits(DataAnalyzer):
         if n_toys_per_theta is None:
             n_toys_per_theta = 100000
 
-        x, theta, _ = sampler.sample_train_plain(
-            theta=sampling.morphing_points(thetas),
-            n_samples=n_toys_per_theta * len(thetas),
-            test_split=test_split,
-            filename=None,
-            folder=None,
-            suppress_logging=True,
-        )
+        with less_logging():
+            x, theta, _ = sampler.sample_train_plain(
+                theta=sampling.morphing_points(thetas),
+                n_samples=n_toys_per_theta * len(thetas),
+                test_split=test_split,
+                filename=None,
+                folder=None,
+            )
 
         summary_stats = summary_function(x)
         summary_stats = summary_stats.reshape((len(thetas), n_toys_per_theta, -1))

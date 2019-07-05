@@ -6,7 +6,7 @@ import os
 
 from madminer.analysis import DataAnalyzer
 from madminer.utils.various import math_commands, weighted_quantile, sanitize_array, mdot
-from madminer.utils.various import separate_information_blocks
+from madminer.utils.various import separate_information_blocks, less_logging
 from madminer.ml import ScoreEstimator, Ensemble
 
 logger = logging.getLogger(__name__)
@@ -19,19 +19,19 @@ class FisherInformation(DataAnalyzer):
     After inializing a `FisherInformation` instance with the filename of a MadMiner file, different information matrices
     can be calculated:
 
-    * `FisherInformation.calculate_fisher_information_full_truth()` calculates the full truth-level Fisher information.
+    * `FisherInformation.truth_information()` calculates the full truth-level Fisher information.
       This is the information in an idealized measurement where all parton-level particles with their charges, flavours,
       and four-momenta can be accessed with perfect accuracy.
-    * `FisherInformation.calculate_fisher_information_full_detector()` calculates the full Fisher information in
+    * `FisherInformation.full_information()` calculates the full Fisher information in
       realistic detector-level observations, estimated with neural networks. In addition to the MadMiner file, this
       requires a trained SALLY or SALLINO estimator as well as an unweighted evaluation sample.
-    * `FisherInformation.calculate_fisher_information_rate()` calculates the Fisher information in the total cross
+    * `FisherInformation.rate_information()` calculates the Fisher information in the total cross
       section.
-    * `FisherInformation.calculate_fisher_information_hist1d()` calculates the Fisher information in the histogram of
+    * `FisherInformation.histo_information()` calculates the Fisher information in the histogram of
       one (parton-level or detector-level) observable.
-    * `FisherInformation.calculate_fisher_information_hist2d()` calculates the Fisher information in a two-dimensional
+    * `FisherInformation.histo_information_2d()` calculates the Fisher information in a two-dimensional
       histogram of two (parton-level or detector-level) observables.
-    * `FisherInformation.histogram_of_fisher_information()` calculates the full truth-level Fisher information in
+    * `FisherInformation.histogram_of_information()` calculates the full truth-level Fisher information in
       different slices of one observable (the "distribution of the Fisher information").
 
     Finally, don't forget that in the presence of nuisance parameters the constraint terms also affect the Fisher
@@ -50,7 +50,7 @@ class FisherInformation(DataAnalyzer):
     def __init__(self, filename, include_nuisance_parameters=True):
         super(FisherInformation, self).__init__(filename, False, include_nuisance_parameters)
 
-    def calculate_fisher_information_full_truth(
+    def truth_information(
         self, theta, luminosity=300000.0, cuts=None, efficiency_functions=None, include_nuisance_parameters=True
     ):
         """
@@ -130,7 +130,7 @@ class FisherInformation(DataAnalyzer):
 
         return fisher_info, covariance
 
-    def calculate_fisher_information_full_detector(
+    def full_information(
         self,
         theta,
         model_file,
@@ -253,7 +253,7 @@ class FisherInformation(DataAnalyzer):
         rate_covariance = 0.0
         if include_xsec_info:
             logger.info("Evaluating rate Fisher information")
-            fisher_info_rate, rate_covariance = self.calculate_fisher_information_rate(
+            fisher_info_rate, rate_covariance = self.rate_information(
                 theta=theta, luminosity=luminosity, include_nuisance_parameters=include_nuisance_parameters
             )
 
@@ -296,19 +296,21 @@ class FisherInformation(DataAnalyzer):
 
                 # Calculate Fisher info on this batch
                 if model_is_ensemble:
-                    this_fisher_info, this_covariance = model.calculate_fisher_information(
-                        x=observations,
-                        obs_weights=weights_theta,
-                        n_events=luminosity * total_xsec * np.sum(weights_theta) / total_sum_weights_theta,
-                        calculate_covariance=calculate_covariance,
-                        mode=mode,
-                    )
+                    with less_logging():
+                        this_fisher_info, this_covariance = model.calculate_fisher_information(
+                            x=observations,
+                            obs_weights=weights_theta,
+                            n_events=luminosity * total_xsec * np.sum(weights_theta) / total_sum_weights_theta,
+                            calculate_covariance=calculate_covariance,
+                            mode=mode,
+                        )
                 else:
-                    this_fisher_info = model.calculate_fisher_information(
-                        x=observations,
-                        weights=weights_theta,
-                        n_events=luminosity * total_xsec * np.sum(weights_theta) / total_sum_weights_theta,
-                    )
+                    with less_logging():
+                        this_fisher_info = model.calculate_fisher_information(
+                            x=observations,
+                            weights=weights_theta,
+                            n_events=luminosity * total_xsec * np.sum(weights_theta) / total_sum_weights_theta,
+                        )
                     this_covariance = None
 
                 # Sum up results
@@ -331,18 +333,19 @@ class FisherInformation(DataAnalyzer):
 
         # Evaluation from unweighted event sample
         else:
-            if model_is_ensemble:
-                fisher_info_kin, covariance = model.calculate_fisher_information(
-                    x=unweighted_x_sample_file,
-                    n_events=luminosity * total_xsec,
-                    mode=mode,
-                    calculate_covariance=calculate_covariance,
-                )
-            else:
-                fisher_info_kin = model.calculate_fisher_information(
-                    x=unweighted_x_sample_file, n_events=luminosity * total_xsec
-                )
-                covariance = None
+            with less_logging():
+                if model_is_ensemble:
+                    fisher_info_kin, covariance = model.calculate_fisher_information(
+                        x=unweighted_x_sample_file,
+                        n_events=luminosity * total_xsec,
+                        mode=mode,
+                        calculate_covariance=calculate_covariance,
+                    )
+                else:
+                    fisher_info_kin = model.calculate_fisher_information(
+                        x=unweighted_x_sample_file, n_events=luminosity * total_xsec
+                    )
+                    covariance = None
 
         # Returns
         if model_is_ensemble:
@@ -350,7 +353,7 @@ class FisherInformation(DataAnalyzer):
 
         return fisher_info_rate + fisher_info_kin, rate_covariance
 
-    def calculate_fisher_information_rate(
+    def rate_information(
         self, theta, luminosity, cuts=None, efficiency_functions=None, include_nuisance_parameters=True
     ):
         """
@@ -414,7 +417,7 @@ class FisherInformation(DataAnalyzer):
 
         return fisher_info, covariance
 
-    def calculate_fisher_information_hist1d(
+    def histo_information(
         self,
         theta,
         luminosity,
@@ -531,48 +534,7 @@ class FisherInformation(DataAnalyzer):
         )
         return fisher_info, covariance
 
-    def _check_binning_stats(
-        self, weights_benchmarks, weights_benchmark_uncertainties, theta, report=5, n_bins_first_axis=None
-    ):
-        theta_matrix = self._get_theta_benchmark_matrix(theta, zero_pad=False)  # (n_benchmarks_phys,)
-        sigma = mdot(theta_matrix, weights_benchmarks)  # Shape (n_bins,)
-        sigma_uncertainties = mdot(theta_matrix, weights_benchmark_uncertainties)  # Shape (n_bins,)
-        rel_uncertainties = sigma_uncertainties / np.maximum(sigma, 1.0e-12)
-
-        order = np.argsort(rel_uncertainties)[::-1]
-
-        logger.info("Bins with largest statistical uncertainties on rates:")
-        for i_bin in order[:report]:
-            bin_nd = i_bin + 1
-            if n_bins_first_axis is not None:
-                bin_nd = (i_bin // n_bins_first_axis + 1, i_bin % n_bins_first_axis + 1)
-            logger.info(
-                "  Bin %s: (%.5f +/- %.5f) fb (%.0f %%)",
-                bin_nd,
-                1000.0 * sigma[i_bin],
-                1000.0 * sigma_uncertainties[i_bin],
-                100.0 * rel_uncertainties[i_bin],
-            )
-
-    def _calculate_binning(
-        self, bins, cuts, efficiency_functions, histrange, n_events_dynamic_binning, observable, theta
-    ):
-        dynamic_binning = histrange is None and isinstance(bins, int)
-        if dynamic_binning:
-            n_bins_total = bins
-            bin_boundaries = self._calculate_dynamic_binning(
-                observable, theta, bins, n_events_dynamic_binning, cuts, efficiency_functions
-            )
-            logger.debug("Automatic dynamic binning: bin boundaries %s", bin_boundaries)
-        elif isinstance(bins, int):
-            n_bins_total = bins + 2
-            bin_boundaries = np.linspace(histrange[0], histrange[1], num=bins + 1)
-        else:
-            bin_boundaries = bins
-            n_bins_total = len(bins) + 1
-        return bin_boundaries, n_bins_total
-
-    def calculate_fisher_information_hist2d(
+    def histo_information_2d(
         self,
         theta,
         luminosity,
@@ -725,7 +687,7 @@ class FisherInformation(DataAnalyzer):
 
         return fisher_info, covariance
 
-    def histogram_of_fisher_information(
+    def histogram_of_information(
         self,
         theta,
         observable,
@@ -1089,11 +1051,52 @@ class FisherInformation(DataAnalyzer):
 
         return bin_boundaries, sigma_bins, dsigma_bins
 
-    def calculate_fisher_information_nuisance_constraints(self):
+    def nuisance_constraint_information(self):
         """ Builds the Fisher information term representing the Gaussian constraints on the nuisance parameters """
 
         diagonal = np.array([0.0 for _ in range(self.n_parameters)] + [1.0 for _ in range(self.n_nuisance_parameters)])
         return np.diag(diagonal)
+
+    def _check_binning_stats(
+        self, weights_benchmarks, weights_benchmark_uncertainties, theta, report=5, n_bins_first_axis=None
+    ):
+        theta_matrix = self._get_theta_benchmark_matrix(theta, zero_pad=False)  # (n_benchmarks_phys,)
+        sigma = mdot(theta_matrix, weights_benchmarks)  # Shape (n_bins,)
+        sigma_uncertainties = mdot(theta_matrix, weights_benchmark_uncertainties)  # Shape (n_bins,)
+        rel_uncertainties = sigma_uncertainties / np.maximum(sigma, 1.0e-12)
+
+        order = np.argsort(rel_uncertainties)[::-1]
+
+        logger.info("Bins with largest statistical uncertainties on rates:")
+        for i_bin in order[:report]:
+            bin_nd = i_bin + 1
+            if n_bins_first_axis is not None:
+                bin_nd = (i_bin // n_bins_first_axis + 1, i_bin % n_bins_first_axis + 1)
+            logger.info(
+                "  Bin %s: (%.5f +/- %.5f) fb (%.0f %%)",
+                bin_nd,
+                1000.0 * sigma[i_bin],
+                1000.0 * sigma_uncertainties[i_bin],
+                100.0 * rel_uncertainties[i_bin],
+            )
+
+    def _calculate_binning(
+        self, bins, cuts, efficiency_functions, histrange, n_events_dynamic_binning, observable, theta
+    ):
+        dynamic_binning = histrange is None and isinstance(bins, int)
+        if dynamic_binning:
+            n_bins_total = bins
+            bin_boundaries = self._calculate_dynamic_binning(
+                observable, theta, bins, n_events_dynamic_binning, cuts, efficiency_functions
+            )
+            logger.debug("Automatic dynamic binning: bin boundaries %s", bin_boundaries)
+        elif isinstance(bins, int):
+            n_bins_total = bins + 2
+            bin_boundaries = np.linspace(histrange[0], histrange[1], num=bins + 1)
+        else:
+            bin_boundaries = bins
+            n_bins_total = len(bins) + 1
+        return bin_boundaries, n_bins_total
 
     def _calculate_fisher_information(
         self,
@@ -1500,6 +1503,15 @@ class FisherInformation(DataAnalyzer):
         bin_boundaries = bin_boundaries[1:-1]
 
         return bin_boundaries
+
+    # Aliases for backward compatibility
+    calculate_fisher_information_full_truth = truth_information
+    calculate_fisher_information_full_detector = full_information
+    calculate_fisher_information_rate = rate_information
+    calculate_fisher_information_hist1d = histo_information
+    calculate_fisher_information_hist2d = histo_information_2d
+    histogram_of_fisher_information = histogram_of_information
+    calculate_fisher_information_nuisance_constraints = nuisance_constraint_information
 
 
 def project_information(fisher_information, remaining_components, covariance=None):

@@ -997,7 +997,8 @@ def plot_fisher_information_contours_2d(
     do_fig = False
     if ax is None:
         do_fig = True
-        fig, ax = plt.figure(figsize=(5.0, 5.0))
+        fig = plt.figure(figsize=(5.0, 5.0))
+        ax = plt.gca()
 
     # Error bands
     for i in range(n_matrices):
