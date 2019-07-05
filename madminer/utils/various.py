@@ -332,12 +332,13 @@ def less_logging():
     """
     Silences INFO logging messages. Based on https://gist.github.com/simon-weber/7853144
     """
+
     if logging.root.manager.disable != logging.DEBUG:
+        yield
         return
 
-    logging.disable(logging.INFO)
-
     try:
+        logging.disable(logging.INFO)
         yield
     finally:
         logging.disable(logging.DEBUG)

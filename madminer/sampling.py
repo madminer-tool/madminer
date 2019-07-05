@@ -87,7 +87,6 @@ class SampleAugmenter(DataAnalyzer):
         switch_train_test_events=False,
         n_processes=1,
         n_eff_forced=None,
-        suppress_logging=False,
         double_precision=False,
     ):
         """
@@ -139,9 +138,6 @@ class SampleAugmenter(DataAnalyzer):
             and ignore other events. This can help to reduce statistical effects caused by a small number of events
             with very large weights obtained by the morphing procedure. Default value: None
 
-        suppress_logging : bool, optional
-            Suppress logging messages. Default value: False.
-
         double_precision : bool, optional
             Use double floating-point precision. Default value: False.
 
@@ -162,8 +158,7 @@ class SampleAugmenter(DataAnalyzer):
 
         """
 
-        if not suppress_logging:
-            logger.info("Extracting plain training sample. Sampling according to %s", self._format_sampling(theta))
+        logger.info("Extracting plain training sample. Sampling according to %s", self._format_sampling(theta))
 
         create_missing_folders([folder])
 
@@ -181,7 +176,6 @@ class SampleAugmenter(DataAnalyzer):
             n_processes=n_processes,
             sample_only_from_closest_benchmark=sample_only_from_closest_benchmark,
             n_eff_forced=n_eff_forced,
-            suppress_logging=suppress_logging,
             double_precision=double_precision,
         )
 
@@ -1199,7 +1193,6 @@ class SampleAugmenter(DataAnalyzer):
         update_patience=0.01,
         force_update_patience=15 * 60.0,
         n_eff_forced=None,
-        suppress_logging=False,
         double_precision=False,
     ):
         """
@@ -1331,8 +1324,7 @@ class SampleAugmenter(DataAnalyzer):
             while not r.ready():
                 n_done = max(n_sets - r._number_left * r._chunksize, 0)
                 if n_done >= next_verbose or time.time() - last_update > force_update_patience:
-                    if not suppress_logging:
-                        logger.info("%s / %s jobs done", max(n_sets - r._number_left * r._chunksize, 0), n_sets)
+                    logger.info("%s / %s jobs done", max(n_sets - r._number_left * r._chunksize, 0), n_sets)
                     last_update = time.time()
                     while next_verbose <= n_done:
                         next_verbose += verbose_steps
@@ -1340,8 +1332,7 @@ class SampleAugmenter(DataAnalyzer):
 
             r.wait()
 
-            if not suppress_logging:
-                logger.info("All jobs done!")
+            logger.info("All jobs done!")
 
             for x, thetas, nus, augmented_data, eff_n_samples, _, _, _ in r.get():
                 all_x.append(x)
@@ -1355,8 +1346,7 @@ class SampleAugmenter(DataAnalyzer):
 
         # Serial approach
         else:
-            if not suppress_logging:
-                logger.info("Starting sampling serially")
+            logger.info("Starting sampling serially")
 
             # Verbosity
             if verbose == "all":  # Print output after every epoch
@@ -1375,7 +1365,7 @@ class SampleAugmenter(DataAnalyzer):
 
             # Loop over sets
             for i_set, set_ in enumerate(sets):
-                if (i_set + 1) % n_sets_verbose == 0 and not suppress_logging:
+                if (i_set + 1) % n_sets_verbose == 0:
                     logger.info("Sampling from parameter point %s / %s", i_set + 1, n_sets)
                 else:
                     logger.debug("Sampling from parameter point %s / %s", i_set + 1, n_sets)
@@ -1394,7 +1384,6 @@ class SampleAugmenter(DataAnalyzer):
                     n_neg_weights_warnings=n_neg_weights_warnings,
                     sample_only_from_closest_benchmark=sample_only_from_closest_benchmark,
                     n_eff_forced=n_eff_forced,
-                    suppress_logging=suppress_logging,
                     double_precision=double_precision,
                 )
 
@@ -1419,8 +1408,7 @@ class SampleAugmenter(DataAnalyzer):
         all_thetas = self._combine_thetas_nus(all_thetas, all_nus)
 
         # Report effective number of samples
-        if not suppress_logging:
-            self._report_effective_n_samples(all_effective_n_samples)
+        self._report_effective_n_samples(all_effective_n_samples)
 
         return all_x, all_augmented_data, all_thetas, all_effective_n_samples
 
@@ -1459,7 +1447,6 @@ class SampleAugmenter(DataAnalyzer):
         n_neg_weights_warnings=0,
         n_too_large_weights_warnings=0,
         n_eff_forced=None,
-        suppress_logging=False,
         double_precision=False,
     ):
         # Dtype
@@ -1521,7 +1508,7 @@ class SampleAugmenter(DataAnalyzer):
         # Report large uncertainties
         if xsec_uncertainties[sampling_index] > 0.1 * xsecs[sampling_index]:
             n_stats_warnings += 1
-            if n_stats_warnings <= 1 and not suppress_logging:
+            if n_stats_warnings <= 1:
                 logger.warning(
                     "Large statistical uncertainty on the total cross section when sampling from theta = %s: "
                     "(%4f +/- %4f) pb (%s %%). Skipping these warnings in the future...",
