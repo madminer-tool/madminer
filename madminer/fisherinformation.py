@@ -6,7 +6,7 @@ import os
 
 from madminer.analysis import DataAnalyzer
 from madminer.utils.various import math_commands, weighted_quantile, sanitize_array, mdot
-from madminer.utils.various import separate_information_blocks
+from madminer.utils.various import separate_information_blocks, less_logging
 from madminer.ml import ScoreEstimator, Ensemble
 
 logger = logging.getLogger(__name__)
@@ -296,19 +296,21 @@ class FisherInformation(DataAnalyzer):
 
                 # Calculate Fisher info on this batch
                 if model_is_ensemble:
-                    this_fisher_info, this_covariance = model.calculate_fisher_information(
-                        x=observations,
-                        obs_weights=weights_theta,
-                        n_events=luminosity * total_xsec * np.sum(weights_theta) / total_sum_weights_theta,
-                        calculate_covariance=calculate_covariance,
-                        mode=mode,
-                    )
+                    with less_logging():
+                        this_fisher_info, this_covariance = model.calculate_fisher_information(
+                            x=observations,
+                            obs_weights=weights_theta,
+                            n_events=luminosity * total_xsec * np.sum(weights_theta) / total_sum_weights_theta,
+                            calculate_covariance=calculate_covariance,
+                            mode=mode,
+                        )
                 else:
-                    this_fisher_info = model.calculate_fisher_information(
-                        x=observations,
-                        weights=weights_theta,
-                        n_events=luminosity * total_xsec * np.sum(weights_theta) / total_sum_weights_theta,
-                    )
+                    with less_logging():
+                        this_fisher_info = model.calculate_fisher_information(
+                            x=observations,
+                            weights=weights_theta,
+                            n_events=luminosity * total_xsec * np.sum(weights_theta) / total_sum_weights_theta,
+                        )
                     this_covariance = None
 
                 # Sum up results
@@ -331,18 +333,19 @@ class FisherInformation(DataAnalyzer):
 
         # Evaluation from unweighted event sample
         else:
-            if model_is_ensemble:
-                fisher_info_kin, covariance = model.calculate_fisher_information(
-                    x=unweighted_x_sample_file,
-                    n_events=luminosity * total_xsec,
-                    mode=mode,
-                    calculate_covariance=calculate_covariance,
-                )
-            else:
-                fisher_info_kin = model.calculate_fisher_information(
-                    x=unweighted_x_sample_file, n_events=luminosity * total_xsec
-                )
-                covariance = None
+            with less_logging():
+                if model_is_ensemble:
+                    fisher_info_kin, covariance = model.calculate_fisher_information(
+                        x=unweighted_x_sample_file,
+                        n_events=luminosity * total_xsec,
+                        mode=mode,
+                        calculate_covariance=calculate_covariance,
+                    )
+                else:
+                    fisher_info_kin = model.calculate_fisher_information(
+                        x=unweighted_x_sample_file, n_events=luminosity * total_xsec
+                    )
+                    covariance = None
 
         # Returns
         if model_is_ensemble:
