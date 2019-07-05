@@ -39,7 +39,7 @@ class Estimator(object):
     Please see the tutorial for a detailed walk-through.
     """
 
-    def __init__(self, features=None, n_hidden=(100, 100), activation="tanh"):
+    def __init__(self, features=None, n_hidden=(100,), activation="tanh"):
         self.features = features
         self.n_hidden = n_hidden
         self.activation = activation
@@ -238,7 +238,7 @@ class ParameterizedRatioEstimator(Estimator):
 
     n_hidden : tuple of int, optional
         Units in each hidden layer in the neural networks. If method is 'nde' or 'scandal', this refers to the
-        setup of each individual MADE layer. Default value: (100, 100).
+        setup of each individual MADE layer. Default value: (100,).
 
     activation : {'tanh', 'sigmoid', 'relu'}, optional
         Activation function. Default value: 'tanh'.
@@ -614,7 +614,7 @@ class DoubleParameterizedRatioEstimator(Estimator):
 
     n_hidden : tuple of int, optional
         Units in each hidden layer in the neural networks. If method is 'nde' or 'scandal', this refers to the
-        setup of each individual MADE layer. Default value: (100, 100).
+        setup of each individual MADE layer. Default value: (100,).
 
     activation : {'tanh', 'sigmoid', 'relu'}, optional
         Activation function. Default value: 'tanh'.
@@ -1027,7 +1027,7 @@ class ScoreEstimator(Estimator):
 
     n_hidden : tuple of int, optional
         Units in each hidden layer in the neural networks. If method is 'nde' or 'scandal', this refers to the
-        setup of each individual MADE layer. Default value: (100, 100).
+        setup of each individual MADE layer. Default value: (100,).
 
     activation : {'tanh', 'sigmoid', 'relu'}, optional
         Activation function. Default value: 'tanh'.
@@ -1515,7 +1515,7 @@ class LikelihoodEstimator(Estimator):
 
     n_hidden : tuple of int, optional
         Units in each hidden layer in the neural networks. If method is 'nde' or 'scandal', this refers to the
-        setup of each individual MADE layer. Default value: (100, 100).
+        setup of each individual MADE layer. Default value: (100,).
 
     activation : {'tanh', 'sigmoid', 'relu'}, optional
         Activation function. Default value: 'tanh'.
