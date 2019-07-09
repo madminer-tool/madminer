@@ -211,9 +211,17 @@ def parse_lhe_file(
             weights_all_events.append(weights)
 
     # Check results
-    n_events_pass = _report_parse_results(avg_efficiencies, cuts, efficiencies, fail_cuts, fail_efficiencies,
-                                          n_events_with_negative_weights, observations_all_events, pass_cuts,
-                                          pass_efficiencies)
+    n_events_pass = _report_parse_results(
+        avg_efficiencies,
+        cuts,
+        efficiencies,
+        fail_cuts,
+        fail_efficiencies,
+        n_events_with_negative_weights,
+        observations_all_events,
+        pass_cuts,
+        pass_efficiencies,
+    )
 
     if n_events_pass == 0:
         logger.warning("  No observations remaining!")
@@ -238,8 +246,17 @@ def parse_lhe_file(
     return observations_dict, weights_all_events
 
 
-def _report_parse_results(avg_efficiencies, cuts, efficiencies, fail_cuts, fail_efficiencies,
-                          n_events_with_negative_weights, observations_all_events, pass_cuts, pass_efficiencies):
+def _report_parse_results(
+    avg_efficiencies,
+    cuts,
+    efficiencies,
+    fail_cuts,
+    fail_efficiencies,
+    n_events_with_negative_weights,
+    observations_all_events,
+    pass_cuts,
+    pass_efficiencies,
+):
     for n_pass, n_fail, cut in zip(pass_cuts, fail_cuts, cuts):
         logger.debug("  %s / %s events pass cut %s", n_pass, n_pass + n_fail, cut)
     for n_pass, n_fail, efficiency in zip(pass_efficiencies, fail_efficiencies, efficiencies):
@@ -283,7 +300,9 @@ def _parse_event(
     weights = np.array(list(weights.values()))
 
     # Apply smearing
-    particles_smeared = _smear_particles(particles, energy_resolutions, pt_resolutions, eta_resolutions, phi_resolutions)
+    particles_smeared = _smear_particles(
+        particles, energy_resolutions, pt_resolutions, eta_resolutions, phi_resolutions
+    )
 
     # Objects in event
     try:
@@ -345,7 +364,11 @@ def _parse_observations(observables, observables_defaults, observables_required,
                 observations.append(default)
         else:
             try:
-                observations.append(obs_definition(variables["p_truth"], variables["l"], variables["a"], variables["j"], variables["met"]))
+                observations.append(
+                    obs_definition(
+                        variables["p_truth"], variables["l"], variables["a"], variables["j"], variables["met"]
+                    )
+                )
             except RuntimeError:
                 if observables_required[obs_name]:
                     pass_all_observation = False
@@ -653,9 +676,11 @@ def _parse_xml_event(event, sampling_benchmark):
             py = float(elements[7])
             pz = float(elements[8])
             e = float(elements[9])
+            spin = float(elements[12])
             particle = MadMinerParticle()
             particle.setpxpypze(px, py, pz, e)
             particle.set_pdgid(pdgid)
+            particle.set_spin(spin)
             particles.append(particle)
 
     # Weights
@@ -764,9 +789,11 @@ def _parse_txt_events(filename, sampling_benchmark):
                     py = float(elements[7])
                     pz = float(elements[8])
                     e = float(elements[9])
+                    spin = float(elements[12])
                     particle = MadMinerParticle()
                     particle.setpxpypze(px, py, pz, e)
                     particle.set_pdgid(pdgid)
+                    particle.set_spin(spin)
                     particles.append(particle)
 
             # Read reweighted weights
