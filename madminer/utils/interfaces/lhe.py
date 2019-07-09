@@ -54,25 +54,18 @@ def parse_lhe_file(
     # Inputs
     if k_factor is None:
         k_factor = 1.0
-
     if observables_required is None:
         observables_required = {key: False for key in six.iterkeys(observables)}
-
     if observables_defaults is None:
         observables_defaults = {key: None for key in six.iterkeys(observables)}
-
     if is_background and benchmark_names is None:
         raise RuntimeError("Parsing background LHE files required benchmark names to be provided.")
-
     if cuts is None:
         cuts = OrderedDict()
-
     if cuts_default_pass is None:
         cuts_default_pass = {key: False for key in six.iterkeys(cuts)}
-
     if efficiencies is None:
         efficiencies = OrderedDict()
-
     if efficiencies_default_pass is None:
         efficiencies_default_pass = {key: 1.0 for key in six.iterkeys(efficiencies)}
 
@@ -218,18 +211,9 @@ def parse_lhe_file(
             weights_all_events.append(weights)
 
     # Check results
-    for n_pass, n_fail, cut in zip(pass_cuts, fail_cuts, cuts):
-        logger.debug("  %s / %s events pass cut %s", n_pass, n_pass + n_fail, cut)
-    for n_pass, n_fail, efficiency in zip(pass_efficiencies, fail_efficiencies, efficiencies):
-        logger.debug("  %s / %s events pass efficiency %s", n_pass, n_pass + n_fail, efficiency)
-    for n_eff, efficiency, n_pass, n_fail in zip(avg_efficiencies, efficiencies, pass_efficiencies, fail_efficiencies):
-        logger.debug("  average efficiency for %s is %s", efficiency, n_eff / (n_pass + n_fail))
-
-    n_events_pass = len(observations_all_events)
-    if len(cuts) > 0:
-        logger.info("  %s events pass all cuts/efficiencies", n_events_pass)
-    if n_events_with_negative_weights > 0:
-        logger.warning("  %s events contain negative weights", n_events_with_negative_weights)
+    n_events_pass = _report_parse_results(avg_efficiencies, cuts, efficiencies, fail_cuts, fail_efficiencies,
+                                          n_events_with_negative_weights, observations_all_events, pass_cuts,
+                                          pass_efficiencies)
 
     if n_events_pass == 0:
         logger.warning("  No observations remaining!")
@@ -252,6 +236,22 @@ def parse_lhe_file(
             weights_all_events[benchmark_name] = weights_all_events[sampling_benchmark]
 
     return observations_dict, weights_all_events
+
+
+def _report_parse_results(avg_efficiencies, cuts, efficiencies, fail_cuts, fail_efficiencies,
+                          n_events_with_negative_weights, observations_all_events, pass_cuts, pass_efficiencies):
+    for n_pass, n_fail, cut in zip(pass_cuts, fail_cuts, cuts):
+        logger.debug("  %s / %s events pass cut %s", n_pass, n_pass + n_fail, cut)
+    for n_pass, n_fail, efficiency in zip(pass_efficiencies, fail_efficiencies, efficiencies):
+        logger.debug("  %s / %s events pass efficiency %s", n_pass, n_pass + n_fail, efficiency)
+    for n_eff, efficiency, n_pass, n_fail in zip(avg_efficiencies, efficiencies, pass_efficiencies, fail_efficiencies):
+        logger.debug("  average efficiency for %s is %s", efficiency, n_eff / (n_pass + n_fail))
+    n_events_pass = len(observations_all_events)
+    if len(cuts) > 0:
+        logger.info("  %s events pass all cuts/efficiencies", n_events_pass)
+    if n_events_with_negative_weights > 0:
+        logger.warning("  %s events contain negative weights", n_events_with_negative_weights)
+    return n_events_pass
 
 
 def _parse_event(
@@ -281,23 +281,28 @@ def _parse_event(
     if weight_names_all_events is None:
         weight_names_all_events = list(weights.keys())
     weights = np.array(list(weights.values()))
+
     # Apply smearing
-    particles = _smear_particles(particles, energy_resolutions, pt_resolutions, eta_resolutions, phi_resolutions)
+    particles_smeared = _smear_particles(particles, energy_resolutions, pt_resolutions, eta_resolutions, phi_resolutions)
+
     # Objects in event
     try:
-        variables = _get_objects(particles, pt_resolutions["met"])
+        variables = _get_objects(particles_smeared, particles, pt_resolutions["met"])
     except (TypeError, IndexError):
-        variables = _get_objects(particles)
+        variables = _get_objects(particles_smeared, particles)
+
     # Observables
     observations, pass_all_observation = _parse_observations(
-        observables, observables_defaults, observables_required, particles, variables
+        observables, observables_defaults, observables_required, variables
     )
+
     # Cuts
     pass_all_cuts = True
     if pass_all_observation:
         pass_all_cuts = _parse_cuts(
             cuts, cuts_default_pass, fail_cuts, observables, observations, pass_all_cuts, pass_cuts, variables
         )
+
     # Efficiencies
     pass_all_efficiencies = True
     if pass_all_observation and pass_all_cuts:
@@ -307,6 +312,7 @@ def _parse_event(
 
         if pass_all_efficiencies:
             weights *= total_efficiency
+
     pass_all = pass_all_cuts and pass_all_efficiencies and pass_all_observation
     return n_events_with_negative_weights, observations, pass_all, weight_names_all_events, weights
 
@@ -322,7 +328,7 @@ def _report_negative_weights(n_events_with_negative_weights, weights):
     return n_events_with_negative_weights
 
 
-def _parse_observations(observables, observables_defaults, observables_required, particles, variables):
+def _parse_observations(observables, observables_defaults, observables_required, variables):
     observations = []
     pass_all_observation = True
     for obs_name, obs_definition in six.iteritems(observables):
@@ -339,7 +345,7 @@ def _parse_observations(observables, observables_defaults, observables_required,
                 observations.append(default)
         else:
             try:
-                observations.append(obs_definition(particles))
+                observations.append(obs_definition(variables["p_truth"], variables["l"], variables["a"], variables["j"], variables["met"]))
             except RuntimeError:
                 if observables_required[obs_name]:
                     pass_all_observation = False
@@ -794,7 +800,7 @@ def _untar_and_parse_lhe_file(filename):
     return root, filename
 
 
-def _get_objects(particles, met_resolution=None):
+def _get_objects(particles, particles_truth, met_resolution=None):
     # Find visible particles
     electrons = []
     muons = []
@@ -869,6 +875,7 @@ def _get_objects(particles, met_resolution=None):
     objects.update(
         {
             "p": particles,
+            "p_truth": particles_truth,
             "e": electrons,
             "j": jets,
             "a": photons,
