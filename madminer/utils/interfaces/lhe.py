@@ -146,7 +146,7 @@ def parse_lhe_file(
                 logger.debug("Processing event %d/%d", idx + 1, n_events_runcard)
                 
             # Parse event
-            particles, weights = _parse_xml_event(event, sampling_benchmark)
+            particles, weights, global_event_data = _parse_xml_event(event, sampling_benchmark)
             n_events_with_negative_weights, observations, pass_all, weight_names_all_events, weights = _parse_event(
                 avg_efficiencies,
                 cuts,
@@ -168,6 +168,7 @@ def parse_lhe_file(
                 pt_resolutions,
                 weight_names_all_events,
                 weights,
+                global_event_data=global_event_data,
             )
 
             # Skip events that fail anything
@@ -295,6 +296,7 @@ def _parse_event(
     pt_resolutions,
     weight_names_all_events,
     weights,
+    global_event_data=None,
 ):
     # Negative weights?
     n_events_with_negative_weights = _report_negative_weights(n_events_with_negative_weights, weights)
@@ -309,9 +311,11 @@ def _parse_event(
 
     # Objects in event
     try:
-        variables = _get_objects(particles_smeared, particles, pt_resolutions["met"])
+        variables = _get_objects(
+            particles_smeared, particles, pt_resolutions["met"], global_event_data=global_event_data
+        )
     except (TypeError, IndexError):
-        variables = _get_objects(particles_smeared, particles)
+        variables = _get_objects(particles_smeared, particles, met_resolution=None, global_event_data=global_event_data)
 
     # Observables
     observations, pass_all_observation = _parse_observations(
@@ -651,6 +655,7 @@ def _parse_xml_event(event, sampling_benchmark):
     # Initialize weights and momenta
     weights = OrderedDict()
     particles = []
+    global_event_data = {}
 
     # Split kinematics part in tag line and momenta
     event_text = event.text
@@ -667,7 +672,11 @@ def _parse_xml_event(event, sampling_benchmark):
 
     # Parse tag
     assert tag_line is not None
+    global_event_data["n_particles"] = float(tag_line[0])
     weights[sampling_benchmark] = float(tag_line[2])
+    global_event_data["scale"] = float(tag_line[3])
+    global_event_data["alpha_qed"] = float(tag_line[4])
+    global_event_data["alpha_qcd"] = float(tag_line[5])
 
     # Parse momenta
     for elements in particle_lines:
@@ -694,7 +703,7 @@ def _parse_xml_event(event, sampling_benchmark):
             weight_id, weight_value = weight.attrib["id"], float(weight.text)
             weights[weight_id] = weight_value
 
-    return particles, weights
+    return particles, weights, global_event_data
 
 
 def _parse_txt_events(filename, sampling_benchmark):
@@ -836,7 +845,7 @@ def _untar_and_parse_lhe_file(filename, tags=None):
         elem.clear()
 
 
-def _get_objects(particles, particles_truth, met_resolution=None):
+def _get_objects(particles, particles_truth, met_resolution=None, global_event_data=None):
     # Find visible particles
     electrons = []
     muons = []
@@ -922,6 +931,10 @@ def _get_objects(particles, particles_truth, met_resolution=None):
             "v": neutrinos,
         }
     )
+
+    # Global event_data
+    if global_event_data is not None:
+        objects.update(global_event_data)
 
     return objects
 
