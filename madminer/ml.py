@@ -19,6 +19,11 @@ from madminer.utils.various import separate_information_blocks
 from madminer.utils.ml.trainer import SingleParameterizedRatioTrainer, DoubleParameterizedRatioTrainer
 from madminer.utils.ml.trainer import LocalScoreTrainer, FlowTrainer
 
+try:
+    FileNotFoundError
+except NameError:
+    FileNotFoundError = IOError
+
 logger = logging.getLogger(__name__)
 
 
@@ -345,7 +350,8 @@ class ParameterizedRatioEstimator(Estimator):
 
         Returns
         -------
-            None
+        results: ndarray
+            Results from SingleParameterizedRatioTrainer.train or DoubleParameterizedRatioTrainer.train for example
 
         """
 

@@ -70,11 +70,15 @@ def parse_lhe_file(
         efficiencies_default_pass = {key: 1.0 for key in six.iterkeys(efficiencies)}
 
     # Untar and open LHE file
-    root, filename = _untar_and_parse_lhe_file(filename)
+    run_card = None
+    for elem in _untar_and_parse_lhe_file(filename):
+        if elem.tag == "MGRunCard":
+            run_card = elem.text
+            break
+        else:
+            continue
 
     # Figure out event weighting
-    run_card = root.find("header").find("MGRunCard").text
-
     weight_norm_is_average = None
     n_events_runcard = None
     for line in run_card.splitlines():
@@ -126,7 +130,6 @@ def parse_lhe_file(
     n_events_with_negative_weights = 0
     pass_cuts = [0 for _ in cuts]
     fail_cuts = [0 for _ in cuts]
-
     pass_efficiencies = [0 for _ in efficiencies]
     fail_efficiencies = [0 for _ in efficiencies]
     avg_efficiencies = [0 for _ in efficiencies]
@@ -137,8 +140,11 @@ def parse_lhe_file(
 
     # Option one: XML parsing
     if parse_events_as_xml:
-        events = root.findall("event")
-        for event in events:
+        events = _untar_and_parse_lhe_file(filename, ["event"])
+        for idx, event in enumerate(events):
+            if (idx + 1) % 100000 == 0:
+                logger.debug("Processing event %d/%d", idx + 1, n_events_runcard)
+                
             # Parse event
             particles, weights, global_event_data = _parse_xml_event(event, sampling_benchmark)
             n_events_with_negative_weights, observations, pass_all, weight_names_all_events, weights = _parse_event(
@@ -175,9 +181,6 @@ def parse_lhe_file(
 
     # Option two: text parsing
     else:
-        # Free up memory
-        del root
-
         # Iterate over events in LHE file
         for i_event, (particles, weights) in enumerate(_parse_txt_events(filename, sampling_benchmark)):
             n_events_with_negative_weights, observations, pass_all, weight_names_all_events, weights = _parse_event(
@@ -467,11 +470,13 @@ def extract_nuisance_parameters_from_lhe_file(filename, systematics):
             systematics_scales.append(None)
 
     # Untar and parse LHE file
-    root, _ = _untar_and_parse_lhe_file(filename)
+    initrwgts = _untar_and_parse_lhe_file(filename, "initrwgt")
 
     # Find weight groups
+    weight_groups = []
     try:
-        weight_groups = root.findall("header")[0].findall("initrwgt")[0].findall("weightgroup")
+        for initrwgt in initrwgts:
+            weight_groups.append(initrwgt.findall("weightgroup"))
     except KeyError as e:
         raise RuntimeError("Could not find weight groups in LHE file!\n%s", e)
 
@@ -812,7 +817,18 @@ def _parse_txt_events(filename, sampling_benchmark):
                 weights[rwgtid] = rwgtval
 
 
-def _untar_and_parse_lhe_file(filename):
+def _parse_lhe_file_with_bad_chars(filename):
+    # In some cases, the LHE comments can contain bad characters
+    with open(filename, "r") as file:
+        for line in file:
+            comment_pos = line.find("#")
+            if comment_pos >= 0:
+                yield line[:comment_pos]
+            else:
+                yield line
+
+
+def _untar_and_parse_lhe_file(filename, tags=None):
     # Untar event file
     new_filename, extension = os.path.splitext(filename)
     if extension == ".gz":
@@ -820,20 +836,13 @@ def _untar_and_parse_lhe_file(filename):
             call_command("gunzip -c {} > {}".format(filename, new_filename))
         filename = new_filename
 
-    # In some cases, the LHE comments can contain bad characters
-    with open(filename, "r") as file:
-        lhe_content = file.read()
-    lhe_lines = lhe_content.split("\n")
-    for i, line in enumerate(lhe_lines):
-        comment_pos = line.find("#")
-        if comment_pos >= 0:
-            lhe_lines[i] = line[:comment_pos]
-    lhe_content = "\n".join(lhe_lines)
+    for event, elem in ET.iterparse(filename):
+        if tags and elem.tag not in tags:
+            continue
+        else:
+            yield elem
 
-    # Parse XML tree
-    root = ET.fromstring(lhe_content)
-
-    return root, filename
+        elem.clear()
 
 
 def _get_objects(particles, particles_truth, met_resolution=None, global_event_data=None):
