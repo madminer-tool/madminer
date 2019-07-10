@@ -123,26 +123,16 @@ tests/data
 # Data
 examples/morphing_basis/animations
 
-examples/tutorial_delphes/temp
-examples/tutorial_delphes/nsqso_born.inc
-examples/tutorial_delphes/data
-examples/tutorial_delphes/logs
-examples/tutorial_delphes/ME5_debug
-examples/tutorial_delphes/MG_Process
-examples/tutorial_delphes/mg_processes
-examples/tutorial_delphes/py.py
-examples/tutorial_delphes/models
-
-examples/tutorial_parton_level/temp
-examples/tutorial_parton_level/nsqso_born.inc
-examples/tutorial_parton_level/data
-examples/tutorial_parton_level/datasave
-examples/tutorial_parton_level/logs
-examples/tutorial_parton_level/ME5_debug
-examples/tutorial_parton_level/MG_Process
-examples/tutorial_parton_level/mg_processes
-examples/tutorial_parton_level/py.py
-examples/tutorial_parton_level/models
+examples/tutorial_particle_physics/temp
+examples/tutorial_particle_physics/nsqso_born.inc
+examples/tutorial_particle_physics/data
+examples/tutorial_particle_physics/datasave
+examples/tutorial_particle_physics/logs
+examples/tutorial_particle_physics/ME5_debug
+examples/tutorial_particle_physics/MG_Process
+examples/tutorial_particle_physics/mg_processes
+examples/tutorial_particle_physics/py.py
+examples/tutorial_particle_physics/models
 
 examples/tutorial_toy_simulator/data
 examples/tutorial_toy_simulator/models
@@ -173,9 +163,12 @@ examples/example3_systematics/data
 examples/example3_systematics/mg_processes
 examples/example3_systematics/models
 
+examples/example4_tth
+
 # MG / Pythia / Delphes patch
 patches/
 
 # Shell scripts
 black.sh
 run_sphinx.sh
+publish.sh

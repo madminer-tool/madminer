@@ -5,7 +5,7 @@ import numpy as np
 from collections import OrderedDict
 
 from madminer.core import MadMiner
-from madminer.lhe import LHEProcessor
+from madminer.lhe import LHEReader
 from madminer.fisherinformation import FisherInformation, profile_information
 
 
@@ -25,7 +25,7 @@ def theta_limit_madminer(xsec=0.001, lumi=1000000.0, effect_phys=0.1, effect_sys
     miner.save(".data.h5")
 
     # Set up observations
-    proc = LHEProcessor(".data.h5")
+    proc = LHEReader(".data.h5")
     proc.add_observable("x", "no one cares")
     proc.reference_benchmark = "benchmark_0"
     proc.nuisance_parameters = OrderedDict()
@@ -40,8 +40,8 @@ def theta_limit_madminer(xsec=0.001, lumi=1000000.0, effect_phys=0.1, effect_sys
 
     # Calculate Fisher information
     fisher = FisherInformation(".data2.h5")
-    info, cov = fisher.calculate_fisher_information_full_truth(theta=np.array([0.0]), luminosity=lumi)
-    constraint = fisher.calculate_fisher_information_nuisance_constraints()
+    info, cov = fisher.truth_information(theta=np.array([0.0]), luminosity=lumi)
+    constraint = fisher.nuisance_constraint_information()
     info = info + constraint
     profiled = profile_information(info, [0])
 

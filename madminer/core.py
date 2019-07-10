@@ -6,11 +6,11 @@ import logging
 from collections import OrderedDict
 import tempfile
 
-from madminer.morphing import Morpher
+from madminer.utils.morphing import PhysicsMorpher
 from madminer.utils.interfaces.madminer_hdf5 import save_madminer_settings, load_madminer_settings
 from madminer.utils.interfaces.mg_cards import export_param_card, export_reweight_card, export_run_card
 from madminer.utils.interfaces.mg import generate_mg_process, setup_mg_with_scripts, run_mg, create_master_script
-from madminer.utils.various import create_missing_folders, format_benchmark, make_file_executable, copy_file
+from madminer.utils.various import create_missing_folders, format_benchmark, copy_file
 
 logger = logging.getLogger(__name__)
 
@@ -336,7 +336,7 @@ class MadMiner:
         if isinstance(max_overall_power, int):
             max_overall_power = (max_overall_power,)
 
-        morpher = Morpher(parameters_from_madminer=self.parameters)
+        morpher = PhysicsMorpher(parameters_from_madminer=self.parameters)
         morpher.find_components(max_overall_power)
 
         if include_existing_benchmarks:
@@ -451,6 +451,8 @@ class MadMiner:
             self.systematics,
             _,
             _,
+            _,
+            _,
         ) = load_madminer_settings(filename, include_nuisance_benchmarks=False)
 
         logger.info("Found %s parameters:", len(self.parameters))
@@ -476,7 +478,7 @@ class MadMiner:
         self.export_morphing = False
 
         if morphing_matrix is not None and morphing_components is not None and not disable_morphing:
-            self.morpher = Morpher(self.parameters)
+            self.morpher = PhysicsMorpher(self.parameters)
             self.morpher.set_components(morphing_components)
             self.morpher.set_basis(self.benchmarks, morphing_matrix=morphing_matrix)
             self.export_morphing = True

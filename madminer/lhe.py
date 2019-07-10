@@ -19,7 +19,7 @@ from madminer.utils.interfaces.lhe import (
 logger = logging.getLogger(__name__)
 
 
-class LHEProcessor:
+class LHEReader:
     """
     Detector simulation with smearing functions and simple calculation of observables.
 
@@ -40,6 +40,7 @@ class LHEProcessor:
       `LHEProcessor.add_observable_from_function()`. A simple set of default observables is provided in
       `LHEProcessor.add_default_observables()`
     * Optionally, cuts can be set with `LHEProcessor.add_cut()`
+    * Optionally, efficiencies can be set with `LHEProcessor.add_efficiency()`
     * Calculating the observables from the Delphes ROOT files with `LHEProcessor.analyse_delphes_samples()`
     * Saving the results with `LHEProcessor.save()`
 
@@ -68,62 +69,41 @@ class LHEProcessor:
         self.cuts = []
         self.cuts_default_pass = []
 
+        # Initialize efficiencies
+        self.efficiencies = []
+        self.efficiencies_default_pass = []
+
         # Smearing function parameters
         self.energy_resolution = {}
         self.pt_resolution = {}
         self.eta_resolution = {}
         self.phi_resolution = {}
 
-        pdgids = [
-            1,
-            -1,
-            2,
-            -2,
-            3,
-            -3,
-            4,
-            -4,
-            5,
-            -5,
-            6,
-            -6,
-            9,
-            11,
-            -11,
-            12,
-            -12,
-            13,
-            -13,
-            14,
-            -14,
-            15,
-            -15,
-            16,
-            -16,
-            21,
-            22,
-            23,
-            24,
-            -24,
-            25,
-        ]
+        pdgids = [1, -1, 2, -2, 3, -3, 4, -4, 5, -5, 6, -6, 9]
+        pdgids += [11, -11, 12, -12, 13, -13, 14, -14, 15, -15, 16, -16, 21, 22, 23, 24, -24, 25]
         for pdgid in pdgids:
             self.energy_resolution[pdgid] = (0.0, 0.0)
             self.pt_resolution[pdgid] = (0.0, 0.0)
             self.eta_resolution[pdgid] = (0.0, 0.0)
             self.phi_resolution[pdgid] = (0.0, 0.0)
+        self.pt_resolution["met"] = (0.0, 0.0)
 
         # Initialize samples
         self.reference_benchmark = None
         self.observations = None
         self.weights = None
+        self.events_sampling_benchmark_ids = None
 
         # Initialize nuisance parameters
         self.nuisance_parameters = None
 
+        # Initialize event summary
+        self.signal_events_per_benchmark = None
+        self.background_events = None
+
         # Information from .h5 file
         self.filename = filename
-        (parameters, benchmarks, _, _, _, _, _, self.systematics, _, _) = load_madminer_settings(
+        (parameters, benchmarks, _, _, _, _, _, self.systematics, _, _, _, _) = load_madminer_settings(
             filename, include_nuisance_benchmarks=False
         )
         self.benchmark_names_phys = list(benchmarks.keys())
@@ -204,8 +184,8 @@ class LHEProcessor:
             the last smearing function will take effect. Default value: None.
 
         energy_resolution_abs : float or None, optional
-            Absolute measurement uncertainty for the energy in GeV. None means that the energy is not smeared directly, but
-            calculated from the on-shell condition. Default value: 0.
+            Absolute measurement uncertainty for the energy in GeV. None means that the energy is not smeared directly,
+            but calculated from the on-shell condition. Default value: 0.
 
         energy_resolution_rel : float or None, optional
             Relative measurement uncertainty for the energy. None means that the energy is not smeared directly, but
@@ -245,6 +225,33 @@ class LHEProcessor:
             self.pt_resolution[pdgid] = (pt_resolution_abs, pt_resolution_rel)
             self.eta_resolution[pdgid] = (eta_resolution_abs, eta_resolution_rel)
             self.phi_resolution[pdgid] = (phi_resolution_abs, phi_resolution_rel)
+
+    def set_met_noise(self, abs_=0.0, rel=0.0):
+        """
+        Sets up additional noise in the MET variable from shower and detector effects.
+
+        By default, the MET is calculated based on all reconstructed visible particles, including the effect of the
+        smearing of these particles (set with `set_smearing()`). But often the MET is in fact more affected by
+        additional soft activity than by mismeasurements of the hard particles. This function adds a Gaussian random
+        to each of the x and y components of the MET vector. The Gaussian has mean 0 and standard deviation
+        `abs + rel * HT`, where `HT` is the scalar sum of the pT of all particles in the process. Everything
+        is given in GeV.
+
+        Parameters
+        ----------
+        abs_ : float, optional
+            Absolute contribution to MET noise. Default value: 0.
+
+        rel : float, optional
+            Relative (to HT) contribution to MET noise. Default value: 0.
+
+        Returns
+        -------
+            None
+
+        """
+
+        self.pt_resolution["met"] = (abs_, rel)
 
     def add_observable(self, name, definition, required=False, default=None):
         """
@@ -303,9 +310,10 @@ class LHEProcessor:
             spaces or special characters.
 
         fn : function
-            A function with signature `observable(particles)` where the input arguments are lists of
-            MadMinerParticle instances (ordered in the same way as in the LHE file) and a float is returned. The
-            function should raise a `RuntimeError` to signal that it is not defined.
+            A function with signature `observable(particles, leptons, photons, jets, met)` where all arguments are lists of
+            MadMinerParticle instances and a float is returned. `particles` are the truth-level particles, ordered in the
+            same way as in the LHE file, and no smearing is applied. `leptons`, `photons`, `jets`, and `met` have
+            smearing applied. The function should raise a `RuntimeError` to signal that it is not defined.
 
         required : bool, optional
             Whether the observable is required. If True, an event will only be retained if this observable is
@@ -448,6 +456,38 @@ class LHEProcessor:
         self.cuts.append(definition)
         self.cuts_default_pass.append(pass_if_not_parsed)
 
+    def add_efficiency(self, definition, value_if_not_parsed=1.0):
+
+        """
+            Adds an efficiency as a string that can be parsed by Python's `eval()` function and returns a bool.
+
+            Parameters
+            ----------
+            definition : str
+            An expression that can be parsed by Python's `eval()` function and returns a floating number which reweights
+            the event weights. In the definition, all visible particles can be used: `e`, `mu`, `j`, `a`, and `l` provide
+            lists of electrons, muons, jets, photons, and leptons (electrons and muons combined), in each case sorted
+            by descending transverse momentum. `met` provides a missing ET object. `visible` and `all` provide access to
+            the sum of all visible particles and the sum of all visible particles plus MET, respectively. All these
+            objects are instances of `MadMinerParticle`, which inherits from scikit-hep's
+            [LorentzVector](http://scikit-hep.org/api/math.html#vector-classes). See the link for a
+            documentation of their properties. In addition, `MadMinerParticle` have  properties `charge` and `pdg_id`,
+            which return the charge in units of elementary charges (i.e. an electron has `e[0].charge = -1.`), and the
+            PDG particle ID.
+
+            value_if_not_parsed : float, optional
+            Value if te efficiency function cannot be parsed. Default value: 1.
+
+            Returns
+            -------
+            None
+
+            """
+        logger.debug("Adding efficiency %s", definition)
+
+        self.efficiencies.append(definition)
+        self.efficiencies_default_pass.append(value_if_not_parsed)
+
     def reset_observables(self):
         """ Resets all observables. """
 
@@ -465,10 +505,18 @@ class LHEProcessor:
         self.cuts = []
         self.cuts_default_pass = []
 
+    def reset_efficiencies(self):
+        """ Resets all efficiencies. """
+
+        logger.debug("Resetting efficiencies")
+
+        self.efficiencies = []
+        self.efficiencies_default_pass = []
+
     def analyse_samples(self, reference_benchmark=None, parse_events_as_xml=True):
         """
-        Main function that parses the LHE samples, applies detector effects, checks cuts, and extracts
-        the observables and weights.
+        Main function that parses the LHE samples, applies detector effects, checks cuts,
+        evaulate efficiencies, and extracts the observables and weights.
 
         Parameters
         ----------
@@ -497,13 +545,16 @@ class LHEProcessor:
         self.observations = None
         self.weights = None
         self.nuisance_parameters = None
+        self.events_sampling_benchmark_ids = None
+        self.signal_events_per_benchmark = [0 for _ in range(self.n_benchmarks_phys)]
+        self.background_events = 0
 
         for lhe_file, is_background, sampling_benchmark, k_factor in zip(
             self.lhe_sample_filenames, self.sample_is_backgrounds, self.sampling_benchmarks, self.sample_k_factors
         ):
             logger.info("Analysing LHE sample %s", lhe_file)
 
-            this_observations, this_weights = self._parse_sample(
+            this_observations, this_weights, this_n_events = self._parse_sample(
                 is_background, k_factor, lhe_file, parse_events_as_xml, reference_benchmark, sampling_benchmark
             )
 
@@ -511,10 +562,20 @@ class LHEProcessor:
             if this_observations is None:
                 continue
 
+            # Store sampling id for each event
+            if is_background:
+                idx = -1
+                self.background_events += this_n_events
+            else:
+                idx = self.benchmark_names_phys.index(sampling_benchmark)
+                self.signal_events_per_benchmark[idx] += this_n_events
+            this_events_sampling_benchmark_ids = np.array([idx] * this_n_events, dtype=np.int)
+
             # First results
             if self.observations is None and self.weights is None:
                 self.observations = this_observations
                 self.weights = this_weights
+                self.events_sampling_benchmark_ids = this_events_sampling_benchmark_ids
                 continue
 
             # Following results: check consistency with previous results
@@ -540,6 +601,17 @@ class LHEProcessor:
                 assert key in this_observations, "Observable {} not found in Delphes sample!".format(key)
                 self.observations[key] = np.hstack([self.observations[key], this_observations[key]])
 
+            self.events_sampling_benchmark_ids = np.hstack(
+                [self.events_sampling_benchmark_ids, this_events_sampling_benchmark_ids]
+            )
+
+        logger.info("Analysed number of events per sampling benchmark:")
+        for name, n_events in zip(self.benchmark_names_phys, self.signal_events_per_benchmark):
+            if n_events > 0:
+                logger.info("  %s from %s", n_events, name)
+        if self.background_events > 0:
+            logger.info("  %s from backgrounds", self.background_events)
+
     def _parse_sample(
         self, is_background, k_factor, lhe_file, parse_events_as_xml, reference_benchmark, sampling_benchmark
     ):
@@ -549,6 +621,7 @@ class LHEProcessor:
         logger.debug("Found %s nuisance parameters with matching benchmarks:", len(nuisance_parameters))
         for key, value in six.iteritems(nuisance_parameters):
             logger.debug("  %s: %s", key, value)
+
         # Compare to existing data
         if self.nuisance_parameters is None:
             self.nuisance_parameters = nuisance_parameters
@@ -559,6 +632,7 @@ class LHEProcessor:
                         self.nuisance_parameters, nuisance_parameters
                     )
                 )
+
         # Calculate observables and weights in LHE file
         this_observations, this_weights = parse_lhe_file(
             filename=lhe_file,
@@ -570,6 +644,8 @@ class LHEProcessor:
             observables_defaults=self.observables_defaults,
             cuts=self.cuts,
             cuts_default_pass=self.cuts_default_pass,
+            efficiencies=self.efficiencies,
+            efficiencies_default_pass=self.efficiencies_default_pass,
             energy_resolutions=self.energy_resolution,
             pt_resolutions=self.pt_resolution,
             eta_resolutions=self.eta_resolution,
@@ -577,16 +653,34 @@ class LHEProcessor:
             k_factor=k_factor,
             parse_events_as_xml=parse_events_as_xml,
         )
+
         # No events found?
         if this_observations is None:
             logger.debug("No observations in this LHE file, skipping it")
             return None, None
         logger.debug("Found weights %s in LHE file", list(this_weights.keys()))
 
-        # Check number of events in observables
+        # Sanity checks
+        n_events = self._check_sample_observations_and_weights(this_observations, this_weights)
+
+        # Rescale nuisance parameters to reference benchmark
+        reference_weights = this_weights[reference_benchmark]
+        sampling_weights = this_weights[sampling_benchmark]
+        for key in this_weights:
+            if key not in self.benchmark_names_phys:  # Only rescale nuisance benchmarks
+                this_weights[key] = reference_weights / sampling_weights * this_weights[key]
+
+        return this_observations, this_weights, n_events
+
+    @staticmethod
+    def _check_sample_observations_and_weights(this_observations, this_weights):
+        """ Sanity checks """
+
+        # Check number of events in observables, and their dtype
         n_events = None
         for key, obs in six.iteritems(this_observations):
             this_n_events = len(obs)
+            logger.debug("Found {} events in Obs {}".format(this_n_events, key))
             if n_events is None:
                 n_events = this_n_events
                 logger.debug("Found %s events", n_events)
@@ -598,7 +692,15 @@ class LHEProcessor:
                     )
                 )
 
-        # Check number of events in weights
+            if not np.issubdtype(obs.dtype, np.number):
+                logger.warning(
+                    "Observations for observable %s have non-numeric dtype %s. This usually means something "
+                    "is wrong in the definition of the observable. Data: %s",
+                    key,
+                    obs.dtype,
+                    obs,
+                )
+        # Check number of events in weights, and thier dtype
         for key, weights in six.iteritems(this_weights):
             this_n_events = len(weights)
             if n_events is None:
@@ -610,13 +712,15 @@ class LHEProcessor:
                     "Mismatching number of events in weights {}: {} vs {}".format(key, n_events, this_n_events)
                 )
 
-        # Rescale nuisance parameters to reference benchmark
-        reference_weights = this_weights[reference_benchmark]
-        sampling_weights = this_weights[sampling_benchmark]
-        for key in this_weights:
-            if key not in self.benchmark_names_phys:  # Only rescale nuisance benchmarks
-                this_weights[key] = reference_weights / sampling_weights * this_weights[key]
-        return this_observations, this_weights
+            if not np.issubdtype(weights.dtype, np.number):
+                logger.warning(
+                    "Weights %s have non-numeric dtype %s. This usually means something "
+                    "is wrong in the definition of the observable. Data: %s",
+                    key,
+                    weights.dtype,
+                    weights,
+                )
+        return n_events
 
     def save(self, filename_out):
         """
@@ -636,7 +740,7 @@ class LHEProcessor:
         """
 
         if self.observations is None or self.weights is None:
-            logger.warning("No observations to save!")
+            logger.warning("No events to save!")
             return
 
         logger.debug("Loading HDF5 data from %s and saving file to %s", self.filename, filename_out)
@@ -654,4 +758,12 @@ class LHEProcessor:
         )
 
         # Save events
-        save_events_to_madminer_file(filename_out, self.observables, self.observations, self.weights)
+        save_events_to_madminer_file(
+            filename_out,
+            self.observables,
+            self.observations,
+            self.weights,
+            self.events_sampling_benchmark_ids,
+            self.signal_events_per_benchmark,
+            self.background_events,
+        )

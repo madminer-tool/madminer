@@ -1,6 +1,5 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-import six
 import numpy as np
 from matplotlib import pyplot as plt
 import matplotlib
@@ -8,9 +7,8 @@ from matplotlib import gridspec
 import logging
 
 from madminer.sampling import SampleAugmenter
-from madminer.utils.analysis import mdot, get_theta_benchmark_matrix
-from madminer.morphing import NuisanceMorpher
-from madminer.utils.various import weighted_quantile, sanitize_array, shuffle
+from madminer.utils.morphing import NuisanceMorpher
+from madminer.utils.various import weighted_quantile, sanitize_array, shuffle, mdot
 
 logger = logging.getLogger(__name__)
 
@@ -93,11 +91,11 @@ def plot_uncertainty(
     obs_idx = list(sa.observables.keys()).index(observable)
 
     # Get event data (observations and weights)
-    x, weights_benchmarks = sa.extract_raw_data()
+    x, weights_benchmarks = sa.weighted_events()
     x = x[:, obs_idx]
 
     # Theta matrix
-    theta_matrix = get_theta_benchmark_matrix("morphing", theta, sa.benchmarks, sa.morpher)
+    theta_matrix = sa._get_theta_benchmark_matrix(theta)
     weights = mdot(theta_matrix, weights_benchmarks)
 
     # Remove negative weights
@@ -264,6 +262,7 @@ def plot_distributions(
     n_toys=100,
     n_cols=3,
     quantiles_for_range=(0.025, 0.975),
+    sample_only_from_closest_benchmark=True,
 ):
     """
     Plots one-dimensional histograms of observables in a MadMiner file for a given set of benchmarks.
@@ -346,6 +345,9 @@ def plot_distributions(
         Tuple `(min_quantile, max_quantile)` that defines how the observable range is determined for each panel.
         Default: (0.025, 0.075).
 
+    sample_only_from_closest_benchmark : bool, optional
+        If True, only weighted events originally generated from the closest benchmarks are used. Default value: True.
+
     Returns
     -------
     figure : Figure
@@ -411,30 +413,54 @@ def plot_distributions(
         all_observables = list(sa.observables.keys())
         observable_labels = [all_observables[obs] for obs in observable_indices]
 
+    # Parse thetas
+    theta_values = [sa._get_theta_value(theta) for theta in parameter_points]
+    theta_matrices = [sa._get_theta_benchmark_matrix(theta) for theta in parameter_points]
+    logger.debug("Calculated %s theta matrices", len(theta_matrices))
+
     # Get event data (observations and weights)
-    x, weights_benchmarks = sa.extract_raw_data()
-    logger.debug("Loaded raw data with shapes %s, %s", x.shape, weights_benchmarks.shape)
+    all_x, all_weights_benchmarks = sa.weighted_events(generated_close_to=None)
+    logger.debug("Loaded raw data with shapes %s, %s", all_x.shape, all_weights_benchmarks.shape)
+
+    indiv_x, indiv_weights_benchmarks = [], []
+    if sample_only_from_closest_benchmark:
+        for theta in theta_values:
+            this_x, this_weights = sa.weighted_events(generated_close_to=theta)
+            indiv_x.append(this_x)
+            indiv_weights_benchmarks.append(this_weights)
 
     # Remove negative weights
-    sane_event_filter = np.all(weights_benchmarks >= 0.0, axis=1)
+    sane_event_filter = np.all(all_weights_benchmarks >= 0.0, axis=1)
 
-    n_events_before = weights_benchmarks.shape[0]
-    x = x[sane_event_filter]
-    weights_benchmarks = weights_benchmarks[sane_event_filter]
-    n_events_removed = n_events_before - weights_benchmarks.shape[0]
+    n_events_before = all_weights_benchmarks.shape[0]
+    all_x = all_x[sane_event_filter]
+    all_weights_benchmarks = all_weights_benchmarks[sane_event_filter]
+    n_events_removed = n_events_before - all_weights_benchmarks.shape[0]
 
     if int(np.sum(sane_event_filter, dtype=np.int)) < len(sane_event_filter):
         logger.warning("Removed %s / %s events with negative weights", n_events_removed, n_events_before)
 
+    for i, (x, weights) in enumerate(zip(indiv_x, indiv_weights_benchmarks)):
+        sane_event_filter = np.all(weights >= 0.0, axis=1)
+        indiv_x[i] = x[sane_event_filter]
+        indiv_weights_benchmarks[i] = weights[sane_event_filter]
+
     # Shuffle events
-    x, weights_benchmarks = shuffle(x, weights_benchmarks)
+    all_x, all_weights_benchmarks = shuffle(all_x, all_weights_benchmarks)
+
+    for i, (x, weights) in enumerate(zip(indiv_x, indiv_weights_benchmarks)):
+        indiv_x[i], indiv_weights_benchmarks[i] = shuffle(x, weights)
 
     # Only analyze n_events
-    if n_events is not None and n_events < x.shape[0]:
-        logger.debug("Only analyzing first %s / %s events", n_events, x.shape[0])
+    if n_events is not None and n_events < all_x.shape[0]:
+        logger.debug("Only analyzing first %s / %s events", n_events, all_x.shape[0])
 
-        x = x[:n_events]
-        weights_benchmarks = weights_benchmarks[:n_events]
+        all_x = all_x[:n_events]
+        all_weights_benchmarks = all_weights_benchmarks[:n_events]
+
+        for i, (x, weights) in enumerate(zip(indiv_x, indiv_weights_benchmarks)):
+            indiv_x[i] = x[:n_events]
+            indiv_weights_benchmarks[i] = weights[:n_events]
 
     if uncertainties != "nuisance":
         n_toys = 0
@@ -442,16 +468,6 @@ def plot_distributions(
     n_nuisance_toys_drawn = 0
     if draw_nuisance_toys is not None:
         n_nuisance_toys_drawn = draw_nuisance_toys
-
-    theta_matrices = []
-    for theta in parameter_points:
-        if isinstance(theta, six.string_types):
-            matrix = get_theta_benchmark_matrix("benchmark", theta, sa.benchmarks)
-        else:
-            matrix = get_theta_benchmark_matrix("morphing", theta, sa.benchmarks, sa.morpher)
-        theta_matrices.append(matrix)
-
-    logger.debug("Calculated %s theta matrices", len(theta_matrices))
 
     # Nuisance parameters
     nuisance_toy_factors = []
@@ -477,7 +493,7 @@ def plot_distributions(
 
         nuisance_toy_factors = np.array(
             [
-                nuisance_morpher.calculate_nuisance_factors(nuisance_toy, weights_benchmarks)
+                nuisance_morpher.calculate_nuisance_factors(nuisance_toy, all_weights_benchmarks)
                 for nuisance_toy in nuisance_toys
             ]
         )  # Shape (n_toys, n_events)
@@ -497,8 +513,8 @@ def plot_distributions(
         # Figure out x range
         xmins, xmaxs = [], []
         for theta_matrix in theta_matrices:
-            x_small = x[:n_events_for_range]
-            weights_small = mdot(theta_matrix, weights_benchmarks[:n_events_for_range])
+            x_small = all_x[:n_events_for_range]
+            weights_small = mdot(theta_matrix, all_weights_benchmarks[:n_events_for_range])
 
             xmin = weighted_quantile(x_small[:, i_obs], quantiles_for_range[0], weights_small)
             xmax = weighted_quantile(x_small[:, i_obs], quantiles_for_range[1], weights_small)
@@ -506,8 +522,8 @@ def plot_distributions(
             xmin -= xwidth * 0.1
             xmax += xwidth * 0.1
 
-            xmin = max(xmin, np.min(x[:, i_obs]))
-            xmax = min(xmax, np.max(x[:, i_obs]))
+            xmin = max(xmin, np.min(all_x[:, i_obs]))
+            xmax = min(xmax, np.max(all_x[:, i_obs]))
 
             xmins.append(xmin)
             xmaxs.append(xmax)
@@ -529,18 +545,28 @@ def plot_distributions(
         histos_toys = []
 
         for i_theta, theta_matrix in enumerate(theta_matrices):
-            theta_weights = mdot(theta_matrix, weights_benchmarks)  # Shape (n_events,)
+            theta_weights = mdot(theta_matrix, all_weights_benchmarks)  # Shape (n_events,)
 
-            histo, bin_edges = np.histogram(
-                x[:, i_obs], bins=n_bins, range=x_range, weights=theta_weights, density=normalize
-            )
+            if sample_only_from_closest_benchmark:
+                indiv_theta_weights = mdot(theta_matrix, indiv_weights_benchmarks[i_theta])  # Shape (n_events,)
+                histo, bin_edges = np.histogram(
+                    indiv_x[i_theta][:, i_obs],
+                    bins=n_bins,
+                    range=x_range,
+                    weights=indiv_theta_weights,
+                    density=normalize,
+                )
+            else:
+                histo, bin_edges = np.histogram(
+                    all_x[:, i_obs], bins=n_bins, range=x_range, weights=theta_weights, density=normalize
+                )
             histos.append(histo)
 
             if uncertainties == "nuisance":
                 histos_toys_this_theta = []
                 for i_toy, nuisance_toy_factors_this_toy in enumerate(nuisance_toy_factors):
                     toy_histo, _ = np.histogram(
-                        x[:, i_obs],
+                        all_x[:, i_obs],
                         bins=n_bins,
                         range=x_range,
                         weights=theta_weights * nuisance_toy_factors_this_toy,
@@ -611,8 +637,8 @@ def plot_2d_morphing_basis(
 
     Parameters
     ----------
-    morpher : Morpher
-        Morpher instance with defined basis.
+    morpher : PhysicsMorpher
+        PhysicsMorpher instance with defined basis.
 
     xlabel : str, optional
         Label for the x axis. Default value: r'$\theta_0$'.
@@ -682,8 +708,8 @@ def plot_nd_morphing_basis_scatter(morpher, crange=(1.0, 100.0), n_test_thetas=1
 
     Parameters
     ----------
-    morpher : Morpher
-        Morpher instance with defined basis.
+    morpher : PhysicsMorpher
+        PhysicsMorpher instance with defined basis.
 
     crange : tuple of float, optional
         Range `(min, max)` for the color map. Default value: (1. 100.).
@@ -741,8 +767,8 @@ def plot_nd_morphing_basis_slices(morpher, crange=(1.0, 100.0), resolution=50):
 
     Parameters
     ----------
-    morpher : Morpher
-        Morpher instance with defined basis.
+    morpher : PhysicsMorpher
+        PhysicsMorpher instance with defined basis.
 
     crange : tuple of float, optional
         Range `(min, max)` for the color map.
@@ -826,6 +852,7 @@ def plot_fisher_information_contours_2d(
     linewidths=1.5,
     alphas=1.0,
     alphas_uncertainties=0.25,
+    ax=None,
 ):
     """
     Visualizes 2x2 Fisher information matrices as contours of constant Fisher distance from a reference point `theta0`.
@@ -886,6 +913,8 @@ def plot_fisher_information_contours_2d(
     alphas_uncertainties : float or list of float, optional
         Opacities for the error bands. Default value: 0.25.
 
+    ax: axes or None, optional
+        Predefined axes as part of figure instead of standalone figure. Default: None
     Returns
     -------
     figure : Figure
@@ -965,7 +994,11 @@ def plot_fisher_information_contours_2d(
         logger.debug("Std: %s", uncertainties)
 
     # Plot results
-    fig = plt.figure(figsize=(5.0, 5.0))
+    do_fig = False
+    if ax is None:
+        do_fig = True
+        fig = plt.figure(figsize=(5.0, 5.0))
+        ax = plt.gca()
 
     # Error bands
     for i in range(n_matrices):
@@ -978,7 +1011,7 @@ def plot_fisher_information_contours_2d(
 
     # Predictions
     for i in range(n_matrices):
-        cs = plt.contour(
+        cs = ax.contour(
             xi,
             yi,
             fisher_distances_squared[i],
@@ -991,20 +1024,21 @@ def plot_fisher_information_contours_2d(
         )
 
         if inline_labels is not None and inline_labels[i] is not None and len(inline_labels[i]) > 0:
-            plt.clabel(cs, cs.levels, inline=True, fontsize=12, fmt={d2_threshold: inline_labels[i]})
+            ax.clabel(cs, cs.levels, inline=True, fontsize=12, fmt={d2_threshold: inline_labels[i]})
 
     # Legend and decorations
     if labels is not None:
-        plt.legend()
+        ax.legend()
 
-    plt.axes().set_xlim(xrange)
-    plt.axes().set_ylim(yrange)
-    plt.xlabel(xlabel)
-    plt.ylabel(ylabel)
-
-    plt.tight_layout()
-
-    return fig
+    if do_fig:
+        plt.axes().set_xlim(xrange)
+        plt.axes().set_ylim(yrange)
+        plt.xlabel(xlabel)
+        plt.ylabel(ylabel)
+        plt.tight_layout()
+        return fig
+    else:
+        return ax
 
 
 def plot_fisherinfo_barplot(
@@ -1091,7 +1125,6 @@ def plot_fisherinfo_barplot(
 
     if eigenvalue_colors is None:
         eigenvalue_colors = ["C{}".format(str(i)) for i in range(10)]
-    operator_order = [i for i in range(0, size_upper)]
     eigenvalue_linewidth = 1.5
 
     # Upper plot
@@ -1134,7 +1167,7 @@ def plot_fisherinfo_barplot(
     ax1.set_ylim(0.0001 * y_max, 2.0 * y_max)
 
     ax1.set_xticks(xpos_ticks)
-    ax1.set_xticklabels(["" for l in labels], rotation=40, ha="right")
+    ax1.set_xticklabels(["" for _ in labels], rotation=40, ha="right")
     ax1.set_ylabel(r"$I_{ij}$ eigenvalues")
 
     # Lower plot
@@ -1168,6 +1201,8 @@ def plot_distribution_of_information(
     log_xsec=False,
     norm_xsec=True,
     epsilon=1.0e-9,
+    figsize=(5.4, 4.5),
+    fontsize=None,
 ):
     """
     Plots the distribution of the cross section together with the distribution of the Fisher information.
@@ -1203,6 +1238,12 @@ def plot_distribution_of_information(
 
     epsilon : float, optional
         Numerical factor.
+        
+    figsize : tuple of float, optional
+        Figure size, default: (5.4, 4.5)
+        
+    fontsize: float, optional
+        Fontsize, default None
 
     Returns
     -------
@@ -1210,6 +1251,10 @@ def plot_distribution_of_information(
         Plot as Matplotlib Figure instance.
 
     """
+    # prepare Plot
+    if fontsize is not None:
+        matplotlib.rcParams.update({"font.size": fontsize})
+
     # Prepare data
     n_entries = len(fisher_information_matrices)
     size = len(fisher_information_matrices[1])
@@ -1250,9 +1295,9 @@ def plot_distribution_of_information(
     det_aux_linewidth = 1.5
 
     # xsec plot
-    fig = plt.figure(figsize=(5.4, 4.5))
+    fig = plt.figure(figsize=figsize)
     ax1 = plt.subplot(111)
-    fig.subplots_adjust(left=0.1667, right=0.8333, bottom=0.17, top=0.97)
+    # fig.subplots_adjust(left=0.1667, right=0.8333, bottom=0.17, top=0.97)
 
     if log_xsec:
         ax1.set_yscale("log")

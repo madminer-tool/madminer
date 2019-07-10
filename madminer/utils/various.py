@@ -8,6 +8,7 @@ from subprocess import Popen, PIPE
 import io
 import numpy as np
 import shutil
+from contextlib import contextmanager
 
 logger = logging.getLogger(__name__)
 
@@ -91,7 +92,13 @@ def shuffle(*arrays):
             n_samples = a.shape[0]
             permutation = np.random.permutation(n_samples)
 
-        assert a.shape[0] == n_samples
+        if a.shape[0] != n_samples:
+            raise RuntimeError(
+                "Mismatching shapes when trying to simultaneously shuffle: {}".format(
+                    [None if val is None else val.shape for val in arrays]
+                )
+            )
+
         shuffled_a = a[permutation]
         shuffled_arrays.append(shuffled_a)
         a = None
@@ -101,21 +108,20 @@ def shuffle(*arrays):
 
 def restrict_samplesize(n, *arrays):
     restricted_arrays = []
-
     for i, a in enumerate(arrays):
         if a is None:
             restricted_arrays.append(None)
             continue
-
         restricted_arrays.append(a[:n])
 
     return restricted_arrays
 
 
-def balance_thetas(theta_sets_types, theta_sets_values):
+def balance_thetas(theta_sets_types, theta_sets_values, n_sets=None):
     """Repeats theta values such that all thetas lists have the same length """
 
-    n_sets = max([len(thetas) for thetas in theta_sets_types])
+    if n_sets is None:
+        n_sets = max([len(thetas) for thetas in theta_sets_types])
 
     for i, (types, values) in enumerate(zip(theta_sets_types, theta_sets_values)):
         assert len(types) == len(values)
@@ -139,30 +145,40 @@ def sanitize_array(array, replace_nan=0.0, replace_inf=0.0, replace_neg_inf=0.0,
     return array
 
 
-def load_and_check(filename, warning_threshold=1.0e9):
+def load_and_check(filename, warning_threshold=1.0e9, memmap_files_larger_than_gb=None):
     if filename is None:
         return None
 
-    data = np.load(filename)
+    if not isinstance(filename, six.string_types):
+        data = filename
+        memmap = False
+    else:
+        filesize_gb = os.stat(filename).st_size / 1.0 * 1024 ** 3
+        if memmap_files_larger_than_gb is None or filesize_gb <= memmap_files_larger_than_gb:
+            logger.info("  Loading %s into RAM", filename)
+            data = np.load(filename)
+            memmap = False
+        else:
+            logger.info("  Loading %s as memory map", filename)
+            data = np.load(filename, mmap_mode="c")
+            memmap = True
 
-    n_nans = np.sum(np.isnan(data))
-    n_infs = np.sum(np.isinf(data))
-    n_finite = np.sum(np.isfinite(data))
+    if not memmap:
+        n_nans = np.sum(np.isnan(data))
+        n_infs = np.sum(np.isinf(data))
+        n_finite = np.sum(np.isfinite(data))
+        if n_nans + n_infs > 0:
+            logger.warning(
+                "%s contains %s NaNs and %s Infs, compared to %s finite numbers!", filename, n_nans, n_infs, n_finite
+            )
 
-    if n_nans + n_infs > 0:
-        logger.warning(
-            "Warning: file %s contains %s NaNs and %s Infs, compared to %s finite numbers!",
-            filename,
-            n_nans,
-            n_infs,
-            n_finite,
-        )
+        smallest = np.nanmin(data)
+        largest = np.nanmax(data)
+        if np.abs(smallest) > warning_threshold or np.abs(largest) > warning_threshold:
+            logger.warning("Warning: file %s has some large numbers, rangin from %s to %s", filename, smallest, largest)
 
-    smallest = np.nanmin(data)
-    largest = np.nanmax(data)
-
-    if np.abs(smallest) > warning_threshold or np.abs(largest) > warning_threshold:
-        logger.warning("Warning: file %s has some large numbers, rangin from %s to %s", filename, smallest, largest)
+    if len(data.shape) == 1:
+        data = data.reshape(-1, 1)
 
     return data
 
@@ -241,7 +257,7 @@ def weighted_quantile(values, quantiles, sample_weight=None, values_sorted=False
     if sample_weight is None:
         sample_weight = np.ones(len(values))
     sample_weight = np.array(sample_weight, dtype=np.float64)
-    assert np.all(quantiles >= 0) and np.all(quantiles <= 1), "quantiles should be in [0, 1]"
+    assert np.all(quantiles >= 0.0) and np.all(quantiles <= 1.0), "quantiles should be in [0, 1]"
 
     # Sort
     if not values_sorted:
@@ -265,3 +281,65 @@ def weighted_quantile(values, quantiles, sample_weight=None, values_sorted=False
 
 def approx_equal(a, b, epsilon=1.0e-6):
     return abs(a - b) < epsilon
+
+
+def separate_information_blocks(fisher_information, parameters_of_interest):
+    # Find indices
+    n_parameters = len(fisher_information)
+    n_poi = len(parameters_of_interest)
+
+    poi_checked = []
+    nuisance_params = []
+
+    for i in range(n_parameters):
+        if i in parameters_of_interest:
+            poi_checked.append(i)
+        else:
+            nuisance_params.append(i)
+
+    assert n_poi == len(poi_checked), "Inconsistent input"
+
+    # Separate Fisher information parts
+    information_phys = fisher_information[parameters_of_interest, :][:, parameters_of_interest]
+    information_mix = fisher_information[nuisance_params, :][:, parameters_of_interest]
+    information_nuisance = fisher_information[nuisance_params, :][:, nuisance_params]
+
+    return nuisance_params, information_phys, information_mix, information_nuisance
+
+
+def mdot(matrix, benchmark_information):
+    """
+    Calculates a product between a matrix / matrices with shape (n1) or (a, n1) and a weight list with shape (b, n2)
+    or (n2,), where n1 and n2 do not have to be the same
+    """
+
+    n1 = matrix.shape[-1]
+    weights_t = benchmark_information.T
+    n2 = weights_t.shape[0]
+    n_smaller = min(n1, n2)
+
+    if n1 > n2:
+        matrix = matrix.T
+        matrix = matrix[:n_smaller]
+        matrix = matrix.T
+    elif n2 > n1:
+        weights_t = weights_t[:n_smaller]
+
+    return matrix.dot(weights_t)
+
+
+@contextmanager
+def less_logging():
+    """
+    Silences INFO logging messages. Based on https://gist.github.com/simon-weber/7853144
+    """
+
+    if logging.root.manager.disable != logging.DEBUG:
+        yield
+        return
+
+    try:
+        logging.disable(logging.INFO)
+        yield
+    finally:
+        logging.disable(logging.DEBUG)

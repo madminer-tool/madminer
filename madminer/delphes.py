@@ -19,7 +19,7 @@ from madminer.utils.interfaces.lhe import parse_lhe_file, extract_nuisance_param
 logger = logging.getLogger(__name__)
 
 
-class DelphesProcessor:
+class DelphesReader:
     """
     Detector simulation with Delphes and simple calculation of observables.
     
@@ -84,13 +84,18 @@ class DelphesProcessor:
         self.reference_benchmark = None
         self.observations = None
         self.weights = None
+        self.events_sampling_benchmark_ids = None
 
         # Initialize nuisance parameters
         self.nuisance_parameters = None
 
+        # Initialize event summary
+        self.signal_events_per_benchmark = None
+        self.background_events = None
+
         # Information from .h5 file
         self.filename = filename
-        (parameters, benchmarks, _, _, _, _, _, self.systematics, _, _) = load_madminer_settings(
+        (parameters, benchmarks, _, _, _, _, _, self.systematics, _, _, _, _) = load_madminer_settings(
             filename, include_nuisance_benchmarks=False
         )
         self.benchmark_names_phys = list(benchmarks.keys())
@@ -546,6 +551,9 @@ class DelphesProcessor:
         self.observations = None
         self.weights = None
         self.nuisance_parameters = None
+        self.events_sampling_benchmark_ids = None
+        self.signal_events_per_benchmark = [0 for _ in range(self.n_benchmarks_phys)]
+        self.background_events = 0
 
         for (
             delphes_file,
@@ -566,7 +574,7 @@ class DelphesProcessor:
         ):
             logger.info("Analysing Delphes sample %s", delphes_file)
 
-            this_observations, this_weights = self._analyse_delphes_sample(
+            this_observations, this_weights, this_n_events = self._analyse_delphes_sample(
                 delete_delphes_files,
                 delphes_file,
                 generator_truth,
@@ -584,10 +592,20 @@ class DelphesProcessor:
             if this_observations is None:
                 continue
 
+            # Store sampling id for each event
+            if is_background:
+                idx = -1
+                self.background_events += this_n_events
+            else:
+                idx = self.benchmark_names_phys.index(sampling_benchmark)
+                self.signal_events_per_benchmark[idx] += this_n_events
+            this_events_sampling_benchmark_ids = np.array([idx] * this_n_events, dtype=np.int)
+
             # First results
             if self.observations is None and self.weights is None:
                 self.observations = this_observations
                 self.weights = this_weights
+                self.events_sampling_benchmark_ids = this_events_sampling_benchmark_ids
                 continue
 
             # Following results: check consistency with previous results
@@ -612,6 +630,17 @@ class DelphesProcessor:
             for key in self.observations:
                 assert key in this_observations, "Observable {} not found in Delphes sample!".format(key)
                 self.observations[key] = np.hstack([self.observations[key], this_observations[key]])
+
+            self.events_sampling_benchmark_ids = np.hstack(
+                [self.events_sampling_benchmark_ids, this_events_sampling_benchmark_ids]
+            )
+
+        logger.info("Analysed number of events per sampling benchmark:")
+        for name, n_events in zip(self.benchmark_names_phys, self.signal_events_per_benchmark):
+            if n_events > 0:
+                logger.info("  %s from %s", n_events, name)
+        if self.background_events > 0:
+            logger.info("  %s from backgrounds", self.background_events)
 
     def _analyse_delphes_sample(
         self,
@@ -674,20 +703,8 @@ class DelphesProcessor:
         else:
             logger.debug("Did not extract weights from Delphes file")
 
-        # Check number of events in observables
-        n_events = None
-        for key, obs in six.iteritems(this_observations):
-            this_n_events = len(obs)
-            if n_events is None:
-                n_events = this_n_events
-                logger.debug("Found %s events", n_events)
-
-            if this_n_events != n_events:
-                raise RuntimeError(
-                    "Mismatching number of events in Delphes observations for {}: {} vs {}".format(
-                        key, n_events, this_n_events
-                    )
-                )
+        # Sanity checks
+        n_events = self._check_sample_observations(this_observations)
 
         # Find weights in LHE file
         if lhe_file_for_weights is not None:
@@ -709,17 +726,8 @@ class DelphesProcessor:
         if this_weights is None:
             raise RuntimeError("Could not extract weights from Delphes ROOT file or LHE file.")
 
-        # Check number of events in weights
-        for key, weights in six.iteritems(this_weights):
-            this_n_events = len(weights)
-            if n_events is None:
-                n_events = this_n_events
-                logger.debug("Found %s events", n_events)
-
-            if this_n_events != n_events:
-                raise RuntimeError(
-                    "Mismatching number of events in weights {}: {} vs {}".format(key, n_events, this_n_events)
-                )
+        # Sanity checks
+        n_events = self._check_sample_weights(n_events, this_weights)
 
         # k factors
         if k_factor is not None:
@@ -741,7 +749,58 @@ class DelphesProcessor:
             if key not in self.benchmark_names_phys:  # Only rescale nuisance benchmarks
                 this_weights[key] = reference_weights / sampling_weights * this_weights[key]
 
-        return this_observations, this_weights
+        return this_observations, this_weights, n_events
+
+    def _check_sample_observations(self, this_observations):
+        """ Sanity checks """
+        # Check number of events in observables
+        n_events = None
+        for key, obs in six.iteritems(this_observations):
+            this_n_events = len(obs)
+            if n_events is None:
+                n_events = this_n_events
+                logger.debug("Found %s events", n_events)
+
+            if this_n_events != n_events:
+                raise RuntimeError(
+                    "Mismatching number of events in Delphes observations for {}: {} vs {}".format(
+                        key, n_events, this_n_events
+                    )
+                )
+
+            if not np.issubdtype(obs.dtype, np.number):
+                logger.warning(
+                    "Observations for observable %s have non-numeric dtype %s. This usually means something "
+                    "is wrong in the definition of the observable. Data: %s",
+                    key,
+                    obs.dtype,
+                    obs,
+                )
+        return n_events
+
+    def _check_sample_weights(self, n_events, this_weights):
+        """ Sanity checks """
+        # Check number of events in weights
+        for key, weights in six.iteritems(this_weights):
+            this_n_events = len(weights)
+            if n_events is None:
+                n_events = this_n_events
+                logger.debug("Found %s events", n_events)
+
+            if this_n_events != n_events:
+                raise RuntimeError(
+                    "Mismatching number of events in weights {}: {} vs {}".format(key, n_events, this_n_events)
+                )
+
+            if not np.issubdtype(weights.dtype, np.number):
+                logger.warning(
+                    "Weights %s have non-numeric dtype %s. This usually means something "
+                    "is wrong in the definition of the observable. Data: %s",
+                    key,
+                    weights.dtype,
+                    weights,
+                )
+        return n_events
 
     def save(self, filename_out):
         """
@@ -779,4 +838,12 @@ class DelphesProcessor:
         )
 
         # Save events
-        save_events_to_madminer_file(filename_out, self.observables, self.observations, self.weights)
+        save_events_to_madminer_file(
+            filename_out,
+            self.observables,
+            self.observations,
+            self.weights,
+            self.events_sampling_benchmark_ids,
+            self.signal_events_per_benchmark,
+            self.background_events,
+        )

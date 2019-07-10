@@ -28,10 +28,12 @@ contact us at `johann.brehmer@nyu.edu`_.
    :maxdepth: 1
    :caption: Reference
 
+   madminer.analysis
    madminer.core
    madminer.delphes
    madminer.fisherinformation
    madminer.lhe
+   madminer.limits
    madminer.ml
    madminer.morphing
    madminer.plotting

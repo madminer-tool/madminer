@@ -9,13 +9,13 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-class ParameterizedRatioEstimator(nn.Module):
+class DenseSingleParameterizedRatioModel(nn.Module):
     """ Module that implements agnostic parameterized likelihood estimators such as RASCAL or ALICES. Only the
     numerator of the ratio is parameterized. """
 
     def __init__(self, n_observables, n_parameters, n_hidden, activation="tanh"):
 
-        super(ParameterizedRatioEstimator, self).__init__()
+        super(DenseSingleParameterizedRatioModel, self).__init__()
 
         # Save input
         self.n_hidden = n_hidden
@@ -84,7 +84,7 @@ class ParameterizedRatioEstimator(nn.Module):
         return s_hat, log_r_hat, t_hat
 
     def to(self, *args, **kwargs):
-        self = super(ParameterizedRatioEstimator, self).to(*args, **kwargs)
+        self = super(DenseSingleParameterizedRatioModel, self).to(*args, **kwargs)
 
         for i, layer in enumerate(self.layers):
             self.layers[i] = layer.to(*args, **kwargs)
@@ -92,13 +92,13 @@ class ParameterizedRatioEstimator(nn.Module):
         return self
 
 
-class DoublyParameterizedRatioEstimator(nn.Module):
+class DenseDoublyParameterizedRatioModel(nn.Module):
     """ Module that implements agnostic parameterized likelihood estimators such as RASCAL or ALICES. Both
     numerator and denominator of the ratio are parameterized. """
 
     def __init__(self, n_observables, n_parameters, n_hidden, activation="tanh"):
 
-        super(DoublyParameterizedRatioEstimator, self).__init__()
+        super(DenseDoublyParameterizedRatioModel, self).__init__()
 
         # Save input
         self.n_hidden = n_hidden
@@ -189,7 +189,7 @@ class DoublyParameterizedRatioEstimator(nn.Module):
         return s_hat, log_r_hat, t_hat0, t_hat1
 
     def to(self, *args, **kwargs):
-        self = super(DoublyParameterizedRatioEstimator, self).to(*args, **kwargs)
+        self = super(DenseDoublyParameterizedRatioModel, self).to(*args, **kwargs)
 
         for i, layer in enumerate(self.layers):
             self.layers[i] = layer.to(*args, **kwargs)
