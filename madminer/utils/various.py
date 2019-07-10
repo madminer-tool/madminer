@@ -101,6 +101,7 @@ def shuffle(*arrays):
 
         shuffled_a = a[permutation]
         shuffled_arrays.append(shuffled_a)
+        a = None
 
     return shuffled_arrays
 

@@ -370,8 +370,8 @@ def plot_distributions(
             if not is_nuisance:
                 parameter_points.append(key)
 
-        if line_labels is None:
-            line_labels = parameter_points
+    if line_labels is None:
+        line_labels = parameter_points
 
     n_parameter_points = len(parameter_points)
 
