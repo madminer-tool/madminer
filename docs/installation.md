@@ -26,9 +26,6 @@ with Geant4. In this case, the user has to implement code that runs the detector
 and stores the observables and weights in the HDF5 file. The `DelphesProcessor` and `LHEProcessor` classes might provide
 some guidance for this.
 
-We're currently working on a [reference Docker image](https://hub.docker.com/r/irinahub/docker-madminer-madgraph) that
-has all these dependencies and the needed patches installed.
-
 ## Install MadMiner
 
 To install the MadMiner package with all its Python dependencies, run `pip install madminer`.

@@ -696,7 +696,7 @@ class DelphesReader:
         # No events found?
         if this_observations is None:
             logger.debug("No observations in this Delphes file, skipping it")
-            return None, None
+            return None, None, None
 
         if this_weights is not None:
             logger.debug("Found weights %s in Delphes file", list(this_weights.keys()))
