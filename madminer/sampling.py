@@ -621,9 +621,6 @@ class SampleAugmenter(DataAnalyzer):
                 double_precision=double_precision,
             )
 
-        if return_individual_n_effective:
-            n_effective_samples_0 = np.repeat(n_effective_samples_0, n_samples_per_theta)
-
         # Thetas for theta1 sampling (could be different if num or denom are random)
         parsed_theta0s, n_samples_per_theta0 = self._parse_theta(theta0, n_samples // 2)
         parsed_theta1s, n_samples_per_theta1 = self._parse_theta(theta1, n_samples // 2)
@@ -663,9 +660,6 @@ class SampleAugmenter(DataAnalyzer):
                 n_eff_forced=n_eff_forced,
                 double_precision=double_precision,
             )
-
-        if return_individual_n_effective:
-            n_effective_samples_1 = np.repeat(n_effective_samples_1, n_samples_per_theta)
 
         # Combine
         x = np.vstack([x0, x1])
