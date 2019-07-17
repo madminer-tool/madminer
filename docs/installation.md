@@ -21,18 +21,10 @@ Using this adds additional requirements:
 - Delphes. Again, you can (but this time you don't have to) install it from the MadGraph command line interface with
   `install Delphes`.
   
-*(These tools currently have a bug: the MG-Pythia interface and Delphes currently do not keep track of additional weights
-that are in the LHE file. This is not a big deal, MadMiner now offers an option to extract these weights from the
-LHE file. Alternatively, there is a unofficial patch for these tools that solves these issues. It is available upon
-request.)*
-
 Finally, Delphes can be replaced with another detector simulation, for instance a full detector simulation based
 with Geant4. In this case, the user has to implement code that runs the detector simulation, calculates the observables,
 and stores the observables and weights in the HDF5 file. The `DelphesProcessor` and `LHEProcessor` classes might provide
 some guidance for this.
-
-We're currently working on a [reference Docker image](https://hub.docker.com/r/irinahub/docker-madminer-madgraph) that
-has all these dependencies and the needed patches installed.
 
 ## Install MadMiner
 
@@ -41,3 +33,9 @@ To install the MadMiner package with all its Python dependencies, run `pip insta
 To get the latest development version as well as the tutorials, clone the
 [GitHub repository](https://github.com/johannbrehmer/madminer) and run `pip install -e .` from the repository main
 folder.
+
+### Docker image
+
+At [https://hub.docker.com/u/madminertool/](https://hub.docker.com/u/madminertool/) we provide Docker images for
+the latest version of MadMiner and the physics simulator. Please email [iem244@nyu.edu](iem244@nyu.edu) for any
+questions about the Docker images.

@@ -491,9 +491,9 @@ class Trainer(object):
                 self.timer[stop] = dt
 
     def _report_timer(self):
-        logging.info("Training time spend on:")
+        logger.info("Training time spend on:")
         for key, value in six.iteritems(self.timer):
-            logging.info("  {:>32s}: {:6.2f}h".format(key, value / 3600.0))
+            logger.info("  {:>32s}: {:6.2f}h".format(key, value / 3600.0))
 
 
 class SingleParameterizedRatioTrainer(Trainer):

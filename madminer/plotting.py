@@ -370,8 +370,8 @@ def plot_distributions(
             if not is_nuisance:
                 parameter_points.append(key)
 
-        if line_labels is None:
-            line_labels = parameter_points
+    if line_labels is None:
+        line_labels = parameter_points
 
     n_parameter_points = len(parameter_points)
 
@@ -913,7 +913,7 @@ def plot_fisher_information_contours_2d(
 
     alphas_uncertainties : float or list of float, optional
         Opacities for the error bands. Default value: 0.25.
-        
+
     sigma_uncertainties : float, optional
         Number of gaussian sigmas used when presenting uncertainty bands. Default value: 1.
 
@@ -1001,7 +1001,7 @@ def plot_fisher_information_contours_2d(
     do_fig = False
     if ax is None:
         do_fig = True
-        fig = plt.figure(figsize=(5, 5))
+        fig = plt.figure(figsize=(5.0, 5.0))
         ax = plt.gca()
 
     # Error bands
@@ -1242,10 +1242,10 @@ def plot_distribution_of_information(
 
     epsilon : float, optional
         Numerical factor.
-        
+
     figsize : tuple of float, optional
         Figure size, default: (5.4, 4.5)
-        
+
     fontsize: float, optional
         Fontsize, default None
 

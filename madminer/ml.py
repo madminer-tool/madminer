@@ -19,6 +19,11 @@ from madminer.utils.various import separate_information_blocks
 from madminer.utils.ml.trainer import SingleParameterizedRatioTrainer, DoubleParameterizedRatioTrainer
 from madminer.utils.ml.trainer import LocalScoreTrainer, FlowTrainer
 
+try:
+    FileNotFoundError
+except NameError:
+    FileNotFoundError = IOError
+
 logger = logging.getLogger(__name__)
 
 
@@ -39,7 +44,7 @@ class Estimator(object):
     Please see the tutorial for a detailed walk-through.
     """
 
-    def __init__(self, features=None, n_hidden=(100, 100), activation="tanh"):
+    def __init__(self, features=None, n_hidden=(100,), activation="tanh"):
         self.features = features
         self.n_hidden = n_hidden
         self.activation = activation
@@ -101,6 +106,8 @@ class Estimator(object):
 
         """
 
+        logger.info("Saving model to %s", filename)
+
         if self.model is None:
             raise ValueError("No model -- train or load model before saving!")
 
@@ -145,6 +152,8 @@ class Estimator(object):
             None
 
         """
+
+        logger.info("Loading model from %s", filename)
 
         # Load settings and create model
         logger.debug("Loading settings from %s_settings.json", filename)
@@ -234,7 +243,7 @@ class ParameterizedRatioEstimator(Estimator):
 
     n_hidden : tuple of int, optional
         Units in each hidden layer in the neural networks. If method is 'nde' or 'scandal', this refers to the
-        setup of each individual MADE layer. Default value: (100, 100).
+        setup of each individual MADE layer. Default value: (100,).
 
     activation : {'tanh', 'sigmoid', 'relu'}, optional
         Activation function. Default value: 'tanh'.
@@ -253,7 +262,7 @@ class ParameterizedRatioEstimator(Estimator):
         alpha=1.0,
         optimizer="amsgrad",
         n_epochs=50,
-        batch_size=200,
+        batch_size=128,
         initial_lr=0.001,
         final_lr=0.0001,
         nesterov_momentum=None,
@@ -302,7 +311,7 @@ class ParameterizedRatioEstimator(Estimator):
             Number of epochs. Default value: 50.
 
         batch_size : int, optional
-            Batch size. Default value: 200.
+            Batch size. Default value: 128.
 
         initial_lr : float, optional
             Learning rate during the first epoch, after which it exponentially decays to final_lr. Default value:
@@ -341,7 +350,8 @@ class ParameterizedRatioEstimator(Estimator):
 
         Returns
         -------
-            None
+        results: ndarray
+            Results from SingleParameterizedRatioTrainer.train or DoubleParameterizedRatioTrainer.train for example
 
         """
 
@@ -492,7 +502,7 @@ class ParameterizedRatioEstimator(Estimator):
             raise ValueError("No model -- train or load model before evaluating it!")
 
         # Load training data
-        logger.debug("Loading evaluation data")
+        logger.info("Loading evaluation data")
         x = load_and_check(x)
         theta = load_and_check(theta)
 
@@ -507,7 +517,7 @@ class ParameterizedRatioEstimator(Estimator):
         all_t_hat = []
 
         if test_all_combinations:
-            logger.debug("Starting ratio evaluation for all combinations")
+            logger.info("Starting ratio evaluation for %s x-theta combinations", len(theta) * len(x))
 
             for i, this_theta in enumerate(theta):
                 logger.debug("Starting ratio evaluation for thetas %s / %s: %s", i + 1, len(theta), this_theta)
@@ -527,7 +537,7 @@ class ParameterizedRatioEstimator(Estimator):
             all_t_hat = np.array(all_t_hat)
 
         else:
-            logger.debug("Starting ratio evaluation")
+            logger.info("Starting ratio evaluation")
             _, all_log_r_hat, all_t_hat, _ = evaluate_ratio_model(
                 model=self.model,
                 method_type="parameterized_ratio",
@@ -537,7 +547,7 @@ class ParameterizedRatioEstimator(Estimator):
                 evaluate_score=evaluate_score,
             )
 
-        logger.debug("Evaluation done")
+        logger.info("Evaluation done")
         return all_log_r_hat, all_t_hat
 
     def evaluate_log_likelihood(self, *args, **kwargs):
@@ -610,7 +620,7 @@ class DoubleParameterizedRatioEstimator(Estimator):
 
     n_hidden : tuple of int, optional
         Units in each hidden layer in the neural networks. If method is 'nde' or 'scandal', this refers to the
-        setup of each individual MADE layer. Default value: (100, 100).
+        setup of each individual MADE layer. Default value: (100,).
 
     activation : {'tanh', 'sigmoid', 'relu'}, optional
         Activation function. Default value: 'tanh'.
@@ -631,7 +641,7 @@ class DoubleParameterizedRatioEstimator(Estimator):
         alpha=1.0,
         optimizer="amsgrad",
         n_epochs=50,
-        batch_size=200,
+        batch_size=128,
         initial_lr=0.001,
         final_lr=0.0001,
         nesterov_momentum=None,
@@ -686,7 +696,7 @@ class DoubleParameterizedRatioEstimator(Estimator):
             Number of epochs. Default value: 50.
 
         batch_size : int, optional
-            Batch size. Default value: 200.
+            Batch size. Default value: 128.
 
         initial_lr : float, optional
             Learning rate during the first epoch, after which it exponentially decays to final_lr. Default value:
@@ -749,7 +759,6 @@ class DoubleParameterizedRatioEstimator(Estimator):
             logger.info("  Samples:                %s", limit_samplesize)
 
         # Load training data
-        logger.info("Loading training data")
         logger.info("Loading training data")
         memmap_threshold = 1.0 if memmap else None
         theta0 = load_and_check(theta0, memmap_files_larger_than_gb=memmap_threshold)
@@ -889,7 +898,7 @@ class DoubleParameterizedRatioEstimator(Estimator):
             raise ValueError("No model -- train or load model before evaluating it!")
 
         # Load training data
-        logger.debug("Loading evaluation data")
+        logger.info("Loading evaluation data")
         x = load_and_check(x)
         theta0 = load_and_check(theta0)
         theta1 = load_and_check(theta1)
@@ -912,7 +921,7 @@ class DoubleParameterizedRatioEstimator(Estimator):
         all_t_hat1 = []
 
         if test_all_combinations:
-            logger.debug("Starting ratio evaluation for all combinations")
+            logger.info("Starting ratio evaluation for %s x-theta combinations", len(theta0) * len(x))
 
             for i, (this_theta0, this_theta1) in enumerate(zip(theta0, theta1)):
                 logger.debug(
@@ -940,7 +949,7 @@ class DoubleParameterizedRatioEstimator(Estimator):
             all_t_hat1 = np.array(all_t_hat1)
 
         else:
-            logger.debug("Starting ratio evaluation")
+            logger.info("Starting ratio evaluation")
             _, all_log_r_hat, all_t_hat0, all_t_hat1 = evaluate_ratio_model(
                 model=self.model,
                 method_type="double_parameterized_ratio",
@@ -950,7 +959,7 @@ class DoubleParameterizedRatioEstimator(Estimator):
                 evaluate_score=evaluate_score,
             )
 
-        logger.debug("Evaluation done")
+        logger.info("Evaluation done")
         return all_log_r_hat, all_t_hat0, all_t_hat1
 
     def evaluate_log_likelihood(self, *args, **kwargs):
@@ -1024,14 +1033,14 @@ class ScoreEstimator(Estimator):
 
     n_hidden : tuple of int, optional
         Units in each hidden layer in the neural networks. If method is 'nde' or 'scandal', this refers to the
-        setup of each individual MADE layer. Default value: (100, 100).
+        setup of each individual MADE layer. Default value: (100,).
 
     activation : {'tanh', 'sigmoid', 'relu'}, optional
         Activation function. Default value: 'tanh'.
 
     """
 
-    def __init__(self, features=None, n_components=1, n_mades=5, n_hidden=(100,), activation="tanh", batch_norm=None):
+    def __init__(self, features=None, n_hidden=(100,), activation="tanh"):
         super(ScoreEstimator, self).__init__(features, n_hidden, activation)
 
         self.nuisance_profile_matrix = None
@@ -1045,7 +1054,7 @@ class ScoreEstimator(Estimator):
         t_xz,
         optimizer="amsgrad",
         n_epochs=50,
-        batch_size=200,
+        batch_size=128,
         initial_lr=0.001,
         final_lr=0.0001,
         nesterov_momentum=None,
@@ -1081,7 +1090,7 @@ class ScoreEstimator(Estimator):
             Number of epochs. Default value: 50.
 
         batch_size : int, optional
-            Batch size. Default value: 200.
+            Batch size. Default value: 128.
 
         initial_lr : float, optional
             Learning rate during the first epoch, after which it exponentially decays to final_lr. Default value:
@@ -1310,7 +1319,8 @@ class ScoreEstimator(Estimator):
             nuisance_mode = self.nuisance_mode_default
 
         # Load training data
-        logger.debug("Loading evaluation data")
+        if isinstance(x, str):
+            logger.info("Loading evaluation data")
         x = load_and_check(x)
 
         # Scale observables
@@ -1321,12 +1331,12 @@ class ScoreEstimator(Estimator):
             x = x[:, self.features]
 
         # Evaluation
-        logger.debug("Starting score evaluation")
+        logger.info("Starting score evaluation")
         t_hat = evaluate_local_score_model(model=self.model, xs=x)
 
         # Treatment of nuisance paramters
         if nuisance_mode == "keep":
-            logging.debug("Keeping nuisance parameter score")
+            logging.info("Keeping nuisance parameter score")
 
         elif nuisance_mode == "project":
             if self.nuisance_project_matrix is None:
@@ -1334,7 +1344,7 @@ class ScoreEstimator(Estimator):
                     "evaluate_score() was called with nuisance_mode = project, but nuisance parameters "
                     "have not been set up yet. Please call set_nuisance() first!"
                 )
-            logging.debug("Projecting nuisance parameter score")
+            logging.info("Projecting nuisance parameter score")
             t_hat = np.einsum("ij,xj->xi", self.nuisance_project_matrix, t_hat)
 
         elif nuisance_mode == "profile":
@@ -1343,7 +1353,7 @@ class ScoreEstimator(Estimator):
                     "evaluate_score() was called with nuisance_mode = profile, but nuisance parameters "
                     "have not been set up yet. Please call set_nuisance() first!"
                 )
-            logging.debug("Profiling nuisance parameter score")
+            logging.info("Profiling nuisance parameter score")
             t_hat = np.einsum("ij,xj->xi", self.nuisance_profile_matrix, t_hat)
 
         else:
@@ -1392,7 +1402,7 @@ class ScoreEstimator(Estimator):
             raise ValueError("No model -- train or load model before evaluating it!")
 
         # Load training data
-        logger.debug("Loading evaluation data")
+        logger.info("Loading evaluation data")
         x = load_and_check(x)
         n_samples = x.shape[0]
 
@@ -1404,7 +1414,6 @@ class ScoreEstimator(Estimator):
             x = x[:, self.features]
 
         # Estimate scores
-        logger.debug("Starting score evaluation")
         t_hats = evaluate_local_score_model(model=self.model, xs=x)
 
         # Weights
@@ -1413,6 +1422,7 @@ class ScoreEstimator(Estimator):
         weights /= np.sum(weights)
 
         # Calculate Fisher information
+        logger.info("Calculating Fisher information")
         if sum_events:
             fisher_information = float(n_events) * np.einsum("n,ni,nj->ij", weights, t_hats, t_hats)
         else:
@@ -1511,7 +1521,7 @@ class LikelihoodEstimator(Estimator):
 
     n_hidden : tuple of int, optional
         Units in each hidden layer in the neural networks. If method is 'nde' or 'scandal', this refers to the
-        setup of each individual MADE layer. Default value: (100, 100).
+        setup of each individual MADE layer. Default value: (100,).
 
     activation : {'tanh', 'sigmoid', 'relu'}, optional
         Activation function. Default value: 'tanh'.
@@ -1539,7 +1549,7 @@ class LikelihoodEstimator(Estimator):
         alpha=1.0,
         optimizer="amsgrad",
         n_epochs=50,
-        batch_size=200,
+        batch_size=128,
         initial_lr=0.001,
         final_lr=0.0001,
         nesterov_momentum=None,
@@ -1581,7 +1591,7 @@ class LikelihoodEstimator(Estimator):
             Number of epochs. Default value: 50.
 
         batch_size : int, optional
-            Batch size. Default value: 200.
+            Batch size. Default value: 128.
 
         initial_lr : float, optional
             Learning rate during the first epoch, after which it exponentially decays to final_lr. Default value:
@@ -1772,7 +1782,8 @@ class LikelihoodEstimator(Estimator):
             raise ValueError("No model -- train or load model before evaluating it!")
 
         # Load training data
-        logger.debug("Loading evaluation data")
+        if isinstance(x, str):
+            logger.info("Loading evaluation data")
         theta = load_and_check(theta)
         x = load_and_check(x)
 
@@ -1788,7 +1799,7 @@ class LikelihoodEstimator(Estimator):
         all_t_hat = []
 
         if test_all_combinations:
-            logger.debug("Starting ratio evaluation for all combinations")
+            logger.info("Starting ratio evaluation for %s x-theta combinations", len(theta) * len(x))
 
             for i, this_theta in enumerate(theta):
                 logger.debug("Starting log likelihood evaluation for thetas %s / %s: %s", i + 1, len(theta), this_theta)
@@ -1804,13 +1815,13 @@ class LikelihoodEstimator(Estimator):
             all_t_hat = np.array(all_t_hat)
 
         else:
-            logger.debug("Starting log likelihood evaluation")
+            logger.info("Starting log likelihood evaluation")
 
             all_log_p_hat, all_t_hat = evaluate_flow_model(
                 model=self.model, thetas=theta, xs=x, evaluate_score=evaluate_score
             )
 
-        logger.debug("Evaluation done")
+        logger.info("Evaluation done")
         return all_log_p_hat, all_t_hat
 
     def evaluate_log_likelihood_ratio(self, x, theta0, theta1, test_all_combinations, evaluate_score=False):
@@ -1859,7 +1870,7 @@ class LikelihoodEstimator(Estimator):
             raise ValueError("No model -- train or load model before evaluating it!")
 
         # Load training data
-        logger.debug("Loading evaluation data")
+        logger.info("Loading evaluation data")
         x = load_and_check(x)
         theta0 = load_and_check(theta0)
         theta1 = load_and_check(theta1)

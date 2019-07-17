@@ -8,6 +8,7 @@ from subprocess import Popen, PIPE
 import io
 import numpy as np
 import shutil
+from contextlib import contextmanager
 
 logger = logging.getLogger(__name__)
 
@@ -100,6 +101,7 @@ def shuffle(*arrays):
 
         shuffled_a = a[permutation]
         shuffled_arrays.append(shuffled_a)
+        a = None
 
     return shuffled_arrays
 
@@ -153,10 +155,11 @@ def load_and_check(filename, warning_threshold=1.0e9, memmap_files_larger_than_g
     else:
         filesize_gb = os.stat(filename).st_size / 1.0 * 1024 ** 3
         if memmap_files_larger_than_gb is None or filesize_gb <= memmap_files_larger_than_gb:
+            logger.info("  Loading %s into RAM", filename)
             data = np.load(filename)
             memmap = False
         else:
-            logger.info("Loading %s as memory map.", filename)
+            logger.info("  Loading %s as memory map", filename)
             data = np.load(filename, mmap_mode="c")
             memmap = True
 
@@ -166,11 +169,7 @@ def load_and_check(filename, warning_threshold=1.0e9, memmap_files_larger_than_g
         n_finite = np.sum(np.isfinite(data))
         if n_nans + n_infs > 0:
             logger.warning(
-                "Warning: file %s contains %s NaNs and %s Infs, compared to %s finite numbers!",
-                filename,
-                n_nans,
-                n_infs,
-                n_finite,
+                "%s contains %s NaNs and %s Infs, compared to %s finite numbers!", filename, n_nans, n_infs, n_finite
             )
 
         smallest = np.nanmin(data)
@@ -327,3 +326,20 @@ def mdot(matrix, benchmark_information):
         weights_t = weights_t[:n_smaller]
 
     return matrix.dot(weights_t)
+
+
+@contextmanager
+def less_logging():
+    """
+    Silences INFO logging messages. Based on https://gist.github.com/simon-weber/7853144
+    """
+
+    if logging.root.manager.disable != logging.DEBUG:
+        yield
+        return
+
+    try:
+        logging.disable(logging.INFO)
+        yield
+    finally:
+        logging.disable(logging.DEBUG)

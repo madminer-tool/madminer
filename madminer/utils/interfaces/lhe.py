@@ -54,34 +54,31 @@ def parse_lhe_file(
     # Inputs
     if k_factor is None:
         k_factor = 1.0
-
     if observables_required is None:
         observables_required = {key: False for key in six.iterkeys(observables)}
-
     if observables_defaults is None:
         observables_defaults = {key: None for key in six.iterkeys(observables)}
-
     if is_background and benchmark_names is None:
         raise RuntimeError("Parsing background LHE files required benchmark names to be provided.")
-
     if cuts is None:
         cuts = OrderedDict()
-
     if cuts_default_pass is None:
         cuts_default_pass = {key: False for key in six.iterkeys(cuts)}
-
     if efficiencies is None:
         efficiencies = OrderedDict()
-
     if efficiencies_default_pass is None:
         efficiencies_default_pass = {key: 1.0 for key in six.iterkeys(efficiencies)}
 
     # Untar and open LHE file
-    root, filename = _untar_and_parse_lhe_file(filename)
+    run_card = None
+    for elem in _untar_and_parse_lhe_file(filename):
+        if elem.tag == "MGRunCard":
+            run_card = elem.text
+            break
+        else:
+            continue
 
     # Figure out event weighting
-    run_card = root.find("header").find("MGRunCard").text
-
     weight_norm_is_average = None
     n_events_runcard = None
     for line in run_card.splitlines():
@@ -133,130 +130,49 @@ def parse_lhe_file(
     n_events_with_negative_weights = 0
     pass_cuts = [0 for _ in cuts]
     fail_cuts = [0 for _ in cuts]
-
     pass_efficiencies = [0 for _ in efficiencies]
     fail_efficiencies = [0 for _ in efficiencies]
     avg_efficiencies = [0 for _ in efficiencies]
+
+    observations_all_events = []
+    weights_all_events = []
+    weight_names_all_events = None
+
     # Option one: XML parsing
     if parse_events_as_xml:
-
-        observations_all_events = []
-        weights_all_events = []
-        weight_names_all_events = None
-
-        events = root.findall("event")
-
-        for event in events:
+        events = _untar_and_parse_lhe_file(filename, ["event"])
+        for idx, event in enumerate(events):
+            if (idx + 1) % 100000 == 0:
+                logger.debug("Processing event %d/%d", idx + 1, n_events_runcard)
+                
             # Parse event
-            particles, weights = _parse_event(event, sampling_benchmark)
-
-            # Negative weights?
-            n_negative_weights = np.sum(np.array(list(weights.values())) < 0.0)
-            if n_negative_weights > 0:
-                n_events_with_negative_weights += 1
-                if n_events_with_negative_weights <= 3:
-                    logger.warning("Found %s negative weights in event. Weights: %s", n_negative_weights, weights)
-                if n_events_with_negative_weights == 3:
-                    logger.warning("Skipping warnings about negative weights from now on...")
-
-            if weight_names_all_events is None:
-                weight_names_all_events = list(weights.keys())
-            weights = np.array(list(weights.values()))
-
-            # Apply smearing
-            particles = _smear_particles(
-                particles, energy_resolutions, pt_resolutions, eta_resolutions, phi_resolutions
+            particles, weights, global_event_data = _parse_xml_event(event, sampling_benchmark)
+            n_events_with_negative_weights, observations, pass_all, weight_names_all_events, weights = _parse_event(
+                avg_efficiencies,
+                cuts,
+                cuts_default_pass,
+                efficiencies,
+                efficiencies_default_pass,
+                energy_resolutions,
+                eta_resolutions,
+                fail_cuts,
+                fail_efficiencies,
+                n_events_with_negative_weights,
+                observables,
+                observables_defaults,
+                observables_required,
+                particles,
+                pass_cuts,
+                pass_efficiencies,
+                phi_resolutions,
+                pt_resolutions,
+                weight_names_all_events,
+                weights,
+                global_event_data=global_event_data,
             )
 
-            # Objects in event
-            try:
-                variables = _get_objects(particles, pt_resolutions["met"])
-            except (TypeError, IndexError):
-                variables = _get_objects(particles)
-
-            # Calculate observables
-            observations = []
-            pass_all_observation = True
-            for obs_name, obs_definition in six.iteritems(observables):
-                if isinstance(obs_definition, six.string_types):
-                    try:
-                        observations.append(eval(obs_definition, variables))
-                    except (SyntaxError, NameError, TypeError, ZeroDivisionError, IndexError):
-                        if observables_required[obs_name]:
-                            pass_all_observation = False
-
-                        default = observables_defaults[obs_name]
-                        if default is None:
-                            default = np.nan
-                        observations.append(default)
-                else:
-                    try:
-                        observations.append(
-                            obs_definition(particles, variables["l"], variables["a"], variables["j"], variables["met"])
-                        )
-                    except RuntimeError:
-                        if observables_required[obs_name]:
-                            pass_all_observation = False
-
-                        default = observables_defaults[obs_name]
-                        if default is None:
-                            default = np.nan
-                        observations.append(default)
-
-            if not pass_all_observation:
-                continue
-
-            # Objects for cuts
-            for obs_name, obs_value in zip(observables.keys(), observations):
-                variables[obs_name] = obs_value
-
-            # Check cuts
-            pass_all_cuts = True
-            for i_cut, (cut, default_pass) in enumerate(zip(cuts, cuts_default_pass)):
-                try:
-                    cut_result = eval(cut, variables)
-                    if cut_result:
-                        pass_cuts[i_cut] += 1
-                    else:
-                        fail_cuts[i_cut] += 1
-                        pass_all_cuts = False
-
-                except (SyntaxError, NameError, TypeError, ZeroDivisionError, IndexError):
-                    if default_pass:
-                        pass_cuts[i_cut] += 1
-                    else:
-                        fail_cuts[i_cut] += 1
-                        pass_all_cuts = False
-
-            if not pass_all_cuts:
-                continue
-
-            # Apply efficiencies
-            pass_all_efficiencies = True
-            total_efficiency = 1.0
-            for i_efficiency, (efficiency, default_pass) in enumerate(zip(efficiencies, efficiencies_default_pass)):
-                try:
-                    efficiency_result = eval(efficiency, variables)
-                    if efficiency_result > 0.0:
-                        pass_efficiencies[i_efficiency] += 1
-                        total_efficiency *= efficiency_result
-                        avg_efficiencies[i_efficiency] += efficiency_result
-                    else:
-                        fail_efficiencies[i_efficiency] += 1
-                        pass_all_efficiencies = False
-
-                except (SyntaxError, NameError, TypeError, ZeroDivisionError, IndexError):
-                    if default_pass > 0.0:
-                        pass_efficiencies[i_efficiency] += 1
-                        total_efficiency *= default_pass
-                        avg_efficiencies[i_efficiency] += default_pass
-                    else:
-                        fail_efficiencies[i_efficiency] += 1
-                        pass_all_efficiencies = False
-
-            if pass_all_efficiencies:
-                weights *= total_efficiency
-            else:
+            # Skip events that fail anything
+            if not pass_all:
                 continue
 
             # Store results
@@ -265,121 +181,33 @@ def parse_lhe_file(
 
     # Option two: text parsing
     else:
-        # Free up memory
-        del root
-
-        observations_all_events = []
-        weights_all_events = []
-        weight_names_all_events = None
-
         # Iterate over events in LHE file
-        for i_event, (particles, weights) in enumerate(_parse_events_text(filename, sampling_benchmark)):
-
-            # Negative weights?
-            n_negative_weights = np.sum(np.array(list(weights.values())) < 0.0)
-            if n_negative_weights > 0:
-                n_events_with_negative_weights += 1
-                if n_events_with_negative_weights <= 3:
-                    logger.warning("Found %s negative weights in event. Weights: %s", n_negative_weights, weights)
-                if n_events_with_negative_weights == 3:
-                    logger.warning("Skipping warnings about negative weights from now on...")
-
-            if weight_names_all_events is None:
-                weight_names_all_events = list(weights.keys())
-            weights = np.array(list(weights.values()))
-
-            # Apply smearing
-            particles = _smear_particles(
-                particles, energy_resolutions, pt_resolutions, eta_resolutions, phi_resolutions
+        for i_event, (particles, weights) in enumerate(_parse_txt_events(filename, sampling_benchmark)):
+            n_events_with_negative_weights, observations, pass_all, weight_names_all_events, weights = _parse_event(
+                avg_efficiencies,
+                cuts,
+                cuts_default_pass,
+                efficiencies,
+                efficiencies_default_pass,
+                energy_resolutions,
+                eta_resolutions,
+                fail_cuts,
+                fail_efficiencies,
+                n_events_with_negative_weights,
+                observables,
+                observables_defaults,
+                observables_required,
+                particles,
+                pass_cuts,
+                pass_efficiencies,
+                phi_resolutions,
+                pt_resolutions,
+                weight_names_all_events,
+                weights,
             )
 
-            # Objects in event
-            try:
-                variables = _get_objects(particles, pt_resolutions["met"])
-            except (TypeError, IndexError):
-                variables = _get_objects(particles)
-
-            # Calculate observables
-            observations = []
-            pass_all_observation = True
-            for obs_name, obs_definition in six.iteritems(observables):
-                if isinstance(obs_definition, six.string_types):
-                    try:
-                        observations.append(eval(obs_definition, variables))
-                    except (SyntaxError, NameError, TypeError, ZeroDivisionError, IndexError):
-                        if observables_required[obs_name]:
-                            pass_all_observation = False
-
-                        default = observables_defaults[obs_name]
-                        if default is None:
-                            default = np.nan
-                        observations.append(default)
-                else:
-                    try:
-                        observations.append(obs_definition(particles))
-                    except RuntimeError:
-                        if observables_required[obs_name]:
-                            pass_all_observation = False
-
-                        default = observables_defaults[obs_name]
-                        if default is None:
-                            default = np.nan
-                        observations.append(default)
-
-            if not pass_all_observation:
-                continue
-
-            # Objects for cuts
-            for obs_name, obs_value in zip(observables.keys(), observations):
-                variables[obs_name] = obs_value
-
-            # Check cuts
-            pass_all_cuts = True
-            for i_cut, (cut, default_pass) in enumerate(zip(cuts, cuts_default_pass)):
-                try:
-                    cut_result = eval(cut, variables)
-                    if cut_result:
-                        pass_cuts[i_cut] += 1
-                    else:
-                        fail_cuts[i_cut] += 1
-                        pass_all_cuts = False
-
-                except (SyntaxError, NameError, TypeError, ZeroDivisionError, IndexError):
-                    if default_pass:
-                        pass_cuts[i_cut] += 1
-                    else:
-                        fail_cuts[i_cut] += 1
-                        pass_all_cuts = False
-
-            if not pass_all_cuts:
-                continue
-
-            # Apply efficiencies
-            pass_all_efficiencies = True
-            total_efficiency = 1.0
-            for i_efficiency, (efficiency, default_pass) in enumerate(zip(efficiencies, efficiencies_default_pass)):
-                try:
-                    efficiency_result = eval(efficiency, variables)
-                    if efficiency_result > 0.0:
-                        pass_efficiencies[i_efficiency] += 1
-                        total_efficiency *= efficiency_result
-                        avg_efficiencies[i_efficiency] += efficiency_result
-                    else:
-                        fail_efficiencies[i_efficiency] += 1
-                        pass_all_efficiencies = False
-
-                except (SyntaxError, NameError, TypeError, ZeroDivisionError, IndexError):
-                    if default_pass > 0.0:
-                        pass_efficiencies[i_efficiency] += 1
-                        total_efficiency *= default_pass
-                        avg_efficiencies[i_efficiency] += default_pass
-                    else:
-                        fail_efficiencies[i_efficiency] += 1
-                        pass_all_efficiencies = False
-
-            if pass_all_efficiencies:
-                weights *= total_efficiency
-            else:
+            # Skip events that fail anything
+            if not pass_all:
                 continue
 
             # Store results
@@ -387,18 +215,17 @@ def parse_lhe_file(
             weights_all_events.append(weights)
 
     # Check results
-    for n_pass, n_fail, cut in zip(pass_cuts, fail_cuts, cuts):
-        logger.debug("  %s / %s events pass cut %s", n_pass, n_pass + n_fail, cut)
-    for n_pass, n_fail, efficiency in zip(pass_efficiencies, fail_efficiencies, efficiencies):
-        logger.debug("  %s / %s events pass efficiency %s", n_pass, n_pass + n_fail, efficiency)
-    for n_eff, efficiency, n_pass, n_fail in zip(avg_efficiencies, efficiencies, pass_efficiencies, fail_efficiencies):
-        logger.debug("  average efficiency for %s is %s", efficiency, n_eff / (n_pass + n_fail))
-
-    n_events_pass = len(observations_all_events)
-    if len(cuts) > 0:
-        logger.info("  %s events pass all cuts/efficiencies", n_events_pass)
-    if n_events_with_negative_weights > 0:
-        logger.warning("  %s events contain negative weights", n_events_with_negative_weights)
+    n_events_pass = _report_parse_results(
+        avg_efficiencies,
+        cuts,
+        efficiencies,
+        fail_cuts,
+        fail_efficiencies,
+        n_events_with_negative_weights,
+        observations_all_events,
+        pass_cuts,
+        pass_efficiencies,
+    )
 
     if n_events_pass == 0:
         logger.warning("  No observations remaining!")
@@ -421,6 +248,194 @@ def parse_lhe_file(
             weights_all_events[benchmark_name] = weights_all_events[sampling_benchmark]
 
     return observations_dict, weights_all_events
+
+
+def _report_parse_results(
+    avg_efficiencies,
+    cuts,
+    efficiencies,
+    fail_cuts,
+    fail_efficiencies,
+    n_events_with_negative_weights,
+    observations_all_events,
+    pass_cuts,
+    pass_efficiencies,
+):
+    for n_pass, n_fail, cut in zip(pass_cuts, fail_cuts, cuts):
+        logger.debug("  %s / %s events pass cut %s", n_pass, n_pass + n_fail, cut)
+    for n_pass, n_fail, efficiency in zip(pass_efficiencies, fail_efficiencies, efficiencies):
+        logger.debug("  %s / %s events pass efficiency %s", n_pass, n_pass + n_fail, efficiency)
+    for n_eff, efficiency, n_pass, n_fail in zip(avg_efficiencies, efficiencies, pass_efficiencies, fail_efficiencies):
+        logger.debug("  average efficiency for %s is %s", efficiency, n_eff / (n_pass + n_fail))
+    n_events_pass = len(observations_all_events)
+    if len(cuts) > 0:
+        logger.info("  %s events pass all cuts/efficiencies", n_events_pass)
+    if n_events_with_negative_weights > 0:
+        logger.warning("  %s events contain negative weights", n_events_with_negative_weights)
+    return n_events_pass
+
+
+def _parse_event(
+    avg_efficiencies,
+    cuts,
+    cuts_default_pass,
+    efficiencies,
+    efficiencies_default_pass,
+    energy_resolutions,
+    eta_resolutions,
+    fail_cuts,
+    fail_efficiencies,
+    n_events_with_negative_weights,
+    observables,
+    observables_defaults,
+    observables_required,
+    particles,
+    pass_cuts,
+    pass_efficiencies,
+    phi_resolutions,
+    pt_resolutions,
+    weight_names_all_events,
+    weights,
+    global_event_data=None,
+):
+    # Negative weights?
+    n_events_with_negative_weights = _report_negative_weights(n_events_with_negative_weights, weights)
+    if weight_names_all_events is None:
+        weight_names_all_events = list(weights.keys())
+    weights = np.array(list(weights.values()))
+
+    # Apply smearing
+    particles_smeared = _smear_particles(
+        particles, energy_resolutions, pt_resolutions, eta_resolutions, phi_resolutions
+    )
+
+    # Objects in event
+    try:
+        variables = _get_objects(
+            particles_smeared, particles, pt_resolutions["met"], global_event_data=global_event_data
+        )
+    except (TypeError, IndexError):
+        variables = _get_objects(particles_smeared, particles, met_resolution=None, global_event_data=global_event_data)
+
+    # Observables
+    observations, pass_all_observation = _parse_observations(
+        observables, observables_defaults, observables_required, variables
+    )
+
+    # Cuts
+    pass_all_cuts = True
+    if pass_all_observation:
+        pass_all_cuts = _parse_cuts(
+            cuts, cuts_default_pass, fail_cuts, observables, observations, pass_all_cuts, pass_cuts, variables
+        )
+
+    # Efficiencies
+    pass_all_efficiencies = True
+    if pass_all_observation and pass_all_cuts:
+        pass_all_efficiencies, total_efficiency = _parse_efficiencies(
+            avg_efficiencies, efficiencies, efficiencies_default_pass, fail_efficiencies, pass_efficiencies, variables
+        )
+
+        if pass_all_efficiencies:
+            weights *= total_efficiency
+
+    pass_all = pass_all_cuts and pass_all_efficiencies and pass_all_observation
+    return n_events_with_negative_weights, observations, pass_all, weight_names_all_events, weights
+
+
+def _report_negative_weights(n_events_with_negative_weights, weights):
+    n_negative_weights = np.sum(np.array(list(weights.values())) < 0.0)
+    if n_negative_weights > 0:
+        n_events_with_negative_weights += 1
+        if n_events_with_negative_weights <= 3:
+            logger.warning("Found %s negative weights in event. Weights: %s", n_negative_weights, weights)
+        if n_events_with_negative_weights == 3:
+            logger.warning("Skipping warnings about negative weights from now on...")
+    return n_events_with_negative_weights
+
+
+def _parse_observations(observables, observables_defaults, observables_required, variables):
+    observations = []
+    pass_all_observation = True
+    for obs_name, obs_definition in six.iteritems(observables):
+        if isinstance(obs_definition, six.string_types):
+            try:
+                observations.append(eval(obs_definition, variables))
+            except (SyntaxError, NameError, TypeError, ZeroDivisionError, IndexError):
+                if observables_required[obs_name]:
+                    pass_all_observation = False
+
+                default = observables_defaults[obs_name]
+                if default is None:
+                    default = np.nan
+                observations.append(default)
+        else:
+            try:
+                observations.append(
+                    obs_definition(
+                        variables["p_truth"], variables["l"], variables["a"], variables["j"], variables["met"]
+                    )
+                )
+            except RuntimeError:
+                if observables_required[obs_name]:
+                    pass_all_observation = False
+
+                default = observables_defaults[obs_name]
+                if default is None:
+                    default = np.nan
+                observations.append(default)
+    return observations, pass_all_observation
+
+
+def _parse_efficiencies(
+    avg_efficiencies, efficiencies, efficiencies_default_pass, fail_efficiencies, pass_efficiencies, variables
+):
+    # Apply efficiencies
+    total_efficiency = 1.0
+    pass_all_efficiencies = True
+    for i_efficiency, (efficiency, default_pass) in enumerate(zip(efficiencies, efficiencies_default_pass)):
+        try:
+            efficiency_result = eval(efficiency, variables)
+            if efficiency_result > 0.0:
+                pass_efficiencies[i_efficiency] += 1
+                total_efficiency *= efficiency_result
+                avg_efficiencies[i_efficiency] += efficiency_result
+            else:
+                fail_efficiencies[i_efficiency] += 1
+                pass_all_efficiencies = False
+
+        except (SyntaxError, NameError, TypeError, ZeroDivisionError, IndexError):
+            if default_pass > 0.0:
+                pass_efficiencies[i_efficiency] += 1
+                total_efficiency *= default_pass
+                avg_efficiencies[i_efficiency] += default_pass
+            else:
+                fail_efficiencies[i_efficiency] += 1
+                pass_all_efficiencies = False
+    return pass_all_efficiencies, total_efficiency
+
+
+def _parse_cuts(cuts, cuts_default_pass, fail_cuts, observables, observations, pass_all_cuts, pass_cuts, variables):
+    # Objects for cuts
+    for obs_name, obs_value in zip(observables.keys(), observations):
+        variables[obs_name] = obs_value
+    # Check cuts
+    for i_cut, (cut, default_pass) in enumerate(zip(cuts, cuts_default_pass)):
+        try:
+            cut_result = eval(cut, variables)
+            if cut_result:
+                pass_cuts[i_cut] += 1
+            else:
+                fail_cuts[i_cut] += 1
+                pass_all_cuts = False
+
+        except (SyntaxError, NameError, TypeError, ZeroDivisionError, IndexError):
+            if default_pass:
+                pass_cuts[i_cut] += 1
+            else:
+                fail_cuts[i_cut] += 1
+                pass_all_cuts = False
+    return pass_all_cuts
 
 
 def extract_nuisance_parameters_from_lhe_file(filename, systematics):
@@ -455,11 +470,13 @@ def extract_nuisance_parameters_from_lhe_file(filename, systematics):
             systematics_scales.append(None)
 
     # Untar and parse LHE file
-    root, _ = _untar_and_parse_lhe_file(filename)
+    initrwgts = _untar_and_parse_lhe_file(filename, "initrwgt")
 
     # Find weight groups
+    weight_groups = []
     try:
-        weight_groups = root.findall("header")[0].findall("initrwgt")[0].findall("weightgroup")
+        for initrwgt in initrwgts:
+            weight_groups.append(initrwgt.findall("weightgroup"))
     except KeyError as e:
         raise RuntimeError("Could not find weight groups in LHE file!\n%s", e)
 
@@ -634,10 +651,11 @@ def extract_nuisance_parameters_from_lhe_file(filename, systematics):
     return nuisance_params
 
 
-def _parse_event(event, sampling_benchmark):
+def _parse_xml_event(event, sampling_benchmark):
     # Initialize weights and momenta
     weights = OrderedDict()
     particles = []
+    global_event_data = {}
 
     # Split kinematics part in tag line and momenta
     event_text = event.text
@@ -654,7 +672,11 @@ def _parse_event(event, sampling_benchmark):
 
     # Parse tag
     assert tag_line is not None
+    global_event_data["n_particles"] = float(tag_line[0])
     weights[sampling_benchmark] = float(tag_line[2])
+    global_event_data["scale"] = float(tag_line[3])
+    global_event_data["alpha_qed"] = float(tag_line[4])
+    global_event_data["alpha_qcd"] = float(tag_line[5])
 
     # Parse momenta
     for elements in particle_lines:
@@ -668,9 +690,11 @@ def _parse_event(event, sampling_benchmark):
             py = float(elements[7])
             pz = float(elements[8])
             e = float(elements[9])
+            spin = float(elements[12])
             particle = MadMinerParticle()
             particle.setpxpypze(px, py, pz, e)
             particle.set_pdgid(pdgid)
+            particle.set_spin(spin)
             particles.append(particle)
 
     # Weights
@@ -679,10 +703,10 @@ def _parse_event(event, sampling_benchmark):
             weight_id, weight_value = weight.attrib["id"], float(weight.text)
             weights[weight_id] = weight_value
 
-    return particles, weights
+    return particles, weights, global_event_data
 
 
-def _parse_events_text(filename, sampling_benchmark):
+def _parse_txt_events(filename, sampling_benchmark):
     # Initialize weights and momenta
     weights = OrderedDict()
     particles = []
@@ -779,9 +803,11 @@ def _parse_events_text(filename, sampling_benchmark):
                     py = float(elements[7])
                     pz = float(elements[8])
                     e = float(elements[9])
+                    spin = float(elements[12])
                     particle = MadMinerParticle()
                     particle.setpxpypze(px, py, pz, e)
                     particle.set_pdgid(pdgid)
+                    particle.set_spin(spin)
                     particles.append(particle)
 
             # Read reweighted weights
@@ -791,7 +817,18 @@ def _parse_events_text(filename, sampling_benchmark):
                 weights[rwgtid] = rwgtval
 
 
-def _untar_and_parse_lhe_file(filename):
+def _parse_lhe_file_with_bad_chars(filename):
+    # In some cases, the LHE comments can contain bad characters
+    with open(filename, "r") as file:
+        for line in file:
+            comment_pos = line.find("#")
+            if comment_pos >= 0:
+                yield line[:comment_pos]
+            else:
+                yield line
+
+
+def _untar_and_parse_lhe_file(filename, tags=None):
     # Untar event file
     new_filename, extension = os.path.splitext(filename)
     if extension == ".gz":
@@ -799,23 +836,16 @@ def _untar_and_parse_lhe_file(filename):
             call_command("gunzip -c {} > {}".format(filename, new_filename))
         filename = new_filename
 
-    # In some cases, the LHE comments can contain bad characters
-    with open(filename, "r") as file:
-        lhe_content = file.read()
-    lhe_lines = lhe_content.split("\n")
-    for i, line in enumerate(lhe_lines):
-        comment_pos = line.find("#")
-        if comment_pos >= 0:
-            lhe_lines[i] = line[:comment_pos]
-    lhe_content = "\n".join(lhe_lines)
+    for event, elem in ET.iterparse(filename):
+        if tags and elem.tag not in tags:
+            continue
+        else:
+            yield elem
 
-    # Parse XML tree
-    root = ET.fromstring(lhe_content)
-
-    return root, filename
+        elem.clear()
 
 
-def _get_objects(particles, met_resolution=None):
+def _get_objects(particles, particles_truth, met_resolution=None, global_event_data=None):
     # Find visible particles
     electrons = []
     muons = []
@@ -890,6 +920,7 @@ def _get_objects(particles, met_resolution=None):
     objects.update(
         {
             "p": particles,
+            "p_truth": particles_truth,
             "e": electrons,
             "j": jets,
             "a": photons,
@@ -900,6 +931,10 @@ def _get_objects(particles, met_resolution=None):
             "v": neutrinos,
         }
     )
+
+    # Global event_data
+    if global_event_data is not None:
+        objects.update(global_event_data)
 
     return objects
 
