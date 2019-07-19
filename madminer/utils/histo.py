@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 
 
 class Histo:
-    def __init__(self, x, weights=None, bins=20, fill_empty=None):
+    def __init__(self, x, weights=None, bins=20, epsilon=0.0):
         """
         Initialize and fit an n-dim histogram.
 
@@ -24,8 +24,8 @@ class Histo:
             Number of bins per observable (when int or list of int), or actual bin boundaries (when list of ndarray).
             Default: None.
 
-        fill_empty : None or float, optional
-            If not None, this number is added to all empty bins. Default: None.
+        epsilon : float, optional
+            Small number added to all bin contents. Default value: 0.
 
         """
 
@@ -50,7 +50,7 @@ class Histo:
         self._report_binning()
 
         # Fill histogram
-        self.histo, self.histo_uncertainties = self._fit(x, weights, fill_empty)
+        self.histo, self.histo_uncertainties = self._fit(x, weights, epsilon)
         self._report_uncertainties()
 
     def log_likelihood(self, x):
@@ -121,11 +121,15 @@ class Histo:
 
         return edges
 
-    def _fit(self, x, weights=None, fill_empty=None):
+    def _fit(self, x, weights=None, epsilon=0.0):
         # Fill histograms
         ranges = [(edges[0], edges[-1]) for edges in self.edges]
         histo, _ = np.histogramdd(x, bins=self.edges, range=ranges, normed=False, weights=weights)
         histo_w2, _ = np.histogramdd(x, bins=self.edges, range=ranges, normed=False, weights=weights ** 2)
+
+        # Avoid empty bins
+        histo[:] += epsilon
+        histo_w2[:] += epsilon ** 2
 
         # Uncertainties
         histo_uncertainties = histo_w2 ** 0.5
@@ -134,23 +138,16 @@ class Histo:
         histo_uncertainties /= np.sum(histo)
         histo /= np.sum(histo)
 
-        # Avoid empty bins
-        if fill_empty is not None:
-            histo[histo <= fill_empty] = fill_empty
-            histo_uncertainties[histo <= fill_empty] = fill_empty ** 2
-
         # Calculate cell volumes
         # Fix edges for bvolume calculation (to avoid larger volumes for more training data)
         modified_histo_edges = []
         for i in range(x.shape[1]):
             axis_edges = np.copy(self.edges[i])
             axis_edges[0] = max(
-                axis_edges[0],
-                axis_edges[1] - 2.*(axis_edges[2] - axis_edges[1])
+                axis_edges[0], axis_edges[1] - 2.0 * (axis_edges[2] - axis_edges[1])
             )  # First bin is treated as at most twice as big as second
             axis_edges[-1] = min(
-                axis_edges[-1],
-                axis_edges[-1] + 2.*(axis_edges[-1] - axis_edges[-2])
+                axis_edges[-1], axis_edges[-1] + 2.0 * (axis_edges[-1] - axis_edges[-2])
             )  # Last bin is treated as at most twice as big as second-to-last
             modified_histo_edges.append(axis_edges)
         # Calculate cell volumes

@@ -790,7 +790,7 @@ class AsymptoticLimits(DataAnalyzer):
         theta_binning=None,
     ):
         if fixed_adaptive_binning:
-            if theta_binning is not None:
+            if theta_binning is None:
                 logger.info("Determining fixed adaptive histogram binning for all points on grid")
                 x_bins = self._fixed_adaptive_binning(
                     n_histo_toys, processor, summary_function, test_split, theta_grid, x_bins
@@ -815,7 +815,7 @@ class AsymptoticLimits(DataAnalyzer):
                     data = summary_stats
                 else:
                     data = processor(summary_stats, theta)
-                histos.append(Histo(data, weights, x_bins, fill_empty=1.0e-9))
+                histos.append(Histo(data, weights, x_bins, epsilon=1.0e-12))
 
         else:
             logger.debug("Generating sampled histo data and making histograms")
@@ -835,7 +835,7 @@ class AsymptoticLimits(DataAnalyzer):
                         data = summary_stats
                     else:
                         data = processor(summary_stats, theta)
-                    histos.append(Histo(data, weights=None, bins=x_bins, fill_empty=1.0e-9))
+                    histos.append(Histo(data, weights=None, bins=x_bins, epsilon=1.0e-12))
 
         return histos
 
@@ -849,7 +849,7 @@ class AsymptoticLimits(DataAnalyzer):
             data = summary_stats
         else:
             data = processor(summary_stats, thetas_binning)
-        histo = Histo(data, weights, x_bins, fill_empty=1.0e-9)
+        histo = Histo(data, weights, x_bins, epsilon=1.0e-12)
         x_bins = histo.edges
         return x_bins
 
