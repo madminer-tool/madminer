@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 
 
 class Histo:
-    def __init__(self, x, weights=None, bins=20, fill_empty=None):
+    def __init__(self, x, weights=None, bins=20, epsilon=0.0):
         """
         Initialize and fit an n-dim histogram.
 
@@ -24,8 +24,8 @@ class Histo:
             Number of bins per observable (when int or list of int), or actual bin boundaries (when list of ndarray).
             Default: None.
 
-        fill_empty : None or float, optional
-            If not None, this number is added to all empty bins. Default: None.
+        epsilon : float, optional
+            Small number added to all bin contents. Default value: 0.
 
         """
 
@@ -50,7 +50,7 @@ class Histo:
         self._report_binning()
 
         # Fill histogram
-        self.histo, self.histo_uncertainties = self._fit(x, weights, fill_empty)
+        self.histo, self.histo_uncertainties = self._fit(x, weights, epsilon)
         self._report_uncertainties()
 
     def log_likelihood(self, x):
@@ -102,7 +102,7 @@ class Histo:
         return n_bins, bin_edges
 
     @staticmethod
-    def _adaptive_binning(x, n_bins, weights=None, lower_cutoff_percentile=1.0, upper_cutoff_percentile=99.0):
+    def _adaptive_binning(x, n_bins, weights=None, lower_cutoff_percentile=0.1, upper_cutoff_percentile=99.9):
         edges = weighted_quantile(
             x,
             quantiles=np.linspace(lower_cutoff_percentile / 100.0, upper_cutoff_percentile / 100.0, n_bins + 1),
@@ -111,9 +111,9 @@ class Histo:
         )
 
         # Increase range by some safety margin
-        range_ = (np.nanmin(x) - 0.5 * (edges[1] - edges[0]), np.nanmax(x) + 0.5 * (edges[-1] - edges[-2]))
-        logger.debug("Increasing histogram range from %s to %s", (edges[0], edges[-1]), range_)
-        edges[0], edges[-1] = range_
+        # range_ = (np.nanmin(x) - 0.5 * (edges[1] - edges[0]), np.nanmax(x) + 0.5 * (edges[-1] - edges[-2]))
+        # logger.debug("Increasing histogram range from %s to %s", (edges[0], edges[-1]), range_)
+        # edges[0], edges[-1] = range_
 
         # Remove zero-width bins
         widths = np.array(list(edges[1:] - edges[:-1]) + [1.0])
@@ -121,31 +121,39 @@ class Histo:
 
         return edges
 
-    def _fit(self, x, weights=None, fill_empty=None):
+    def _fit(self, x, weights=None, epsilon=0.0):
         # Fill histograms
         ranges = [(edges[0], edges[-1]) for edges in self.edges]
         histo, _ = np.histogramdd(x, bins=self.edges, range=ranges, normed=False, weights=weights)
         histo_w2, _ = np.histogramdd(x, bins=self.edges, range=ranges, normed=False, weights=weights ** 2)
 
-        # Avoid empty bins
-        if fill_empty is not None:
-            histo[histo <= fill_empty] = fill_empty
-            histo_w2[histo <= fill_empty] = fill_empty ** 2
-
         # Uncertainties
         histo_uncertainties = histo_w2 ** 0.5
 
+        # Normalize histograms to sum to 1
+        histo_uncertainties /= np.sum(histo)
+        histo /= np.sum(histo)
+
+        # Avoid empty bins, and normalize again
+        histo[:] += epsilon
+        histo_uncertainties[:] += epsilon
+        histo_uncertainties /= np.sum(histo)
+        histo /= np.sum(histo)
+
+        # Calculate cell volumes
         # Fix edges for bvolume calculation (to avoid larger volumes for more training data)
         modified_histo_edges = []
         for i in range(x.shape[1]):
             axis_edges = np.copy(self.edges[i])
-            # axis_edges[0] = min(np.percentile(x[:, i], 5.0), axis_edges[1] - 0.01)
-            # axis_edges[-1] = max(np.percentile(x[:, i], 95.0), axis_edges[-2] + 0.01)
+            axis_edges[0] = max(
+                axis_edges[0], axis_edges[1] - 2.0 * (axis_edges[2] - axis_edges[1])
+            )  # First bin is treated as at most twice as big as second
+            axis_edges[-1] = min(
+                axis_edges[-1], axis_edges[-1] + 2.0 * (axis_edges[-1] - axis_edges[-2])
+            )  # Last bin is treated as at most twice as big as second-to-last
             modified_histo_edges.append(axis_edges)
-
         # Calculate cell volumes
         bin_widths = [axis_edges[1:] - axis_edges[:-1] for axis_edges in modified_histo_edges]
-
         shape = tuple(self.n_bins)
         volumes = np.ones(shape)
         for obs in range(self.n_observables):
@@ -155,14 +163,12 @@ class Histo:
                 bin_widths_broadcasted[indices] = bin_widths[obs][indices[obs]]
             volumes[:] *= bin_widths_broadcasted
 
-        # Normalize histograms (for each theta bin)
-        histo_uncertainties /= np.sum(histo)
+        # Normalize histogram bins to volume
         histo_uncertainties /= volumes
-        histo /= np.sum(histo)
         histo /= volumes
 
         # Avoid NaNs
-        histo_uncertainties[np.invert(np.isfinite(histo))] = 1000000.0
+        histo_uncertainties[np.invert(np.isfinite(histo))] = 1.0e9
         histo_uncertainties[np.invert(np.isfinite(histo_uncertainties))] = 0.0
         histo[np.invert(np.isfinite(histo))] = 0.0
 
@@ -178,7 +184,7 @@ class Histo:
             self.histo.flatten() > 0.0, self.histo_uncertainties.flatten() / self.histo.flatten(), np.nan
         )
         if np.nanmax(rel_uncertainties) > 0.5:
-            logger.warning(
+            logger.debug(
                 "Large statistical uncertainties in histogram! Relative uncertainties range from %.0f%% to %.0f%% "
                 "with median %.0f%%.",
                 100.0 * np.nanmin(rel_uncertainties),

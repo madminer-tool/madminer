@@ -141,10 +141,10 @@ def parse_lhe_file(
     # Option one: XML parsing
     if parse_events_as_xml:
         events = _untar_and_parse_lhe_file(filename, ["event"])
-        for idx, event in enumerate(events):
-            if (idx + 1) % 100000 == 0:
-                logger.debug("Processing event %d/%d", idx + 1, n_events_runcard)
-                
+        for i_event, event in enumerate(events):
+            if (i_event + 1) % 100000 == 0:
+                logger.info("  Processing event %d/%d", i_event + 1, n_events_runcard)
+
             # Parse event
             particles, weights, global_event_data = _parse_xml_event(event, sampling_benchmark)
             n_events_with_negative_weights, observations, pass_all, weight_names_all_events, weights = _parse_event(
@@ -183,6 +183,9 @@ def parse_lhe_file(
     else:
         # Iterate over events in LHE file
         for i_event, (particles, weights) in enumerate(_parse_txt_events(filename, sampling_benchmark)):
+            if (i_event + 1) % 100000 == 0:
+                logger.info("  Processing event %d/%d", i_event + 1, n_events_runcard)
+
             n_events_with_negative_weights, observations, pass_all, weight_names_all_events, weights = _parse_event(
                 avg_efficiencies,
                 cuts,
@@ -754,9 +757,6 @@ def _parse_txt_events(filename, sampling_benchmark):
             # End of event
             elif line == "</event>":
                 n_events += 1
-                if n_events % 10000 == 0:
-                    logger.debug("%s events parsed", n_events)
-
                 yield particles, weights
 
                 # Reset weights and momenta

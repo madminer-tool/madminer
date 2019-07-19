@@ -72,7 +72,7 @@ class AsymptoticLimits(DataAnalyzer):
         dof=None,
         test_split=0.2,
         return_histos=True,
-        fix_adaptive_binning="auto",
+        fix_adaptive_binning="auto-grid",
     ):
         """
         Calculates p-values over a grid in parameter space based on a given set of observed events.
@@ -194,10 +194,12 @@ class AsymptoticLimits(DataAnalyzer):
             If True and if mode is "histo", "sally", "adaptive-sally", or "sallino", the function returns histogram
             objects for each point along the grid.
 
-        fix_adaptive_binning : bool or "auto", optional
-            If True and if mode is "histo", "sally", "adaptive-sally", or "sallino", the automatic histogram binning
-            is the same for every point along the parameter grid. If "auto", this option is turned on if mode is
-            "histo" or "sally", but not for "adaptive-sally" or "sallino". Default value: "auto".
+        fix_adaptive_binning : [False, "center", "grid", "auto-grid", "auto-center"], optional
+            If not False and if mode is "histo", "sally", "adaptive-sally", or "sallino", the automatic histogram binning
+            is the same for every point along the parameter grid. For "center", the central point in the parameter grid
+            is used to determine the binning, for "grid" all points in the parameter grid are combined for this. For
+            "auto-grid" or "auto-center", this option is turned on if mode is  "histo" or "sally", but not for
+            "adaptive-sally" or "sallino". Default value: "auto-grid".
 
         Returns
         -------
@@ -266,7 +268,7 @@ class AsymptoticLimits(DataAnalyzer):
         dof=None,
         test_split=0.2,
         return_histos=True,
-        fix_adaptive_binning="auto",
+        fix_adaptive_binning="auto-grid",
         sample_only_from_closest_benchmark=True,
     ):
 
@@ -384,10 +386,12 @@ class AsymptoticLimits(DataAnalyzer):
             If True and if mode is "histo", "sally", "adaptive-sally", or "sallino", the function returns histogram
             objects for each point along the grid.
 
-        fix_adaptive_binning : bool or "auto", optional
-            If True and if mode is "histo", "sally", "adaptive-sally", or "sallino", the automatic histogram binning
-            is the same for every point along the parameter grid. If "auto", this option is turned on if mode is
-            "histo" or "sally", but not for "adaptive-sally" or "sallino". Default value: "auto".
+        fix_adaptive_binning : [False, "center", "grid", "auto-grid", "auto-center"], optional
+            If not False and if mode is "histo", "sally", "adaptive-sally", or "sallino", the automatic histogram binning
+            is the same for every point along the parameter grid. For "center", the central point in the parameter grid
+            is used to determine the binning, for "grid" all points in the parameter grid are combined for this. For
+            "auto-grid" or "auto-center", this option is turned on if mode is  "histo" or "sally", but not for
+            "adaptive-sally" or "sallino". Default value: "auto-grid".
 
         sample_only_from_closest_benchmark : bool, optional
             If True, only events originally generated from the closest benchmarks are used when generating
@@ -495,7 +499,8 @@ class AsymptoticLimits(DataAnalyzer):
         score_components=None,
         test_split=0.2,
         thetaref=None,
-        fix_adaptive_binning="auto",
+        fix_adaptive_binning="auto-grid",
+        adapt_binning_for_grid_center=False,
     ):
         logger.debug("Calculating p-values for %s expected events", n_events)
 
@@ -508,8 +513,11 @@ class AsymptoticLimits(DataAnalyzer):
                 thetaref,
             )
 
-        if fix_adaptive_binning == "auto":
-            fix_adaptive_binning = mode in ["sally", "histo"]
+        if fix_adaptive_binning == "auto-grid":
+            fix_adaptive_binning = "grid" if mode in ["sally", "histo"] else False
+        elif fix_adaptive_binning == "auto-center":
+            fix_adaptive_binning = "center" if mode in ["sally", "histo"] else False
+        assert fix_adaptive_binning in [False, "center", "grid"]
 
         # Observation weights
         if obs_weights is None:
@@ -593,7 +601,8 @@ class AsymptoticLimits(DataAnalyzer):
                 weighted_histo=weighted_histo,
                 test_split=test_split,
                 processor=processor,
-                theta_binning=theta_middle if fix_adaptive_binning else None,
+                fixed_adaptive_binning=fix_adaptive_binning in ["center", "grid"],
+                theta_binning=theta_middle if fix_adaptive_binning == "center" else None,
             )
 
             # Evaluate histograms
@@ -777,13 +786,20 @@ class AsymptoticLimits(DataAnalyzer):
         weighted_histo=True,
         test_split=0.2,
         processor=None,
+        fixed_adaptive_binning=True,
         theta_binning=None,
     ):
-        if theta_binning is not None:
-            logger.info("Determining fixed adaptive histogram binning for theta = %s", theta_binning)
-            x_bins = self._fixed_adaptive_binning(
-                n_histo_toys, processor, summary_function, test_split, theta_binning, x_bins
-            )
+        if fixed_adaptive_binning:
+            if theta_binning is None:
+                logger.info("Determining fixed adaptive histogram binning for all points on grid")
+                x_bins = self._fixed_adaptive_binning(
+                    n_histo_toys, processor, summary_function, test_split, theta_grid, x_bins
+                )
+            else:
+                logger.info("Determining fixed adaptive histogram binning for theta = %s", theta_binning)
+                x_bins = self._fixed_adaptive_binning(
+                    n_histo_toys, processor, summary_function, test_split, [theta_binning], x_bins
+                )
             logger.debug("Fixed adaptive binning: %s", x_bins)
 
         if weighted_histo:
@@ -799,7 +815,7 @@ class AsymptoticLimits(DataAnalyzer):
                     data = summary_stats
                 else:
                     data = processor(summary_stats, theta)
-                histos.append(Histo(data, weights, x_bins, fill_empty=1.0e-9))
+                histos.append(Histo(data, weights, x_bins, epsilon=1.0e-12))
 
         else:
             logger.debug("Generating sampled histo data and making histograms")
@@ -819,19 +835,21 @@ class AsymptoticLimits(DataAnalyzer):
                         data = summary_stats
                     else:
                         data = processor(summary_stats, theta)
-                    histos.append(Histo(data, weights=None, bins=x_bins, fill_empty=1.0e-9))
+                    histos.append(Histo(data, weights=None, bins=x_bins, epsilon=1.0e-12))
 
         return histos
 
-    def _fixed_adaptive_binning(self, n_histo_toys, processor, summary_function, test_split, theta_binning, x_bins):
-        summary_stats, [weights] = self._make_weighted_histo_data(
-            summary_function, [theta_binning], n_histo_toys, test_split=test_split
+    def _fixed_adaptive_binning(self, n_histo_toys, processor, summary_function, test_split, thetas_binning, x_bins):
+        summary_stats, all_weights = self._make_weighted_histo_data(
+            summary_function, thetas_binning, n_histo_toys, test_split=test_split
         )
+        all_weights = np.asarray(all_weights)
+        weights = np.mean(all_weights, axis=0)
         if processor is None:
             data = summary_stats
         else:
-            data = processor(summary_stats, theta_binning)
-        histo = Histo(data, weights, x_bins, fill_empty=1.0e-9)
+            data = processor(summary_stats, thetas_binning)
+        histo = Histo(data, weights, x_bins, epsilon=1.0e-12)
         x_bins = histo.edges
         return x_bins
 

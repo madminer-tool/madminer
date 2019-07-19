@@ -1371,3 +1371,105 @@ def plot_distribution_of_information(
         tl.set_color(det_color)
 
     return fig
+
+
+def plot_histograms(
+    histos,
+    xrange=None,
+    yrange=None,
+    zrange=None,
+    log=False,
+    histo_labels=None,
+    xlabel=None,
+    ylabel=None,
+    zlabel=None,
+    colors=None,
+    linestyles=None,
+    linewidths=1.5,
+    cmap="viridis",
+    n_cols=2,
+):
+    # Basic setup
+    n_histos = len(histos)
+    dim = len(histos[0].edges)
+    assert dim in [1, 2], "Only 1- or 2-dimensional histograms are supported, but found {} dimensions".format(dim)
+
+    # Defaults
+    if colors is None:
+        colors = ["C" + str(i) for i in range(10)] * (n_histos // 10 + 1)
+    elif not isinstance(colors, list):
+        colors = [colors for _ in range(n_histos)]
+    if linestyles is None:
+        linestyles = ["solid"] * n_histos
+    elif not isinstance(linestyles, list):
+        linestyles = [linestyles for _ in range(n_histos)]
+    if not isinstance(linewidths, list):
+        linewidths = [linewidths for _ in range(n_histos)]
+    if histo_labels is None:
+        histo_labels = ["Histogram {}".format(i + 1) for i in range(n_histos)]
+
+    # 1D plot
+    if dim == 1:
+
+        def _plot_histo(edges, histo, color=None, label=None, lw=1.5, ls="-"):
+            edges_ = np.copy(edges)
+            edges_ = np.repeat(edges_, 2)[1:-1]
+            histo_ = np.repeat(histo, 2)
+            plt.plot(edges_, histo_, color=color, lw=1.5, ls="-", label=label)
+
+        fig = plt.figure(figsize=(5, 5))
+        for histo, label, ls, lw, c in zip(histos, histo_labels, linestyles, linewidths, colors):
+            _plot_histo(histo.edges[0], histo.histo, label=label, ls=ls, lw=lw, color=c)
+        plt.legend()
+        if log:
+            plt.yscale("log")
+        if xrange is not None:
+            plt.xlim(*xrange)
+        if yrange is not None:
+            plt.ylim(*yrange)
+        else:
+            plt.ylim(0.0, None)
+        if xlabel is not None:
+            plt.xlabel(xlabel)
+        if ylabel is not None:
+            plt.ylabel(ylabel)
+        else:
+            plt.ylabel("Likelihood")
+
+    # 2D plot
+    else:
+        n_rows = (n_histos - 1) // n_cols + 1
+        fig = plt.figure(figsize=(n_cols * 5.0, n_rows * 4.0))
+
+        for panel, (histo, label) in enumerate(zip(histos, histo_labels)):
+            ax = plt.subplot(n_rows, n_cols, panel + 1)
+            z = histo.histo
+            if zrange is None:
+                zrange = (np.min(z), np.max(z))
+            z = np.clip(z, zrange[0] + 1.0e-12, zrange[1] - 1.0e-12)
+
+            pcm = ax.pcolormesh(
+                histo.edges[0],
+                histo.edges[1],
+                z,
+                cmap=cmap,
+                norm=matplotlib.colors.LogNorm(*zrange) if log else matplotlib.colors.Normalize(*zrange),
+            )
+            cbar = fig.colorbar(pcm, ax=ax, extend="both")
+
+            plt.title(label, fontsize=11.0)
+            if xrange is not None:
+                plt.xlim(*xrange)
+            if yrange is not None:
+                plt.ylim(*yrange)
+            if xlabel is not None:
+                plt.xlabel(xlabel)
+            if ylabel is not None:
+                plt.xlabel(xlabel)
+            if zlabel is not None:
+                cbar.set_label(zlabel)
+            else:
+                cbar.set_label("Likelihood")
+
+    plt.tight_layout()
+    return fig
