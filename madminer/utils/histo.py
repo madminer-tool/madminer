@@ -102,7 +102,7 @@ class Histo:
         return n_bins, bin_edges
 
     @staticmethod
-    def _adaptive_binning(x, n_bins, weights=None, lower_cutoff_percentile=1.0, upper_cutoff_percentile=99.0):
+    def _adaptive_binning(x, n_bins, weights=None, lower_cutoff_percentile=0.1, upper_cutoff_percentile=99.9):
         edges = weighted_quantile(
             x,
             quantiles=np.linspace(lower_cutoff_percentile / 100.0, upper_cutoff_percentile / 100.0, n_bins + 1),
@@ -111,9 +111,9 @@ class Histo:
         )
 
         # Increase range by some safety margin
-        range_ = (np.nanmin(x) - 0.5 * (edges[1] - edges[0]), np.nanmax(x) + 0.5 * (edges[-1] - edges[-2]))
-        logger.debug("Increasing histogram range from %s to %s", (edges[0], edges[-1]), range_)
-        edges[0], edges[-1] = range_
+        # range_ = (np.nanmin(x) - 0.5 * (edges[1] - edges[0]), np.nanmax(x) + 0.5 * (edges[-1] - edges[-2]))
+        # logger.debug("Increasing histogram range from %s to %s", (edges[0], edges[-1]), range_)
+        # edges[0], edges[-1] = range_
 
         # Remove zero-width bins
         widths = np.array(list(edges[1:] - edges[:-1]) + [1.0])
