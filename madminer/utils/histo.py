@@ -127,14 +127,16 @@ class Histo:
         histo, _ = np.histogramdd(x, bins=self.edges, range=ranges, normed=False, weights=weights)
         histo_w2, _ = np.histogramdd(x, bins=self.edges, range=ranges, normed=False, weights=weights ** 2)
 
-        # Avoid empty bins
-        histo[:] += epsilon
-        histo_w2[:] += epsilon ** 2
-
         # Uncertainties
         histo_uncertainties = histo_w2 ** 0.5
 
         # Normalize histograms to sum to 1
+        histo_uncertainties /= np.sum(histo)
+        histo /= np.sum(histo)
+
+        # Avoid empty bins, and normalize again
+        histo[:] += epsilon
+        histo_uncertainties[:] += epsilon
         histo_uncertainties /= np.sum(histo)
         histo /= np.sum(histo)
 
