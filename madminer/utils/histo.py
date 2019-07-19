@@ -127,25 +127,34 @@ class Histo:
         histo, _ = np.histogramdd(x, bins=self.edges, range=ranges, normed=False, weights=weights)
         histo_w2, _ = np.histogramdd(x, bins=self.edges, range=ranges, normed=False, weights=weights ** 2)
 
-        # Avoid empty bins
-        if fill_empty is not None:
-            histo[histo <= fill_empty] = fill_empty
-            histo_w2[histo <= fill_empty] = fill_empty ** 2
-
         # Uncertainties
         histo_uncertainties = histo_w2 ** 0.5
 
+        # Normalize histograms to sum to 1
+        histo_uncertainties /= np.sum(histo)
+        histo /= np.sum(histo)
+
+        # Avoid empty bins
+        if fill_empty is not None:
+            histo[histo <= fill_empty] = fill_empty
+            histo_uncertainties[histo <= fill_empty] = fill_empty ** 2
+
+        # Calculate cell volumes
         # Fix edges for bvolume calculation (to avoid larger volumes for more training data)
         modified_histo_edges = []
         for i in range(x.shape[1]):
             axis_edges = np.copy(self.edges[i])
-            # axis_edges[0] = min(np.percentile(x[:, i], 5.0), axis_edges[1] - 0.01)
-            # axis_edges[-1] = max(np.percentile(x[:, i], 95.0), axis_edges[-2] + 0.01)
+            axis_edges[0] = max(
+                axis_edges[0],
+                axis_edges[1] - 2.*(axis_edges[2] - axis_edges[1])
+            )  # First bin is treated as at most twice as big as second
+            axis_edges[-1] = min(
+                axis_edges[-1],
+                axis_edges[-1] + 2.*(axis_edges[-1] - axis_edges[-2])
+            )  # Last bin is treated as at most twice as big as second-to-last
             modified_histo_edges.append(axis_edges)
-
         # Calculate cell volumes
         bin_widths = [axis_edges[1:] - axis_edges[:-1] for axis_edges in modified_histo_edges]
-
         shape = tuple(self.n_bins)
         volumes = np.ones(shape)
         for obs in range(self.n_observables):
@@ -155,14 +164,12 @@ class Histo:
                 bin_widths_broadcasted[indices] = bin_widths[obs][indices[obs]]
             volumes[:] *= bin_widths_broadcasted
 
-        # Normalize histograms (for each theta bin)
-        histo_uncertainties /= np.sum(histo)
+        # Normalize histogram bins to volume
         histo_uncertainties /= volumes
-        histo /= np.sum(histo)
         histo /= volumes
 
         # Avoid NaNs
-        histo_uncertainties[np.invert(np.isfinite(histo))] = 1000000.0
+        histo_uncertainties[np.invert(np.isfinite(histo))] = 1.0e9
         histo_uncertainties[np.invert(np.isfinite(histo_uncertainties))] = 0.0
         histo[np.invert(np.isfinite(histo))] = 0.0
 
