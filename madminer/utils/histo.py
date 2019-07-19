@@ -182,7 +182,7 @@ class Histo:
             self.histo.flatten() > 0.0, self.histo_uncertainties.flatten() / self.histo.flatten(), np.nan
         )
         if np.nanmax(rel_uncertainties) > 0.5:
-            logger.warning(
+            logger.debug(
                 "Large statistical uncertainties in histogram! Relative uncertainties range from %.0f%% to %.0f%% "
                 "with median %.0f%%.",
                 100.0 * np.nanmin(rel_uncertainties),
