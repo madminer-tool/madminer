@@ -1371,20 +1371,27 @@ def plot_distribution_of_information(
 
 def plot_histograms(
     histos,
+    observed=None,
+    observed_weights=None,
     xrange=None,
     yrange=None,
     zrange=None,
     log=False,
     histo_labels=None,
+    observed_label="Data",
     xlabel=None,
     ylabel=None,
     zlabel=None,
     colors=None,
     linestyles=None,
     linewidths=1.5,
+    markercolor="black",
+    markersize=20.0,
     cmap="viridis",
     n_cols=2,
 ):
+    # TODO: docstring
+
     # Basic setup
     n_histos = len(histos)
     dim = len(histos[0].edges)
@@ -1416,6 +1423,14 @@ def plot_histograms(
         fig = plt.figure(figsize=(5, 5))
         for histo, label, ls, lw, c in zip(histos, histo_labels, linestyles, linewidths, colors):
             _plot_histo(histo.edges[0], histo.histo, label=label, ls=ls, lw=lw, color=c)
+
+        # Prepare observed data
+        if observed is not None:
+            obs_counts, obs_edges = np.histogram(observed.flatten(), histos[0].edges[0], weights=observed_weights)
+            obs_middles = 0.5 * (obs_edges[:-1] + obs_edges[1:])
+            obs_counts /= (obs_edges[1:] - obs_edges[:-1]) * np.sum(obs_counts)
+            plt.scatter(obs_middles, obs_counts, color=markercolor, marker="o", s=markersize, label=observed_label)
+
         plt.legend()
         if log:
             plt.yscale("log")
@@ -1439,7 +1454,7 @@ def plot_histograms(
 
         for panel, (histo, label) in enumerate(zip(histos, histo_labels)):
             ax = plt.subplot(n_rows, n_cols, panel + 1)
-            z = histo.histo
+            z = histo.histo.T
             if zrange is None:
                 zrange = (np.min(z), np.max(z))
             z = np.clip(z, zrange[0] + 1.0e-12, zrange[1] - 1.0e-12)
@@ -1452,6 +1467,19 @@ def plot_histograms(
                 norm=matplotlib.colors.LogNorm(*zrange) if log else matplotlib.colors.Normalize(*zrange),
             )
             cbar = fig.colorbar(pcm, ax=ax, extend="both")
+
+            # Prepare observed data
+            if observed is not None:
+                plt.scatter(
+                    observed[:, 0],
+                    observed[:, 1],
+                    color=markercolor,
+                    marker="o",
+                    s=markersize
+                    if observed_weights is None
+                    else markersize * observed_weights / np.mean(observed_weights),
+                    label=observed_label,
+                )
 
             plt.title(label, fontsize=11.0)
             if xrange is not None:

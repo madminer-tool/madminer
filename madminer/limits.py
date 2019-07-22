@@ -72,6 +72,7 @@ class AsymptoticLimits(DataAnalyzer):
         dof=None,
         test_split=0.2,
         return_histos=True,
+        return_observed=False,
         fix_adaptive_binning="auto-grid",
     ):
         """
@@ -239,6 +240,7 @@ class AsymptoticLimits(DataAnalyzer):
             luminosity,
             n_histo_toys,
             return_histos=return_histos,
+            return_observed=return_observed,
             dof=dof,
             histo_theta_batchsize=histo_theta_batchsize,
             weighted_histo=weighted_histo,
@@ -268,6 +270,7 @@ class AsymptoticLimits(DataAnalyzer):
         dof=None,
         test_split=0.2,
         return_histos=True,
+        return_asimov=False,
         fix_adaptive_binning="auto-grid",
         sample_only_from_closest_benchmark=True,
     ):
@@ -440,6 +443,7 @@ class AsymptoticLimits(DataAnalyzer):
             luminosity,
             n_histo_toys,
             return_histos=return_histos,
+            return_observed=return_asimov,
             dof=dof,
             histo_theta_batchsize=histo_theta_batchsize,
             theta_true=theta_true,
@@ -491,7 +495,8 @@ class AsymptoticLimits(DataAnalyzer):
         obs_weights=None,
         luminosity=300000.0,
         n_histo_toys=100000,
-        return_histos=False,
+        return_histos=True,
+        return_observed=False,
         dof=None,
         histo_theta_batchsize=1000,
         theta_true=None,
@@ -500,7 +505,6 @@ class AsymptoticLimits(DataAnalyzer):
         test_split=0.2,
         thetaref=None,
         fix_adaptive_binning="auto-grid",
-        adapt_binning_for_grid_center=False,
     ):
         logger.debug("Calculating p-values for %s expected events", n_events)
 
@@ -632,7 +636,14 @@ class AsymptoticLimits(DataAnalyzer):
         logger.debug("Min-subtracted -2 log r: %s", -2.0 * log_r)
         p_values = self.asymptotic_p_value(log_r, dof=dof)
 
-        return theta_grid, p_values, i_ml, log_r_kin, log_p_xsec, histos if return_histos else None
+        histo_data = (
+            (histos, summary_stats, obs_weights)
+            if return_histos and return_observed
+            else histos
+            if return_histos
+            else None
+        )
+        return theta_grid, p_values, i_ml, log_r_kin, log_p_xsec, histo_data
 
     def _find_bins(self, mode, hist_bins, summary_stats):
         n_summary_stats = summary_stats.shape[1]
