@@ -1457,7 +1457,7 @@ def plot_histograms(
 
         if observed is None:
             observed = [None for _ in histos]
-        elif isinstance(observed, np.ndarray) and len(observed.squeeze().shape) == 1:
+        elif isinstance(observed, np.ndarray) and len(observed.squeeze().shape) <= 2:
             observed = [observed for _ in histos]
 
         for panel, (obs, histo, label) in enumerate(zip(observed, histos, histo_labels)):
