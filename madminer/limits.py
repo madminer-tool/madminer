@@ -533,6 +533,7 @@ class AsymptoticLimits(DataAnalyzer):
         theta_grid, theta_middle = self._make_theta_grid(theta_ranges, theta_resolutions)
 
         histos = None
+        processed_summary_stats = None
 
         # Kinematic part
         if mode == "rate":
@@ -611,7 +612,7 @@ class AsymptoticLimits(DataAnalyzer):
 
             # Evaluate histograms
             logger.info("Calculating kinematic log likelihood with histograms")
-            log_r_kin = self._calculate_log_likelihood_histo(summary_stats, theta_grid, histos, processor=processor)
+            log_r_kin, processed_summary_stats = self._calculate_log_likelihood_histo(summary_stats, theta_grid, histos, processor=processor)
             log_r_kin = log_r_kin.astype(np.float64)
             log_r_kin = self._clean_nans(log_r_kin)
             log_r_kin = n_events * np.sum(log_r_kin * obs_weights[np.newaxis, :], axis=1)
@@ -636,13 +637,11 @@ class AsymptoticLimits(DataAnalyzer):
         logger.debug("Min-subtracted -2 log r: %s", -2.0 * log_r)
         p_values = self.asymptotic_p_value(log_r, dof=dof)
 
-        histo_data = (
-            (histos, summary_stats, obs_weights)
-            if return_histos and return_observed
-            else histos
-            if return_histos
-            else None
-        )
+        histo_data = None
+        if return_histos and return_observed:
+            histo_data = (histos, processed_summary_stats, obs_weights)
+        elif return_histos:
+            histo_data = histos
         return theta_grid, p_values, i_ml, log_r_kin, log_p_xsec, histo_data
 
     def _find_bins(self, mode, hist_bins, summary_stats):
@@ -910,15 +909,17 @@ class AsymptoticLimits(DataAnalyzer):
 
     @staticmethod
     def _calculate_log_likelihood_histo(summary_stats, theta_grid, histos, processor=None):
-        log_p = []
+        log_p, all_data = [], []
         for theta, histo in zip(theta_grid, histos):
             if processor is None:
                 data = summary_stats
             else:
                 data = processor(summary_stats, theta)
+            all_data.append(data)
             log_p.append(histo.log_likelihood(data))
         log_p = np.asarray(log_p)
-        return log_p
+        all_data = np.asarray(all_data)
+        return log_p, all_data
 
     def _calculate_log_likelihood_xsec(self, n_observed, theta_grid, luminosity=300000.0):
         n_observed_rounded = int(np.round(n_observed, 0))
