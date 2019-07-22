@@ -648,13 +648,16 @@ class AsymptoticLimits(DataAnalyzer):
 
     def _find_bins(self, mode, hist_bins, summary_stats):
         n_summary_stats = summary_stats.shape[1]
-        if mode == "adaptive-sally":
+        if mode == "adaptive-sally" and n_summary_stats > 2:
             n_summary_stats += 1
         elif mode == "sallino":
             n_summary_stats = 1
         # Bin numbers
         if hist_bins is None:
-            if mode == "adaptive-sally":
+            if mode == "adaptive-sally" and n_summary_stats == 2:
+                hist_bins = (15, 5)
+                total_n_bins = 15 * 5
+            elif mode == "adaptive-sally" and n_summary_stats > 2:
                 hist_bins = tuple([12] + [5 for _ in range(n_summary_stats - 1)])
                 total_n_bins = 12 * 5 ** (n_summary_stats - 1)
             elif n_summary_stats == 1:
