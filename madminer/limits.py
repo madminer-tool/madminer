@@ -612,7 +612,9 @@ class AsymptoticLimits(DataAnalyzer):
 
             # Evaluate histograms
             logger.info("Calculating kinematic log likelihood with histograms")
-            log_r_kin, processed_summary_stats = self._calculate_log_likelihood_histo(summary_stats, theta_grid, histos, processor=processor)
+            log_r_kin, processed_summary_stats = self._calculate_log_likelihood_histo(
+                summary_stats, theta_grid, histos, processor=processor
+            )
             log_r_kin = log_r_kin.astype(np.float64)
             log_r_kin = self._clean_nans(log_r_kin)
             log_r_kin = n_events * np.sum(log_r_kin * obs_weights[np.newaxis, :], axis=1)
@@ -701,10 +703,33 @@ class AsymptoticLimits(DataAnalyzer):
         return summary_function
 
     def _make_score_processor(self, mode, score_components, thetaref, epsilon=1.0e-6):
-        if mode == "adaptive-sally":
+        dim = self.n_parameters
+        if score_components is not None:
+            dim = len(score_components)
+
+        if mode == "sally" or dim == 1:
 
             def processor(scores, theta):
-                delta_theta = theta - thetaref
+                return scores
+
+        elif mode == "adaptive-sally" and dim == 2:
+
+            def processor(scores, theta):
+                delta_theta = (theta - thetaref).flatten()
+                if score_components is not None:
+                    delta_theta = delta_theta[score_components]
+                if np.linalg.norm(delta_theta) > epsilon:
+                    rotation_matrix = np.array([[delta_theta[0], -delta_theta[1]], [delta_theta[1], delta_theta[0]]])
+                    rotation_matrix /= np.linalg.norm(delta_theta)
+                else:
+                    rotation_matrix = np.identity(2)
+                scores_rotated = scores.dot(rotation_matrix)
+                return scores_rotated
+
+        elif mode == "adaptive-sally" and dim > 2:
+
+            def processor(scores, theta):
+                delta_theta = (theta - thetaref).flatten()
                 if score_components is not None:
                     delta_theta = delta_theta[score_components]
                 if np.linalg.norm(delta_theta) > epsilon:
@@ -717,7 +742,7 @@ class AsymptoticLimits(DataAnalyzer):
         elif mode == "sallino":
 
             def processor(scores, theta):
-                delta_theta = theta - thetaref
+                delta_theta = (theta - thetaref).flatten()
                 if score_components is not None:
                     delta_theta = delta_theta[score_components]
                 if np.linalg.norm(delta_theta) > epsilon:
@@ -727,13 +752,8 @@ class AsymptoticLimits(DataAnalyzer):
                 h = h.reshape((-1, 1))
                 return h
 
-        elif mode == "sally":
-
-            def processor(scores, theta):
-                return scores
-
         else:
-            raise RuntimeError("Unknown score processing mode {}".format(mode))
+            raise RuntimeError("Unknown score processing mode {} for summary stats dimension {}".format(mode, dim))
 
         return processor
 

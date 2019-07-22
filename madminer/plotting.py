@@ -1426,7 +1426,10 @@ def plot_histograms(
 
         # Prepare observed data
         if observed is not None:
-            obs_counts, obs_edges = np.histogram(observed.flatten(), histos[0].edges[0], weights=observed_weights)
+            observed = np.asarray(observed).squeeze()
+            if len(observed.shape) > 1:
+                observed = observed[0]
+            obs_counts, obs_edges = np.histogram(observed, histos[0].edges[0], weights=observed_weights)
             obs_middles = 0.5 * (obs_edges[:-1] + obs_edges[1:])
             obs_counts /= (obs_edges[1:] - obs_edges[:-1]) * np.sum(obs_counts)
             plt.scatter(obs_middles, obs_counts, color=markercolor, marker="o", s=markersize, label=observed_label)
@@ -1452,7 +1455,12 @@ def plot_histograms(
         n_rows = (n_histos - 1) // n_cols + 1
         fig = plt.figure(figsize=(n_cols * 5.0, n_rows * 4.0))
 
-        for panel, (histo, label) in enumerate(zip(histos, histo_labels)):
+        if observed is None:
+            observed = [None for _ in histos]
+        elif isinstance(observed, np.ndarray) and len(observed.squeeze().shape) == 1:
+            observed = [observed for _ in histos]
+
+        for panel, (obs, histo, label) in enumerate(zip(observed, histos, histo_labels)):
             ax = plt.subplot(n_rows, n_cols, panel + 1)
             z = histo.histo.T
             if zrange is None:
@@ -1469,10 +1477,10 @@ def plot_histograms(
             cbar = fig.colorbar(pcm, ax=ax, extend="both")
 
             # Prepare observed data
-            if observed is not None:
+            if obs is not None:
                 plt.scatter(
-                    observed[:, 0],
-                    observed[:, 1],
+                    obs[:, 0],
+                    obs[:, 1],
                     color=markercolor,
                     marker="o",
                     s=markersize
