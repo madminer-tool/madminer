@@ -8,10 +8,7 @@ MadMiner
 
 *Johann Brehmer, Felix Kling, Irina Espejo, and Kyle Cranmer*
 
-**An inference toolkit for LHC measurements**
-
-Note that this is a development version. Do not reply on anything being stable. If you have any questions, please
-contact us at `johann.brehmer@nyu.edu`_.
+**Machine-learning-based inference for particle physics**
 
 .. _`johann.brehmer@nyu.edu`: johann.brehmer@nyu.edu
 
@@ -22,6 +19,7 @@ contact us at `johann.brehmer@nyu.edu`_.
    introduction
    installation
    usage
+   troubleshooting
    references
 
 .. toctree::

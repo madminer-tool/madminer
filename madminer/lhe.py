@@ -552,7 +552,14 @@ class LHEReader:
         for lhe_file, is_background, sampling_benchmark, k_factor in zip(
             self.lhe_sample_filenames, self.sample_is_backgrounds, self.sampling_benchmarks, self.sample_k_factors
         ):
-            logger.info("Analysing LHE sample %s", lhe_file)
+            logger.info(
+                "Analysing LHE sample %s: Calculating %s observables, requiring %s selection cuts, using %s efficiency "
+                "factors",
+                lhe_file,
+                len(self.observables),
+                len(self.cuts),
+                len(self.efficiencies),
+            )
 
             this_observations, this_weights, this_n_events = self._parse_sample(
                 is_background, k_factor, lhe_file, parse_events_as_xml, reference_benchmark, sampling_benchmark

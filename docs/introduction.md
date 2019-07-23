@@ -11,7 +11,8 @@ In the three publications
 ["Constraining Effective Field Theories With Machine Learning"](https://arxiv.org/abs/1805.00013),
 ["A Guide to Constraining Effective Field Theories With Machine Learning"](https://arxiv.org/abs/1805.00020), and
 ["Mining gold from implicit models to improve likelihood-free inference"](https://arxiv.org/abs/1805.12244),
-a new approach has been developed. In a nut shell, additional information is extracted from the simulators. This
+a new approach has been developed. In a nut shell, additional information is extracted from the simulations that is
+closely related to the matrix elements that determine the hard process. This
 "augmented data" can be used to train neural networks to efficiently approximate arbitrary likelihood ratios. We
 playfully call this process "mining gold" from the simulator, since this information may be hard to get, but turns out
 to be very valuable for inference.
