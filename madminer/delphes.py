@@ -572,7 +572,12 @@ class DelphesReader:
             self.lhe_sample_filenames_for_weights,
             self.sample_k_factors,
         ):
-            logger.info("Analysing Delphes sample %s", delphes_file)
+            logger.info(
+                "Analysing Delphes sample %s: Calculating %s observables, requiring %s selection cuts",
+                delphes_file,
+                len(self.observables),
+                len(self.cuts),
+            )
 
             this_observations, this_weights, this_n_events = self._analyse_delphes_sample(
                 delete_delphes_files,
