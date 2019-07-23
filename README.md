@@ -80,9 +80,7 @@ If you use MadMiner, please cite our main publication,
 ```
 @misc{MadMiner,
       author         = "Brehmer, Johann and Kling, Felix and Espejo, Irina and Cranmer, Kyle",
-      title          = "{MadMiner}",
-      doi            = "10.5281/zenodo.1489147",
-      url            = {https://github.com/johannbrehmer/madminer}
+      title          = "{MadMiner: Machine-learning-based inference for particle physics}",
 }
 ```
 
