@@ -1336,7 +1336,7 @@ class ScoreEstimator(Estimator):
 
         # Treatment of nuisance paramters
         if nuisance_mode == "keep":
-            logging.info("Keeping nuisance parameter score")
+            logger.debug("Keeping nuisance parameter in score")
 
         elif nuisance_mode == "project":
             if self.nuisance_project_matrix is None:
@@ -1344,7 +1344,7 @@ class ScoreEstimator(Estimator):
                     "evaluate_score() was called with nuisance_mode = project, but nuisance parameters "
                     "have not been set up yet. Please call set_nuisance() first!"
                 )
-            logging.info("Projecting nuisance parameter score")
+            logger.info("Projecting nuisance parameter from score")
             t_hat = np.einsum("ij,xj->xi", self.nuisance_project_matrix, t_hat)
 
         elif nuisance_mode == "profile":
@@ -1353,7 +1353,7 @@ class ScoreEstimator(Estimator):
                     "evaluate_score() was called with nuisance_mode = profile, but nuisance parameters "
                     "have not been set up yet. Please call set_nuisance() first!"
                 )
-            logging.info("Profiling nuisance parameter score")
+            logger.info("Profiling nuisance parameter from score")
             t_hat = np.einsum("ij,xj->xi", self.nuisance_profile_matrix, t_hat)
 
         else:
