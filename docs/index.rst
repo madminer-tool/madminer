@@ -8,7 +8,7 @@ MadMiner
 
 *Johann Brehmer, Felix Kling, Irina Espejo, and Kyle Cranmer*
 
-**Machine-learning-based inference for particle physics**
+**Machine learning–based inference for particle physics**
 
 .. _`johann.brehmer@nyu.edu`: johann.brehmer@nyu.edu
 
