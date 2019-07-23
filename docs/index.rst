@@ -22,6 +22,7 @@ contact us at `johann.brehmer@nyu.edu`_.
    introduction
    installation
    usage
+   troubleshooting
    references
 
 .. toctree::
