@@ -1,4 +1,4 @@
-# MadMiner: An inference toolkit for particle physics
+# MadMiner: Machine-learning-based inference for particle physics
 
 **Johann Brehmer, Felix Kling, Irina Espejo, and Kyle Cranmer**
 
@@ -26,7 +26,8 @@ In the three publications
 ["Constraining Effective Field Theories With Machine Learning"](https://arxiv.org/abs/1805.00013),
 ["A Guide to Constraining Effective Field Theories With Machine Learning"](https://arxiv.org/abs/1805.00020), and
 ["Mining gold from implicit models to improve likelihood-free inference"](https://arxiv.org/abs/1805.12244),
-a new approach has been developed. In a nut shell, additional information is extracted from the simulators. This
+a new approach has been developed. In a nut shell, additional information is extracted from the simulations that is
+closely related to the matrix elements that determine the hard process. This
 "augmented data" can be used to train neural networks to efficiently approximate arbitrary likelihood ratios. We
 playfully call this process "mining gold" from the simulator, since this information may be hard to get, but turns out
 to be very valuable for inference.
@@ -35,6 +36,7 @@ But the gold does not have to be hard to mine. This package automates these infe
 simulators MadGraph and Pythia, with different options for the detector simulation. All steps in the analysis chain from
 the simulation to the extraction of the augmented data, their processing, and the training and evaluation of the neural
 estimators are implemented.
+
 
 ## Installation
 
