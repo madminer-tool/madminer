@@ -1,4 +1,4 @@
-# MadMiner: Machine-learning-based inference for particle physics
+# MadMiner: Machine learning–based inference for particle physics
 
 **Johann Brehmer, Felix Kling, Irina Espejo, and Kyle Cranmer**
 
