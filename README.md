@@ -7,7 +7,7 @@
 [![Gitter](https://badges.gitter.im/madminer/community.svg)](https://gitter.im/madminer/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
 [![Build Status](https://travis-ci.com/diana-hep/madminer.svg?branch=master)](https://travis-ci.com/diana-hep/madminer)
 [![Docker pulls](https://img.shields.io/docker/pulls/madminertool/docker-madminer.svg)](https://hub.docker.com/r/madminertool/docker-madminer)
-[![Binder](https://mybinder.org/badge.svg)](https://mybinder.org/v2/gh/johannbrehmer/madminer/master)
+[![Binder](https://mybinder.org/badge.svg)](https://mybinder.org/v2/gh/diana-hep/madminer/master)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/ambv/black)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.1489147.svg)](https://doi.org/10.5281/zenodo.1489147)
@@ -80,7 +80,7 @@ chat to us [in our Gitter community](https://gitter.im/madminer/community) or wr
 
 If you use MadMiner, please cite our main publication,
 ```
-@misc{MadMiner,
+@article{MadMiner,
       author         = "Brehmer, Johann and Kling, Felix and Espejo, Irina and Cranmer, Kyle",
       title          = "{MadMiner: Machine-learning-based inference for particle physics}",
 }
@@ -88,11 +88,11 @@ If you use MadMiner, please cite our main publication,
 
 The code itself can be cited as
 ```
-@misc{MadMiner,
+@misc{MadMiner_code,
       author         = "Brehmer, Johann and Kling, Felix and Espejo, Irina and Cranmer, Kyle",
       title          = "{MadMiner}",
       doi            = "10.5281/zenodo.1489147",
-      url            = {https://github.com/johannbrehmer/madminer}
+      url            = {https://github.com/diana-hep/madminer}
 }
 ```
 

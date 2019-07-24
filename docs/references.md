@@ -4,7 +4,7 @@
 
 If you use MadMiner, please cite our main publication,
 ```
-@misc{MadMiner,
+@article{MadMiner,
       author         = "Brehmer, Johann and Kling, Felix and Espejo, Irina and Cranmer, Kyle",
       title          = "{MadMiner: Machine-learning-based inference for particle physics}",
 }
@@ -12,13 +12,14 @@ If you use MadMiner, please cite our main publication,
 
 The code itself can be cited as
 ```
-@misc{MadMiner,
+@misc{MadMiner_code,
       author         = "Brehmer, Johann and Kling, Felix and Espejo, Irina and Cranmer, Kyle",
       title          = "{MadMiner}",
       doi            = "10.5281/zenodo.1489147",
-      url            = {https://github.com/johannbrehmer/madminer}
+      url            = {https://github.com/diana-hep/madminer}
 }
 ```
+
 
 The main references for the implemented inference techniques are the following:
 
