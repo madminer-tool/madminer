@@ -1,6 +1,6 @@
 # MadMiner: Machine learning–based inference for particle physics
 
-**Johann Brehmer, Felix Kling, Irina Espejo, and Kyle Cranmer**
+**By Johann Brehmer, Felix Kling, Irina Espejo, and Kyle Cranmer**
 
 [![PyPI version](https://badge.fury.io/py/madminer.svg)](https://badge.fury.io/py/madminer)
 [![Build Status](https://travis-ci.com/diana-hep/madminer.svg?branch=master)](https://travis-ci.com/diana-hep/madminer)
@@ -14,7 +14,7 @@
 
 ## Introduction
 
-Particle physics processes are usually modelled with complex Monte-Carlo simulations of the hard process, parton shower,
+Particle physics processes are usually modeled with complex Monte-Carlo simulations of the hard process, parton shower,
 and detector interactions. These simulators typically do not admit a tractable likelihood function: given a (potentially
 high-dimensional) set of observables, it is usually not possible to calculate the probability of these observables
 for some model parameters. Particle physicisists usually tackle this problem of "likelihood-free inference" by
@@ -31,26 +31,24 @@ closely related to the matrix elements that determine the hard process. This
 playfully call this process "mining gold" from the simulator, since this information may be hard to get, but turns out
 to be very valuable for inference.
 
-But the gold does not have to be hard to mine. This package automates these inference strategies. It wraps around the
-simulators MadGraph and Pythia, with different options for the detector simulation. All steps in the analysis chain from
-the simulation to the extraction of the augmented data, their processing, and the training and evaluation of the neural
-estimators are implemented.
+But the gold does not have to be hard to mine: MadMiner automates these modern multivariate inference strategies. It
+wraps around the simulators MadGraph and Pythia, with different options for the detector simulation. It streamlines all
+steps in the analysis chain from the simulation to the extraction of the augmented data, their processing, the training
+and evaluation of the neural networks, and the statistical analysis are implemented.
 
 
-## Installation
-
-Please have a look at our [installation instructions](https://madminer.readthedocs.io/en/latest/installation.html).
-
-
-## Using MadMiner
-
-We provide different resources that help with the use of MadMiner:
+## Resources
 
 
 ### Paper
 
-Our main publication [MadMiner: Machine-learning-based inference for particle physics]() provides an overview over this
-package. We recommend reading it first before jumping into the code.
+Our main publication [MadMiner: Machine-learning-based inference for particle physics](https://arxiv.org/abs/1907.10621)
+provides an overview over this package. We recommend reading it first before jumping into the code.
+
+
+### Installation instructions
+
+Please have a look at our [installation instructions](https://madminer.readthedocs.io/en/latest/installation.html).
 
 
 ### Tutorials
@@ -82,6 +80,11 @@ If you use MadMiner, please cite our main publication,
 @article{MadMiner,
       author         = "Brehmer, Johann and Kling, Felix and Espejo, Irina and Cranmer, Kyle",
       title          = "{MadMiner: Machine-learning-based inference for particle physics}",
+      year           = "2019",
+      eprint         = "1907.10621",
+      archivePrefix  = "arXiv",
+      primaryClass   = "hep-ph",
+      SLACcitation   = "%%CITATION = ARXIV:1907.10621;%%"
 }
 ```
 

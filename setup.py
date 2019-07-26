@@ -20,7 +20,7 @@ URL = 'https://github.com/johannbrehmer/madminer'
 EMAIL = 'johann.brehmer@nyu.edu'
 AUTHOR = 'Johann Brehmer, Felix Kling, Irina Espejo, Kyle Cranmer'
 REQUIRES_PYTHON = '>=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*, <4'
-VERSION = '0.4.8'
+VERSION = '0.4.9'
 
 # What packages are required for this module to be executed?
 REQUIRED = [
@@ -28,7 +28,7 @@ REQUIRED = [
     "numpy>=1.13.0",
     "scipy>=1.0.0",
     "h5py",
-    "scikit-hep",
+    "scikit-hep>=0.5.0, <0.6.0",
     "scikit-learn>=0.19.0",
     "torch>=1.0.0",
     "bqplot",

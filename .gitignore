@@ -137,34 +137,6 @@ examples/tutorial_particle_physics/models
 examples/tutorial_toy_simulator/data
 examples/tutorial_toy_simulator/models
 
-examples/example1_wgamma/temp
-examples/example1_wgamma/nsqso_born.inc
-examples/example1_wgamma/data
-examples/example1_wgamma/datasave
-examples/example1_wgamma/logs
-examples/example1_wgamma/ME5_debug
-examples/example1_wgamma/mg_processes
-examples/example1_wgamma/py.py
-examples/example1_wgamma/models
-examples/example1_wgamma/figures
-
-examples/example2_wbf/temp
-examples/example2_wbf/nsqso_born.inc
-examples/example2_wbf/data
-examples/example2_wbf/datasave
-examples/example2_wbf/logs
-examples/example2_wbf/ME5_debug
-examples/example2_wbf/mg_processes
-examples/example2_wbf/py.py
-examples/example2_wbf/models
-examples/example2_wbf/figures
-
-examples/example3_systematics/data
-examples/example3_systematics/mg_processes
-examples/example3_systematics/models
-
-examples/example4_tth
-
 # MG / Pythia / Delphes patch
 patches/
 
