@@ -42,8 +42,8 @@ and evaluation of the neural networks, and the statistical analysis are implemen
 
 ### Paper
 
-Our main publication [MadMiner: Machine-learning-based inference for particle physics]() provides an overview over this
-package. We recommend reading it first before jumping into the code.
+Our main publication [MadMiner: Machine-learning-based inference for particle physics](https://arxiv.org/abs/1907.10621)
+provides an overview over this package. We recommend reading it first before jumping into the code.
 
 
 ### Installation instructions
@@ -80,6 +80,11 @@ If you use MadMiner, please cite our main publication,
 @article{MadMiner,
       author         = "Brehmer, Johann and Kling, Felix and Espejo, Irina and Cranmer, Kyle",
       title          = "{MadMiner: Machine-learning-based inference for particle physics}",
+      year           = "2019",
+      eprint         = "1907.10621",
+      archivePrefix  = "arXiv",
+      primaryClass   = "hep-ph",
+      SLACcitation   = "%%CITATION = ARXIV:1907.10621;%%"
 }
 ```
 
