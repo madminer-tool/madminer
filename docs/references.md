@@ -4,9 +4,11 @@
 
 If you use MadMiner, please cite our main publication,
 ```
-@article{MadMiner,
-      author         = "Brehmer, Johann and Kling, Felix and Espejo, Irina and Cranmer, Kyle",
-      title          = "{MadMiner: Machine-learning-based inference for particle physics}",
+@article{Brehmer:2019xox,
+      author         = "Brehmer, Johann and Kling, Felix and Espejo, Irina and
+                        Cranmer, Kyle",
+      title          = "{MadMiner: Machine learning-based inference for particle
+                        physics}",
       year           = "2019",
       eprint         = "1907.10621",
       archivePrefix  = "arXiv",
