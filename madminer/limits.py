@@ -74,6 +74,7 @@ class AsymptoticLimits(DataAnalyzer):
         return_histos=True,
         return_observed=False,
         fix_adaptive_binning="auto-grid",
+        postprocessing=None,
     ):
         """
         Calculates p-values over a grid in parameter space based on a given set of observed events.
@@ -248,6 +249,7 @@ class AsymptoticLimits(DataAnalyzer):
             test_split=test_split,
             thetaref=thetaref,
             fix_adaptive_binning=fix_adaptive_binning,
+            postprocessing=postprocessing,
         )
         return results
 
@@ -273,6 +275,7 @@ class AsymptoticLimits(DataAnalyzer):
         return_asimov=False,
         fix_adaptive_binning="auto-grid",
         sample_only_from_closest_benchmark=True,
+        postprocessing=None,
     ):
 
         """
@@ -452,6 +455,7 @@ class AsymptoticLimits(DataAnalyzer):
             test_split=test_split,
             thetaref=thetaref,
             fix_adaptive_binning=fix_adaptive_binning,
+            postprocessing=postprocessing,
         )
         return results
 
@@ -505,6 +509,7 @@ class AsymptoticLimits(DataAnalyzer):
         test_split=0.2,
         thetaref=None,
         fix_adaptive_binning="auto-grid",
+        postprocessing=None,
     ):
         logger.debug("Calculating p-values for %s expected events", n_events)
 
@@ -565,7 +570,7 @@ class AsymptoticLimits(DataAnalyzer):
                 assert hist_vars is not None
                 logger.info("Setting up standard summary statistics")
                 summary_function = self._make_summary_statistic_function("observables", observables=hist_vars)
-                processor = None
+                processor = self._make_obs_processor(postprocessing=postprocessing)
 
             elif mode in ["sally", "adaptive-sally", "sallino"]:
                 if score_components is None:
@@ -578,7 +583,9 @@ class AsymptoticLimits(DataAnalyzer):
                 summary_function = self._make_summary_statistic_function(
                     "sally", model=model, observables=score_components
                 )
-                processor = self._make_score_processor(mode, score_components=score_components, thetaref=thetaref)
+                processor = self._make_score_processor(
+                    mode, score_components=score_components, thetaref=thetaref, postprocessing=postprocessing
+                )
 
             else:
                 raise RuntimeError("For 'histo' mode, either provide histo_vars or model_file!")
@@ -705,15 +712,31 @@ class AsymptoticLimits(DataAnalyzer):
 
         return summary_function
 
-    def _make_score_processor(self, mode, score_components, thetaref, epsilon=1.0e-6):
+    def _make_obs_processor(self, postprocessing=None):
+        if postprocessing is None:
+
+            def processor(obs, theta):
+                return obs
+
+        else:
+
+            def processor(obs, theta):
+                return postprocessing(obs)
+
+        return processor
+
+    def _make_score_processor(self, mode, score_components, thetaref, postprocessing=None, epsilon=1.0e-6):
         dim = self.n_parameters
         if score_components is not None:
             dim = len(score_components)
 
+        if postprocessing is None:
+            postprocessing = lambda x: x
+
         if mode == "sally" or dim == 1:
 
             def processor(scores, theta):
-                return scores
+                return postprocessing(scores)
 
         elif mode == "adaptive-sally" and dim == 2:
 
@@ -727,7 +750,7 @@ class AsymptoticLimits(DataAnalyzer):
                 else:
                     rotation_matrix = np.identity(2)
                 scores_rotated = scores.dot(rotation_matrix)
-                return scores_rotated
+                return postprocessing(scores_rotated)
 
         elif mode == "adaptive-sally" and dim > 2:
 
@@ -740,7 +763,8 @@ class AsymptoticLimits(DataAnalyzer):
                 else:
                     h = scores[:, 0]
                 h = h.reshape((-1, 1))
-                return np.concatenate((h, scores), axis=1)
+                combined = np.concatenate((h, scores), axis=1)
+                return postprocessing(combined)
 
         elif mode == "sallino":
 
@@ -753,7 +777,7 @@ class AsymptoticLimits(DataAnalyzer):
                 else:
                     h = scores[:, 0]
                 h = h.reshape((-1, 1))
-                return h
+                return postprocessing(h)
 
         else:
             raise RuntimeError("Unknown score processing mode {} for summary stats dimension {}".format(mode, dim))
