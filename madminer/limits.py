@@ -276,6 +276,7 @@ class AsymptoticLimits(DataAnalyzer):
         fix_adaptive_binning="auto-grid",
         sample_only_from_closest_benchmark=True,
         postprocessing=None,
+        n_asimov=None,
     ):
 
         """
@@ -428,7 +429,10 @@ class AsymptoticLimits(DataAnalyzer):
 
         logger.info("Generating Asimov data")
         x_asimov, x_weights = self._asimov_data(
-            theta_true, sample_only_from_closest_benchmark=sample_only_from_closest_benchmark, test_split=test_split
+            theta_true,
+            sample_only_from_closest_benchmark=sample_only_from_closest_benchmark,
+            test_split=test_split,
+            n_asimov=n_asimov,
         )
         n_observed = luminosity * self._calculate_xsecs([theta_true])[0]
         logger.info("Expected events: %s", n_observed)
@@ -620,7 +624,7 @@ class AsymptoticLimits(DataAnalyzer):
             # Evaluate histograms
             logger.info("Calculating kinematic log likelihood with histograms")
             log_r_kin, processed_summary_stats = self._calculate_log_likelihood_histo(
-                summary_stats, theta_grid, histos, processor=processor
+                summary_stats, theta_grid, histos, processor=processor, return_observed=return_observed
             )
             log_r_kin = log_r_kin.astype(np.float64)
             log_r_kin = self._clean_nans(log_r_kin)
@@ -647,7 +651,9 @@ class AsymptoticLimits(DataAnalyzer):
         p_values = self.asymptotic_p_value(log_r, dof=dof)
 
         histo_data = None
-        if return_histos and return_observed:
+        if return_histos and return_observed and isinstance(return_observed, int):
+            histo_data = (histos, processed_summary_stats, obs_weights[:return_observed])
+        elif return_histos and return_observed:
             histo_data = (histos, processed_summary_stats, obs_weights)
         elif return_histos:
             histo_data = histos
@@ -800,13 +806,13 @@ class AsymptoticLimits(DataAnalyzer):
             xsecs.append(mdot(theta_matrix, xsecs_benchmarks) * correction_factor)
         return np.asarray(xsecs)
 
-    def _asimov_data(self, theta, test_split=0.2, sample_only_from_closest_benchmark=True):
+    def _asimov_data(self, theta, test_split=0.2, sample_only_from_closest_benchmark=True, n_asimov=None):
         start_event, end_event, correction_factor = self._train_test_split(False, test_split)
         x, weights_benchmarks = next(
             self.event_loader(
                 start=start_event,
                 end=end_event,
-                batch_size=None,
+                batch_size=n_asimov,
                 generated_close_to=theta if sample_only_from_closest_benchmark else None,
             )
         )
@@ -955,14 +961,17 @@ class AsymptoticLimits(DataAnalyzer):
         return x_indices
 
     @staticmethod
-    def _calculate_log_likelihood_histo(summary_stats, theta_grid, histos, processor=None):
+    def _calculate_log_likelihood_histo(summary_stats, theta_grid, histos, processor=None, return_observed=False):
         log_p, all_data = [], []
         for theta, histo in zip(theta_grid, histos):
             if processor is None:
                 data = summary_stats
             else:
                 data = processor(summary_stats, theta)
-            all_data.append(data)
+            if return_observed and isinstance(return_observed, int):
+                all_data.append(data[:return_observed])
+            elif return_observed:
+                all_data.append(data)
             log_p.append(histo.log_likelihood(data))
         log_p = np.asarray(log_p)
         all_data = np.asarray(all_data)
