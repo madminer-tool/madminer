@@ -74,6 +74,7 @@ class AsymptoticLimits(DataAnalyzer):
         return_histos=True,
         return_observed=False,
         fix_adaptive_binning="auto-grid",
+        postprocessing=None,
     ):
         """
         Calculates p-values over a grid in parameter space based on a given set of observed events.
@@ -248,6 +249,7 @@ class AsymptoticLimits(DataAnalyzer):
             test_split=test_split,
             thetaref=thetaref,
             fix_adaptive_binning=fix_adaptive_binning,
+            postprocessing=postprocessing,
         )
         return results
 
@@ -273,6 +275,8 @@ class AsymptoticLimits(DataAnalyzer):
         return_asimov=False,
         fix_adaptive_binning="auto-grid",
         sample_only_from_closest_benchmark=True,
+        postprocessing=None,
+        n_asimov=None,
     ):
 
         """
@@ -425,7 +429,10 @@ class AsymptoticLimits(DataAnalyzer):
 
         logger.info("Generating Asimov data")
         x_asimov, x_weights = self._asimov_data(
-            theta_true, sample_only_from_closest_benchmark=sample_only_from_closest_benchmark, test_split=test_split
+            theta_true,
+            sample_only_from_closest_benchmark=sample_only_from_closest_benchmark,
+            test_split=test_split,
+            n_asimov=n_asimov,
         )
         n_observed = luminosity * self._calculate_xsecs([theta_true])[0]
         logger.info("Expected events: %s", n_observed)
@@ -452,6 +459,7 @@ class AsymptoticLimits(DataAnalyzer):
             test_split=test_split,
             thetaref=thetaref,
             fix_adaptive_binning=fix_adaptive_binning,
+            postprocessing=postprocessing,
         )
         return results
 
@@ -505,6 +513,7 @@ class AsymptoticLimits(DataAnalyzer):
         test_split=0.2,
         thetaref=None,
         fix_adaptive_binning="auto-grid",
+        postprocessing=None,
     ):
         logger.debug("Calculating p-values for %s expected events", n_events)
 
@@ -565,7 +574,7 @@ class AsymptoticLimits(DataAnalyzer):
                 assert hist_vars is not None
                 logger.info("Setting up standard summary statistics")
                 summary_function = self._make_summary_statistic_function("observables", observables=hist_vars)
-                processor = None
+                processor = self._make_obs_processor(postprocessing=postprocessing)
 
             elif mode in ["sally", "adaptive-sally", "sallino"]:
                 if score_components is None:
@@ -578,7 +587,9 @@ class AsymptoticLimits(DataAnalyzer):
                 summary_function = self._make_summary_statistic_function(
                     "sally", model=model, observables=score_components
                 )
-                processor = self._make_score_processor(mode, score_components=score_components, thetaref=thetaref)
+                processor = self._make_score_processor(
+                    mode, score_components=score_components, thetaref=thetaref, postprocessing=postprocessing
+                )
 
             else:
                 raise RuntimeError("For 'histo' mode, either provide histo_vars or model_file!")
@@ -613,7 +624,7 @@ class AsymptoticLimits(DataAnalyzer):
             # Evaluate histograms
             logger.info("Calculating kinematic log likelihood with histograms")
             log_r_kin, processed_summary_stats = self._calculate_log_likelihood_histo(
-                summary_stats, theta_grid, histos, processor=processor
+                summary_stats, theta_grid, histos, processor=processor, return_observed=return_observed
             )
             log_r_kin = log_r_kin.astype(np.float64)
             log_r_kin = self._clean_nans(log_r_kin)
@@ -640,7 +651,9 @@ class AsymptoticLimits(DataAnalyzer):
         p_values = self.asymptotic_p_value(log_r, dof=dof)
 
         histo_data = None
-        if return_histos and return_observed:
+        if return_histos and return_observed and isinstance(return_observed, int):
+            histo_data = (histos, processed_summary_stats, obs_weights[:return_observed])
+        elif return_histos and return_observed:
             histo_data = (histos, processed_summary_stats, obs_weights)
         elif return_histos:
             histo_data = histos
@@ -705,15 +718,31 @@ class AsymptoticLimits(DataAnalyzer):
 
         return summary_function
 
-    def _make_score_processor(self, mode, score_components, thetaref, epsilon=1.0e-6):
+    def _make_obs_processor(self, postprocessing=None):
+        if postprocessing is None:
+
+            def processor(obs, theta):
+                return obs
+
+        else:
+
+            def processor(obs, theta):
+                return postprocessing(obs)
+
+        return processor
+
+    def _make_score_processor(self, mode, score_components, thetaref, postprocessing=None, epsilon=1.0e-6):
         dim = self.n_parameters
         if score_components is not None:
             dim = len(score_components)
 
+        if postprocessing is None:
+            postprocessing = lambda x: x
+
         if mode == "sally" or dim == 1:
 
             def processor(scores, theta):
-                return scores
+                return postprocessing(scores)
 
         elif mode == "adaptive-sally" and dim == 2:
 
@@ -727,7 +756,7 @@ class AsymptoticLimits(DataAnalyzer):
                 else:
                     rotation_matrix = np.identity(2)
                 scores_rotated = scores.dot(rotation_matrix)
-                return scores_rotated
+                return postprocessing(scores_rotated)
 
         elif mode == "adaptive-sally" and dim > 2:
 
@@ -740,7 +769,8 @@ class AsymptoticLimits(DataAnalyzer):
                 else:
                     h = scores[:, 0]
                 h = h.reshape((-1, 1))
-                return np.concatenate((h, scores), axis=1)
+                combined = np.concatenate((h, scores), axis=1)
+                return postprocessing(combined)
 
         elif mode == "sallino":
 
@@ -753,7 +783,7 @@ class AsymptoticLimits(DataAnalyzer):
                 else:
                     h = scores[:, 0]
                 h = h.reshape((-1, 1))
-                return h
+                return postprocessing(h)
 
         else:
             raise RuntimeError("Unknown score processing mode {} for summary stats dimension {}".format(mode, dim))
@@ -776,13 +806,13 @@ class AsymptoticLimits(DataAnalyzer):
             xsecs.append(mdot(theta_matrix, xsecs_benchmarks) * correction_factor)
         return np.asarray(xsecs)
 
-    def _asimov_data(self, theta, test_split=0.2, sample_only_from_closest_benchmark=True):
+    def _asimov_data(self, theta, test_split=0.2, sample_only_from_closest_benchmark=True, n_asimov=None):
         start_event, end_event, correction_factor = self._train_test_split(False, test_split)
         x, weights_benchmarks = next(
             self.event_loader(
                 start=start_event,
                 end=end_event,
-                batch_size=None,
+                batch_size=n_asimov,
                 generated_close_to=theta if sample_only_from_closest_benchmark else None,
             )
         )
@@ -931,14 +961,17 @@ class AsymptoticLimits(DataAnalyzer):
         return x_indices
 
     @staticmethod
-    def _calculate_log_likelihood_histo(summary_stats, theta_grid, histos, processor=None):
+    def _calculate_log_likelihood_histo(summary_stats, theta_grid, histos, processor=None, return_observed=False):
         log_p, all_data = [], []
         for theta, histo in zip(theta_grid, histos):
             if processor is None:
                 data = summary_stats
             else:
                 data = processor(summary_stats, theta)
-            all_data.append(data)
+            if return_observed and isinstance(return_observed, int):
+                all_data.append(data[:return_observed])
+            elif return_observed:
+                all_data.append(data)
             log_p.append(histo.log_likelihood(data))
         log_p = np.asarray(log_p)
         all_data = np.asarray(all_data)

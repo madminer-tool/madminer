@@ -1497,7 +1497,7 @@ def plot_histograms(
             if xlabel is not None:
                 plt.xlabel(xlabel)
             if ylabel is not None:
-                plt.xlabel(xlabel)
+                plt.ylabel(ylabel)
             if zlabel is not None:
                 cbar.set_label(zlabel)
             else:
