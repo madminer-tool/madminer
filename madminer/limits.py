@@ -75,6 +75,7 @@ class AsymptoticLimits(DataAnalyzer):
         return_observed=False,
         fix_adaptive_binning="auto-grid",
         postprocessing=None,
+        n_binning_toys=100000,
     ):
         """
         Calculates p-values over a grid in parameter space based on a given set of observed events.
@@ -250,6 +251,7 @@ class AsymptoticLimits(DataAnalyzer):
             thetaref=thetaref,
             fix_adaptive_binning=fix_adaptive_binning,
             postprocessing=postprocessing,
+            n_binning_toys=n_binning_toys,
         )
         return results
 
@@ -277,6 +279,7 @@ class AsymptoticLimits(DataAnalyzer):
         sample_only_from_closest_benchmark=True,
         postprocessing=None,
         n_asimov=None,
+        n_binning_toys=100000,
     ):
 
         """
@@ -460,6 +463,7 @@ class AsymptoticLimits(DataAnalyzer):
             thetaref=thetaref,
             fix_adaptive_binning=fix_adaptive_binning,
             postprocessing=postprocessing,
+            n_binning_toys=n_binning_toys,
         )
         return results
 
@@ -514,6 +518,7 @@ class AsymptoticLimits(DataAnalyzer):
         thetaref=None,
         fix_adaptive_binning="auto-grid",
         postprocessing=None,
+        n_binning_toys=100000,
     ):
         logger.debug("Calculating p-values for %s expected events", n_events)
 
@@ -619,6 +624,7 @@ class AsymptoticLimits(DataAnalyzer):
                 processor=processor,
                 fixed_adaptive_binning=fix_adaptive_binning in ["center", "grid"],
                 theta_binning=theta_middle if fix_adaptive_binning == "center" else None,
+                n_binning_toys=n_binning_toys,
             )
 
             # Evaluate histograms
@@ -851,17 +857,18 @@ class AsymptoticLimits(DataAnalyzer):
         processor=None,
         fixed_adaptive_binning=True,
         theta_binning=None,
+        n_binning_toys=1000,
     ):
-        if fixed_adaptive_binning:
+        if fixed_adaptive_binning and any(isinstance(x, int) for x in x_bins):
             if theta_binning is None:
                 logger.info("Determining fixed adaptive histogram binning for all points on grid")
                 x_bins = self._fixed_adaptive_binning(
-                    n_histo_toys, processor, summary_function, test_split, theta_grid, x_bins
+                    n_binning_toys, processor, summary_function, test_split, theta_grid, x_bins
                 )
             else:
                 logger.info("Determining fixed adaptive histogram binning for theta = %s", theta_binning)
                 x_bins = self._fixed_adaptive_binning(
-                    n_histo_toys, processor, summary_function, test_split, [theta_binning], x_bins
+                    n_binning_toys, processor, summary_function, test_split, [theta_binning], x_bins
                 )
             logger.debug("Fixed adaptive binning: %s", x_bins)
 
@@ -902,9 +909,9 @@ class AsymptoticLimits(DataAnalyzer):
 
         return histos
 
-    def _fixed_adaptive_binning(self, n_histo_toys, processor, summary_function, test_split, thetas_binning, x_bins):
+    def _fixed_adaptive_binning(self, n_toys, processor, summary_function, test_split, thetas_binning, x_bins):
         summary_stats, all_weights = self._make_weighted_histo_data(
-            summary_function, thetas_binning, n_histo_toys, test_split=test_split
+            summary_function, thetas_binning, n_toys, test_split=test_split
         )
         all_weights = np.asarray(all_weights)
         weights = np.mean(all_weights, axis=0)
