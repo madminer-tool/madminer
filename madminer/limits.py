@@ -872,7 +872,28 @@ class AsymptoticLimits(DataAnalyzer):
                 )
             logger.debug("Fixed adaptive binning: %s", x_bins)
 
-        if weighted_histo:
+        if weighted_histo and n_histo_toys is None:
+            logger.debug("Generating weighted histo data in batches")
+            histos = []
+
+            n_thetas = len(theta_grid)
+            n_batches = (n_thetas - 1) // histo_theta_batchsize + 1
+            for i_batch in range(n_batches):
+                logger.debug("Generating histogram data for batch %s / %s", i_batch + 1, n_batches)
+                theta_batch = theta_grid[i_batch * histo_theta_batchsize : (i_batch + 1) * histo_theta_batchsize]
+
+                summary_stats, all_weights = self._make_weighted_histo_data(
+                    summary_function, theta_batch, n_histo_toys, test_split=test_split
+                )
+
+                for theta, weights in zip(theta_grid, all_weights):
+                    if processor is None:
+                        data = summary_stats
+                    else:
+                        data = processor(summary_stats, theta)
+                    histos.append(Histo(data, weights, x_bins, epsilon=1.0e-12))
+
+        elif weighted_histo:
             logger.debug("Generating weighted histo data")
             summary_stats, all_weights = self._make_weighted_histo_data(
                 summary_function, theta_grid, n_histo_toys, test_split=test_split
@@ -888,7 +909,7 @@ class AsymptoticLimits(DataAnalyzer):
                 histos.append(Histo(data, weights, x_bins, epsilon=1.0e-12))
 
         else:
-            logger.debug("Generating sampled histo data and making histograms")
+            logger.debug("Generating sampled histo data and making histograms in batches")
             histos = []
 
             n_thetas = len(theta_grid)
