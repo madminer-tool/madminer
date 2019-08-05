@@ -636,7 +636,7 @@ class ParameterizedRatioEstimator(Estimator):
 
         """
 
-        super(ParameterizedRatioEstimator, self).save(filename)
+        super(ParameterizedRatioEstimator, self).load(filename)
 
         # Load param scaling
         try:
