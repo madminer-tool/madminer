@@ -525,6 +525,7 @@ class ParameterizedRatioEstimator(Estimator):
 
         # Scale observables
         x = self._transform_inputs(x)
+        theta = self._transform_parameters(theta)
 
         # Restrict features
         if self.features is not None:
