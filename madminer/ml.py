@@ -251,6 +251,12 @@ class ParameterizedRatioEstimator(Estimator):
 
     """
 
+    def __init__(self, features=None, n_hidden=(100,), activation="tanh"):
+        super(ParameterizedRatioEstimator, self).__init__(features, n_hidden, activation)
+
+        self.theta_scaling_means = None
+        self.theta_scaling_stds = None
+
     def train(
         self,
         method,
@@ -273,6 +279,7 @@ class ParameterizedRatioEstimator(Estimator):
         limit_samplesize=None,
         memmap=False,
         verbose="some",
+        scale_parameters=False,
     ):
 
         """
@@ -368,6 +375,7 @@ class ParameterizedRatioEstimator(Estimator):
         logger.info("  Validation split:       %s", validation_split)
         logger.info("  Early stopping:         %s", early_stopping)
         logger.info("  Scale inputs:           %s", scale_inputs)
+        logger.info("  Scale parameters:       %s", scale_parameters)
         logger.info("  Shuffle labels          %s", shuffle_labels)
         if limit_samplesize is None:
             logger.info("  Samples:                all")
@@ -403,6 +411,15 @@ class ParameterizedRatioEstimator(Estimator):
             x = self._transform_inputs(x)
         else:
             self._initialize_input_transform(x, False)
+
+        # Scale parameters
+        if scale_parameters:
+            logger.info("Rescaling parameters")
+            self._initialize_parameter_transform(theta)
+            theta = self._transform_parameters(theta)
+            t_xz = self._transform_score(t_xz, inverse=False)
+        else:
+            self._initialize_parameter_transform(theta, False)
 
         # Shuffle labels
         if shuffle_labels:
@@ -530,6 +547,8 @@ class ParameterizedRatioEstimator(Estimator):
                     evaluate_score=evaluate_score,
                 )
 
+                t_hat = self._transform_score(t_hat, inverse=True)
+
                 all_log_r_hat.append(log_r_hat)
                 all_t_hat.append(t_hat)
 
@@ -546,6 +565,8 @@ class ParameterizedRatioEstimator(Estimator):
                 xs=x,
                 evaluate_score=evaluate_score,
             )
+
+            all_t_hat = self._transform_score(all_t_hat, inverse=True)
 
         logger.info("Evaluation done")
         return all_log_r_hat, all_t_hat
@@ -566,6 +587,96 @@ class ParameterizedRatioEstimator(Estimator):
 
     def evaluate(self, *args, **kwargs):
         return self.evaluate_log_likelihood_ratio(*args, **kwargs)
+
+    def save(self, filename, save_model=False):
+
+        """
+        Saves the trained model to four files: a JSON file with the settings, a pickled pyTorch state dict
+        file, and numpy files for the mean and variance of the inputs (used for input scaling).
+
+        Parameters
+        ----------
+        filename : str
+            Path to the files. '_settings.json' and '_state_dict.pl' will be added.
+
+        save_model : bool, optional
+            If True, the whole model is saved in addition to the state dict. This is not necessary for loading it
+            again with Estimator.load(), but can be useful for debugging, for instance to plot the computational graph.
+
+        Returns
+        -------
+            None
+
+        """
+
+        super(ParameterizedRatioEstimator, self).save(filename, save_model)
+
+        # Save param scaling
+        if self.theta_scaling_stds is not None and self.theta_scaling_means is not None:
+            logger.debug(
+                "Saving parameter scaling information to %s_theta_means.npy and %s_theta_stds.npy", filename, filename
+            )
+            np.save(filename + "_theta_means.npy", self.theta_scaling_means)
+            np.save(filename + "_theta_stds.npy", self.theta_scaling_stds)
+
+    def load(self, filename):
+
+        """
+        Loads a trained model from files.
+
+        Parameters
+        ----------
+        filename : str
+            Path to the files. '_settings.json' and '_state_dict.pl' will be added.
+
+        Returns
+        -------
+            None
+
+        """
+
+        super(ParameterizedRatioEstimator, self).save(filename)
+
+        # Load param scaling
+        try:
+            self.theta_scaling_means = np.load(filename + "_theta_means.npy")
+            self.theta_scaling_stds = np.load(filename + "_theta_stds.npy")
+            logger.debug(
+                "  Found parameter scaling information: means %s, stds %s",
+                self.theta_scaling_means,
+                self.theta_scaling_stds,
+            )
+        except FileNotFoundError:
+            logger.warning("Parameter scaling information not found in %s", filename)
+            self.theta_scaling_means = None
+            self.theta_scaling_stds = None
+
+    def _initialize_parameter_transform(self, theta, transform=True):
+        if transform:
+            self.theta_scaling_means = np.mean(theta, axis=0)
+            self.theta_scaling_stds = np.maximum(np.std(theta, axis=0), 1.0e-6)
+        else:
+            n_parameters = theta.shape[0]
+            self.theta_scaling_means = np.zeros(n_parameters)
+            self.theta_scaling_stds = np.ones(n_parameters)
+
+    def _transform_parameters(self, theta):
+        if self.theta_scaling_means is not None and self.theta_scaling_stds is not None:
+            theta_scaled = theta - self.theta_scaling_means[np.newaxis, :]
+            theta_scaled /= self.theta_scaling_stds[np.newaxis, :]
+        else:
+            theta_scaled = theta
+        return theta_scaled
+
+    def _transform_score(self, t_xz, inverse=False):
+        if self.theta_scaling_means is not None and self.theta_scaling_stds is not None:
+            if inverse:
+                t_xz_scaled = t_xz / self.theta_scaling_stds[np.newaxis, :]
+            else:
+                t_xz_scaled = t_xz * self.theta_scaling_stds[np.newaxis, :]
+        else:
+            t_xz_scaled = t_xz
+        return t_xz_scaled
 
     def _create_model(self):
         self.model = DenseSingleParameterizedRatioModel(
