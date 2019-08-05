@@ -859,7 +859,7 @@ class AsymptoticLimits(DataAnalyzer):
         theta_binning=None,
         n_binning_toys=1000,
     ):
-        if fixed_adaptive_binning and any(isinstance(x, int) for x in x_bins):
+        if fixed_adaptive_binning and any([isinstance(x, int) for x in x_bins]):
             if theta_binning is None:
                 logger.info("Determining fixed adaptive histogram binning for all points on grid")
                 x_bins = self._fixed_adaptive_binning(
