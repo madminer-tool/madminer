@@ -669,7 +669,7 @@ class ParameterizedRatioEstimator(Estimator):
         return theta_scaled
 
     def _transform_score(self, t_xz, inverse=False):
-        if self.theta_scaling_means is not None and self.theta_scaling_stds is not None:
+        if self.theta_scaling_means is not None and self.theta_scaling_stds is not None and t_xz is not None:
             if inverse:
                 t_xz_scaled = t_xz / self.theta_scaling_stds[np.newaxis, :]
             else:
