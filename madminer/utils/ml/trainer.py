@@ -214,15 +214,16 @@ class Trainer(object):
                     "  %s: -",
                     key,
                 )
-            logger.debug(
-                "  %s: shape %s, first %s, mean %s, min %s, max %s",
-                key,
-                value.shape,
-                value[0],
-                np.mean(value, axis=0),
-                np.min(value, axis=0),
-                np.max(value, axis=0),
-            )
+            else:
+                logger.debug(
+                    "  %s: shape %s, first %s, mean %s, min %s, max %s",
+                    key,
+                    value.shape,
+                    value[0],
+                    np.mean(value, axis=0),
+                    np.min(value, axis=0),
+                    np.max(value, axis=0),
+                )
 
     @staticmethod
     def check_data(data):
