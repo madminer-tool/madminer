@@ -690,7 +690,7 @@ class ParameterizedRatioEstimator(Estimator):
     def _check_required_data(method, r_xz, t_xz):
         if method in ["cascal", "alices", "rascal"] and t_xz is None:
             raise RuntimeError("Method {} requires joint score information".format(method))
-        if method in ["rolr", "alices", "rascal"] and r_xz is None:
+        if method in ["rolr", "alice", "alices", "rascal"] and r_xz is None:
             raise RuntimeError("Method {} requires joint likelihood ratio information".format(method))
 
     @staticmethod
