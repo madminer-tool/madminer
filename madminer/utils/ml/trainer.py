@@ -209,6 +209,11 @@ class Trainer(object):
     def report_data(data):
         logger.debug("Training data:")
         for key, value in six.iteritems(data):
+            if value is None:
+                logger.debug(
+                    "  %s: -",
+                    key,
+                )
             logger.debug(
                 "  %s: shape %s, first %s, mean %s, min %s, max %s",
                 key,
