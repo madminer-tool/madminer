@@ -138,7 +138,6 @@ class DataAnalyzer(object):
             sampling_factors = self._calculate_sampling_factors()
         else:
             sampling_factors = np.ones(self.n_benchmarks_phys + 1)
-        logger.debug("Sampling factors: %s", sampling_factors)
 
         for data in madminer_event_loader(
             self.madminer_filename,
@@ -820,11 +819,8 @@ class DataAnalyzer(object):
         benchmarks = self._benchmark_array()
         distances = [np.linalg.norm(benchmark - theta) for benchmark in benchmarks]
 
-        logger.debug("Distances from %s: %s", theta, distances)
-
         # Don't use benchmarks where we don't actually have events
         if self.n_events_generated_per_benchmark is not None:
-            logger.debug("n_events_generated_per_benchmark: %s", self.n_events_generated_per_benchmark)
             distances = distances + 1.0e9 * (self.n_events_generated_per_benchmark == 0).astype(np.float)
 
         closest_idx = np.argmin(distances)
