@@ -657,9 +657,8 @@ class ParameterizedRatioEstimator(Estimator):
             self.theta_scaling_means = np.mean(theta, axis=0)
             self.theta_scaling_stds = np.maximum(np.std(theta, axis=0), 1.0e-6)
         else:
-            n_parameters = theta.shape[0]
-            self.theta_scaling_means = np.zeros(n_parameters)
-            self.theta_scaling_stds = np.ones(n_parameters)
+            self.theta_scaling_means = None
+            self.theta_scaling_stds = None
 
     def _transform_parameters(self, theta):
         if self.theta_scaling_means is not None and self.theta_scaling_stds is not None:
