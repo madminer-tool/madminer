@@ -210,10 +210,7 @@ class Trainer(object):
         logger.debug("Training data:")
         for key, value in six.iteritems(data):
             if value is None:
-                logger.debug(
-                    "  %s: -",
-                    key,
-                )
+                logger.debug("  %s: -", key)
             else:
                 logger.debug(
                     "  %s: shape %s, first %s, mean %s, min %s, max %s",

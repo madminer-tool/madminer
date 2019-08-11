@@ -473,13 +473,13 @@ def extract_nuisance_parameters_from_lhe_file(filename, systematics):
             systematics_scales.append(None)
 
     # Untar and parse LHE file
-    initrwgts = _untar_and_parse_lhe_file(filename, "initrwgt")
+    initrwgts = _untar_and_parse_lhe_file(filename, ["initrwgt"])
 
     # Find weight groups
     weight_groups = []
     try:
         for initrwgt in initrwgts:
-            weight_groups.append(initrwgt.findall("weightgroup"))
+            weight_groups += initrwgt.findall("weightgroup")
     except KeyError as e:
         raise RuntimeError("Could not find weight groups in LHE file!\n%s", e)
 
@@ -499,7 +499,9 @@ def extract_nuisance_parameters_from_lhe_file(filename, systematics):
     systematics_pdf_done = False
 
     # Loop over weight groups and weights and identify benchmarks
+    logger.debug("%s weight groups", len(weight_groups))
     for wg in weight_groups:
+        logger.debug("Weight group: %s", wg)
         try:
             wg_name = wg.attrib["name"]
         except KeyError:
@@ -895,10 +897,10 @@ def _get_objects(particles, particles_truth, met_resolution=None, global_event_d
     visible_sum.setpxpypze(0.0, 0.0, 0.0, 0.0)
 
     for particle in particles:
-        ht += particle.pt
         pdgid = abs(particle.pdgid)
         if pdgid in [1, 2, 3, 4, 5, 6, 9, 11, 13, 15, 21, 22, 23, 24, 25]:
             visible_sum += particle
+            ht += particle.pt
 
     # Soft noise
     if met_resolution is not None:
@@ -911,7 +913,7 @@ def _get_objects(particles, particles_truth, met_resolution=None, global_event_d
 
     # MET
     met_x = -visible_sum.px + noise_x
-    met_y = -visible_sum.px + noise_y
+    met_y = -visible_sum.py + noise_y
     met = MadMinerParticle()
     met.setpxpypze(met_x, met_y, 0.0, (met_x ** 2 + met_y ** 2) ** 0.5)
 
