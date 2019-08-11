@@ -31,7 +31,7 @@ some guidance for this.
 To install the MadMiner package with all its Python dependencies, run `pip install madminer`.
 
 To get the latest development version as well as the tutorials, clone the
-[GitHub repository](https://github.com/johannbrehmer/madminer) and run `pip install -e .` from the repository main
+[GitHub repository](https://github.com/diana-hep/madminer) and run `pip install -e .` from the repository main
 folder.
 
 ### Docker image

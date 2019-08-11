@@ -1,41 +1,30 @@
 # Using MadMiner
 
+We provide different resources that help with the use of MadMiner:
+
+
+## Paper
+
+Our main publication [MadMiner: Machine-learning-based inference for particle physics]() provides an overview over this
+package. We recommend reading it first before jumping into the code.
+
+
 ## Tutorials
 
-In our [GitHub repository](https://github.com/johannbrehmer/madminer) we provide a set of tutorials that are probably
-a good way to get started with MadMiner.
+In the [examples](https://github.com/diana-hep/madminer/tree/master/examples) folder in the MadMiner repository, we
+provide two tutorials. The first at
+[examples/tutorial_toy_simulator/tutorial_toy_simulator.ipynb](https://github.com/diana-hep/madminer/blob/master/examples/tutorial_toy_simulator/tutorial_toy_simulator.ipynb)
+is based on a toy problem rather than a full particle-physics simulation. It demonstrates
+inference with MadMiner without spending much time on the more technical steps of running the simulation. The second, at
+[examples/tutorial_particle_physics](https://github.com/diana-hep/madminer/tree/master/examples/tutorial_particle_physics),
+shows all steps of a particle-physics analysis with MadMiner.
 
-As a starting point, we recommend to look at a 
-[tutorial based on a toy example](https://github.com/johannbrehmer/madminer/tree/master/examples/tutorial_toy_simulator).
-It demonstrates inference with MadMinier without spending much time on the more technical steps of running the simulation.
 
-We then provide two sets of tutorials for the same real-world particle physics process. The difference between them is
-that the [parton-level tutorial](https://github.com/johannbrehmer/madminer/tree/master/examples/tutorial_parton_level/) only requires running MadGraph. Instead of a proper
-shower and detector simulation, we describe detector effects through simple smearing functions. This reduces the runtime
-of the scripts quite a bit. In the [Delphes tutorial](https://github.com/johannbrehmer/madminer/tree/master/examples/tutorial_delphes/), we finally switch to Pythia and
-Delphes; this tutorial is probably best suited as a starting point for phenomenological research projects. In most
-other aspects, the two tutorials are identical.
+## Typical work flow
 
-[Other provided examples](https://github.com/johannbrehmer/madminer/tree/master/examples) show MadMiner in action in
-different processes.
+Here we illustrate the structure of data analysis with MadMiner:
 
-## Typical work flows
-
-Here we illustrate the structure of data analysis with MadMiner in three examples.
-
-### Exclusion limits
-
-![Delphes-level work flow to exclusion limits](img/workflow_delphes_limits.jpg)
-
-### Fisher information
-
-![Delphes-level work flow to Fisher information](img/workflow_delphes_info.jpg)
-
-### Parton-level analysis
-
-![Parton-level work flow](img/workflow_lhe.jpg)
-
-## Package structure
+![MadMiner workflow](img/workflow_combined.jpg)
 
 - `madminer.core` contains the functions to set up the process, parameter space, morphing, and to steer MadGraph and
    Pythia.
@@ -48,6 +37,14 @@ Here we illustrate the structure of data analysis with MadMiner in three example
 - Finally,  `madminer.fisherinformation` contains functions to calculate the Fisher information, both on parton level
   or detector level, in the full process, individual observables, or the total cross section.
 
+
 ## Technical documentation
 
 The madminer API is documented on here as well, just look through the pages linked on the left.
+
+
+## Support
+
+If you have any questions, please
+chat to us [in our Gitter community](https://gitter.im/madminer/community) or write us at 
+[johann.brehmer@nyu.edu](johann.brehmer@nyu.edu).

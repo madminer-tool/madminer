@@ -145,12 +145,13 @@ class Histo:
         modified_histo_edges = []
         for i in range(x.shape[1]):
             axis_edges = np.copy(self.edges[i])
-            axis_edges[0] = max(
-                axis_edges[0], axis_edges[1] - 2.0 * (axis_edges[2] - axis_edges[1])
-            )  # First bin is treated as at most twice as big as second
-            axis_edges[-1] = min(
-                axis_edges[-1], axis_edges[-1] + 2.0 * (axis_edges[-1] - axis_edges[-2])
-            )  # Last bin is treated as at most twice as big as second-to-last
+            if len(axis_edges) > 2:
+                axis_edges[0] = max(
+                    axis_edges[0], axis_edges[1] - 2.0 * (axis_edges[2] - axis_edges[1])
+                )  # First bin is treated as at most twice as big as second
+                axis_edges[-1] = min(
+                    axis_edges[-1], axis_edges[-1] + 2.0 * (axis_edges[-1] - axis_edges[-2])
+                )  # Last bin is treated as at most twice as big as second-to-last
             modified_histo_edges.append(axis_edges)
         # Calculate cell volumes
         bin_widths = [axis_edges[1:] - axis_edges[:-1] for axis_edges in modified_histo_edges]

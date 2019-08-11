@@ -1,2 +1,0 @@
-import model EWdim6
-generate u u~ > z h  NP=2 QED=99 QCD=0 , z > mu+ mu-  QCD=0 QED=99 NP=0 , h > ta+ ta- QCD=0 QED=99 NP=0

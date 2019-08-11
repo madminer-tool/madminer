@@ -5,14 +5,15 @@ channels:
 - defaults
 dependencies:
 - python=3.6.*
-- numpy
+- matplotlib>=2.0.0
+- numpy>=1.13.0
 - h5py
-- scipy=1.0.*
-- scikit-learn=0.19.*
+- scipy>=1.0.0
+- scikit-learn>=0.19.0
 - six
-- pytorch=0.4.*
+- pytorch>=1.0.0
 - pytest
 - pip
 - pip:
   - uproot
-  - scikit-hep
+  - scikit-hep>=0.5.0, <0.6.0

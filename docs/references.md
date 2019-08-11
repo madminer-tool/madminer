@@ -1,79 +1,49 @@
 # References
 
-If you use MadMiner, please cite this code as
+## Citations
+
+If you use MadMiner, please cite our main publication,
 ```
-@misc{MadMiner,
+@article{Brehmer:2019xox,
+      author         = "Brehmer, Johann and Kling, Felix and Espejo, Irina and
+                        Cranmer, Kyle",
+      title          = "{MadMiner: Machine learning-based inference for particle
+                        physics}",
+      year           = "2019",
+      eprint         = "1907.10621",
+      archivePrefix  = "arXiv",
+      primaryClass   = "hep-ph",
+      SLACcitation   = "%%CITATION = ARXIV:1907.10621;%%"
+}
+```
+
+The code itself can be cited as
+```
+@misc{MadMiner_code,
       author         = "Brehmer, Johann and Kling, Felix and Espejo, Irina and Cranmer, Kyle",
       title          = "{MadMiner}",
       doi            = "10.5281/zenodo.1489147",
-      url            = {https://github.com/johannbrehmer/madminer}
+      url            = {https://github.com/diana-hep/madminer}
 }
 ```
 
-For the inference methods, there are three main references. Two introduce most of the methods in a particle physics
-setting:
-```
-@article{Brehmer:2018kdj,
-      author         = "Brehmer, Johann and Cranmer, Kyle and Louppe, Gilles and
-                        Pavez, Juan",
-      title          = "{Constraining Effective Field Theories with Machine
-                        Learning}",
-      journal        = "Phys. Rev. Lett.",
-      volume         = "121",
-      year           = "2018",
-      number         = "11",
-      pages          = "111801",
-      doi            = "10.1103/PhysRevLett.121.111801",
-      eprint         = "1805.00013",
-      archivePrefix  = "arXiv",
-      primaryClass   = "hep-ph",
-}
 
-@article{Brehmer:2018eca,
-      author         = "Brehmer, Johann and Cranmer, Kyle and Louppe, Gilles and
-                        Pavez, Juan",
-      title          = "{A Guide to Constraining Effective Field Theories with
-                        Machine Learning}",
-      journal        = "Phys. Rev.",
-      volume         = "D98",
-      year           = "2018",
-      number         = "5",
-      pages          = "052004",
-      doi            = "10.1103/PhysRevD.98.052004",
-      eprint         = "1805.00020",
-      archivePrefix  = "arXiv",
-      primaryClass   = "hep-ph",
-}
-```
+The main references for the implemented inference techniques are the following:
 
-In addition, the inference techniques are discussed in a more general setting, and the SCANDAL family of methods is
-added in:
-```
-@article{Brehmer:2018hga,
-      author         = "Brehmer, Johann and Louppe, Gilles and Pavez, Juan and
-                        Cranmer, Kyle",
-      title          = "{Mining gold from implicit models to improve
-                        likelihood-free inference}",
-      year           = "2018",
-      eprint         = "1805.12244",
-      archivePrefix  = "arXiv",
-      primaryClass   = "stat.ML",
-      SLACcitation   = "%%CITATION = ARXIV:1805.12244;%%"
-}
-```
+- CARL: [1506.02169](https://arxiv.org/abs/1506.02169)
+- MAF: [1705.07057](https://arxiv.org/abs/1705.07057)
+- CASCAL, RASCAL, ROLR, SALLY, SALLINO, SCANDAL: [1805.00013](https://arxiv.org/abs/1805.00013), [1805.00020](https://arxiv.org/abs/1805.00020), [1805.12244](https://arxiv.org/abs/1805.12244)
+- ALICE, ALICES: [1808.00973](https://arxiv.org/abs/1808.00973)
 
-Some inference methods are introduced in other papers, including [CARL](https://arxiv.org/abs/1506.02169),
-[Masked Autoregressive Flows](https://arxiv.org/abs/1705.07057), and [ALICE(S)](https://arxiv.org/abs/1808.00973).
 
 ## Acknowledgements
 
 We are immensely grateful to all contributors and bug reporters! In particular, we would like to thank Zubair Bhatti,
-Alexander Held, and Duccio Pappadopulo. A big thanks to Lukas Heinrich for his help with workflows and Docker
-containers.
+Lukas Heinrich, Alexander Held, and Samuel Homiller.
 
 The SCANDAL inference method is based on [Masked Autoregressive Flows](https://arxiv.org/abs/1705.07057), and our
 implementation is a pyTorch port of the original code by George Papamakarios et al., which is available at
 [https://github.com/gpapamak/maf](https://github.com/gpapamak/maf).
 
-The [setup.py](https://github.com/johannbrehmer/madminer/blob/master/setup.py) was adapted from
+The [setup.py](setup.py) was adapted from
 [https://github.com/kennethreitz/setup.py](https://github.com/kennethreitz/setup.py).

@@ -209,15 +209,21 @@ class Trainer(object):
     def report_data(data):
         logger.debug("Training data:")
         for key, value in six.iteritems(data):
-            logger.debug(
-                "  %s: shape %s, first %s, mean %s, min %s, max %s",
-                key,
-                value.shape,
-                value[0],
-                np.mean(value, axis=0),
-                np.min(value, axis=0),
-                np.max(value, axis=0),
-            )
+            if value is None:
+                logger.debug(
+                    "  %s: -",
+                    key,
+                )
+            else:
+                logger.debug(
+                    "  %s: shape %s, first %s, mean %s, min %s, max %s",
+                    key,
+                    value.shape,
+                    value[0],
+                    np.mean(value, axis=0),
+                    np.min(value, axis=0),
+                    np.max(value, axis=0),
+                )
 
     @staticmethod
     def check_data(data):
