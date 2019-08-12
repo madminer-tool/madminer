@@ -1163,6 +1163,8 @@ class ScoreEstimator(Estimator):
         method,
         x,
         t_xz,
+        x_val=None,
+        t_xz_val=None,
         optimizer="amsgrad",
         n_epochs=50,
         batch_size=128,
@@ -1281,17 +1283,32 @@ class ScoreEstimator(Estimator):
             logger.info("Only using %s of %s training samples", limit_samplesize, n_samples)
             x, t_xz = restrict_samplesize(limit_samplesize, x, t_xz)
 
+        # Validation data
+        external_validation = x_val is not None and t_xz_val is not None
+        if external_validation:
+            x_val = load_and_check(x_val, memmap_files_larger_than_gb=memmap_threshold)
+            t_xz_val = load_and_check(t_xz_val, memmap_files_larger_than_gb=memmap_threshold)
+
+            logger.info("Found %s separate validation samples", x_val.shape[0])
+
+            assert x_val.shape[1] == n_observables
+            assert t_xz_val.shape[1] == n_parameters
+
         # Scale features
         if scale_inputs:
             logger.info("Rescaling inputs")
             self._initialize_input_transform(x)
+
             x = self._transform_inputs(x)
+            if external_validation:
+                x_val = self._transform_inputs(x_val)
         else:
             self._initialize_input_transform(x, False)
 
         # Shuffle labels
         if shuffle_labels:
             logger.info("Shuffling labels")
+            logger.warning("Are you sure you want this?")
             t_xz = shuffle(t_xz)
 
         # Features
@@ -1299,6 +1316,9 @@ class ScoreEstimator(Estimator):
             x = x[:, self.features]
             logger.info("Only using %s of %s observables", x.shape[1], n_observables)
             n_observables = x.shape[1]
+
+            if external_validation:
+                x_val = x_val[:, self.features]
 
         # Check consistency of input with model
         if self.n_observables is None:
@@ -1317,6 +1337,10 @@ class ScoreEstimator(Estimator):
 
         # Data
         data = self._package_training_data(x, t_xz)
+        if external_validation:
+            data_val = self._package_training_data(x_val, t_xz_val)
+        else:
+            data_val = None
 
         # Create model
         if self.model is None:
@@ -1334,6 +1358,7 @@ class ScoreEstimator(Estimator):
         trainer = LocalScoreTrainer(self.model)
         result = trainer.train(
             data=data,
+            data_val=data_val,
             loss_functions=loss_functions,
             loss_weights=loss_weights,
             loss_labels=loss_labels,
