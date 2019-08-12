@@ -1502,7 +1502,7 @@ class SampleAugmenter(DataAnalyzer):
         xsecs, xsec_uncertainties = self.xsecs(
             thetas,
             nus,
-            events=partition,
+            partition=partition,
             test_split=test_split,
             validation_split=validation_split,
             generated_close_to=None if not sample_only_from_closest_benchmark else theta_value_sampling,
@@ -1512,7 +1512,7 @@ class SampleAugmenter(DataAnalyzer):
                 thetas,
                 nus,
                 gradients="all" if nuisance_score else "theta",
-                events=partition,
+                partition=partition,
                 test_split=test_split,
                 validation_split=validation_split,
                 generated_close_to=None if not sample_only_from_closest_benchmark else theta_value_sampling,

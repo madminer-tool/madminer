@@ -241,8 +241,9 @@ class DataAnalyzer(object):
         self,
         thetas=None,
         nus=None,
-        events="all",
+        partition="all",
         test_split=0.2,
+        validation_split=0.2,
         include_nuisance_benchmarks=True,
         batch_size=100000,
         generated_close_to=None,
@@ -268,7 +269,7 @@ class DataAnalyzer(object):
         test_split : float, optional
             Fraction of events reserved for testing. Default value: 0.2.
 
-        events : {"train", "test", "all"}, optional
+        partition : {"train", "test", "validation", "all"}, optional
             Which events to use. Default: "all".
 
         batch_size : int, optional
@@ -299,15 +300,13 @@ class DataAnalyzer(object):
             assert len(nus) == len(thetas), "Numbers of thetas and nus don't match!"
 
         # Which events to use
-        if events == "all":
+        if partition == "all":
             start_event, end_event = None, None
             correction_factor = 1.0
-        elif events == "train":
-            start_event, end_event, correction_factor = self._train_test_split(True, test_split)
-        elif events == "test":
-            start_event, end_event, correction_factor = self._train_test_split(False, test_split)
+        elif partition in ["train", "validation", "test"]:
+            start_event, end_event, correction_factor = self._train_validation_test_split(partition, test_split, validation_split)
         else:
-            raise ValueError("Events has to be either 'all', 'train', or 'test', but got {}!".format(events))
+            raise ValueError("Events has to be either 'all', 'train', or 'test', but got {}!".format(partition))
 
         # Theta matrices (translation of benchmarks to theta, at nominal nuisance params)
         theta_matrices = [self._get_theta_benchmark_matrix(theta) for theta in thetas]
@@ -371,8 +370,9 @@ class DataAnalyzer(object):
         self,
         thetas,
         nus=None,
-        events="all",
+        partition="all",
         test_split=0.2,
+        validation_split=0.2,
         gradients="all",
         batch_size=100000,
         generated_close_to=None,
@@ -395,7 +395,7 @@ class DataAnalyzer(object):
         test_split : float, optional
             Fraction of events reserved for testing. Default value: 0.2.
 
-        events : {"train", "test", "all"}, optional
+        partition : {"train", "test", "validation", "all"}, optional
             Which events to use. Default: "all".
 
         gradients : {"all", "theta", "nu"}, optional
@@ -425,15 +425,13 @@ class DataAnalyzer(object):
             raise RuntimeError("Gradients has to be 'all', 'theta', or 'nu', but got {}".format(gradients))
 
         # Which events to use
-        if events == "all":
+        if partition == "all":
             start_event, end_event = None, None
             correction_factor = 1.0
-        elif events == "train":
-            start_event, end_event, correction_factor = self._train_test_split(True, test_split)
-        elif events == "test":
-            start_event, end_event, correction_factor = self._train_test_split(False, test_split)
+        elif partition in ["train", "validation", "test"]:
+            start_event, end_event, correction_factor = self._train_validation_test_split(partition, test_split, validation_split)
         else:
-            raise ValueError("Events has to be either 'all', 'train', or 'test', but got {}!".format(events))
+            raise ValueError("Events has to be either 'all', 'train', or 'test', but got {}!".format(partition))
 
         # Theta matrices (translation of benchmarks to theta, at nominal nuisance params)
         theta_matrices = np.asarray(
