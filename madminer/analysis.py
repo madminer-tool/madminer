@@ -241,8 +241,9 @@ class DataAnalyzer(object):
         self,
         thetas=None,
         nus=None,
-        events="all",
+        partition="all",
         test_split=0.2,
+        validation_split=0.2,
         include_nuisance_benchmarks=True,
         batch_size=100000,
         generated_close_to=None,
@@ -268,7 +269,7 @@ class DataAnalyzer(object):
         test_split : float, optional
             Fraction of events reserved for testing. Default value: 0.2.
 
-        events : {"train", "test", "all"}, optional
+        partition : {"train", "test", "validation", "all"}, optional
             Which events to use. Default: "all".
 
         batch_size : int, optional
@@ -299,15 +300,13 @@ class DataAnalyzer(object):
             assert len(nus) == len(thetas), "Numbers of thetas and nus don't match!"
 
         # Which events to use
-        if events == "all":
+        if partition == "all":
             start_event, end_event = None, None
             correction_factor = 1.0
-        elif events == "train":
-            start_event, end_event, correction_factor = self._train_test_split(True, test_split)
-        elif events == "test":
-            start_event, end_event, correction_factor = self._train_test_split(False, test_split)
+        elif partition in ["train", "validation", "test"]:
+            start_event, end_event, correction_factor = self._train_validation_test_split(partition, test_split, validation_split)
         else:
-            raise ValueError("Events has to be either 'all', 'train', or 'test', but got {}!".format(events))
+            raise ValueError("Events has to be either 'all', 'train', or 'test', but got {}!".format(partition))
 
         # Theta matrices (translation of benchmarks to theta, at nominal nuisance params)
         theta_matrices = [self._get_theta_benchmark_matrix(theta) for theta in thetas]
@@ -371,8 +370,9 @@ class DataAnalyzer(object):
         self,
         thetas,
         nus=None,
-        events="all",
+        partition="all",
         test_split=0.2,
+        validation_split=0.2,
         gradients="all",
         batch_size=100000,
         generated_close_to=None,
@@ -395,7 +395,7 @@ class DataAnalyzer(object):
         test_split : float, optional
             Fraction of events reserved for testing. Default value: 0.2.
 
-        events : {"train", "test", "all"}, optional
+        partition : {"train", "test", "validation", "all"}, optional
             Which events to use. Default: "all".
 
         gradients : {"all", "theta", "nu"}, optional
@@ -425,15 +425,13 @@ class DataAnalyzer(object):
             raise RuntimeError("Gradients has to be 'all', 'theta', or 'nu', but got {}".format(gradients))
 
         # Which events to use
-        if events == "all":
+        if partition == "all":
             start_event, end_event = None, None
             correction_factor = 1.0
-        elif events == "train":
-            start_event, end_event, correction_factor = self._train_test_split(True, test_split)
-        elif events == "test":
-            start_event, end_event, correction_factor = self._train_test_split(False, test_split)
+        elif partition in ["train", "validation", "test"]:
+            start_event, end_event, correction_factor = self._train_validation_test_split(partition, test_split, validation_split)
         else:
-            raise ValueError("Events has to be either 'all', 'train', or 'test', but got {}!".format(events))
+            raise ValueError("Events has to be either 'all', 'train', or 'test', but got {}!".format(partition))
 
         # Theta matrices (translation of benchmarks to theta, at nominal nuisance params)
         theta_matrices = np.asarray(
@@ -734,6 +732,94 @@ class DataAnalyzer(object):
                     raise ValueError("Irregular train / test split: sample {} / {}", start_event, self.n_samples)
 
             end_event = None
+
+        return start_event, end_event, correction_factor
+
+    def _train_validation_test_split(self, partition, test_split, validation_split):
+        """
+        Returns the start and end event for train samples (train = True) or test samples (train = False).
+
+        Parameters
+        ----------
+        partition : ["train", "validation", "test"]
+
+        test_split : float
+            Fraction of events reserved for testing.
+
+        validation_split : float
+            Fraction of events reserved for testing.
+
+        Returns
+        -------
+        start_event : int
+            Index (in the MadMiner file) of the first event to consider.
+
+        end_event : int
+            Index (in the MadMiner file) of the last unweighted event to consider.
+
+        correction_factor : float
+            Factor with which the weights and cross sections will have to be multiplied to make up for the missing
+            events.
+
+        """
+        if test_split is None or test_split < 0.0:
+            test_split = 0.0
+        if validation_split is None or validation_split < 0.0:
+            validation_split = 0.0
+        assert test_split + validation_split <= 1.0
+        train_split = 1.0 - test_split - validation_split
+
+        if partition == "train":
+            start_event = 0
+
+            if test_split is None or test_split <= 0.0 or test_split >= 1.0:
+                end_event = None
+                correction_factor = 1.0
+            else:
+                end_event = int(round(train_split * self.n_samples, 0))
+                correction_factor = 1.0 / train_split
+
+                if end_event < 0 or end_event > self.n_samples:
+                    raise ValueError(
+                        "Irregular train / validation / test split: sample {} / {}", end_event, self.n_samples
+                    )
+
+        elif partition == "validation":
+            if validation_split is None or validation_split <= 0.0 or validation_split >= 1.0:
+                start_event = 0
+                end_event = None
+                correction_factor = 1.0
+
+            else:
+                start_event = int(round(train_split * self.n_samples, 0)) + 1
+                end_event = int(round((1.0 - test_split) * self.n_samples, 0))
+                correction_factor = 1.0 / validation_split
+
+                if start_event < 0 or start_event > self.n_samples:
+                    raise ValueError(
+                        "Irregular train / validation / test  split: sample {} / {}", start_event, self.n_samples
+                    )
+                if end_event < 0 or end_event > self.n_samples:
+                    raise ValueError(
+                        "Irregular train / validation / test split: sample {} / {}", end_event, self.n_samples
+                    )
+
+        elif partition == "test":
+            end_event = None
+
+            if test_split is None or test_split <= 0.0 or test_split >= 1.0:
+                start_event = 0
+                correction_factor = 1.0
+            else:
+                start_event = int(round((1.0 - test_split) * self.n_samples, 0)) + 1
+                correction_factor = 1.0 / test_split
+                if start_event < 0 or start_event > self.n_samples:
+                    raise ValueError(
+                        "Irregular train / validation / test split: sample {} / {}", start_event, self.n_samples
+                    )
+
+        else:
+            raise RuntimeError("Unknown partition {}, has to be 'train', 'validation', or 'test'.")
 
         return start_event, end_event, correction_factor
 

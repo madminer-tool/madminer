@@ -95,6 +95,7 @@ class Trainer(object):
         optimizer_kwargs=None,
         initial_lr=0.001,
         final_lr=0.0001,
+        data_val=None,
         validation_split=0.25,
         early_stopping=True,
         early_stopping_patience=None,
@@ -107,10 +108,18 @@ class Trainer(object):
         logger.debug("Initialising training data")
         self.check_data(data)
         self.report_data(data)
+        if data_val is not None:
+            logger.debug("Found external validation data set")
+            self.check_data(data_val)
+            self.report_data(data_val)
         self._timer(stop="check data", start="make dataset")
         data_labels, dataset = self.make_dataset(data)
+        if data_val is not None:
+            _, dataset_val = self.make_dataset(data_val)
+        else:
+            dataset_val = None
         self._timer(stop="make dataset", start="make dataloader")
-        train_loader, val_loader = self.make_dataloaders(dataset, validation_split, batch_size)
+        train_loader, val_loader = self.make_dataloaders(dataset, dataset_val, validation_split, batch_size)
 
         self._timer(stop="make dataloader", start="setup optimizer")
         logger.debug("Setting up optimizer")
@@ -235,12 +244,20 @@ class Trainer(object):
         dataset = NumpyDataset(*data_arrays, dtype=self.dtype)
         return data_labels, dataset
 
-    def make_dataloaders(self, dataset, validation_split, batch_size):
-        if validation_split is None or validation_split <= 0.0:
+    def make_dataloaders(self, dataset, dataset_val, validation_split, batch_size):
+        if dataset_val is None and (validation_split is None or validation_split <= 0.0):
             train_loader = DataLoader(
                 dataset, batch_size=batch_size, shuffle=True, pin_memory=self.run_on_gpu, num_workers=self.n_workers
             )
             val_loader = None
+
+        elif dataset_val is not None:
+            train_loader = DataLoader(
+                dataset, batch_size=batch_size, shuffle=True, pin_memory=self.run_on_gpu, num_workers=self.n_workers
+            )
+            val_loader = DataLoader(
+                dataset_val, batch_size=batch_size, shuffle=True, pin_memory=self.run_on_gpu, num_workers=self.n_workers
+            )
 
         else:
             assert 0.0 < validation_split < 1.0, "Wrong validation split: {}".format(validation_split)
