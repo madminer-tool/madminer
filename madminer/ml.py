@@ -421,7 +421,7 @@ class ParameterizedRatioEstimator(Estimator):
             logger.info("Found %s separate validation samples", x_val.shape[0])
 
             assert x_val.shape[1] == n_observables
-            assert t_xz_val.shape[1] == n_parameters
+            assert theta_val.shape[1] == n_parameters
             if r_xz is not None:
                 assert r_xz_val is not None, "When providing r_xz and sep. validation data, also provide r_xz_val"
             if t_xz is not None:
@@ -773,6 +773,12 @@ class DoubleParameterizedRatioEstimator(Estimator):
 
     """
 
+    def __init__(self, features=None, n_hidden=(100,), activation="tanh"):
+        super(DoubleParameterizedRatioEstimator, self).__init__(features, n_hidden, activation)
+
+        self.theta_scaling_means = None
+        self.theta_scaling_stds = None
+
     def train(
         self,
         method,
@@ -783,6 +789,13 @@ class DoubleParameterizedRatioEstimator(Estimator):
         r_xz=None,
         t_xz0=None,
         t_xz1=None,
+        x_val=None,
+        y_val=None,
+        theta0_val=None,
+        theta1_val=None,
+        r_xz_val=None,
+        t_xz0_val=None,
+        t_xz1_val=None,
         alpha=1.0,
         optimizer="amsgrad",
         n_epochs=50,
@@ -797,6 +810,7 @@ class DoubleParameterizedRatioEstimator(Estimator):
         limit_samplesize=None,
         memmap=False,
         verbose="some",
+        scale_parameters=False,
     ):
 
         """
@@ -929,13 +943,54 @@ class DoubleParameterizedRatioEstimator(Estimator):
                 limit_samplesize, x, theta0, theta1, y, r_xz, t_xz0, t_xz1
             )
 
+        # Validation data
+        external_validation = (
+            x_val is not None and y_val is not None and theta0_val is not None and theta1_val is not None
+        )
+        if external_validation:
+            theta0_val = load_and_check(theta0_val, memmap_files_larger_than_gb=memmap_threshold)
+            theta1_val = load_and_check(theta1_val, memmap_files_larger_than_gb=memmap_threshold)
+            x_val = load_and_check(x_val, memmap_files_larger_than_gb=memmap_threshold)
+            y_val = load_and_check(y_val, memmap_files_larger_than_gb=memmap_threshold)
+            r_xz_val = load_and_check(r_xz_val, memmap_files_larger_than_gb=memmap_threshold)
+            t_xz0_val = load_and_check(t_xz0_val, memmap_files_larger_than_gb=memmap_threshold)
+            t_xz1_val = load_and_check(t_xz1_val, memmap_files_larger_than_gb=memmap_threshold)
+
+            logger.info("Found %s separate validation samples", x_val.shape[0])
+
+            assert x_val.shape[1] == n_observables
+            assert theta0_val.shape[1] == n_parameters
+            assert theta1_val.shape[1] == n_parameters
+            if r_xz is not None:
+                assert r_xz_val is not None, "When providing r_xz and sep. validation data, also provide r_xz_val"
+            if t_xz0 is not None:
+                assert t_xz0_val is not None, "When providing t_xz0 and sep. validation data, also provide t_xz0_val"
+            if t_xz1 is not None:
+                assert t_xz1_val is not None, "When providing t_xz1 and sep. validation data, also provide t_xz1_val"
+
         # Scale features
         if scale_inputs:
             logger.info("Rescaling inputs")
             self._initialize_input_transform(x)
             x = self._transform_inputs(x)
+            if external_validation:
+                x_val = self._transform_inputs(x_val)
         else:
             self._initialize_input_transform(x, False)
+
+        # Scale parameters
+        if scale_parameters:
+            logger.info("Rescaling parameters")
+            self._initialize_parameter_transform(np.concatenate((theta0, theta1), 0))
+            theta0 = self._transform_parameters(theta0)
+            theta1 = self._transform_parameters(theta1)
+            t_xz0 = self._transform_score(t_xz0, inverse=False)
+            t_xz1 = self._transform_score(t_xz1, inverse=False)
+            if external_validation:
+                t_xz0_val = self._transform_score(t_xz0_val, inverse=False)
+                t_xz1_val = self._transform_score(t_xz1_val, inverse=False)
+        else:
+            self._initialize_parameter_transform(theta, False)
 
         # Shuffle labels
         if shuffle_labels:
@@ -947,6 +1002,8 @@ class DoubleParameterizedRatioEstimator(Estimator):
             x = x[:, self.features]
             logger.info("Only using %s of %s observables", x.shape[1], n_observables)
             n_observables = x.shape[1]
+            if external_validation:
+                x_val = x_val[:, self.features]
 
         # Check consistency of input with model
         if self.n_observables is None:
@@ -965,6 +1022,12 @@ class DoubleParameterizedRatioEstimator(Estimator):
 
         # Data
         data = self._package_training_data(method, x, theta0, theta1, y, r_xz, t_xz0, t_xz1)
+        if external_validation:
+            data_val = self._package_training_data(
+                method, x_val, theta0_val, theta1_val, y_val, r_xz_val, t_xz0_val, t_xz1_val
+            )
+        else:
+            data_val = None
 
         # Create model
         if self.model is None:
@@ -982,6 +1045,7 @@ class DoubleParameterizedRatioEstimator(Estimator):
         trainer = DoubleParameterizedRatioTrainer(self.model)
         result = trainer.train(
             data=data,
+            data_val=data_val,
             loss_functions=loss_functions,
             loss_weights=loss_weights,
             loss_labels=loss_labels,
@@ -1124,6 +1188,69 @@ class DoubleParameterizedRatioEstimator(Estimator):
     def evaluate(self, *args, **kwargs):
         return self.evaluate_log_likelihood_ratio(*args, **kwargs)
 
+    def save(self, filename, save_model=False):
+
+        """
+        Saves the trained model to four files: a JSON file with the settings, a pickled pyTorch state dict
+        file, and numpy files for the mean and variance of the inputs (used for input scaling).
+
+        Parameters
+        ----------
+        filename : str
+            Path to the files. '_settings.json' and '_state_dict.pl' will be added.
+
+        save_model : bool, optional
+            If True, the whole model is saved in addition to the state dict. This is not necessary for loading it
+            again with Estimator.load(), but can be useful for debugging, for instance to plot the computational graph.
+
+        Returns
+        -------
+            None
+
+        """
+
+        super(DoubleParameterizedRatioEstimator, self).save(filename, save_model)
+
+        # Save param scaling
+        if self.theta_scaling_stds is not None and self.theta_scaling_means is not None:
+            logger.debug(
+                "Saving parameter scaling information to %s_theta_means.npy and %s_theta_stds.npy", filename, filename
+            )
+            np.save(filename + "_theta_means.npy", self.theta_scaling_means)
+            np.save(filename + "_theta_stds.npy", self.theta_scaling_stds)
+
+    def load(self, filename):
+
+        """
+        Loads a trained model from files.
+
+        Parameters
+        ----------
+        filename : str
+            Path to the files. '_settings.json' and '_state_dict.pl' will be added.
+
+        Returns
+        -------
+            None
+
+        """
+
+        super(DoubleParameterizedRatioEstimator, self).load(filename)
+
+        # Load param scaling
+        try:
+            self.theta_scaling_means = np.load(filename + "_theta_means.npy")
+            self.theta_scaling_stds = np.load(filename + "_theta_stds.npy")
+            logger.debug(
+                "  Found parameter scaling information: means %s, stds %s",
+                self.theta_scaling_means,
+                self.theta_scaling_stds,
+            )
+        except FileNotFoundError:
+            logger.warning("Parameter scaling information not found in %s", filename)
+            self.theta_scaling_means = None
+            self.theta_scaling_stds = None
+
     def _create_model(self):
         self.model = DenseDoublyParameterizedRatioModel(
             n_observables=self.n_observables,
@@ -1131,6 +1258,32 @@ class DoubleParameterizedRatioEstimator(Estimator):
             n_hidden=self.n_hidden,
             activation=self.activation,
         )
+
+    def _initialize_parameter_transform(self, theta, transform=True):
+        if transform:
+            self.theta_scaling_means = np.mean(theta, axis=0)
+            self.theta_scaling_stds = np.maximum(np.std(theta, axis=0), 1.0e-6)
+        else:
+            self.theta_scaling_means = None
+            self.theta_scaling_stds = None
+
+    def _transform_parameters(self, theta):
+        if self.theta_scaling_means is not None and self.theta_scaling_stds is not None:
+            theta_scaled = theta - self.theta_scaling_means[np.newaxis, :]
+            theta_scaled /= self.theta_scaling_stds[np.newaxis, :]
+        else:
+            theta_scaled = theta
+        return theta_scaled
+
+    def _transform_score(self, t_xz, inverse=False):
+        if self.theta_scaling_means is not None and self.theta_scaling_stds is not None and t_xz is not None:
+            if inverse:
+                t_xz_scaled = t_xz / self.theta_scaling_stds[np.newaxis, :]
+            else:
+                t_xz_scaled = t_xz * self.theta_scaling_stds[np.newaxis, :]
+        else:
+            t_xz_scaled = t_xz
+        return t_xz_scaled
 
     @staticmethod
     def _check_required_data(method, r_xz, t_xz0, t_xz1):
