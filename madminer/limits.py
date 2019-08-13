@@ -717,11 +717,12 @@ class AsymptoticLimits(DataAnalyzer):
                     if observables is not None:
                         score = score[:, observables]
                     return score
+
             elif isinstance(model, Ensemble) and model.estimator_type == "score":
                 logger.debug("Preparing score estimator ensemble as summary statistic function")
 
                 def summary_function(x):
-                    score, _ = model.evaluate_score(x, calculate_covariance=False)
+                    score, _ = model.evaluate_score(x=x, calculate_covariance=False)
                     score = score[:, : self.n_parameters]
                     if observables is not None:
                         score = score[:, observables]

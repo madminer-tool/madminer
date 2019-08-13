@@ -304,7 +304,9 @@ class DataAnalyzer(object):
             start_event, end_event = None, None
             correction_factor = 1.0
         elif partition in ["train", "validation", "test"]:
-            start_event, end_event, correction_factor = self._train_validation_test_split(partition, test_split, validation_split)
+            start_event, end_event, correction_factor = self._train_validation_test_split(
+                partition, test_split, validation_split
+            )
         else:
             raise ValueError("Events has to be either 'all', 'train', or 'test', but got {}!".format(partition))
 
@@ -429,7 +431,9 @@ class DataAnalyzer(object):
             start_event, end_event = None, None
             correction_factor = 1.0
         elif partition in ["train", "validation", "test"]:
-            start_event, end_event, correction_factor = self._train_validation_test_split(partition, test_split, validation_split)
+            start_event, end_event, correction_factor = self._train_validation_test_split(
+                partition, test_split, validation_split
+            )
         else:
             raise ValueError("Events has to be either 'all', 'train', or 'test', but got {}!".format(partition))
 
