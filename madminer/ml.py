@@ -178,11 +178,17 @@ class Estimator(object):
         logger.debug("Loading state dictionary from %s_state_dict.pt", filename)
         self.model.load_state_dict(torch.load(filename + "_state_dict.pt", map_location="cpu"))
 
-    def _initialize_input_transform(self, x, transform=True):
-        if transform:
+    def initialize_input_transform(self, x, transform=True, overwrite=True):
+        if self.x_scaling_stds is not None and self.x_scaling_means is not None and not overwrite:
+            logger.info(
+                "Input rescaling already defined. To overwrite, call initialize_input_transform(x, overwrite=True)."
+            )
+        elif transform:
+            logger.info("Setting up input rescaling")
             self.x_scaling_means = np.mean(x, axis=0)
             self.x_scaling_stds = np.maximum(np.std(x, axis=0), 1.0e-6)
         else:
+            logger.info("Disabling input rescaling")
             n_parameters = x.shape[0]
 
             self.x_scaling_means = np.zeros(n_parameters)
@@ -307,11 +313,17 @@ class ConditionalEstimator(Estimator):
             self.theta_scaling_means = None
             self.theta_scaling_stds = None
 
-    def _initialize_parameter_transform(self, theta, transform=True):
-        if transform:
+    def initialize_parameter_transform(self, theta, transform=True, overwrite=True):
+        if self.x_scaling_stds is not None and self.x_scaling_means is not None and not overwrite:
+            logger.info(
+                "Parameter rescaling already defined. To overwrite, call initialize_parameter_transform(theta, overwrite=True)."
+            )
+        elif transform:
+            logger.info("Setting up parameter rescaling")
             self.theta_scaling_means = np.mean(theta, axis=0)
             self.theta_scaling_stds = np.maximum(np.std(theta, axis=0), 1.0e-6)
         else:
+            logger.info("Disabling parameter rescaling")
             self.theta_scaling_means = None
             self.theta_scaling_stds = None
 
@@ -534,24 +546,23 @@ class ParameterizedRatioEstimator(ConditionalEstimator):
 
         # Scale features
         if scale_inputs:
-            logger.info("Rescaling inputs")
-            self._initialize_input_transform(x)
+            self.initialize_input_transform(x, overwrite=False)
             x = self._transform_inputs(x)
             if external_validation:
                 x_val = self._transform_inputs(x_val)
         else:
-            self._initialize_input_transform(x, False)
+            self.initialize_input_transform(x, False, overwrite=False)
 
         # Scale parameters
         if scale_parameters:
             logger.info("Rescaling parameters")
-            self._initialize_parameter_transform(theta)
+            self.initialize_parameter_transform(theta)
             theta = self._transform_parameters(theta)
             t_xz = self._transform_score(t_xz, inverse=False)
             if external_validation:
                 t_xz_val = self._transform_score(t_xz_val, inverse=False)
         else:
-            self._initialize_parameter_transform(theta, False)
+            self.initialize_parameter_transform(theta, False)
 
         # Shuffle labels
         if shuffle_labels:
@@ -986,18 +997,17 @@ class DoubleParameterizedRatioEstimator(ConditionalEstimator):
 
         # Scale features
         if scale_inputs:
-            logger.info("Rescaling inputs")
-            self._initialize_input_transform(x)
+            self.initialize_input_transform(x, overwrite=False)
             x = self._transform_inputs(x)
             if external_validation:
                 x_val = self._transform_inputs(x_val)
         else:
-            self._initialize_input_transform(x, False)
+            self.initialize_input_transform(x, False, overwrite=False)
 
         # Scale parameters
         if scale_parameters:
             logger.info("Rescaling parameters")
-            self._initialize_parameter_transform(np.concatenate((theta0, theta1), 0))
+            self.initialize_parameter_transform(np.concatenate((theta0, theta1), 0))
             theta0 = self._transform_parameters(theta0)
             theta1 = self._transform_parameters(theta1)
             t_xz0 = self._transform_score(t_xz0, inverse=False)
@@ -1006,7 +1016,7 @@ class DoubleParameterizedRatioEstimator(ConditionalEstimator):
                 t_xz0_val = self._transform_score(t_xz0_val, inverse=False)
                 t_xz1_val = self._transform_score(t_xz1_val, inverse=False)
         else:
-            self._initialize_parameter_transform(np.concatenate((theta0, theta1), 0), False)
+            self.initialize_parameter_transform(np.concatenate((theta0, theta1), 0), False)
 
         # Shuffle labels
         if shuffle_labels:
@@ -1410,13 +1420,12 @@ class ScoreEstimator(Estimator):
 
         # Scale features
         if scale_inputs:
-            logger.info("Rescaling inputs")
-            self._initialize_input_transform(x)
+            self.initialize_input_transform(x, overwrite=False)
             x = self._transform_inputs(x)
             if external_validation:
                 x_val = self._transform_inputs(x_val)
         else:
-            self._initialize_input_transform(x, False)
+            self.initialize_input_transform(x, False, overwrite=False)
 
         # Shuffle labels
         if shuffle_labels:
@@ -1925,7 +1934,6 @@ class LikelihoodEstimator(ConditionalEstimator):
             logger.info("Only using %s of %s training samples", limit_samplesize, n_samples)
             x, theta, t_xz = restrict_samplesize(limit_samplesize, x, theta, t_xz)
 
-
         # Validation data
         external_validation = x_val is not None and theta_val is not None
         if external_validation:
@@ -1942,24 +1950,23 @@ class LikelihoodEstimator(ConditionalEstimator):
 
         # Scale features
         if scale_inputs:
-            logger.info("Rescaling inputs")
-            self._initialize_input_transform(x)
+            self.initialize_input_transform(x, overwrite=False)
             x = self._transform_inputs(x)
             if external_validation:
                 x_val = self._transform_inputs(x_val)
         else:
-            self._initialize_input_transform(x, False)
+            self.initialize_input_transform(x, False, overwrite=False)
 
         # Scale parameters
         if scale_parameters:
             logger.info("Rescaling parameters")
-            self._initialize_parameter_transform(theta)
+            self.initialize_parameter_transform(theta)
             theta = self._transform_parameters(theta)
             t_xz = self._transform_score(t_xz, inverse=False)
             if external_validation:
                 t_xz_val = self._transform_score(t_xz_val, inverse=False)
         else:
-            self._initialize_parameter_transform(theta, False)
+            self.initialize_parameter_transform(theta, False)
 
         # Shuffle labels
         if shuffle_labels:
