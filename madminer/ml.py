@@ -265,6 +265,11 @@ class ParameterizedRatioEstimator(Estimator):
         theta,
         r_xz=None,
         t_xz=None,
+        x_val=None,
+        y_val=None,
+        theta_val=None,
+        r_xz_val=None,
+        t_xz_val=None,
         alpha=1.0,
         optimizer="amsgrad",
         n_epochs=50,
@@ -404,11 +409,31 @@ class ParameterizedRatioEstimator(Estimator):
             logger.info("Only using %s of %s training samples", limit_samplesize, n_samples)
             x, theta, y, r_xz, t_xz = restrict_samplesize(limit_samplesize, x, theta, y, r_xz, t_xz)
 
+        # Validation data
+        external_validation = x_val is not None and y_val is not None and theta_val is not None
+        if external_validation:
+            theta_val = load_and_check(theta_val, memmap_files_larger_than_gb=memmap_threshold)
+            x_val = load_and_check(x_val, memmap_files_larger_than_gb=memmap_threshold)
+            y_val = load_and_check(y_val, memmap_files_larger_than_gb=memmap_threshold)
+            r_xz_val = load_and_check(r_xz_val, memmap_files_larger_than_gb=memmap_threshold)
+            t_xz_val = load_and_check(t_xz_val, memmap_files_larger_than_gb=memmap_threshold)
+
+            logger.info("Found %s separate validation samples", x_val.shape[0])
+
+            assert x_val.shape[1] == n_observables
+            assert t_xz_val.shape[1] == n_parameters
+            if r_xz is not None:
+                assert r_xz_val is not None, "When providing r_xz and sep. validation data, also provide r_xz_val"
+            if t_xz is not None:
+                assert t_xz_val is not None, "When providing t_xz and sep. validation data, also provide t_xz_val"
+
         # Scale features
         if scale_inputs:
             logger.info("Rescaling inputs")
             self._initialize_input_transform(x)
             x = self._transform_inputs(x)
+            if external_validation:
+                x_val = self._transform_inputs(x_val)
         else:
             self._initialize_input_transform(x, False)
 
@@ -418,6 +443,8 @@ class ParameterizedRatioEstimator(Estimator):
             self._initialize_parameter_transform(theta)
             theta = self._transform_parameters(theta)
             t_xz = self._transform_score(t_xz, inverse=False)
+            if external_validation:
+                t_xz_val = self._transform_score(t_xz_val, inverse=False)
         else:
             self._initialize_parameter_transform(theta, False)
 
@@ -431,6 +458,8 @@ class ParameterizedRatioEstimator(Estimator):
             x = x[:, self.features]
             logger.info("Only using %s of %s observables", x.shape[1], n_observables)
             n_observables = x.shape[1]
+            if external_validation:
+                x_val = x_val[:, self.features]
 
         # Check consistency of input with model
         if self.n_observables is None:
@@ -449,6 +478,10 @@ class ParameterizedRatioEstimator(Estimator):
 
         # Data
         data = self._package_training_data(method, x, theta, y, r_xz, t_xz)
+        if external_validation:
+            data_val = self._package_training_data(method, x_val, theta_val, y_val, r_xz_val, t_xz_val)
+        else:
+            data_val = None
 
         # Create model
         if self.model is None:
@@ -466,6 +499,7 @@ class ParameterizedRatioEstimator(Estimator):
         trainer = SingleParameterizedRatioTrainer(self.model)
         result = trainer.train(
             data=data,
+            data_val=data_val,
             loss_functions=loss_functions,
             loss_weights=loss_weights,
             loss_labels=loss_labels,
@@ -1298,7 +1332,6 @@ class ScoreEstimator(Estimator):
         if scale_inputs:
             logger.info("Rescaling inputs")
             self._initialize_input_transform(x)
-
             x = self._transform_inputs(x)
             if external_validation:
                 x_val = self._transform_inputs(x_val)
@@ -1316,7 +1349,6 @@ class ScoreEstimator(Estimator):
             x = x[:, self.features]
             logger.info("Only using %s of %s observables", x.shape[1], n_observables)
             n_observables = x.shape[1]
-
             if external_validation:
                 x_val = x_val[:, self.features]
 
