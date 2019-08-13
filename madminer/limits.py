@@ -657,7 +657,7 @@ class AsymptoticLimits(DataAnalyzer):
         p_values = self.asymptotic_p_value(log_r, dof=dof)
 
         histo_data = None
-        if return_histos and return_observed and isinstance(return_observed, int):
+        if return_histos and return_observed > 1:
             histo_data = (histos, processed_summary_stats, obs_weights[:return_observed])
         elif return_histos and return_observed:
             histo_data = (histos, processed_summary_stats, obs_weights)
@@ -1007,7 +1007,7 @@ class AsymptoticLimits(DataAnalyzer):
                 data = summary_stats
             else:
                 data = processor(summary_stats, theta)
-            if return_observed and isinstance(return_observed, int):
+            if return_observed and return_observed > 1:
                 all_data.append(data[:return_observed])
             elif return_observed:
                 all_data.append(data)
