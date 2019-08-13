@@ -229,17 +229,17 @@ class Estimator(object):
         raise NotImplementedError
 
 
-class RatioEstimator(Estimator):
+class ConditionalEstimator(Estimator):
 
     """
-    Abstract class for any ML likelihood ratio estimator. Subclassed by ParameterizedRatioEstimator and
-    DoubleParameterizedRatioEstimator.
+    Abstract class for estimator that is conditional on theta. Subclassed by ParameterizedRatioEstimator,
+    DoubleParameterizedRatioEstimator, and LikelihoodEstimator (but not ScoreEstimator).
 
     Adds functionality to rescale parameters.
     """
 
     def __init__(self, features=None, n_hidden=(100,), activation="tanh"):
-        super(RatioEstimator, self).__init__(features, n_hidden, activation)
+        super(ConditionalEstimator, self).__init__(features, n_hidden, activation)
 
         self.theta_scaling_means = None
         self.theta_scaling_stds = None
@@ -265,7 +265,7 @@ class RatioEstimator(Estimator):
 
         """
 
-        super(RatioEstimator, self).save(filename, save_model)
+        super(ConditionalEstimator, self).save(filename, save_model)
 
         # Save param scaling
         if self.theta_scaling_stds is not None and self.theta_scaling_means is not None:
@@ -291,7 +291,7 @@ class RatioEstimator(Estimator):
 
         """
 
-        super(RatioEstimator, self).load(filename)
+        super(ConditionalEstimator, self).load(filename)
 
         # Load param scaling
         try:
@@ -334,7 +334,7 @@ class RatioEstimator(Estimator):
         return t_xz_scaled
 
 
-class ParameterizedRatioEstimator(RatioEstimator):
+class ParameterizedRatioEstimator(ConditionalEstimator):
     """
     A neural estimator of the likelihood ratio as a function of the observation x as well as
     the numerator hypothesis theta. The reference (denominator) hypothesis is kept fixed at some
@@ -768,7 +768,7 @@ class ParameterizedRatioEstimator(RatioEstimator):
             raise RuntimeError("Saved model is an incompatible estimator type {}.".format(estimator_type))
 
 
-class DoubleParameterizedRatioEstimator(RatioEstimator):
+class DoubleParameterizedRatioEstimator(ConditionalEstimator):
     """
     A neural estimator of the likelihood ratio as a function of the observation x, the numerator hypothesis theta0, and
     the denominator hypothesis theta1.
@@ -1749,7 +1749,7 @@ class ScoreEstimator(Estimator):
             logger.warning("Did not find entry nuisance_mode_default in saved model, using default 'keep'.")
 
 
-class LikelihoodEstimator(Estimator):
+class LikelihoodEstimator(ConditionalEstimator):
     """ A neural estimator of the density or likelihood evaluated at a reference hypothesis as a function
      of the observation x.
 
@@ -1794,6 +1794,9 @@ class LikelihoodEstimator(Estimator):
         x,
         theta,
         t_xz=None,
+        x_val=None,
+        theta_val=None,
+        t_xz_val=None,
         alpha=1.0,
         optimizer="amsgrad",
         n_epochs=50,
@@ -1808,6 +1811,7 @@ class LikelihoodEstimator(Estimator):
         limit_samplesize=None,
         memmap=False,
         verbose="some",
+        scale_parameters=False,
     ):
 
         """
@@ -1921,13 +1925,41 @@ class LikelihoodEstimator(Estimator):
             logger.info("Only using %s of %s training samples", limit_samplesize, n_samples)
             x, theta, t_xz = restrict_samplesize(limit_samplesize, x, theta, t_xz)
 
+
+        # Validation data
+        external_validation = x_val is not None and theta_val is not None
+        if external_validation:
+            theta_val = load_and_check(theta_val, memmap_files_larger_than_gb=memmap_threshold)
+            x_val = load_and_check(x_val, memmap_files_larger_than_gb=memmap_threshold)
+            t_xz_val = load_and_check(t_xz_val, memmap_files_larger_than_gb=memmap_threshold)
+
+            logger.info("Found %s separate validation samples", x_val.shape[0])
+
+            assert x_val.shape[1] == n_observables
+            assert theta_val.shape[1] == n_parameters
+            if t_xz is not None:
+                assert t_xz_val is not None, "When providing t_xz and sep. validation data, also provide t_xz_val"
+
         # Scale features
         if scale_inputs:
             logger.info("Rescaling inputs")
             self._initialize_input_transform(x)
             x = self._transform_inputs(x)
+            if external_validation:
+                x_val = self._transform_inputs(x_val)
         else:
             self._initialize_input_transform(x, False)
+
+        # Scale parameters
+        if scale_parameters:
+            logger.info("Rescaling parameters")
+            self._initialize_parameter_transform(theta)
+            theta = self._transform_parameters(theta)
+            t_xz = self._transform_score(t_xz, inverse=False)
+            if external_validation:
+                t_xz_val = self._transform_score(t_xz_val, inverse=False)
+        else:
+            self._initialize_parameter_transform(theta, False)
 
         # Shuffle labels
         if shuffle_labels:
@@ -1939,6 +1971,8 @@ class LikelihoodEstimator(Estimator):
             x = x[:, self.features]
             logger.info("Only using %s of %s observables", x.shape[1], n_observables)
             n_observables = x.shape[1]
+            if external_validation:
+                x_val = x_val[:, self.features]
 
         # Check consistency of input with model
         if self.n_observables is None:
@@ -1957,6 +1991,10 @@ class LikelihoodEstimator(Estimator):
 
         # Data
         data = self._package_training_data(method, x, theta, t_xz)
+        if external_validation:
+            data_val = self._package_training_data(method, x_val, theta_val, t_xz_val)
+        else:
+            data_val = None
 
         # Create model
         if self.model is None:
@@ -1973,6 +2011,7 @@ class LikelihoodEstimator(Estimator):
         trainer = FlowTrainer(self.model)
         result = trainer.train(
             data=data,
+            data_val=data_val,
             loss_functions=loss_functions,
             loss_weights=loss_weights,
             loss_labels=loss_labels,
