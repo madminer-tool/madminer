@@ -680,16 +680,17 @@ class AsymptoticLimits(DataAnalyzer):
                 hist_bins = tuple([12] + [5 for _ in range(n_summary_stats - 1)])
                 total_n_bins = 12 * 5 ** (n_summary_stats - 1)
             elif n_summary_stats == 1:
-                hist_bins = 25
+                hist_bins = (25,)
                 total_n_bins = 25
             elif n_summary_stats == 2:
-                hist_bins = 8
+                hist_bins = (8, 8)
                 total_n_bins = 8 ** 2
             else:
-                hist_bins = 5
+                hist_bins = tuple([5] * n_summary_stats)
                 total_n_bins = 5 ** n_summary_stats
             n_bins_each = hist_bins
         elif isinstance(hist_bins, int):
+            hist_bins = tuple([hist_bins] * n_summary_stats)
             total_n_bins = hist_bins ** n_summary_stats
             n_bins_each = hist_bins
         else:
@@ -868,7 +869,8 @@ class AsymptoticLimits(DataAnalyzer):
         theta_binning=None,
         n_binning_toys=1000,
     ):
-        if fixed_adaptive_binning and any([isinstance(x, int) for x in x_bins]):
+
+        if fixed_adaptive_binning and (isinstance(x_bins, int) or any([isinstance(x, int) for x in x_bins])):
             if theta_binning is None:
                 logger.info("Determining fixed adaptive histogram binning for all points on grid")
                 x_bins = self._fixed_adaptive_binning(
