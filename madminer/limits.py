@@ -708,16 +708,24 @@ class AsymptoticLimits(DataAnalyzer):
                 return x[:, x_indices]
 
         elif mode == "sally":
-            assert isinstance(model, ScoreEstimator)
+            if isinstance(model, ScoreEstimator):
+                logger.debug("Preparing score estimator as summary statistic function")
 
-            logger.debug("Preparing score estimator as summary statistic function")
+                def summary_function(x):
+                    score = model.evaluate_score(x)
+                    score = score[:, : self.n_parameters]
+                    if observables is not None:
+                        score = score[:, observables]
+                    return score
+            elif isinstance(model, Ensemble) and model.estimator_type == "score":
+                logger.debug("Preparing score estimator ensemble as summary statistic function")
 
-            def summary_function(x):
-                score = model.evaluate_score(x)
-                score = score[:, : self.n_parameters]
-                if observables is not None:
-                    score = score[:, observables]
-                return score
+                def summary_function(x):
+                    score, _ = model.evaluate_score(x, calculate_covariance=False)
+                    score = score[:, : self.n_parameters]
+                    if observables is not None:
+                        score = score[:, observables]
+                    return score
 
         else:
             raise RuntimeError("Unknown mode {}, has to be 'observables' or 'sally'".format(mode))
