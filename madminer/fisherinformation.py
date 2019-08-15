@@ -200,8 +200,8 @@ class FisherInformation(DataAnalyzer):
         """
 
         # Check input
-        if mode not in ["score", "information"]:
-            raise ValueError("Unknown mode {}, has to be 'score' or 'information'!".format(mode))
+        if mode not in ["score", "information", "modified_score"]:
+            raise ValueError("Unknown mode {}, has to be 'score', 'modified_score', or 'information'!".format(mode))
 
         # Load SALLY model
         if os.path.isdir(model_file) and os.path.exists(model_file + "/ensemble.json"):

@@ -2682,8 +2682,8 @@ class Ensemble:
                 )
                 covariance = covariance.reshape(covariance_shape)
 
-        # "score" mode:
-        else:
+        # "modified_score" mode:
+        elif mode == "modified_score":
             # Load training data
             if isinstance(x, six.string_types):
                 x = load_and_check(x)
@@ -2729,7 +2729,7 @@ class Ensemble:
 
             if calculate_covariance:
                 # Fisher information predictions based on shifted scores
-                informations_shifted = float(n_events) * np.sum(
+                informations_individual = float(n_events) * np.sum(
                     obs_weights[np.newaxis, :, np.newaxis, np.newaxis]
                     * score_shifted_predictions[:, :, :, np.newaxis]
                     * score_shifted_predictions[:, :, np.newaxis, :],
@@ -2737,13 +2737,74 @@ class Ensemble:
                 )  # (n_estimators, n_parameters, n_parameters)
 
                 n_params = score_mean.shape[1]
-                informations_shifted = informations_shifted.reshape(-1, n_params ** 2)
-                covariance = np.cov(informations_shifted.T)
+                informations_individual = informations_individual.reshape(-1, n_params ** 2)
+                covariance = np.cov(informations_individual.T)
                 covariance = covariance.reshape(n_params, n_params, n_params, n_params)
 
             # Let's check the expected score
             expected_score = [np.einsum("n,ni->i", obs_weights, score_mean)]
             logger.debug("Expected per-event score (should be close to zero):\n%s", expected_score)
+
+        # "score" mode:
+        elif mode == "score":
+            # Load training data
+            if isinstance(x, six.string_types):
+                x = load_and_check(x)
+            n_samples = x.shape[0]
+
+            # Calculate score predictions
+            score_predictions = []
+            for i, estimator in enumerate(self.estimators):
+                logger.debug("Starting evaluation for estimator %s / %s in ensemble", i + 1, self.n_estimators)
+
+                score_predictions.append(estimator.evaluate(x=x))
+                logger.debug("Estimator %s predicts t(x) = %s for first event", i + 1, score_predictions[-1][0, :])
+            score_predictions = np.array(score_predictions)  # (n_estimators, n_events, n_parameters)
+
+            # Get ensemble mean and ensemble covariance
+            score_mean = np.mean(score_predictions, axis=0)  # (n_events, n_parameters)
+
+            # Event weights
+            if obs_weights is None:
+                obs_weights = np.ones(n_samples)
+            obs_weights /= np.sum(obs_weights)
+
+            # Fisher information prediction (based on mean scores)
+            if sum_events:
+                information = float(n_events) * np.sum(
+                    obs_weights[:, np.newaxis, np.newaxis]
+                    * score_mean[:, :, np.newaxis]
+                    * score_mean[:, np.newaxis, :],
+                    axis=0,
+                )
+            else:
+                information = (
+                    float(n_events)
+                    * obs_weights[:, np.newaxis, np.newaxis]
+                    * score_mean[:, :, np.newaxis]
+                    * score_mean[:, np.newaxis, :]
+                )
+
+            if calculate_covariance:
+                # Fisher information predictions based on shifted scores
+                informations_individual = float(n_events) * np.sum(
+                    obs_weights[np.newaxis, :, np.newaxis, np.newaxis]
+                    * score_predictions[:, :, :, np.newaxis]
+                    * score_predictions[:, :, np.newaxis, :],
+                    axis=1,
+                )  # (n_estimators, n_parameters, n_parameters)
+
+                n_params = score_mean.shape[1]
+                informations_individual = informations_individual.reshape(-1, n_params ** 2)
+                covariance = np.cov(informations_individual.T)
+                covariance = covariance.reshape(n_params, n_params, n_params, n_params)
+
+            # Let's check the expected score
+            expected_score = [np.einsum("n,ni->i", obs_weights, score_mean)]
+            logger.debug("Expected per-event score (should be close to zero):\n%s", expected_score)
+
+        else:
+            raise RuntimeError("Unknown mode %s, has to be 'information', 'score', or 'modified_score'.")
 
         return information, covariance
 
