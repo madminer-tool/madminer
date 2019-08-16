@@ -657,7 +657,7 @@ class AsymptoticLimits(DataAnalyzer):
         p_values = self.asymptotic_p_value(log_r, dof=dof)
 
         histo_data = None
-        if return_histos and return_observed and isinstance(return_observed, int):
+        if return_histos and return_observed > 1:
             histo_data = (histos, processed_summary_stats, obs_weights[:return_observed])
         elif return_histos and return_observed:
             histo_data = (histos, processed_summary_stats, obs_weights)
@@ -680,16 +680,17 @@ class AsymptoticLimits(DataAnalyzer):
                 hist_bins = tuple([12] + [5 for _ in range(n_summary_stats - 1)])
                 total_n_bins = 12 * 5 ** (n_summary_stats - 1)
             elif n_summary_stats == 1:
-                hist_bins = 25
+                hist_bins = (25,)
                 total_n_bins = 25
             elif n_summary_stats == 2:
-                hist_bins = 8
+                hist_bins = (8, 8)
                 total_n_bins = 8 ** 2
             else:
-                hist_bins = 5
+                hist_bins = tuple([5] * n_summary_stats)
                 total_n_bins = 5 ** n_summary_stats
             n_bins_each = hist_bins
         elif isinstance(hist_bins, int):
+            hist_bins = tuple([hist_bins] * n_summary_stats)
             total_n_bins = hist_bins ** n_summary_stats
             n_bins_each = hist_bins
         else:
@@ -708,16 +709,25 @@ class AsymptoticLimits(DataAnalyzer):
                 return x[:, x_indices]
 
         elif mode == "sally":
-            assert isinstance(model, ScoreEstimator)
+            if isinstance(model, ScoreEstimator):
+                logger.debug("Preparing score estimator as summary statistic function")
 
-            logger.debug("Preparing score estimator as summary statistic function")
+                def summary_function(x):
+                    score = model.evaluate_score(x)
+                    score = score[:, : self.n_parameters]
+                    if observables is not None:
+                        score = score[:, observables]
+                    return score
 
-            def summary_function(x):
-                score = model.evaluate_score(x)
-                score = score[:, : self.n_parameters]
-                if observables is not None:
-                    score = score[:, observables]
-                return score
+            elif isinstance(model, Ensemble) and model.estimator_type == "score":
+                logger.debug("Preparing score estimator ensemble as summary statistic function")
+
+                def summary_function(x):
+                    score, _ = model.evaluate_score(x=x, calculate_covariance=False)
+                    score = score[:, : self.n_parameters]
+                    if observables is not None:
+                        score = score[:, observables]
+                    return score
 
         else:
             raise RuntimeError("Unknown mode {}, has to be 'observables' or 'sally'".format(mode))
@@ -859,7 +869,8 @@ class AsymptoticLimits(DataAnalyzer):
         theta_binning=None,
         n_binning_toys=1000,
     ):
-        if fixed_adaptive_binning and any([isinstance(x, int) for x in x_bins]):
+
+        if fixed_adaptive_binning and (isinstance(x_bins, int) or any([isinstance(x, int) for x in x_bins])):
             if theta_binning is None:
                 logger.info("Determining fixed adaptive histogram binning for all points on grid")
                 x_bins = self._fixed_adaptive_binning(
@@ -996,7 +1007,7 @@ class AsymptoticLimits(DataAnalyzer):
                 data = summary_stats
             else:
                 data = processor(summary_stats, theta)
-            if return_observed and isinstance(return_observed, int):
+            if return_observed and return_observed > 1:
                 all_data.append(data[:return_observed])
             elif return_observed:
                 all_data.append(data)
