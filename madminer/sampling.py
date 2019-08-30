@@ -1554,6 +1554,13 @@ class SampleAugmenter(DataAnalyzer):
         start_event, end_event, correction_factor = self._train_validation_test_split(
             partition, test_split, validation_split
         )
+        logger.debug(
+            "Sampling from partition %s, using weighted events %s to %s and a correction factor %s",
+            partition,
+            start_event,
+            end_event,
+            correction_factor,
+        )
         while not np.all(done):
             # Draw random numbers in [0, 1]
             u = np.random.rand(n_samples)  # Shape: (n_samples,)

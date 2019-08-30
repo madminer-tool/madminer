@@ -200,8 +200,8 @@ class FisherInformation(DataAnalyzer):
         """
 
         # Check input
-        if mode not in ["score", "information"]:
-            raise ValueError("Unknown mode {}, has to be 'score' or 'information'!".format(mode))
+        if mode not in ["score", "information", "modified_score"]:
+            raise ValueError("Unknown mode {}, has to be 'score', 'modified_score', or 'information'!".format(mode))
 
         # Load SALLY model
         if os.path.isdir(model_file) and os.path.exists(model_file + "/ensemble.json"):
@@ -673,7 +673,7 @@ class FisherInformation(DataAnalyzer):
         weights_benchmark_uncertainties = weights_benchmark_uncertainties.reshape(-1, self.n_benchmarks)
 
         self._check_binning_stats(
-            weights_benchmarks, weights_benchmark_uncertainties, theta, n_bins_first_axis=n_bins1_total
+            weights_benchmarks, weights_benchmark_uncertainties, theta, n_bins_last_axis=n_bins2_total
         )
 
         fisher_info, covariance = self._calculate_fisher_information(
@@ -1058,7 +1058,7 @@ class FisherInformation(DataAnalyzer):
         return np.diag(diagonal)
 
     def _check_binning_stats(
-        self, weights_benchmarks, weights_benchmark_uncertainties, theta, report=5, n_bins_first_axis=None
+        self, weights_benchmarks, weights_benchmark_uncertainties, theta, report=5, n_bins_last_axis=None
     ):
         theta_matrix = self._get_theta_benchmark_matrix(theta, zero_pad=False)  # (n_benchmarks_phys,)
         sigma = mdot(theta_matrix, weights_benchmarks)  # Shape (n_bins,)
@@ -1070,8 +1070,8 @@ class FisherInformation(DataAnalyzer):
         logger.info("Bins with largest statistical uncertainties on rates:")
         for i_bin in order[:report]:
             bin_nd = i_bin + 1
-            if n_bins_first_axis is not None:
-                bin_nd = (i_bin // n_bins_first_axis + 1, i_bin % n_bins_first_axis + 1)
+            if n_bins_last_axis is not None:
+                bin_nd = (i_bin // n_bins_last_axis + 1, i_bin % n_bins_last_axis + 1)
             logger.info(
                 "  Bin %s: (%.5f +/- %.5f) fb (%.0f %%)",
                 bin_nd,
