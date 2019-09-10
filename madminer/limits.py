@@ -520,7 +520,7 @@ class AsymptoticLimits(DataAnalyzer):
         postprocessing=None,
         n_binning_toys=100000,
     ):
-        logger.debug("Calculating p-values for %s expected events", n_events)
+        logger.info("Calculating p-values for %s expected events in mode %s %s rate information", n_events, mode, "including" if include_xsec else "without")
 
         # Inputs
         if thetaref is None and mode in ["sallino", "adaptive-sally"]:
