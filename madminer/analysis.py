@@ -906,7 +906,7 @@ class DataAnalyzer(object):
         if theta is None:
             return None
 
-        benchmarks = self._benchmark_array()[:self.n_benchmarks_phys]
+        benchmarks = self._benchmark_array()[: self.n_benchmarks_phys]
         distances = [np.linalg.norm(benchmark - theta) for benchmark in benchmarks]
 
         # Don't use benchmarks where we don't actually have events

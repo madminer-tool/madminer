@@ -2569,7 +2569,7 @@ class Ensemble:
         mode="score",
         calculate_covariance=True,
         sum_events=True,
-        epsilon_shift=0.001
+        epsilon_shift=0.001,
     ):
         """
         Calculates expected Fisher information matrices for an ensemble of ScoreEstimator instances.
@@ -2803,7 +2803,7 @@ class Ensemble:
                 n_params = score_mean.shape[1]
                 informations_individual = informations_individual.reshape(-1, n_params ** 2)
                 covariance = np.cov(informations_individual.T)
-                covariance /= epsilon_shift**2
+                covariance /= epsilon_shift ** 2
                 covariance = covariance.reshape(n_params, n_params, n_params, n_params)
 
             # Let's check the expected score

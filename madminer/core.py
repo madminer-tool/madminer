@@ -371,7 +371,9 @@ class MadMiner:
     def reset_systematics(self):
         self.systematics = OrderedDict()
 
-    def add_systematics(self, type, systematic_name=None, scale="mu", scale_variations=(0.5,1.,2.0), pdf_variation="CT10"):
+    def add_systematics(
+        self, type, systematic_name=None, scale="mu", scale_variations=(0.5, 1.0, 2.0), pdf_variation="CT10"
+    ):
         """
 
         Parameters
@@ -546,13 +548,13 @@ class MadMiner:
             logger.info("Did not find morphing setup.")
 
         # Systematics setup
-        if self.systematics is None:
+        if len(self.systematics) == 0:
             logger.info("Did not find systematics setup.")
         else:
             logger.info("Found systematics setup with %s nuisance parameter groups", len(self.systematics))
 
             for key, value in six.iteritems(self.systematics):
-                logger.debug("  %s: %s", key, value)
+                logger.debug("  %s: %s", key, " / ".join(value))
 
     def save(self, filename):
         """
@@ -692,6 +694,7 @@ class MadMiner:
         temp_directory=None,
         initial_command=None,
         python2_override=False,
+        systematics=None,
     ):
 
         """
@@ -770,6 +773,9 @@ class MadMiner:
             Python 2.6 or Python 2.7. If you use systematics, make sure that the python interface of LHAPDF was compiled
             with the Python version you are using. Default: False.
 
+        systematics : None or list of str, optional
+            If list of str, defines which systematics are used for this run.
+
         Returns
         -------
             None
@@ -794,6 +800,7 @@ class MadMiner:
             temp_directory=temp_directory,
             initial_command=initial_command,
             python2_override=python2_override,
+            systematics=systematics,
         )
 
     def run_multiple(
@@ -812,6 +819,7 @@ class MadMiner:
         temp_directory=None,
         initial_command=None,
         python2_override=False,
+        systematics=None,
     ):
 
         """
@@ -882,6 +890,9 @@ class MadMiner:
             Python 2.6 or Python 2.7. If you use systematics, make sure that the python interface of LHAPDF was compiled
             with the Python version you are using. Default: False.
 
+        systematics : None or list of str, optional
+            If list of str, defines which systematics are used for these runs.
+
         Returns
         -------
             None
@@ -924,6 +935,14 @@ class MadMiner:
             ]
         )
 
+        # Systematics
+        if systematics is None:
+            systematics_used = self.systematics
+        else:
+            systematics_used = OrderedDict()
+            for key in systematics:
+                systematics_used[key] = self.systematics[key]
+
         # Loop over settings
         i = 0
         mg_scripts = []
@@ -955,9 +974,9 @@ class MadMiner:
                 logger.info("  Log file:                %s", log_file_run)
 
                 # Check input
-                if run_card_file is None and self.systematics is not None:
+                if run_card_file is None and self._check_pdf_or_scale_variation(systematics_used):
                     logger.warning(
-                        "Warning: No run card given, but systematics set up. The correct systematics"
+                        "Warning: No run card given, but PDF or scale variation set up. The correct systematics"
                         " settings are not set automatically. Make sure to set them correctly!"
                     )
 
@@ -975,7 +994,7 @@ class MadMiner:
                     export_run_card(
                         template_filename=run_card_file,
                         run_card_filename=mg_process_directory + "/" + new_run_card_file,
-                        systematics=self.systematics,
+                        systematics=systematics_used,
                     )
 
                 # Copy Pythia card
@@ -1040,3 +1059,9 @@ class MadMiner:
                 "folders:\n\n%s\n\n",
                 expected_event_files,
             )
+
+    def _check_pdf_or_scale_variation(self, systematics):
+        for value in six.itervalues(systematics):
+            if value[0] in ["pdf", "scale"]:
+                return True
+        return False

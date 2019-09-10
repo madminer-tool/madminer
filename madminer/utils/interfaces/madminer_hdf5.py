@@ -358,7 +358,7 @@ def _save_systematics(filename, systematics):
             systematics_names = [key for key in systematics]
             n_systematics = len(systematics_names)
             systematics_names_ascii = _encode(systematics_names)
-            systematics_values = _encode([" ".join(systematics[key]) for key in systematics_names])
+            systematics_values = _encode(["\t".join(systematics[key]) for key in systematics_names])
 
             f.create_dataset("systematics/names", (n_systematics,), dtype="S256", data=systematics_names_ascii)
             f.create_dataset("systematics/values", (n_systematics,), dtype="S256", data=systematics_values)
@@ -641,7 +641,7 @@ def _load_systematics(filename):
 
             systematics = OrderedDict()
             for name, value in zip(systematics_names, systematics_values):
-                systematics[name] = tuple(systematics_values.split())
+                systematics[name] = tuple(systematics_values.split("\t"))
 
         except KeyError:
             systematics = OrderedDict()
