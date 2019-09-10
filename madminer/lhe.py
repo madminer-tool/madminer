@@ -59,6 +59,7 @@ class LHEReader:
         self.sample_k_factors = []
         self.sample_is_backgrounds = []
         self.sampling_benchmarks = []
+        self.sample_systematics = []
 
         # Initialize observables
         self.observables = OrderedDict()
@@ -94,9 +95,6 @@ class LHEReader:
         self.weights = None
         self.events_sampling_benchmark_ids = None
 
-        # Initialize nuisance parameters
-        self.nuisance_parameters = None
-
         # Initialize event summary
         self.signal_events_per_benchmark = None
         self.background_events = None
@@ -109,7 +107,10 @@ class LHEReader:
         self.benchmark_names_phys = list(benchmarks.keys())
         self.n_benchmarks_phys = len(benchmarks)
 
-    def add_sample(self, lhe_filename, sampled_from_benchmark, is_background=False, k_factor=1.0):
+        # Initialize nuisance parameters
+        self.nuisance_parameters = None
+
+    def add_sample(self, lhe_filename, sampled_from_benchmark, is_background=False, k_factor=1.0, systematics=None):
         """
         Adds an LHE sample of simulated events.
 
@@ -128,6 +129,9 @@ class LHEReader:
         k_factor : float, optional
             Multiplies the cross sections found in the sample. Default value: 1.
 
+        systematics : None or list of str, optional
+            List of systematics associated with this sample. Default value: None.
+
         Returns
         -------
             None
@@ -141,6 +145,7 @@ class LHEReader:
         self.sample_is_backgrounds.append(is_background)
         self.sample_k_factors.append(k_factor)
         self.lhe_sample_filenames.append(lhe_filename)
+        self.sample_systematics.append(systematics)
 
     def set_smearing(
         self,
@@ -549,20 +554,31 @@ class LHEReader:
         self.signal_events_per_benchmark = [0 for _ in range(self.n_benchmarks_phys)]
         self.background_events = 0
 
-        for lhe_file, is_background, sampling_benchmark, k_factor in zip(
-            self.lhe_sample_filenames, self.sample_is_backgrounds, self.sampling_benchmarks, self.sample_k_factors
+        for lhe_file, is_background, sampling_benchmark, k_factor, sample_syst_names in zip(
+            self.lhe_sample_filenames,
+            self.sample_is_backgrounds,
+            self.sampling_benchmarks,
+            self.sample_k_factors,
+            self.sample_systematics,
         ):
             logger.info(
-                "Analysing LHE sample %s: Calculating %s observables, requiring %s selection cuts, using %s efficiency "
-                "factors",
+                "Analysing LHE sample %s: Calculating %s observables, requiring %s selection cuts, using %s efficiency"
+                "factors, associated with systematics %s",
                 lhe_file,
                 len(self.observables),
                 len(self.cuts),
                 len(self.efficiencies),
+                sample_syst_names,
             )
 
             this_observations, this_weights, this_n_events = self._parse_sample(
-                is_background, k_factor, lhe_file, parse_events_as_xml, reference_benchmark, sampling_benchmark
+                is_background,
+                k_factor,
+                lhe_file,
+                parse_events_as_xml,
+                reference_benchmark,
+                sampling_benchmark,
+                sample_syst_names,
             )
 
             # No results?
@@ -586,12 +602,12 @@ class LHEReader:
                 continue
 
             # Following results: check consistency with previous results
-            if len(self.weights) != len(this_weights):
-                raise ValueError(
-                    "Number of weights in different files incompatible: {} vs {}".format(
-                        len(self.weights), len(this_weights)
-                    )
-                )
+            # if len(self.weights) != len(this_weights):
+            #     raise ValueError(
+            #         "Number of weights in different files incompatible: {} vs {}".format(
+            #             len(self.weights), len(this_weights)
+            #         )
+            #     )
             if len(self.observations) != len(this_observations):
                 raise ValueError(
                     "Number of observations in different Delphes files incompatible: {} vs {}".format(
@@ -599,11 +615,21 @@ class LHEReader:
                     )
                 )
 
-            # Merge results with previous
+            # Merge weights with previous
             for key in self.weights:
-                assert key in this_weights, "Weight label {} not found in sample!".format(key)
-                self.weights[key] = np.hstack([self.weights[key], this_weights[key]])
+                if key in this_weights:
+                    # Benchmark exists in both samples
+                    self.weights[key] = np.hstack([self.weights[key], this_weights[key]])
+                else:
+                    # Benchmark only in previous samples
+                    self.weights[key] = np.hstack([self.weights[key], this_weights[reference_benchmark]])
+            for key in this_weights:
+                if key in self.weights:
+                    continue
+                # Benchmark only in new samples
+                self.weights[key] = np.hstack([self.weights[reference_benchmark], this_weights[key]])
 
+            # Merge observations with previous (should always be the same observables)
             for key in self.observations:
                 assert key in this_observations, "Observable {} not found in Delphes sample!".format(key)
                 self.observations[key] = np.hstack([self.observations[key], this_observations[key]])
@@ -620,25 +646,35 @@ class LHEReader:
             logger.info("  %s from backgrounds", self.background_events)
 
     def _parse_sample(
-        self, is_background, k_factor, lhe_file, parse_events_as_xml, reference_benchmark, sampling_benchmark
+        self,
+        is_background,
+        k_factor,
+        lhe_file,
+        parse_events_as_xml,
+        reference_benchmark,
+        sampling_benchmark,
+        sample_syst_names,
     ):
+        # Relevant systematics
+        systematics_used = OrderedDict()
+        if sample_syst_names is None:
+            sample_syst_names = []
+        for key in sample_syst_names:
+            systematics_used[key] = self.systematics[key]
+
         # Read systematics setup from LHE file
         logger.debug("Extracting nuisance parameter definitions from LHE file")
-        nuisance_parameters = extract_nuisance_parameters_from_lhe_file(lhe_file, self.systematics)
-        logger.debug("Found %s nuisance parameters with matching benchmarks:", len(nuisance_parameters))
-        for key, value in six.iteritems(nuisance_parameters):
-            logger.debug("  %s: %s", key, value)
+        systematics_dict = extract_nuisance_parameters_from_lhe_file(lhe_file, systematics_used)
+        # systematics_dict has structure {systematics_name : {nuisance_parameter_name : ((benchmark0, weight0), (benchmark1, weight1), processing) } }
 
-        # Compare to existing data
-        if self.nuisance_parameters is None:
-            self.nuisance_parameters = nuisance_parameters
-        else:
-            if dict(self.nuisance_parameters) != dict(nuisance_parameters):
-                raise RuntimeError(
-                    "Different LHE files have different definitions of nuisance parameters / benchmarks!\nPrevious: {}\nNew:{}".format(
-                        self.nuisance_parameters, nuisance_parameters
-                    )
-                )
+        # Store nuisance parameters
+        for systematics_name, nuisance_info in six.iteritems(systematics_dict):
+            for nuisance_parameter_name, ((benchmark0, weight0), (benchmark1, weight1), _) in six.iteritems(
+                nuisance_info
+            ):
+                self.nuisance_parameters[nuisance_parameter_name] = (systematics_name, benchmark0, benchmark1)
+
+        # TODO: from here -- in particular make sure that parse_lhe_file uses systematics_dict correctly
 
         # Calculate observables and weights in LHE file
         this_observations, this_weights = parse_lhe_file(
@@ -659,6 +695,7 @@ class LHEReader:
             phi_resolutions=self.phi_resolution,
             k_factor=k_factor,
             parse_events_as_xml=parse_events_as_xml,
+            systematics_dict=systematics_dict,
         )
 
         # No events found?

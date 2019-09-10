@@ -372,7 +372,13 @@ class MadMiner:
         self.systematics = OrderedDict()
 
     def add_systematics(
-        self, type, systematic_name=None, scale="mu", scale_variations=(0.5, 1.0, 2.0), pdf_variation="CT10"
+        self,
+        type,
+        systematic_name=None,
+        norm_variation=1.1,
+        scale="mu",
+        scale_variations=(0.5, 1.0, 2.0),
+        pdf_variation="CT10",
     ):
         """
 
@@ -390,6 +396,11 @@ class MadMiner:
             If type is "scale", this sets whether only the regularization scale ("mur"), only the factorization scale
             ("muf"), or both simulatenously ("mu") are varied. Default value:
             "mu".
+
+        norm_variation : float, optional
+            If type is "norm", this sets the relative effect of the nuisance parameter on the cross section at the
+            "plus 1 sigma" variation. 1.1 corresponds to a 10% increase, 0.9 to a 10% decrease relative to the nominal
+            cross section. Default value: 1.1.
 
         scale_variations : tuple of float, optional
             If type is "scale", this sets how the regularization and / or factorization scales are varied. A tuple
@@ -423,7 +434,7 @@ class MadMiner:
             assert scale in ["mu", "mur", "muf"]
             self.systematics[systematic_name] = ("scale", scale, scale_variation_string)
         elif type == "norm":
-            self.systematics[systematic_name] = ("norm",)
+            self.systematics[systematic_name] = ("norm", norm_variation)
         else:
             raise ValueError("Unknown systematic type {}, has to be one of 'norm', 'scale', or 'pdf'!".format(type))
 
