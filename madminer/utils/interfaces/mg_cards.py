@@ -210,7 +210,7 @@ def create_systematics_arguments(systematics):
     muf_done = False
     pdf_done = False
 
-    for value in six.itervalues(self.systematics):
+    for value in six.itervalues(systematics):
         if value[0] == "scale" and value[1] == "mu":
             if mur_done or muf_done:
                 raise ValueError("Multiple nuisance parameter for scale variation!")

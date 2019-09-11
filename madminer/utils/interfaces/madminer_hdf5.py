@@ -358,7 +358,9 @@ def _save_systematics(filename, systematics):
             systematics_names = [key for key in systematics]
             n_systematics = len(systematics_names)
             systematics_names_ascii = _encode(systematics_names)
-            systematics_values = _encode(["\t".join(systematics[key]) for key in systematics_names])
+            systematics_values = _encode(
+                ["\t".join([str(entry) for entry in systematics[key]]) for key in systematics_names]
+            )
 
             f.create_dataset("systematics/names", (n_systematics,), dtype="S256", data=systematics_names_ascii)
             f.create_dataset("systematics/values", (n_systematics,), dtype="S256", data=systematics_values)
@@ -656,7 +658,17 @@ def _load_systematics(filename):
 
             systematics = OrderedDict()
             for name, value in zip(systematics_names, systematics_values):
-                systematics[name] = tuple(systematics_values.split("\t"))
+                syst_data = list(systematics_values.split("\t"))
+                if syst_data[0] == "norm":
+                    syst_data[1] = float(syst_data[1])
+                elif syst_data[1] == "pdf":
+                    syst_data[1] = str(syst_data[1])
+                elif syst_data[1] == "scale":
+                    syst_data[1] = str(syst_data[1])
+                    syst_data[2] = str(syst_data[2])
+                else:
+                    raise RuntimeError("Error while reading systematics from HDF5 file: {}".format(syst_data))
+                systematics[name] = tuple(syst_data)
 
         except KeyError:
             systematics = OrderedDict()

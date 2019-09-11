@@ -373,7 +373,7 @@ class MadMiner:
 
     def add_systematics(
         self,
-        type,
+        effect,
         systematic_name=None,
         norm_variation=1.1,
         scale="mu",
@@ -384,7 +384,7 @@ class MadMiner:
 
         Parameters
         ----------
-        type : {"norm", "scale", "pdf"}
+        effect : {"norm", "scale", "pdf"}
             Type of the nuisance parameter. If "norm", it will affect the overall normalization of one or multiple
             samples in the process. If "scale", the nuisance parameter effect will be determined by varying
             factorization or regularization scales (depending on scale_variation and scales). If "pdf", the effect
@@ -421,74 +421,22 @@ class MadMiner:
         # Default name
         if systematic_name is None:
             i = 0
-            while "{}_{}".format(type, i) in list(six.iterkeys(self.systematics)):
+            while "{}_{}".format(effect, i) in list(six.iterkeys(self.systematics)):
                 i += 1
             systematic_name = "{}_{}".format(type, i)
         systematic_name = systematic_name.replace(" ", "_")
         systematic_name = systematic_name.replace("-", "_")
 
-        if type == "pdf":
+        if effect == "pdf":
             self.systematics[systematic_name] = ("pdf", pdf_variation)
-        elif type == "scale":
+        elif effect == "scale":
             scale_variation_string = ",".join([str(factor) for factor in scale_variations])
             assert scale in ["mu", "mur", "muf"]
             self.systematics[systematic_name] = ("scale", scale, scale_variation_string)
-        elif type == "norm":
+        elif effect == "norm":
             self.systematics[systematic_name] = ("norm", norm_variation)
         else:
             raise ValueError("Unknown systematic type {}, has to be one of 'norm', 'scale', or 'pdf'!".format(type))
-
-    # def set_systematics(self, scale_variation=None, scales="together", pdf_variation=None):
-    #     """
-    #     Prepares the simulation of the effect of different nuisance parameters, including scale variations and PDF
-    #     changes.
-    #
-    #     Parameters
-    #     ----------
-    #     scale_variation : None or tuple of float, optional
-    #         If not None, the regularization and / or factorization scales are varied. A tuple like (0.5,1.,2.)
-    #         specifies the factors with which they are varied. Default value: None.
-    #
-    #     scales : {"together", "independent", "mur", "muf"}, optional
-    #         Whether only the regularization scale ("mur"), only the factorization scale ("muf"), both simultanously
-    #         ("together") or both independently ("independent") are varied. Default value: "together".
-    #
-    #     pdf_variation : None or str, optional
-    #         If not None, the PDFs are varied. The option is passed along to the `--pdf` option
-    #         of MadGraph's systematics module. See https://cp3.irmp.ucl.ac.be/projects/madgraph/wiki/Systematics for a
-    #         list. The option "CT10" would, as an example, run over all the eigenvectors of the CTEQ10 set.
-    #
-    #     Returns
-    #     -------
-    #         None
-    #
-    #     """
-    #
-    #     # Check input
-    #     if scales not in ["together", "independent", "mur", "muf"]:
-    #         raise ValueError("Unknown value {} for argument scales".format(scales))
-    #
-    #     # Save systematics setup
-    #     self.systematics = OrderedDict()
-    #
-    #     if scale_variation is not None:
-    #         scale_variation_string = ",".join([str(factor) for factor in scale_variation])
-    #
-    #         if scales == "together":
-    #             self.systematics["mu"] = scale_variation_string
-    #         elif scales == "independent":
-    #             self.systematics["muf"] = scale_variation_string
-    #             self.systematics["mur"] = scale_variation_string
-    #         elif scales == "mur":
-    #             self.systematics["mur"] = scale_variation_string
-    #         elif scales == "muf":
-    #             self.systematics["muf"] = scale_variation_string
-    #
-    #     if pdf_variation is not None:
-    #         self.systematics["pdf"] = pdf_variation
-    #
-    #     if len(self.systematics) == 0:
-    #         self.systematics = None
 
     def load(self, filename, disable_morphing=False):
         """
