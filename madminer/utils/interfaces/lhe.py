@@ -550,7 +550,7 @@ def _extract_nuisance_param_dict(weight_groups, systematics_name, systematics_de
                     logger.warning("Weight group does not have name attribute")
                     continue
 
-                if "mg_reweighting" in wg_name.lower or "scale variation" not in wg_name.lower():
+                if "mg_reweighting" in wg_name.lower() or "scale variation" not in wg_name.lower():
                     continue
                 logger.debug("Found scale variation weight group %s", wg_name)
 

@@ -108,7 +108,7 @@ class LHEReader:
         self.n_benchmarks_phys = len(benchmarks)
 
         # Initialize nuisance parameters
-        self.nuisance_parameters = None
+        self.nuisance_parameters = OrderedDict()
 
     def add_sample(self, lhe_filename, sampled_from_benchmark, is_background=False, k_factor=1.0, systematics=None):
         """
@@ -549,7 +549,7 @@ class LHEReader:
         # Reset observations
         self.observations = None
         self.weights = None
-        self.nuisance_parameters = None
+        self.nuisance_parameters = OrderedDict()
         self.events_sampling_benchmark_ids = None
         self.signal_events_per_benchmark = [0 for _ in range(self.n_benchmarks_phys)]
         self.background_events = 0
@@ -674,7 +674,8 @@ class LHEReader:
                 nuisance_info
             ):
                 if (
-                    nuisance_parameter_name in self.nuisance_parameters
+                    self.nuisance_parameters is not None
+                    and nuisance_parameter_name in self.nuisance_parameters
                     and (systematics_name, benchmark0, benchmark1) != self.nuisance_parameters[nuisance_parameter_name]
                 ):
                     raise RuntimeError(

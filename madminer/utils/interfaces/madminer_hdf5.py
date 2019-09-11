@@ -658,12 +658,12 @@ def _load_systematics(filename):
 
             systematics = OrderedDict()
             for name, value in zip(systematics_names, systematics_values):
-                syst_data = list(systematics_values.split("\t"))
+                syst_data = list(value.split("\t"))
                 if syst_data[0] == "norm":
                     syst_data[1] = float(syst_data[1])
-                elif syst_data[1] == "pdf":
+                elif syst_data[0] == "pdf":
                     syst_data[1] = str(syst_data[1])
-                elif syst_data[1] == "scale":
+                elif syst_data[0] == "scale":
                     syst_data[1] = str(syst_data[1])
                     syst_data[2] = str(syst_data[2])
                 else:
