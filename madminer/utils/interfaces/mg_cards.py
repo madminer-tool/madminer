@@ -146,6 +146,7 @@ def export_run_card(template_filename, run_card_filename, systematics=None):
         "use_syst",
         "systematics_program",
         "systematics_argument",
+        "systematics_arguments",
         "sys_scalefact",
         "sys_alpsfact",
         "sys_matchscale",

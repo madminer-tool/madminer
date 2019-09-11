@@ -307,6 +307,10 @@ def plot_systematics(
 
     """
 
+    # Colors
+    if bandcolors is None:
+        bandcolors = ["C{}".format(i) for i in range(10)]
+
     # Load data
     sa = SampleAugmenter(filename, include_nuisance_parameters=True)
     nuisance_morpher = NuisanceMorpher(
@@ -423,7 +427,7 @@ def plot_systematics(
                 bin_edges_,
                 histo_minus_,
                 histo_plus_,
-                facecolor=bandcolors[i],
+                facecolor=bandcolors[i % len(bandcolors)],
                 alpha=band_alpha,
                 edgecolor="none",
                 label=labels[i],
