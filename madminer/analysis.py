@@ -43,7 +43,7 @@ class DataAnalyzer(object):
             self.morphing_matrix,
             self.observables,
             self.n_samples,
-            _,
+            self.systematics,
             self.reference_benchmark,
             self.nuisance_parameters,
             self.n_events_generated_per_benchmark,

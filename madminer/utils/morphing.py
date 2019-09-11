@@ -665,13 +665,13 @@ class NuisanceMorpher:
         self.i_benchmarks_neg = []
         self.degrees = []
         for key, value in six.iteritems(self.nuisance_parameters):
-            self.i_benchmarks_pos.append(benchmark_names.index(value[0]))
+            self.i_benchmarks_pos.append(benchmark_names.index(value[1]))
             if value[1] is None:
                 self.degrees.append(1)
                 self.i_benchmarks_neg.append(None)
             else:
                 self.degrees.append(2)
-                self.i_benchmarks_neg.append(benchmark_names.index(value[1]))
+                self.i_benchmarks_neg.append(benchmark_names.index(value[2]))
 
     def calculate_a(self, benchmark_weights):
         """
