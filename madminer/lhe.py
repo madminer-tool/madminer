@@ -665,16 +665,26 @@ class LHEReader:
         # Read systematics setup from LHE file
         logger.debug("Extracting nuisance parameter definitions from LHE file")
         systematics_dict = extract_nuisance_parameters_from_lhe_file(lhe_file, systematics_used)
-        # systematics_dict has structure {systematics_name : {nuisance_parameter_name : ((benchmark0, weight0), (benchmark1, weight1), processing) } }
+        # systematics_dict has structure
+        # {systematics_name : {nuisance_parameter_name : ((benchmark0, weight0), (benchmark1, weight1), processing)}}
 
         # Store nuisance parameters
         for systematics_name, nuisance_info in six.iteritems(systematics_dict):
             for nuisance_parameter_name, ((benchmark0, weight0), (benchmark1, weight1), _) in six.iteritems(
                 nuisance_info
             ):
+                if (
+                    nuisance_parameter_name in self.nuisance_parameters
+                    and (systematics_name, benchmark0, benchmark1) != self.nuisance_parameters[nuisance_parameter_name]
+                ):
+                    raise RuntimeError(
+                        "Inconsistent information for same nuisance parameter {}. Old: {}. New: {}.".format(
+                            nuisance_parameter_name,
+                            self.nuisance_parameters[nuisance_parameter_name],
+                            (systematics_name, benchmark0, benchmark1),
+                        )
+                    )
                 self.nuisance_parameters[nuisance_parameter_name] = (systematics_name, benchmark0, benchmark1)
-
-        # TODO: from here -- in particular make sure that parse_lhe_file uses systematics_dict correctly
 
         # Calculate observables and weights in LHE file
         this_observations, this_weights = parse_lhe_file(
@@ -700,7 +710,7 @@ class LHEReader:
 
         # No events found?
         if this_observations is None:
-            logger.debug("No observations in this LHE file, skipping it")
+            logger.warning("No remaining events in this LHE file, skipping it")
             return None, None
         logger.debug("Found weights %s in LHE file", list(this_weights.keys()))
 
@@ -792,6 +802,8 @@ class LHEReader:
         # Save nuisance parameters and benchmarks
         weight_names = list(self.weights.keys())
         logger.debug("Weight names: %s", weight_names)
+
+        # TODO: save nuisance params correctly
 
         save_nuisance_setup_to_madminer_file(
             filename_out,

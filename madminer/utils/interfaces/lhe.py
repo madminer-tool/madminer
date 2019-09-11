@@ -39,6 +39,7 @@ def parse_lhe_file(
     phi_resolutions=None,
     k_factor=1.0,
     parse_events_as_xml=True,
+    systematics_dict=None,
 ):
     """ Extracts observables and weights from a LHE file """
 
@@ -234,13 +235,13 @@ def parse_lhe_file(
         logger.warning("  No observations remaining!")
         return None, None
 
-    # Reformat observations to OrderedDicts with entries {name : (n_events,)}
+    # Reformat observations to OrderedDicts with entries {observable_name : (n_events,)}
     observations_all_events = list(map(list, zip(*observations_all_events)))  # transposes to (n_observables, n_events)
     observations_dict = OrderedDict()
     for key, values in zip(observables.keys(), observations_all_events):
         observations_dict[key] = np.asarray(values)
 
-    # Reformat weightss and add k-factors to weights
+    # Reformat weights and add k-factors to weights
     weights_all_events = np.array(weights_all_events)  # (n_events, n_weights)
     weights_all_events = k_factor * weights_all_events
     weights_all_events = OrderedDict(zip(weight_names_all_events, weights_all_events.T))
@@ -250,7 +251,39 @@ def parse_lhe_file(
         for benchmark_name in benchmark_names:
             weights_all_events[benchmark_name] = weights_all_events[sampling_benchmark]
 
-    return observations_dict, weights_all_events
+    # Re-organize weights again -- necessary for background events and nuisance benchmarks
+    output_weights = OrderedDict()
+    for benchmark_name in benchmark_names:
+        if is_background:
+            output_weights[benchmark_name] = weights_all_events[sampling_benchmark]
+        else:
+            output_weights[benchmark_name] = weights_all_events[benchmark_name]
+    for syst_name, syst_data in six.iteritems(systematics_dict):
+        for (
+            nuisance_param_name,
+            ((nuisance_benchmark0, weight_name0), (nuisance_benchmark1, weight_name1), processing),
+        ) in six.iteritems(syst_data):
+            # Store first benchmark associated with nuisance param
+            if weight_name0 is None:
+                weight_name0 = sampling_benchmark
+            if processing is None:
+                output_weights[nuisance_benchmark0] = weights_all_events[weight_name0]
+            elif isinstance(processing, float):
+                output_weights[nuisance_benchmark0] = processing * weights_all_events[weight_name0]
+            else:
+                raise RuntimeError("Unknown nuisance processiing {}".format(processing))
+
+            # Store second benchmark associated with nuisance param
+            if nuisance_benchmark1 is None or weight_name1 is None:
+                continue
+            if processing is None:
+                output_weights[nuisance_benchmark1] = weights_all_events[weight_name1]
+            elif isinstance(processing, float):
+                output_weights[nuisance_benchmark1] = processing * weights_all_events[weight_name1]
+            else:
+                raise RuntimeError("Unknown nuisance processing {}".format(processing))
+
+    return observations_dict, output_weights
 
 
 def _report_parse_results(
