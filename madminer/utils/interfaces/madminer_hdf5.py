@@ -85,7 +85,7 @@ def save_events_to_madminer_file(
     logger.debug("Weight names found in event file: %s", [key for key in weights])
     logger.debug("Benchmarks found in MadMiner file: %s", benchmark_names)
     weights_sorted = _sort_weights(benchmark_names, weights)
-    
+
     if weights is None or observations is None:
         return
     _save_events(

@@ -666,7 +666,7 @@ class NuisanceMorpher:
         self.degrees = []
         for key, value in six.iteritems(self.nuisance_parameters):
             self.i_benchmarks_pos.append(benchmark_names.index(value[1]))
-            if value[1] is None:
+            if value[2] is None:
                 self.degrees.append(1)
                 self.i_benchmarks_neg.append(None)
             else:

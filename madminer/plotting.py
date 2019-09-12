@@ -257,7 +257,7 @@ def plot_systematics(
     n_toys=100,
     linecolor="black",
     bandcolors=None,
-    band_alpha=0.3,
+    band_alpha=0.2,
     ratio_range=(0.8, 1.2),
 ):
     """
@@ -353,15 +353,19 @@ def plot_systematics(
     nuisance_toys = nuisance_toys.reshape(n_systematics, n_toys, n_nuisance_params)
 
     # Restrict nuisance parameters
+    all_nuisance_parameters = list(six.iterkeys(sa.nuisance_parameters))
     for i_syst, syst_name in enumerate(six.iterkeys(sa.systematics)):
-        nuisance_parameters = []
+        n_used = n_nuisance_params
+        used_nuisance_parameters = []
         for npar, (npar_syst, _, _) in six.iteritems(sa.nuisance_parameters):
             if npar_syst == syst_name:
-                nuisance_parameters.append(npar)
+                used_nuisance_parameters.append(npar)
 
         for i in range(n_nuisance_params):
-            if i not in nuisance_parameters:
+            if all_nuisance_parameters[i] not in used_nuisance_parameters:
                 nuisance_toys[i_syst, :, i] = 0.0
+                n_used -= 1
+        logger.debug("Systematics %s based on %s nuisance parameters", syst_name, n_used)
 
     nuisance_toys = nuisance_toys.reshape(n_systematics * n_toys, n_nuisance_params)
 
@@ -432,6 +436,8 @@ def plot_systematics(
                 edgecolor="none",
                 label=labels[i],
             )
+            plt.plot(bin_edges_, histo_minus_, color=bandcolors[i % len(bandcolors)], lw=1.0, ls="-")
+            plt.plot(bin_edges_, histo_plus_, color=bandcolors[i % len(bandcolors)], lw=1.0, ls="-")
         plt.plot(bin_edges_, histo_central_, color=linecolor, lw=1.5, ls="-")
 
     # Make plot
