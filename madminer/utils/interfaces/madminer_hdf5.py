@@ -85,7 +85,7 @@ def save_events_to_madminer_file(
     logger.debug("Weight names found in event file: %s", [key for key in weights])
     logger.debug("Benchmarks found in MadMiner file: %s", benchmark_names)
     weights_sorted = _sort_weights(benchmark_names, weights)
-
+    
     if weights is None or observations is None:
         return
     _save_events(
@@ -723,9 +723,7 @@ def _sort_weights(benchmark_names, weights):
             weights_sorted.append(weights[key])
         for key in sorted(weights.keys()):
             if key not in benchmark_names:
-                weights_sorted.append(key)
-
-        logger.debug("Sorted benchmarks: %s", benchmark_names)
+                weights_sorted.append(weights[key])
     except Exception as e:
         logger.warning("Issue matching weight names in HepMC file to benchmark names in MadMiner file:\n%s", e)
         weights_sorted = [weights[key] for key in weights]

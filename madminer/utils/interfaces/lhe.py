@@ -170,6 +170,7 @@ def parse_lhe_file(
                 weight_names_all_events,
                 weights,
                 global_event_data=global_event_data,
+                print_event=i_event + 1 if i_event < 20 else 0,
             )
 
             # Skip events that fail anything
@@ -208,6 +209,7 @@ def parse_lhe_file(
                 pt_resolutions,
                 weight_names_all_events,
                 weights,
+                print_event=i_event + 1 if i_event < 20 else 0,
             )
 
             # Skip events that fail anything
@@ -333,6 +335,7 @@ def _parse_event(
     weight_names_all_events,
     weights,
     global_event_data=None,
+    print_event=0,
 ):
     # Negative weights?
     n_events_with_negative_weights = _report_negative_weights(n_events_with_negative_weights, weights)
@@ -376,6 +379,17 @@ def _parse_event(
             weights *= total_efficiency
 
     pass_all = pass_all_cuts and pass_all_efficiencies and pass_all_observation
+
+    if print_event > 0:
+        logger.debug(
+            "Event {} {} observations, {} cuts, {} efficiencies -> {}".format(
+                print_event,
+                "passes" if pass_all_observation else "FAILS",
+                "passes" if pass_all_cuts else "FAILS",
+                "passes" if pass_all_efficiencies else "FAILS",
+                "passes" if pass_all else "FAILS",
+            )
+        )
     return n_events_with_negative_weights, observations, pass_all, weight_names_all_events, weights
 
 
@@ -547,9 +561,9 @@ def _extract_nuisance_param_dict(weight_groups, systematics_name, systematics_de
                 try:
                     wg_name = wg.attrib["name"]
                 except KeyError:
-                    logger.warning("New wWeight group: does not have name attribute, skipping")
+                    logger.warning("New weight group: does not have name attribute, skipping")
                     continue
-                logger.debug("New weight group: %s", wg)
+                logger.debug("New weight group: %s", wg_name)
 
                 if "mg_reweighting" in wg_name.lower() or "scale variation" not in wg_name.lower():
                     continue
@@ -618,14 +632,14 @@ def _extract_nuisance_param_dict(weight_groups, systematics_name, systematics_de
             except KeyError:
                 logger.warning("New wWeight group: does not have name attribute, skipping")
                 continue
-            logger.debug("New weight group: %s", wg)
+            logger.debug("New weight group: %s", wg_name)
 
             if "mg_reweighting" in wg_name.lower() or not (
                 systematics_definition[1] in wg_name.lower() or "pdf" in wg_name.lower() or "ct" in wg_name.lower()
             ):
                 continue
 
-            logger.debug("Weight group identified as scale variation")
+            logger.debug("Weight group identified as PDF variation")
             weights = wg.findall("weight")
 
             for i, weight in enumerate(weights):

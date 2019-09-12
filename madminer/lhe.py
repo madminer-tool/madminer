@@ -610,18 +610,23 @@ class LHEReader:
                 )
 
             # Merge weights with previous
+            logging.debug("Merging data extracted from this file with data from previous files")
+            previous_reference_weights = np.copy(self.weights[reference_benchmark])
             for key in self.weights:
                 if key in this_weights:
                     # Benchmark exists in both samples
                     self.weights[key] = np.hstack([self.weights[key], this_weights[key]])
+                    logging.debug("  Weights for benchmark %s exist in both", key)
                 else:
                     # Benchmark only in previous samples
                     self.weights[key] = np.hstack([self.weights[key], this_weights[reference_benchmark]])
+                    logging.debug("  Weights for benchmark %s exist only in previous files", key)
             for key in this_weights:
                 if key in self.weights:
                     continue
                 # Benchmark only in new samples
-                self.weights[key] = np.hstack([self.weights[reference_benchmark], this_weights[key]])
+                self.weights[key] = np.hstack([previous_reference_weights, this_weights[key]])
+                logging.debug("  Weights for benchmark %s exist only in new file", key)
 
             # Merge observations with previous (should always be the same observables)
             for key in self.observations:
