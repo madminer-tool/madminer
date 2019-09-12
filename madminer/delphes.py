@@ -60,6 +60,7 @@ class DelphesReader:
         self.lhe_sample_filenames_for_weights = []
         self.delphes_sample_filenames = []
         self.sample_k_factors = []
+        self.sample_systematics = []
 
         # Initialize observables
         self.observables = OrderedDict()
@@ -86,9 +87,6 @@ class DelphesReader:
         self.weights = None
         self.events_sampling_benchmark_ids = None
 
-        # Initialize nuisance parameters
-        self.nuisance_parameters = None
-
         # Initialize event summary
         self.signal_events_per_benchmark = None
         self.background_events = None
@@ -101,6 +99,9 @@ class DelphesReader:
         self.benchmark_names_phys = list(benchmarks.keys())
         self.n_benchmarks_phys = len(benchmarks)
 
+        # Initialize nuisance parameters
+        self.nuisance_parameters = OrderedDict()
+
     def add_sample(
         self,
         hepmc_filename,
@@ -110,6 +111,7 @@ class DelphesReader:
         lhe_filename=None,
         k_factor=1.0,
         weights="lhe",
+        systematics=None,
     ):
         """
         Adds a sample of simulated events. A HepMC file (from Pythia) has to be provided always, since some relevant
@@ -152,6 +154,9 @@ class DelphesReader:
             weights to "lhe" and providing the unweighted LHE file from MadGraph may be an easy fix. Default value:
             "lhe".
 
+        systematics : None or list of str, optional
+            List of systematics associated with this sample. Default value: None.
+
         Returns
         -------
             None
@@ -177,6 +182,7 @@ class DelphesReader:
         self.sample_k_factors.append(k_factor)
         self.delphes_sample_filenames.append(delphes_filename)
         self.lhe_sample_filenames.append(lhe_filename)
+        self.sample_systematics.append(systematics)
 
         if weights == "lhe" and lhe_filename is not None:
             self.hepmc_sample_weight_labels.append(None)
@@ -550,7 +556,7 @@ class DelphesReader:
         # Reset observations
         self.observations = None
         self.weights = None
-        self.nuisance_parameters = None
+        self.nuisance_parameters = OrderedDict()
         self.events_sampling_benchmark_ids = None
         self.signal_events_per_benchmark = [0 for _ in range(self.n_benchmarks_phys)]
         self.background_events = 0
@@ -563,6 +569,7 @@ class DelphesReader:
             lhe_file,
             lhe_file_for_weights,
             k_factor,
+            sample_syst_names,
         ) in zip(
             self.delphes_sample_filenames,
             self.hepmc_sample_weight_labels,
@@ -571,12 +578,15 @@ class DelphesReader:
             self.lhe_sample_filenames,
             self.lhe_sample_filenames_for_weights,
             self.sample_k_factors,
+            self.sample_systematics,
         ):
             logger.info(
-                "Analysing Delphes sample %s: Calculating %s observables, requiring %s selection cuts",
+                "Analysing Delphes sample %s: Calculating %s observables, requiring %s selection cuts, associated with "
+                "systematics %s",
                 delphes_file,
                 len(self.observables),
                 len(self.cuts),
+                ", ".join(list(sample_syst_names)),
             )
 
             this_observations, this_weights, this_n_events = self._analyse_delphes_sample(
@@ -591,6 +601,7 @@ class DelphesReader:
                 reference_benchmark,
                 sampling_benchmark,
                 weight_labels,
+                sample_syst_names,
             )
 
             # No events?
@@ -614,12 +625,6 @@ class DelphesReader:
                 continue
 
             # Following results: check consistency with previous results
-            if len(self.weights) != len(this_weights):
-                raise ValueError(
-                    "Number of weights in different files incompatible: {} vs {}".format(
-                        len(self.weights), len(this_weights)
-                    )
-                )
             if len(self.observations) != len(this_observations):
                 raise ValueError(
                     "Number of observations in different Delphes files incompatible: {} vs {}".format(
@@ -627,11 +632,26 @@ class DelphesReader:
                     )
                 )
 
-            # Merge results with previous
+            # Merge weights with previous
+            logging.debug("Merging data extracted from this file with data from previous files")
+            previous_reference_weights = np.copy(self.weights[reference_benchmark])
             for key in self.weights:
-                assert key in this_weights, "Weight label {} not found in sample!".format(key)
-                self.weights[key] = np.hstack([self.weights[key], this_weights[key]])
+                if key in this_weights:
+                    # Benchmark exists in both samples
+                    self.weights[key] = np.hstack([self.weights[key], this_weights[key]])
+                    logging.debug("  Weights for benchmark %s exist in both", key)
+                else:
+                    # Benchmark only in previous samples
+                    self.weights[key] = np.hstack([self.weights[key], this_weights[reference_benchmark]])
+                    logging.debug("  Weights for benchmark %s exist only in previous files", key)
+            for key in this_weights:
+                if key in self.weights:
+                    continue
+                # Benchmark only in new samples
+                self.weights[key] = np.hstack([previous_reference_weights, this_weights[key]])
+                logging.debug("  Weights for benchmark %s exist only in new file", key)
 
+            # Merge observations with previous (should always be the same observables)
             for key in self.observations:
                 assert key in this_observations, "Observable {} not found in Delphes sample!".format(key)
                 self.observations[key] = np.hstack([self.observations[key], this_observations[key]])
@@ -660,23 +680,47 @@ class DelphesReader:
         reference_benchmark,
         sampling_benchmark,
         weight_labels,
+        sample_syst_names,
     ):
+        # Relevant systematics
+        systematics_used = OrderedDict()
+        if sample_syst_names is None:
+            sample_syst_names = []
+        for key in sample_syst_names:
+            systematics_used[key] = self.systematics[key]
+
+        if len(systematics_used) > 0 and lhe_file_for_weights is None:
+            raise NotImplementedError(
+                "Systematic uncertainties are currently only supported when the weights"
+                " are extracted from the LHE file (instead of the HepMC / Delphes ROOT"
+                " file). Please use the keyword lhe_filename when calling add_sample()."
+            )
+
         # Read systematics setup from LHE file
         logger.debug("Extracting nuisance parameter definitions from LHE file")
-        nuisance_parameters = extract_nuisance_parameters_from_lhe_file(lhe_file, self.systematics)
-        logger.debug("Found %s nuisance parameters with matching benchmarks:", len(nuisance_parameters))
-        for key, value in six.iteritems(nuisance_parameters):
-            logger.debug("  %s: %s", key, value)
+        systematics_dict = extract_nuisance_parameters_from_lhe_file(lhe_file, systematics_used)
+        logger.debug("systematics_dict: %s", systematics_dict)
+        # systematics_dict has structure
+        # {systematics_name : {nuisance_parameter_name : ((benchmark0, weight0), (benchmark1, weight1), processing)}}
 
-        # Compare to existing data
-        if self.nuisance_parameters is None:
-            self.nuisance_parameters = nuisance_parameters
-        else:
-            if dict(self.nuisance_parameters) != dict(nuisance_parameters):
-                raise RuntimeError(
-                    "Different LHE files have different definitions of nuisance parameters / benchmarks!\n"
-                    "Previous: {}\nNew:{}".format(self.nuisance_parameters, nuisance_parameters)
-                )
+        # Store nuisance parameters
+        for systematics_name, nuisance_info in six.iteritems(systematics_dict):
+            for nuisance_parameter_name, ((benchmark0, weight0), (benchmark1, weight1), _) in six.iteritems(
+                nuisance_info
+            ):
+                if (
+                    self.nuisance_parameters is not None
+                    and nuisance_parameter_name in self.nuisance_parameters
+                    and (systematics_name, benchmark0, benchmark1) != self.nuisance_parameters[nuisance_parameter_name]
+                ):
+                    raise RuntimeError(
+                        "Inconsistent information for same nuisance parameter {}. Old: {}. New: {}.".format(
+                            nuisance_parameter_name,
+                            self.nuisance_parameters[nuisance_parameter_name],
+                            (systematics_name, benchmark0, benchmark1),
+                        )
+                    )
+                self.nuisance_parameters[nuisance_parameter_name] = (systematics_name, benchmark0, benchmark1)
 
         # Calculate observables and weights in Delphes ROOT file
         this_observations, this_weights, cut_filter = parse_delphes_root_file(
@@ -700,7 +744,7 @@ class DelphesReader:
         )
         # No events found?
         if this_observations is None:
-            logger.debug("No observations in this Delphes file, skipping it")
+            logger.warning("No remaining events in this Delphes file, skipping it")
             return None, None, None
 
         if this_weights is not None:
@@ -719,6 +763,7 @@ class DelphesReader:
                 sampling_benchmark=sampling_benchmark,
                 observables=OrderedDict(),
                 parse_events_as_xml=parse_lhe_events_as_xml,
+                systematics_dict=systematics_dict,
             )
 
             logger.debug("Found weights %s in LHE file", list(this_weights.keys()))

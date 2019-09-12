@@ -803,8 +803,6 @@ class LHEReader:
         weight_names = list(self.weights.keys())
         logger.debug("Weight names: %s", weight_names)
 
-        # TODO: save nuisance params correctly
-
         save_nuisance_setup_to_madminer_file(
             filename_out,
             weight_names,
