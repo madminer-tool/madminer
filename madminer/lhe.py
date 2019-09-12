@@ -563,12 +563,12 @@ class LHEReader:
         ):
             logger.info(
                 "Analysing LHE sample %s: Calculating %s observables, requiring %s selection cuts, using %s efficiency"
-                "factors, associated with systematics %s",
+                " factors, associated with systematics %s",
                 lhe_file,
                 len(self.observables),
                 len(self.cuts),
                 len(self.efficiencies),
-                sample_syst_names,
+                ", ".join(list(sample_syst_names)),
             )
 
             this_observations, this_weights, this_n_events = self._parse_sample(
@@ -602,12 +602,6 @@ class LHEReader:
                 continue
 
             # Following results: check consistency with previous results
-            # if len(self.weights) != len(this_weights):
-            #     raise ValueError(
-            #         "Number of weights in different files incompatible: {} vs {}".format(
-            #             len(self.weights), len(this_weights)
-            #         )
-            #     )
             if len(self.observations) != len(this_observations):
                 raise ValueError(
                     "Number of observations in different Delphes files incompatible: {} vs {}".format(
@@ -665,6 +659,7 @@ class LHEReader:
         # Read systematics setup from LHE file
         logger.debug("Extracting nuisance parameter definitions from LHE file")
         systematics_dict = extract_nuisance_parameters_from_lhe_file(lhe_file, systematics_used)
+        logger.debug("systematics_dict: %s", systematics_dict)
         # systematics_dict has structure
         # {systematics_name : {nuisance_parameter_name : ((benchmark0, weight0), (benchmark1, weight1), processing)}}
 
@@ -735,7 +730,6 @@ class LHEReader:
         n_events = None
         for key, obs in six.iteritems(this_observations):
             this_n_events = len(obs)
-            logger.debug("Found {} events in Obs {}".format(this_n_events, key))
             if n_events is None:
                 n_events = this_n_events
                 logger.debug("Found %s events", n_events)

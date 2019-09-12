@@ -298,11 +298,11 @@ def _report_parse_results(
     pass_efficiencies,
 ):
     for n_pass, n_fail, cut in zip(pass_cuts, fail_cuts, cuts):
-        logger.debug("  %s / %s events pass cut %s", n_pass, n_pass + n_fail, cut)
+        logger.info("  %s / %s events pass cut %s", n_pass, n_pass + n_fail, cut)
     for n_pass, n_fail, efficiency in zip(pass_efficiencies, fail_efficiencies, efficiencies):
-        logger.debug("  %s / %s events pass efficiency %s", n_pass, n_pass + n_fail, efficiency)
+        logger.info("  %s / %s events pass efficiency %s", n_pass, n_pass + n_fail, efficiency)
     for n_eff, efficiency, n_pass, n_fail in zip(avg_efficiencies, efficiencies, pass_efficiencies, fail_efficiencies):
-        logger.debug("  average efficiency for %s is %s", efficiency, n_eff / (n_pass + n_fail))
+        logger.info("  average efficiency for %s is %s", efficiency, n_eff / (n_pass + n_fail))
     n_events_pass = len(observations_all_events)
     if len(cuts) > 0:
         logger.info("  %s events pass all cuts/efficiencies", n_events_pass)
@@ -519,7 +519,8 @@ def _extract_nuisance_param_dict(weight_groups, systematics_name, systematics_de
 
     if syst_type == "norm":
         nuisance_param_name = "{}_nuisance_param_0".format(systematics_name)
-        nuisance_param_definition = (None, None), (None, None), systematics_definition[1]
+        benchmark_name = "{}_benchmark_0".format(nuisance_param_name)
+        nuisance_param_definition = (benchmark_name, None), (None, None), systematics_definition[1]
         return {nuisance_param_name: nuisance_param_definition}
 
     elif syst_type == "scale":
@@ -543,16 +544,16 @@ def _extract_nuisance_param_dict(weight_groups, systematics_name, systematics_de
 
             # Loop over weight groups and weights and identify benchmarks
             for wg in weight_groups:
-                logger.debug("Weight group: %s", wg)
                 try:
                     wg_name = wg.attrib["name"]
                 except KeyError:
-                    logger.warning("Weight group does not have name attribute")
+                    logger.warning("New wWeight group: does not have name attribute, skipping")
                     continue
+                logger.debug("New weight group: %s", wg)
 
                 if "mg_reweighting" in wg_name.lower() or "scale variation" not in wg_name.lower():
                     continue
-                logger.debug("Found scale variation weight group %s", wg_name)
+                logger.debug("Weight group identified as scale variation")
 
                 weights = wg.findall("weight")
 
@@ -612,19 +613,19 @@ def _extract_nuisance_param_dict(weight_groups, systematics_name, systematics_de
         nuisance_dict = OrderedDict()
         # Loop over weight groups and weights and identify benchmarks
         for wg in weight_groups:
-            logger.debug("Weight group: %s", wg)
             try:
                 wg_name = wg.attrib["name"]
             except KeyError:
-                logger.warning("Weight group does not have name attribute")
+                logger.warning("New wWeight group: does not have name attribute, skipping")
                 continue
+            logger.debug("New weight group: %s", wg)
 
             if "mg_reweighting" in wg_name.lower() or not (
                 systematics_definition[1] in wg_name.lower() or "pdf" in wg_name.lower() or "ct" in wg_name.lower()
             ):
                 continue
 
-            logger.debug("Found PDF variation weight group %s", wg_name)
+            logger.debug("Weight group identified as scale variation")
             weights = wg.findall("weight")
 
             for i, weight in enumerate(weights):
