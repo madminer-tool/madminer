@@ -263,14 +263,17 @@ class DataAnalyzer(object):
              account. Otherwise, the list has to have the same number of elements as thetas, and each entry can specify
              nuisance parameters at nominal value (None) or a value of the nuisance parameters (ndarray).
 
-        include_nuisance_benchmarks : bool, optional
-            Whether to include nuisance benchmarks if thetas is None. Default value: True.
+        partition : {"train", "test", "validation", "all"}, optional
+            Which event partition to use. Default: "all".
 
         test_split : float, optional
             Fraction of events reserved for testing. Default value: 0.2.
 
-        partition : {"train", "test", "validation", "all"}, optional
-            Which events to use. Default: "all".
+        validation_split : float, optional
+            Fraction of weighted events reserved for validation. Default value: 0.2.
+
+        include_nuisance_benchmarks : bool, optional
+            Whether to include nuisance benchmarks if thetas is None. Default value: True.
 
         batch_size : int, optional
             Size of the batches of events that are loaded into memory at the same time. Default value: 100000.
