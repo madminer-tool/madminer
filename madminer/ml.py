@@ -401,7 +401,7 @@ class ParameterizedRatioEstimator(ConditionalEstimator):
         limit_samplesize=None,
         memmap=False,
         verbose="some",
-        scale_parameters=False,
+        scale_parameters=True,
     ):
 
         """
@@ -414,8 +414,7 @@ class ParameterizedRatioEstimator(ConditionalEstimator):
             and 'rolr'.
 
         x : ndarray or str
-            Path to an unweighted sample of observations, as saved by the `madminer.sampling.SampleAugmenter` functions.
-            Required for all inference methods.
+            Observations, or filename of a pickled numpy array.
 
         y : ndarray or str
             Class labels (0 = numeerator, 1 = denominator), or filename of a pickled numpy array.
@@ -428,6 +427,31 @@ class ParameterizedRatioEstimator(ConditionalEstimator):
 
         t_xz : ndarray or str or None, optional
             Joint scores at theta, or filename of a pickled numpy array. Default value: None.
+
+        x_val : ndarray or str or None, optional
+            Validation observations, or filename of a pickled numpy array. If None
+            and validation_split > 0, validation data will be randomly selected from the training data.
+            Default value: None.
+
+        y_val : ndarray or str or None, optional
+            Validation labels (0 = numerator, 1 = denominator), or filename of a pickled numpy array. If None
+            and validation_split > 0, validation data will be randomly selected from the training data.
+            Default value: None.
+
+        theta_val : ndarray or str or None, optional
+            Validation numerator parameter points, or filename of a pickled numpy array. If None
+            and validation_split > 0, validation data will be randomly selected from the training data.
+            Default value: None.
+
+        r_xz_val : ndarray or str or None, optional
+            Validation joint likelihood ratio, or filename of a pickled numpy array. If None
+            and validation_split > 0, validation data will be randomly selected from the training data.
+            Default value: None.
+
+        t_xz_val : ndarray or str or None, optional
+            Validation joint scores at theta, or filename of a pickled numpy array. If None
+            and validation_split > 0, validation data will be randomly selected from the training data.
+            Default value: None.
 
         alpha : float, optional
             Hyperparameter weighting the score error in the loss function of the 'alices', 'rascal', and 'cascal'
@@ -476,6 +500,10 @@ class ParameterizedRatioEstimator(ConditionalEstimator):
 
         verbose : {"all", "many", "some", "few", "none}, optional
             Determines verbosity of training. Default value: "some".
+
+        scale_parameters : bool, optional
+            Whether parameters are rescaled to mean zero and unit variance before going into the neural network.
+            Default value: True.
 
         Returns
         -------
@@ -837,7 +865,7 @@ class DoubleParameterizedRatioEstimator(ConditionalEstimator):
         limit_samplesize=None,
         memmap=False,
         verbose="some",
-        scale_parameters=False,
+        scale_parameters=True,
     ):
 
         """
@@ -850,8 +878,7 @@ class DoubleParameterizedRatioEstimator(ConditionalEstimator):
             and 'rolr'.
 
         x : ndarray or str
-            Path to an unweighted sample of observations, as saved by the `madminer.sampling.SampleAugmenter` functions.
-            Required for all inference methods.
+            Observations, or filename of a pickled numpy array.
 
         y : ndarray or str
             Class labels (0 = numeerator, 1 = denominator), or filename of a pickled numpy array.
@@ -870,6 +897,41 @@ class DoubleParameterizedRatioEstimator(ConditionalEstimator):
 
         t_xz1 : ndarray or str or None, optional
             Joint scores at theta1, or filename of a pickled numpy array. Default value: None.
+
+        x_val : ndarray or str or None, optional
+            Validation observations, or filename of a pickled numpy array. If None
+            and validation_split > 0, validation data will be randomly selected from the training data.
+            Default value: None.
+
+        y_val : ndarray or str or None, optional
+            Validation labels (0 = numerator, 1 = denominator), or filename of a pickled numpy array. If None
+            and validation_split > 0, validation data will be randomly selected from the training data.
+            Default value: None.
+
+        theta0_val : ndarray or str or None, optional
+            Validation numerator parameter points, or filename of a pickled numpy array. If None
+            and validation_split > 0, validation data will be randomly selected from the training data.
+            Default value: None.
+
+        theta1_val : ndarray or str or None, optional
+            Validation denominator parameter points, or filename of a pickled numpy array. If None
+            and validation_split > 0, validation data will be randomly selected from the training data.
+            Default value: None.
+
+        r_xz_val : ndarray or str or None, optional
+            Validation joint likelihood ratio, or filename of a pickled numpy array. If None
+            and validation_split > 0, validation data will be randomly selected from the training data.
+            Default value: None.
+
+        t_xz0_val : ndarray or str or None, optional
+            Validation joint scores at theta0, or filename of a pickled numpy array. If None
+            and validation_split > 0, validation data will be randomly selected from the training data.
+            Default value: None.
+
+        t_xz1_val : ndarray or str or None, optional
+            Validation joint scores at theta1, or filename of a pickled numpy array. If None
+            and validation_split > 0, validation data will be randomly selected from the training data.
+            Default value: None.
 
         alpha : float, optional
             Hyperparameter weighting the score error in the loss function of the 'alices', 'rascal', and 'cascal'
@@ -1820,7 +1882,7 @@ class LikelihoodEstimator(ConditionalEstimator):
         limit_samplesize=None,
         memmap=False,
         verbose="some",
-        scale_parameters=False,
+        scale_parameters=True,
     ):
 
         """
@@ -1832,14 +1894,28 @@ class LikelihoodEstimator(ConditionalEstimator):
             The inference method used for training. Allowed values are 'nde' and 'scandal'.
 
         x : ndarray or str
-            Path to an unweighted sample of observations, as saved by the `madminer.sampling.SampleAugmenter` functions.
-            Required for all inference methods.
+            Observations, or filename of a pickled numpy array.
 
         theta : ndarray or str
             Numerator parameter point, or filename of a pickled numpy array.
 
         t_xz : ndarray or str or None, optional
             Joint scores at theta, or filename of a pickled numpy array. Default value: None.
+
+        x_val : ndarray or str or None, optional
+            Validation observations, or filename of a pickled numpy array. If None
+            and validation_split > 0, validation data will be randomly selected from the training data.
+            Default value: None.
+
+        theta_val : ndarray or str or None, optional
+            Validation numerator parameter points, or filename of a pickled numpy array. If None
+            and validation_split > 0, validation data will be randomly selected from the training data.
+            Default value: None.
+
+        t_xz_val : ndarray or str or None, optional
+            Validation joint scores at theta, or filename of a pickled numpy array. If None
+            and validation_split > 0, validation data will be randomly selected from the training data.
+            Default value: None.
 
         alpha : float, optional
             Hyperparameter weighting the score error in the loss function of the 'alices', 'rascal', and 'cascal'
@@ -1888,6 +1964,10 @@ class LikelihoodEstimator(ConditionalEstimator):
 
         verbose : {"all", "many", "some", "few", "none}, optional
             Determines verbosity of training. Default value: "some".
+
+        scale_parameters : bool, optional
+            Whether parameters are rescaled to mean zero and unit variance before going into the neural network.
+            Default value: True.
 
         Returns
         -------
@@ -2569,7 +2649,7 @@ class Ensemble:
         mode="score",
         calculate_covariance=True,
         sum_events=True,
-        epsilon_shift=0.001
+        epsilon_shift=0.001,
     ):
         """
         Calculates expected Fisher information matrices for an ensemble of ScoreEstimator instances.
@@ -2625,6 +2705,9 @@ class Ensemble:
             If True or mode is "information", the expected Fisher information summed over the events x is calculated.
             If False and mode is "score", the per-event Fisher information for each event is returned. Default value:
             True.
+
+        epsilon_shift : float, optional
+            Small numerical factor in the error propagation. Default value: 0.001.
 
         Returns
         -------
@@ -2803,7 +2886,7 @@ class Ensemble:
                 n_params = score_mean.shape[1]
                 informations_individual = informations_individual.reshape(-1, n_params ** 2)
                 covariance = np.cov(informations_individual.T)
-                covariance /= epsilon_shift**2
+                covariance /= epsilon_shift ** 2
                 covariance = covariance.reshape(n_params, n_params, n_params, n_params)
 
             # Let's check the expected score

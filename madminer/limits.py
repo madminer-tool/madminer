@@ -204,6 +204,16 @@ class AsymptoticLimits(DataAnalyzer):
             "auto-grid" or "auto-center", this option is turned on if mode is  "histo" or "sally", but not for
             "adaptive-sally" or "sallino". Default value: "auto-grid".
 
+        return_observed : bool, optional
+            Whether the observed values of the summary statistics are returned. Default value: False.
+
+        postprocessing : None or function
+            If not None, points to a function that processes the summary statistics before being fed into
+            histograms. Default value: None.
+
+        n_binning_toys : int or None
+            Number of toy events used to determine the binning of adaptive histograms. Default value: 100000.
+
         Returns
         -------
         parameter_grid : ndarray
@@ -407,6 +417,20 @@ class AsymptoticLimits(DataAnalyzer):
             If True, only events originally generated from the closest benchmarks are used when generating
             the Asimov data (and, if weighted_histo is False, the histogram data). Default value: True.
 
+        return_asimov : bool, optional
+            Whether the values of the summary statistics in the Asimov ("expected observed") data set are returned.
+            Default value: False.
+
+        postprocessing : None or function, optional
+            If not None, points to a function that processes the summary statistics before being fed into
+            histograms. Default value: None.
+
+        n_binning_toys : int or None, optional
+            Number of toy events used to determine the binning of adaptive histograms. Default value: 100000.
+
+        n_asimov : int or None, optional
+            Size of the Asimov sample. If None, all weighted events in the MadMiner file are used. Default value: None.
+
         Returns
         -------
         parameter_grid : ndarray
@@ -520,7 +544,12 @@ class AsymptoticLimits(DataAnalyzer):
         postprocessing=None,
         n_binning_toys=100000,
     ):
-        logger.debug("Calculating p-values for %s expected events", n_events)
+        logger.info(
+            "Calculating p-values for %s expected events in mode %s %s rate information",
+            n_events,
+            mode,
+            "including" if include_xsec else "without",
+        )
 
         # Inputs
         if thetaref is None and mode in ["sallino", "adaptive-sally"]:

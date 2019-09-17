@@ -135,11 +135,18 @@ def export_run_card(template_filename, run_card_filename, systematics=None):
 
     run_card_lines = run_card_template.split("\n")
 
+    # Do we actually have to run MadGraph's systematics feature?
+    run_systematics = False
+    for value in six.itervalues(systematics):
+        if value[0] in ["pdf", "scale"]:
+            run_systematics = True
+
     # Lines to be removed
     entries_to_comment_out = [
         "use_syst",
         "systematics_program",
         "systematics_argument",
+        "systematics_arguments",
         "sys_scalefact",
         "sys_alpsfact",
         "sys_matchscale",
@@ -149,7 +156,7 @@ def export_run_card(template_filename, run_card_filename, systematics=None):
     # Changes to be made
     settings = OrderedDict()
     settings["use_syst"] = "False"
-    if systematics is not None:
+    if run_systematics:
         settings["use_syst"] = "True"
         settings["systematics_program"] = "systematics"
         settings["systematics_arguments"] = create_systematics_arguments(systematics)
@@ -200,23 +207,37 @@ def create_systematics_arguments(systematics):
 
     systematics_arguments = []
 
-    if "mu" in systematics:
-        systematics_arguments.append("'--mur={}'".format(systematics["mu"]))
-        systematics_arguments.append("'--muf={}'".format(systematics["mu"]))
-        systematics_arguments.append("'--together=mur,muf'")
+    mur_done = False
+    muf_done = False
+    pdf_done = False
 
-    else:
-        if "mur" in systematics:
-            systematics_arguments.append("'--mur={}'".format(systematics["mur"]))
-
-        if "muf" in systematics:
-            systematics_arguments.append("'--muf={}'".format(systematics["muf"]))
-
-    if "mu" in systematics or "mur" in systematics or "muf" in systematics:
-        systematics_arguments.append("'--dyn=-1'")
-
-    if "pdf" in systematics:
-        systematics_arguments.append("'--pdf={}'".format(systematics["pdf"]))
+    for value in six.itervalues(systematics):
+        if value[0] == "scale" and value[1] == "mu":
+            if mur_done or muf_done:
+                raise ValueError("Multiple nuisance parameter for scale variation!")
+            systematics_arguments.append("'--mur={}'".format(value[2]))
+            systematics_arguments.append("'--muf={}'".format(value[2]))
+            systematics_arguments.append("'--together=mur,muf'")
+            systematics_arguments.append("'--dyn=-1'")
+            mur_done = True
+            muf_done = True
+        elif value[0] == "scale" and value[1] == "mur":
+            if mur_done:
+                raise ValueError("Multiple nuisance parameter for mur variation!")
+            systematics_arguments.append("'--mur={}'".format(value[2]))
+            systematics_arguments.append("'--dyn=-1'")
+            mur_done = True
+        elif value[0] == "scale" and value[1] == "muf":
+            if muf_done:
+                raise ValueError("Multiple nuisance parameter for muf variation!")
+            systematics_arguments.append("'--muf={}'".format(value[2]))
+            systematics_arguments.append("'--dyn=-1'")
+            muf_done = True
+        elif value[0] == "pdf":
+            if pdf_done:
+                raise ValueError("Multiple nuisance parameter for PDF variation!")
+            systematics_arguments.append("'--pdf={}'".format(value[1]))
+            pdf_done = True
 
     if len(systematics_arguments) > 0:
         return "[" + ", ".join(systematics_arguments) + "]"

@@ -39,7 +39,7 @@ class MadMiner:
         self.default_benchmark = None
         self.morpher = None
         self.export_morphing = False
-        self.systematics = None
+        self.systematics = OrderedDict()
 
     def add_parameter(
         self,
@@ -368,25 +368,49 @@ class MadMiner:
             morpher.n_components - n_predefined_benchmarks,
         )
 
-    def set_systematics(self, scale_variation=None, scales="together", pdf_variation=None):
+    def reset_systematics(self):
+        self.systematics = OrderedDict()
+
+    def add_systematics(
+        self,
+        effect,
+        systematic_name=None,
+        norm_variation=1.1,
+        scale="mu",
+        scale_variations=(0.5, 1.0, 2.0),
+        pdf_variation="CT10",
+    ):
         """
-        Prepares the simulation of the effect of different nuisance parameters, including scale variations and PDF
-        changes.
 
         Parameters
         ----------
-        scale_variation : None or tuple of float, optional
-            If not None, the regularization and / or factorization scales are varied. A tuple like (0.5,1.,2.)
-            specifies the factors with which they are varied. Default value: None.
+        effect : {"norm", "scale", "pdf"}
+            Type of the nuisance parameter. If "norm", it will affect the overall normalization of one or multiple
+            samples in the process. If "scale", the nuisance parameter effect will be determined by varying
+            factorization or regularization scales (depending on scale_variation and scales). If "pdf", the effect
+            of the nuisance parameters will be determined by varying the PDF used.
 
-        scales : {"together", "independent", "mur", "muf"}, optional
-            Whether only the regularization scale ("mur"), only the factorization scale ("muf"), both simultanously
-            ("together") or both independently ("independent") are varied. Default value: "together".
+        systematic_name : None or str, optional
 
-        pdf_variation : None or str, optional
-            If not None, the PDFs are varied. The option is passed along to the `--pdf` option
+        scale : {"mu", "mur", "muf"}, optional
+            If type is "scale", this sets whether only the regularization scale ("mur"), only the factorization scale
+            ("muf"), or both simulatenously ("mu") are varied. Default value:
+            "mu".
+
+        norm_variation : float, optional
+            If type is "norm", this sets the relative effect of the nuisance parameter on the cross section at the
+            "plus 1 sigma" variation. 1.1 corresponds to a 10% increase, 0.9 to a 10% decrease relative to the nominal
+            cross section. Default value: 1.1.
+
+        scale_variations : tuple of float, optional
+            If type is "scale", this sets how the regularization and / or factorization scales are varied. A tuple
+            like (0.5,1.,2.) specifies the factors with which they are varied. Default value: (0.5,1.,2.0).
+
+        pdf_variation : str, optional
+            If type is "pdf", defines the PDF set for the variation. The option is passed along to the `--pdf` option
             of MadGraph's systematics module. See https://cp3.irmp.ucl.ac.be/projects/madgraph/wiki/Systematics for a
-            list. The option "CT10" would, as an example, run over all the eigenvectors of the CTEQ10 set.
+            list. The option "CT10" would, as an example, run over all the eigenvectors of the CTEQ10 set. Default
+            value: "CT10".
 
         Returns
         -------
@@ -394,31 +418,25 @@ class MadMiner:
 
         """
 
-        # Check input
-        if scales not in ["together", "independent", "mur", "muf"]:
-            raise ValueError("Unknown value {} for argument scales".format(scales))
+        # Default name
+        if systematic_name is None:
+            i = 0
+            while "{}_{}".format(effect, i) in list(six.iterkeys(self.systematics)):
+                i += 1
+            systematic_name = "{}_{}".format(type, i)
+        systematic_name = systematic_name.replace(" ", "_")
+        systematic_name = systematic_name.replace("-", "_")
 
-        # Save systematics setup
-        self.systematics = OrderedDict()
-
-        if scale_variation is not None:
-            scale_variation_string = ",".join([str(factor) for factor in scale_variation])
-
-            if scales == "together":
-                self.systematics["mu"] = scale_variation_string
-            elif scales == "independent":
-                self.systematics["muf"] = scale_variation_string
-                self.systematics["mur"] = scale_variation_string
-            elif scales == "mur":
-                self.systematics["mur"] = scale_variation_string
-            elif scales == "muf":
-                self.systematics["muf"] = scale_variation_string
-
-        if pdf_variation is not None:
-            self.systematics["pdf"] = pdf_variation
-
-        if len(self.systematics) == 0:
-            self.systematics = None
+        if effect == "pdf":
+            self.systematics[systematic_name] = ("pdf", pdf_variation)
+        elif effect == "scale":
+            scale_variation_string = ",".join([str(factor) for factor in scale_variations])
+            assert scale in ["mu", "mur", "muf"]
+            self.systematics[systematic_name] = ("scale", scale, scale_variation_string)
+        elif effect == "norm":
+            self.systematics[systematic_name] = ("norm", norm_variation)
+        else:
+            raise ValueError("Unknown systematic type {}, has to be one of 'norm', 'scale', or 'pdf'!".format(type))
 
     def load(self, filename, disable_morphing=False):
         """
@@ -489,13 +507,13 @@ class MadMiner:
             logger.info("Did not find morphing setup.")
 
         # Systematics setup
-        if self.systematics is None:
+        if len(self.systematics) == 0:
             logger.info("Did not find systematics setup.")
         else:
             logger.info("Found systematics setup with %s nuisance parameter groups", len(self.systematics))
 
             for key, value in six.iteritems(self.systematics):
-                logger.debug("  %s: %s", key, value)
+                logger.debug("  %s: %s", key, " / ".join(value))
 
     def save(self, filename):
         """
@@ -635,6 +653,7 @@ class MadMiner:
         temp_directory=None,
         initial_command=None,
         python2_override=False,
+        systematics=None,
     ):
 
         """
@@ -713,6 +732,9 @@ class MadMiner:
             Python 2.6 or Python 2.7. If you use systematics, make sure that the python interface of LHAPDF was compiled
             with the Python version you are using. Default: False.
 
+        systematics : None or list of str, optional
+            If list of str, defines which systematics are used for this run.
+
         Returns
         -------
             None
@@ -737,6 +759,7 @@ class MadMiner:
             temp_directory=temp_directory,
             initial_command=initial_command,
             python2_override=python2_override,
+            systematics=systematics,
         )
 
     def run_multiple(
@@ -755,6 +778,7 @@ class MadMiner:
         temp_directory=None,
         initial_command=None,
         python2_override=False,
+        systematics=None,
     ):
 
         """
@@ -825,6 +849,9 @@ class MadMiner:
             Python 2.6 or Python 2.7. If you use systematics, make sure that the python interface of LHAPDF was compiled
             with the Python version you are using. Default: False.
 
+        systematics : None or list of str, optional
+            If list of str, defines which systematics are used for these runs.
+
         Returns
         -------
             None
@@ -867,6 +894,14 @@ class MadMiner:
             ]
         )
 
+        # Systematics
+        if systematics is None:
+            systematics_used = self.systematics
+        else:
+            systematics_used = OrderedDict()
+            for key in systematics:
+                systematics_used[key] = self.systematics[key]
+
         # Loop over settings
         i = 0
         mg_scripts = []
@@ -898,9 +933,9 @@ class MadMiner:
                 logger.info("  Log file:                %s", log_file_run)
 
                 # Check input
-                if run_card_file is None and self.systematics is not None:
+                if run_card_file is None and self._check_pdf_or_scale_variation(systematics_used):
                     logger.warning(
-                        "Warning: No run card given, but systematics set up. The correct systematics"
+                        "Warning: No run card given, but PDF or scale variation set up. The correct systematics"
                         " settings are not set automatically. Make sure to set them correctly!"
                     )
 
@@ -918,7 +953,7 @@ class MadMiner:
                     export_run_card(
                         template_filename=run_card_file,
                         run_card_filename=mg_process_directory + "/" + new_run_card_file,
-                        systematics=self.systematics,
+                        systematics=systematics_used,
                     )
 
                 # Copy Pythia card
@@ -983,3 +1018,9 @@ class MadMiner:
                 "folders:\n\n%s\n\n",
                 expected_event_files,
             )
+
+    def _check_pdf_or_scale_variation(self, systematics):
+        for value in six.itervalues(systematics):
+            if value[0] in ["pdf", "scale"]:
+                return True
+        return False

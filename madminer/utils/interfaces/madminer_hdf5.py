@@ -358,7 +358,9 @@ def _save_systematics(filename, systematics):
             systematics_names = [key for key in systematics]
             n_systematics = len(systematics_names)
             systematics_names_ascii = _encode(systematics_names)
-            systematics_values = _encode([systematics[key] for key in systematics_names])
+            systematics_values = _encode(
+                ["\t".join([str(entry) for entry in systematics[key]]) for key in systematics_names]
+            )
 
             f.create_dataset("systematics/names", (n_systematics,), dtype="S256", data=systematics_names_ascii)
             f.create_dataset("systematics/values", (n_systematics,), dtype="S256", data=systematics_values)
@@ -380,18 +382,24 @@ def _save_nuisance_parameters(filename, nuisance_parameters, overwrite_existing_
             n_nuisance_params = len(nuisance_names)
             nuisance_names_ascii = _encode(nuisance_names)
 
+            nuisance_systematics = [nuisance_parameters[key][0] for key in nuisance_names]
+            nuisance_systematics = _encode(nuisance_systematics)
+
             nuisance_benchmarks_pos = [
-                "" if nuisance_parameters[key][0] is None else nuisance_parameters[key][0] for key in nuisance_names
+                "" if nuisance_parameters[key][1] is None else nuisance_parameters[key][1] for key in nuisance_names
             ]
             nuisance_benchmarks_pos = _encode(nuisance_benchmarks_pos)
 
             nuisance_benchmarks_neg = [
-                "" if nuisance_parameters[key][1] is None else nuisance_parameters[key][1] for key in nuisance_names
+                "" if nuisance_parameters[key][2] is None else nuisance_parameters[key][2] for key in nuisance_names
             ]
             nuisance_benchmarks_neg = _encode(nuisance_benchmarks_neg)
 
             # Save nuisance parameters
             f.create_dataset("nuisance_parameters/names", (n_nuisance_params,), dtype="S256", data=nuisance_names_ascii)
+            f.create_dataset(
+                "nuisance_parameters/systematics", (n_nuisance_params,), dtype="S256", data=nuisance_systematics
+            )
             f.create_dataset(
                 "nuisance_parameters/benchmark_positive",
                 (n_nuisance_params,),
@@ -610,18 +618,27 @@ def _load_nuisance_params(filename):
         # Nuisance parameters
         try:
             nuisance_parameter_names = f["nuisance_parameters/names"][()]
-            nusiance_parameter_benchmarks_pos = f["nuisance_parameters/benchmark_positive"][()]
-            nusiance_parameter_benchmarks_neg = f["nuisance_parameters/benchmark_negative"][()]
+            nuisance_parameter_systematics = f["nuisance_parameters/systematics"][()]
+            nuisance_parameter_benchmarks_pos = f["nuisance_parameters/benchmark_positive"][()]
+            nuisance_parameter_benchmarks_neg = f["nuisance_parameters/benchmark_negative"][()]
 
             nuisance_parameter_names = _decode(nuisance_parameter_names)
-            nusiance_parameter_benchmarks_pos = _decode(nusiance_parameter_benchmarks_pos)
-            nusiance_parameter_benchmarks_neg = _decode(nusiance_parameter_benchmarks_neg)
-            nusiance_parameter_benchmarks_neg = [
-                None if val == "" else val for val in nusiance_parameter_benchmarks_neg
+            nuisance_parameter_systematics = _decode(nuisance_parameter_systematics)
+            nuisance_parameter_benchmarks_pos = _decode(nuisance_parameter_benchmarks_pos)
+            nuisance_parameter_benchmarks_neg = _decode(nuisance_parameter_benchmarks_neg)
+            nuisance_parameter_benchmarks_neg = [
+                None if val == "" else val for val in nuisance_parameter_benchmarks_neg
             ]
 
             nuisance_parameters = OrderedDict(
-                zip(nuisance_parameter_names, zip(nusiance_parameter_benchmarks_pos, nusiance_parameter_benchmarks_neg))
+                zip(
+                    nuisance_parameter_names,
+                    zip(
+                        nuisance_parameter_systematics,
+                        nuisance_parameter_benchmarks_pos,
+                        nuisance_parameter_benchmarks_neg,
+                    ),
+                )
             )
 
         except KeyError:
@@ -639,10 +656,22 @@ def _load_systematics(filename):
             systematics_names = _decode(systematics_names)
             systematics_values = _decode(systematics_values)
 
-            systematics = OrderedDict(zip(systematics_names, systematics_values))
+            systematics = OrderedDict()
+            for name, value in zip(systematics_names, systematics_values):
+                syst_data = list(value.split("\t"))
+                if syst_data[0] == "norm":
+                    syst_data[1] = float(syst_data[1])
+                elif syst_data[0] == "pdf":
+                    syst_data[1] = str(syst_data[1])
+                elif syst_data[0] == "scale":
+                    syst_data[1] = str(syst_data[1])
+                    syst_data[2] = str(syst_data[2])
+                else:
+                    raise RuntimeError("Error while reading systematics from HDF5 file: {}".format(syst_data))
+                systematics[name] = tuple(syst_data)
 
         except KeyError:
-            systematics = None
+            systematics = OrderedDict()
     return systematics
 
 
@@ -694,9 +723,7 @@ def _sort_weights(benchmark_names, weights):
             weights_sorted.append(weights[key])
         for key in sorted(weights.keys()):
             if key not in benchmark_names:
-                weights_sorted.append(key)
-
-        logger.debug("Sorted benchmarks: %s", benchmark_names)
+                weights_sorted.append(weights[key])
     except Exception as e:
         logger.warning("Issue matching weight names in HepMC file to benchmark names in MadMiner file:\n%s", e)
         weights_sorted = [weights[key] for key in weights]
