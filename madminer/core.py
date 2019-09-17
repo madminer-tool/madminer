@@ -513,7 +513,7 @@ class MadMiner:
             logger.info("Found systematics setup with %s nuisance parameter groups", len(self.systematics))
 
             for key, value in six.iteritems(self.systematics):
-                logger.debug("  %s: %s", key, " / ".join(value))
+                logger.debug("  %s: %s", key, " / ".join(str(x) for x in value))
 
     def save(self, filename):
         """
