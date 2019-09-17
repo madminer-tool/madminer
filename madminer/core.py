@@ -645,6 +645,7 @@ class MadMiner:
         run_card_file=None,
         mg_process_directory=None,
         pythia8_card_file=None,
+        configuration_file=None,
         sample_benchmark=None,
         is_background=False,
         only_prepare_script=False,
@@ -692,6 +693,10 @@ class MadMiner:
         pythia8_card_file : str or None, optional
             Path to the MadGraph Pythia8 card. If None, the card present in the process folder is used.
             Default value: None.
+            
+        configuration_file : str, optional
+            Path to the MadGraph me5_configuration card. If None, the card present in the process folder
+            is used. Default value: None.
 
         sample_benchmark : list of str or None, optional
             Lists the names of benchmarks that should be used to sample events. A different sampling does not change
@@ -751,6 +756,7 @@ class MadMiner:
             run_card_files=[run_card_file],
             mg_process_directory=mg_process_directory,
             pythia8_card_file=pythia8_card_file,
+            configuration_file=configuration_file,
             sample_benchmarks=[sample_benchmark],
             is_background=is_background,
             only_prepare_script=only_prepare_script,
@@ -770,6 +776,7 @@ class MadMiner:
         run_card_files,
         mg_process_directory=None,
         pythia8_card_file=None,
+        configuration_file=None,
         sample_benchmarks=None,
         is_background=False,
         only_prepare_script=False,
@@ -808,6 +815,10 @@ class MadMiner:
 
         pythia8_card_file : str, optional
             Path to the MadGraph Pythia8 card. If None, the card present in the process folder
+            is used. Default value: None.
+        
+        configuration_file : str, optional
+            Path to the MadGraph me5_configuration card. If None, the card present in the process folder
             is used. Default value: None.
 
         sample_benchmarks : list of str or None, optional
@@ -921,13 +932,18 @@ class MadMiner:
                 new_run_card_file = None
                 if run_card_file is not None:
                     new_run_card_file = "/madminer/cards/run_card_{}.dat".format(i)
+                new_configuration_file = None
+                if configuration_file is not None:
+                    new_configuration_file = "/madminer/cards/me5_configuration_{}.txt".format(i)
 
                 logger.info("Run %s", i)
                 logger.info("  Sampling from benchmark: %s", sample_benchmark)
                 logger.info("  Original run card:       %s", run_card_file)
                 logger.info("  Original Pythia8 card:   %s", pythia8_card_file)
+                logger.info("  Original config card:    %s", configuration_file)
                 logger.info("  Copied run card:         %s", new_run_card_file)
                 logger.info("  Copied Pythia8 card:     %s", new_pythia8_card_file)
+                logger.info("  Copied config card:      %s", new_configuration_file)
                 logger.info("  Param card:              %s", param_card_file)
                 logger.info("  Reweight card:           %s", reweight_card_file)
                 logger.info("  Log file:                %s", log_file_run)
@@ -959,6 +975,10 @@ class MadMiner:
                 # Copy Pythia card
                 if pythia8_card_file is not None:
                     copy_file(pythia8_card_file, mg_process_directory + "/" + new_pythia8_card_file)
+                
+                # Copy Configuration card
+                if configuration_file is not None:
+                    copy_file(configuration_file, mg_process_directory + "/" + new_configuration_file)
 
                 # Run MG and Pythia
                 if only_prepare_script:
@@ -971,6 +991,9 @@ class MadMiner:
                         pythia8_card_file_from_mgprocdir=None
                         if new_pythia8_card_file is None
                         else new_pythia8_card_file,
+                        configuration_file_from_mgprocdir=None
+                        if new_configuration_file is None
+                        else new_configuration_file,
                         is_background=is_background,
                         script_file_from_mgprocdir=script_file,
                         initial_command=initial_command,
@@ -988,6 +1011,7 @@ class MadMiner:
                         mg_process_directory + "/" + param_card_file,
                         mg_process_directory + "/" + reweight_card_file,
                         None if new_pythia8_card_file is None else mg_process_directory + "/" + new_pythia8_card_file,
+                        None if new_configuration_file is None else mg_process_directory + "/" + new_configuration_file,
                         is_background=is_background,
                         initial_command=initial_command,
                         log_file=log_directory + "/" + log_file_run,
