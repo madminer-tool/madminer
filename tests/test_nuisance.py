@@ -29,7 +29,7 @@ def theta_limit_madminer(xsec=0.001, lumi=1000000.0, effect_phys=0.1, effect_sys
     proc.add_observable("x", "no one cares")
     proc.reference_benchmark = "benchmark_0"
     proc.nuisance_parameters = OrderedDict()
-    proc.nuisance_parameters["nu"] = (None, "benchmark_nuisance", None)
+    proc.nuisance_parameters["nu"] = ("syst", "benchmark_nuisance", None)
     proc.observations = OrderedDict()
     proc.observations["x"] = np.array([1.0])
     proc.weights = OrderedDict()
