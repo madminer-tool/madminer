@@ -691,8 +691,8 @@ class AsymptoticLimits(DataAnalyzer):
             n_bins_each = hist_bins
         elif isinstance(hist_bins, int):
             hist_bins = tuple([hist_bins] * n_summary_stats)
-            total_n_bins = hist_bins ** n_summary_stats
             n_bins_each = hist_bins
+            total_n_bins = np.prod(n_bins_each)
         else:
             n_bins_each = [n_bins if isinstance(n_bins, int) else len(n_bins) - 1 for n_bins in hist_bins]
             total_n_bins = np.prod(n_bins_each)
