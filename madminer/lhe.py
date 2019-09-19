@@ -15,6 +15,7 @@ from madminer.utils.interfaces.lhe import (
     extract_nuisance_parameters_from_lhe_file,
     get_elementary_pdg_ids,
 )
+from madminer.sampling import combine_and_shuffle
 
 logger = logging.getLogger(__name__)
 
@@ -729,7 +730,7 @@ class LHEReader:
                 )
         return n_events
 
-    def save(self, filename_out):
+    def save(self, filename_out, shuffle=True):
         """
         Saves the observable definitions, observable values, and event weights in a MadMiner file. The parameter,
         benchmark, and morphing setup is copied from the file provided during initialization. Nuisance benchmarks found
@@ -739,6 +740,10 @@ class LHEReader:
         ----------
         filename_out : str
             Path to where the results should be saved.
+
+        shuffle : bool, optional
+            If True, events are shuffled before being saved. That's important when there are multiple distinct
+            samples (e.g. signal and background). Default value: True.
 
         Returns
         -------
@@ -774,3 +779,6 @@ class LHEReader:
             self.signal_events_per_benchmark,
             self.background_events,
         )
+
+        if shuffle:
+            combine_and_shuffle([filename_out], filename_out)

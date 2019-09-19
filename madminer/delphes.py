@@ -15,6 +15,7 @@ from madminer.utils.interfaces.delphes import run_delphes
 from madminer.utils.interfaces.delphes_root import parse_delphes_root_file
 from madminer.utils.interfaces.hepmc import extract_weight_order
 from madminer.utils.interfaces.lhe import parse_lhe_file, extract_nuisance_parameters_from_lhe_file
+from madminer.sampling import combine_and_shuffle
 
 logger = logging.getLogger(__name__)
 
@@ -807,7 +808,7 @@ class DelphesReader:
                 )
         return n_events
 
-    def save(self, filename_out):
+    def save(self, filename_out, shuffle=True):
         """
         Saves the observable definitions, observable values, and event weights in a MadMiner file. The parameter,
         benchmark, and morphing setup is copied from the file provided during initialization. Nuisance benchmarks found
@@ -817,6 +818,10 @@ class DelphesReader:
         ----------
         filename_out : str
             Path to where the results should be saved.
+
+        shuffle : bool, optional
+            If True, events are shuffled before being saved. That's important when there are multiple distinct
+            samples (e.g. signal and background). Default value: True.
 
         Returns
         -------
@@ -852,3 +857,6 @@ class DelphesReader:
             self.signal_events_per_benchmark,
             self.background_events,
         )
+
+        if shuffle:
+            combine_and_shuffle([filename_out], filename_out)
