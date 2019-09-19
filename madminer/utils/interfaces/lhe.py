@@ -650,6 +650,10 @@ def _extract_nuisance_param_dict(weight_groups, systematics_name, systematics_de
                     logger.warning("Scale variation weight does not have all expected attributes")
                     continue
 
+                if weight_pdf % 1000 == 0:  # Central element, not eigenvector of covariance matrix
+                    logger.debug("Identifying PDF weight %s / %s as central element", weight_id, weight_pdf)
+                    continue
+
                 logger.debug("Found PDF weight %s / %s", weight_id, weight_pdf)
 
                 # Add every PDF Hessian direction to nuisance parameters
