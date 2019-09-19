@@ -1932,12 +1932,15 @@ def combine_and_shuffle(
 
     """
 
+    # TODO: merge different nuisance setups
+
     logger.debug("Combining and shuffling samples")
 
     if len(input_filenames) > 1:
         logger.warning(
             "Careful: this tool assumes that all samples are generated with the same setup, including"
-            " identical benchmarks (and thus morphing setup). If it is used with samples with different"
+            " identical benchmarks (and thus morphing setup), and identical nuisance parameters. If it is used with "
+            "samples with different"
             " settings, there will be wrong results! There are no explicit cross checks in place yet."
         )
 
