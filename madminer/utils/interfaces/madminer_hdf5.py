@@ -354,7 +354,7 @@ def _save_systematics(filename, systematics):
     io_tag = "a"
     with h5py.File(filename, io_tag) as f:
         # Prepare and store systematics setup
-        if systematics is not None:
+        if systematics is not None and len(systematics) > 0:
             systematics_names = [key for key in systematics]
             n_systematics = len(systematics_names)
             systematics_names_ascii = _encode(systematics_names)
