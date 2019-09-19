@@ -155,9 +155,9 @@ class AsymptoticLimits(DataAnalyzer):
             the number of bins automatically chosen for each summary statistic. If list, each entry corresponds to one
             summary statistic (e.g. kinematic variable specified by hist_vars or estimated score component); an int
             entry corresponds to the number of automatically chosen bins, an ndarray specifies the bin edges along
-            this dimension explicitly. If None, the bins are chosen according to the defaults, which depend on mode and
-            the number of summary statistics. When mode is "adaptive-sally", the first summary statistic is
-            `h = score * (theta - thetaref)`, the remaining ones are the score components. Default value: None.
+            this dimension explicitly. If None, the bins are chosen according to the defaults: for one summary statistic
+            the default is 25 bins, for 2 it's 8 bins along each direction, for more it's 5 per dimension.
+            Default value: None.
 
         thetaref : ndarray or None, optional
             Defines the reference parameter point at which the score is evaluated for mode "sallino" or
@@ -368,9 +368,9 @@ class AsymptoticLimits(DataAnalyzer):
             the number of bins automatically chosen for each summary statistic. If list, each entry corresponds to one
             summary statistic (e.g. kinematic variable specified by hist_vars or estimated score component); an int
             entry corresponds to the number of automatically chosen bins, an ndarray specifies the bin edges along
-            this dimension explicitly. If None, the bins are chosen according to the defaults, which depend on mode and
-            the number of summary statistics. When mode is "adaptive-sally", the first summary statistic is
-            `h = score * (theta - thetaref)`, the remaining ones are the score components. Default value: None.
+            this dimension explicitly. If None, the bins are chosen according to the defaults: for one summary statistic
+            the default is 25 bins, for 2 it's 8 bins along each direction, for more it's 5 per dimension.
+            Default value: None.
 
         thetaref : ndarray or None, optional
             Defines the reference parameter point at which the score is evaluated for mode "sallino" or
@@ -720,8 +720,8 @@ class AsymptoticLimits(DataAnalyzer):
             n_bins_each = hist_bins
         elif isinstance(hist_bins, int):
             hist_bins = tuple([hist_bins] * n_summary_stats)
-            total_n_bins = hist_bins ** n_summary_stats
             n_bins_each = hist_bins
+            total_n_bins = np.prod(n_bins_each)
         else:
             n_bins_each = [n_bins if isinstance(n_bins, int) else len(n_bins) - 1 for n_bins in hist_bins]
             total_n_bins = np.prod(n_bins_each)
