@@ -36,7 +36,7 @@ def theta_limit_madminer(xsec=0.001, lumi=1000000.0, effect_phys=0.1, effect_sys
     proc.weights["benchmark_0"] = np.array([xsec])
     proc.weights["benchmark_1"] = np.array([xsec * (1.0 + effect_phys)])
     proc.weights["benchmark_nuisance"] = np.array([xsec * (1.0 + effect_sys)])
-    proc.save(".data2.h5")
+    proc.save(".data2.h5", shuffle=False)
 
     # Calculate Fisher information
     fisher = FisherInformation(".data2.h5")
