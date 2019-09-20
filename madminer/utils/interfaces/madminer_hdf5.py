@@ -739,7 +739,7 @@ def _decode(inputs):
 
 
 def _copy_madminer_file(copy_setup_from, filename, overwrite_existing_samples):
-    if copy_setup_from is not None:
+    if copy_setup_from is not None and copy_setup_from != filename:
         try:
             shutil.copyfile(copy_setup_from, filename)
         except IOError:
