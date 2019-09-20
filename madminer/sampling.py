@@ -1959,7 +1959,7 @@ def combine_and_shuffle(
         )
 
     # Copy first file to output_filename
-    logger.info("Copying setup from %s to %s", input_filenames[0], output_filename)
+    logger.debug("Copying setup from %s to %s", input_filenames[0], output_filename)
 
     # TODO: More memory efficient strategy
 
@@ -1972,7 +1972,7 @@ def combine_and_shuffle(
     all_n_events_signal_per_benchmark = 0
 
     for i, (filename, k_factor) in enumerate(zip(input_filenames, k_factors)):
-        logger.info(
+        logger.debug(
             "Loading samples from file %s / %s at %s, multiplying weights with k factor %s",
             i + 1,
             len(input_filenames),
