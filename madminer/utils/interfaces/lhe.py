@@ -514,8 +514,8 @@ def extract_nuisance_parameters_from_lhe_file(filename, systematics):
             weight_groups += initrwgt.findall("weightgroup")
     except KeyError as e:
         raise RuntimeError("Could not find weight groups in LHE file!\n%s", e)
-    if len(weight_groups) == 0:
-        raise RuntimeError("Zero weight groups in LHE file!")
+    # if len(weight_groups) == 0:
+    #     raise RuntimeError("Zero weight groups in LHE file!")
     logger.debug("%s weight groups", len(weight_groups))
 
     # Loop over systematics
