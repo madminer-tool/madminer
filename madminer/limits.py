@@ -155,9 +155,9 @@ class AsymptoticLimits(DataAnalyzer):
             the number of bins automatically chosen for each summary statistic. If list, each entry corresponds to one
             summary statistic (e.g. kinematic variable specified by hist_vars or estimated score component); an int
             entry corresponds to the number of automatically chosen bins, an ndarray specifies the bin edges along
-            this dimension explicitly. If None, the bins are chosen according to the defaults, which depend on mode and
-            the number of summary statistics. When mode is "adaptive-sally", the first summary statistic is
-            `h = score * (theta - thetaref)`, the remaining ones are the score components. Default value: None.
+            this dimension explicitly. If None, the bins are chosen according to the defaults: for one summary statistic
+            the default is 25 bins, for 2 it's 8 bins along each direction, for more it's 5 per dimension.
+            Default value: None.
 
         thetaref : ndarray or None, optional
             Defines the reference parameter point at which the score is evaluated for mode "sallino" or
@@ -203,6 +203,16 @@ class AsymptoticLimits(DataAnalyzer):
             is used to determine the binning, for "grid" all points in the parameter grid are combined for this. For
             "auto-grid" or "auto-center", this option is turned on if mode is  "histo" or "sally", but not for
             "adaptive-sally" or "sallino". Default value: "auto-grid".
+
+        return_observed : bool, optional
+            Whether the observed values of the summary statistics are returned. Default value: False.
+
+        postprocessing : None or function
+            If not None, points to a function that processes the summary statistics before being fed into
+            histograms. Default value: None.
+
+        n_binning_toys : int or None
+            Number of toy events used to determine the binning of adaptive histograms. Default value: 100000.
 
         Returns
         -------
@@ -358,9 +368,9 @@ class AsymptoticLimits(DataAnalyzer):
             the number of bins automatically chosen for each summary statistic. If list, each entry corresponds to one
             summary statistic (e.g. kinematic variable specified by hist_vars or estimated score component); an int
             entry corresponds to the number of automatically chosen bins, an ndarray specifies the bin edges along
-            this dimension explicitly. If None, the bins are chosen according to the defaults, which depend on mode and
-            the number of summary statistics. When mode is "adaptive-sally", the first summary statistic is
-            `h = score * (theta - thetaref)`, the remaining ones are the score components. Default value: None.
+            this dimension explicitly. If None, the bins are chosen according to the defaults: for one summary statistic
+            the default is 25 bins, for 2 it's 8 bins along each direction, for more it's 5 per dimension.
+            Default value: None.
 
         thetaref : ndarray or None, optional
             Defines the reference parameter point at which the score is evaluated for mode "sallino" or
@@ -406,6 +416,20 @@ class AsymptoticLimits(DataAnalyzer):
         sample_only_from_closest_benchmark : bool, optional
             If True, only events originally generated from the closest benchmarks are used when generating
             the Asimov data (and, if weighted_histo is False, the histogram data). Default value: True.
+
+        return_asimov : bool, optional
+            Whether the values of the summary statistics in the Asimov ("expected observed") data set are returned.
+            Default value: False.
+
+        postprocessing : None or function, optional
+            If not None, points to a function that processes the summary statistics before being fed into
+            histograms. Default value: None.
+
+        n_binning_toys : int or None, optional
+            Number of toy events used to determine the binning of adaptive histograms. Default value: 100000.
+
+        n_asimov : int or None, optional
+            Size of the Asimov sample. If None, all weighted events in the MadMiner file are used. Default value: None.
 
         Returns
         -------
@@ -520,7 +544,12 @@ class AsymptoticLimits(DataAnalyzer):
         postprocessing=None,
         n_binning_toys=100000,
     ):
-        logger.debug("Calculating p-values for %s expected events", n_events)
+        logger.info(
+            "Calculating p-values for %s expected events in mode %s %s rate information",
+            n_events,
+            mode,
+            "including" if include_xsec else "without",
+        )
 
         # Inputs
         if thetaref is None and mode in ["sallino", "adaptive-sally"]:
