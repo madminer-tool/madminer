@@ -2,6 +2,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import numpy as np
 import torch
+from torch.nn import functional as F
 import logging
 from torch import optim
 
@@ -13,11 +14,25 @@ logger = logging.getLogger(__name__)
 
 def get_activation_function(activation):
     if activation == "relu":
-        return torch.relu
+        return F.relu
     elif activation == "tanh":
-        return torch.tanh
+        return F.tanh
     elif activation == "sigmoid":
-        return torch.sigmoid
+        return F.sigmoid
+    elif activation == "lrelu":
+        return F.leaky_relu
+    elif activation == "rrelu":
+        return F.rrelu
+    elif activation == "prelu":
+        return F.prelu
+    elif activation == "elu":
+        return F.elu
+    elif activation == "selu":
+        return F.selu
+    elif activation == "log_sigmoid":
+        return F.logsigmoid
+    elif activation == "softplus":
+        return F.softplus
     else:
         raise ValueError("Activation function %s unknown", activation)
 
