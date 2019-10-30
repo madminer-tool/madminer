@@ -408,6 +408,7 @@ class ParameterizedRatioEstimator(ConditionalEstimator):
         memmap=False,
         verbose="some",
         scale_parameters=True,
+        n_workers=8,
     ):
 
         """
@@ -646,7 +647,7 @@ class ParameterizedRatioEstimator(ConditionalEstimator):
 
         # Train model
         logger.info("Training model")
-        trainer = SingleParameterizedRatioTrainer(self.model)
+        trainer = SingleParameterizedRatioTrainer(self.model, n_workers=n_workers)
         result = trainer.train(
             data=data,
             data_val=data_val,
@@ -867,6 +868,7 @@ class DoubleParameterizedRatioEstimator(ConditionalEstimator):
         memmap=False,
         verbose="some",
         scale_parameters=True,
+        n_workers=8,
     ):
 
         """
@@ -1131,7 +1133,7 @@ class DoubleParameterizedRatioEstimator(ConditionalEstimator):
 
         # Train model
         logger.info("Training model")
-        trainer = DoubleParameterizedRatioTrainer(self.model)
+        trainer = DoubleParameterizedRatioTrainer(self.model, n_workers=n_workers)
         result = trainer.train(
             data=data,
             data_val=data_val,
@@ -1366,6 +1368,7 @@ class ScoreEstimator(Estimator):
         limit_samplesize=None,
         memmap=False,
         verbose="some",
+        n_workers=8,
     ):
 
         """
@@ -1540,7 +1543,7 @@ class ScoreEstimator(Estimator):
 
         # Train model
         logger.info("Training model")
-        trainer = LocalScoreTrainer(self.model)
+        trainer = LocalScoreTrainer(self.model, n_workers=n_workers)
         result = trainer.train(
             data=data,
             data_val=data_val,
@@ -1885,6 +1888,7 @@ class LikelihoodEstimator(ConditionalEstimator):
         memmap=False,
         verbose="some",
         scale_parameters=True,
+        n_workers=8,
     ):
 
         """
@@ -2097,7 +2101,7 @@ class LikelihoodEstimator(ConditionalEstimator):
 
         # Train model
         logger.info("Training model")
-        trainer = FlowTrainer(self.model)
+        trainer = FlowTrainer(self.model, n_workers=n_workers)
         result = trainer.train(
             data=data,
             data_val=data_val,
