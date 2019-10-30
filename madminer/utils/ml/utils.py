@@ -14,21 +14,21 @@ logger = logging.getLogger(__name__)
 
 def get_activation_function(activation):
     if activation == "relu":
-        return F.relu
+        return torch.relu
     elif activation == "tanh":
-        return F.tanh
+        return torch.tanh
     elif activation == "sigmoid":
-        return F.sigmoid
+        return torch.relu
     elif activation == "lrelu":
         return F.leaky_relu
     elif activation == "rrelu":
-        return F.rrelu
+        return torch.rrelu
     elif activation == "prelu":
-        return F.prelu
+        return torch.prelu
     elif activation == "elu":
         return F.elu
     elif activation == "selu":
-        return F.selu
+        return torch.selu
     elif activation == "log_sigmoid":
         return F.logsigmoid
     elif activation == "softplus":
