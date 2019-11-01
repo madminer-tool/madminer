@@ -517,8 +517,8 @@ class Trainer(object):
 
 
 class SingleParameterizedRatioTrainer(Trainer):
-    def __init__(self, model, run_on_gpu=True, double_precision=False):
-        super(SingleParameterizedRatioTrainer, self).__init__(model, run_on_gpu, double_precision)
+    def __init__(self, model, run_on_gpu=True, double_precision=False, n_workers=8):
+        super(SingleParameterizedRatioTrainer, self).__init__(model, run_on_gpu, double_precision, n_workers)
         self.calculate_model_score = True
 
     def check_data(self, data):
@@ -571,8 +571,8 @@ class SingleParameterizedRatioTrainer(Trainer):
 
 
 class DoubleParameterizedRatioTrainer(Trainer):
-    def __init__(self, model, run_on_gpu=True, double_precision=False):
-        super(DoubleParameterizedRatioTrainer, self).__init__(model, run_on_gpu, double_precision)
+    def __init__(self, model, run_on_gpu=True, double_precision=False, n_workers=8):
+        super(DoubleParameterizedRatioTrainer, self).__init__(model, run_on_gpu, double_precision, n_workers)
         self.calculate_model_score = True
 
     def check_data(self, data):
@@ -667,8 +667,8 @@ class LocalScoreTrainer(Trainer):
 
 
 class FlowTrainer(Trainer):
-    def __init__(self, model, run_on_gpu=True, double_precision=False):
-        super(FlowTrainer, self).__init__(model, run_on_gpu, double_precision)
+    def __init__(self, model, run_on_gpu=True, double_precision=False, n_workers=8):
+        super(FlowTrainer, self).__init__(model, run_on_gpu, double_precision, n_workers)
         self.calculate_model_score = True
 
     def check_data(self, data):

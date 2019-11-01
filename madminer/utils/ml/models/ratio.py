@@ -13,13 +13,14 @@ class DenseSingleParameterizedRatioModel(nn.Module):
     """ Module that implements agnostic parameterized likelihood estimators such as RASCAL or ALICES. Only the
     numerator of the ratio is parameterized. """
 
-    def __init__(self, n_observables, n_parameters, n_hidden, activation="tanh"):
+    def __init__(self, n_observables, n_parameters, n_hidden, activation="tanh", dropout_prob=0.0):
 
         super(DenseSingleParameterizedRatioModel, self).__init__()
 
         # Save input
         self.n_hidden = n_hidden
         self.activation = get_activation_function(activation)
+        self.dropout_prob = dropout_prob
 
         # Build network
         self.layers = nn.ModuleList()
@@ -27,10 +28,14 @@ class DenseSingleParameterizedRatioModel(nn.Module):
 
         # Hidden layers
         for n_hidden_units in n_hidden:
+            if self.dropout_prob > 1.0e-9:
+                self.layers.append(nn.Dropout(self.dropout_prob))
             self.layers.append(nn.Linear(n_last, n_hidden_units))
             n_last = n_hidden_units
 
         # Log r layer
+        if self.dropout_prob > 1.0e-9:
+            self.layers.append(nn.Dropout(self.dropout_prob))
         self.layers.append(nn.Linear(n_last, 1))
 
     def forward(self, theta, x, track_score=True, return_grad_x=False, create_gradient_graph=True):
@@ -96,13 +101,14 @@ class DenseDoublyParameterizedRatioModel(nn.Module):
     """ Module that implements agnostic parameterized likelihood estimators such as RASCAL or ALICES. Both
     numerator and denominator of the ratio are parameterized. """
 
-    def __init__(self, n_observables, n_parameters, n_hidden, activation="tanh"):
+    def __init__(self, n_observables, n_parameters, n_hidden, activation="tanh", dropout_prob=0.0):
 
         super(DenseDoublyParameterizedRatioModel, self).__init__()
 
         # Save input
         self.n_hidden = n_hidden
         self.activation = get_activation_function(activation)
+        self.dropout_prob = dropout_prob
 
         # Build network
         self.layers = nn.ModuleList()
@@ -110,10 +116,14 @@ class DenseDoublyParameterizedRatioModel(nn.Module):
 
         # Hidden layers
         for n_hidden_units in n_hidden:
+            if self.dropout_prob > 1.0e-9:
+                self.layers.append(nn.Dropout(self.dropout_prob))
             self.layers.append(nn.Linear(n_last, n_hidden_units))
             n_last = n_hidden_units
 
         # Log r layer
+        if self.dropout_prob > 1.0e-9:
+            self.layers.append(nn.Dropout(self.dropout_prob))
         self.layers.append(nn.Linear(n_last, 1))
 
     def forward(self, theta0, theta1, x, track_score=True, return_grad_x=False, create_gradient_graph=True):
