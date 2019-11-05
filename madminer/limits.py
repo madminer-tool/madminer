@@ -56,7 +56,7 @@ class AsymptoticLimits(DataAnalyzer):
         self,
         mode,
         x_observed,
-        grid_ranges,
+        grid_ranges=None,
         grid_resolutions=25,
         include_xsec=True,
         model_file=None,
@@ -76,6 +76,7 @@ class AsymptoticLimits(DataAnalyzer):
         fix_adaptive_binning="auto-grid",
         postprocessing=None,
         n_binning_toys=100000,
+        thetas_eval=None,
     ):
         """
         Calculates p-values over a grid in parameter space based on a given set of observed events.
@@ -125,15 +126,15 @@ class AsymptoticLimits(DataAnalyzer):
             Observed data with shape `(n_events, n_observables)`. The observables have to be the same used throughout
             the MadMiner analysis, for instance specified in the `DelphesReader` class with `add_observables`.
 
-        grid_ranges : list of tuple of float
+        grid_ranges : list of (tuple of float) or None, optional
             Specifies the boundaries of the parameter grid on which the p-values are evaluated. It should be
             `[(min, max), (min, max), ..., (min, max)]`, where the list goes over all parameters and `min` and `max` are
-            float.
+            float. If None, thetas_eval has to be given. Default: None.
 
         grid_resolutions : int or list of int, optional
             Resolution of the parameter space grid on which the p-values are evaluated. If int, the resolution is the
             same along every dimension of the hypercube. If list of int, the individual entries specify the number of
-            points along each parameter individually. Default value: 25.
+            points along each parameter individually. Doesn't have any effect if grid_ranges is None. Default value: 25.
 
         include_xsec : bool, optional
             Whether the Poisson likelihood representing the total number of events is included in the analysis.
@@ -214,6 +215,10 @@ class AsymptoticLimits(DataAnalyzer):
         n_binning_toys : int or None
             Number of toy events used to determine the binning of adaptive histograms. Default value: 100000.
 
+        thetas_eval : ndarray or None
+            Manually specifies the parameter point at which the likelihood and p-values are evaluated. If None,
+            grid_ranges and resolution are used instead to construct a regular grid. Default value: None.
+
         Returns
         -------
         parameter_grid : ndarray
@@ -262,6 +267,7 @@ class AsymptoticLimits(DataAnalyzer):
             fix_adaptive_binning=fix_adaptive_binning,
             postprocessing=postprocessing,
             n_binning_toys=n_binning_toys,
+            thetas_eval=thetas_eval,
         )
         return results
 
@@ -269,7 +275,7 @@ class AsymptoticLimits(DataAnalyzer):
         self,
         mode,
         theta_true,
-        grid_ranges,
+        grid_ranges=None,
         grid_resolutions=25,
         include_xsec=True,
         model_file=None,
@@ -290,6 +296,7 @@ class AsymptoticLimits(DataAnalyzer):
         postprocessing=None,
         n_asimov=None,
         n_binning_toys=100000,
+        thetas_eval=None,
     ):
 
         """
@@ -338,10 +345,10 @@ class AsymptoticLimits(DataAnalyzer):
         theta_true : ndarray
             Parameter point assumed to be true to calculate the Asimov data.
 
-        grid_ranges : list of tuple of float
+        grid_ranges : list of (tuple of float) or None, optional
             Specifies the boundaries of the parameter grid on which the p-values are evaluated. It should be
             `[(min, max), (min, max), ..., (min, max)]`, where the list goes over all parameters and `min` and `max` are
-            float.
+            float. If None, thetas_eval has to be given. Default: None.
 
         grid_resolutions : int or list of int, optional
             Resolution of the parameter space grid on which the p-values are evaluated. If int, the resolution is the
@@ -431,6 +438,10 @@ class AsymptoticLimits(DataAnalyzer):
         n_asimov : int or None, optional
             Size of the Asimov sample. If None, all weighted events in the MadMiner file are used. Default value: None.
 
+        thetas_eval : ndarray or None
+            Manually specifies the parameter point at which the likelihood and p-values are evaluated. If None,
+            grid_ranges and resolution are used instead to construct a regular grid. Default value: None.
+
         Returns
         -------
         parameter_grid : ndarray
@@ -488,6 +499,7 @@ class AsymptoticLimits(DataAnalyzer):
             fix_adaptive_binning=fix_adaptive_binning,
             postprocessing=postprocessing,
             n_binning_toys=n_binning_toys,
+            thetas_eval=thetas_eval,
         )
         return results
 
@@ -543,6 +555,7 @@ class AsymptoticLimits(DataAnalyzer):
         fix_adaptive_binning="auto-grid",
         postprocessing=None,
         n_binning_toys=100000,
+        thetas_eval=None,
     ):
         logger.info(
             "Calculating p-values for %s expected events in mode %s %s rate information",
@@ -573,7 +586,18 @@ class AsymptoticLimits(DataAnalyzer):
         obs_weights = obs_weights.astype(np.float64)
 
         # Theta grid
-        theta_grid, theta_middle = self._make_theta_grid(theta_ranges, theta_resolutions)
+        if thetas_eval is None and theta_resolutions is None:
+            raise ValueError("thetas_eval and grid_resolutions cannot both be None")
+        elif thetas_eval is not None and theta_resolutions is not None:
+            raise ValueError("thetas_eval and grid_resolutions cannot both be set, make up your mind!")
+        elif thetas_eval is None:
+            theta_grid, theta_middle = self._make_theta_grid(theta_ranges, theta_resolutions)
+            logger.info("Evaluating likelihood on a regular grid with %s parameter points", theta_grid.shape[0])
+        else:
+            assert len(thetas_eval.shape) == 2, "thetas_eval has to be two-dimensional array"
+            theta_grid = thetas_eval
+            theta_middle = self._find_theta_middle(theta_grid)
+            logger.info("Evaluating likelihood on %s user-provided parameter points", theta_grid.shape[0])
 
         histos = None
         processed_summary_stats = None
@@ -883,6 +907,10 @@ class AsymptoticLimits(DataAnalyzer):
         theta_grid = np.vstack(theta_grid_each).T
         theta_middle = np.asarray(theta_middle)
         return theta_grid, theta_middle
+
+    @staticmethod
+    def _find_theta_middle(thetas):
+        return np.mean(thetas, axis=0)
 
     def _make_histos(
         self,
