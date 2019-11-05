@@ -576,7 +576,7 @@ def run_mg_reweighting(
         initial_command = initial_command + "; "
 
     _ = call_command(
-        "{}; {}/bin/madevent reweight {} -f".format(initial_command, mg_process_directory, run_name),
+        "{}{}/bin/madevent reweight {} -f".format(initial_command, mg_process_directory, run_name),
         log_file=log_file
     )
 

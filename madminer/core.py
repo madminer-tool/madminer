@@ -1078,9 +1078,6 @@ class MadMiner:
         log_directory : str or None, optional
             Directory for log files with the MadGraph output. If None, ./logs is used. Default value: None.
 
-        temp_directory : str or None, optional
-            Path to a temporary directory. If None, a system default is used. Default value: None.
-
         initial_command : str or None, optional
             Initial shell commands that have to be executed before MG is run (e.g. to load a virtual environment).
             Default value: None.
@@ -1095,9 +1092,6 @@ class MadMiner:
         # TODO: add systematics
 
         # Defaults
-        if temp_directory is None:
-            temp_directory = tempfile.gettempdir()
-
         if log_directory is None:
             log_directory = "./logs"
 
