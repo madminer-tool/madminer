@@ -486,7 +486,7 @@ def setup_mg_reweighting_with_scripts(
         initial_command = ""
 
     #  Card copying commands
-    if reweight_card_file_from_mgprocdir is not None and not is_background:
+    if reweight_card_file_from_mgprocdir is not None:
         copy_commands = "cp {}/{} {}{}\n".format(
             mg_process_directory_placeholder,
             reweight_card_file_from_mgprocdir,
@@ -517,7 +517,7 @@ def setup_mg_reweighting_with_scripts(
 
     # How to call it from master script
     call_instruction = "{}/{} [MG_process_directory] [log_directory]".format(
-        mg_process_directory_placeholder, script_file_from_mgprocdir
+        mg_process_directory, script_file_from_mgprocdir
     )
 
     return call_instruction
