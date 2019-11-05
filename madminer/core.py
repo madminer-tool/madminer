@@ -10,7 +10,7 @@ from madminer.utils.morphing import PhysicsMorpher
 from madminer.utils.interfaces.madminer_hdf5 import save_madminer_settings, load_madminer_settings
 from madminer.utils.interfaces.mg_cards import export_param_card, export_reweight_card, export_run_card
 from madminer.utils.interfaces.mg import generate_mg_process, setup_mg_with_scripts, run_mg, create_master_script
-from madminer.utils.interfaces.mg import setup_mg_reweighting_with_scripts
+from madminer.utils.interfaces.mg import setup_mg_reweighting_with_scripts, run_mg_reweighting
 from madminer.utils.various import create_missing_folders, format_benchmark, copy_file
 
 logger = logging.getLogger(__name__)
@@ -1152,7 +1152,19 @@ class MadMiner:
             logger.info("To generate events, please run:\n\n %s \n\n", call_instruction)
 
         else:
-            raise NotImplementedError("Please use only_prepare_script=True for now.")
+            run_mg_reweighting(
+                mg_process_directory,
+                run_name=run_name,
+                reweight_card_file=mg_process_directory+"/"+reweight_card_file,
+                initial_command=initial_command,
+                log_file=log_directory+"/"+log_file_run,
+            )
+            logger.info(
+                "Finished running reweighting! Please check that events were succesfully reweighted in the following "
+                "folder:\n\n %s/Events/%s \n\n",
+                mg_process_directory,
+                run_name
+            )
 
     def _check_pdf_or_scale_variation(self, systematics):
         for value in six.itervalues(systematics):

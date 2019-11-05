@@ -403,7 +403,7 @@ def run_mg(
     with open(proc_card_filename, "w") as file:
         file.write(mg_commands)
 
-    # Call MG5 or export into script
+    # Call MG5
     if initial_command is None:
         initial_command = ""
     else:
@@ -521,6 +521,64 @@ def setup_mg_reweighting_with_scripts(
     )
 
     return call_instruction
+
+
+def run_mg_reweighting(
+    mg_process_directory,
+    run_name,
+    reweight_card_file=None,
+    initial_command=None,
+    log_file=None,
+):
+    """
+    Runs MG reweighting.
+
+    Parameters
+    ----------
+    mg_process_directory : str
+        Path to the MG process directory.
+
+    run_name : str
+        Run name.
+
+    reweight_card_file : str or None, optional
+        Path to the MadGraph reweight card. If None, the card present in the process folder is used. (Default value
+        = None)
+
+    initial_command : str or None, optional
+        Initial shell commands that have to be executed before MG is run (e.g. to load a virtual environment).
+        Default value: None.
+
+    log_file : str or None, optional
+        Path to a log file in which the MadGraph output is saved. Default value: None.
+
+    Returns
+    -------
+    bash_script_call : str
+        How to call this script.
+
+    """
+
+    # Preparations
+    create_missing_folders([os.path.dirname(log_file)])
+
+    # Prepare run...
+    logger.info("Starting reweighting of an existing sample in %s", mg_process_directory)
+
+    #  Copy cards
+    if reweight_card_file is not None:
+        shutil.copyfile(reweight_card_file, mg_process_directory + "/Cards/reweight_card.dat")
+
+    # Call MG5 reweight feature
+    if initial_command is None:
+        initial_command = ""
+    else:
+        initial_command = initial_command + "; "
+
+    _ = call_command(
+        "{}; {}/bin/madevent reweight {} -f".format(initial_command, mg_process_directory, run_name),
+        log_file=log_file
+    )
 
 
 def copy_ufo_model(ufo_directory, mg_directory):
