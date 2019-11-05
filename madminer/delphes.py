@@ -583,11 +583,11 @@ class DelphesReader:
         ):
             logger.info(
                 "Analysing Delphes sample %s: Calculating %s observables, requiring %s selection cuts, associated with "
-                "systematics %s",
+                "%s",
                 delphes_file,
                 len(self.observables),
                 len(self.cuts),
-                ", ".join(list(sample_syst_names)),
+                "no systematics" if sample_syst_names is None else "systematics" + ", ".join(list(sample_syst_names)),
             )
 
             this_observations, this_weights, this_n_events = self._analyse_delphes_sample(

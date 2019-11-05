@@ -564,12 +564,12 @@ class LHEReader:
         ):
             logger.info(
                 "Analysing LHE sample %s: Calculating %s observables, requiring %s selection cuts, using %s efficiency"
-                " factors, associated with systematics %s",
+                " factors, associated with %s",
                 lhe_file,
                 len(self.observables),
                 len(self.cuts),
                 len(self.efficiencies),
-                ", ".join(list(sample_syst_names)),
+                "no systematics" if sample_syst_names is None else "systematics" + ", ".join(list(sample_syst_names)),
             )
 
             this_observations, this_weights, this_n_events = self._parse_sample(
