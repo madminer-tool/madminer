@@ -234,7 +234,7 @@ class Estimator(object):
             self.features = list([int(item) for item in self.features])
 
         try:
-            self.dropout_prob = str(settings["dropout_prob"])
+            self.dropout_prob = float(settings["dropout_prob"])
         except KeyError:
             self.dropout_prob = 0.0
             logger.info(
