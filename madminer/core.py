@@ -1149,15 +1149,15 @@ class MadMiner:
             run_mg_reweighting(
                 mg_process_directory,
                 run_name=run_name,
-                reweight_card_file=mg_process_directory+"/"+reweight_card_file,
+                reweight_card_file=mg_process_directory + "/" + reweight_card_file,
                 initial_command=initial_command,
-                log_file=log_directory+"/"+log_file_run,
+                log_file=log_directory + "/" + log_file_run,
             )
             logger.info(
                 "Finished running reweighting! Please check that events were succesfully reweighted in the following "
                 "folder:\n\n %s/Events/%s \n\n",
                 mg_process_directory,
-                run_name
+                run_name,
             )
 
     def _check_pdf_or_scale_variation(self, systematics):
