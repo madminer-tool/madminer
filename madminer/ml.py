@@ -11,6 +11,7 @@ import torch
 from madminer.utils.ml.models.maf import ConditionalMaskedAutoregressiveFlow
 from madminer.utils.ml.models.maf_mog import ConditionalMixtureMaskedAutoregressiveFlow
 from madminer.utils.ml.models.ratio import DenseSingleParameterizedRatioModel, DenseDoublyParameterizedRatioModel
+from madminer.utils.ml.models.ratio import DenseMorphingAwareRatioModel
 from madminer.utils.ml.models.score import DenseLocalScoreModel
 from madminer.utils.ml.eval import evaluate_flow_model, evaluate_ratio_model, evaluate_local_score_model
 from madminer.utils.ml.utils import get_optimizer, get_loss
@@ -18,6 +19,7 @@ from madminer.utils.various import create_missing_folders, load_and_check, shuff
 from madminer.utils.various import separate_information_blocks
 from madminer.utils.ml.trainer import SingleParameterizedRatioTrainer, DoubleParameterizedRatioTrainer
 from madminer.utils.ml.trainer import LocalScoreTrainer, FlowTrainer
+from madminer.utils.interfaces.madminer_hdf5 import load_madminer_settings
 
 try:
     FileNotFoundError
@@ -813,6 +815,29 @@ class ParameterizedRatioEstimator(ConditionalEstimator):
         estimator_type = str(settings["estimator_type"])
         if estimator_type != "parameterized_ratio":
             raise RuntimeError("Saved model is an incompatible estimator type {}.".format(estimator_type))
+
+
+class MorphingAwareRatioEstimator(ParameterizedRatioEstimator):
+    def __init__(self, morphing_setup_filename, features=None, n_hidden=(100,), activation="tanh", dropout_prob=0.0):
+        super(ParameterizedRatioEstimator, self).__init__(features, n_hidden, activation, dropout_prob)
+
+        self.components, self.morphing_matrix = self._load_morphing_setup(morphing_setup_filename)
+
+    def _load_morphing_setup(self, filename):
+        parameters, benchmarks, _, morphing_components, morphing_matrix, _, _, _, _, _, _, _ = load_madminer_settings(filename, include_nuisance_benchmarks=False)
+        return morphing_components, morphing_matrix
+
+    def _create_model(self):
+        self.model = DenseMorphingAwareRatioModel(
+            components=self.components,
+            morphing_matrix=self.morphing_matrix,
+            n_observables=self.n_observables,
+            n_parameters=self.n_parameters,
+            n_hidden=self.n_hidden,
+            activation=self.activation,
+            dropout_prob=self.dropout_prob,
+        )
+
 
 
 class DoubleParameterizedRatioEstimator(ConditionalEstimator):

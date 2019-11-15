@@ -205,3 +205,101 @@ class DenseDoublyParameterizedRatioModel(nn.Module):
             self.layers[i] = layer.to(*args, **kwargs)
 
         return self
+
+
+
+class DenseMorphingAwareRatioModel(nn.Module):
+    def __init__(self, components, morphing_matrix, n_observables, n_parameters, n_hidden, activation="tanh", dropout_prob=0.0):
+
+        super(DenseSingleParameterizedRatioModel, self).__init__()
+
+        # Save input
+        self.n_hidden = n_hidden
+        self.activation = get_activation_function(activation)
+        self.dropout_prob = dropout_prob
+        self.components = torch.tensor(components)
+        self.n_components = len(components)
+
+        # Morphing matrix
+        self.morphing_matrix = torch.tensor(morphing_matrix)
+
+        # Build networks for all components
+        self.components = nn.ModuleList()
+        for _ in range(self.n_components):
+            self.components.append(
+                DenseSingleParameterizedRatioModel(n_observables, n_parameters, n_hidden, activation, dropout_prob)
+            )
+
+    def forward(self, theta, x, track_score=True, return_grad_x=False, create_gradient_graph=True):
+
+        """ Calculates estimated log likelihood ratio and the derived score. """
+
+        # Track gradient wrt theta
+        if track_score and not theta.requires_grad:
+            theta.requires_grad = True
+
+        # Track gradient wrt x
+        if return_grad_x and not x.requires_grad:
+            x.requires_grad = True
+
+        # Calculate individual components
+        log_r_components = [component(theta, x, False, False, False)[1] for component in self.components]
+
+        # Calculate weights
+        batchsize = theta.size(0)
+        component_weights = torch.zeros(batchsize, self.n_components)
+        for c in range(self.n_components):
+            factor = 1.0
+            for p in range(self.n_parameters):
+                factor = factor * (theta[:, p] ** self.components[c, p])
+            component_weights[:, c] = factor
+
+        weights = self.morphing_matrix.T.dot(component_weights)
+
+        # Put together
+
+        # log r estimator
+        log_r_hat = torch.cat((theta, x), 1)
+
+        for i, layer in enumerate(self.layers):
+            if i > 0:
+                log_r_hat = self.activation(log_r_hat)
+            log_r_hat = layer(log_r_hat)
+
+        # Bayes-optimal s
+        s_hat = 1.0 / (1.0 + torch.exp(log_r_hat))
+
+        # Score t
+        if track_score:
+            t_hat, = grad(
+                log_r_hat,
+                theta,
+                grad_outputs=torch.ones_like(log_r_hat.data),
+                # grad_outputs=log_r_hat.data.new(log_r_hat.shape).fill_(1),
+                only_inputs=True,
+                create_graph=create_gradient_graph,
+            )
+        else:
+            t_hat = None
+
+        # Calculate gradient wrt x
+        if return_grad_x:
+            x_gradient, = grad(
+                log_r_hat,
+                x,
+                grad_outputs=torch.ones_like(log_r_hat.data),
+                only_inputs=True,
+                create_graph=create_gradient_graph,
+            )
+
+            return s_hat, log_r_hat, t_hat, x_gradient
+
+        return s_hat, log_r_hat, t_hat
+
+    def to(self, *args, **kwargs):
+        self = super(DenseSingleParameterizedRatioModel, self).to(*args, **kwargs)
+
+        for i, layer in enumerate(self.layers):
+            self.layers[i] = layer.to(*args, **kwargs)
+
+        return self
