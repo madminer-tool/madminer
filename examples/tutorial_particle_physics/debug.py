@@ -6,15 +6,13 @@ import six
 import logging
 import numpy as np
 
-from madminer.limits import AsymptoticLimits
-from madminer.sampling import SampleAugmenter
-from madminer import sampling
+from madminer.ml import MorphingAwareRatioEstimator
 
 # MadMiner output
 logging.basicConfig(
     format='%(asctime)-5.5s %(name)-20.20s %(levelname)-7.7s %(message)s',
     datefmt='%H:%M',
-    level=logging.INFO
+    level=logging.DEBUG
 )
 
 # Output of all other modules (e.g. matplotlib)
@@ -26,40 +24,20 @@ for key in logging.Logger.manager.loggerDict:
 logging.info("Hi")
 
 # Setup
-limits = AsymptoticLimits('data/lhe_data_shuffled.h5')
-
-theta_ranges = [(-20., 20.), (-20., 20.)]
-resolutions = [25, 25]
-
-lumi = 10000.
-p_values = {}
-mle = {}
-
-# SALLY
-theta_grid, p_values_expected_sally, best_fit_expected_sally = limits.expected_limits(
-    mode="sally",
-    model_file='models/sally',
-    theta_true=[0.,0.],
-    theta_ranges=theta_ranges,
-    resolutions=resolutions,
-    luminosity=lumi,
-    include_xsec=False,
-)
-p_values["SALLY"] = p_values_expected_sally
-mle["SALLY"] = best_fit_expected_sally
-
-# SALLINO
-theta_grid, p_values_expected_sallino, best_fit_expected_sallino = limits.expected_limits(
-    mode="sallino",
-    model_file='models/sally',
-    theta_true=[0.,0.],
-    theta_ranges=theta_ranges,
-    resolutions=resolutions,
-    luminosity=lumi,
-    include_xsec=False,
+ma = MorphingAwareRatioEstimator(
+    "data/setup.h5",
+    n_hidden=(100,),
 )
 
-p_values["SALLINO"] = p_values_expected_sallino
-mle["SALLINO"] = best_fit_expected_sallino
+ma.train(
+    method="alices",
+    theta="data/samples/theta0_train_ratio.npy",
+    x="data/samples/x_train_ratio.npy",
+    y="data/samples/y_train_ratio.npy",
+    r_xz="data/samples/r_xz_train_ratio.npy",
+    t_xz="data/samples/t_xz_train_ratio.npy",
+    n_epochs=20,
+    batch_size=100,
+)
 
 logging.info("Done")

@@ -328,6 +328,8 @@ class Trainer(object):
             for i, batch_loss_contribution in enumerate(batch_loss_contributions):
                 loss_contributions_train[i] += batch_loss_contribution
 
+            self.report_batch(i_epoch, i_batch, batch_loss)
+
             self._timer(start="load training batch")
         self._timer(stop="load training batch")
 
@@ -442,6 +444,11 @@ class Trainer(object):
         return best_loss, best_model, best_epoch
 
     @staticmethod
+    def report_batch(i_epoch, i_batch, loss_train):
+        if i_batch in [0,1,10,100,1000]:
+            logger.debug("  Epoch {:>3d}, batch {:>3d}: loss {:>8.5f}".format(i_epoch + 1, i_batch + 1, loss_train))
+
+    @staticmethod
     def report_epoch(
         i_epoch, loss_labels, loss_train, loss_val, loss_contributions_train, loss_contributions_val, verbose=False
     ):
@@ -455,13 +462,13 @@ class Trainer(object):
                 summary += "{}: {:>6.3f}".format(label, value)
             return summary
 
-        train_report = "Epoch {:>3d}: train loss {:>8.5f} ({})".format(
+        train_report = "  Epoch {:>3d}: train loss {:>8.5f} ({})".format(
             i_epoch + 1, loss_train, contribution_summary(loss_labels, loss_contributions_train)
         )
         logging_fn(train_report)
 
         if loss_val is not None:
-            val_report = "           val. loss  {:>8.5f} ({})".format(
+            val_report = "             val. loss  {:>8.5f} ({})".format(
                 loss_val, contribution_summary(loss_labels, loss_contributions_val)
             )
             logging_fn(val_report)
@@ -559,7 +566,8 @@ class SingleParameterizedRatioTrainer(Trainer):
 
         s_hat, log_r_hat, t_hat = self.model(theta, x, track_score=self.calculate_model_score, return_grad_x=False)
         self._timer(stop="fwd: model.forward", start="fwd: check for nans")
-        self._check_for_nans("Model output", s_hat, log_r_hat, t_hat)
+        self._check_for_nans("Model output", log_r_hat, s_hat)
+        self._check_for_nans("Model score", t_hat)
 
         self._timer(start="fwd: calculate losses", stop="fwd: check for nans")
         losses = [loss_function(s_hat, log_r_hat, t_hat, None, y, r_xz, t_xz, None) for loss_function in loss_functions]
