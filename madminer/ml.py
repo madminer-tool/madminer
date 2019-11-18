@@ -859,6 +859,18 @@ class MorphingAwareRatioEstimator(ParameterizedRatioEstimator):
             dropout_prob=self.dropout_prob,
         )
 
+    def _wrap_settings(self):
+        settings = super(MorphingAwareRatioEstimator, self)._wrap_settings()
+        settings["components"] = list(self.components)
+        settings["morphing_matrix"] = [[col for col in row] for row in self.morphing_matrix]
+        return settings
+
+    def _unwrap_settings(self, settings):
+        super(MorphingAwareRatioEstimator, self)._unwrap_settings(settings)
+
+        self.components = np.array(settings["components"])
+        self.morphing_matrix = np.array(settings["morphing_matrix"])
+
 
 class DoubleParameterizedRatioEstimator(ConditionalEstimator):
     """
