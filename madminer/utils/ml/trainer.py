@@ -559,7 +559,8 @@ class SingleParameterizedRatioTrainer(Trainer):
 
         s_hat, log_r_hat, t_hat = self.model(theta, x, track_score=self.calculate_model_score, return_grad_x=False)
         self._timer(stop="fwd: model.forward", start="fwd: check for nans")
-        self._check_for_nans("Model output", s_hat, log_r_hat, t_hat)
+        self._check_for_nans("Model output", log_r_hat, s_hat)
+        self._check_for_nans("Model score", t_hat)
 
         self._timer(start="fwd: calculate losses", stop="fwd: check for nans")
         losses = [loss_function(s_hat, log_r_hat, t_hat, None, y, r_xz, t_xz, None) for loss_function in loss_functions]
