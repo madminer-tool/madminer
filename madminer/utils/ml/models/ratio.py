@@ -207,6 +207,56 @@ class DenseDoublyParameterizedRatioModel(nn.Module):
         return self
 
 
+class DenseComponentRatioModel(nn.Module):
+    """ Module that implements agnostic parameterized likelihood estimators such as RASCAL or ALICES. Only the
+    numerator of the ratio is parameterized. """
+
+    def __init__(self, n_observables, n_hidden, activation="tanh", dropout_prob=0.0):
+
+        super(DenseComponentRatioModel, self).__init__()
+
+        # Save input
+        self.n_hidden = n_hidden
+        self.activation = get_activation_function(activation)
+        self.dropout_prob = dropout_prob
+
+        # Build network
+        self.layers = nn.ModuleList()
+        n_last = n_observables
+
+        # Hidden layers
+        for n_hidden_units in n_hidden:
+            if self.dropout_prob > 1.0e-9:
+                self.layers.append(nn.Dropout(self.dropout_prob))
+            self.layers.append(nn.Linear(n_last, n_hidden_units))
+            n_last = n_hidden_units
+
+        # Log r layer
+        if self.dropout_prob > 1.0e-9:
+            self.layers.append(nn.Dropout(self.dropout_prob))
+        self.layers.append(nn.Linear(n_last, 1))
+
+    def forward(self, x):
+
+        # log r estimator
+        log_r_hat = x
+
+        for i, layer in enumerate(self.layers):
+            if i > 0:
+                log_r_hat = self.activation(log_r_hat)
+            log_r_hat = layer(log_r_hat)
+
+        return log_r_hat
+
+    def to(self, *args, **kwargs):
+        self = super(DenseComponentRatioModel, self).to(*args, **kwargs)
+
+        for i, layer in enumerate(self.layers):
+            self.layers[i] = layer.to(*args, **kwargs)
+
+        return self
+
+
 class DenseMorphingAwareRatioModel(nn.Module):
     def __init__(
         self, components, morphing_matrix, n_observables, n_parameters, n_hidden, activation="tanh", dropout_prob=0.0
@@ -218,17 +268,19 @@ class DenseMorphingAwareRatioModel(nn.Module):
         self.n_hidden = n_hidden
         self.activation = get_activation_function(activation)
         self.dropout_prob = dropout_prob
-        self.n_components = len(components)
+        self.n_components, self.n_parameters = components.shape
 
         # Morphing setup
         self.components = torch.tensor(components)
         self.morphing_matrix = torch.tensor(morphing_matrix)
 
+        logger.debug("Loaded morphing matrix into PyTorch model:\n %s", morphing_matrix)
+
         # Build networks for all components
-        self.components = nn.ModuleList()
+        self.component_estimators = nn.ModuleList()
         for _ in range(self.n_components):
-            self.components.append(
-                DenseSingleParameterizedRatioModel(n_observables, n_parameters, n_hidden, activation, dropout_prob)
+            self.component_estimators.append(
+                DenseComponentRatioModel(n_observables, n_hidden, activation, dropout_prob)
             )
 
     def forward(self, theta, x, track_score=True, return_grad_x=False, create_gradient_graph=True):
@@ -244,8 +296,8 @@ class DenseMorphingAwareRatioModel(nn.Module):
             x.requires_grad = True
 
         # Calculate individual components
-        log_r_hat_components = [component(theta, x, False, False, False)[1] for component in self.components]
-        log_r_hat_components = torch.cat(log_r_hat_components.unsqueeze(1), 1)  # (batchsize, n_components)
+        log_r_hat_components = [component(x).unsqueeze(1) for component in self.component_estimators]
+        log_r_hat_components = torch.cat(log_r_hat_components, 1)  # (batchsize, n_components, 1)
 
         # Calculate weights
         component_weights = []
@@ -256,11 +308,15 @@ class DenseMorphingAwareRatioModel(nn.Module):
             component_weights.append(component_weight.unsqueeze(1))
         component_weights = torch.cat(component_weights, dim=1)  # (batchsize, n_components)
 
-        # morphing_matrix:  (n_benchmarks, n_components)
-        weights = torch.einsum("nc,bc->bn", self.morphing_matrix, component_weights)  # (batchsize, n_benchmarks)
+        # # Debugging
+        # # morphing_matrix:  (n_benchmarks, n_components)
+        # weights = torch.einsum("cn,bc->bn", [self.morphing_matrix, component_weights])  # (batchsize, n_benchmarks)
+        # logger.debug("Thetas -> weights:")
+        # for i in range(weights.size(0)):
+        #     logger.debug("  %s -> %s", theta[i].detach().numpy(), weights[i].detach().numpy())
 
         # Put together
-        log_r_hat = torch.einsum("bn,bn->b", weights, log_r_hat_components)
+        log_r_hat = torch.einsum("cn,bc,bno->bo", [self.morphing_matrix, component_weights, log_r_hat_components])
 
         # Bayes-optimal s
         s_hat = 1.0 / (1.0 + torch.exp(log_r_hat))
@@ -297,7 +353,7 @@ class DenseMorphingAwareRatioModel(nn.Module):
 
         self.components = self.components.to(*args, **kwargs)
         self.morphing_matrix = self.morphing_matrix.to(*args, **kwargs)
-        for i, component in enumerate(self.components):
-            self.components[i] = component.to(*args, **kwargs)
+        for i, component in enumerate(self.component_estimators):
+            self.component_estimators[i] = component.to(*args, **kwargs)
 
         return self

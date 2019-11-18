@@ -823,6 +823,11 @@ class MorphingAwareRatioEstimator(ParameterizedRatioEstimator):
 
         self.components, self.morphing_matrix = self._load_morphing_setup(morphing_setup_filename)
 
+        logger.info("Setting up morphing-aware ratio estimator with %s morphing components", len(self.components))
+
+    def train(self, *args, **kwargs):
+        super(MorphingAwareRatioEstimator, self).train(*args, scale_parameters=False, **kwargs)
+
     def _load_morphing_setup(self, filename):
         parameters, benchmarks, _, morphing_components, morphing_matrix, _, _, _, _, _, _, _ = load_madminer_settings(
             filename, include_nuisance_benchmarks=False
