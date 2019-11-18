@@ -445,7 +445,7 @@ class Trainer(object):
 
     @staticmethod
     def report_batch(i_epoch, i_batch, loss_train):
-        if i_batch in [0,1,10,100,1000]:
+        if i_batch in [0, 1, 10, 100, 1000]:
             logger.debug("  Epoch {:>3d}, batch {:>3d}: loss {:>8.5f}".format(i_epoch + 1, i_batch + 1, loss_train))
 
     @staticmethod
