@@ -411,6 +411,7 @@ class ParameterizedRatioEstimator(ConditionalEstimator):
         verbose="some",
         scale_parameters=True,
         n_workers=8,
+        clip_gradient=None,
     ):
 
         """
@@ -665,6 +666,7 @@ class ParameterizedRatioEstimator(ConditionalEstimator):
             validation_split=validation_split,
             early_stopping=early_stopping,
             verbose=verbose,
+            clip_gradient=clip_gradient,
         )
         return result
 
@@ -900,6 +902,7 @@ class DoubleParameterizedRatioEstimator(ConditionalEstimator):
         verbose="some",
         scale_parameters=True,
         n_workers=8,
+        clip_gradient=None,
     ):
 
         """
@@ -1180,6 +1183,7 @@ class DoubleParameterizedRatioEstimator(ConditionalEstimator):
             validation_split=validation_split,
             early_stopping=early_stopping,
             verbose=verbose,
+            clip_gradient=clip_gradient,
         )
         return result
 
@@ -1400,6 +1404,7 @@ class ScoreEstimator(Estimator):
         memmap=False,
         verbose="some",
         n_workers=8,
+        clip_gradient=None,
     ):
 
         """
@@ -1590,6 +1595,7 @@ class ScoreEstimator(Estimator):
             validation_split=validation_split,
             early_stopping=early_stopping,
             verbose=verbose,
+            clip_gradient=clip_gradient,
         )
         return result
 
@@ -1920,6 +1926,7 @@ class LikelihoodEstimator(ConditionalEstimator):
         verbose="some",
         scale_parameters=True,
         n_workers=8,
+        clip_gradient=clip_gradient,
     ):
 
         """
@@ -2148,6 +2155,7 @@ class LikelihoodEstimator(ConditionalEstimator):
             validation_split=validation_split,
             early_stopping=early_stopping,
             verbose=verbose,
+            clip_gradient=clip_gradient,
         )
         return result
 
