@@ -1926,7 +1926,7 @@ class LikelihoodEstimator(ConditionalEstimator):
         verbose="some",
         scale_parameters=True,
         n_workers=8,
-        clip_gradient=clip_gradient,
+        clip_gradient=None,
     ):
 
         """

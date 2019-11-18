@@ -328,6 +328,12 @@ class Trainer(object):
             for i, batch_loss_contribution in enumerate(batch_loss_contributions):
                 loss_contributions_train[i] += batch_loss_contribution
 
+            if i_batch == 0:
+                self.report_first_batch(
+                    i_epoch,
+                    batch_loss,
+                )
+
             self._timer(start="load training batch")
         self._timer(stop="load training batch")
 
@@ -442,6 +448,12 @@ class Trainer(object):
         return best_loss, best_model, best_epoch
 
     @staticmethod
+    def report_first_batch(
+        i_epoch, loss_train
+    ):
+        logger.debug("  Epoch {:>3d}, first train batch: loss {:>8.5f}".format(i_epoch + 1, loss_train))
+
+    @staticmethod
     def report_epoch(
         i_epoch, loss_labels, loss_train, loss_val, loss_contributions_train, loss_contributions_val, verbose=False
     ):
@@ -455,7 +467,7 @@ class Trainer(object):
                 summary += "{}: {:>6.3f}".format(label, value)
             return summary
 
-        train_report = "Epoch {:>3d}: train loss {:>8.5f} ({})".format(
+        train_report = "  Epoch {:>3d}: train loss {:>8.5f} ({})".format(
             i_epoch + 1, loss_train, contribution_summary(loss_labels, loss_contributions_train)
         )
         logging_fn(train_report)
