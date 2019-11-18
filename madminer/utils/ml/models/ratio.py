@@ -337,8 +337,6 @@ class DenseMorphingAwareRatioModel(nn.Module):
         else:
             t_hat = None
 
-        logger.debug("Score: %s", t_hat.detach().numpy())
-
         # Calculate gradient wrt x
         if return_grad_x:
             x_gradient, = grad(
