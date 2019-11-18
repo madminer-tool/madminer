@@ -329,10 +329,7 @@ class Trainer(object):
                 loss_contributions_train[i] += batch_loss_contribution
 
             if i_batch == 0:
-                self.report_first_batch(
-                    i_epoch,
-                    batch_loss,
-                )
+                self.report_batch(i_epoch, i_batch, batch_loss)
 
             self._timer(start="load training batch")
         self._timer(stop="load training batch")
@@ -448,10 +445,9 @@ class Trainer(object):
         return best_loss, best_model, best_epoch
 
     @staticmethod
-    def report_first_batch(
-        i_epoch, loss_train
-    ):
-        logger.debug("  Epoch {:>3d}, first train batch: loss {:>8.5f}".format(i_epoch + 1, loss_train))
+    def report_batch(i_epoch, i_batch, loss_train):
+        if i_batch < 3 or (i_batch < 100 and (i_batch + 1) % 10 == 0) or (i_batch + 1) % 100 == 0:
+            logger.debug("  Epoch {:>3d}, batch {:>3d}: loss {:>8.5f}".format(i_epoch + 1, loss_train))
 
     @staticmethod
     def report_epoch(
