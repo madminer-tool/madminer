@@ -879,8 +879,8 @@ class MorphingAwareRatioEstimator(ParameterizedRatioEstimator):
 
     def _wrap_settings(self):
         settings = super(MorphingAwareRatioEstimator, self)._wrap_settings()
-        settings["components"] = list(self.components)
-        settings["morphing_matrix"] = [[col for col in row] for row in self.morphing_matrix]
+        settings["components"] = self.components.tolist()
+        settings["morphing_matrix"] = self.morphing_matrix.tolist()
         return settings
 
     def _unwrap_settings(self, settings):
