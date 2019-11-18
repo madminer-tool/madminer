@@ -824,7 +824,9 @@ class MorphingAwareRatioEstimator(ParameterizedRatioEstimator):
         self.components, self.morphing_matrix = self._load_morphing_setup(morphing_setup_filename)
 
     def _load_morphing_setup(self, filename):
-        parameters, benchmarks, _, morphing_components, morphing_matrix, _, _, _, _, _, _, _ = load_madminer_settings(filename, include_nuisance_benchmarks=False)
+        parameters, benchmarks, _, morphing_components, morphing_matrix, _, _, _, _, _, _, _ = load_madminer_settings(
+            filename, include_nuisance_benchmarks=False
+        )
         return morphing_components, morphing_matrix
 
     def _create_model(self):
@@ -837,7 +839,6 @@ class MorphingAwareRatioEstimator(ParameterizedRatioEstimator):
             activation=self.activation,
             dropout_prob=self.dropout_prob,
         )
-
 
 
 class DoubleParameterizedRatioEstimator(ConditionalEstimator):
