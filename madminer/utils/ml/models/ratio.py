@@ -271,8 +271,8 @@ class DenseMorphingAwareRatioModel(nn.Module):
         self.n_components, self.n_parameters = components.shape
 
         # Morphing setup
-        self.components = torch.tensor(components)
-        self.morphing_matrix = torch.tensor(morphing_matrix)
+        self.register_buffer("components", torch.tensor(components))
+        self.register_buffer("morphing_matrix", torch.tensor(morphing_matrix))
 
         logger.debug("Loaded morphing matrix into PyTorch model:\n %s", morphing_matrix)
 
