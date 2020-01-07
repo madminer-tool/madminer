@@ -11,6 +11,7 @@ import torch
 from madminer.utils.ml.models.maf import ConditionalMaskedAutoregressiveFlow
 from madminer.utils.ml.models.maf_mog import ConditionalMixtureMaskedAutoregressiveFlow
 from madminer.utils.ml.models.ratio import DenseSingleParameterizedRatioModel, DenseDoublyParameterizedRatioModel
+from madminer.utils.ml.models.ratio import DenseMorphingAwareRatioModel
 from madminer.utils.ml.models.score import DenseLocalScoreModel
 from madminer.utils.ml.eval import evaluate_flow_model, evaluate_ratio_model, evaluate_local_score_model
 from madminer.utils.ml.utils import get_optimizer, get_loss
@@ -18,6 +19,8 @@ from madminer.utils.various import create_missing_folders, load_and_check, shuff
 from madminer.utils.various import separate_information_blocks
 from madminer.utils.ml.trainer import SingleParameterizedRatioTrainer, DoubleParameterizedRatioTrainer
 from madminer.utils.ml.trainer import LocalScoreTrainer, FlowTrainer
+from madminer.utils.interfaces.madminer_hdf5 import load_madminer_settings
+from madminer.utils.morphing import PhysicsMorpher
 
 try:
     FileNotFoundError
@@ -44,10 +47,11 @@ class Estimator(object):
     Please see the tutorial for a detailed walk-through.
     """
 
-    def __init__(self, features=None, n_hidden=(100,), activation="tanh"):
+    def __init__(self, features=None, n_hidden=(100,), activation="tanh", dropout_prob=0.0):
         self.features = features
         self.n_hidden = n_hidden
         self.activation = activation
+        self.dropout_prob = dropout_prob
 
         self.model = None
         self.n_observables = None
@@ -209,6 +213,7 @@ class Estimator(object):
             "features": self.features,
             "n_hidden": list(self.n_hidden),
             "activation": self.activation,
+            "dropout_prob": self.dropout_prob,
         }
         return settings
 
@@ -231,6 +236,16 @@ class Estimator(object):
         if self.features is not None:
             self.features = list([int(item) for item in self.features])
 
+        try:
+            self.dropout_prob = float(settings["dropout_prob"])
+        except KeyError:
+            self.dropout_prob = 0.0
+            logger.info(
+                "Can't find dropout probability in model file. Probably this file was created with an older"
+                " MadMiner version < 0.6.1. That's totally fine, we'll just stick to the default of 0 (no"
+                " dropout)."
+            )
+
     def _create_model(self):
         raise NotImplementedError
 
@@ -244,8 +259,8 @@ class ConditionalEstimator(Estimator):
     Adds functionality to rescale parameters.
     """
 
-    def __init__(self, features=None, n_hidden=(100,), activation="tanh"):
-        super(ConditionalEstimator, self).__init__(features, n_hidden, activation)
+    def __init__(self, features=None, n_hidden=(100,), activation="tanh", dropout_prob=0.0):
+        super(ConditionalEstimator, self).__init__(features, n_hidden, activation, dropout_prob)
 
         self.theta_scaling_means = None
         self.theta_scaling_stds = None
@@ -368,12 +383,6 @@ class ParameterizedRatioEstimator(ConditionalEstimator):
 
     """
 
-    def __init__(self, features=None, n_hidden=(100,), activation="tanh"):
-        super(ParameterizedRatioEstimator, self).__init__(features, n_hidden, activation)
-
-        self.theta_scaling_means = None
-        self.theta_scaling_stds = None
-
     def train(
         self,
         method,
@@ -402,6 +411,8 @@ class ParameterizedRatioEstimator(ConditionalEstimator):
         memmap=False,
         verbose="some",
         scale_parameters=True,
+        n_workers=8,
+        clip_gradient=None,
     ):
 
         """
@@ -640,7 +651,7 @@ class ParameterizedRatioEstimator(ConditionalEstimator):
 
         # Train model
         logger.info("Training model")
-        trainer = SingleParameterizedRatioTrainer(self.model)
+        trainer = SingleParameterizedRatioTrainer(self.model, n_workers=n_workers)
         result = trainer.train(
             data=data,
             data_val=data_val,
@@ -656,6 +667,7 @@ class ParameterizedRatioEstimator(ConditionalEstimator):
             validation_split=validation_split,
             early_stopping=early_stopping,
             verbose=verbose,
+            clip_gradient=clip_gradient,
         )
         return result
 
@@ -773,6 +785,7 @@ class ParameterizedRatioEstimator(ConditionalEstimator):
             n_parameters=self.n_parameters,
             n_hidden=self.n_hidden,
             activation=self.activation,
+            dropout_prob=self.dropout_prob,
         )
 
     @staticmethod
@@ -807,6 +820,76 @@ class ParameterizedRatioEstimator(ConditionalEstimator):
             raise RuntimeError("Saved model is an incompatible estimator type {}.".format(estimator_type))
 
 
+class MorphingAwareRatioEstimator(ParameterizedRatioEstimator):
+    def __init__(
+        self,
+        morphing_setup_filename=None,
+        optimize_morphing_basis=False,
+        features=None,
+        n_hidden=(100,),
+        activation="tanh",
+        dropout_prob=0.0,
+    ):
+        super(ParameterizedRatioEstimator, self).__init__(features, n_hidden, activation, dropout_prob)
+
+        if morphing_setup_filename is not None:
+            self.components, self.morphing_matrix = self._load_morphing_setup(
+                morphing_setup_filename, optimize_morphing_basis
+            )
+            logger.info("Setting up morphing-aware ratio estimator with %s morphing components", len(self.components))
+        else:
+            self.components, self.morphing_matrix = None, None
+
+    def train(self, *args, **kwargs):
+        if self.morphing_matrix is None:
+            raise RuntimeError(
+                "Please provide morphing setup during instantiation or load a previously trained morphing-aware "
+                "estimator!"
+            )
+
+        super(MorphingAwareRatioEstimator, self).train(*args, scale_parameters=False, **kwargs)
+
+    def _load_morphing_setup(self, filename, optimize_morphing_basis=False):
+        parameters, benchmarks, _, morphing_components, morphing_matrix, _, _, _, _, _, _, _ = load_madminer_settings(
+            filename, include_nuisance_benchmarks=False
+        )
+        if optimize_morphing_basis:
+            logger.info("Optimizing morphing basis for morphing-aware estimator")
+            morpher = PhysicsMorpher(parameters_from_madminer=parameters)
+            morpher.use_madminer_interface = False
+            morpher.set_components(morphing_components)
+            basis = morpher.optimize_basis(n_trials=1000, n_test_thetas=1000)
+            logger.info("Found morphing basis:")
+            for i, theta in enumerate(basis):
+                logger.info("  Basis vector %s: %s", i + 1, theta)
+            morphing_matrix = morpher.calculate_morphing_matrix(basis)
+
+        return morphing_components, morphing_matrix
+
+    def _create_model(self):
+        self.model = DenseMorphingAwareRatioModel(
+            components=self.components,
+            morphing_matrix=self.morphing_matrix,
+            n_observables=self.n_observables,
+            n_parameters=self.n_parameters,
+            n_hidden=self.n_hidden,
+            activation=self.activation,
+            dropout_prob=self.dropout_prob,
+        )
+
+    def _wrap_settings(self):
+        settings = super(MorphingAwareRatioEstimator, self)._wrap_settings()
+        settings["components"] = self.components.tolist()
+        settings["morphing_matrix"] = self.morphing_matrix.tolist()
+        return settings
+
+    def _unwrap_settings(self, settings):
+        super(MorphingAwareRatioEstimator, self)._unwrap_settings(settings)
+
+        self.components = np.array(settings["components"])
+        self.morphing_matrix = np.array(settings["morphing_matrix"])
+
+
 class DoubleParameterizedRatioEstimator(ConditionalEstimator):
     """
     A neural estimator of the likelihood ratio as a function of the observation x, the numerator hypothesis theta0, and
@@ -827,12 +910,6 @@ class DoubleParameterizedRatioEstimator(ConditionalEstimator):
 
 
     """
-
-    def __init__(self, features=None, n_hidden=(100,), activation="tanh"):
-        super(DoubleParameterizedRatioEstimator, self).__init__(features, n_hidden, activation)
-
-        self.theta_scaling_means = None
-        self.theta_scaling_stds = None
 
     def train(
         self,
@@ -866,6 +943,8 @@ class DoubleParameterizedRatioEstimator(ConditionalEstimator):
         memmap=False,
         verbose="some",
         scale_parameters=True,
+        n_workers=8,
+        clip_gradient=None,
     ):
 
         """
@@ -1119,7 +1198,7 @@ class DoubleParameterizedRatioEstimator(ConditionalEstimator):
 
         # Create model
         if self.model is None:
-            logger.info("Creating model", method)
+            logger.info("Creating model")
             self._create_model()
 
         # Losses
@@ -1130,7 +1209,7 @@ class DoubleParameterizedRatioEstimator(ConditionalEstimator):
 
         # Train model
         logger.info("Training model")
-        trainer = DoubleParameterizedRatioTrainer(self.model)
+        trainer = DoubleParameterizedRatioTrainer(self.model, n_workers=n_workers)
         result = trainer.train(
             data=data,
             data_val=data_val,
@@ -1146,6 +1225,7 @@ class DoubleParameterizedRatioEstimator(ConditionalEstimator):
             validation_split=validation_split,
             early_stopping=early_stopping,
             verbose=verbose,
+            clip_gradient=clip_gradient,
         )
         return result
 
@@ -1282,6 +1362,7 @@ class DoubleParameterizedRatioEstimator(ConditionalEstimator):
             n_parameters=self.n_parameters,
             n_hidden=self.n_hidden,
             activation=self.activation,
+            dropout_prob=self.dropout_prob,
         )
 
     @staticmethod
@@ -1337,8 +1418,8 @@ class ScoreEstimator(Estimator):
 
     """
 
-    def __init__(self, features=None, n_hidden=(100,), activation="tanh"):
-        super(ScoreEstimator, self).__init__(features, n_hidden, activation)
+    def __init__(self, features=None, n_hidden=(100,), activation="tanh", dropout_prob=0.0):
+        super(ScoreEstimator, self).__init__(features, n_hidden, activation, dropout_prob)
 
         self.nuisance_profile_matrix = None
         self.nuisance_project_matrix = None
@@ -1364,6 +1445,8 @@ class ScoreEstimator(Estimator):
         limit_samplesize=None,
         memmap=False,
         verbose="some",
+        n_workers=8,
+        clip_gradient=None,
     ):
 
         """
@@ -1538,7 +1621,7 @@ class ScoreEstimator(Estimator):
 
         # Train model
         logger.info("Training model")
-        trainer = LocalScoreTrainer(self.model)
+        trainer = LocalScoreTrainer(self.model, n_workers=n_workers)
         result = trainer.train(
             data=data,
             data_val=data_val,
@@ -1554,6 +1637,7 @@ class ScoreEstimator(Estimator):
             validation_split=validation_split,
             early_stopping=early_stopping,
             verbose=verbose,
+            clip_gradient=clip_gradient,
         )
         return result
 
@@ -1790,6 +1874,7 @@ class ScoreEstimator(Estimator):
             n_parameters=self.n_parameters,
             n_hidden=self.n_hidden,
             activation=self.activation,
+            dropout_prob=self.dropout_prob,
         )
 
     @staticmethod
@@ -1801,7 +1886,6 @@ class ScoreEstimator(Estimator):
 
     def _wrap_settings(self):
         settings = super(ScoreEstimator, self)._wrap_settings()
-        settings["estimator_type"] = "score"
         settings["estimator_type"] = "score"
         settings["nuisance_mode_default"] = self.nuisance_mode_default
         return settings
@@ -1853,7 +1937,7 @@ class LikelihoodEstimator(ConditionalEstimator):
     """
 
     def __init__(self, features=None, n_components=1, n_mades=5, n_hidden=(100,), activation="tanh", batch_norm=None):
-        super(LikelihoodEstimator, self).__init__(features, n_hidden, activation)
+        super(LikelihoodEstimator, self).__init__(features, n_hidden, activation, dropout_prob=0.0)
 
         self.n_components = n_components
         self.n_mades = n_mades
@@ -1883,6 +1967,8 @@ class LikelihoodEstimator(ConditionalEstimator):
         memmap=False,
         verbose="some",
         scale_parameters=True,
+        n_workers=8,
+        clip_gradient=None,
     ):
 
         """
@@ -2095,7 +2181,7 @@ class LikelihoodEstimator(ConditionalEstimator):
 
         # Train model
         logger.info("Training model")
-        trainer = FlowTrainer(self.model)
+        trainer = FlowTrainer(self.model, n_workers=n_workers)
         result = trainer.train(
             data=data,
             data_val=data_val,
@@ -2111,6 +2197,7 @@ class LikelihoodEstimator(ConditionalEstimator):
             validation_split=validation_split,
             early_stopping=early_stopping,
             verbose=verbose,
+            clip_gradient=clip_gradient,
         )
         return result
 

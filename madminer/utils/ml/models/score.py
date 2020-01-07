@@ -13,13 +13,14 @@ class DenseLocalScoreModel(nn.Module):
     """Module that implements local score estimators for methods like SALLY and SALLINO, or the calculation
      of Fisher information matrices."""
 
-    def __init__(self, n_observables, n_parameters, n_hidden, activation="tanh"):
+    def __init__(self, n_observables, n_parameters, n_hidden, activation="tanh", dropout_prob=0.0):
 
         super(DenseLocalScoreModel, self).__init__()
 
         # Save input
         self.n_hidden = n_hidden
         self.activation = get_activation_function(activation)
+        self.dropout_prob = dropout_prob
 
         # Build network
         self.layers = nn.ModuleList()
@@ -27,10 +28,14 @@ class DenseLocalScoreModel(nn.Module):
 
         # Hidden layers
         for n_hidden_units in n_hidden:
+            if self.dropout_prob > 1.0e-9:
+                self.layers.append(nn.Dropout(self.dropout_prob))
             self.layers.append(nn.Linear(n_last, n_hidden_units))
             n_last = n_hidden_units
 
         # Log r layer
+        if self.dropout_prob > 1.0e-9:
+            self.layers.append(nn.Dropout(self.dropout_prob))
         self.layers.append(nn.Linear(n_last, n_parameters))
 
     def forward(self, x, return_grad_x=False):

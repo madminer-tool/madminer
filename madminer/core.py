@@ -10,6 +10,7 @@ from madminer.utils.morphing import PhysicsMorpher
 from madminer.utils.interfaces.madminer_hdf5 import save_madminer_settings, load_madminer_settings
 from madminer.utils.interfaces.mg_cards import export_param_card, export_reweight_card, export_run_card
 from madminer.utils.interfaces.mg import generate_mg_process, setup_mg_with_scripts, run_mg, create_master_script
+from madminer.utils.interfaces.mg import setup_mg_reweighting_with_scripts, run_mg_reweighting
 from madminer.utils.various import create_missing_folders, format_benchmark, copy_file
 
 logger = logging.getLogger(__name__)
@@ -574,6 +575,8 @@ class MadMiner:
         sample_benchmark=None,
         param_card_filename=None,
         reweight_card_filename=None,
+        include_param_card=True,
+        benchmarks=None,
     ):
 
         """
@@ -600,6 +603,12 @@ class MadMiner:
             str or None. Output filename for the generated reweight card. If None, a default filename in the MG process
             folder is used. Default value: None.
 
+        include_param_card : bool, optional
+            If False, no param card is exported, only a reweight card
+
+        benchmarks : None or OrderedDict, optional
+            If None, uses all benchmarks. Otherwise uses these benchmarks.
+
         Returns
         -------
             None
@@ -611,6 +620,9 @@ class MadMiner:
         else:
             logger.info("Creating param and reweight cards in %s, %s", param_card_filename, reweight_card_filename)
 
+        if benchmarks is None:
+            benchmarks = self.benchmarks
+
         # Check status
         assert self.default_benchmark is not None
         assert len(self.benchmarks) > 0
@@ -620,18 +632,19 @@ class MadMiner:
             sample_benchmark = self.default_benchmark
 
         # Export param card
-        export_param_card(
-            benchmark=self.benchmarks[sample_benchmark],
-            parameters=self.parameters,
-            param_card_template_file=param_card_template_file,
-            mg_process_directory=mg_process_directory,
-            param_card_filename=param_card_filename,
-        )
+        if include_param_card:
+            export_param_card(
+                benchmark=benchmarks[sample_benchmark],
+                parameters=self.parameters,
+                param_card_template_file=param_card_template_file,
+                mg_process_directory=mg_process_directory,
+                param_card_filename=param_card_filename,
+            )
 
         # Export reweight card
         export_reweight_card(
             sample_benchmark=sample_benchmark,
-            benchmarks=self.benchmarks,
+            benchmarks=benchmarks,
             parameters=self.parameters,
             mg_process_directory=mg_process_directory,
             reweight_card_filename=reweight_card_filename,
@@ -1041,6 +1054,134 @@ class MadMiner:
                 "Finished running MadGraph! Please check that events were succesfully generated in the following "
                 "folders:\n\n%s\n\n",
                 expected_event_files,
+            )
+
+    def reweight_existing_sample(
+        self,
+        mg_process_directory,
+        run_name,
+        param_card_template_file,
+        sample_benchmark,
+        reweight_benchmarks=None,
+        only_prepare_script=False,
+        log_directory=None,
+        temp_directory=None,
+        initial_command=None,
+    ):
+        """
+        High-level function that adds the weights required for MadMiner to an existing sample.
+
+        If `only_prepare_scripts=True`, the event generation is not run
+        directly, but a bash script is created in `<process_folder>/madminer/run.sh` that will start the event
+        generation with the correct settings.
+
+        Currently does not support adding systematics.
+
+        Parameters
+        ----------
+        mg_process_directory : str
+            Path to the MG process directory. If None, MadMiner uses ./MG_process.
+
+        run_name : str
+            Run name.
+
+        param_card_template_file : str
+            Path to a param card that will be used as template to create the appropriate param cards for these runs.
+
+        sample_benchmark : str
+            The name of the benchmark used to generate this sample.
+
+        reweight_benchmarks : list of str or None
+            Lists the names of benchmarks to which the sample should be reweighted. If None, all benchmarks (except
+            sample_benchmarks) are used.
+
+        only_prepare_script : bool, optional
+            If True, the event generation is not started, but instead a run.sh script is created in the process
+            directory. Default value: False.
+
+        log_directory : str or None, optional
+            Directory for log files with the MadGraph output. If None, ./logs is used. Default value: None.
+
+        initial_command : str or None, optional
+            Initial shell commands that have to be executed before MG is run (e.g. to load a virtual environment).
+            Default value: None.
+
+        Returns
+        -------
+            None
+
+        """
+
+        # TODO: check that we don't reweight to benchmarks that already have weights in the LHE file
+        # TODO: add systematics
+
+        # Defaults
+        if log_directory is None:
+            log_directory = "./logs"
+
+        # Make MadMiner folders
+        create_missing_folders(
+            [
+                mg_process_directory + "/madminer",
+                mg_process_directory + "/madminer/cards",
+                mg_process_directory + "/madminer/scripts",
+            ]
+        )
+
+        # Files
+        script_file = "madminer/scripts/run_reweight.sh"
+        log_file_run = "reweight.log"
+        reweight_card_file = "/madminer/cards/reweight_card_reweight.dat"
+
+        # Missing benchmarks
+        missing_benchmarks = OrderedDict()
+        for benchmark in reweight_benchmarks:
+            missing_benchmarks[benchmark] = self.benchmarks[benchmark]
+
+        # Inform user
+        logger.info("Reweighting setup")
+        logger.info("  Originally sampled from benchmark: %s", sample_benchmark)
+        logger.info("  Now reweighting to benchmarks:     %s", reweight_benchmarks)
+        logger.info("  Reweight card:                     %s", reweight_card_file)
+        logger.info("  Log file:                          %s", log_file_run)
+
+        # Create param and reweight cards
+        self._export_cards(
+            param_card_template_file,
+            mg_process_directory,
+            sample_benchmark=sample_benchmark,
+            reweight_card_filename=mg_process_directory + "/" + reweight_card_file,
+            include_param_card=False,
+            benchmarks=missing_benchmarks,
+        )
+
+        # Run reweighting
+        if only_prepare_script:
+            call_instruction = setup_mg_reweighting_with_scripts(
+                mg_process_directory,
+                run_name=run_name,
+                reweight_card_file_from_mgprocdir=reweight_card_file,
+                script_file_from_mgprocdir=script_file,
+                initial_command=initial_command,
+                log_dir=log_directory,
+                log_file_from_logdir=log_file_run,
+            )
+
+            logger.info("To generate events, please run:\n\n %s \n\n", call_instruction)
+
+        else:
+            run_mg_reweighting(
+                mg_process_directory,
+                run_name=run_name,
+                reweight_card_file=mg_process_directory + "/" + reweight_card_file,
+                initial_command=initial_command,
+                log_file=log_directory + "/" + log_file_run,
+            )
+            logger.info(
+                "Finished running reweighting! Please check that events were succesfully reweighted in the following "
+                "folder:\n\n %s/Events/%s \n\n",
+                mg_process_directory,
+                run_name,
             )
 
     def _check_pdf_or_scale_variation(self, systematics):
