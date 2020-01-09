@@ -1248,8 +1248,8 @@ def plot_fisher_information_contours_2d(
     # Error bands
     for i in range(n_matrices):
         if fisher_information_covariances[i] is not None:
-            d2_up = fisher_distances_squared[i] + sigma_uncertainties*fisher_distances_squared_uncertainties[i]
-            d2_down = fisher_distances_squared[i] - sigma_uncertainties*fisher_distances_squared_uncertainties[i]
+            d2_up = fisher_distances_squared[i] + sigma_uncertainties * fisher_distances_squared_uncertainties[i]
+            d2_down = fisher_distances_squared[i] - sigma_uncertainties * fisher_distances_squared_uncertainties[i]
             band = (d2_up > d2_threshold) * (d2_down < d2_threshold) + (d2_up < d2_threshold) * (d2_down > d2_threshold)
 
             plt.contourf(xi, yi, band, [0.5, 2.5], colors=colors[i], alpha=alphas_uncertainties[i])
