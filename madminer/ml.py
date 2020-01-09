@@ -709,7 +709,7 @@ class ParameterizedRatioEstimator(ConditionalEstimator):
             raise ValueError("No model -- train or load model before evaluating it!")
 
         # Load training data
-        logger.info("Loading evaluation data")
+        logger.debug("Loading evaluation data")
         x = load_and_check(x)
         theta = load_and_check(theta)
 
@@ -725,7 +725,7 @@ class ParameterizedRatioEstimator(ConditionalEstimator):
         all_t_hat = []
 
         if test_all_combinations:
-            logger.info("Starting ratio evaluation for %s x-theta combinations", len(theta) * len(x))
+            logger.debug("Starting ratio evaluation for %s x-theta combinations", len(theta) * len(x))
 
             for i, this_theta in enumerate(theta):
                 logger.debug("Starting ratio evaluation for thetas %s / %s: %s", i + 1, len(theta), this_theta)
@@ -747,7 +747,7 @@ class ParameterizedRatioEstimator(ConditionalEstimator):
             all_t_hat = np.array(all_t_hat)
 
         else:
-            logger.info("Starting ratio evaluation")
+            logger.debug("Starting ratio evaluation")
             _, all_log_r_hat, all_t_hat, _ = evaluate_ratio_model(
                 model=self.model,
                 method_type="parameterized_ratio",
@@ -759,7 +759,7 @@ class ParameterizedRatioEstimator(ConditionalEstimator):
 
             all_t_hat = self._transform_score(all_t_hat, inverse=True)
 
-        logger.info("Evaluation done")
+        logger.debug("Evaluation done")
         return all_log_r_hat, all_t_hat
 
     def evaluate_log_likelihood(self, *args, **kwargs):
@@ -1275,7 +1275,7 @@ class DoubleParameterizedRatioEstimator(ConditionalEstimator):
             raise ValueError("No model -- train or load model before evaluating it!")
 
         # Load training data
-        logger.info("Loading evaluation data")
+        logger.debug("Loading evaluation data")
         x = load_and_check(x)
         theta0 = load_and_check(theta0)
         theta1 = load_and_check(theta1)
@@ -1298,7 +1298,7 @@ class DoubleParameterizedRatioEstimator(ConditionalEstimator):
         all_t_hat1 = []
 
         if test_all_combinations:
-            logger.info("Starting ratio evaluation for %s x-theta combinations", len(theta0) * len(x))
+            logger.debug("Starting ratio evaluation for %s x-theta combinations", len(theta0) * len(x))
 
             for i, (this_theta0, this_theta1) in enumerate(zip(theta0, theta1)):
                 logger.debug(
@@ -1326,7 +1326,7 @@ class DoubleParameterizedRatioEstimator(ConditionalEstimator):
             all_t_hat1 = np.array(all_t_hat1)
 
         else:
-            logger.info("Starting ratio evaluation")
+            logger.debug("Starting ratio evaluation")
             _, all_log_r_hat, all_t_hat0, all_t_hat1 = evaluate_ratio_model(
                 model=self.model,
                 method_type="double_parameterized_ratio",
@@ -1336,7 +1336,7 @@ class DoubleParameterizedRatioEstimator(ConditionalEstimator):
                 evaluate_score=evaluate_score,
             )
 
-        logger.info("Evaluation done")
+        logger.debug("Evaluation done")
         return all_log_r_hat, all_t_hat0, all_t_hat1
 
     def evaluate_log_likelihood(self, *args, **kwargs):
@@ -1723,7 +1723,7 @@ class ScoreEstimator(Estimator):
 
         # Load training data
         if isinstance(x, str):
-            logger.info("Loading evaluation data")
+            logger.debug("Loading evaluation data")
         x = load_and_check(x)
 
         # Scale observables
@@ -1734,7 +1734,7 @@ class ScoreEstimator(Estimator):
             x = x[:, self.features]
 
         # Evaluation
-        logger.info("Starting score evaluation")
+        logger.debug("Starting score evaluation")
         t_hat = evaluate_local_score_model(model=self.model, xs=x)
 
         # Treatment of nuisance paramters
@@ -1747,7 +1747,7 @@ class ScoreEstimator(Estimator):
                     "evaluate_score() was called with nuisance_mode = project, but nuisance parameters "
                     "have not been set up yet. Please call set_nuisance() first!"
                 )
-            logger.info("Projecting nuisance parameter from score")
+            logger.debug("Projecting nuisance parameter from score")
             t_hat = np.einsum("ij,xj->xi", self.nuisance_project_matrix, t_hat)
 
         elif nuisance_mode == "profile":
@@ -1756,7 +1756,7 @@ class ScoreEstimator(Estimator):
                     "evaluate_score() was called with nuisance_mode = profile, but nuisance parameters "
                     "have not been set up yet. Please call set_nuisance() first!"
                 )
-            logger.info("Profiling nuisance parameter from score")
+            logger.debug("Profiling nuisance parameter from score")
             t_hat = np.einsum("ij,xj->xi", self.nuisance_profile_matrix, t_hat)
 
         else:
@@ -1805,7 +1805,7 @@ class ScoreEstimator(Estimator):
             raise ValueError("No model -- train or load model before evaluating it!")
 
         # Load training data
-        logger.info("Loading evaluation data")
+        logger.debug("Loading evaluation data")
         x = load_and_check(x)
         n_samples = x.shape[0]
 
@@ -1825,7 +1825,7 @@ class ScoreEstimator(Estimator):
         weights /= np.sum(weights)
 
         # Calculate Fisher information
-        logger.info("Calculating Fisher information")
+        logger.debug("Calculating Fisher information")
         if sum_events:
             fisher_information = float(n_events) * np.einsum("n,ni,nj->ij", weights, t_hats, t_hats)
         else:
@@ -2244,7 +2244,7 @@ class LikelihoodEstimator(ConditionalEstimator):
 
         # Load training data
         if isinstance(x, str):
-            logger.info("Loading evaluation data")
+            logger.debug("Loading evaluation data")
         theta = load_and_check(theta)
         x = load_and_check(x)
 
@@ -2260,7 +2260,7 @@ class LikelihoodEstimator(ConditionalEstimator):
         all_t_hat = []
 
         if test_all_combinations:
-            logger.info("Starting ratio evaluation for %s x-theta combinations", len(theta) * len(x))
+            logger.debug("Starting ratio evaluation for %s x-theta combinations", len(theta) * len(x))
 
             for i, this_theta in enumerate(theta):
                 logger.debug("Starting log likelihood evaluation for thetas %s / %s: %s", i + 1, len(theta), this_theta)
@@ -2276,13 +2276,13 @@ class LikelihoodEstimator(ConditionalEstimator):
             all_t_hat = np.array(all_t_hat)
 
         else:
-            logger.info("Starting log likelihood evaluation")
+            logger.debug("Starting log likelihood evaluation")
 
             all_log_p_hat, all_t_hat = evaluate_flow_model(
                 model=self.model, thetas=theta, xs=x, evaluate_score=evaluate_score
             )
 
-        logger.info("Evaluation done")
+        logger.debug("Evaluation done")
         return all_log_p_hat, all_t_hat
 
     def evaluate_log_likelihood_ratio(self, x, theta0, theta1, test_all_combinations, evaluate_score=False):
@@ -2331,7 +2331,7 @@ class LikelihoodEstimator(ConditionalEstimator):
             raise ValueError("No model -- train or load model before evaluating it!")
 
         # Load training data
-        logger.info("Loading evaluation data")
+        logger.debug("Loading evaluation data")
         x = load_and_check(x)
         theta0 = load_and_check(theta0)
         theta1 = load_and_check(theta1)
@@ -2591,7 +2591,7 @@ class Ensemble:
 
         """
 
-        logger.info("Evaluating %s estimators in ensemble", self.n_estimators)
+        logger.debug("Evaluating %s estimators in ensemble", self.n_estimators)
 
         # Calculate weights of each estimator in vote
         if estimator_weights is None:
@@ -2603,7 +2603,7 @@ class Ensemble:
         # Calculate estimator predictions
         predictions = []
         for i, estimator in enumerate(self.estimators):
-            logger.info("Starting evaluation for estimator %s / %s in ensemble", i + 1, self.n_estimators)
+            logger.debug("Starting evaluation for estimator %s / %s in ensemble", i + 1, self.n_estimators)
             predictions.append(estimator.evaluate_log_likelihood(**kwargs)[0])
         predictions = np.array(predictions)
 
@@ -2645,7 +2645,7 @@ class Ensemble:
 
         """
 
-        logger.info("Evaluating %s estimators in ensemble", self.n_estimators)
+        logger.debug("Evaluating %s estimators in ensemble", self.n_estimators)
 
         # Calculate weights of each estimator in vote
         if estimator_weights is None:
@@ -2657,7 +2657,7 @@ class Ensemble:
         # Calculate estimator predictions
         predictions = []
         for i, estimator in enumerate(self.estimators):
-            logger.info("Starting evaluation for estimator %s / %s in ensemble", i + 1, self.n_estimators)
+            logger.debug("Starting evaluation for estimator %s / %s in ensemble", i + 1, self.n_estimators)
             predictions.append(estimator.evaluate_log_likelihood_ratio(**kwargs)[0])
         predictions = np.array(predictions)
 
@@ -2699,7 +2699,7 @@ class Ensemble:
 
         """
 
-        logger.info("Evaluating %s estimators in ensemble", self.n_estimators)
+        logger.debug("Evaluating %s estimators in ensemble", self.n_estimators)
 
         # Calculate weights of each estimator in vote
         if estimator_weights is None:
