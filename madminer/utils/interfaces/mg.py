@@ -93,6 +93,7 @@ def setup_mg_with_scripts(
     param_card_file_from_mgprocdir=None,
     reweight_card_file_from_mgprocdir=None,
     pythia8_card_file_from_mgprocdir=None,
+    configuration_file_from_mgprocdir=None,
     is_background=False,
     script_file_from_mgprocdir=None,
     initial_command=None,
@@ -127,6 +128,10 @@ def setup_mg_with_scripts(
     pythia8_card_file_from_mgprocdir : str or None, optional
         Path to the MadGraph Pythia8 card, relative from mg_process_directory. If None, Pythia is not run. Default
         value: None.
+        
+        configuration_file_from_mgprocdir : str or None, optional
+        Path to the MadGraph me5_configuration card, relative from mg_process_directory. If None, the card
+        present in the process folder is used. Default value: None.
 
     is_background : bool, optional
         Should be True for background processes, i.e. process in which the differential cross section does not
@@ -250,6 +255,14 @@ def setup_mg_with_scripts(
             "/Cards/pythia8_card.dat",
         )
 
+    if configuration_card_file_from_mgprocdir is not None:
+        copy_commands += "cp {}/{} {}{}\n".format(
+            mg_process_directory_placeholder,
+            configuration_card_file_from_mgprocdir,
+            mg_process_directory_placeholder,
+            "/Cards/me5_configuration.txt",
+        )
+
     # Replace environment variable in proc card
     replacement_command = """sed -e 's@\$mgprocdir@'"$mgprocdir"'@' {}/{} > {}/{}""".format(
         mg_process_directory_placeholder,
@@ -303,6 +316,7 @@ def run_mg(
     param_card_file=None,
     reweight_card_file=None,
     pythia8_card_file=None,
+    configuration_card_file=None,
     is_background=False,
     initial_command=None,
     log_file=None,
@@ -337,6 +351,10 @@ def run_mg(
 
     pythia8_card_file : str or None, optional
         Path to the MadGraph Pythia8 card. If None, Pythia is not run. Default value: None.
+        
+    configuration_card_file : str or None, optional
+        Path to the MadGraph configuration card. If None, the card present in the process folder is used. (Default
+        value: None).
 
     is_background : bool, optional
         Should be True for background processes, i.e. process in which the differential cross section does not
@@ -376,6 +394,8 @@ def run_mg(
         shutil.copyfile(reweight_card_file, mg_process_directory + "/Cards/reweight_card.dat")
     if pythia8_card_file is not None:
         shutil.copyfile(pythia8_card_file, mg_process_directory + "/Cards/pythia8_card.dat")
+    if configuration_card_file is not None:
+        shutil.copyfile(configuration_card_file, mg_process_directory + "/Cards/me5_configuration.txt")
 
     # Find filenames for process card and script
     if proc_card_filename is None:
