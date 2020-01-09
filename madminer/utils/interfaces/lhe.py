@@ -884,6 +884,8 @@ def _get_objects(particles, particles_truth, met_resolution=None, global_event_d
     for particle in particles:
         pdgid = abs(particle.pdgid)
         if pdgid in [1, 2, 3, 4, 5, 6, 9, 21]:
+            if pdgid == 5: particle.set_tags(False, True, False)
+            if pdgid == 6: particle.set_tags(False, False, True)
             jets.append(particle)
         elif pdgid == 11:
             electrons.append(particle)
