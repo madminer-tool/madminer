@@ -7,7 +7,7 @@ import os
 from madminer.analysis import DataAnalyzer
 from madminer.utils.various import math_commands, weighted_quantile, sanitize_array, mdot
 from madminer.utils.various import separate_information_blocks, less_logging
-from madminer.ml import ScoreEstimator, Ensemble
+from madminer.ml import ParameterizedRatioEstimator, ScoreEstimator, Ensemble, load_estimator
 
 logger = logging.getLogger(__name__)
 
@@ -203,38 +203,53 @@ class FisherInformation(DataAnalyzer):
         if mode not in ["score", "information", "modified_score"]:
             raise ValueError("Unknown mode {}, has to be 'score', 'modified_score', or 'information'!".format(mode))
 
-        # Load SALLY model
+        # Load Estimator model
         if os.path.isdir(model_file) and os.path.exists(model_file + "/ensemble.json"):
             model_is_ensemble = True
             model = Ensemble()
             model.load(model_file)
+            if isinstance(model.estimators[0], ParameterizedRatioEstimator):
+                model_type = "Parameterized Ratio Ensemble"
+            elif isinstance(model.estimators[0], ScoreEstimator):
+                model_type = "Score Ensemble"
+            else:
+                raise RuntimeError("Ensemble is not a score or parameterized_ratio type!")
         else:
             model_is_ensemble = False
-            model = ScoreEstimator()
-            model.load(model_file)
+            model = load_estimator(model_file)
+
+            if isinstance(model, ParameterizedRatioEstimator):
+                model_type = "Parameterized Ratio Estimator"
+            elif isinstance(model, ScoreEstimator):
+                model_type = "Score Estimator"
+            else:
+                raise RuntimeError("Estimator is not a score or parameterized_ratio type!")
 
         # Nuisance parameters?
         if model.n_parameters == self.n_parameters:
             logger.info(
-                "Found %s parameters in SALLY model, matching %s physical parameters in MadMiner file",
+                "Found %s parameters in %s model, matching %s physical parameters in MadMiner file",
                 model.n_parameters,
+                model_type,
                 self.n_parameters,
             )
             include_nuisance_parameters = False
         elif model.n_parameters == self.n_parameters + self.n_nuisance_parameters:
             logger.info(
-                "Found %s parameters in SALLY model, matching %s physical parameters + %s nuisance parameters"
+                "Found %s parameters in %s model, matching %s physical parameters + %s nuisance parameters"
                 + " in MadMiner file",
                 model.n_parameters,
+                model_type,
                 self.n_parameters,
                 self.n_nuisance_parameters,
             )
             include_nuisance_parameters = True
         else:
             raise RuntimeError(
-                "Inconsistent numbers of parameters! Found %s in SALLY model, %s physical parameters in "
+                "Inconsistent numbers of parameters! Found %s in %s model, %s physical parameters in "
                 "MadMiner file, and %s nuisance parameters in MadMiner file.",
                 model.n_parameters,
+                model_type,
                 self.n_parameters,
                 self.n_nuisance_parameters,
             )
@@ -299,6 +314,7 @@ class FisherInformation(DataAnalyzer):
                     with less_logging():
                         this_fisher_info, this_covariance = model.calculate_fisher_information(
                             x=observations,
+                            theta=theta,
                             obs_weights=weights_theta,
                             n_events=luminosity * total_xsec * np.sum(weights_theta) / total_sum_weights_theta,
                             calculate_covariance=calculate_covariance,
@@ -308,11 +324,11 @@ class FisherInformation(DataAnalyzer):
                     with less_logging():
                         this_fisher_info = model.calculate_fisher_information(
                             x=observations,
+                            theta=theta,
                             weights=weights_theta,
                             n_events=luminosity * total_xsec * np.sum(weights_theta) / total_sum_weights_theta,
                         )
                     this_covariance = None
-
                 # Sum up results
                 if fisher_info_kin is None:
                     fisher_info_kin = this_fisher_info
@@ -337,13 +353,15 @@ class FisherInformation(DataAnalyzer):
                 if model_is_ensemble:
                     fisher_info_kin, covariance = model.calculate_fisher_information(
                         x=unweighted_x_sample_file,
+                        theta=theta,
                         n_events=luminosity * total_xsec,
                         mode=mode,
                         calculate_covariance=calculate_covariance,
                     )
                 else:
                     fisher_info_kin = model.calculate_fisher_information(
-                        x=unweighted_x_sample_file, n_events=luminosity * total_xsec
+                        x=unweighted_x_sample_file, n_events=luminosity * total_xsec,
+                        theta=theta,
                     )
                     covariance = None
 
