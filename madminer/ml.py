@@ -249,6 +249,68 @@ class Estimator(object):
     def _create_model(self):
         raise NotImplementedError
 
+    
+    def calculate_fisher_information(self, x, theta=None, weights=None, n_events=1, sum_events=True):
+        """
+        Calculates the expected Fisher information matrix based on the kinematic information in a given number of
+        events.
+        
+        Parameters
+        ----------
+        x : str or ndarray
+            Sample of observations, or path to numpy file with observations. Note that this sample has to be sampled
+            from the reference parameter where the score is estimated with the SALLY / SALLINO estimator.
+        
+        theta: None or ndarray
+            Numerator parameter point, or filename of a pickled numpy array. Has no effect for ScoreEstimator.
+        
+        weights : None or ndarray, optional
+            Weights for the observations. If None, all events are taken to have equal weight. Default value: None.
+        
+        n_events : float, optional
+            Expected number of events for which the kinematic Fisher information should be calculated. Default value: 1.
+        
+        sum_events : bool, optional
+            If True, the expected Fisher information summed over the events x is calculated. If False, the per-event
+            Fisher information for each event is returned. Default value: True.
+        
+        Returns
+        -------
+        fisher_information : ndarray
+            Expected kinematic Fisher information matrix with shape `(n_events, n_parameters, n_parameters)` if
+            sum_events is False or `(n_parameters, n_parameters)` if sum_events is True.
+        
+        """
+            
+        if self.model is None:
+            raise ValueError("No model -- train or load model before evaluating it!")
+                
+        # Load training data
+        logger.info("Loading evaluation data")
+        x = load_and_check(x)
+        n_samples = x.shape[0]
+                        
+        # Estimate scores
+        t_hats = self.evaluate_score(x=x, theta=np.array([theta for _ in x ]), nuisance_mode="keep")
+                        
+        # Weights
+        if weights is None:
+            weights = np.ones(n_samples)
+        weights /= np.sum(weights)
+                                
+        # Calculate Fisher information
+        logger.info("Calculating Fisher information")
+        if sum_events:
+            fisher_information = float(n_events) * np.einsum("n,ni,nj->ij", weights, t_hats, t_hats)
+        else:
+            fisher_information = float(n_events) * np.einsum("n,ni,nj->nij", weights, t_hats, t_hats)
+                                                
+        # Calculate expected score
+        expected_score = np.mean(t_hats, axis=0)
+        logger.debug("Expected per-event score (should be close to zero): %s", expected_score)
+                                                
+        return fisher_information
+    
 
 class ConditionalEstimator(Estimator):
 
@@ -766,15 +828,42 @@ class ParameterizedRatioEstimator(ConditionalEstimator):
         raise TheresAGoodReasonThisDoesntWork(
             "This estimator can only estimate likelihood ratios, not the likelihood " "itself!"
         )
+    
+    def evaluate_score(self, x, theta, nuisance_mode="keep"):
+        """
+        Evaluates the scores for given observations x betwen at a given parameter point theta.
+            
+        Parameters
+        ----------
+        x : str or ndarray
+            Observations or filename of a pickled numpy array.
+            
+        theta : ndarray or str
+            Parameter points or filename of a pickled numpy array.
+        
+        nuisance_mode : {"auto", "keep", "profile", "project"}
+            Decides how nuisance parameters are treated. If nuisance_mode is "keep", the
+            returned score is always (n+k)-dimensional.
+            
+        Returns
+        -------
+        score : ndarray or None
+            The estimated score at `theta`. If test_all_combinations is True, the
+            result has shape `(n_thetas, n_x, n_parameters)`. Otherwise, it has shape
+            `(n_samples, n_parameters)`.
+            
+        """
+        if nuisance_mode == "keep":
+            logger.debug("Keeping nuisance parameter in score")
+        else:
+            raise ValueError("Unknown nuisance_mode {}".format(nuisance_mode))
+        
+        _, all_t_hat = self.evaluate_log_likelihood_ratio(x, theta, test_all_combinations=False, evaluate_score=True)
+        return all_t_hat
 
-    def evaluate_score(self, *args, **kwargs):
-        raise NotImplementedError("Please use evaluate_log_likelihood_ratio(evaluate_score=True).")
-
-    def calculate_fisher_information(self, *args, **kwargs):
-        raise NotImplementedError(
-            "Please use evaluate_log_likelihood_ratio(evaluate_score=True) and calculate the "
-            "Fisher information manually."
-        )
+    def calculate_fisher_information(self, x, theta, weights=None, n_events=1, sum_events=True):
+        fisher_information=super(ParameterizedRatioEstimator, self).calculate_fisher_information(x, theta, weights, n_events, sum_events)
+        return fisher_information
 
     def evaluate(self, *args, **kwargs):
         return self.evaluate_log_likelihood_ratio(*args, **kwargs)
@@ -1691,7 +1780,7 @@ class ScoreEstimator(Estimator):
 
         logger.debug("Nuisance profiling matrix:/n%s", self.nuisance_project_matrix)
 
-    def evaluate_score(self, x, nuisance_mode="auto"):
+    def evaluate_score(self, x, theta=None, nuisance_mode="auto"):
         """
         Evaluates the score.
 
@@ -1699,6 +1788,9 @@ class ScoreEstimator(Estimator):
         ----------
         x : str or ndarray
             Observations, or filename of a pickled numpy array.
+            
+        theta: None or ndarray, optional
+            Has no effect for ScoreEstimator. Introduced just for conformity with other Estimators.
 
         nuisance_mode : {"auto", "keep", "profile", "project"}
             Decides how nuisance parameters are treated. If nuisance_mode is "auto", the returned score is the (n+k)-
@@ -1773,70 +1865,10 @@ class ScoreEstimator(Estimator):
     def evaluate(self, *args, **kwargs):
         return self.evaluate_score(*args, **kwargs)
 
-    def calculate_fisher_information(self, x, weights=None, n_events=1, sum_events=True):
-        """
-        Calculates the expected Fisher information matrix based on the kinematic information in a given number of
-        events.
-
-        Parameters
-        ----------
-        x : str or ndarray
-            Sample of observations, or path to numpy file with observations. Note that this sample has to be sampled
-            from the reference parameter where the score is estimated with the SALLY / SALLINO estimator.
-
-        weights : None or ndarray, optional
-            Weights for the observations. If None, all events are taken to have equal weight. Default value: None.
-
-        n_events : float, optional
-            Expected number of events for which the kinematic Fisher information should be calculated. Default value: 1.
-
-        sum_events : bool, optional
-            If True, the expected Fisher information summed over the events x is calculated. If False, the per-event
-            Fisher information for each event is returned. Default value: True.
-
-        Returns
-        -------
-        fisher_information : ndarray
-            Expected kinematic Fisher information matrix with shape `(n_events, n_parameters, n_parameters)` if
-            sum_events is False or `(n_parameters, n_parameters)` if sum_events is True.
-
-        """
-        if self.model is None:
-            raise ValueError("No model -- train or load model before evaluating it!")
-
-        # Load training data
-        logger.info("Loading evaluation data")
-        x = load_and_check(x)
-        n_samples = x.shape[0]
-
-        # Scale observables
-        x = self._transform_inputs(x)
-
-        # Restrict featuers
-        if self.features is not None:
-            x = x[:, self.features]
-
-        # Estimate scores
-        t_hats = evaluate_local_score_model(model=self.model, xs=x)
-
-        # Weights
-        if weights is None:
-            weights = np.ones(n_samples)
-        weights /= np.sum(weights)
-
-        # Calculate Fisher information
-        logger.info("Calculating Fisher information")
-        if sum_events:
-            fisher_information = float(n_events) * np.einsum("n,ni,nj->ij", weights, t_hats, t_hats)
-        else:
-            fisher_information = float(n_events) * np.einsum("n,ni,nj->nij", weights, t_hats, t_hats)
-
-        # Calculate expected score
-        expected_score = np.mean(t_hats, axis=0)
-        logger.debug("Expected per-event score (should be close to zero): %s", expected_score)
-
+    def calculate_fisher_information(self, x, theta=None, weights=None, n_events=1, sum_events=True):
+        fisher_information=super(ScoreEstimator, self).calculate_fisher_information(x, theta, weights, n_events, sum_events)
         return fisher_information
-
+    
     def save(self, filename, save_model=False):
         super(ScoreEstimator, self).save(filename, save_model)
 
@@ -2730,6 +2762,7 @@ class Ensemble:
     def calculate_fisher_information(
         self,
         x,
+        theta=None,
         obs_weights=None,
         estimator_weights=None,
         n_events=1,
@@ -2809,10 +2842,10 @@ class Ensemble:
         logger.debug("Evaluating Fisher information for %s estimators in ensemble", self.n_estimators)
 
         # Check ensemble
-        if self.estimator_type != "score":
+        if self.estimator_type not in ["score", "parameterized_ratio"]:
             raise NotImplementedError(
                 "Fisher information calculation is only implemented for local score estimators "
-                "(ScoreEstimator instances)."
+                "(ScoreEstimator instances) and parameterized ratio estimators (parameterized_ratio instances)."
             )
 
         # Check input
@@ -2835,7 +2868,7 @@ class Ensemble:
             for i, estimator in enumerate(self.estimators):
                 logger.debug("Starting evaluation for estimator %s / %s in ensemble", i + 1, self.n_estimators)
 
-                predictions.append(estimator.calculate_fisher_information(x=x, weights=obs_weights, n_events=n_events))
+                predictions.append(estimator.calculate_fisher_information(x=x, theta=theta, weights=obs_weights, n_events=n_events))
             predictions = np.array(predictions)
 
             # Calculate weighted mean and covariance
@@ -2865,7 +2898,7 @@ class Ensemble:
             for i, estimator in enumerate(self.estimators):
                 logger.debug("Starting evaluation for estimator %s / %s in ensemble", i + 1, self.n_estimators)
 
-                score_predictions.append(estimator.evaluate(x=x))
+                score_predictions.append(estimator.evaluate_score(x=x,theta=np.array([theta for _ in x])))
                 logger.debug("Estimator %s predicts t(x) = %s for first event", i + 1, score_predictions[-1][0, :])
             score_predictions = np.array(score_predictions)  # (n_estimators, n_events, n_parameters)
 
@@ -2928,7 +2961,7 @@ class Ensemble:
             for i, estimator in enumerate(self.estimators):
                 logger.debug("Starting evaluation for estimator %s / %s in ensemble", i + 1, self.n_estimators)
 
-                score_predictions.append(estimator.evaluate(x=x))
+                score_predictions.append(estimator.evaluate_score(x=x,theta=np.array([theta for _ in x])))
                 logger.debug("Estimator %s predicts t(x) = %s for first event", i + 1, score_predictions[-1][0, :])
             score_predictions = np.array(score_predictions)  # (n_estimators, n_events, n_parameters)
 
