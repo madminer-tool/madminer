@@ -200,8 +200,12 @@ class Estimator(object):
 
     def _transform_inputs(self, x):
         if self.x_scaling_means is not None and self.x_scaling_stds is not None:
-            x_scaled = x - self.x_scaling_means
-            x_scaled /= self.x_scaling_stds
+            if isinstance(x, torch.Tensor):
+                x_scaled = x - torch.tensor(self.x_scaling_means, dtype=x.dtype, device=x.device)
+                x_scaled = x_scaled / torch.tensor(self.x_scaling_stds, dtype=x.dtype, device=x.device)
+            else:
+                x_scaled = x - self.x_scaling_means
+                x_scaled /= self.x_scaling_stds
         else:
             x_scaled = x
         return x_scaled
@@ -344,8 +348,14 @@ class ConditionalEstimator(Estimator):
 
     def _transform_parameters(self, theta):
         if self.theta_scaling_means is not None and self.theta_scaling_stds is not None:
-            theta_scaled = theta - self.theta_scaling_means[np.newaxis, :]
-            theta_scaled /= self.theta_scaling_stds[np.newaxis, :]
+            if isinstance(theta, torch.Tensor):
+                theta_scaled = theta - torch.tensor(self.theta_scaling_means, dtype=theta.dtype, device=theta.device)
+                theta_scaled = theta_scaled / torch.tensor(
+                    self.theta_scaling_stds, dtype=theta.dtype, device=theta.device
+                )
+            else:
+                theta_scaled = theta - self.theta_scaling_means[np.newaxis, :]
+                theta_scaled /= self.theta_scaling_stds[np.newaxis, :]
         else:
             theta_scaled = theta
         return theta_scaled
@@ -761,6 +771,54 @@ class ParameterizedRatioEstimator(ConditionalEstimator):
 
         logger.debug("Evaluation done")
         return all_log_r_hat, all_t_hat
+
+    def evaluate_log_likelihood_ratio_torch(self, x, theta, test_all_combinations=True):
+        """
+        Evaluates the log likelihood ratio for given observations x betwen the given parameter point theta and the
+        reference hypothesis.
+
+        Parameters
+        ----------
+        x : torch.tensor
+            Observations.
+
+        theta : torch.tensor
+            Parameter points.
+
+        test_all_combinations : bool, optional
+            If False, the number of samples in the observable and theta
+            files has to match, and the likelihood ratio is evaluated only for the combinations
+            `r(x_i | theta0_i, theta1_i)`. If True, `r(x_i | theta0_j, theta1_j)` for all pairwise combinations `i, j`
+            are evaluated. Default value: True.
+
+        Returns
+        -------
+        log_likelihood_ratio : torch.tensor
+            The estimated log likelihood ratio. If test_all_combinations is True, the result has shape
+            `(n_thetas, n_x)`. Otherwise, it has shape `(n_samples,)`.
+
+        """
+        if self.model is None:
+            raise ValueError("No model -- train or load model before evaluating it!")
+
+        # Scale observables and parameters
+        x = self._transform_inputs(x)
+        theta = self._transform_parameters(theta)
+
+        # Eval
+        if test_all_combinations:
+            logger.debug("Starting ratio evaluation for %s x-theta combinations", len(theta) * len(x))
+            all_log_r_hat = []
+            for theta_ in theta:
+                theta_ = torch.stack([theta_ for _ in x])
+                _, log_r_hat, _ = self.model(theta_, x)
+                all_log_r_hat.append(log_r_hat[:, 0].unsqueeze(0))
+            log_r_hat = torch.cat(all_log_r_hat, dim=0)
+        else:
+            logger.debug("Starting ratio evaluation")
+            _, log_r_hat = self.model(theta, x)
+
+        return log_r_hat
 
     def evaluate_log_likelihood(self, *args, **kwargs):
         raise TheresAGoodReasonThisDoesntWork(

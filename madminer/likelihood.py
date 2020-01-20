@@ -13,13 +13,7 @@ logger = logging.getLogger(__name__)
 
 class CombinedLikelihood(DataAnalyzer):
     def create_negative_log_likelihood(
-        self,
-        model_file,
-        x_observed,
-        n_observed=None,
-        x_observed_weights=None,
-        include_xsec=True,
-        luminosity=300000.0,
+        self, model_file, x_observed, n_observed=None, x_observed_weights=None, include_xsec=True, luminosity=300000.0
     ):
         estimator = load_estimator(model_file)
 
@@ -32,7 +26,7 @@ class CombinedLikelihood(DataAnalyzer):
             log_likelihood = self._log_likelihood(
                 estimator, n_observed, x_observed, theta, nu, include_xsec, luminosity, x_observed_weights
             )
-            return - log_likelihood
+            return -log_likelihood
 
         return nll
 
@@ -50,6 +44,7 @@ class CombinedLikelihood(DataAnalyzer):
         def constrained_nll(params):
             params = np.concatenate((theta, params), axis=0)
             return nll(params)
+
         return constrained_nll
 
     def _asimov_data(self, theta, test_split=0.2, sample_only_from_closest_benchmark=True, n_asimov=None):
@@ -81,7 +76,7 @@ class CombinedLikelihood(DataAnalyzer):
             x_weights = n_events / float(len(xs)) * np.ones(len(xs))
         else:
             x_weights = x_weights * n_events / np.sum(x_weights)
-        log_likelihood_events =  self._log_likelihood_kinematic(estimator, xs, theta, nu)
+        log_likelihood_events = self._log_likelihood_kinematic(estimator, xs, theta, nu)
         log_likelihood = log_likelihood + np.dot(x_weights, log_likelihood_events)
 
         if nu is not None:
@@ -109,22 +104,30 @@ class CombinedLikelihood(DataAnalyzer):
         if isinstance(estimator, ParameterizedRatioEstimator):
             with less_logging():
                 log_r, _ = estimator.evaluate_log_likelihood_ratio(
-                    x=xs, theta=theta.reshape((1,-1)), test_all_combinations=True, evaluate_score=False
+                    x=xs, theta=theta.reshape((1, -1)), test_all_combinations=True, evaluate_score=False
                 )
         elif isinstance(estimator, LikelihoodEstimator):
             with less_logging():
                 log_r, _ = estimator.evaluate_log_likelihood(
-                    x=xs, theta=theta.reshape((1,-1)), test_all_combinations=True, evaluate_score=False
+                    x=xs, theta=theta.reshape((1, -1)), test_all_combinations=True, evaluate_score=False
                 )
         elif isinstance(estimator, Ensemble) and estimator.estimator_type == "parameterized_ratio":
             with less_logging():
                 log_r, _ = estimator.evaluate_log_likelihood_ratio(
-                    x=xs, theta=theta.reshape((1,-1)), test_all_combinations=True, evaluate_score=False, calculate_covariance=False
+                    x=xs,
+                    theta=theta.reshape((1, -1)),
+                    test_all_combinations=True,
+                    evaluate_score=False,
+                    calculate_covariance=False,
                 )
         elif isinstance(estimator, Ensemble) and estimator.estimator_type == "likelihood":
             with less_logging():
                 log_r, _ = estimator.evaluate_log_likelihood(
-                    x=xs, theta=theta.reshape((1,-1)), test_all_combinations=True, evaluate_score=False, calculate_covariance=False
+                    x=xs,
+                    theta=theta.reshape((1, -1)),
+                    test_all_combinations=True,
+                    evaluate_score=False,
+                    calculate_covariance=False,
                 )
         else:
             raise NotImplementedError(
