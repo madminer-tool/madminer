@@ -116,7 +116,7 @@ The main references for the implemented inference techniques are the following:
 ## Acknowledgements
 
 We are immensely grateful to all contributors and bug reporters! In particular, we would like to thank Zubair Bhatti,
-Lukas Heinrich, Alexander Held, and Samuel Homiller.
+Philipp Englert, Lukas Heinrich, Alexander Held, Samuel Homiller, and Duccio Pappadopulo.
 
 The SCANDAL inference method is based on [Masked Autoregressive Flows](https://arxiv.org/abs/1705.07057), and our
 implementation is a pyTorch port of the original code by George Papamakarios et al., which is available at
