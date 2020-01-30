@@ -23,6 +23,7 @@ class CombinedLikelihood(DataAnalyzer):
         def nll(params):
             theta = params[: self.n_parameters]
             nu = params[self.n_parameters :]
+            if len(nu)==0: nu=None
             log_likelihood = self._log_likelihood(
                 estimator, n_observed, x_observed, theta, nu, include_xsec, luminosity, x_observed_weights
             )
