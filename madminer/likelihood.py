@@ -2,7 +2,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import logging
 import numpy as np
-from scipy.stats import poisson, norm
+from scipy.stats import poisson, norm, chi2
 
 from madminer.analysis import DataAnalyzer
 from madminer.utils.various import mdot, less_logging
@@ -153,3 +153,121 @@ class CombinedLikelihood(DataAnalyzer):
         log_p = np.sum(norm.logpdf(nu))
         logger.debug("Constraint log likelihood: %s", log_p)
         return log_p
+
+
+
+def project_log_likelihood(
+    negative_log_likelihood,
+    remaining_components=None,
+    grid_ranges=None,
+    grid_resolutions=25,
+    dof=None,
+    thetas_eval=None,
+):
+    """
+    Takes a likelihood function depending on N parameters, and evaluates
+    for a set of M-dimensional parameter points (either grid or explicitly specified)
+    while the remaining N-M paramters are set to zero.
+        
+    Parameters
+    ----------
+    negative_log_likelihood : likelihood
+        Function returned by Likelihood class (for example
+        NeuralLikelihood.create_expected_negative_log_likelihood()`).
+        
+    remaining_components : list of int or None
+        List with M entries, each an int with 0 <= remaining_compoinents[i] < N.
+        Denotes which parameters are kept, and their new order.
+        All other parameters or projected out (set to zero). If None, all components
+        are kept. Default: None
+        
+    grid_ranges : list of (tuple of float) or None, optional
+        Specifies the boundaries of the parameter grid on which the p-values
+        are evaluated. It should be `[(min, max), (min, max), ..., (min, max)]`,
+        where the list goes over all parameters and `min` and `max` are
+        float. If None, thetas_eval has to be given. Default: None.
+        
+    grid_resolutions : int or list of int, optional
+        Resolution of the parameter space grid on which the p-values are
+        evaluated. If int, the resolution is the same along every dimension
+        of the hypercube. If list of int, the individual entries specify the number of
+        points along each parameter individually. Doesn't have any effect if
+        grid_ranges is None. Default value: 25.
+        
+    dof : int or None, optional
+        If not None, sets the number of parameters for the calculation of the p-values.
+        If None, the overall number of parameters is used. Default value: None.
+        
+    thetas_eval : ndarray or None
+        Manually specifies the parameter point at which the likelihood and p-values
+        are evaluated. If None, grid_ranges and resolution are used instead to construct
+        a regular grid. Default value: None.
+        
+    Returns
+    -------
+    parameter_grid : ndarray
+        Parameter points at which the p-values are evaluated with shape
+        `(n_grid_points, n_parameters)`.
+        
+    p_values : ndarray
+        Observed p-values for each parameter point on the grid,
+        with shape `(n_grid_points,)`.
+        
+    mle : int
+        Index of the parameter point with the best fit (largest p-value
+        / smallest -2 log likelihood ratio).
+        
+    log_likelihood_ratio : ndarray or None
+        log likelihood ratio based only on kinematics for each point of the grid,
+        with shape `(n_grid_points,)`.
+        
+    """
+    
+    # Components
+    n_parameters = negative_log_likelihood(None)
+    if remaining_components is None:
+        remaining_components = range(n_parameters)
+    m_paramaters = len(remaining_components)
+
+    #DOF
+    if dof is None:
+        dof = m_paramaters
+    
+    # Theta grid
+    if thetas_eval is None and grid_resolutions is None:
+        raise ValueError("thetas_eval and grid_resolutions cannot both be None")
+    elif thetas_eval is not None and grid_resolutions is not None:
+        raise ValueError("thetas_eval and grid_resolutions cannot both be set, make up your mind!")
+    elif thetas_eval is None:
+        if isinstance(grid_resolutions, int):
+            grid_resolutions = [grid_resolutions for _ in range(grid_ranges)]
+        if len(grid_resolutions)!=m_paramaters:
+            raise ValueError("Dimension of grid should be the same as number of remaining components!")
+        theta_each = []
+        for resolution, (theta_min, theta_max) in zip(grid_resolutions, grid_ranges):
+            theta_each.append(np.linspace(theta_min, theta_max, resolution))
+        theta_grid_each = np.meshgrid(*theta_each, indexing="ij")
+        theta_grid_each = [theta.flatten() for theta in theta_grid_each]
+        theta_grid_mdim = np.vstack(theta_grid_each).T
+    else:
+        theta_grid_mdim = thetas_eval
+    
+    #Obtain a theta_grid in n dimensions
+    theta_grid_ndim=[]
+    for theta_mdim in theta_grid_mdim:
+        theta_ndim = np.zeros([n_parameters])
+        for i,theta in zip(remaining_components,theta_mdim):
+            theta_ndim[i] = theta
+        theta_grid_ndim.append(theta_ndim)
+    
+    #evaluate -2 E[log r]
+    log_r = np.array([-1.*nll(theta) for theta in theta_grid_ndim])
+    i_ml = np.argmax(log_r)
+    log_r = log_r[:] - log_r[i_ml]
+    m2_log_r = -2.*log_r
+    p_value = chi2.sf(x=m2_log_r, df=dof)
+
+    return theta_grid_mdim, p_value, i_ml, log_r
+
+
+
