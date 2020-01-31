@@ -1774,14 +1774,16 @@ def plot_pvalue_limits(
         
     Parameters
     ----------
-    p_values : ndarray
-        List of p-values with shape (nmethods, ngridpoints)
+    p_values : list of ndarray or dict
+        List/dictionary of p-values with shape (nmethods, ngridpoints)
         
-    best_fits : list of int
-        List of best fit points for each method with shape (nmethods)
+    best_fits : list of int or dict
+        List/dictionary of best fit points for each method with shape (nmethods)
         
-    labels : list of string
-        List of best labels for each method with shape (nmethods)
+    labels : list of string or None
+        List/dictionary of best labels for each method with shape (nmethods).
+        If None, it is assumed that dictionaries are provided and all entries
+        will be used.
         
     grid_ranges : list of (tuple of float) or None, optional
         Specifies the boundaries of the parameter grid on which the p-values
@@ -1816,6 +1818,18 @@ def plot_pvalue_limits(
         Plot range for p-values. Default: p_val_min=0.001 and p_val_max=1.
         
     """
+    
+    #Convert dict in array,if necessary
+    if labels is None:
+        if isinstance(p_values, dict) is False:
+            raise ValueError("p_values should be a dictionary")
+        if isinstance(best_fits, dict) is False:
+            raise ValueError("best_fits should be a dictionary")
+        labels = p_values.keys()
+    if isinstance(p_values, dict):
+        p_values = [p_values[label] for label in labels]
+    if isinstance(best_fits, dict):
+        best_fits = [best_fits[label] for label in labels]
     
     #Check input
     if len(p_values)!=len(best_fits):
