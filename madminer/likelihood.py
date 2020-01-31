@@ -21,9 +21,13 @@ class CombinedLikelihood(DataAnalyzer):
             n_observed = len(x_observed)
 
         def nll(params):
+            if (len(params)!= self.n_nuisance_parameters+ self.n_parameters):
+                logger.warning("Number of parameters is %s, expected %s physical parameters and %s nuisance paramaters",
+                    len(params),self.n_parameters,self.n_nuisance_parameters )
             theta = params[: self.n_parameters]
             nu = params[self.n_parameters :]
             if len(nu)==0: nu=None
+
             log_likelihood = self._log_likelihood(
                 estimator, n_observed, x_observed, theta, nu, include_xsec, luminosity, x_observed_weights
             )
