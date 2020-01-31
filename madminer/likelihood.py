@@ -261,7 +261,7 @@ def project_log_likelihood(
         theta_grid_ndim.append(theta_ndim)
     
     #evaluate -2 E[log r]
-    log_r = np.array([-1.*nll(theta) for theta in theta_grid_ndim])
+    log_r = np.array([-1.*negative_log_likelihood(theta) for theta in theta_grid_ndim])
     i_ml = np.argmax(log_r)
     log_r = log_r[:] - log_r[i_ml]
     m2_log_r = -2.*log_r
