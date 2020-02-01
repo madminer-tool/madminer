@@ -57,6 +57,40 @@ class CombinedLikelihood(DataAnalyzer):
             return nll(params)
 
         return constrained_nll
+    
+    def fix_params(self, nll, theta, fixed_components):
+        def constrained_nll(params):
+            
+            #Just return the expected Length
+            n_dimension = nll(None)
+            if params is None:
+                return n_dimension-len(fixed_components)
+            
+            #Process input
+            if (len(theta)!= len(fixed_components)):
+                logger.warning("Length of fixed_components and theta should be the same")
+            if (len(params)+len(fixed_components)!=n_dimension):
+                logger.warning("Length of params should be %s", n_dimension-len(fixed_components))
+            
+            #Initialize full paramaters
+            params_full = np.zeros(n_dimension)
+            
+            #fill fixed components
+            for icomp,thetacomp in zip(fixed_components,theta):
+                params_full[icomp]=thetacomp
+            
+            #fill other components
+            iparam=0
+            for i in range(len(params_full)):
+                if i not in fixed_components:
+                    params_full[i] = params[iparam]
+                    iparam+=1
+            
+            #Return
+            params_full=np.array(params_full)
+            return nll(params_full)
+    
+        return constrained_nll
 
     def _asimov_data(self, theta, test_split=0.2, sample_only_from_closest_benchmark=True, n_asimov=None):
         start_event, end_event, correction_factor = self._train_test_split(False, test_split)
@@ -176,7 +210,7 @@ def project_log_likelihood(
         NeuralLikelihood.create_expected_negative_log_likelihood()`).
         
     remaining_components : list of int or None
-        List with M entries, each an int with 0 <= remaining_compoinents[i] < N.
+        List with M entries, each an int with 0 <= remaining_components[i] < N.
         Denotes which parameters are kept, and their new order.
         All other parameters or projected out (set to zero). If None, all components
         are kept. Default: None
