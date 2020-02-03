@@ -2,6 +2,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import logging
 import numpy as np
+import time
 from scipy.stats import poisson, norm, chi2
 from scipy.optimize import minimize
 
@@ -12,7 +13,89 @@ from madminer.ml import ParameterizedRatioEstimator, Ensemble, LikelihoodEstimat
 logger = logging.getLogger(__name__)
 
 
-class CombinedLikelihood(DataAnalyzer):
+
+class BaseLikelihood(DataAnalyzer):
+    
+    def create_negative_log_likelihood(self, *args, **kwargs):
+        raise NotImplementedError
+
+    def create_expected_negative_log_likelihood(self, *args, **kwargs):
+        raise NotImplementedError
+
+    def _asimov_data(self,theta, test_split=0.2, sample_only_from_closest_benchmark=True, n_asimov=None):
+        
+        #get data
+        start_event, end_event, correction_factor = self._train_test_split(False, test_split)
+        x, weights_benchmarks = next(
+            self.event_loader(
+                start=start_event,
+                end=end_event,
+                batch_size=n_asimov,
+                generated_close_to=theta if sample_only_from_closest_benchmark else None,
+            )
+        )
+        weights_benchmarks *= correction_factor
+
+        #morphing
+        theta_matrix = self._get_theta_benchmark_matrix(theta)
+        weights_theta = mdot(theta_matrix, weights_benchmarks)
+        weights_theta /= np.sum(weights_theta)
+
+        return x, weights_theta
+
+    def _log_likelihood(
+        self,
+        estimator,
+        n_events,
+        xs,
+        theta,
+        nu,
+        include_xsec=True,
+        luminosity=300000.0,
+        x_weights=None
+    ):
+        log_likelihood = 0.0
+        if include_xsec:
+            log_likelihood = log_likelihood + self._log_likelihood_poisson(n_events, theta, nu, luminosity)
+
+        if x_weights is None:
+            x_weights = n_events / float(len(xs)) * np.ones(len(xs))
+        else:
+            x_weights = x_weights * n_events / np.sum(x_weights)
+        log_likelihood_events = self._log_likelihood_kinematic(estimator, xs, theta, nu)
+        log_likelihood = log_likelihood + np.dot(x_weights, log_likelihood_events)
+
+        if nu is not None:
+            log_likelihood = log_likelihood + self._log_likelihood_constraint(nu)
+
+        logger.debug("Total log likelihood: %s", log_likelihood)
+        return log_likelihood
+
+    def _log_likelihood_kinematic(self, *args, **kwargs):
+        raise NotImplementedError
+
+    def _log_likelihood_poisson(self, n_observed, theta, nu, luminosity=300000.0):
+        xsec = self.xsecs(thetas=[theta], nus=[nu], partition="train", generated_close_to=theta)[0]
+        n_predicted = xsec * luminosity
+        n_observed_rounded = int(np.round(n_observed, 0))
+
+        log_likelihood = poisson.logpmf(k=n_observed_rounded, mu=n_predicted)
+        logger.debug("Poisson log likelihood: %s (%s expected, %s observed)",log_likelihood, n_predicted, n_observed_rounded)
+        return log_likelihood
+
+    def _log_likelihood_constraint(self, nu):
+        log_p = np.sum(norm.logpdf(nu))
+        logger.debug("Constraint log likelihood: %s", log_p)
+        return log_p
+
+
+
+
+
+
+
+class NeuralLikelihood(BaseLikelihood):
+
     def create_negative_log_likelihood(
         self, model_file, x_observed, n_observed=None, x_observed_weights=None, include_xsec=True, luminosity=300000.0
     ):
@@ -51,74 +134,16 @@ class CombinedLikelihood(DataAnalyzer):
         return self.create_negative_log_likelihood(
             model_file, x_asimov, n_observed, x_weights, include_xsec, luminosity
         )
-    
-    ####SHOULD BE REMOVED LATER
-    def fix_theta(self, nll, theta):
-        def constrained_nll(params):
-            params = np.concatenate((theta, params), axis=0)
-            return nll(params)
-        
-        return constrained_nll
-
-    def _asimov_data(self, theta, test_split=0.2, sample_only_from_closest_benchmark=True, n_asimov=None):
-        start_event, end_event, correction_factor = self._train_test_split(False, test_split)
-        x, weights_benchmarks = next(
-            self.event_loader(
-                start=start_event,
-                end=end_event,
-                batch_size=n_asimov,
-                generated_close_to=theta if sample_only_from_closest_benchmark else None,
-            )
-        )
-        weights_benchmarks *= correction_factor
-
-        theta_matrix = self._get_theta_benchmark_matrix(theta)
-        weights_theta = mdot(theta_matrix, weights_benchmarks)
-        weights_theta /= np.sum(weights_theta)
-
-        return x, weights_theta
-
-    def _log_likelihood(
-        self, estimator, n_events, xs, theta, nu, include_xsec=True, luminosity=300000.0, x_weights=None
-    ):
-        log_likelihood = 0.0
-        if include_xsec:
-            log_likelihood = log_likelihood + self._log_likelihood_poisson(n_events, theta, nu, luminosity)
-
-        if x_weights is None:
-            x_weights = n_events / float(len(xs)) * np.ones(len(xs))
-        else:
-            x_weights = x_weights * n_events / np.sum(x_weights)
-        log_likelihood_events = self._log_likelihood_kinematic(estimator, xs, theta, nu)
-        log_likelihood = log_likelihood + np.dot(x_weights, log_likelihood_events)
-
-        if nu is not None:
-            log_likelihood = log_likelihood + self._log_likelihood_constraint(nu)
-
-        logger.debug("Total log likelihood: %s", log_likelihood)
-
-        return log_likelihood
-
-    def _log_likelihood_poisson(self, n_observed, theta, nu, luminosity=300000.0):
-        xsec = self.xsecs(thetas=[theta], nus=[nu], partition="train", generated_close_to=theta)[0]
-        n_predicted = xsec * luminosity
-        n_observed_rounded = int(np.round(n_observed, 0))
-
-        log_likelihood = poisson.logpmf(k=n_observed_rounded, mu=n_predicted)
-        logger.debug(
-            "Poisson log likelihood: %s (%s expected, %s observed)", log_likelihood, n_predicted, n_observed_rounded
-        )
-        return log_likelihood
 
     def _log_likelihood_kinematic(self, estimator, xs, theta, nu):
         if nu is not None:
             theta = np.concatenate((theta, nu), axis=0)
-
+        
         if isinstance(estimator, ParameterizedRatioEstimator):
             with less_logging():
                 log_r, _ = estimator.evaluate_log_likelihood_ratio(
                     x=xs, theta=theta.reshape((1, -1)), test_all_combinations=True, evaluate_score=False
-                )
+)
         elif isinstance(estimator, LikelihoodEstimator):
             with less_logging():
                 log_r, _ = estimator.evaluate_log_likelihood(
@@ -151,15 +176,41 @@ class CombinedLikelihood(DataAnalyzer):
         logger.debug("Kinematic log likelihood (ratio): %s", log_r.flatten())
         return log_r.flatten()
 
-    def _log_likelihood_constraint(self, nu):
-        log_p = np.sum(norm.logpdf(nu))
-        logger.debug("Constraint log likelihood: %s", log_p)
-        return log_p
 
 
 
-#Make following three functions class members????
-def fix_params(nll, theta, fixed_components):
+
+
+
+
+def fix_params(negative_log_likelihood, theta, fixed_components):
+    """
+    Function that reduces the dimensionality of a likelihood function by
+    fixing some of the components.
+        
+    Parameters
+    ----------
+    negative_log_likelihood : likelihood
+        Function returned by Likelihood class (for example
+        NeuralLikelihood.create_expected_negative_log_likelihood()`)
+        which takes an n-dimensional input parameter.
+        
+    theta : list of float
+        m-dimensional vector of coordinate which will be fixed.
+        
+    fixed_components : list of int
+        m-dimensional vector of coordinate indices provided in theta.
+        Example: fixed_components=[0,1] will fix the 1st and 2nd
+        component of the paramater point.
+
+    Returns
+    -------
+    constrained_nll_negative_log_likelihood : likelihood
+        Constrained likelihood function which takes an
+        n-m dimensional input parameter.
+        
+    """
+    
     def constrained_nll(params):
         
         #Just return the expected Length
@@ -435,7 +486,17 @@ def profile_log_likelihood(
                       
     #scan over grid
     log_r=[]
-    for theta_mdim in theta_grid_mdim:
+    nscan=len(theta_grid_mdim)
+    pscan=0.01
+    start_time = time.time()
+    for iscan,theta_mdim in enumerate(theta_grid_mdim):
+        #logger output
+        if (iscan/len(theta_grid_mdim)>pscan):
+            elapsed_time = time.time() - start_time
+            logger.info("Processed %s %% of parameter points in %.1f seconds.", pscan*100, elapsed_time)
+            if pscan>0.095: pscan+=0.1
+            else: pscan+=0.01
+                       
         #fix some parameters
         constrained_negative_log_likelihood = fix_params(
             negative_log_likelihood,
