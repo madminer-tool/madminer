@@ -13,6 +13,9 @@ from madminer.ml import ParameterizedRatioEstimator, Ensemble, LikelihoodEstimat
 logger = logging.getLogger(__name__)
 
 
+##################################################################################################################
+##################################################################################################################
+##################################################################################################################
 
 class BaseLikelihood(DataAnalyzer):
     
@@ -43,33 +46,8 @@ class BaseLikelihood(DataAnalyzer):
 
         return x, weights_theta
 
-    def _log_likelihood(
-        self,
-        estimator,
-        n_events,
-        xs,
-        theta,
-        nu,
-        include_xsec=True,
-        luminosity=300000.0,
-        x_weights=None
-    ):
-        log_likelihood = 0.0
-        if include_xsec:
-            log_likelihood = log_likelihood + self._log_likelihood_poisson(n_events, theta, nu, luminosity)
-
-        if x_weights is None:
-            x_weights = n_events / float(len(xs)) * np.ones(len(xs))
-        else:
-            x_weights = x_weights * n_events / np.sum(x_weights)
-        log_likelihood_events = self._log_likelihood_kinematic(estimator, xs, theta, nu)
-        log_likelihood = log_likelihood + np.dot(x_weights, log_likelihood_events)
-
-        if nu is not None:
-            log_likelihood = log_likelihood + self._log_likelihood_constraint(nu)
-
-        logger.debug("Total log likelihood: %s", log_likelihood)
-        return log_likelihood
+    def _log_likelihood(self, *args, **kwargs):
+        raise NotImplementedError
 
     def _log_likelihood_kinematic(self, *args, **kwargs):
         raise NotImplementedError
@@ -89,10 +67,9 @@ class BaseLikelihood(DataAnalyzer):
         return log_p
 
 
-
-
-
-
+##################################################################################################################
+##################################################################################################################
+##################################################################################################################
 
 class NeuralLikelihood(BaseLikelihood):
 
@@ -134,6 +111,34 @@ class NeuralLikelihood(BaseLikelihood):
         return self.create_negative_log_likelihood(
             model_file, x_asimov, n_observed, x_weights, include_xsec, luminosity
         )
+    
+    def _log_likelihood(
+        self,
+        estimator,
+        n_events,
+        xs,
+        theta,
+        nu,
+        include_xsec=True,
+        luminosity=300000.0,
+        x_weights=None
+   ):
+        log_likelihood = 0.0
+        if include_xsec:
+            log_likelihood = log_likelihood + self._log_likelihood_poisson(n_events, theta, nu, luminosity)
+
+        if x_weights is None:
+            x_weights = n_events / float(len(xs)) * np.ones(len(xs))
+        else:
+            x_weights = x_weights * n_events / np.sum(x_weights)
+        log_likelihood_events = self._log_likelihood_kinematic(estimator, xs, theta, nu)
+        log_likelihood = log_likelihood + np.dot(x_weights, log_likelihood_events)
+        
+        if nu is not None:
+            log_likelihood = log_likelihood + self._log_likelihood_constraint(nu)
+
+        logger.debug("Total log likelihood: %s", log_likelihood)
+        return log_likelihood
 
     def _log_likelihood_kinematic(self, estimator, xs, theta, nu):
         if nu is not None:
@@ -143,7 +148,7 @@ class NeuralLikelihood(BaseLikelihood):
             with less_logging():
                 log_r, _ = estimator.evaluate_log_likelihood_ratio(
                     x=xs, theta=theta.reshape((1, -1)), test_all_combinations=True, evaluate_score=False
-)
+                )
         elif isinstance(estimator, LikelihoodEstimator):
             with less_logging():
                 log_r, _ = estimator.evaluate_log_likelihood(
@@ -176,11 +181,9 @@ class NeuralLikelihood(BaseLikelihood):
         logger.debug("Kinematic log likelihood (ratio): %s", log_r.flatten())
         return log_r.flatten()
 
-
-
-
-
-
+##################################################################################################################
+##################################################################################################################
+##################################################################################################################
 
 
 def fix_params(negative_log_likelihood, theta, fixed_components):
@@ -264,7 +267,7 @@ def project_log_likelihood(
         Function returned by Likelihood class (for example
         NeuralLikelihood.create_expected_negative_log_likelihood()`).
         
-    remaining_components : list of int or None
+    remaining_components : list of int or None , optional
         List with M entries, each an int with 0 <= remaining_components[i] < N.
         Denotes which parameters are kept, and their new order.
         All other parameters or projected out (set to zero). If None, all components
@@ -287,7 +290,7 @@ def project_log_likelihood(
         If not None, sets the number of parameters for the calculation of the p-values.
         If None, the overall number of parameters is used. Default value: None.
         
-    thetas_eval : ndarray or None
+    thetas_eval : ndarray or None , optional
         Manually specifies the parameter point at which the likelihood and p-values
         are evaluated. If None, grid_ranges and resolution are used instead to construct
         a regular grid. Default value: None.
@@ -381,7 +384,7 @@ def profile_log_likelihood(
         Function returned by Likelihood class (for example
         NeuralLikelihood.create_expected_negative_log_likelihood()`).
         
-    remaining_components : list of int or None
+    remaining_components : list of int or None , optional
         List with M entries, each an int with 0 <= remaining_components[i] < N.
         Denotes which parameters are kept, and their new order.
         All other parameters or projected out (set to zero). If None, all components
@@ -400,12 +403,12 @@ def profile_log_likelihood(
         points along each parameter individually. Doesn't have any effect if
         grid_ranges is None. Default value: 25.
         
-    thetas_eval : ndarray or None
+    thetas_eval : ndarray or None , optional
         Manually specifies the parameter point at which the likelihood and p-values
         are evaluated. If None, grid_ranges and resolution are used instead to construct
         a regular grid. Default value: None.
         
-    theta_start : ndarray or None
+    theta_start : ndarray or None , optional
         Manually specifies a parameter point which is the starting point
         for the minimization algorithm which find the maximum likelihood point.
         If None, theta_start = 0 is used.
@@ -415,7 +418,7 @@ def profile_log_likelihood(
         If not None, sets the number of parameters for the calculation of the p-values.
         If None, the overall number of parameters is used. Default value: None.
         
-    method : {"TNC", " L-BFGS-B"}
+    method : {"TNC", " L-BFGS-B"} , optional
         Mimization method used. Default value: "TNC"
         
     Returns
