@@ -217,7 +217,7 @@ def fix_params(negative_log_likelihood, theta, fixed_components):
     def constrained_nll(params):
         
         #Just return the expected Length
-        n_dimension = nll(None)
+        n_dimension = negative_log_likelihood(None)
         if params is None:
             return n_dimension-len(fixed_components)
             
@@ -243,7 +243,7 @@ def fix_params(negative_log_likelihood, theta, fixed_components):
                     
         #Return
         params_full=np.array(params_full)
-        return nll(params_full)
+        return negative_log_likelihood(params_full)
 
     return constrained_nll
 
@@ -489,7 +489,6 @@ def profile_log_likelihood(
                       
     #scan over grid
     log_r=[]
-    nscan=len(theta_grid_mdim)
     pscan=0.01
     start_time = time.time()
     for iscan,theta_mdim in enumerate(theta_grid_mdim):
@@ -497,8 +496,9 @@ def profile_log_likelihood(
         if (iscan/len(theta_grid_mdim)>pscan):
             elapsed_time = time.time() - start_time
             logger.info("Processed %s %% of parameter points in %.1f seconds.", pscan*100, elapsed_time)
-            if pscan>0.095: pscan+=0.1
-            else: pscan+=0.01
+            while iscan/len(theta_grid_mdim)>pscan:
+                if pscan>0.095: pscan+=0.1
+                else: pscan+=0.01
                        
         #fix some parameters
         constrained_negative_log_likelihood = fix_params(
