@@ -1852,9 +1852,12 @@ def plot_pvalue_limits(
     theta_grid = np.vstack(theta_grid_each).T
     
     #edges and centers
-    bin_size = (grid_ranges[0][1] - grid_ranges[0][0])/(grid_resolutions[0] - 1)
-    edges = np.linspace(grid_ranges[0][0] - bin_size/2, grid_ranges[0][1] + bin_size/2, grid_resolutions[0] + 1)
-    centers = np.linspace(grid_ranges[0][0], grid_ranges[0][1], grid_resolutions[0])
+    xbin_size = (grid_ranges[0][1] - grid_ranges[0][0])/(grid_resolutions[0] - 1)
+    xedges = np.linspace(grid_ranges[0][0] - xbin_size/2, grid_ranges[0][1] + xbin_size/2, grid_resolutions[0] + 1)
+    xcenters = np.linspace(grid_ranges[0][0], grid_ranges[0][1], grid_resolutions[0])
+    ybin_size = (grid_ranges[1][1] - grid_ranges[1][0])/(grid_resolutions[1] - 1)
+    yedges = np.linspace(grid_ranges[1][0] - ybin_size/2, grid_ranges[1][1] + ybin_size/2, grid_resolutions[1] + 1)
+    ycenters = np.linspace(grid_ranges[1][0], grid_ranges[1][1], grid_resolutions[1])
     
     # Preparing plot
     if single_plot is True:
@@ -1868,14 +1871,14 @@ def plot_pvalue_limits(
     ax = plt.subplot(n_rows, n_cols, 1)
     if show_index is not None:
         pcm = ax.pcolormesh(
-            edges, edges, p_values[show_index].reshape((grid_resolutions[0], grid_resolutions[1])).T,
+            xedges, yedges, p_values[show_index].reshape((grid_resolutions[0], grid_resolutions[1])).T,
             norm=matplotlib.colors.LogNorm(vmin=p_val_min, vmax=p_val_max),cmap='Greys_r'
         )
         cbar = fig.colorbar(pcm, ax=ax, extend='both')
         cbar.set_label('Expected p-value ({})'.format(labels[show_index]))
     for ipanel in range(len(p_values)):
         ax.contour(
-            centers, centers, p_values[ipanel].reshape((grid_resolutions[0], grid_resolutions[1])).T,
+            xcenters, ycenters, p_values[ipanel].reshape((grid_resolutions[0], grid_resolutions[1])).T,
             levels=levels, colors='C{}'.format(ipanel)
         )
         ax.scatter(
@@ -1891,13 +1894,13 @@ def plot_pvalue_limits(
         for ipanel in range(len(p_values)):
             ax = plt.subplot(n_rows, n_cols, ipanel + 2)
             pcm = ax.pcolormesh(
-                edges, edges, p_values[ipanel].reshape((grid_resolutions[0], grid_resolutions[1])).T,
+                xedges, yedges, p_values[ipanel].reshape((grid_resolutions[0], grid_resolutions[1])).T,
                 norm=matplotlib.colors.LogNorm(vmin=p_val_min, vmax=p_val_max),cmap='Greys_r'
             )
             cbar = fig.colorbar(pcm, ax=ax, extend='both')
             cbar.set_label('Expected p-value ({})'.format(labels[ipanel]))
             ax.contour(
-                centers, centers, p_values[ipanel].reshape((grid_resolutions[0], grid_resolutions[1])).T,
+                xcenters, ycenters, p_values[ipanel].reshape((grid_resolutions[0], grid_resolutions[1])).T,
                 levels=levels, colors='C{}'.format(ipanel)
             )
             ax.scatter(
