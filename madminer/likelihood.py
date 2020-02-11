@@ -308,6 +308,10 @@ class HistoLikelihood(BaseLikelihood):
         logger.info("Setting up standard summary statistics")
         summary_function = self._make_summary_statistic_function(observables=observables,model=model)
 
+        #Weighted sampled
+        if mode == "weighted":
+            raise ValueError("Not implemented yet")
+
         # find binning
         if not mode=="rate" and (hist_bins is None or not all([hasattr(hist_bin, "__len__") for hist_bin in hist_bins])):
             if thetas_binning is None:
@@ -320,6 +324,8 @@ class HistoLikelihood(BaseLikelihood):
                 summary_function=summary_function,
            )
         logger.info("Use binning: %s",hist_bins)
+
+
 
         #define negative likelihood function
         def nll(params):
@@ -613,7 +619,7 @@ class HistoLikelihood(BaseLikelihood):
         
         return data
 
-    def _make_histo_data_weighted(self, summary_function, thetas, n_toys, test_split=None):
+    def _make_histo_data_weighted(self, summary_function, n_toys, test_split=None):
         """
         Low-level function that creates weighted histogram data
         """
@@ -624,10 +630,7 @@ class HistoLikelihood(BaseLikelihood):
         # Calculate summary stats
         data = summary_function(x)
         
-        # Calculate weights for thetas
-        weights = self._weights(thetas, None, weights_benchmarks)
-        
-        return data, weights
+        return data, weights_benchmarks
     
     def _find_bins(self, hist_bins, n_summary_stats):
         """
@@ -654,12 +657,14 @@ class HistoLikelihood(BaseLikelihood):
         """
         
         # Get weighted data
-        data, weights = self._make_histo_data_weighted(
+        data, weights_benchmarks = self._make_histo_data_weighted(
             summary_function=summary_function,
-            thetas=thetas_binning,
             n_toys=n_toys,
             test_split=test_split,
         )
+        
+        # Calculate weights for thetas
+        weights = self._weights(thetas_binning, None, weights_benchmarks)
             
         #Reformat
         weights = np.asarray(weights)
