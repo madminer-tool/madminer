@@ -54,13 +54,18 @@ class BaseLikelihood(DataAnalyzer):
     def _log_likelihood_kinematic(self, *args, **kwargs):
         raise NotImplementedError
 
-    def _log_likelihood_poisson(self, n_observed, theta, nu, luminosity=300000.0):
-        xsec = self.xsecs(thetas=[theta], nus=[nu], partition="train", generated_close_to=theta)[0]
+    def _log_likelihood_poisson(self, n_observed, theta, nu, luminosity=300000.0,weights_benchmarks=None):
+        if weights_benchmarks is None:
+            xsec = self.xsecs(thetas=[theta], nus=[nu], partition="train", generated_close_to=theta)[0]
+        else:
+            weights = self._weights([theta], [nu], weights_benchmarks)[0]
+            xsec=sum(weights)
+        
         n_predicted = xsec * luminosity
         n_observed_rounded = int(np.round(n_observed, 0))
 
         log_likelihood = poisson.logpmf(k=n_observed_rounded, mu=n_predicted)
-        logger.debug("Poisson log likelihood: %s (%s expected, %s observed)",log_likelihood, n_predicted, n_observed_rounded)
+        logger.debug("Poisson log likelihood: %s (%s expected, %s observed at theta=%s)",log_likelihood, n_predicted, n_observed_rounded,theta)
         return log_likelihood
 
     def _log_likelihood_constraint(self, nu):
@@ -76,12 +81,22 @@ class BaseLikelihood(DataAnalyzer):
 class NeuralLikelihood(BaseLikelihood):
 
     def create_negative_log_likelihood(
-        self, model_file, x_observed, n_observed=None, x_observed_weights=None, include_xsec=True, luminosity=300000.0
+        self, model_file, x_observed, n_observed=None, x_observed_weights=None, include_xsec=True, luminosity=300000.0, mode="sampled",n_weighted=10000,
     ):
         estimator = load_estimator(model_file)
 
         if n_observed is None:
             n_observed = len(x_observed)
+        
+        #Weighted sampled
+        if mode == "weighted":
+            _, weights_benchmarks = self._make_histo_data_weighted(
+                summary_function=None,
+                n_toys=n_weighted,
+                test_split=None,
+        )
+        else:
+            weights_benchmarks = None
 
         def nll(params):
             #Just return the expected Length
@@ -98,20 +113,20 @@ class NeuralLikelihood(BaseLikelihood):
 
             #Compute Log Likelihood
             log_likelihood = self._log_likelihood(
-                estimator, n_observed, x_observed, theta, nu, include_xsec, luminosity, x_observed_weights
+                estimator, n_observed, x_observed, theta, nu, include_xsec, luminosity, x_observed_weights,weights_benchmarks
             )
             return -log_likelihood
 
         return nll
 
     def create_expected_negative_log_likelihood(
-        self, model_file, theta_true, nu_true, include_xsec=True, luminosity=300000.0, n_asimov=None
+        self, model_file, theta_true, nu_true, include_xsec=True, luminosity=300000.0, n_asimov=None, mode="sampled",n_weighted=10000,
     ):
         x_asimov, x_weights = self._asimov_data(theta_true, n_asimov=n_asimov)
         n_observed = luminosity * self.xsecs([theta_true], [nu_true])[0]
 
         return self.create_negative_log_likelihood(
-            model_file, x_asimov, n_observed, x_weights, include_xsec, luminosity
+            model_file, x_asimov, n_observed, x_weights, include_xsec, luminosity,n_weighted,
         )
     
     def _log_likelihood(
@@ -123,11 +138,12 @@ class NeuralLikelihood(BaseLikelihood):
         nu,
         include_xsec=True,
         luminosity=300000.0,
-        x_weights=None
+        x_weights=None,
+        weights_benchmarks=None,
    ):
         log_likelihood = 0.0
         if include_xsec:
-            log_likelihood = log_likelihood + self._log_likelihood_poisson(n_events, theta, nu, luminosity)
+            log_likelihood = log_likelihood + self._log_likelihood_poisson(n_events, theta, nu, luminosity, weights_benchmarks)
 
         if x_weights is None:
             x_weights = n_events / float(len(xs)) * np.ones(len(xs))
@@ -202,8 +218,8 @@ class HistoLikelihood(BaseLikelihood):
         n_histo_toys = 100000,
         model_file=None,
         hist_bins=None,
-        n_histo_toys_binning = None,
         thetas_binning=None,
+        test_split=None,
     ):
         """
         Returns a function which calculates the negative log likelihood for a given
@@ -237,11 +253,11 @@ class HistoLikelihood(BaseLikelihood):
         luminosity : float, optional
             Integrated luminosity in pb^{-1} assumed in the analysis. Default value: 300000.
             
-        mode : {"rate" , "sampled"} , optional
-            If "rate", only the likelihood in the rate is calculated.
+        mode : {"weighted" , "sampled"} , optional
             If "sampled", for each evaulation of the likelihood function, a separate
             set of events are sampled and histogram is created to construct the
-            likelihood function. Default value: "sampled"
+            likelihood function. If "weighted", first a set of weighted events is
+            sampled which is then used to create histograms. Default value: "sampled"
             
         n_histo_toys : int or None, optional
             Number of events drawn to construct the histograms used. If None and weighted_histo
@@ -261,14 +277,12 @@ class HistoLikelihood(BaseLikelihood):
             to the defaults: for one summary statistic the default is 25 bins, for 2 it's 8 bins
             along each direction, for more it's 5 per dimension. Default value: None.
             
-        n_histo_toys_binning : int or None, optional
-            Number of toy events used to determine the binning of adaptive histograms.
-            If None, ise same number as n_histo_toys. Default value: None.
-            
         thetas_binning : list of ndarray or None
             Specifies the parameter points used to determine the optimal binning.
             This is requires if hist_bins doesn't already fully specify the
             binning of the histogram. Default value : None
+            
+        test_split :
             
         Returns
         -------
@@ -276,9 +290,24 @@ class HistoLikelihood(BaseLikelihood):
             Function that evaluates the negative log likelihood for a given parameter point
             
         """
+
+        #Check input and join observables and score components - nothing interesting
+        if observables is None: observables=list([])
+        if score_components is None: score_components=list([])
+        if observables==[] and score_components==[]:
+            logger.info("No observables and scores provided. Calculate LLR due to rate and set include_xsec=True.")
+            include_xsec=True
+        observables=list(observables)+list(score_components)
         
-        #check input/load model
-        if score_components is not None:
+        if n_observed is None:
+            n_observed = len(x_observed)
+        
+        supported_modes=["sampled","weighted"]
+        if mode not in supported_modes:
+            raise ValueError("Mode %s unknown. Choose one of the following methods: %s",mode, supported_modes)
+        
+        #Load model - nothing interesting
+        if score_components!=[]:
             assert all([isinstance(score_component,int) for score_component in score_components])
             if model_file is None:
                 raise ValueError("You need to provide a model_file!")
@@ -286,41 +315,40 @@ class HistoLikelihood(BaseLikelihood):
         else:
             model = None
 
-        if n_observed is None:
-            n_observed = len(x_observed)
+        # Create summary function
+        logger.info("Setting up standard summary statistics")
+        summary_function=None
+        if observables!=[]:
+            summary_function = self._make_summary_statistic_function(observables=observables,model=model)
 
-        if n_histo_toys_binning is None:
-            n_histo_toys_binning=n_histo_toys
-
-        #join observables and score components
-        if observables is None and score_components is None:
-            mode="rate"
-            include_xsec=True
-        elif observables is None:
-            observables=list(score_components)
-        elif score_components is None:
-            observables=list(observables)
-        else:
-            observables=list(observables)+list(score_components)
-
-        supported_modes=["sampled","rate"]
-        if mode not in supported_modes:
-            raise ValueError("Mode %s unknown. Choose one of the following methods: %s",mode, supported_modes)
+        #Weighted sampled
+        data, summary_stats, weights_benchmarks = None,None,None
+        if mode == "weighted":
+            logger.info("Getting weighted data")
+            data, weights_benchmarks = self._make_histo_data_weighted(
+                summary_function=summary_function,
+                n_toys=n_histo_toys,
+                test_split=test_split,
+            )
+        if mode == "weighted" and observables!=[]:
+            summary_stats=summary_function(x_observed)
 
         # find binning
-        if not mode=="rate" and (hist_bins is None or not all([hasattr(hist_bin, "__len__") for hist_bin in hist_bins])):
+        logger.info("Setting up binning")
+        if observables!=[] and (hist_bins is None or not all([hasattr(hist_bin, "__len__") for hist_bin in hist_bins])):
             if thetas_binning is None:
                 raise ValueError("Your input requires adaptive binning: thetas_binning can not be None.")
-            hist_bins=self._find_bins(hist_bins=hist_bins,observables=observables)
+            hist_bins=self._find_bins(hist_bins=hist_bins,n_summary_stats=len(observables) )
             hist_bins=self._fixed_adaptive_binning(
-                n_toys=n_histo_toys_binning,
-                observables=observables,
                 thetas_binning=thetas_binning,
                 x_bins=hist_bins,
-                model=model,
+                data=data,
+                weights_benchmarks=weights_benchmarks,
+                n_toys=n_histo_toys,
+                summary_function=summary_function,
            )
         logger.info("Use binning: %s",hist_bins)
-        
+
         #define negative likelihood function
         def nll(params):
             #Just return the expected Length
@@ -337,7 +365,6 @@ class HistoLikelihood(BaseLikelihood):
             
             #Compute Log Likelihood
             log_likelihood = self._log_likelihood(
-                observables=observables,
                 n_events=n_observed,
                 xs=x_observed,
                 theta=theta,
@@ -348,7 +375,10 @@ class HistoLikelihood(BaseLikelihood):
                 mode=mode,
                 n_histo_toys=n_histo_toys,
                 hist_bins=hist_bins,
-                model=model,
+                summary_function=summary_function,
+                data=data,
+                summary_stats=summary_stats,
+                weights_benchmarks=weights_benchmarks,
             )
             return -log_likelihood
             
@@ -367,8 +397,8 @@ class HistoLikelihood(BaseLikelihood):
         n_histo_toys = 100000,
         model_file=None,
         hist_bins=None,
-        n_histo_toys_binning = None,
         thetas_binning=None,
+        test_split=None,
     ):
         """
         Returns a function which calculates the expected negative log likelihood for a given
@@ -400,11 +430,11 @@ class HistoLikelihood(BaseLikelihood):
             Size of the Asimov sample. If None, all weighted events in the MadMiner
             file are used. Default value: None.
         
-        mode : {"rate" , "sampled"}
-            If "rate", only the likelihood in the rate is calculated.
+        mode : {"weighted" , "sampled"} , optional
             If "sampled", for each evaulation of the likelihood function, a separate
             set of events are sampled and histogram is created to construct the
-            likelihood function.
+            likelihood function. If "weighted", first a set of weighted events is
+            sampled which is then used to create histograms. Default value: "sampled"
         
         n_histo_toys : int or None, optional
             Number of events drawn to construct the histograms used. If None and weighted_histo
@@ -424,13 +454,11 @@ class HistoLikelihood(BaseLikelihood):
             to the defaults: for one summary statistic the default is 25 bins, for 2 it's 8 bins
             along each direction, for more it's 5 per dimension. Default value: None.
         
-        n_histo_toys_binning : int or None, optional
-            Number of toy events used to determine the binning of adaptive histograms.
-            If None, ise same number as n_histo_toys. Default value: None.
-        
         thetas_binning : list of ndarray or None
             Specifies the parameter points used to determine the optimal binning.
             If none, theta_true will be used. Default value : None
+            
+        test_split :
         
         Returns
         -------
@@ -457,13 +485,11 @@ class HistoLikelihood(BaseLikelihood):
             n_histo_toys=n_histo_toys,
             model_file=model_file,
             hist_bins=hist_bins,
-            n_histo_toys_binning=n_histo_toys_binning,
             thetas_binning=thetas_binning,
         )
 
     def _log_likelihood(
         self,
-        observables,
         n_events,
         xs,
         theta,
@@ -474,7 +500,10 @@ class HistoLikelihood(BaseLikelihood):
         mode="sampled",
         n_histo_toys=100000,
         hist_bins=None,
-        model=None,
+        summary_function=None,
+        data=None,
+        summary_stats=None,
+        weights_benchmarks=None,
     ):
         """
         Low-level function which calculates the value of the log-likelihood ratio.
@@ -483,18 +512,18 @@ class HistoLikelihood(BaseLikelihood):
             
         log_likelihood = 0.0
         if include_xsec:
-            log_likelihood = log_likelihood + self._log_likelihood_poisson(n_events, theta, nu, luminosity)
+            log_likelihood = log_likelihood + self._log_likelihood_poisson(n_events, theta, nu, luminosity,weights_benchmarks)
                         
-        if not mode=="rate":
+        if summary_function is not None:
             if x_weights is None:
                 x_weights = n_events / float(len(xs)) * np.ones(len(xs))
             else:
                 x_weights = x_weights * n_events / np.sum(x_weights)
-                log_likelihood_events = self._log_likelihood_kinematic(
-                    observables, xs, theta, nu, mode, n_histo_toys, hist_bins, model)
-                log_likelihood_events = log_likelihood_events.astype(np.float64)
-                log_likelihood_events = self._clean_nans(log_likelihood_events)
-                log_likelihood = log_likelihood + np.dot(x_weights, log_likelihood_events)
+            log_likelihood_events = self._log_likelihood_kinematic(
+                xs, theta, nu, mode, n_histo_toys, hist_bins, summary_function, data, summary_stats, weights_benchmarks)
+            log_likelihood_events = log_likelihood_events.astype(np.float64)
+            log_likelihood_events = self._clean_nans(log_likelihood_events)
+            log_likelihood = log_likelihood + np.dot(x_weights, log_likelihood_events)
                                                     
         if nu is not None:
             log_likelihood = log_likelihood + self._log_likelihood_constraint(nu)
@@ -504,14 +533,16 @@ class HistoLikelihood(BaseLikelihood):
 
     def _log_likelihood_kinematic(
         self,
-        observables,
         xs,
         theta,
         nu,
         mode="sampled",
         n_histo_toys=100000,
         hist_bins=None,
-        model=None,
+        summary_function=None,
+        data=None,
+        summary_stats=None,
+        weights_benchmarks=None,
         ):
         """
         Low-level function which calculates the value of the kinematic part of the
@@ -521,12 +552,9 @@ class HistoLikelihood(BaseLikelihood):
         if nu is not None:
             theta = np.concatenate((theta, nu), axis=0)
                 
-        #summary function
-        logger.info("Setting up standard summary statistics")
-        summary_function = self._make_summary_statistic_function(observables=observables,model=model)
-                
         # Calculate summary statistics
-        summary_stats = summary_function(xs)
+        if summary_stats is None:
+            summary_stats = summary_function(xs)
                 
         # Make histograms
         if mode=="sampled":
@@ -536,6 +564,9 @@ class HistoLikelihood(BaseLikelihood):
                 n_histo_toys=n_histo_toys,
             )
             histo = Histo(data, weights=None, bins=hist_bins, epsilon=1.0e-12)
+        elif mode=="weighted":
+            weights = self._weights([theta], [nu], weights_benchmarks)[0]
+            histo = Histo(data, weights=weights, bins=hist_bins, epsilon=1.0e-12)
                             
         #calculate log-likelihood from histogram
         log_p=histo.log_likelihood(summary_stats)
@@ -619,62 +650,64 @@ class HistoLikelihood(BaseLikelihood):
         data = summary_function(x)
         
         return data
-    
-    def _make_histo_data_weighted(self, summary_function, thetas, n_toys, test_split=None):
+
+    def _make_histo_data_weighted(self, summary_function, n_toys, test_split=None):
         """
         Low-level function that creates weighted histogram data
         """
         # Get weighted events
-        start_event, end_event, _ = self._train_test_split(True, test_split)
+        start_event, end_event, correction_factor = self._train_test_split(True, test_split)
         x, weights_benchmarks = self.weighted_events(start_event=start_event, end_event=end_event, n_draws=n_toys)
+        weights_benchmarks *= self.n_samples/n_toys
         
         # Calculate summary stats
-        data = summary_function(x)
+        if summary_function is not None:
+            data = summary_function(x)
+        else:
+            data = None
         
-        # Calculate weights for thetas
-        weights = self._weights(thetas, None, weights_benchmarks)
-        
-        return data, weights
+        return data, weights_benchmarks
     
-    def _find_bins(self, hist_bins, observables):
+    def _find_bins(self, hist_bins, n_summary_stats):
         """
         Low-level function that sets up the binning of the histograms (I)
         """
-        n_summary_stats = len(observables)
         if hist_bins is None:
             if n_summary_stats == 1: hist_bins = [25]
             elif n_summary_stats == 2: hist_bins = [8, 8]
-            else: hist_bins = [5 for _ in observables]
+            else: hist_bins = [5 for _ in range(n_summary_stats)]
         elif isinstance(hist_bins, int):
             #hist_bins = tuple([hist_bins] * n_summary_stats)
-            hist_bins = [hist_bins for _ in observables]
+            hist_bins = [hist_bins for _ in range(n_summary_stats)]
         return hist_bins
     
     def _fixed_adaptive_binning(self,
-        n_toys,
-        observables,
         thetas_binning,
         x_bins,
+        data=None,
+        weights_benchmarks=None,
+        n_toys=None,
         test_split=None,
-        model=None,
+        summary_function=None,
     ):
         """
         Low-level function that sets up the binning of the histograms (II)
         """
-        # Get summary Function
-        summary_function = self._make_summary_statistic_function(observables=observables,model=model)
         
         # Get weighted data
-        data, weights = self._make_histo_data_weighted(
-            summary_function=summary_function,
-            thetas=thetas_binning,
-            n_toys=n_toys,
-            test_split=test_split,
-        )
-            
-        #Reformat
+        if data is None:
+            data, weights_benchmarks = self._make_histo_data_weighted(
+                summary_function=summary_function,
+                n_toys=n_toys,
+                test_split=test_split,
+            )
+        
+        # Calculate weights for thetas
+        weights = self._weights(thetas_binning, None, weights_benchmarks)
         weights = np.asarray(weights)
         weights = np.mean(weights, axis=0)
+        
+        #Histogram
         histo = Histo(data, weights, x_bins, epsilon=1.0e-12)
         x_bins = histo.edges
         return x_bins
