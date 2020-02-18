@@ -474,6 +474,7 @@ class ParameterizedRatioEstimator(ConditionalEstimator):
         scale_parameters=True,
         n_workers=8,
         clip_gradient=None,
+        early_stopping_patience=None,
     ):
 
         """
@@ -729,6 +730,7 @@ class ParameterizedRatioEstimator(ConditionalEstimator):
             early_stopping=early_stopping,
             verbose=verbose,
             clip_gradient=clip_gradient,
+            early_stopping_patience=early_stopping_patience,
         )
         return result
 
@@ -1035,6 +1037,7 @@ class DoubleParameterizedRatioEstimator(ConditionalEstimator):
         scale_parameters=True,
         n_workers=8,
         clip_gradient=None,
+        early_stopping_patience=None,
     ):
 
         """
@@ -1316,6 +1319,7 @@ class DoubleParameterizedRatioEstimator(ConditionalEstimator):
             early_stopping=early_stopping,
             verbose=verbose,
             clip_gradient=clip_gradient,
+            early_stopping_patience=early_stopping_patience,
         )
         return result
 
@@ -1537,6 +1541,7 @@ class ScoreEstimator(Estimator):
         verbose="some",
         n_workers=8,
         clip_gradient=None,
+        early_stopping_patience=None,
     ):
 
         """
@@ -1728,6 +1733,7 @@ class ScoreEstimator(Estimator):
             early_stopping=early_stopping,
             verbose=verbose,
             clip_gradient=clip_gradient,
+            early_stopping_patience=early_stopping_patience,
         )
         return result
 
@@ -2004,6 +2010,7 @@ class LikelihoodEstimator(ConditionalEstimator):
         scale_parameters=True,
         n_workers=8,
         clip_gradient=None,
+        early_stopping_patience=None,
     ):
 
         """
@@ -2233,6 +2240,7 @@ class LikelihoodEstimator(ConditionalEstimator):
             early_stopping=early_stopping,
             verbose=verbose,
             clip_gradient=clip_gradient,
+            early_stopping_patience=early_stopping_patience,
         )
         return result
 
