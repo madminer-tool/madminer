@@ -5,6 +5,7 @@ import numpy as np
 import time
 from scipy.stats import poisson, norm, chi2
 from scipy.optimize import minimize
+from itertools import product
 
 from madminer.analysis import DataAnalyzer
 from madminer.utils.various import mdot, less_logging, math_commands
@@ -54,7 +55,11 @@ class BaseLikelihood(DataAnalyzer):
     def _log_likelihood_kinematic(self, *args, **kwargs):
         raise NotImplementedError
 
-    def _log_likelihood_poisson(self, n_observed, theta, nu, luminosity=300000.0,weights_benchmarks=None):
+    def _log_likelihood_poisson(self, n_observed, theta, nu, luminosity=300000.0,weights_benchmarks=None,total_weights=None):
+        
+        if total_weights is not None:
+            theta_matrix = self._get_theta_benchmark_matrix(theta)
+            xsec = mdot(theta_matrix, total_weights)
         if weights_benchmarks is None:
             xsec = self.xsecs(thetas=[theta], nus=[nu], partition="train", generated_close_to=theta)[0]
         else:
@@ -253,7 +258,7 @@ class HistoLikelihood(BaseLikelihood):
         luminosity : float, optional
             Integrated luminosity in pb^{-1} assumed in the analysis. Default value: 300000.
             
-        mode : {"weighted" , "sampled"} , optional
+        mode : {"weighted" , "sampled", "histo"} , optional
             If "sampled", for each evaulation of the likelihood function, a separate
             set of events are sampled and histogram is created to construct the
             likelihood function. If "weighted", first a set of weighted events is
@@ -302,7 +307,7 @@ class HistoLikelihood(BaseLikelihood):
         if n_observed is None:
             n_observed = len(x_observed)
         
-        supported_modes=["sampled","weighted"]
+        supported_modes=["sampled","weighted","histo"]
         if mode not in supported_modes:
             raise ValueError("Mode %s unknown. Choose one of the following methods: %s",mode, supported_modes)
         
@@ -323,14 +328,14 @@ class HistoLikelihood(BaseLikelihood):
 
         #Weighted sampled
         data, summary_stats, weights_benchmarks = None,None,None
-        if mode == "weighted":
+        if mode == "weighted" or mode == "histo":
             logger.info("Getting weighted data")
             data, weights_benchmarks = self._make_histo_data_weighted(
                 summary_function=summary_function,
                 n_toys=n_histo_toys,
                 test_split=test_split,
             )
-        if mode == "weighted" and observables!=[]:
+        if (mode == "weighted" or mode == "histo" ) and observables!=[]:
             summary_stats=summary_function(x_observed)
 
         # find binning
@@ -348,6 +353,18 @@ class HistoLikelihood(BaseLikelihood):
                 summary_function=summary_function,
            )
         logger.info("Use binning: %s",hist_bins)
+        
+        if mode == "histo":
+            if hist_bins is not None:
+                benchmark_histograms, _ = self._get_benchmark_histograms(data,weights_benchmarks,hist_bins)
+                total_weights = np.array([sum(benchmark_histogram.flatten()) for benchmark_histogram in benchmark_histograms])
+            else:
+                benchmark_histograms=None
+                total_weights = np.array([sum(weights_benchmark) for weights_benchmark in weights_benchmarks.T])
+        else:
+            total_weights,benchmark_histograms=None,None
+        
+        benchmark_histograms
 
         #define negative likelihood function
         def nll(params):
@@ -379,6 +396,8 @@ class HistoLikelihood(BaseLikelihood):
                 data=data,
                 summary_stats=summary_stats,
                 weights_benchmarks=weights_benchmarks,
+                benchmark_histograms=benchmark_histograms,
+                total_weights=total_weights,
             )
             return -log_likelihood
             
@@ -504,6 +523,8 @@ class HistoLikelihood(BaseLikelihood):
         data=None,
         summary_stats=None,
         weights_benchmarks=None,
+        benchmark_histograms=None,
+        total_weights=None,
     ):
         """
         Low-level function which calculates the value of the log-likelihood ratio.
@@ -512,7 +533,7 @@ class HistoLikelihood(BaseLikelihood):
             
         log_likelihood = 0.0
         if include_xsec:
-            log_likelihood = log_likelihood + self._log_likelihood_poisson(n_events, theta, nu, luminosity,weights_benchmarks)
+            log_likelihood = log_likelihood + self._log_likelihood_poisson(n_events, theta, nu, luminosity,weights_benchmarks,total_weights)
                         
         if summary_function is not None:
             if x_weights is None:
@@ -520,7 +541,8 @@ class HistoLikelihood(BaseLikelihood):
             else:
                 x_weights = x_weights * n_events / np.sum(x_weights)
             log_likelihood_events = self._log_likelihood_kinematic(
-                xs, theta, nu, mode, n_histo_toys, hist_bins, summary_function, data, summary_stats, weights_benchmarks)
+                xs, theta, nu, mode, n_histo_toys, hist_bins,
+                summary_function, data, summary_stats, weights_benchmarks, benchmark_histograms)
             log_likelihood_events = log_likelihood_events.astype(np.float64)
             log_likelihood_events = self._clean_nans(log_likelihood_events)
             log_likelihood = log_likelihood + np.dot(x_weights, log_likelihood_events)
@@ -543,6 +565,7 @@ class HistoLikelihood(BaseLikelihood):
         data=None,
         summary_stats=None,
         weights_benchmarks=None,
+        benchmark_histograms=None,
         ):
         """
         Low-level function which calculates the value of the kinematic part of the
@@ -567,6 +590,10 @@ class HistoLikelihood(BaseLikelihood):
         elif mode=="weighted":
             weights = self._weights([theta], [nu], weights_benchmarks)[0]
             histo = Histo(data, weights=weights, bins=hist_bins, epsilon=1.0e-12)
+        elif mode=="histo":
+            bin_centers = [np.array([(bins[i]+bins[i+1])/2 for i in range(len(bins)-1) ]) for bins in hist_bins ]
+            bin_centers = np.array(list( product(*bin_centers)) )
+            histo=self._histogram_morphing(theta, benchmark_histograms, hist_bins, bin_centers)
                             
         #calculate log-likelihood from histogram
         log_p=histo.log_likelihood(summary_stats)
@@ -712,12 +739,55 @@ class HistoLikelihood(BaseLikelihood):
         x_bins = histo.edges
         return x_bins
 
+    def _get_benchmark_histograms(self, data, weights_benchmarks, hist_bins, epsilon=1.0e-12):
+        """
+        Low-level function that returns histograms for morphing benchmarks
+        """
+        #get histogram bins
+        histo_benchmarks=[]
+        for weights in weights_benchmarks.T:
+            #histo = Histo(data, weights=weights, bins=hist_bins, epsilon=1.0e-12)
+            ranges = [(edges[0], edges[-1]) for edges in hist_bins]
+            histo, _ = np.histogramdd(data, bins=hist_bins, range=ranges, normed=False, weights=weights)
+            histo[:] += epsilon
+            histo_benchmarks.append(histo)
+        
+        #get bin centers
+        bin_centers = [np.array([(bins[i]+bins[i+1])/2 for i in range(len(bins)-1) ]) for bins in hist_bins ]
+        bin_centers = np.array(list( product(*bin_centers)) )
+        return histo_benchmarks, bin_centers
+
+    def _histogram_morphing(self, theta, histogram_benchmarks, hist_bins, bin_centers):
+        """
+        Low-level function that morphes histograms
+        """
+        #get binning
+        hist_nbins= [len(bins)-1 for bins in hist_bins]
+    
+        #get array of flattened histograms
+        flattened_histo_weights=[]
+        for histo in histogram_benchmarks:
+            flattened_histo_weights.append(histo.flatten())
+        flattened_histo_weights=np.array(flattened_histo_weights).T
+
+        #calculate dot product
+        theta_matrix = self._get_theta_benchmark_matrix(theta)
+        histo_weights_theta = mdot(theta_matrix, flattened_histo_weights)
+
+        #create histogram
+        histo = Histo(bin_centers, weights=histo_weights_theta, bins=hist_bins, epsilon=1.0e-12)
+        return histo
+    
     def _clean_nans(self, array):
         not_finite = np.any(~np.isfinite(array), axis=0)
         if np.sum(not_finite) > 0:
             logger.warning("Removing %s inf / nan results from calculation")
             array[:, not_finite] = 0.0
         return array
+
+            
+            
+
 
 ##################################################################################################################
 ##################################################################################################################
