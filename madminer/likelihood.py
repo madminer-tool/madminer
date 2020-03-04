@@ -146,6 +146,11 @@ class NeuralLikelihood(BaseLikelihood):
         x_weights=None,
         weights_benchmarks=None,
    ):
+        """
+        Low-level function which calculates the value of the log-likelihood ratio.
+        See create_negative_log_likelihood for options.
+        """
+        
         log_likelihood = 0.0
         if include_xsec:
             log_likelihood = log_likelihood + self._log_likelihood_poisson(n_events, theta, nu, luminosity, weights_benchmarks)
@@ -168,6 +173,7 @@ class NeuralLikelihood(BaseLikelihood):
         Low-level function which calculates the value of the kinematic part of the
         log-likelihood. See create_negative_log_likelihood for options.
         """
+        
         if nu is not None:
             theta = np.concatenate((theta, nu), axis=0)
         
