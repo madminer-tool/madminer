@@ -60,6 +60,7 @@ inference with MadMiner without spending much time on the more technical steps o
 at [examples/tutorial_particle_physics](examples/tutorial_particle_physics), shows all steps of a particle-physics
 analysis with MadMiner.
 
+These examples are the basis of [an online tutorial](https://cranmer.github.io/madminer-tutorial/intro) built with on Jupyter Books. It also walks through how to run MadMiner using docker so that you don't have to install Fortran, MadGraph, Pythia, Delphes, etc. You can even run it with no install using binder. 
 
 ### Documentation
 
