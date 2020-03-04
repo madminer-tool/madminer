@@ -164,6 +164,10 @@ class NeuralLikelihood(BaseLikelihood):
         return log_likelihood
 
     def _log_likelihood_kinematic(self, estimator, xs, theta, nu):
+        """
+        Low-level function which calculates the value of the kinematic part of the
+        log-likelihood. See create_negative_log_likelihood for options.
+        """
         if nu is not None:
             theta = np.concatenate((theta, nu), axis=0)
         
