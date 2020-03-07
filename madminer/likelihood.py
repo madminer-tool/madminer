@@ -148,7 +148,7 @@ class NeuralLikelihood(BaseLikelihood):
    ):
         """
         Low-level function which calculates the value of the log-likelihood ratio.
-        See create_negative_log_likelihood for options.
+        See create_negative_log_likelihood for options.   
         """
         
         log_likelihood = 0.0
