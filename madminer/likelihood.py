@@ -66,11 +66,10 @@ class BaseLikelihood(DataAnalyzer):
             weights = self._weights([theta], [nu], weights_benchmarks)[0]
             xsec=sum(weights)
         
+        n_predicted = xsec * luminosity
         if xsec<0:
             logger.warning("Total cross section is negative (%s pb) at theta=%s)",xsec,theta)
-            xsec=0
-        
-        n_predicted = xsec * luminosity
+            n_predicted=[10**-5]
         n_observed_rounded = int(np.round(n_observed, 0))
 
         log_likelihood = poisson.logpmf(k=n_observed_rounded, mu=n_predicted)
@@ -216,7 +215,18 @@ class NeuralLikelihood(BaseLikelihood):
             )
 
         logger.debug("Kinematic log likelihood (ratio): %s", log_r.flatten())
-        return log_r.flatten()
+        log_r = log_r.flatten()
+        log_r = log_r.astype(np.float64)
+        log_r = self._clean_nans(log_r)
+        return log_r
+
+    @staticmethod
+    def _clean_nans(array):
+        not_finite = np.any(~np.isfinite(array), axis=0)
+        if np.sum(not_finite) > 0:
+            logger.warning("Removing %s inf / nan results from calculation")
+            array[:, not_finite] = 0.0
+        return array
 
 ##################################################################################################################
 ##################################################################################################################
@@ -555,8 +565,6 @@ class HistoLikelihood(BaseLikelihood):
             log_likelihood_events = self._log_likelihood_kinematic(
                 xs, theta, nu, mode, n_histo_toys, hist_bins,
                 summary_function, data, summary_stats, weights_benchmarks, benchmark_histograms)
-            log_likelihood_events = log_likelihood_events.astype(np.float64)
-            log_likelihood_events = self._clean_nans(log_likelihood_events)
             log_likelihood = log_likelihood + np.dot(x_weights, log_likelihood_events)
                                                     
         if nu is not None:
