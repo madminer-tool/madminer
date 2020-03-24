@@ -66,6 +66,10 @@ class BaseLikelihood(DataAnalyzer):
             weights = self._weights([theta], [nu], weights_benchmarks)[0]
             xsec=sum(weights)
         
+        if xsec<0:
+            logger.warning("Total cross section is negative (%s pb) at theta=%s)",xsec,theta)
+            xsec=0
+        
         n_predicted = xsec * luminosity
         n_observed_rounded = int(np.round(n_observed, 0))
 
@@ -373,8 +377,6 @@ class HistoLikelihood(BaseLikelihood):
                 total_weights = np.array([sum(weights_benchmark) for weights_benchmark in weights_benchmarks.T])
         else:
             total_weights,benchmark_histograms=None,None
-        
-        benchmark_histograms
 
         #define negative likelihood function
         def nll(params):
