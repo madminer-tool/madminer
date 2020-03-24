@@ -200,8 +200,12 @@ class Estimator(object):
 
     def _transform_inputs(self, x):
         if self.x_scaling_means is not None and self.x_scaling_stds is not None:
-            x_scaled = x - self.x_scaling_means
-            x_scaled /= self.x_scaling_stds
+            if isinstance(x, torch.Tensor):
+                x_scaled = x - torch.tensor(self.x_scaling_means, dtype=x.dtype, device=x.device)
+                x_scaled = x_scaled / torch.tensor(self.x_scaling_stds, dtype=x.dtype, device=x.device)
+            else:
+                x_scaled = x - self.x_scaling_means
+                x_scaled /= self.x_scaling_stds
         else:
             x_scaled = x
         return x_scaled
@@ -253,32 +257,32 @@ class Estimator(object):
         """
         Calculates the expected Fisher information matrix based on the kinematic information in a given number of
         events.
-        
+
         Parameters
         ----------
         x : str or ndarray
             Sample of observations, or path to numpy file with observations. Note that this sample has to be sampled
             from the reference parameter where the score is estimated with the SALLY / SALLINO estimator.
-        
+
         theta: None or ndarray
             Numerator parameter point, or filename of a pickled numpy array. Has no effect for ScoreEstimator.
-        
+
         weights : None or ndarray, optional
             Weights for the observations. If None, all events are taken to have equal weight. Default value: None.
-        
+
         n_events : float, optional
             Expected number of events for which the kinematic Fisher information should be calculated. Default value: 1.
-        
+
         sum_events : bool, optional
             If True, the expected Fisher information summed over the events x is calculated. If False, the per-event
             Fisher information for each event is returned. Default value: True.
-        
+
         Returns
         -------
         fisher_information : ndarray
             Expected kinematic Fisher information matrix with shape `(n_events, n_parameters, n_parameters)` if
             sum_events is False or `(n_parameters, n_parameters)` if sum_events is True.
-        
+
         """
 
         if self.model is None:
@@ -405,8 +409,14 @@ class ConditionalEstimator(Estimator):
 
     def _transform_parameters(self, theta):
         if self.theta_scaling_means is not None and self.theta_scaling_stds is not None:
-            theta_scaled = theta - self.theta_scaling_means[np.newaxis, :]
-            theta_scaled /= self.theta_scaling_stds[np.newaxis, :]
+            if isinstance(theta, torch.Tensor):
+                theta_scaled = theta - torch.tensor(self.theta_scaling_means, dtype=theta.dtype, device=theta.device)
+                theta_scaled = theta_scaled / torch.tensor(
+                    self.theta_scaling_stds, dtype=theta.dtype, device=theta.device
+                )
+            else:
+                theta_scaled = theta - self.theta_scaling_means[np.newaxis, :]
+                theta_scaled /= self.theta_scaling_stds[np.newaxis, :]
         else:
             theta_scaled = theta
         return theta_scaled
@@ -772,7 +782,7 @@ class ParameterizedRatioEstimator(ConditionalEstimator):
             raise ValueError("No model -- train or load model before evaluating it!")
 
         # Load training data
-        logger.info("Loading evaluation data")
+        logger.debug("Loading evaluation data")
         x = load_and_check(x)
         theta = load_and_check(theta)
 
@@ -788,7 +798,7 @@ class ParameterizedRatioEstimator(ConditionalEstimator):
         all_t_hat = []
 
         if test_all_combinations:
-            logger.info("Starting ratio evaluation for %s x-theta combinations", len(theta) * len(x))
+            logger.debug("Starting ratio evaluation for %s x-theta combinations", len(theta) * len(x))
 
             for i, this_theta in enumerate(theta):
                 logger.debug("Starting ratio evaluation for thetas %s / %s: %s", i + 1, len(theta), this_theta)
@@ -810,7 +820,7 @@ class ParameterizedRatioEstimator(ConditionalEstimator):
             all_t_hat = np.array(all_t_hat)
 
         else:
-            logger.info("Starting ratio evaluation")
+            logger.debug("Starting ratio evaluation")
             _, all_log_r_hat, all_t_hat, _ = evaluate_ratio_model(
                 model=self.model,
                 method_type="parameterized_ratio",
@@ -822,8 +832,56 @@ class ParameterizedRatioEstimator(ConditionalEstimator):
 
             all_t_hat = self._transform_score(all_t_hat, inverse=True)
 
-        logger.info("Evaluation done")
+        logger.debug("Evaluation done")
         return all_log_r_hat, all_t_hat
+
+    def evaluate_log_likelihood_ratio_torch(self, x, theta, test_all_combinations=True):
+        """
+        Evaluates the log likelihood ratio for given observations x betwen the given parameter point theta and the
+        reference hypothesis.
+
+        Parameters
+        ----------
+        x : torch.tensor
+            Observations.
+
+        theta : torch.tensor
+            Parameter points.
+
+        test_all_combinations : bool, optional
+            If False, the number of samples in the observable and theta
+            files has to match, and the likelihood ratio is evaluated only for the combinations
+            `r(x_i | theta0_i, theta1_i)`. If True, `r(x_i | theta0_j, theta1_j)` for all pairwise combinations `i, j`
+            are evaluated. Default value: True.
+
+        Returns
+        -------
+        log_likelihood_ratio : torch.tensor
+            The estimated log likelihood ratio. If test_all_combinations is True, the result has shape
+            `(n_thetas, n_x)`. Otherwise, it has shape `(n_samples,)`.
+
+        """
+        if self.model is None:
+            raise ValueError("No model -- train or load model before evaluating it!")
+
+        # Scale observables and parameters
+        x = self._transform_inputs(x)
+        theta = self._transform_parameters(theta)
+
+        # Eval
+        if test_all_combinations:
+            logger.debug("Starting ratio evaluation for %s x-theta combinations", len(theta) * len(x))
+            all_log_r_hat = []
+            for theta_ in theta:
+                theta_ = torch.stack([theta_ for _ in x])
+                _, log_r_hat, _ = self.model(theta_, x)
+                all_log_r_hat.append(log_r_hat[:, 0].unsqueeze(0))
+            log_r_hat = torch.cat(all_log_r_hat, dim=0)
+        else:
+            logger.debug("Starting ratio evaluation")
+            _, log_r_hat = self.model(theta, x)
+
+        return log_r_hat
 
     def evaluate_log_likelihood(self, *args, **kwargs):
         raise TheresAGoodReasonThisDoesntWork(
@@ -833,26 +891,26 @@ class ParameterizedRatioEstimator(ConditionalEstimator):
     def evaluate_score(self, x, theta, nuisance_mode="keep"):
         """
         Evaluates the scores for given observations x betwen at a given parameter point theta.
-            
+
         Parameters
         ----------
         x : str or ndarray
             Observations or filename of a pickled numpy array.
-            
+
         theta : ndarray or str
             Parameter points or filename of a pickled numpy array.
-        
+
         nuisance_mode : {"auto", "keep", "profile", "project"}
             Decides how nuisance parameters are treated. If nuisance_mode is "keep", the
             returned score is always (n+k)-dimensional.
-            
+
         Returns
         -------
         score : ndarray or None
             The estimated score at `theta`. If test_all_combinations is True, the
             result has shape `(n_thetas, n_x, n_parameters)`. Otherwise, it has shape
             `(n_samples, n_parameters)`.
-            
+
         """
         if nuisance_mode == "keep":
             logger.debug("Keeping nuisance parameter in score")
@@ -1369,7 +1427,7 @@ class DoubleParameterizedRatioEstimator(ConditionalEstimator):
             raise ValueError("No model -- train or load model before evaluating it!")
 
         # Load training data
-        logger.info("Loading evaluation data")
+        logger.debug("Loading evaluation data")
         x = load_and_check(x)
         theta0 = load_and_check(theta0)
         theta1 = load_and_check(theta1)
@@ -1392,7 +1450,7 @@ class DoubleParameterizedRatioEstimator(ConditionalEstimator):
         all_t_hat1 = []
 
         if test_all_combinations:
-            logger.info("Starting ratio evaluation for %s x-theta combinations", len(theta0) * len(x))
+            logger.debug("Starting ratio evaluation for %s x-theta combinations", len(theta0) * len(x))
 
             for i, (this_theta0, this_theta1) in enumerate(zip(theta0, theta1)):
                 logger.debug(
@@ -1420,7 +1478,7 @@ class DoubleParameterizedRatioEstimator(ConditionalEstimator):
             all_t_hat1 = np.array(all_t_hat1)
 
         else:
-            logger.info("Starting ratio evaluation")
+            logger.debug("Starting ratio evaluation")
             _, all_log_r_hat, all_t_hat0, all_t_hat1 = evaluate_ratio_model(
                 model=self.model,
                 method_type="double_parameterized_ratio",
@@ -1430,7 +1488,7 @@ class DoubleParameterizedRatioEstimator(ConditionalEstimator):
                 evaluate_score=evaluate_score,
             )
 
-        logger.info("Evaluation done")
+        logger.debug("Evaluation done")
         return all_log_r_hat, all_t_hat0, all_t_hat1
 
     def evaluate_log_likelihood(self, *args, **kwargs):
@@ -1795,7 +1853,7 @@ class ScoreEstimator(Estimator):
         ----------
         x : str or ndarray
             Observations, or filename of a pickled numpy array.
-            
+
         theta: None or ndarray, optional
             Has no effect for ScoreEstimator. Introduced just for conformity with other Estimators.
 
@@ -1822,7 +1880,7 @@ class ScoreEstimator(Estimator):
 
         # Load training data
         if isinstance(x, str):
-            logger.info("Loading evaluation data")
+            logger.debug("Loading evaluation data")
         x = load_and_check(x)
 
         # Scale observables
@@ -1833,7 +1891,7 @@ class ScoreEstimator(Estimator):
             x = x[:, self.features]
 
         # Evaluation
-        logger.info("Starting score evaluation")
+        logger.debug("Starting score evaluation")
         t_hat = evaluate_local_score_model(model=self.model, xs=x)
 
         # Treatment of nuisance paramters
@@ -1846,7 +1904,7 @@ class ScoreEstimator(Estimator):
                     "evaluate_score() was called with nuisance_mode = project, but nuisance parameters "
                     "have not been set up yet. Please call set_nuisance() first!"
                 )
-            logger.info("Projecting nuisance parameter from score")
+            logger.debug("Projecting nuisance parameter from score")
             t_hat = np.einsum("ij,xj->xi", self.nuisance_project_matrix, t_hat)
 
         elif nuisance_mode == "profile":
@@ -1855,7 +1913,7 @@ class ScoreEstimator(Estimator):
                     "evaluate_score() was called with nuisance_mode = profile, but nuisance parameters "
                     "have not been set up yet. Please call set_nuisance() first!"
                 )
-            logger.info("Profiling nuisance parameter from score")
+            logger.debug("Profiling nuisance parameter from score")
             t_hat = np.einsum("ij,xj->xi", self.nuisance_profile_matrix, t_hat)
 
         else:
@@ -2287,7 +2345,7 @@ class LikelihoodEstimator(ConditionalEstimator):
 
         # Load training data
         if isinstance(x, str):
-            logger.info("Loading evaluation data")
+            logger.debug("Loading evaluation data")
         theta = load_and_check(theta)
         x = load_and_check(x)
 
@@ -2303,7 +2361,7 @@ class LikelihoodEstimator(ConditionalEstimator):
         all_t_hat = []
 
         if test_all_combinations:
-            logger.info("Starting ratio evaluation for %s x-theta combinations", len(theta) * len(x))
+            logger.debug("Starting ratio evaluation for %s x-theta combinations", len(theta) * len(x))
 
             for i, this_theta in enumerate(theta):
                 logger.debug("Starting log likelihood evaluation for thetas %s / %s: %s", i + 1, len(theta), this_theta)
@@ -2319,13 +2377,13 @@ class LikelihoodEstimator(ConditionalEstimator):
             all_t_hat = np.array(all_t_hat)
 
         else:
-            logger.info("Starting log likelihood evaluation")
+            logger.debug("Starting log likelihood evaluation")
 
             all_log_p_hat, all_t_hat = evaluate_flow_model(
                 model=self.model, thetas=theta, xs=x, evaluate_score=evaluate_score
             )
 
-        logger.info("Evaluation done")
+        logger.debug("Evaluation done")
         return all_log_p_hat, all_t_hat
 
     def evaluate_log_likelihood_ratio(self, x, theta0, theta1, test_all_combinations, evaluate_score=False):
@@ -2374,7 +2432,7 @@ class LikelihoodEstimator(ConditionalEstimator):
             raise ValueError("No model -- train or load model before evaluating it!")
 
         # Load training data
-        logger.info("Loading evaluation data")
+        logger.debug("Loading evaluation data")
         x = load_and_check(x)
         theta0 = load_and_check(theta0)
         theta1 = load_and_check(theta1)
@@ -2634,7 +2692,7 @@ class Ensemble:
 
         """
 
-        logger.info("Evaluating %s estimators in ensemble", self.n_estimators)
+        logger.debug("Evaluating %s estimators in ensemble", self.n_estimators)
 
         # Calculate weights of each estimator in vote
         if estimator_weights is None:
@@ -2646,7 +2704,7 @@ class Ensemble:
         # Calculate estimator predictions
         predictions = []
         for i, estimator in enumerate(self.estimators):
-            logger.info("Starting evaluation for estimator %s / %s in ensemble", i + 1, self.n_estimators)
+            logger.debug("Starting evaluation for estimator %s / %s in ensemble", i + 1, self.n_estimators)
             predictions.append(estimator.evaluate_log_likelihood(**kwargs)[0])
         predictions = np.array(predictions)
 
@@ -2688,7 +2746,7 @@ class Ensemble:
 
         """
 
-        logger.info("Evaluating %s estimators in ensemble", self.n_estimators)
+        logger.debug("Evaluating %s estimators in ensemble", self.n_estimators)
 
         # Calculate weights of each estimator in vote
         if estimator_weights is None:
@@ -2700,7 +2758,7 @@ class Ensemble:
         # Calculate estimator predictions
         predictions = []
         for i, estimator in enumerate(self.estimators):
-            logger.info("Starting evaluation for estimator %s / %s in ensemble", i + 1, self.n_estimators)
+            logger.debug("Starting evaluation for estimator %s / %s in ensemble", i + 1, self.n_estimators)
             predictions.append(estimator.evaluate_log_likelihood_ratio(**kwargs)[0])
         predictions = np.array(predictions)
 
@@ -2742,7 +2800,7 @@ class Ensemble:
 
         """
 
-        logger.info("Evaluating %s estimators in ensemble", self.n_estimators)
+        logger.debug("Evaluating %s estimators in ensemble", self.n_estimators)
 
         # Calculate weights of each estimator in vote
         if estimator_weights is None:
