@@ -11,6 +11,7 @@ Submodules
    madminer.delphes
    madminer.fisherinformation
    madminer.lhe
+   madminer.likelihood
    madminer.limits
    madminer.ml
    madminer.plotting
