@@ -16,21 +16,17 @@ from madminer import sampling
 
 logger = logging.getLogger(__name__)
 
-##################################################################################################################
-##################################################################################################################
-##################################################################################################################
 
 class BaseLikelihood(DataAnalyzer):
-    
     def create_negative_log_likelihood(self, *args, **kwargs):
         raise NotImplementedError
 
     def create_expected_negative_log_likelihood(self, *args, **kwargs):
         raise NotImplementedError
 
-    def _asimov_data(self,theta, test_split=0.2, sample_only_from_closest_benchmark=True, n_asimov=None):
-        
-        #get data
+    def _asimov_data(self, theta, test_split=0.2, sample_only_from_closest_benchmark=True, n_asimov=None):
+
+        # get data
         start_event, end_event, correction_factor = self._train_test_split(False, test_split)
         x, weights_benchmarks = next(
             self.event_loader(
@@ -42,7 +38,7 @@ class BaseLikelihood(DataAnalyzer):
         )
         weights_benchmarks *= correction_factor
 
-        #morphing
+        # morphing
         theta_matrix = self._get_theta_benchmark_matrix(theta)
         weights_theta = mdot(theta_matrix, weights_benchmarks)
         weights_theta /= np.sum(weights_theta)
@@ -55,8 +51,10 @@ class BaseLikelihood(DataAnalyzer):
     def _log_likelihood_kinematic(self, *args, **kwargs):
         raise NotImplementedError
 
-    def _log_likelihood_poisson(self, n_observed, theta, nu, luminosity=300000.0,weights_benchmarks=None,total_weights=None):
-        
+    def _log_likelihood_poisson(
+        self, n_observed, theta, nu, luminosity=300000.0, weights_benchmarks=None, total_weights=None
+    ):
+
         if total_weights is not None:
             theta_matrix = self._get_theta_benchmark_matrix(theta)
             xsec = mdot(theta_matrix, total_weights)
@@ -64,16 +62,22 @@ class BaseLikelihood(DataAnalyzer):
             xsec = self.xsecs(thetas=[theta], nus=[nu], partition="train", generated_close_to=theta)[0][0]
         else:
             weights = self._weights([theta], [nu], weights_benchmarks)[0]
-            xsec=sum(weights)
-        
+            xsec = sum(weights)
+
         n_predicted = xsec * luminosity
-        if xsec<0:
-            logger.warning("Total cross section is negative (%s pb) at theta=%s)",xsec,theta)
-            n_predicted=10**-5
+        if xsec < 0:
+            logger.warning("Total cross section is negative (%s pb) at theta=%s)", xsec, theta)
+            n_predicted = 10 ** -5
         n_observed_rounded = int(np.round(n_observed, 0))
 
         log_likelihood = poisson.logpmf(k=n_observed_rounded, mu=n_predicted)
-        logger.debug("Poisson log likelihood: %s (%s expected, %s observed at theta=%s)",log_likelihood, n_predicted, n_observed_rounded,theta)
+        logger.debug(
+            "Poisson log likelihood: %s (%s expected, %s observed at theta=%s)",
+            log_likelihood,
+            n_predicted,
+            n_observed_rounded,
+            theta,
+        )
         return log_likelihood
 
     def _log_likelihood_constraint(self, nu):
@@ -82,57 +86,81 @@ class BaseLikelihood(DataAnalyzer):
         return log_p
 
 
-##################################################################################################################
-##################################################################################################################
-##################################################################################################################
-
 class NeuralLikelihood(BaseLikelihood):
-
     def create_negative_log_likelihood(
-        self, model_file, x_observed, n_observed=None, x_observed_weights=None, include_xsec=True, luminosity=300000.0, mode="weighted",n_weighted=10000,
+        self,
+        model_file,
+        x_observed,
+        n_observed=None,
+        x_observed_weights=None,
+        include_xsec=True,
+        luminosity=300000.0,
+        mode="weighted",
+        n_weighted=10000,
     ):
         estimator = load_estimator(model_file)
 
         if n_observed is None:
             n_observed = len(x_observed)
-        
-        #Weighted sampled
+
+        # Weighted sampled
         if mode == "weighted":
-            weights_benchmarks = self._get_weights_benchmarks(n_toys=n_weighted,test_split=None)
+            weights_benchmarks = self._get_weights_benchmarks(n_toys=n_weighted, test_split=None)
         else:
             weights_benchmarks = None
 
         def nll(params):
-            #Just return the expected Length
+            # Just return the expected Length
             if params is None:
-                return self.n_nuisance_parameters+self.n_parameters
-        
-            #Process input
-            if (len(params)!= self.n_nuisance_parameters+ self.n_parameters):
-                logger.warning("Number of parameters is %s, expected %s physical parameters and %s nuisance paramaters",
-                    len(params),self.n_parameters,self.n_nuisance_parameters )
+                return self.n_nuisance_parameters + self.n_parameters
+
+            # Process input
+            if len(params) != self.n_nuisance_parameters + self.n_parameters:
+                logger.warning(
+                    "Number of parameters is %s, expected %s physical parameters and %s nuisance paramaters",
+                    len(params),
+                    self.n_parameters,
+                    self.n_nuisance_parameters,
+                )
             theta = params[: self.n_parameters]
             nu = params[self.n_parameters :]
-            if len(nu)==0: nu=None
+            if len(nu) == 0:
+                nu = None
 
-            #Compute Log Likelihood
+            # Compute Log Likelihood
             log_likelihood = self._log_likelihood(
-                estimator, n_observed, x_observed, theta, nu, include_xsec, luminosity, x_observed_weights,weights_benchmarks
+                estimator,
+                n_observed,
+                x_observed,
+                theta,
+                nu,
+                include_xsec,
+                luminosity,
+                x_observed_weights,
+                weights_benchmarks,
             )
             return -log_likelihood
 
         return nll
 
     def create_expected_negative_log_likelihood(
-        self, model_file, theta_true, nu_true, include_xsec=True, luminosity=300000.0, n_asimov=None, mode="sampled",n_weighted=10000,
+        self,
+        model_file,
+        theta_true,
+        nu_true,
+        include_xsec=True,
+        luminosity=300000.0,
+        n_asimov=None,
+        mode="sampled",
+        n_weighted=10000,
     ):
         x_asimov, x_weights = self._asimov_data(theta_true, n_asimov=n_asimov)
         n_observed = luminosity * self.xsecs([theta_true], [nu_true])[0]
 
         return self.create_negative_log_likelihood(
-            model_file, x_asimov, n_observed, x_weights, include_xsec, luminosity,mode,n_weighted,
+            model_file, x_asimov, n_observed, x_weights, include_xsec, luminosity, mode, n_weighted
         )
-    
+
     def _log_likelihood(
         self,
         estimator,
@@ -144,15 +172,17 @@ class NeuralLikelihood(BaseLikelihood):
         luminosity=300000.0,
         x_weights=None,
         weights_benchmarks=None,
-   ):
+    ):
         """
         Low-level function which calculates the value of the log-likelihood ratio.
         See create_negative_log_likelihood for options.   
         """
-        
+
         log_likelihood = 0.0
         if include_xsec:
-            log_likelihood = log_likelihood + self._log_likelihood_poisson(n_events, theta, nu, luminosity, weights_benchmarks)
+            log_likelihood = log_likelihood + self._log_likelihood_poisson(
+                n_events, theta, nu, luminosity, weights_benchmarks
+            )
 
         if x_weights is None:
             x_weights = n_events / float(len(xs)) * np.ones(len(xs))
@@ -160,7 +190,7 @@ class NeuralLikelihood(BaseLikelihood):
             x_weights = x_weights * n_events / np.sum(x_weights)
         log_likelihood_events = self._log_likelihood_kinematic(estimator, xs, theta, nu)
         log_likelihood = log_likelihood + np.dot(x_weights, log_likelihood_events)
-        
+
         if nu is not None:
             log_likelihood = log_likelihood + self._log_likelihood_constraint(nu)
 
@@ -172,10 +202,10 @@ class NeuralLikelihood(BaseLikelihood):
         Low-level function which calculates the value of the kinematic part of the
         log-likelihood. See create_negative_log_likelihood for options.
         """
-        
+
         if nu is not None:
             theta = np.concatenate((theta, nu), axis=0)
-        
+
         if isinstance(estimator, ParameterizedRatioEstimator):
             with less_logging():
                 log_r, _ = estimator.evaluate_log_likelihood_ratio(
@@ -220,11 +250,11 @@ class NeuralLikelihood(BaseLikelihood):
         """
         Low-level function that creates weighted events and returns weights
         """
-    
+
         start_event, end_event, correction_factor = self._train_test_split(True, test_split)
         x, weights_benchmarks = self.weighted_events(start_event=start_event, end_event=end_event, n_draws=n_toys)
-        weights_benchmarks *= self.n_samples/n_toys
-        
+        weights_benchmarks *= self.n_samples / n_toys
+
         return weights_benchmarks
 
     @staticmethod
@@ -235,12 +265,8 @@ class NeuralLikelihood(BaseLikelihood):
             array[:, not_finite] = 0.0
         return array
 
-##################################################################################################################
-##################################################################################################################
-##################################################################################################################
 
 class HistoLikelihood(BaseLikelihood):
-    
     def create_negative_log_likelihood(
         self,
         x_observed,
@@ -251,7 +277,7 @@ class HistoLikelihood(BaseLikelihood):
         include_xsec=True,
         luminosity=300000.0,
         mode="sampled",
-        n_histo_toys = 100000,
+        n_histo_toys=100000,
         model_file=None,
         hist_bins=None,
         thetas_binning=None,
@@ -327,24 +353,26 @@ class HistoLikelihood(BaseLikelihood):
             
         """
 
-        #Check input and join observables and score components - nothing interesting
-        if observables is None: observables=list([])
-        if score_components is None: score_components=list([])
-        if observables==[] and score_components==[]:
+        # Check input and join observables and score components - nothing interesting
+        if observables is None:
+            observables = list([])
+        if score_components is None:
+            score_components = list([])
+        if observables == [] and score_components == []:
             logger.info("No observables and scores provided. Calculate LLR due to rate and set include_xsec=True.")
-            include_xsec=True
-        observables=list(observables)+list(score_components)
-        
+            include_xsec = True
+        observables = list(observables) + list(score_components)
+
         if n_observed is None:
             n_observed = len(x_observed)
-        
-        supported_modes=["sampled","weighted","histo"]
+
+        supported_modes = ["sampled", "weighted", "histo"]
         if mode not in supported_modes:
-            raise ValueError("Mode %s unknown. Choose one of the following methods: %s",mode, supported_modes)
-        
-        #Load model - nothing interesting
-        if score_components!=[]:
-            assert all([isinstance(score_component,int) for score_component in score_components])
+            raise ValueError("Mode %s unknown. Choose one of the following methods: %s", mode, supported_modes)
+
+        # Load model - nothing interesting
+        if score_components != []:
+            assert all([isinstance(score_component, int) for score_component in score_components])
             if model_file is None:
                 raise ValueError("You need to provide a model_file!")
             model = load_estimator(model_file)
@@ -353,63 +381,70 @@ class HistoLikelihood(BaseLikelihood):
 
         # Create summary function
         logger.info("Setting up standard summary statistics")
-        summary_function=None
-        if observables!=[]:
-            summary_function = self._make_summary_statistic_function(observables=observables,model=model)
+        summary_function = None
+        if observables != []:
+            summary_function = self._make_summary_statistic_function(observables=observables, model=model)
 
-        #Weighted sampled
-        data, summary_stats, weights_benchmarks = None,None,None
+        # Weighted sampled
+        data, summary_stats, weights_benchmarks = None, None, None
         if mode == "weighted" or mode == "histo":
             logger.info("Getting weighted data")
             data, weights_benchmarks = self._make_histo_data_weighted(
-                summary_function=summary_function,
-                n_toys=n_histo_toys,
-                test_split=test_split,
+                summary_function=summary_function, n_toys=n_histo_toys, test_split=test_split
             )
-        if (mode == "weighted" or mode == "histo" ) and observables!=[]:
-            summary_stats=summary_function(x_observed)
+        if (mode == "weighted" or mode == "histo") and observables != []:
+            summary_stats = summary_function(x_observed)
 
         # find binning
         logger.info("Setting up binning")
-        if observables!=[] and (hist_bins is None or not all([hasattr(hist_bin, "__len__") for hist_bin in hist_bins])):
+        if observables != [] and (
+            hist_bins is None or not all([hasattr(hist_bin, "__len__") for hist_bin in hist_bins])
+        ):
             if thetas_binning is None:
                 raise ValueError("Your input requires adaptive binning: thetas_binning can not be None.")
-            hist_bins=self._find_bins(hist_bins=hist_bins,n_summary_stats=len(observables) )
-            hist_bins=self._fixed_adaptive_binning(
+            hist_bins = self._find_bins(hist_bins=hist_bins, n_summary_stats=len(observables))
+            hist_bins = self._fixed_adaptive_binning(
                 thetas_binning=thetas_binning,
                 x_bins=hist_bins,
                 data=data,
                 weights_benchmarks=weights_benchmarks,
                 n_toys=n_histo_toys,
                 summary_function=summary_function,
-           )
-        logger.info("Use binning: %s",hist_bins)
-        
+            )
+        logger.info("Use binning: %s", hist_bins)
+
         if mode == "histo":
             if hist_bins is not None:
-                benchmark_histograms, _ = self._get_benchmark_histograms(data,weights_benchmarks,hist_bins)
-                total_weights = np.array([sum(benchmark_histogram.flatten()) for benchmark_histogram in benchmark_histograms])
+                benchmark_histograms, _ = self._get_benchmark_histograms(data, weights_benchmarks, hist_bins)
+                total_weights = np.array(
+                    [sum(benchmark_histogram.flatten()) for benchmark_histogram in benchmark_histograms]
+                )
             else:
-                benchmark_histograms=None
+                benchmark_histograms = None
                 total_weights = np.array([sum(weights_benchmark) for weights_benchmark in weights_benchmarks.T])
         else:
-            total_weights,benchmark_histograms=None,None
+            total_weights, benchmark_histograms = None, None
 
-        #define negative likelihood function
+        # define negative likelihood function
         def nll(params):
-            #Just return the expected Length
+            # Just return the expected Length
             if params is None:
-                return self.n_nuisance_parameters+self.n_parameters
-        
-            #Process input
-            if (len(params)!= self.n_nuisance_parameters+ self.n_parameters):
-                logger.warning("Number of parameters is %s, expected %s physical parameters and %s nuisance paramaters",
-                    len(params),self.n_parameters,self.n_nuisance_parameters )
+                return self.n_nuisance_parameters + self.n_parameters
+
+            # Process input
+            if len(params) != self.n_nuisance_parameters + self.n_parameters:
+                logger.warning(
+                    "Number of parameters is %s, expected %s physical parameters and %s nuisance paramaters",
+                    len(params),
+                    self.n_parameters,
+                    self.n_nuisance_parameters,
+                )
             theta = params[: self.n_parameters]
             nu = params[self.n_parameters :]
-            if len(nu)==0: nu=None
-            
-            #Compute Log Likelihood
+            if len(nu) == 0:
+                nu = None
+
+            # Compute Log Likelihood
             log_likelihood = self._log_likelihood(
                 n_events=n_observed,
                 xs=x_observed,
@@ -429,7 +464,7 @@ class HistoLikelihood(BaseLikelihood):
                 total_weights=total_weights,
             )
             return -log_likelihood
-            
+
         return nll
 
     def create_expected_negative_log_likelihood(
@@ -442,7 +477,7 @@ class HistoLikelihood(BaseLikelihood):
         luminosity=300000.0,
         n_asimov=None,
         mode="sampled",
-        n_histo_toys = 100000,
+        n_histo_toys=100000,
         model_file=None,
         hist_bins=None,
         thetas_binning=None,
@@ -514,13 +549,13 @@ class HistoLikelihood(BaseLikelihood):
             Function that evaluates the negative log likelihood for a given parameter point
         
         """
-            
+
         if thetas_binning is None:
-            thetas_binning=[theta_true]
-                
+            thetas_binning = [theta_true]
+
         x_asimov, x_weights = self._asimov_data(theta_true, n_asimov=n_asimov)
         n_observed = luminosity * self.xsecs([theta_true], [nu_true])[0]
-            
+
         return self.create_negative_log_likelihood(
             observables=observables,
             score_components=score_components,
@@ -559,24 +594,36 @@ class HistoLikelihood(BaseLikelihood):
         Low-level function which calculates the value of the log-likelihood ratio.
         See create_negative_log_likelihood for options.
         """
-            
+
         log_likelihood = 0.0
         if include_xsec:
-            log_likelihood = log_likelihood + self._log_likelihood_poisson(n_events, theta, nu, luminosity,weights_benchmarks,total_weights)
-                        
+            log_likelihood = log_likelihood + self._log_likelihood_poisson(
+                n_events, theta, nu, luminosity, weights_benchmarks, total_weights
+            )
+
         if summary_function is not None:
             if x_weights is None:
                 x_weights = n_events / float(len(xs)) * np.ones(len(xs))
             else:
                 x_weights = x_weights * n_events / np.sum(x_weights)
             log_likelihood_events = self._log_likelihood_kinematic(
-                xs, theta, nu, mode, n_histo_toys, hist_bins,
-                summary_function, data, summary_stats, weights_benchmarks, benchmark_histograms)
+                xs,
+                theta,
+                nu,
+                mode,
+                n_histo_toys,
+                hist_bins,
+                summary_function,
+                data,
+                summary_stats,
+                weights_benchmarks,
+                benchmark_histograms,
+            )
             log_likelihood = log_likelihood + np.dot(x_weights, log_likelihood_events)
-                                                    
+
         if nu is not None:
             log_likelihood = log_likelihood + self._log_likelihood_constraint(nu)
-                                                            
+
         logger.debug("Total log likelihood: %s", log_likelihood)
         return log_likelihood
 
@@ -593,80 +640,78 @@ class HistoLikelihood(BaseLikelihood):
         summary_stats=None,
         weights_benchmarks=None,
         benchmark_histograms=None,
-        ):
+    ):
         """
         Low-level function which calculates the value of the kinematic part of the
         log-likelihood. See create_negative_log_likelihood for options.
         """
-        #shape of theta
+        # shape of theta
         if nu is not None:
             theta = np.concatenate((theta, nu), axis=0)
-                
+
         # Calculate summary statistics
         if summary_stats is None:
             summary_stats = summary_function(xs)
-                
+
         # Make histograms
-        if mode=="sampled":
+        if mode == "sampled":
             data = self._make_histo_data_sampled(
-                summary_function=summary_function,
-                theta=theta,
-                n_histo_toys=n_histo_toys,
+                summary_function=summary_function, theta=theta, n_histo_toys=n_histo_toys
             )
             histo = Histo(data, weights=None, bins=hist_bins, epsilon=1.0e-12)
-        elif mode=="weighted":
+        elif mode == "weighted":
             weights = self._weights([theta], [nu], weights_benchmarks)[0]
             histo = Histo(data, weights=weights, bins=hist_bins, epsilon=1.0e-12)
-        elif mode=="histo":
-            bin_centers = [np.array([(bins[i]+bins[i+1])/2 for i in range(len(bins)-1) ]) for bins in hist_bins ]
-            bin_centers = np.array(list( product(*bin_centers)) )
-            histo=self._histogram_morphing(theta, benchmark_histograms, hist_bins, bin_centers)
-                            
-        #calculate log-likelihood from histogram
-        log_p=histo.log_likelihood(summary_stats)
-                            
+        elif mode == "histo":
+            bin_centers = [np.array([(bins[i] + bins[i + 1]) / 2 for i in range(len(bins) - 1)]) for bins in hist_bins]
+            bin_centers = np.array(list(product(*bin_centers)))
+            histo = self._histogram_morphing(theta, benchmark_histograms, hist_bins, bin_centers)
+
+        # calculate log-likelihood from histogram
+        log_p = histo.log_likelihood(summary_stats)
+
         return log_p
 
-    def _make_summary_statistic_function(self, observables=None,model=None):
+    def _make_summary_statistic_function(self, observables=None, model=None):
         """
         Low-level function that returns a function "summary_function" which
         evaluates the summary statistic for an event.
         """
         variables = math_commands()
         x_indices = self._find_x_indices(observables)
-            
+
         def summary_function(xs):
-            #only prefined observables - very fast
+            # only prefined observables - very fast
             if not "score" in x_indices and not "function" in x_indices:
                 return xs[:, x_indices]
-            
-            #evaulate some observables using eval() - more slow
-            data_events=[]
+
+            # evaulate some observables using eval() - more slow
+            data_events = []
             for x in xs:
-                data_event=[]
+                data_event = []
                 if "function" in x_indices:
                     for observable_name, observable_value in zip(self.observables, x):
                         variables[observable_name] = observable_value
                 if "score" in x_indices:
                     if isinstance(model, ScoreEstimator):
-                        score=model.evaluate_score(x=np.array([x]))[0]
+                        score = model.evaluate_score(x=np.array([x]))[0]
                     elif isinstance(model, Ensemble) and model.estimator_type == "score":
                         score, _ = model.evaluate_score(x=np.array([x]), calculate_covariance=False)[0]
                     else:
                         raise RuntimeError("Model has to be 'ScoreEstimator' or Ensemble thereof.")
-            
-                for observable,x_indice in zip(observables,x_indices):
-                    if x_indice=="function":
+
+                for observable, x_indice in zip(observables, x_indices):
+                    if x_indice == "function":
                         data_event.append(float(eval(observable, variables)))
-                    elif x_indice=="score":
+                    elif x_indice == "score":
                         data_event.append(score[observable])
                     else:
                         data_event.append(x[x_indice])
                 data_events.append(data_event)
             return np.array(data_events)
-    
+
         return summary_function
-    
+
     def _find_x_indices(self, observables):
         """
         Low-level function that finds the indices corresponding to the observables
@@ -675,7 +720,7 @@ class HistoLikelihood(BaseLikelihood):
         x_names = list(self.observables.keys())
         x_indices = []
         for obs in observables:
-            if isinstance(obs,int):
+            if isinstance(obs, int):
                 x_indices.append("score")
             else:
                 try:
@@ -684,7 +729,7 @@ class HistoLikelihood(BaseLikelihood):
                     x_indices.append("function")
         logger.debug("Using x indices %s", x_indices)
         return x_indices
-    
+
     def _make_histo_data_sampled(self, summary_function, theta, n_histo_toys=1000):
         """
         Low-level function that creates histogram data sampled from one benchmark
@@ -699,10 +744,10 @@ class HistoLikelihood(BaseLikelihood):
                 filename=None,
                 folder=None,
             )
-        
+
         # Calculate summary stats
         data = summary_function(x)
-        
+
         return data
 
     def _make_histo_data_weighted(self, summary_function, n_toys, test_split=None):
@@ -712,30 +757,34 @@ class HistoLikelihood(BaseLikelihood):
         # Get weighted events
         start_event, end_event, correction_factor = self._train_test_split(True, test_split)
         x, weights_benchmarks = self.weighted_events(start_event=start_event, end_event=end_event, n_draws=n_toys)
-        weights_benchmarks *= self.n_samples/n_toys
-        
+        weights_benchmarks *= self.n_samples / n_toys
+
         # Calculate summary stats
         if summary_function is not None:
             data = summary_function(x)
         else:
             data = None
-        
+
         return data, weights_benchmarks
-    
+
     def _find_bins(self, hist_bins, n_summary_stats):
         """
         Low-level function that sets up the binning of the histograms (I)
         """
         if hist_bins is None:
-            if n_summary_stats == 1: hist_bins = [25]
-            elif n_summary_stats == 2: hist_bins = [8, 8]
-            else: hist_bins = [5 for _ in range(n_summary_stats)]
+            if n_summary_stats == 1:
+                hist_bins = [25]
+            elif n_summary_stats == 2:
+                hist_bins = [8, 8]
+            else:
+                hist_bins = [5 for _ in range(n_summary_stats)]
         elif isinstance(hist_bins, int):
-            #hist_bins = tuple([hist_bins] * n_summary_stats)
+            # hist_bins = tuple([hist_bins] * n_summary_stats)
             hist_bins = [hist_bins for _ in range(n_summary_stats)]
         return hist_bins
-    
-    def _fixed_adaptive_binning(self,
+
+    def _fixed_adaptive_binning(
+        self,
         thetas_binning,
         x_bins,
         data=None,
@@ -747,21 +796,19 @@ class HistoLikelihood(BaseLikelihood):
         """
         Low-level function that sets up the binning of the histograms (II)
         """
-        
+
         # Get weighted data
         if data is None:
             data, weights_benchmarks = self._make_histo_data_weighted(
-                summary_function=summary_function,
-                n_toys=n_toys,
-                test_split=test_split,
+                summary_function=summary_function, n_toys=n_toys, test_split=test_split
             )
-        
+
         # Calculate weights for thetas
         weights = self._weights(thetas_binning, None, weights_benchmarks)
         weights = np.asarray(weights)
         weights = np.mean(weights, axis=0)
-        
-        #Histogram
+
+        # Histogram
         histo = Histo(data, weights, x_bins, epsilon=1.0e-12)
         x_bins = histo.edges
         return x_bins
@@ -770,41 +817,41 @@ class HistoLikelihood(BaseLikelihood):
         """
         Low-level function that returns histograms for morphing benchmarks
         """
-        #get histogram bins
-        histo_benchmarks=[]
+        # get histogram bins
+        histo_benchmarks = []
         for weights in weights_benchmarks.T:
-            #histo = Histo(data, weights=weights, bins=hist_bins, epsilon=1.0e-12)
+            # histo = Histo(data, weights=weights, bins=hist_bins, epsilon=1.0e-12)
             ranges = [(edges[0], edges[-1]) for edges in hist_bins]
             histo, _ = np.histogramdd(data, bins=hist_bins, range=ranges, normed=False, weights=weights)
             histo[:] += epsilon
             histo_benchmarks.append(histo)
-        
-        #get bin centers
-        bin_centers = [np.array([(bins[i]+bins[i+1])/2 for i in range(len(bins)-1) ]) for bins in hist_bins ]
-        bin_centers = np.array(list( product(*bin_centers)) )
+
+        # get bin centers
+        bin_centers = [np.array([(bins[i] + bins[i + 1]) / 2 for i in range(len(bins) - 1)]) for bins in hist_bins]
+        bin_centers = np.array(list(product(*bin_centers)))
         return histo_benchmarks, bin_centers
 
     def _histogram_morphing(self, theta, histogram_benchmarks, hist_bins, bin_centers):
         """
         Low-level function that morphes histograms
         """
-        #get binning
-        hist_nbins= [len(bins)-1 for bins in hist_bins]
-    
-        #get array of flattened histograms
-        flattened_histo_weights=[]
+        # get binning
+        hist_nbins = [len(bins) - 1 for bins in hist_bins]
+
+        # get array of flattened histograms
+        flattened_histo_weights = []
         for histo in histogram_benchmarks:
             flattened_histo_weights.append(histo.flatten())
-        flattened_histo_weights=np.array(flattened_histo_weights).T
+        flattened_histo_weights = np.array(flattened_histo_weights).T
 
-        #calculate dot product
+        # calculate dot product
         theta_matrix = self._get_theta_benchmark_matrix(theta)
         histo_weights_theta = mdot(theta_matrix, flattened_histo_weights)
 
-        #create histogram
+        # create histogram
         histo = Histo(bin_centers, weights=histo_weights_theta, bins=hist_bins, epsilon=1.0e-12)
         return histo
-    
+
     def _clean_nans(self, array):
         not_finite = np.any(~np.isfinite(array), axis=0)
         if np.sum(not_finite) > 0:
@@ -812,13 +859,6 @@ class HistoLikelihood(BaseLikelihood):
             array[:, not_finite] = 0.0
         return array
 
-            
-            
-
-
-##################################################################################################################
-##################################################################################################################
-##################################################################################################################
 
 def fix_params(negative_log_likelihood, theta, fixed_components):
     """
@@ -847,36 +887,36 @@ def fix_params(negative_log_likelihood, theta, fixed_components):
         n-m dimensional input parameter.
         
     """
-    
+
     def constrained_nll(params):
-        
-        #Just return the expected Length
+
+        # Just return the expected Length
         n_dimension = negative_log_likelihood(None)
         if params is None:
-            return n_dimension-len(fixed_components)
-            
-        #Process input
-        if (len(theta)!= len(fixed_components)):
+            return n_dimension - len(fixed_components)
+
+        # Process input
+        if len(theta) != len(fixed_components):
             logger.warning("Length of fixed_components and theta should be the same")
-        if (len(params)+len(fixed_components)!=n_dimension):
-            logger.warning("Length of params should be %s", n_dimension-len(fixed_components))
-            
-        #Initialize full paramaters
+        if len(params) + len(fixed_components) != n_dimension:
+            logger.warning("Length of params should be %s", n_dimension - len(fixed_components))
+
+        # Initialize full paramaters
         params_full = np.zeros(n_dimension)
-            
-        #fill fixed components
-        for icomp,thetacomp in zip(fixed_components,theta):
-            params_full[icomp]=thetacomp
-        
-        #fill other components
-        iparam=0
+
+        # fill fixed components
+        for icomp, thetacomp in zip(fixed_components, theta):
+            params_full[icomp] = thetacomp
+
+        # fill other components
+        iparam = 0
         for i in range(len(params_full)):
             if i not in fixed_components:
                 params_full[i] = params[iparam]
-                iparam+=1
-                    
-        #Return
-        params_full=np.array(params_full)
+                iparam += 1
+
+        # Return
+        params_full = np.array(params_full)
         return negative_log_likelihood(params_full)
 
     return constrained_nll
@@ -948,17 +988,17 @@ def project_log_likelihood(
         with shape `(n_grid_points,)`.
         
     """
-    
+
     # Components
     n_parameters = negative_log_likelihood(None)
     if remaining_components is None:
         remaining_components = range(n_parameters)
     m_paramaters = len(remaining_components)
 
-    #DOF
+    # DOF
     if dof is None:
         dof = m_paramaters
-    
+
     # Theta grid
     if thetas_eval is None and grid_resolutions is None:
         raise ValueError("thetas_eval and grid_resolutions cannot both be None")
@@ -967,7 +1007,7 @@ def project_log_likelihood(
     elif thetas_eval is None:
         if isinstance(grid_resolutions, int):
             grid_resolutions = [grid_resolutions for _ in range(grid_ranges)]
-        if len(grid_resolutions)!=m_paramaters:
+        if len(grid_resolutions) != m_paramaters:
             raise ValueError("Dimension of grid should be the same as number of remaining components!")
         theta_each = []
         for resolution, (theta_min, theta_max) in zip(grid_resolutions, grid_ranges):
@@ -977,24 +1017,23 @@ def project_log_likelihood(
         theta_grid_mdim = np.vstack(theta_grid_each).T
     else:
         theta_grid_mdim = thetas_eval
-    
-    #Obtain a theta_grid in n dimensions
-    theta_grid_ndim=[]
+
+    # Obtain a theta_grid in n dimensions
+    theta_grid_ndim = []
     for theta_mdim in theta_grid_mdim:
         theta_ndim = np.zeros([n_parameters])
-        for i,theta in zip(remaining_components,theta_mdim):
+        for i, theta in zip(remaining_components, theta_mdim):
             theta_ndim[i] = theta
         theta_grid_ndim.append(theta_ndim)
-    
-    #evaluate -2 E[log r]
-    log_r = np.array([-1.*negative_log_likelihood(theta) for theta in theta_grid_ndim])
+
+    # evaluate -2 E[log r]
+    log_r = np.array([-1.0 * negative_log_likelihood(theta) for theta in theta_grid_ndim])
     i_ml = np.argmax(log_r)
     log_r = log_r[:] - log_r[i_ml]
-    m2_log_r = -2.*log_r
+    m2_log_r = -2.0 * log_r
     p_value = chi2.sf(x=m2_log_r, df=dof)
 
     return theta_grid_mdim, p_value, i_ml, log_r
-
 
 
 def profile_log_likelihood(
@@ -1005,7 +1044,7 @@ def profile_log_likelihood(
     thetas_eval=None,
     theta_start=None,
     dof=None,
-    method='TNC',
+    method="TNC",
 ):
     """
     Takes a likelihood function depending on N parameters, and evaluates
@@ -1074,23 +1113,23 @@ def profile_log_likelihood(
         with shape `(n_grid_points,)`.
         
     """
-    
+
     # Components
     n_parameters = negative_log_likelihood(None)
     if remaining_components is None:
         remaining_components = range(n_parameters)
     m_paramaters = len(remaining_components)
 
-    #DOF
+    # DOF
     if dof is None:
         dof = m_paramaters
 
-    #Method
-    supported_methods=["TNC", " L-BFGS-B"]
+    # Method
+    supported_methods = ["TNC", " L-BFGS-B"]
     if method not in supported_methods:
-        raise ValueError("Method %s unknown. Choose one of the following methods: %s",method, supported_methods)
-    
-    #Initial guess for theta
+        raise ValueError("Method %s unknown. Choose one of the following methods: %s", method, supported_methods)
+
+    # Initial guess for theta
     if theta_start is None:
         theta_start = np.zeros(n_parameters)
 
@@ -1102,7 +1141,7 @@ def profile_log_likelihood(
     elif thetas_eval is None:
         if isinstance(grid_resolutions, int):
             grid_resolutions = [grid_resolutions for _ in range(grid_ranges)]
-        if len(grid_resolutions)!=m_paramaters:
+        if len(grid_resolutions) != m_paramaters:
             raise ValueError("Dimension of grid should be the same as number of remaining components!")
         theta_each = []
         for resolution, (theta_min, theta_max) in zip(grid_resolutions, grid_ranges):
@@ -1112,61 +1151,52 @@ def profile_log_likelihood(
         theta_grid_mdim = np.vstack(theta_grid_each).T
     else:
         theta_grid_mdim = thetas_eval
-    
-    #Obtain global minimum - Eq.(59) in 1805.00020
-    result = minimize(
-        negative_log_likelihood,
-        x0 = theta_start,
-        method=method,
-    )
+
+    # Obtain global minimum - Eq.(59) in 1805.00020
+    result = minimize(negative_log_likelihood, x0=theta_start, method=method)
     best_fit_global = result.x
-                      
-    #scan over grid
-    log_r=[]
-    pscan=0.01
+
+    # scan over grid
+    log_r = []
+    pscan = 0.01
     start_time = time.time()
-    for iscan,theta_mdim in enumerate(theta_grid_mdim):
-        #logger output
-        if (iscan/len(theta_grid_mdim)>pscan):
+    for iscan, theta_mdim in enumerate(theta_grid_mdim):
+        # logger output
+        if iscan / len(theta_grid_mdim) > pscan:
             elapsed_time = time.time() - start_time
-            logger.info("Processed %s %% of parameter points in %.1f seconds.", pscan*100, elapsed_time)
-            while iscan/len(theta_grid_mdim)>pscan:
-                if pscan>0.095: pscan+=0.1
-                else: pscan+=0.01
-                       
-        #fix some parameters
+            logger.info("Processed %s %% of parameter points in %.1f seconds.", pscan * 100, elapsed_time)
+            while iscan / len(theta_grid_mdim) > pscan:
+                if pscan > 0.095:
+                    pscan += 0.1
+                else:
+                    pscan += 0.01
+
+        # fix some parameters
         constrained_negative_log_likelihood = fix_params(
-            negative_log_likelihood,
-            theta=theta_mdim,
-            fixed_components=remaining_components
+            negative_log_likelihood, theta=theta_mdim, fixed_components=remaining_components
         )
 
-        #obtain starting point
+        # obtain starting point
         theta0 = []
-        for i,theta in enumerate(theta_start):
+        for i, theta in enumerate(theta_start):
             if i not in remaining_components:
                 theta0.append(theta)
-                    
-        #obtain local minimum - Eq.(58) in 1805.00020
-        result = minimize(
-            constrained_negative_log_likelihood,
-            x0 = np.array(theta0),
-            method=method,
-        )
+
+        # obtain local minimum - Eq.(58) in 1805.00020
+        result = minimize(constrained_negative_log_likelihood, x0=np.array(theta0), method=method)
         best_fit_constrained = result.x
-                            
-        #Expected Log Likelihood - Eq.(57) in 1805.00020
-        profiled_logr=  -1.* (constrained_negative_log_likelihood(best_fit_constrained) - negative_log_likelihood(best_fit_global) )
+
+        # Expected Log Likelihood - Eq.(57) in 1805.00020
+        profiled_logr = -1.0 * (
+            constrained_negative_log_likelihood(best_fit_constrained) - negative_log_likelihood(best_fit_global)
+        )
         log_r.append(profiled_logr)
 
-    #evaluate p_value and best fit point
-    logr=np.array(log_r)
+    # evaluate p_value and best fit point
+    logr = np.array(log_r)
     i_ml = np.argmax(log_r)
     log_r = log_r[:] - log_r[i_ml]
-    m2_log_r = -2.*log_r
+    m2_log_r = -2.0 * log_r
     p_value = chi2.sf(x=m2_log_r, df=dof)
-    
+
     return theta_grid_mdim, p_value, i_ml, log_r
-
-
-

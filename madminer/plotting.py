@@ -1761,12 +1761,12 @@ def plot_pvalue_limits(
     levels=[0.32],
     single_plot=True,
     show_index=None,
-    xlabel=r'$\theta_0$',
-    ylabel=r'$\theta_1$',
+    xlabel=r"$\theta_0$",
+    ylabel=r"$\theta_1$",
     p_val_min=0.001,
     p_val_max=1,
 ):
-    
+
     """
     Function that plots the limits obtained from the AsymptoticLimits, Likelihood,
     FisherInformation and Information Geometry class. Note that only 2 dimensional
@@ -1818,8 +1818,8 @@ def plot_pvalue_limits(
         Plot range for p-values. Default: p_val_min=0.001 and p_val_max=1.
         
     """
-    
-    #Convert dict in array,if necessary
+
+    # Convert dict in array,if necessary
     if labels is None:
         if isinstance(p_values, dict) is False:
             raise ValueError("p_values should be a dictionary")
@@ -1830,19 +1830,19 @@ def plot_pvalue_limits(
         p_values = [p_values[label] for label in labels]
     if isinstance(best_fits, dict):
         best_fits = [best_fits[label] for label in labels]
-    
-    #Check input
-    if len(p_values)!=len(best_fits):
+
+    # Check input
+    if len(p_values) != len(best_fits):
         raise ValueError("Length of arrays  p_values and best_fits should be the same")
-    if len(p_values)!=len(labels):
+    if len(p_values) != len(labels):
         raise ValueError("Length of arrays  p_values and labels should be the same")
-    
-    #Create theta grid
+
+    # Create theta grid
     if isinstance(grid_resolutions, int):
         grid_resolutions = [grid_resolutions for _ in range(grid_ranges)]
-    if len(grid_resolutions)!=2:
+    if len(grid_resolutions) != 2:
         raise ValueError("Dimension of grid should be 2!")
-    if len(grid_ranges)!=2:
+    if len(grid_ranges) != 2:
         raise ValueError("Dimension of grid should be 2!")
     theta_each = []
     for resolution, (theta_min, theta_max) in zip(grid_resolutions, grid_ranges):
@@ -1850,66 +1850,86 @@ def plot_pvalue_limits(
     theta_grid_each = np.meshgrid(*theta_each, indexing="ij")
     theta_grid_each = [theta.flatten() for theta in theta_grid_each]
     theta_grid = np.vstack(theta_grid_each).T
-    
-    #edges and centers
-    xbin_size = (grid_ranges[0][1] - grid_ranges[0][0])/(grid_resolutions[0] - 1)
-    xedges = np.linspace(grid_ranges[0][0] - xbin_size/2, grid_ranges[0][1] + xbin_size/2, grid_resolutions[0] + 1)
+
+    # edges and centers
+    xbin_size = (grid_ranges[0][1] - grid_ranges[0][0]) / (grid_resolutions[0] - 1)
+    xedges = np.linspace(grid_ranges[0][0] - xbin_size / 2, grid_ranges[0][1] + xbin_size / 2, grid_resolutions[0] + 1)
     xcenters = np.linspace(grid_ranges[0][0], grid_ranges[0][1], grid_resolutions[0])
-    ybin_size = (grid_ranges[1][1] - grid_ranges[1][0])/(grid_resolutions[1] - 1)
-    yedges = np.linspace(grid_ranges[1][0] - ybin_size/2, grid_ranges[1][1] + ybin_size/2, grid_resolutions[1] + 1)
+    ybin_size = (grid_ranges[1][1] - grid_ranges[1][0]) / (grid_resolutions[1] - 1)
+    yedges = np.linspace(grid_ranges[1][0] - ybin_size / 2, grid_ranges[1][1] + ybin_size / 2, grid_resolutions[1] + 1)
     ycenters = np.linspace(grid_ranges[1][0], grid_ranges[1][1], grid_resolutions[1])
-    
+
     # Preparing plot
     if single_plot is True:
-        n_rows,n_cols = 1, 1
+        n_rows, n_cols = 1, 1
     else:
         n_cols = 3
-        n_rows = (len(p_values) + n_cols ) // n_cols
+        n_rows = (len(p_values) + n_cols) // n_cols
     fig = plt.figure(figsize=(6.0 * n_cols, 5.0 * n_rows))
 
-    #plot summary plot
+    # plot summary plot
     ax = plt.subplot(n_rows, n_cols, 1)
     if show_index is not None:
         pcm = ax.pcolormesh(
-            xedges, yedges, p_values[show_index].reshape((grid_resolutions[0], grid_resolutions[1])).T,
-            norm=matplotlib.colors.LogNorm(vmin=p_val_min, vmax=p_val_max),cmap='Greys_r'
+            xedges,
+            yedges,
+            p_values[show_index].reshape((grid_resolutions[0], grid_resolutions[1])).T,
+            norm=matplotlib.colors.LogNorm(vmin=p_val_min, vmax=p_val_max),
+            cmap="Greys_r",
         )
-        cbar = fig.colorbar(pcm, ax=ax, extend='both')
-        cbar.set_label('Expected p-value ({})'.format(labels[show_index]))
+        cbar = fig.colorbar(pcm, ax=ax, extend="both")
+        cbar.set_label("Expected p-value ({})".format(labels[show_index]))
     for ipanel in range(len(p_values)):
         ax.contour(
-            xcenters, ycenters, p_values[ipanel].reshape((grid_resolutions[0], grid_resolutions[1])).T,
-            levels=levels, colors='C{}'.format(ipanel)
+            xcenters,
+            ycenters,
+            p_values[ipanel].reshape((grid_resolutions[0], grid_resolutions[1])).T,
+            levels=levels,
+            colors="C{}".format(ipanel),
         )
         ax.scatter(
-            theta_grid[best_fits[ipanel]][0], theta_grid[best_fits[ipanel]][1],
-            s=80., color='C{}'.format(ipanel), marker='*', label=labels[ipanel]
+            theta_grid[best_fits[ipanel]][0],
+            theta_grid[best_fits[ipanel]][1],
+            s=80.0,
+            color="C{}".format(ipanel),
+            marker="*",
+            label=labels[ipanel],
         )
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
     ax.legend()
 
-    #individual summary plot
+    # individual summary plot
     if single_plot is not True:
         for ipanel in range(len(p_values)):
             ax = plt.subplot(n_rows, n_cols, ipanel + 2)
             pcm = ax.pcolormesh(
-                xedges, yedges, p_values[ipanel].reshape((grid_resolutions[0], grid_resolutions[1])).T,
-                norm=matplotlib.colors.LogNorm(vmin=p_val_min, vmax=p_val_max),cmap='Greys_r'
+                xedges,
+                yedges,
+                p_values[ipanel].reshape((grid_resolutions[0], grid_resolutions[1])).T,
+                norm=matplotlib.colors.LogNorm(vmin=p_val_min, vmax=p_val_max),
+                cmap="Greys_r",
             )
-            cbar = fig.colorbar(pcm, ax=ax, extend='both')
-            cbar.set_label('Expected p-value ({})'.format(labels[ipanel]))
+            cbar = fig.colorbar(pcm, ax=ax, extend="both")
+            cbar.set_label("Expected p-value ({})".format(labels[ipanel]))
             ax.contour(
-                xcenters, ycenters, p_values[ipanel].reshape((grid_resolutions[0], grid_resolutions[1])).T,
-                levels=levels, colors='C{}'.format(ipanel)
+                xcenters,
+                ycenters,
+                p_values[ipanel].reshape((grid_resolutions[0], grid_resolutions[1])).T,
+                levels=levels,
+                colors="C{}".format(ipanel),
             )
             ax.scatter(
-                theta_grid[best_fits[ipanel]][0], theta_grid[best_fits[ipanel]][1],
-                s=80., color='C{}'.format(ipanel), marker='*', label=labels[ipanel]
+                theta_grid[best_fits[ipanel]][0],
+                theta_grid[best_fits[ipanel]][1],
+                s=80.0,
+                color="C{}".format(ipanel),
+                marker="*",
+                label=labels[ipanel],
             )
             ax.set_xlabel(xlabel)
             ax.set_ylabel(ylabel)
 
-    #finish plot
+    # finish plot
     plt.tight_layout()
     plt.show()
