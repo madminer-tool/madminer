@@ -20,11 +20,11 @@
 # -- Project information -----------------------------------------------------
 
 project = 'MadMiner'
-copyright = 'Johann Brehmer, Felix Kling, Irina Espejo, and Kyle Cranmer 2018'
+copyright = 'Johann Brehmer, Felix Kling, Irina Espejo, and Kyle Cranmer 2018-2020'
 author = 'Johann Brehmer, Felix Kling, Irina Espejo, and Kyle Cranmer'
 
 # The short X.Y version
-version = '0.6.3'
+version = '0.6.4'
 # The full version, including alpha/beta/rc tags
 release = version
 

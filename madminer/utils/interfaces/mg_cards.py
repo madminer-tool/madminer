@@ -23,6 +23,7 @@ def export_param_card(benchmark, parameters, param_card_template_file, mg_proces
         if parameter_transform is not None:
             variables = {"theta": parameter_value}
             parameter_value = eval(parameter_transform, variables)
+        parameter_value = float(parameter_value)
 
         # Find entry
         current_block = None

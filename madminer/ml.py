@@ -253,7 +253,6 @@ class Estimator(object):
     def _create_model(self):
         raise NotImplementedError
 
-
     def calculate_fisher_information(self, x, theta=None, weights=None, n_events=1, sum_events=True):
         """
         Calculates the expected Fisher information matrix based on the kinematic information in a given number of
@@ -295,7 +294,7 @@ class Estimator(object):
         n_samples = x.shape[0]
 
         # Estimate scores
-        t_hats = self.evaluate_score(x=x, theta=np.array([theta for _ in x ]), nuisance_mode="keep")
+        t_hats = self.evaluate_score(x=x, theta=np.array([theta for _ in x]), nuisance_mode="keep")
 
         # Weights
         if weights is None:
@@ -485,6 +484,7 @@ class ParameterizedRatioEstimator(ConditionalEstimator):
         scale_parameters=True,
         n_workers=8,
         clip_gradient=None,
+        early_stopping_patience=None,
     ):
 
         """
@@ -740,6 +740,7 @@ class ParameterizedRatioEstimator(ConditionalEstimator):
             early_stopping=early_stopping,
             verbose=verbose,
             clip_gradient=clip_gradient,
+            early_stopping_patience=early_stopping_patience,
         )
         return result
 
@@ -920,7 +921,9 @@ class ParameterizedRatioEstimator(ConditionalEstimator):
         return all_t_hat
 
     def calculate_fisher_information(self, x, theta, weights=None, n_events=1, sum_events=True):
-        fisher_information=super(ParameterizedRatioEstimator, self).calculate_fisher_information(x, theta, weights, n_events, sum_events)
+        fisher_information = super(ParameterizedRatioEstimator, self).calculate_fisher_information(
+            x, theta, weights, n_events, sum_events
+        )
         return fisher_information
 
     def evaluate(self, *args, **kwargs):
@@ -1092,6 +1095,7 @@ class DoubleParameterizedRatioEstimator(ConditionalEstimator):
         scale_parameters=True,
         n_workers=8,
         clip_gradient=None,
+        early_stopping_patience=None,
     ):
 
         """
@@ -1373,6 +1377,7 @@ class DoubleParameterizedRatioEstimator(ConditionalEstimator):
             early_stopping=early_stopping,
             verbose=verbose,
             clip_gradient=clip_gradient,
+            early_stopping_patience=early_stopping_patience,
         )
         return result
 
@@ -1594,6 +1599,7 @@ class ScoreEstimator(Estimator):
         verbose="some",
         n_workers=8,
         clip_gradient=None,
+        early_stopping_patience=None,
     ):
 
         """
@@ -1785,6 +1791,7 @@ class ScoreEstimator(Estimator):
             early_stopping=early_stopping,
             verbose=verbose,
             clip_gradient=clip_gradient,
+            early_stopping_patience=early_stopping_patience,
         )
         return result
 
@@ -1924,7 +1931,9 @@ class ScoreEstimator(Estimator):
         return self.evaluate_score(*args, **kwargs)
 
     def calculate_fisher_information(self, x, theta=None, weights=None, n_events=1, sum_events=True):
-        fisher_information=super(ScoreEstimator, self).calculate_fisher_information(x, theta, weights, n_events, sum_events)
+        fisher_information = super(ScoreEstimator, self).calculate_fisher_information(
+            x, theta, weights, n_events, sum_events
+        )
         return fisher_information
 
     def save(self, filename, save_model=False):
@@ -2059,6 +2068,7 @@ class LikelihoodEstimator(ConditionalEstimator):
         scale_parameters=True,
         n_workers=8,
         clip_gradient=None,
+        early_stopping_patience=None,
     ):
 
         """
@@ -2288,6 +2298,7 @@ class LikelihoodEstimator(ConditionalEstimator):
             early_stopping=early_stopping,
             verbose=verbose,
             clip_gradient=clip_gradient,
+            early_stopping_patience=early_stopping_patience,
         )
         return result
 
@@ -2926,7 +2937,9 @@ class Ensemble:
             for i, estimator in enumerate(self.estimators):
                 logger.debug("Starting evaluation for estimator %s / %s in ensemble", i + 1, self.n_estimators)
 
-                predictions.append(estimator.calculate_fisher_information(x=x, theta=theta, weights=obs_weights, n_events=n_events))
+                predictions.append(
+                    estimator.calculate_fisher_information(x=x, theta=theta, weights=obs_weights, n_events=n_events)
+                )
             predictions = np.array(predictions)
 
             # Calculate weighted mean and covariance
@@ -2956,7 +2969,7 @@ class Ensemble:
             for i, estimator in enumerate(self.estimators):
                 logger.debug("Starting evaluation for estimator %s / %s in ensemble", i + 1, self.n_estimators)
 
-                score_predictions.append(estimator.evaluate_score(x=x,theta=np.array([theta for _ in x])))
+                score_predictions.append(estimator.evaluate_score(x=x, theta=np.array([theta for _ in x])))
                 logger.debug("Estimator %s predicts t(x) = %s for first event", i + 1, score_predictions[-1][0, :])
             score_predictions = np.array(score_predictions)  # (n_estimators, n_events, n_parameters)
 
@@ -3019,7 +3032,7 @@ class Ensemble:
             for i, estimator in enumerate(self.estimators):
                 logger.debug("Starting evaluation for estimator %s / %s in ensemble", i + 1, self.n_estimators)
 
-                score_predictions.append(estimator.evaluate_score(x=x,theta=np.array([theta for _ in x])))
+                score_predictions.append(estimator.evaluate_score(x=x, theta=np.array([theta for _ in x])))
                 logger.debug("Estimator %s predicts t(x) = %s for first event", i + 1, score_predictions[-1][0, :])
             score_predictions = np.array(score_predictions)  # (n_estimators, n_events, n_parameters)
 

@@ -762,6 +762,7 @@ class DelphesReader:
             _, this_weights = parse_lhe_file(
                 filename=lhe_file_for_weights,
                 sampling_benchmark=sampling_benchmark,
+                benchmark_names=self.benchmark_names_phys,
                 observables=OrderedDict(),
                 parse_events_as_xml=parse_lhe_events_as_xml,
                 systematics_dict=systematics_dict,
