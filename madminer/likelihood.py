@@ -61,7 +61,7 @@ class BaseLikelihood(DataAnalyzer):
             theta_matrix = self._get_theta_benchmark_matrix(theta)
             xsec = mdot(theta_matrix, total_weights)
         if weights_benchmarks is None:
-            xsec = self.xsecs(thetas=[theta], nus=[nu], partition="train", generated_close_to=theta)[0]
+            xsec = self.xsecs(thetas=[theta], nus=[nu], partition="train", generated_close_to=theta)[0][0]
         else:
             weights = self._weights([theta], [nu], weights_benchmarks)[0]
             xsec=sum(weights)
@@ -69,7 +69,7 @@ class BaseLikelihood(DataAnalyzer):
         n_predicted = xsec * luminosity
         if xsec<0:
             logger.warning("Total cross section is negative (%s pb) at theta=%s)",xsec,theta)
-            n_predicted=[10**-5]
+            n_predicted=10**-5
         n_observed_rounded = int(np.round(n_observed, 0))
 
         log_likelihood = poisson.logpmf(k=n_observed_rounded, mu=n_predicted)
@@ -89,7 +89,7 @@ class BaseLikelihood(DataAnalyzer):
 class NeuralLikelihood(BaseLikelihood):
 
     def create_negative_log_likelihood(
-        self, model_file, x_observed, n_observed=None, x_observed_weights=None, include_xsec=True, luminosity=300000.0, mode="sampled",n_weighted=10000,
+        self, model_file, x_observed, n_observed=None, x_observed_weights=None, include_xsec=True, luminosity=300000.0, mode="weighted",n_weighted=10000,
     ):
         estimator = load_estimator(model_file)
 
@@ -98,11 +98,7 @@ class NeuralLikelihood(BaseLikelihood):
         
         #Weighted sampled
         if mode == "weighted":
-            _, weights_benchmarks = self._make_histo_data_weighted(
-                summary_function=None,
-                n_toys=n_weighted,
-                test_split=None,
-        )
+            weights_benchmarks = self._get_weights_benchmarks(n_toys=n_weighted,test_split=None)
         else:
             weights_benchmarks = None
 
@@ -134,7 +130,7 @@ class NeuralLikelihood(BaseLikelihood):
         n_observed = luminosity * self.xsecs([theta_true], [nu_true])[0]
 
         return self.create_negative_log_likelihood(
-            model_file, x_asimov, n_observed, x_weights, include_xsec, luminosity,n_weighted,
+            model_file, x_asimov, n_observed, x_weights, include_xsec, luminosity,mode,n_weighted,
         )
     
     def _log_likelihood(
@@ -219,6 +215,17 @@ class NeuralLikelihood(BaseLikelihood):
         log_r = log_r.astype(np.float64)
         log_r = self._clean_nans(log_r)
         return log_r
+
+    def _get_weights_benchmarks(self, n_toys, test_split=None):
+        """
+        Low-level function that creates weighted events and returns weights
+        """
+    
+        start_event, end_event, correction_factor = self._train_test_split(True, test_split)
+        x, weights_benchmarks = self.weighted_events(start_event=start_event, end_event=end_event, n_draws=n_toys)
+        weights_benchmarks *= self.n_samples/n_toys
+        
+        return weights_benchmarks
 
     @staticmethod
     def _clean_nans(array):
