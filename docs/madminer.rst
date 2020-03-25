@@ -1,8 +1,8 @@
 madminer package
 ================
 
-Submodules
-----------
+Subpackages
+-----------
 
 .. toctree::
 
