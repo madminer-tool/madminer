@@ -545,7 +545,7 @@ def _extract_nuisance_param_dict(weight_groups, systematics_name, systematics_de
         scale_factors = systematics_definition[2].split(",")
         scale_factors = [float(sf) for sf in scale_factors]
         if len(scale_factors) == 0:
-            raise RuntimeError("Cannot parse scale factor string %s", value)
+            raise RuntimeError("Cannot parse scale factor string %s", systematics_definition[2])
         elif len(scale_factors) == 1:
             scale_factors = (scale_factors[0],)
         else:
