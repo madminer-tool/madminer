@@ -15,7 +15,7 @@ for key in logging.Logger.manager.loggerDict:
     if "madminer" not in key:
         logging.getLogger(key).setLevel(logging.WARNING)
 
-from madminer.ml import ParameterizedRatioEstimator
+from madminer import ParameterizedRatioEstimator
 
 if not os.path.exists("tests/data"):
     os.makedirs("tests/data")
