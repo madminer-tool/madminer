@@ -1,5 +1,15 @@
-madminer.analysis module
-========================
+madminer.analysis package
+=========================
+
+Submodules
+----------
+
+.. toctree::
+
+   madminer.analysis.dataanalyzer
+
+Module contents
+---------------
 
 .. automodule:: madminer.analysis
    :members:
