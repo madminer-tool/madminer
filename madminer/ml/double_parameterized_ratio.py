@@ -9,7 +9,7 @@ from ..utils.ml.eval import evaluate_ratio_model
 from ..utils.ml.utils import get_optimizer, get_loss
 from ..utils.various import load_and_check, shuffle, restrict_samplesize
 from ..utils.ml.trainer import DoubleParameterizedRatioTrainer
-from .base import ConditionalEstimator
+from .base import ConditionalEstimator, TheresAGoodReasonThisDoesntWork
 
 try:
     FileNotFoundError
