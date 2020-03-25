@@ -9,8 +9,6 @@ from scipy.optimize import minimize
 logger = logging.getLogger(__name__)
 
 
-
-
 def fix_params(negative_log_likelihood, theta, fixed_components):
     """
     Function that reduces the dimensionality of a likelihood function by

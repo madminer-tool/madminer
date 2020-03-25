@@ -557,4 +557,3 @@ class ParameterizedRatioEstimator(ConditionalEstimator):
         estimator_type = str(settings["estimator_type"])
         if estimator_type != "parameterized_ratio":
             raise RuntimeError("Saved model is an incompatible estimator type {}.".format(estimator_type))
-

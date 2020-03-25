@@ -7,9 +7,6 @@ from ..utils.various import separate_information_blocks
 logger = logging.getLogger(__name__)
 
 
-
-
-
 def project_information(fisher_information, remaining_components, covariance=None):
     """
     Calculates projections of a Fisher information matrix, that is, "deletes" the rows and columns corresponding to

@@ -20,6 +20,7 @@ except NameError:
 
 logger = logging.getLogger(__name__)
 
+
 class ScoreEstimator(Estimator):
     """ A neural estimator of the score evaluated at a fixed reference hypothesis as a function of the
      observation x.
@@ -470,4 +471,3 @@ class ScoreEstimator(Estimator):
         except KeyError:
             self.nuisance_mode_default = "keep"
             logger.warning("Did not find entry nuisance_mode_default in saved model, using default 'keep'.")
-

@@ -16,6 +16,7 @@ except NameError:
 
 logger = logging.getLogger(__name__)
 
+
 class MorphingAwareRatioEstimator(ParameterizedRatioEstimator):
     def __init__(
         self,
@@ -84,4 +85,3 @@ class MorphingAwareRatioEstimator(ParameterizedRatioEstimator):
 
         self.components = np.array(settings["components"])
         self.morphing_matrix = np.array(settings["morphing_matrix"])
-

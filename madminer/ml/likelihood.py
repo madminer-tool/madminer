@@ -552,4 +552,3 @@ class LikelihoodEstimator(ConditionalEstimator):
             self.batch_norm = None
         if self.batch_norm is not None:
             self.batch_norm = float(self.batch_norm)
-

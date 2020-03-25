@@ -606,4 +606,3 @@ class HistoLikelihood(BaseLikelihood):
             logger.warning("Removing %s inf / nan results from calculation")
             array[:, not_finite] = 0.0
         return array
-
