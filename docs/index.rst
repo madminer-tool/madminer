@@ -23,7 +23,7 @@ MadMiner
    references
 
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 2
    :caption: Reference
 
    madminer.analysis
