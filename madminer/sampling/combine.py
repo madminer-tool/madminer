@@ -3,10 +3,10 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import logging
 import numpy as np
 
-from madminer.utils.interfaces.madminer_hdf5 import madminer_event_loader, load_madminer_settings
-from madminer.utils.interfaces.madminer_hdf5 import save_preformatted_events_to_madminer_file
-from madminer.utils.interfaces.madminer_hdf5 import save_sample_summary_to_madminer_file
-from madminer.utils.various import shuffle
+from ..utils.interfaces.madminer_hdf5 import madminer_event_loader, load_madminer_settings
+from ..utils.interfaces.madminer_hdf5 import save_preformatted_events_to_madminer_file
+from ..utils.interfaces.madminer_hdf5 import save_sample_summary_to_madminer_file
+from ..utils.various import shuffle
 
 logger = logging.getLogger(__name__)
 

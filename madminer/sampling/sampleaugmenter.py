@@ -6,8 +6,8 @@ import numpy as np
 import multiprocessing
 from functools import partial
 
-from madminer.analysis import DataAnalyzer
-from madminer.utils.various import create_missing_folders, shuffle
+from ..analysis import DataAnalyzer
+from ..utils.various import create_missing_folders, shuffle
 
 logger = logging.getLogger(__name__)
 

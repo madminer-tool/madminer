@@ -5,7 +5,7 @@ import numpy as np
 from itertools import product
 
 from ..utils.various import mdot, less_logging, math_commands
-from ..ml import ParameterizedRatioEstimator, ScoreEstimator, Ensemble, LikelihoodEstimator, load_estimator
+from ..ml import ScoreEstimator, Ensemble, load_estimator
 from ..utils.histo import Histo
 from ..sampling import SampleAugmenter
 from .. import sampling

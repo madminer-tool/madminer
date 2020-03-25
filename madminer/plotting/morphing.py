@@ -5,8 +5,6 @@ import matplotlib
 import numpy as np
 from matplotlib import pyplot as plt
 
-from ..sampling import SampleAugmenter
-
 logger = logging.getLogger(__name__)
 
 

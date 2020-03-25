@@ -4,7 +4,7 @@ import logging
 import numpy as np
 
 from ..utils.various import less_logging
-from ..ml import ParameterizedRatioEstimator, ScoreEstimator, Ensemble, LikelihoodEstimator, load_estimator
+from ..ml import ParameterizedRatioEstimator, Ensemble, LikelihoodEstimator, load_estimator
 from .base import BaseLikelihood
 
 logger = logging.getLogger(__name__)

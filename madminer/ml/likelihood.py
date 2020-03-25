@@ -1,12 +1,8 @@
 from __future__ import absolute_import, division, print_function
 
-import six
 import logging
-import os
-import json
 import numpy as np
 from collections import OrderedDict
-import torch
 
 from ..utils.ml.models.maf import ConditionalMaskedAutoregressiveFlow
 from ..utils.ml.models.maf_mog import ConditionalMixtureMaskedAutoregressiveFlow
