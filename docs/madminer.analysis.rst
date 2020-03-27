@@ -12,6 +12,6 @@ Module contents
 ---------------
 
 .. automodule:: madminer.analysis
-   :members:
-   :undoc-members:
-   :show-inheritance:
+    :members:
+    :undoc-members:
+    :show-inheritance:

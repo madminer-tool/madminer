@@ -12,6 +12,6 @@ Module contents
 ---------------
 
 .. automodule:: madminer.limits
-   :members:
-   :undoc-members:
-   :show-inheritance:
+    :members:
+    :undoc-members:
+    :show-inheritance:

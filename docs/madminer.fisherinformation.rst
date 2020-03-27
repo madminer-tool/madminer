@@ -14,6 +14,6 @@ Module contents
 ---------------
 
 .. automodule:: madminer.fisherinformation
-   :members:
-   :undoc-members:
-   :show-inheritance:
+    :members:
+    :undoc-members:
+    :show-inheritance:

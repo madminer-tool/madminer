@@ -15,6 +15,6 @@ Module contents
 ---------------
 
 .. automodule:: madminer.likelihood
-   :members:
-   :undoc-members:
-   :show-inheritance:
+    :members:
+    :undoc-members:
+    :show-inheritance:

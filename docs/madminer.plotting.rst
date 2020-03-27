@@ -16,6 +16,6 @@ Module contents
 ---------------
 
 .. automodule:: madminer.plotting
-   :members:
-   :undoc-members:
-   :show-inheritance:
+    :members:
+    :undoc-members:
+    :show-inheritance:
