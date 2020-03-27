@@ -9,7 +9,12 @@ If you use MadMiner, please cite our main publication,
                         Cranmer, Kyle",
       title          = "{MadMiner: Machine learning-based inference for particle
                         physics}",
-      year           = "2019",
+      journal        = "Comput. Softw. Big Sci.",
+      volume         = "4",
+      year           = "2020",
+      number         = "1",
+      pages          = "3",
+      doi            = "10.1007/s41781-020-0035-2",
       eprint         = "1907.10621",
       archivePrefix  = "arXiv",
       primaryClass   = "hep-ph",
@@ -39,7 +44,7 @@ The main references for the implemented inference techniques are the following:
 ## Acknowledgements
 
 We are immensely grateful to all contributors and bug reporters! In particular, we would like to thank Zubair Bhatti,
-Lukas Heinrich, Alexander Held, and Samuel Homiller.
+Philipp Englert, Lukas Heinrich, Alexander Held, Samuel Homiller, and Duccio Pappadopulo.
 
 The SCANDAL inference method is based on [Masked Autoregressive Flows](https://arxiv.org/abs/1705.07057), and our
 implementation is a pyTorch port of the original code by George Papamakarios et al., which is available at
