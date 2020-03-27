@@ -4,11 +4,30 @@ madminer.sampling package
 Submodules
 ----------
 
-.. toctree::
+madminer.sampling.combine module
+--------------------------------
 
-   madminer.sampling.combine
-   madminer.sampling.parameters
-   madminer.sampling.sampleaugmenter
+.. automodule:: madminer.sampling.combine
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+madminer.sampling.parameters module
+-----------------------------------
+
+.. automodule:: madminer.sampling.parameters
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+madminer.sampling.sampleaugmenter module
+----------------------------------------
+
+.. automodule:: madminer.sampling.sampleaugmenter
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 
 Module contents
 ---------------

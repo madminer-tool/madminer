@@ -4,11 +4,30 @@ madminer.fisherinformation package
 Submodules
 ----------
 
-.. toctree::
+madminer.fisherinformation.geometry module
+------------------------------------------
 
-   madminer.fisherinformation.geometry
-   madminer.fisherinformation.information
-   madminer.fisherinformation.manipulate
+.. automodule:: madminer.fisherinformation.geometry
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+madminer.fisherinformation.information module
+---------------------------------------------
+
+.. automodule:: madminer.fisherinformation.information
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+madminer.fisherinformation.manipulate module
+--------------------------------------------
+
+.. automodule:: madminer.fisherinformation.manipulate
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 
 Module contents
 ---------------

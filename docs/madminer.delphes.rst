@@ -4,9 +4,14 @@ madminer.delphes package
 Submodules
 ----------
 
-.. toctree::
+madminer.delphes.delphes\_reader module
+---------------------------------------
 
-   madminer.delphes.delphes_reader
+.. automodule:: madminer.delphes.delphes_reader
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 
 Module contents
 ---------------

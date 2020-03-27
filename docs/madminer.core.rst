@@ -4,9 +4,14 @@ madminer.core package
 Submodules
 ----------
 
-.. toctree::
+madminer.core.madminer module
+-----------------------------
 
-   madminer.core.madminer
+.. automodule:: madminer.core.madminer
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 
 Module contents
 ---------------

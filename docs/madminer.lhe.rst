@@ -4,9 +4,14 @@ madminer.lhe package
 Submodules
 ----------
 
-.. toctree::
+madminer.lhe.lhe\_reader module
+-------------------------------
 
-   madminer.lhe.lhe_reader
+.. automodule:: madminer.lhe.lhe_reader
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 
 Module contents
 ---------------
