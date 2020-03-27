@@ -4,18 +4,51 @@ madminer.plotting package
 Submodules
 ----------
 
-.. toctree::
+madminer.plotting.distributions module
+--------------------------------------
 
-   madminer.plotting.distributions
-   madminer.plotting.fisherinformation
-   madminer.plotting.limits
-   madminer.plotting.morphing
-   madminer.plotting.uncertainties
+.. automodule:: madminer.plotting.distributions
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+madminer.plotting.fisherinformation module
+------------------------------------------
+
+.. automodule:: madminer.plotting.fisherinformation
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+madminer.plotting.limits module
+-------------------------------
+
+.. automodule:: madminer.plotting.limits
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+madminer.plotting.morphing module
+---------------------------------
+
+.. automodule:: madminer.plotting.morphing
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+madminer.plotting.uncertainties module
+--------------------------------------
+
+.. automodule:: madminer.plotting.uncertainties
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 
 Module contents
 ---------------
 
 .. automodule:: madminer.plotting
-   :members:
-   :undoc-members:
-   :show-inheritance:
+    :members:
+    :undoc-members:
+    :show-inheritance:

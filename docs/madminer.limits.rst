@@ -4,14 +4,19 @@ madminer.limits package
 Submodules
 ----------
 
-.. toctree::
+madminer.limits.asymptotic\_limits module
+-----------------------------------------
 
-   madminer.limits.asymptotic_limits
+.. automodule:: madminer.limits.asymptotic_limits
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 
 Module contents
 ---------------
 
 .. automodule:: madminer.limits
-   :members:
-   :undoc-members:
-   :show-inheritance:
+    :members:
+    :undoc-members:
+    :show-inheritance:

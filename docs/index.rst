@@ -24,7 +24,7 @@ MadMiner
 
 .. toctree::
    :maxdepth: 1
-   :caption: Reference
+   :caption: API
 
    madminer.analysis
    madminer.core

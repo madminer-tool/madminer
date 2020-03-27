@@ -4,14 +4,19 @@ madminer.analysis package
 Submodules
 ----------
 
-.. toctree::
+madminer.analysis.dataanalyzer module
+-------------------------------------
 
-   madminer.analysis.dataanalyzer
+.. automodule:: madminer.analysis.dataanalyzer
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 
 Module contents
 ---------------
 
 .. automodule:: madminer.analysis
-   :members:
-   :undoc-members:
-   :show-inheritance:
+    :members:
+    :undoc-members:
+    :show-inheritance:
