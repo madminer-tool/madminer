@@ -26,13 +26,9 @@
 {% endif %}
 
 {%- if submodules %}
-{% if separatemodules %}
-{{ toctree(submodules) }}
-{%- else %}
 {%- for submodule in submodules %}
 {% if show_headings %}
 {{- submodule | e | heading }}
-{% endif %}
 {{ automodule(submodule, automodule_options) }}
 {% endfor %}
 {%- endif %}
