@@ -988,7 +988,7 @@ class MadMiner:
                 # Copy Pythia card
                 if pythia8_card_file is not None:
                     copy_file(pythia8_card_file, mg_process_directory + "/" + new_pythia8_card_file)
-                
+
                 # Copy Configuration card
                 if configuration_file is not None:
                     copy_file(configuration_file, mg_process_directory + "/" + new_configuration_file)

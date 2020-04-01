@@ -25,7 +25,7 @@ In the three publications
 ["Constraining Effective Field Theories With Machine Learning"](https://arxiv.org/abs/1805.00013),
 ["A Guide to Constraining Effective Field Theories With Machine Learning"](https://arxiv.org/abs/1805.00020), and
 ["Mining gold from implicit models to improve likelihood-free inference"](https://arxiv.org/abs/1805.12244),
-a new approach has been developed. In a nut shell, additional information is extracted from the simulations that is
+a new approach has been developed. In a nutshell, additional information is extracted from the simulations that is
 closely related to the matrix elements that determine the hard process. This
 "augmented data" can be used to train neural networks to efficiently approximate arbitrary likelihood ratios. We
 playfully call this process "mining gold" from the simulator, since this information may be hard to get, but turns out
@@ -60,6 +60,7 @@ inference with MadMiner without spending much time on the more technical steps o
 at [examples/tutorial_particle_physics](examples/tutorial_particle_physics), shows all steps of a particle-physics
 analysis with MadMiner.
 
+These examples are the basis of [an online tutorial](https://cranmer.github.io/madminer-tutorial/intro) built with on Jupyter Books. It also walks through how to run MadMiner using docker so that you don't have to install Fortran, MadGraph, Pythia, Delphes, etc. You can even run it with no install using binder. 
 
 ### Documentation
 
@@ -82,7 +83,12 @@ If you use MadMiner, please cite our main publication,
                         Cranmer, Kyle",
       title          = "{MadMiner: Machine learning-based inference for particle
                         physics}",
-      year           = "2019",
+      journal        = "Comput. Softw. Big Sci.",
+      volume         = "4",
+      year           = "2020",
+      number         = "1",
+      pages          = "3",
+      doi            = "10.1007/s41781-020-0035-2",
       eprint         = "1907.10621",
       archivePrefix  = "arXiv",
       primaryClass   = "hep-ph",
@@ -111,7 +117,7 @@ The main references for the implemented inference techniques are the following:
 ## Acknowledgements
 
 We are immensely grateful to all contributors and bug reporters! In particular, we would like to thank Zubair Bhatti,
-Lukas Heinrich, Alexander Held, and Samuel Homiller.
+Philipp Englert, Lukas Heinrich, Alexander Held, Samuel Homiller, and Duccio Pappadopulo.
 
 The SCANDAL inference method is based on [Masked Autoregressive Flows](https://arxiv.org/abs/1705.07057), and our
 implementation is a pyTorch port of the original code by George Papamakarios et al., which is available at

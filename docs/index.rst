@@ -24,13 +24,14 @@ MadMiner
 
 .. toctree::
    :maxdepth: 1
-   :caption: Reference
+   :caption: API
 
    madminer.analysis
    madminer.core
    madminer.delphes
    madminer.fisherinformation
    madminer.lhe
+   madminer.likelihood
    madminer.limits
    madminer.ml
    madminer.morphing

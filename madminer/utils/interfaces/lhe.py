@@ -545,7 +545,7 @@ def _extract_nuisance_param_dict(weight_groups, systematics_name, systematics_de
         scale_factors = systematics_definition[2].split(",")
         scale_factors = [float(sf) for sf in scale_factors]
         if len(scale_factors) == 0:
-            raise RuntimeError("Cannot parse scale factor string %s", value)
+            raise RuntimeError("Cannot parse scale factor string %s", systematics_definition[2])
         elif len(scale_factors) == 1:
             scale_factors = (scale_factors[0],)
         else:
@@ -884,8 +884,10 @@ def _get_objects(particles, particles_truth, met_resolution=None, global_event_d
     for particle in particles:
         pdgid = abs(particle.pdgid)
         if pdgid in [1, 2, 3, 4, 5, 6, 9, 21]:
-            if pdgid == 5: particle.set_tags(False, True, False)
-            if pdgid == 6: particle.set_tags(False, False, True)
+            if pdgid == 5:
+                particle.set_tags(False, True, False)
+            if pdgid == 6:
+                particle.set_tags(False, False, True)
             jets.append(particle)
         elif pdgid == 11:
             electrons.append(particle)

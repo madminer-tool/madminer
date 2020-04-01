@@ -314,8 +314,11 @@ class DataAnalyzer(object):
             raise ValueError("Events has to be either 'all', 'train', or 'test', but got {}!".format(partition))
 
         # Theta matrices (translation of benchmarks to theta, at nominal nuisance params)
-        theta_matrices = [self._get_theta_benchmark_matrix(theta) for theta in thetas]
-        theta_matrices = np.asarray(theta_matrices)  # Shape (n_thetas, n_benchmarks)
+        if thetas is None:
+            theta_matrices = np.identity(self.n_benchmarks)
+        else:
+            theta_matrices = [self._get_theta_benchmark_matrix(theta) for theta in thetas]
+            theta_matrices = np.asarray(theta_matrices)  # Shape (n_thetas, n_benchmarks)
 
         # Loop over events
         xsecs = 0.0

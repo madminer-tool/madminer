@@ -125,7 +125,9 @@ class Histo:
         # Fill histograms
         ranges = [(edges[0], edges[-1]) for edges in self.edges]
         histo, _ = np.histogramdd(x, bins=self.edges, range=ranges, normed=False, weights=weights)
-        histo_w2, _ = np.histogramdd(x, bins=self.edges, range=ranges, normed=False, weights=weights ** 2)
+        histo_w2, _ = np.histogramdd(
+            x, bins=self.edges, range=ranges, normed=False, weights=None if weights is None else weights ** 2
+        )
 
         # Uncertainties
         histo_uncertainties = histo_w2 ** 0.5

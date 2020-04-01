@@ -255,10 +255,10 @@ def setup_mg_with_scripts(
             "/Cards/pythia8_card.dat",
         )
 
-    if configuration_card_file_from_mgprocdir is not None:
+    if configuration_file_from_mgprocdir is not None:
         copy_commands += "cp {}/{} {}{}\n".format(
             mg_process_directory_placeholder,
-            configuration_card_file_from_mgprocdir,
+            configuration_file_from_mgprocdir,
             mg_process_directory_placeholder,
             "/Cards/me5_configuration.txt",
         )
