@@ -117,6 +117,10 @@ class HistoLikelihood(BaseLikelihood):
         supported_modes = ["sampled", "weighted", "histo"]
         if mode not in supported_modes:
             raise ValueError("Mode %s unknown. Choose one of the following methods: %s", mode, supported_modes)
+        if mode == "histo" and self.n_nuisance_parameters > 0:
+            raise ValueError(
+                "Mode histo is currently not supported in the presence of nuisance parameters. Please use mode weighted or sampled."
+            )
 
         # Load model - nothing interesting
         if score_components != []:
