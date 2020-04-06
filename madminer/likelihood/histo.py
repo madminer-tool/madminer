@@ -599,10 +599,3 @@ class HistoLikelihood(BaseLikelihood):
         # create histogram
         histo = Histo(bin_centers, weights=histo_weights_theta, bins=hist_bins, epsilon=1.0e-12)
         return histo
-
-    def _clean_nans(self, array):
-        not_finite = np.any(~np.isfinite(array), axis=0)
-        if np.sum(not_finite) > 0:
-            logger.warning("Removing %s inf / nan results from calculation")
-            array[:, not_finite] = 0.0
-        return array

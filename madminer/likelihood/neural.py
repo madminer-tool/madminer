@@ -180,11 +180,3 @@ class NeuralLikelihood(BaseLikelihood):
         weights_benchmarks *= self.n_samples / n_toys
 
         return weights_benchmarks
-
-    @staticmethod
-    def _clean_nans(array):
-        not_finite = np.any(~np.isfinite(array), axis=0)
-        if np.sum(not_finite) > 0:
-            logger.warning("Removing %s inf / nan results from calculation")
-            array[:, not_finite] = 0.0
-        return array
