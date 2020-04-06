@@ -51,11 +51,11 @@ class BaseLikelihood(DataAnalyzer):
             # `histo` mode: Efficient morphing of whole cross section for the case without nuisance parameters
             theta_matrix = self._get_theta_benchmark_matrix(theta)
             xsec = mdot(theta_matrix, total_weights)
-        elif total_weights is not None:
+        elif total_weights is not None and self.nuisance_morpher is not None:
             # `histo` mode: Efficient morphing of whole cross section for the case with nuisance parameters
             theta_matrix = self._get_theta_benchmark_matrix(theta)
             xsec = mdot(theta_matrix, total_weights)
-            nuisance_effects = 1.0  # TODO
+            nuisance_effects = self.nuisance_morpher.calculate_nuisance_factors(nu, [total_weights])[0]
             xsec *= nuisance_effects
         elif weights_benchmarks is not None:
             # `weighted` mode: Reweights existing events to (theta, nu) -- better than entirely new xsec calculation

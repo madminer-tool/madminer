@@ -21,17 +21,24 @@ class NeuralLikelihood(BaseLikelihood):
         luminosity=300000.0,
         mode="weighted",
         n_weighted=10000,
+        xsec_mode="interpol",
     ):
         estimator = load_estimator(model_file)
 
         if n_observed is None:
             n_observed = len(x_observed)
 
-        # Weighted sampled
+        # Weighted samples
         if mode == "weighted":
             weights_benchmarks = self._get_weights_benchmarks(n_toys=n_weighted, test_split=None)
         else:
             weights_benchmarks = None
+
+        # Prepare interpolation for nuisance effects in total xsec
+        if include_xsec and xsec_mode == "interpol":
+            xsecs_benchmarks = self.xsecs()
+        else:
+            xsecs_benchmarks = None
 
         def nll(params):
             # Just return the expected Length
@@ -62,6 +69,7 @@ class NeuralLikelihood(BaseLikelihood):
                 luminosity,
                 x_observed_weights,
                 weights_benchmarks,
+                xsecs_benchmarks=xsecs_benchmarks,
             )
             return -log_likelihood
 
@@ -77,6 +85,7 @@ class NeuralLikelihood(BaseLikelihood):
         n_asimov=None,
         mode="sampled",
         n_weighted=10000,
+        xsec_mode="interpol",
     ):
         x_asimov, x_weights = self._asimov_data(theta_true, n_asimov=n_asimov)
         n_observed = luminosity * self.xsecs([theta_true], [nu_true])[0]
@@ -96,6 +105,7 @@ class NeuralLikelihood(BaseLikelihood):
         luminosity=300000.0,
         x_weights=None,
         weights_benchmarks=None,
+        xsecs_benchmarks=None,
     ):
         """
         Low-level function which calculates the value of the log-likelihood ratio.
@@ -105,7 +115,7 @@ class NeuralLikelihood(BaseLikelihood):
         log_likelihood = 0.0
         if include_xsec:
             log_likelihood = log_likelihood + self._log_likelihood_poisson(
-                n_events, theta, nu, luminosity, weights_benchmarks
+                n_events, theta, nu, luminosity, weights_benchmarks, total_weights=xsecs_benchmarks
             )
 
         if x_weights is None:
