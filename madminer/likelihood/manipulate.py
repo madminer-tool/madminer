@@ -47,9 +47,9 @@ def fix_params(negative_log_likelihood, theta, fixed_components=None):
 
         # Process input
         if len(theta) != len(fixed_components):
-            logger.warning("Length of fixed_components and theta should be the same")
+            raise ValueError("Length of fixed_components and theta should be the same")
         if len(params) + len(fixed_components) != n_dimension:
-            logger.warning("Length of params should be %s", n_dimension - len(fixed_components))
+            raise ValueError("Length of params should be %s", n_dimension - len(fixed_components))
 
         # Initialize full paramaters
         params_full = np.zeros(n_dimension)
