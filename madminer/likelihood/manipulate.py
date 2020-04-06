@@ -9,7 +9,7 @@ from scipy.optimize import minimize
 logger = logging.getLogger(__name__)
 
 
-def fix_params(negative_log_likelihood, theta, fixed_components):
+def fix_params(negative_log_likelihood, theta, fixed_components=None):
     """
     Function that reduces the dimensionality of a likelihood function by
     fixing some of the components.
@@ -24,10 +24,10 @@ def fix_params(negative_log_likelihood, theta, fixed_components):
     theta : list of float
         m-dimensional vector of coordinate which will be fixed.
         
-    fixed_components : list of int
+    fixed_components : list of int or None, optional.
         m-dimensional vector of coordinate indices provided in theta.
-        Example: fixed_components=[0,1] will fix the 1st and 2nd
-        component of the paramater point.
+        `fixed_components=[0,1]` will fix the 1st and 2nd
+        component of the paramater point. If None, uses [0, ..., m-1].
 
     Returns
     -------
@@ -36,9 +36,10 @@ def fix_params(negative_log_likelihood, theta, fixed_components):
         n-m dimensional input parameter.
         
     """
+    if fixed_components is None:
+        fixed_components = list(range(len(theta)))
 
     def constrained_nll(params):
-
         # Just return the expected Length
         n_dimension = negative_log_likelihood(None)
         if params is None:
