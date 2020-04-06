@@ -36,7 +36,7 @@ class NeuralLikelihood(BaseLikelihood):
 
         # Prepare interpolation for nuisance effects in total xsec
         if include_xsec and xsec_mode == "interpol":
-            xsecs_benchmarks = self.xsecs()
+            xsecs_benchmarks, _ = self.xsecs()
         else:
             xsecs_benchmarks = None
 
