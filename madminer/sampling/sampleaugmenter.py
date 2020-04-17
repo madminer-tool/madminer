@@ -122,9 +122,11 @@ class SampleAugmenter(DataAnalyzer):
             Fraction of events reserved for the evaluation sample (that will not be used for any training samples).
             Default value: 0.2.
 
-        switch_train_test_events : bool, optional
-            If True, this function generates a training sample from the events normally reserved for test samples.
-            Default value: False.
+        validation_split : float or None, optional
+            Fraction of events reserved for testing. Default value: 0.2.
+
+        partition : {"train", "test", "validation", "all"}, optional
+            Which event partition to use. Default value: "train".
 
         n_processes : None or int, optional
             If None or larger than 1, MadMiner will use multiprocessing to parallelize the sampling. In this case,
@@ -240,9 +242,11 @@ class SampleAugmenter(DataAnalyzer):
             Fraction of events reserved for the evaluation sample (that will not be used for any training samples).
             Default value: 0.2.
 
-        switch_train_test_events : bool, optional
-            If True, this function generates a training sample from the events normally reserved for test samples.
-            Default value: False.
+        validation_split : float or None, optional
+            Fraction of events reserved for testing. Default value: 0.2.
+
+        partition : {"train", "test", "validation", "all"}, optional
+            Which event partition to use. Default value: "train".
 
         n_processes : None or int, optional
             If None or larger than 1, MadMiner will use multiprocessing to parallelize the sampling. In this case,
@@ -383,9 +387,11 @@ class SampleAugmenter(DataAnalyzer):
             Fraction of events reserved for the evaluation sample (that will not be used for any training samples).
             Default value: 0.2.
 
-        switch_train_test_events : bool, optional
-            If True, this function generates a training sample from the events normally reserved for test samples.
-            Default value: False.
+        validation_split : float or None, optional
+            Fraction of events reserved for testing. Default value: 0.2.
+
+        partition : {"train", "test", "validation", "all"}, optional
+            Which event partition to use. Default value: "train".
 
         n_processes : None or int, optional
             If None or larger than 1, MadMiner will use multiprocessing to parallelize the sampling. In this case,
@@ -510,9 +516,11 @@ class SampleAugmenter(DataAnalyzer):
             Fraction of events reserved for the evaluation sample (that will not be used for any training samples).
             Default value: 0.2.
 
-        switch_train_test_events : bool, optional
-            If True, this function generates a training sample from the events normally reserved for test samples.
-            Default value: False.
+        validation_split : float or None, optional
+            Fraction of events reserved for testing. Default value: 0.2.
+
+        partition : {"train", "test", "validation", "all"}, optional
+            Which event partition to use. Default value: "train".
 
         n_processes : None or int, optional
             If None or larger than 1, MadMiner will use multiprocessing to parallelize the sampling. In this case,
@@ -783,9 +791,11 @@ class SampleAugmenter(DataAnalyzer):
             Fraction of events reserved for the evaluation sample (that will not be used for any training samples).
             Default value: 0.2.
 
-        switch_train_test_events : bool, optional
-            If True, this function generates a training sample from the events normally reserved for test samples.
-            Default value: False.
+        validation_split : float or None, optional
+            Fraction of events reserved for testing. Default value: 0.2.
+
+        partition : {"train", "test", "validation", "all"}, optional
+            Which event partition to use. Default value: "train".
 
         n_processes : None or int, optional
             If None or larger than 1, MadMiner will use multiprocessing to parallelize the sampling. In this case,
@@ -1076,9 +1086,11 @@ class SampleAugmenter(DataAnalyzer):
             Fraction of events reserved for the evaluation sample (that will not be used for any training samples).
             Default value: 0.2.
 
-        switch_train_test_events : bool, optional
-            If True, this function generates a test sample from the events normally reserved for training samples.
-            Default value: False.
+        validation_split : float or None, optional
+            Fraction of events reserved for testing. Default value: 0.2.
+
+        partition : {"train", "test", "validation", "all"}, optional
+            Which event partition to use. Default value: "test".
 
         n_processes : None or int, optional
             If None or larger than 1, MadMiner will use multiprocessing to parallelize the sampling. In this case,
