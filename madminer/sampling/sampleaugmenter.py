@@ -446,6 +446,7 @@ class SampleAugmenter(DataAnalyzer):
             n_processes=n_processes,
             log_message=False,
             n_eff_forced=n_eff_forced,
+            double_precision=double_precision,
         )
 
     def sample_train_ratio(
@@ -1139,6 +1140,7 @@ class SampleAugmenter(DataAnalyzer):
             test_split=test_split,
             n_processes=n_processes,
             sample_only_from_closest_benchmark=sample_only_from_closest_benchmark,
+            n_eff_forced=n_eff_forced,
             double_precision=double_precision,
         )
 
