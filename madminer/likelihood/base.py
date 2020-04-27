@@ -47,15 +47,24 @@ class BaseLikelihood(DataAnalyzer):
     def _log_likelihood_poisson(
         self, n_observed, theta, nu, luminosity=300000.0, weights_benchmarks=None, total_weights=None
     ):
-
-        if total_weights is not None:
+        if total_weights is not None and nu is None:
+            # `histo` mode: Efficient morphing of whole cross section for the case without nuisance parameters
             theta_matrix = self._get_theta_benchmark_matrix(theta)
             xsec = mdot(theta_matrix, total_weights)
-        if weights_benchmarks is None:
-            xsec = self.xsecs(thetas=[theta], nus=[nu], partition="train", generated_close_to=theta)[0][0]
-        else:
+        elif total_weights is not None and self.nuisance_morpher is not None:
+            # `histo` mode: Efficient morphing of whole cross section for the case with nuisance parameters
+            logger.debug("Using nuisance interpolation")
+            theta_matrix = self._get_theta_benchmark_matrix(theta)
+            xsec = mdot(theta_matrix, total_weights)
+            nuisance_effects = self.nuisance_morpher.calculate_nuisance_factors(nu, total_weights.reshape((1, -1))).flatten()
+            xsec *= nuisance_effects
+        elif weights_benchmarks is not None:
+            # `weighted` mode: Reweights existing events to (theta, nu) -- better than entirely new xsec calculation
             weights = self._weights([theta], [nu], weights_benchmarks)[0]
             xsec = sum(weights)
+        elif weights_benchmarks is None:
+            # `sampled` mode: Calculated total cross sections entirely new -- least efficient
+            xsec = self.xsecs(thetas=[theta], nus=[nu], partition="train", generated_close_to=theta)[0][0]
 
         n_predicted = xsec * luminosity
         if xsec < 0:
@@ -64,6 +73,7 @@ class BaseLikelihood(DataAnalyzer):
         n_observed_rounded = int(np.round(n_observed, 0))
 
         log_likelihood = poisson.logpmf(k=n_observed_rounded, mu=n_predicted)
+
         logger.debug(
             "Poisson log likelihood: %s (%s expected, %s observed at theta=%s)",
             log_likelihood,
@@ -77,3 +87,11 @@ class BaseLikelihood(DataAnalyzer):
         log_p = np.sum(norm.logpdf(nu))
         logger.debug("Constraint log likelihood: %s", log_p)
         return log_p
+
+    @staticmethod
+    def _clean_nans(array):
+        not_finite = np.any(~np.isfinite(array), axis=0)
+        if np.sum(not_finite) > 0:
+            logger.warning("Removing %s inf / nan results from calculation")
+            array[:, not_finite] = 0.0
+        return array
