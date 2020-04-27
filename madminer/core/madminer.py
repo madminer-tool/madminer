@@ -866,6 +866,7 @@ class MadMiner:
 
         initial_command : str or None, optional
             Initial shell commands that have to be executed before MG is run (e.g. to load a virtual environment).
+            If not specified and `python2_override` is True, it adds the user-installed Python2 binaries to the PATH.
             Default value: None.
 
         python2_override : bool, optional
@@ -894,6 +895,14 @@ class MadMiner:
 
         if sample_benchmarks is None:
             sample_benchmarks = [benchmark for benchmark in self.benchmarks]
+
+        # Gives 'python2_override' full power if 'initial_command' is empty.
+        # (Reference: https://github.com/diana-hep/madminer/issues/422)
+        if python2_override and initial_command is None:
+            logger.info("Adding Python2.7 bin folder to PATH")
+            binary_path = os.popen("command -v python2.7").read().strip()
+            binary_folder = os.path.dirname(os.path.realpath(binary_path))
+            initial_command = "export PATH={}:$PATH".format(binary_folder)
 
         # Generate process folder
         log_file_generate = log_directory + "/generate.log"
