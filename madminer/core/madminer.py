@@ -945,18 +945,18 @@ class MadMiner:
                 # Files
                 script_file = "madminer/scripts/run_{}.sh".format(i)
                 log_file_run = "run_{}.log".format(i)
-                mg_commands_filename = "/madminer/cards/mg_commands_{}.dat".format(i)
-                param_card_file = "/madminer/cards/param_card_{}.dat".format(i)
-                reweight_card_file = "/madminer/cards/reweight_card_{}.dat".format(i)
+                mg_commands_filename = "madminer/cards/mg_commands_{}.dat".format(i)
+                param_card_file = "madminer/cards/param_card_{}.dat".format(i)
+                reweight_card_file = "madminer/cards/reweight_card_{}.dat".format(i)
                 new_pythia8_card_file = None
                 if pythia8_card_file is not None:
-                    new_pythia8_card_file = "/madminer/cards/pythia8_card_{}.dat".format(i)
+                    new_pythia8_card_file = "madminer/cards/pythia8_card_{}.dat".format(i)
                 new_run_card_file = None
                 if run_card_file is not None:
-                    new_run_card_file = "/madminer/cards/run_card_{}.dat".format(i)
+                    new_run_card_file = "madminer/cards/run_card_{}.dat".format(i)
                 new_configuration_file = None
                 if configuration_file is not None:
-                    new_configuration_file = "/madminer/cards/me5_configuration_{}.txt".format(i)
+                    new_configuration_file = "madminer/cards/me5_configuration_{}.txt".format(i)
 
                 logger.info("Run %s", i)
                 logger.info("  Sampling from benchmark: %s", sample_benchmark)
