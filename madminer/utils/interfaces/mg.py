@@ -128,8 +128,8 @@ def setup_mg_with_scripts(
     pythia8_card_file_from_mgprocdir : str or None, optional
         Path to the MadGraph Pythia8 card, relative from mg_process_directory. If None, Pythia is not run. Default
         value: None.
-        
-        configuration_file_from_mgprocdir : str or None, optional
+
+    configuration_file_from_mgprocdir : str or None, optional
         Path to the MadGraph me5_configuration card, relative from mg_process_directory. If None, the card
         present in the process folder is used. Default value: None.
 

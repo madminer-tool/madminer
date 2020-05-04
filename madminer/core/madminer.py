@@ -726,10 +726,6 @@ class MadMiner:
             If True, the event generation is not started, but instead a run.sh script is created in the process
             directory. Default value: False.
 
-        only_prepare_script : bool, optional
-            If True, MadGraph is not executed, but instead a run.sh script is created in
-            the process directory. Default value: False.
-
         ufo_model_directory : str or None, optional
             Path to an UFO model directory that should be used, but is not yet installed in mg_directory/models. The
             model will be copied to the MadGraph model directory before the process directory is generated. (Default
@@ -848,10 +844,6 @@ class MadMiner:
         only_prepare_script : bool, optional
             If True, the event generation is not started, but instead a run.sh script is created in the process
             directory. Default value: False.
-
-        only_prepare_script : bool, optional
-            If True, MadGraph is not executed, but instead a run.sh script is created in
-            the process directory. Default value: False.
 
         ufo_model_directory : str or None, optional
             Path to an UFO model directory that should be used, but is not yet installed in mg_directory/models. The
