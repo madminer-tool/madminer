@@ -1002,12 +1002,8 @@ class MadMiner:
                         run_card_file_from_mgprocdir=new_run_card_file,
                         param_card_file_from_mgprocdir=param_card_file,
                         reweight_card_file_from_mgprocdir=reweight_card_file,
-                        pythia8_card_file_from_mgprocdir=None
-                        if new_pythia8_card_file is None
-                        else new_pythia8_card_file,
-                        configuration_file_from_mgprocdir=None
-                        if new_configuration_file is None
-                        else new_configuration_file,
+                        pythia8_card_file_from_mgprocdir=new_pythia8_card_file,
+                        configuration_file_from_mgprocdir=new_configuration_file,
                         is_background=is_background,
                         script_file_from_mgprocdir=script_file,
                         initial_command=initial_command,
