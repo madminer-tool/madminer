@@ -164,18 +164,23 @@ class DelphesReader:
 
         """
 
-        logger.debug("Adding event sample %s", hepmc_filename)
-
         # Check inputs
-        assert weights in ["delphes", "lhe"], "Unknown setting for weights: %s. Has to be 'delphes' or 'lhe'."
+        if not os.path.exists(hepmc_filename):
+            raise ValueError("The specified hepmc file does not exist")
 
-        if self.systematics is not None:
-            if lhe_filename is None:
-                raise ValueError("With systematic uncertainties, a LHE event file has to be provided.")
+        if lhe_filename and not os.path.exists(lhe_filename):
+            raise ValueError("The specified lhe file does not exist")
 
-        if weights == "lhe":
-            if lhe_filename is None:
-                raise ValueError("With weights = 'lhe', a LHE event file has to be provided.")
+        if weights not in ["delphes", "lhe"]:
+            raise ValueError("Unknown setting for weights. Has to be 'delphes' or 'lhe'.")
+
+        if weights == "lhe" and lhe_filename is None:
+            raise ValueError("With weights = 'lhe', a LHE event file has to be provided.")
+
+        if self.systematics and lhe_filename is None:
+            raise ValueError("With systematic uncertainties, a LHE event file has to be provided.")
+
+        logger.debug("Adding event sample %s", hepmc_filename)
 
         self.hepmc_sample_filenames.append(hepmc_filename)
         self.hepmc_sampled_from_benchmark.append(sampled_from_benchmark)
