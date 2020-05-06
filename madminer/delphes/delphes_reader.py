@@ -339,6 +339,8 @@ class DelphesReader:
 
         """
 
+        self._check_python_syntax(definition)
+
         if required:
             logger.debug("Adding required observable %s = %s", name, definition)
         else:
@@ -499,6 +501,9 @@ class DelphesReader:
             None
 
         """
+
+        self._check_python_syntax(definition)
+
         logger.debug("Adding cut %s", definition)
 
         self.cuts.append(definition)
@@ -807,6 +812,27 @@ class DelphesReader:
                 this_weights[key] = reference_weights / sampling_weights * this_weights[key]
 
         return this_observations, this_weights, n_events
+
+    def _check_python_syntax(self, expression):
+        """
+        Evaluates a Python expression to check for syntax errors
+
+        Parameters
+        ----------
+        expression : str
+            Python expression to be evaluated. The evaluation raises either SyntaxError or NameError
+
+        Returns
+        -------
+            None
+        """
+
+        try:
+            eval(expression)
+        except SyntaxError:
+            raise ValueError("The provided Python expression is invalid")
+        except NameError:
+            pass
 
     def _check_sample_observations(self, this_observations):
         """ Sanity checks """
