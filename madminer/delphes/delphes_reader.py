@@ -164,18 +164,23 @@ class DelphesReader:
 
         """
 
-        logger.debug("Adding event sample %s", hepmc_filename)
-
         # Check inputs
-        assert weights in ["delphes", "lhe"], "Unknown setting for weights: %s. Has to be 'delphes' or 'lhe'."
+        if not os.path.exists(hepmc_filename):
+            raise ValueError("The specified hepmc file does not exist")
 
-        if self.systematics is not None:
-            if lhe_filename is None:
-                raise ValueError("With systematic uncertainties, a LHE event file has to be provided.")
+        if lhe_filename and not os.path.exists(lhe_filename):
+            raise ValueError("The specified lhe file does not exist")
 
-        if weights == "lhe":
-            if lhe_filename is None:
-                raise ValueError("With weights = 'lhe', a LHE event file has to be provided.")
+        if weights not in ["delphes", "lhe"]:
+            raise ValueError("Unknown setting for weights. Has to be 'delphes' or 'lhe'.")
+
+        if weights == "lhe" and lhe_filename is None:
+            raise ValueError("With weights = 'lhe', a LHE event file has to be provided.")
+
+        if self.systematics and lhe_filename is None:
+            raise ValueError("With systematic uncertainties, a LHE event file has to be provided.")
+
+        logger.debug("Adding event sample %s", hepmc_filename)
 
         self.hepmc_sample_filenames.append(hepmc_filename)
         self.hepmc_sampled_from_benchmark.append(sampled_from_benchmark)
@@ -333,6 +338,8 @@ class DelphesReader:
             None
 
         """
+
+        self._check_python_syntax(definition)
 
         if required:
             logger.debug("Adding required observable %s = %s", name, definition)
@@ -494,6 +501,9 @@ class DelphesReader:
             None
 
         """
+
+        self._check_python_syntax(definition)
+
         logger.debug("Adding cut %s", definition)
 
         self.cuts.append(definition)
@@ -802,6 +812,27 @@ class DelphesReader:
                 this_weights[key] = reference_weights / sampling_weights * this_weights[key]
 
         return this_observations, this_weights, n_events
+
+    def _check_python_syntax(self, expression):
+        """
+        Evaluates a Python expression to check for syntax errors
+
+        Parameters
+        ----------
+        expression : str
+            Python expression to be evaluated. The evaluation raises either SyntaxError or NameError
+
+        Returns
+        -------
+            None
+        """
+
+        try:
+            eval(expression)
+        except SyntaxError:
+            raise ValueError("The provided Python expression is invalid")
+        except NameError:
+            pass
 
     def _check_sample_observations(self, this_observations):
         """ Sanity checks """
