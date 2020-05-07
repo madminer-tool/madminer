@@ -726,10 +726,6 @@ class MadMiner:
             If True, the event generation is not started, but instead a run.sh script is created in the process
             directory. Default value: False.
 
-        only_prepare_script : bool, optional
-            If True, MadGraph is not executed, but instead a run.sh script is created in
-            the process directory. Default value: False.
-
         ufo_model_directory : str or None, optional
             Path to an UFO model directory that should be used, but is not yet installed in mg_directory/models. The
             model will be copied to the MadGraph model directory before the process directory is generated. (Default
@@ -849,10 +845,6 @@ class MadMiner:
             If True, the event generation is not started, but instead a run.sh script is created in the process
             directory. Default value: False.
 
-        only_prepare_script : bool, optional
-            If True, MadGraph is not executed, but instead a run.sh script is created in
-            the process directory. Default value: False.
-
         ufo_model_directory : str or None, optional
             Path to an UFO model directory that should be used, but is not yet installed in mg_directory/models. The
             model will be copied to the MadGraph model directory before the process directory is generated. (Default
@@ -945,18 +937,18 @@ class MadMiner:
                 # Files
                 script_file = "madminer/scripts/run_{}.sh".format(i)
                 log_file_run = "run_{}.log".format(i)
-                mg_commands_filename = "/madminer/cards/mg_commands_{}.dat".format(i)
-                param_card_file = "/madminer/cards/param_card_{}.dat".format(i)
-                reweight_card_file = "/madminer/cards/reweight_card_{}.dat".format(i)
+                mg_commands_filename = "madminer/cards/mg_commands_{}.dat".format(i)
+                param_card_file = "madminer/cards/param_card_{}.dat".format(i)
+                reweight_card_file = "madminer/cards/reweight_card_{}.dat".format(i)
                 new_pythia8_card_file = None
                 if pythia8_card_file is not None:
-                    new_pythia8_card_file = "/madminer/cards/pythia8_card_{}.dat".format(i)
+                    new_pythia8_card_file = "madminer/cards/pythia8_card_{}.dat".format(i)
                 new_run_card_file = None
                 if run_card_file is not None:
-                    new_run_card_file = "/madminer/cards/run_card_{}.dat".format(i)
+                    new_run_card_file = "madminer/cards/run_card_{}.dat".format(i)
                 new_configuration_file = None
                 if configuration_file is not None:
-                    new_configuration_file = "/madminer/cards/me5_configuration_{}.txt".format(i)
+                    new_configuration_file = "madminer/cards/me5_configuration_{}.txt".format(i)
 
                 logger.info("Run %s", i)
                 logger.info("  Sampling from benchmark: %s", sample_benchmark)
@@ -1010,12 +1002,8 @@ class MadMiner:
                         run_card_file_from_mgprocdir=new_run_card_file,
                         param_card_file_from_mgprocdir=param_card_file,
                         reweight_card_file_from_mgprocdir=reweight_card_file,
-                        pythia8_card_file_from_mgprocdir=None
-                        if new_pythia8_card_file is None
-                        else new_pythia8_card_file,
-                        configuration_file_from_mgprocdir=None
-                        if new_configuration_file is None
-                        else new_configuration_file,
+                        pythia8_card_file_from_mgprocdir=new_pythia8_card_file,
+                        configuration_file_from_mgprocdir=new_configuration_file,
                         is_background=is_background,
                         script_file_from_mgprocdir=script_file,
                         initial_command=initial_command,
