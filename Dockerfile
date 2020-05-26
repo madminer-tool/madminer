@@ -1,5 +1,5 @@
-#docker image that contains madminer and root
-FROM rootproject/root-ubuntu16
+# Docker image that contains madminer and root
+FROM rootproject/root-ubuntu
 
 USER root
 
