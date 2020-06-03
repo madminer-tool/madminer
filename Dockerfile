@@ -1,12 +1,17 @@
-#docker image that contains madminer and root
-FROM rootproject/root-ubuntu16
+# Docker image that contains madminer and root
+FROM rootproject/root-ubuntu
 
 USER root
 
-RUN apt-get update && apt-get install -y python3-pip python python-pip python3-tk python-tk
+RUN apt-get update && apt-get install -y \
+    python
+    python-tk
+    python-pip
+    python3-tk
+    python3-pip
 
-RUN pip install --upgrade pip
 
-RUN pip install madminer --upgrade  
+RUN pip install --upgrade --no-cache-dir pip && \
+    pip install --upgrade --no-cache-dir madminer
 
 WORKDIR /home/
