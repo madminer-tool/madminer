@@ -22,29 +22,39 @@ AUTHOR = 'Johann Brehmer, Felix Kling, Irina Espejo, Kyle Cranmer'
 REQUIRES_PYTHON = '>=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*, <4'
 VERSION = '0.7.2'
 
-# What packages are required for this module to be executed?
 REQUIRED = [
     "six",
     "numpy>=1.13.0",
     "scipy>=1.0.0",
     "h5py",
     "scikit-hep>=0.5.0, <0.6.0",
-    "scikit-learn>=0.19.0",
+    "scikit-learn>=0.19.0",         # Not used?
     "torch>=1.0.0",
-    "bqplot",
     "uproot",
     "matplotlib>=2.0.0",
-    "numpydoc",
-    "pytest",
-    "sphinx>=1.4",
-    "sphinx_rtd_theme",
-    "recommonmark",
 ]
 
-# What packages are optional?
-EXTRAS = {
-    # 'fancy feature': ['django'],
-}
+EXTRAS = dict()
+EXTRAS["docs"] = sorted(
+    [
+        "numpydoc",
+        "recommonmark",
+        "sphinx>=1.4",
+        "sphinx_rtd_theme",
+    ]
+)
+EXTRAS["test"] = sorted(
+    EXTRAS["docs"] +
+    [
+        "pytest",
+    ]
+)
+EXTRAS["examples"] = sorted(
+    [
+        "bqplot",
+        "pandas",
+    ]
+)
 
 # The rest you shouldn't have to touch too much :)
 # ------------------------------------------------
@@ -107,7 +117,6 @@ class UploadCommand(Command):
         sys.exit()
 
 
-# Where the magic happens:
 setup(
     name=NAME,
     version=about['__version__'],
