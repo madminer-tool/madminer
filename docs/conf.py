@@ -12,10 +12,10 @@
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
-# import os
 # import sys
 # sys.path.insert(0, os.path.abspath('.'))
 
+import os
 
 # -- Project information -----------------------------------------------------
 
@@ -24,7 +24,9 @@ copyright = 'Johann Brehmer, Felix Kling, Irina Espejo, and Kyle Cranmer 2018-20
 author = 'Johann Brehmer, Felix Kling, Irina Espejo, and Kyle Cranmer'
 
 # The short X.Y version
-version = '0.7.2'
+project_folder = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+version_file = os.path.join(project_folder, 'VERSION')
+version = open(version_file).read()
 # The full version, including alpha/beta/rc tags
 release = version
 
