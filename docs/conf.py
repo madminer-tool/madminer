@@ -24,7 +24,7 @@ copyright = 'Johann Brehmer, Felix Kling, Irina Espejo, and Kyle Cranmer 2018-20
 author = 'Johann Brehmer, Felix Kling, Irina Espejo, and Kyle Cranmer'
 
 # The short X.Y version
-version = '0.7.2'
+version = open('../VERSION').read()
 # The full version, including alpha/beta/rc tags
 release = version
 
