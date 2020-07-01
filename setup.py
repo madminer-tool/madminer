@@ -28,7 +28,6 @@ REQUIRED = [
     "scipy>=1.0.0",
     "h5py",
     "scikit-hep>=0.5.0, <0.6.0",
-    "scikit-learn>=0.19.0",         # Not used?
     "torch>=1.0.0",
     "uproot",
     "matplotlib>=2.0.0",
