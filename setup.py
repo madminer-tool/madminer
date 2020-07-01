@@ -23,14 +23,15 @@ REQUIRES_PYTHON = '>=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*, <4'
 VERSION = open('VERSION').read()
 
 REQUIRED = [
-    "six",
+    "future",
+    "h5py",
+    "matplotlib>=2.0.0",
     "numpy>=1.13.0",
     "scipy>=1.0.0",
-    "h5py",
     "scikit-hep>=0.5.0, <0.6.0",
+    "six",
     "torch>=1.0.0",
     "uproot",
-    "matplotlib>=2.0.0",
 ]
 
 EXTRAS = dict()
