@@ -6,7 +6,6 @@
 # Note: To use the 'upload' functionality of this file, you must:
 #   $ pip install twine
 
-import io
 import os
 import sys
 from shutil import rmtree
@@ -20,7 +19,6 @@ URL = 'https://github.com/johannbrehmer/madminer'
 EMAIL = 'johann.brehmer@nyu.edu'
 AUTHOR = 'Johann Brehmer, Felix Kling, Irina Espejo, Kyle Cranmer'
 REQUIRES_PYTHON = '>=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*, <4'
-VERSION = open('VERSION').read()
 
 REQUIRED = [
     "future",
@@ -66,18 +64,15 @@ here = os.path.abspath(os.path.dirname(__file__))
 # Import the README and use it as the long-description.
 # Note: this will only work if 'README.md' is present in your MANIFEST.in file!
 try:
-    with io.open(os.path.join(here, 'README.md'), encoding='utf-8') as f:
+    with open(os.path.join(here, 'README.md'), encoding='utf-8') as f:
         long_description = '\n' + f.read()
 except FileNotFoundError:
     long_description = DESCRIPTION
 
 # Load the package's __version__.py module as a dictionary.
 about = {}
-if not VERSION:
-    with open(os.path.join(here, NAME, '__version__.py')) as f:
-        exec(f.read(), about)
-else:
-    about['__version__'] = VERSION
+with open(os.path.join(here, NAME, '__version__.py')) as f:
+    exec(f.read(), about)
 
 
 class UploadCommand(Command):
