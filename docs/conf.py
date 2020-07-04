@@ -24,9 +24,12 @@ copyright = 'Johann Brehmer, Felix Kling, Irina Espejo, and Kyle Cranmer 2018-20
 author = 'Johann Brehmer, Felix Kling, Irina Espejo, and Kyle Cranmer'
 
 # The short X.Y version
+about = {}
 project_folder = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-version_file = os.path.join(project_folder, 'VERSION')
-version = open(version_file).read()
+with open(os.path.join(project_folder, 'madminer', '__version__.py')) as f:
+    exec(f.read(), about)
+
+version = about['__version__']
 # The full version, including alpha/beta/rc tags
 release = version
 
