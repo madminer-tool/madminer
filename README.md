@@ -1,6 +1,6 @@
 # MadMiner: Machine learning–based inference for particle physics
 
-**By Johann Brehmer, Felix Kling, Irina Espejo, and Kyle Cranmer**
+**By Johann Brehmer, Felix Kling, Irina Espejo, Sinclert Pérez, and Kyle Cranmer**
 
 [![PyPI version](https://badge.fury.io/py/madminer.svg)](https://badge.fury.io/py/madminer)
 [![Build Status](https://travis-ci.com/diana-hep/madminer.svg?branch=master)](https://travis-ci.com/diana-hep/madminer)
@@ -13,6 +13,8 @@
 
 
 ## Introduction
+
+![Schematics of the simulation and inference workflow](docs/img/rascal-explainer.png)
 
 Particle physics processes are usually modeled with complex Monte-Carlo simulations of the hard process, parton shower,
 and detector interactions. These simulators typically do not admit a tractable likelihood function: given a (potentially
@@ -116,12 +118,15 @@ The main references for the implemented inference techniques are the following:
 
 ## Acknowledgements
 
-We are immensely grateful to all contributors and bug reporters! In particular, we would like to thank Zubair Bhatti,
-Philipp Englert, Lukas Heinrich, Alexander Held, Samuel Homiller, and Duccio Pappadopulo.
+We are immensely grateful to all [contributors](https://github.com/diana-hep/madminer/graphs/contributors) and bug reporters! 
+In particular, we would like to thank Zubair Bhatti, Philipp Englert, Lukas Heinrich, Alexander Held, Samuel Homiller,
+and Duccio Pappadopulo.
 
 The SCANDAL inference method is based on [Masked Autoregressive Flows](https://arxiv.org/abs/1705.07057), and our
-implementation is a pyTorch port of the original code by George Papamakarios et al., which is available at
-[https://github.com/gpapamak/maf](https://github.com/gpapamak/maf).
-
-The [setup.py](setup.py) was adapted from
+implementation is a PyTorch port of the original code by George Papamakarios et al., which is available at
+[https://github.com/gpapamak/maf](https://github.com/gpapamak/maf). Our [setup.py](setup.py) was adapted from
 [https://github.com/kennethreitz/setup.py](https://github.com/kennethreitz/setup.py).
+
+![iris-hep logo](https://iris-hep.org/assets/logos/Iris-hep-4-no-long-name.png)
+
+We are grateful for the support of [iris-hep](https://iris-hep.org) and [diana-hep](https://diana-hep.org).
