@@ -12,14 +12,27 @@ from shutil import rmtree
 
 from setuptools import find_packages, setup, Command
 
+
+project_dir = os.path.abspath(os.path.dirname(__file__))
+
+# Import the README and use it as the long-description.
+with open(os.path.join(project_dir, 'README.md')) as f:
+    LONG_DESCRIPTION = '\n' + f.read()
+
+# Load the package's __version__.py module as a dictionary.
+info = {}
+with open(os.path.join(project_dir, 'madminer', '__info__.py')) as f:
+    exec(f.read(), info)
+
+
 # Package meta-data.
 NAME = 'madminer'
 DESCRIPTION = 'Mining gold from MadGraph to improve limit setting in particle physics.'
-URL = 'https://github.com/johannbrehmer/madminer'
+URL = 'https://github.com/diana-hep/madminer'
 EMAIL = 'johann.brehmer@nyu.edu'
-AUTHOR = 'Johann Brehmer, Felix Kling, Irina Espejo, Kyle Cranmer'
 REQUIRES_PYTHON = '>=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*, <4'
-
+AUTHORS = info['__authors__']
+VERSION = info['__version__']
 REQUIRED = [
     "future",
     "h5py",
@@ -32,8 +45,7 @@ REQUIRED = [
     "uproot",
 ]
 
-EXTRAS = dict()
-EXTRAS["docs"] = sorted(
+EXTRAS_DOCS = sorted(
     [
         "numpydoc",
         "recommonmark",
@@ -41,34 +53,17 @@ EXTRAS["docs"] = sorted(
         "sphinx_rtd_theme",
     ]
 )
-EXTRAS["test"] = sorted(
-    EXTRAS["docs"] +
-    [
+EXTRAS_TEST = sorted(
+    EXTRAS_DOCS + [
         "pytest",
     ]
 )
-EXTRAS["examples"] = sorted(
+EXTRAS_EXAMPLES = sorted(
     [
         "bqplot",
         "pandas",
     ]
 )
-
-# The rest you shouldn't have to touch too much :)
-# ------------------------------------------------
-# Except, perhaps the License and Trove Classifiers!
-# If you do change the License, remember to change the Trove Classifier for that!
-
-here = os.path.abspath(os.path.dirname(__file__))
-
-# Import the README and use it as the long-description.
-with open(os.path.join(here, 'README.md')) as f:
-    long_description = '\n' + f.read()
-
-# Load the package's __version__.py module as a dictionary.
-about = {}
-with open(os.path.join(here, NAME, '__version__.py')) as f:
-    exec(f.read(), about)
 
 
 class UploadCommand(Command):
@@ -91,7 +86,7 @@ class UploadCommand(Command):
     def run(self):
         try:
             self.status('Removing previous builds…')
-            rmtree(os.path.join(here, 'dist'))
+            rmtree(os.path.join(project_dir, 'dist'))
         except OSError:
             pass
 
@@ -102,7 +97,7 @@ class UploadCommand(Command):
         os.system('twine upload dist/*')
 
         self.status('Pushing git tags…')
-        os.system('git tag v{0}'.format(about['__version__']))
+        os.system('git tag v{0}'.format(VERSION))
         os.system('git push --tags')
 
         sys.exit()
@@ -110,23 +105,21 @@ class UploadCommand(Command):
 
 setup(
     name=NAME,
-    version=about['__version__'],
+    version=VERSION,
     description=DESCRIPTION,
-    long_description=long_description,
+    long_description=LONG_DESCRIPTION,
     long_description_content_type='text/markdown',
-    author=AUTHOR,
+    author=AUTHORS,
     author_email=EMAIL,
     python_requires=REQUIRES_PYTHON,
     url=URL,
     packages=find_packages(exclude=('tests',)),
-    # If your package is a single module, use this instead of 'packages':
-    # py_modules=['mypackage'],
-
-    # entry_points={
-    #     'console_scripts': ['mycli=mymodule:cli'],
-    # },
     install_requires=REQUIRED,
-    extras_require=EXTRAS,
+    extras_require={
+        "docs": EXTRAS_DOCS,
+        "test": EXTRAS_TEST,
+        "examples": EXTRAS_EXAMPLES,
+    },
     include_package_data=True,
     license='MIT',
     classifiers=[
