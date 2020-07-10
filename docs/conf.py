@@ -19,17 +19,16 @@ import os
 
 # -- Project information -----------------------------------------------------
 
-project = 'MadMiner'
-copyright = 'Johann Brehmer, Felix Kling, Irina Espejo, and Kyle Cranmer 2018-2020'
-author = 'Johann Brehmer, Felix Kling, Irina Espejo, and Kyle Cranmer'
-
-# The short X.Y version
-about = {}
+info = {}
 project_folder = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-with open(os.path.join(project_folder, 'madminer', '__version__.py')) as f:
-    exec(f.read(), about)
+with open(os.path.join(project_folder, 'madminer', '__info__.py')) as f:
+    exec(f.read(), info)
 
-version = about['__version__']
+project = 'MadMiner'
+authors = info['__authors__']
+version = info['__version__']
+copyright = '{} 2018-2020'.format(authors)
+
 # The full version, including alpha/beta/rc tags
 release = version
 
@@ -146,7 +145,7 @@ latex_elements = {
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
     (master_doc, 'MadMiner.tex', 'MadMiner Documentation',
-     'Johann Brehmer, Felix Kling, Irina Espejo, and Kyle Cranmer', 'manual'),
+     authors, 'manual'),
 ]
 
 
@@ -156,7 +155,7 @@ latex_documents = [
 # (source start file, name, description, authors, manual section).
 man_pages = [
     (master_doc, 'madminer', 'MadMiner Documentation',
-     [author], 1)
+     [authors], 1)
 ]
 
 
@@ -167,7 +166,7 @@ man_pages = [
 #  dir menu entry, description, category)
 texinfo_documents = [
     (master_doc, 'MadMiner', 'MadMiner Documentation',
-     author, 'MadMiner', 'One line description of project.',
+     authors, 'MadMiner', 'One line description of project.',
      'Miscellaneous'),
 ]
 
