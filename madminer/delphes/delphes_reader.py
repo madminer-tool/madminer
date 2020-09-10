@@ -776,6 +776,7 @@ class DelphesReader:
                 observables=OrderedDict(),
                 parse_events_as_xml=parse_lhe_events_as_xml,
                 systematics_dict=systematics_dict,
+                is_background=is_background,
             )
 
             logger.debug("Found weights %s in LHE file", list(this_weights.keys()))
