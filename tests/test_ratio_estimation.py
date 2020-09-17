@@ -1,5 +1,3 @@
-from __future__ import absolute_import, division, print_function, unicode_literals
-
 import os
 import numpy as np
 import logging
@@ -139,9 +137,9 @@ def test_ratio_estimation():
     for method, alpha in zip(methods, alphas):
         this_rmses = []
         for sample_size in sample_sizes:
-            print("Training method {} on {} samples".format(method, sample_size))
+            print(f"Training method {method} on {sample_size} samples")
             this_rmses.append(run_test(method, alpha, sample_size))
-            print("  -> MSE =", this_rmses[-1])
+            print(f"  -> MSE = {this_rmses[-1]}")
         rmses.append(this_rmses)
     rmses = np.asarray(rmses)
 
@@ -152,8 +150,6 @@ def test_ratio_estimation():
     print("------------------------------------------")
     for method, this_rmses in zip(methods, rmses):
         print(" {:>6s}  |  {:11.3f}  |  {:11.3f} ".format(method, this_rmses[0], this_rmses[1]))
-
-    print("")
 
     assert np.max(rmses[:, -1]) < 100.0
 
