@@ -1,5 +1,3 @@
-from __future__ import absolute_import, division, print_function, unicode_literals
-
 import logging
 import numpy as np
 import six
@@ -134,7 +132,7 @@ class DataAnalyzer(object):
             include_nuisance_parameters = self.include_nuisance_parameters
 
         sampling_benchmark = self._find_closest_benchmark(generated_close_to)
-        logger.debug("Sampling benchmark closest to %s: %s", generated_close_to, sampling_benchmark)
+        logger.debug(f"Sampling benchmark closest to {generated_close_to}: {sampling_benchmark}")
 
         if sampling_benchmark is None:
             sampling_factors = self._calculate_sampling_factors()
@@ -218,7 +216,7 @@ class DataAnalyzer(object):
             x = x[idx]
             weights_benchmarks = weights_benchmarks[idx]
         elif n_draws is not None:
-            logger.warning("Requested %s events, but only %s available", n_draws, n_events)
+            logger.warning(f"Requested {n_draws} events, but only {n_events} available")
 
         # Process and return appropriate weights
         if theta is None:
@@ -312,7 +310,7 @@ class DataAnalyzer(object):
                 partition, test_split, validation_split
             )
         else:
-            raise ValueError("Events has to be either 'all', 'train', or 'test', but got {}!".format(partition))
+            raise ValueError(f"Invalid partition type: {partition}")
 
         # Theta matrices (translation of benchmarks to theta, at nominal nuisance params)
         if thetas is None:
@@ -423,7 +421,7 @@ class DataAnalyzer(object):
             Calculated cross section gradients in pb with shape (n_gradients,).
         """
 
-        logger.debug("Calculating cross section gradients for thetas = %s and nus = %s", thetas, nus)
+        logger.debug(f"Calculating cross section gradients for thetas = {thetas} and nus = {nus}")
 
         # Inputs
         include_nuisance_benchmarks = nus is not None or gradients in ["all", "nu"]
@@ -431,7 +429,7 @@ class DataAnalyzer(object):
             nus = [None for _ in thetas]
         assert len(nus) == len(thetas), "Numbers of thetas and nus don't match!"
         if gradients not in ["all", "theta", "nu"]:
-            raise RuntimeError("Gradients has to be 'all', 'theta', or 'nu', but got {}".format(gradients))
+            raise RuntimeError(f"Invalid gradients type: {gradients}")
 
         # Which events to use
         if partition == "all":
@@ -442,7 +440,7 @@ class DataAnalyzer(object):
                 partition, test_split, validation_split
             )
         else:
-            raise ValueError("Events has to be either 'all', 'train', or 'test', but got {}!".format(partition))
+            raise ValueError(f"Invalid partition type: {partition}")
 
         # Theta matrices (translation of benchmarks to theta, at nominal nuisance params)
         theta_matrices = np.asarray(
@@ -465,7 +463,7 @@ class DataAnalyzer(object):
             )
         ):
             n_batch, _ = benchmark_weights.shape
-            logger.debug("Batch %s with %s events", i_batch + 1, n_batch)
+            logger.debug(f"Batch {i_batch+1} with {n_batch} events")
 
             if gradients in ["all", "theta"]:
                 nom_gradients = mdot(
@@ -512,31 +510,33 @@ class DataAnalyzer(object):
             )
 
     def _report_setup(self):
-        logger.info("Found %s parameters", self.n_parameters)
-        for i, (key, values) in enumerate(six.iteritems(self.parameters)):
-            logger.info("  %s: %s (%s)", i, key, " / ".join(str(x) for x in values))
+        logger.info(f"Found {self.n_parameters} parameters")
+        for i, (key, values) in enumerate(self.parameters.items()):
+            values_str = " / ".join(str(x) for x in values)
+            logger.info(f"  {i}: {key} ({values_str})")
 
         if self.nuisance_parameters is not None:
-            logger.info("Found %s nuisance parameters", self.n_nuisance_parameters)
-            for i, (key, values) in enumerate(six.iteritems(self.systematics)):
-                logger.info("  %s: %s (%s)", i, key, " / ".join(str(x) for x in values))
+            logger.info(f"Found {self.n_nuisance_parameters} nuisance parameters")
+            for i, (key, values) in enumerate(self.systematics.items()):
+                values_str = " / ".join(str(x) for x in values)
+                logger.info(f"  {i}: {key} ({values_str})")
         else:
             logger.info("Did not find nuisance parameters")
             self.include_nuisance_parameters = False
 
-        logger.info("Found %s benchmarks, of which %s physical", self.n_benchmarks, self.n_benchmarks_phys)
+        logger.info(f"Found {self.n_benchmarks} benchmarks")
         for (key, values), is_nuisance in zip(six.iteritems(self.benchmarks), self.benchmark_is_nuisance):
             if is_nuisance:
                 logger.debug("   %s: systematics", key)
             else:
                 logger.debug("   %s: %s", key, format_benchmark(values))
 
-        logger.info("Found %s observables", self.n_observables)
+        logger.info(f"Found {self.n_observables} observables")
         if self.observables is not None:
             for i, obs in enumerate(self.observables):
                 logger.debug("  %2.2s %s", i, obs)
 
-        logger.info("Found %s events", self.n_samples)
+        logger.info(f"Found {self.n_samples} events")
         if self.n_events_generated_per_benchmark is not None:
             for events, name in zip(self.n_events_generated_per_benchmark, six.iterkeys(self.benchmarks)):
                 if events > 0:
@@ -765,7 +765,7 @@ class DataAnalyzer(object):
                 end_event = int(round((1.0 - test_split) * self.n_samples, 0))
                 correction_factor = 1.0 / (1.0 - test_split)
                 if end_event < 0 or end_event > self.n_samples:
-                    raise ValueError("Irregular train / test split: sample {} / {}", end_event, self.n_samples)
+                    raise ValueError(f"Irregular split: sample {end_event} / {self.n_samples}")
 
         else:
             if test_split is None or test_split <= 0.0 or test_split >= 1.0:
@@ -775,7 +775,7 @@ class DataAnalyzer(object):
                 start_event = int(round((1.0 - test_split) * self.n_samples, 0)) + 1
                 correction_factor = 1.0 / test_split
                 if start_event < 0 or start_event > self.n_samples:
-                    raise ValueError("Irregular train / test split: sample {} / {}", start_event, self.n_samples)
+                    raise ValueError(f"Irregular split: sample {start_event} / {self.n_samples}")
 
             end_event = None
 
@@ -826,9 +826,7 @@ class DataAnalyzer(object):
                 correction_factor = 1.0 / train_split
 
                 if end_event < 0 or end_event > self.n_samples:
-                    raise ValueError(
-                        "Irregular train / validation / test split: sample {} / {}", end_event, self.n_samples
-                    )
+                    raise ValueError(f"Irregular split: sample {end_event} / {self.n_samples}")
 
         elif partition == "validation":
             if validation_split is None or validation_split <= 0.0 or validation_split >= 1.0:
@@ -842,13 +840,10 @@ class DataAnalyzer(object):
                 correction_factor = 1.0 / validation_split
 
                 if start_event < 0 or start_event > self.n_samples:
-                    raise ValueError(
-                        "Irregular train / validation / test  split: sample {} / {}", start_event, self.n_samples
-                    )
+                    raise ValueError(f"Irregular split: sample {start_event} / {self.n_samples}")
+
                 if end_event < 0 or end_event > self.n_samples:
-                    raise ValueError(
-                        "Irregular train / validation / test split: sample {} / {}", end_event, self.n_samples
-                    )
+                    raise ValueError(f"Irregular split: sample {end_event} / {self.n_samples}")
 
         elif partition == "test":
             end_event = None
@@ -860,12 +855,10 @@ class DataAnalyzer(object):
                 start_event = int(round((1.0 - test_split) * self.n_samples, 0)) + 1
                 correction_factor = 1.0 / test_split
                 if start_event < 0 or start_event > self.n_samples:
-                    raise ValueError(
-                        "Irregular train / validation / test split: sample {} / {}", start_event, self.n_samples
-                    )
+                    raise ValueError(f"Irregular split: sample {start_event} / {self.n_samples}")
 
         else:
-            raise RuntimeError("Unknown partition {}, has to be 'train', 'validation', or 'test'.")
+            raise RuntimeError(f"Unknown partition {partition}")
 
         return start_event, end_event, correction_factor
 
@@ -950,7 +943,7 @@ class DataAnalyzer(object):
 
     def _calculate_sampling_factors(self):
         events = np.asarray(self.n_events_generated_per_benchmark, dtype=np.float)
-        logger.debug("Events per benchmark: %s", events)
+        logger.debug(f"Events per benchmark: {events}")
         factors = events / np.sum(events)
         factors = np.hstack((factors, 1.0))  # background events
         return factors
