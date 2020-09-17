@@ -7,9 +7,9 @@ services:
 - docker
 language: python
 python:
-- '2.7'
-- '3.5'
 - '3.6'
+- '3.7'
+- '3.8'
 install:
 - pip install -q --no-cache-dir -e .
 - travis_wait pip install -q --no-cache-dir -e .
