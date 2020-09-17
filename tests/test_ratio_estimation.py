@@ -1,23 +1,20 @@
 import os
 import numpy as np
 import logging
+
+from madminer import ParameterizedRatioEstimator
 from scipy.stats import norm
+
 
 # MadMiner output
 logging.basicConfig(
-    format="%(asctime)-5.5s %(name)-20.20s %(levelname)-7.7s %(message)s", datefmt="%H:%M", level=logging.WARNING
+    format="%(asctime)-5.5s %(name)-20.20s %(levelname)-7.7s %(message)s",
+    datefmt="%H:%M",
+    level=logging.WARNING,
 )
-
-# Output of all other modules (e.g. matplotlib)
-for key in logging.Logger.manager.loggerDict:
-    if "madminer" not in key:
-        logging.getLogger(key).setLevel(logging.WARNING)
-
-from madminer import ParameterizedRatioEstimator
 
 if not os.path.exists("tests/data"):
     os.makedirs("tests/data")
-
 
 # Simulator settings
 z_std = 2.0
@@ -32,21 +29,20 @@ def simulate(theta, theta0=None, theta1=None, theta_score=None, npoints=None):
     # Draw observable
     x = np.random.normal(loc=z, scale=x_std, size=None)
 
+    r_xz = None
+    t_xz = None
+
     # Calculate joint likelihood ratio and joint score
     if theta0 is not None and theta1 is not None:
         r_xz = norm(loc=theta0, scale=z_std).pdf(z) / norm(loc=theta1, scale=z_std).pdf(z)
-    else:
-        r_xz = None
 
     if theta_score is not None:
         t_xz = (x - theta_score) / z_std ** 2
-    else:
-        t_xz = None
 
     return x, r_xz, t_xz
 
 
-# True likeleihood ratio function
+# True likelihood ratio function
 def calculate_likelihood_ratio(x, theta0, theta1=0.0):
     combined_std = (z_std ** 2 + x_std ** 2) ** 0.5
     r_x = norm(loc=theta0, scale=combined_std).pdf(x) / norm(loc=theta1, scale=combined_std).pdf(x)
@@ -54,7 +50,7 @@ def calculate_likelihood_ratio(x, theta0, theta1=0.0):
 
 
 def generate_data(sample_sizes):
-    # Run simulator and generate etraining data
+    # Run simulator and generate training data
     n_param_points = max(sample_sizes) // 2  # number of parameter points to train
 
     theta0 = np.random.uniform(low=-4.0, high=4.0, size=n_param_points)  # numerator, uniform prior
@@ -116,13 +112,13 @@ def run_test(method, alpha, sample_size):
 
     # Evaluation
     log_r_tests_alices, _ = estimator.evaluate(
-        theta="tests/data/theta_grid.npy", x="tests/data/x_test.npy", evaluate_score=False
+        theta="tests/data/theta_grid.npy",
+        x="tests/data/x_test.npy",
+        evaluate_score=False,
     )
 
     # Calculate error
-    rmse = np.mean((log_r_test_true - log_r_tests_alices) ** 2)
-
-    return rmse
+    return np.mean((log_r_test_true - log_r_tests_alices) ** 2)
 
 
 def test_ratio_estimation():
