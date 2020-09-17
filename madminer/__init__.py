@@ -2,9 +2,20 @@ from .__info__ import __authors__, __version__
 from .analysis import DataAnalyzer
 from .core import MadMiner
 from .delphes import DelphesReader
-from .fisherinformation import FisherInformation, InformationGeometry, profile_information, project_information
+from .fisherinformation import (
+    FisherInformation,
+    InformationGeometry,
+    profile_information,
+    project_information,
+)
 from .lhe import LHEReader
-from .likelihood import HistoLikelihood, NeuralLikelihood, fix_params, project_log_likelihood, profile_log_likelihood
+from .likelihood import (
+    HistoLikelihood,
+    NeuralLikelihood,
+    fix_params,
+    project_log_likelihood,
+    profile_log_likelihood,
+)
 from .limits import AsymptoticLimits
 from .ml import (
     ParameterizedRatioEstimator,
