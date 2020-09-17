@@ -113,7 +113,7 @@ class DataAnalyzer(object):
             at the closest benchmark point to a given parameter point.
 
         return_sampling_ids : bool, optional
-            If True, the iterator returns the sampling IDs in additioin to observables and weights.
+            If True, the iterator returns the sampling IDs in addition to observables and weights.
 
         Yields
         ------
@@ -206,11 +206,17 @@ class DataAnalyzer(object):
         """
 
         x, weights_benchmarks = next(
-            self.event_loader(batch_size=None, start=start_event, end=end_event, generated_close_to=generated_close_to)
+            self.event_loader(
+                start=start_event,
+                end=end_event,
+                batch_size=None,
+                generated_close_to=generated_close_to,
+            )
         )
 
         # Pick events randomly
         n_events = len(x)
+
         if n_draws is not None and n_draws < n_events:
             idx = np.random.choice(n_events, n_draws, replace=False)
             x = x[idx]
@@ -232,7 +238,7 @@ class DataAnalyzer(object):
         else:
             # TODO: nuisance params
             if nu is not None:
-                raise NotImplementedError
+                raise NotImplementedError()
             theta_matrix = self._get_theta_benchmark_matrix(theta)
             weights_theta = mdot(theta_matrix, weights_benchmarks)
             return x, weights_theta
@@ -399,11 +405,14 @@ class DataAnalyzer(object):
              account. Otherwise, the list has to have the same number of elements as thetas, and each entry can specify
              nuisance parameters at nominal value (None) or a value of the nuisance parameters (ndarray).
 
+        partition : {"train", "test", "validation", "all"}, optional
+            Which events to use. Default: "all".
+
         test_split : float, optional
             Fraction of events reserved for testing. Default value: 0.2.
 
-        partition : {"train", "test", "validation", "all"}, optional
-            Which events to use. Default: "all".
+        validation_split : float, optional
+            Fraction of weighted events reserved for validation. Default value: 0.2.
 
         gradients : {"all", "theta", "nu"}, optional
             Which gradients to calculate. Default value: "all".
@@ -446,6 +455,7 @@ class DataAnalyzer(object):
         theta_matrices = np.asarray(
             [self._get_theta_benchmark_matrix(theta) for theta in thetas]
         )  # shape (n_thetas, n_benchmarks)
+
         theta_gradient_matrices = np.asarray(
             [self._get_dtheta_benchmark_matrix(theta) for theta in thetas]
         )  # shape (n_thetas, n_gradients, n_benchmarks)
@@ -640,7 +650,6 @@ class DataAnalyzer(object):
         n_events, _ = benchmark_weights.shape
 
         # Inputs
-        include_nuisance_benchmarks = nus is not None
         if nus is None:
             nus = [None for _ in thetas]
         assert len(nus) == len(thetas), "Numbers of thetas and nus don't match!"
@@ -935,9 +944,8 @@ class DataAnalyzer(object):
             if mode == "fd":
                 raise RuntimeError("Cannot calculate score for arbitrary parameter points without morphing setup")
 
-            dtheta_matrix = self.morpher.calculate_morphing_weight_gradient(
-                theta
-            )  # Shape (n_parameters, n_benchmarks_phys)
+            # Shape (n_parameters, n_benchmarks_phys)
+            dtheta_matrix = self.morpher.calculate_morphing_weight_gradient(theta)
 
         return dtheta_matrix
 
