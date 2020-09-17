@@ -1,6 +1,5 @@
 import logging
 import numpy as np
-import six
 
 from madminer.utils.interfaces.madminer_hdf5 import load_madminer_settings, madminer_event_loader
 from madminer.utils.morphing import PhysicsMorpher, NuisanceMorpher
@@ -225,7 +224,7 @@ class DataAnalyzer(object):
         # Process and return appropriate weights
         if theta is None:
             return x, weights_benchmarks
-        elif isinstance(theta, six.string_types):
+        elif isinstance(theta, str):
             i_benchmark = list(self.benchmarks.keys()).index(theta)
             return x, weights_benchmarks[:, i_benchmark]
         elif derivative:
@@ -520,7 +519,7 @@ class DataAnalyzer(object):
 
     def _report_setup(self):
         logger.info("Found %s parameters", self.n_parameters)
-        for key, values in six.iteritems(self.parameters):
+        for key, values in self.parameters.items():
             logger.debug(
                 "   %s (LHA: %s %s, maximal power in squared ME: %s, range: %s)",
                 key,
@@ -532,14 +531,14 @@ class DataAnalyzer(object):
 
         if self.nuisance_parameters is not None:
             logger.info(f"Found {self.n_nuisance_parameters} nuisance parameters")
-            for key, values in six.iteritems(self.nuisance_parameters):
+            for key, values in self.nuisance_parameters.items():
                 logger.debug("   %s (%s)", key, values)
         else:
             logger.info("Did not find nuisance parameters")
             self.include_nuisance_parameters = False
 
         logger.info(f"Found {self.n_benchmarks} benchmarks")
-        for (key, values), is_nuisance in zip(six.iteritems(self.benchmarks), self.benchmark_is_nuisance):
+        for (key, values), is_nuisance in zip(self.benchmarks.items(), self.benchmark_is_nuisance):
             if is_nuisance:
                 logger.debug("   %s: systematics", key)
             else:
@@ -552,7 +551,7 @@ class DataAnalyzer(object):
 
         logger.info(f"Found {self.n_samples} events")
         if self.n_events_generated_per_benchmark is not None:
-            for events, name in zip(self.n_events_generated_per_benchmark, six.iterkeys(self.benchmarks)):
+            for events, name in zip(self.n_events_generated_per_benchmark, self.benchmarks.keys()):
                 if events > 0:
                     logger.info("  %s signal events sampled from benchmark %s", events, name)
             if self.n_events_backgrounds is not None and self.n_events_backgrounds > 0:
@@ -834,7 +833,7 @@ class DataAnalyzer(object):
         return start_event, end_event, correction_factor
 
     def _get_theta_value(self, theta):
-        if isinstance(theta, six.string_types):
+        if isinstance(theta, str):
             benchmark = self.benchmarks[theta]
             theta_value = np.array([benchmark[key] for key in benchmark])
         elif isinstance(theta, int):
@@ -859,7 +858,7 @@ class DataAnalyzer(object):
             theta_matrix = np.zeros(self.n_benchmarks)
             theta_matrix[: unpadded_theta_matrix.shape[0]] = unpadded_theta_matrix
 
-        elif isinstance(theta, six.string_types):
+        elif isinstance(theta, str):
             i_benchmark = list(self.benchmarks).index(theta)
             theta_matrix = self._get_theta_benchmark_matrix(i_benchmark)
 
@@ -884,14 +883,14 @@ class DataAnalyzer(object):
             dtheta_matrix = np.zeros((unpadded_theta_matrix.shape[0], self.n_benchmarks))
             dtheta_matrix[:, : unpadded_theta_matrix.shape[1]] = unpadded_theta_matrix
 
-        elif isinstance(theta, six.string_types):
+        elif isinstance(theta, str):
             benchmark = self.benchmarks[theta]
-            benchmark = np.array([value for _, value in six.iteritems(benchmark)])
+            benchmark = np.array([value for _, value in benchmark.items()])
             dtheta_matrix = self._get_dtheta_benchmark_matrix(benchmark)
 
         elif isinstance(theta, int):
             benchmark = self.benchmarks[list(self.benchmarks.keys())[theta]]
-            benchmark = np.array([value for _, value in six.iteritems(benchmark)])
+            benchmark = np.array([value for _, value in benchmark.items()])
             dtheta_matrix = self._get_dtheta_benchmark_matrix(benchmark)
 
         else:
@@ -922,7 +921,6 @@ class DataAnalyzer(object):
         return closest_idx
 
     def _benchmark_array(self):
-        benchmarks_array = []
-        for benchmark in six.itervalues(self.benchmarks):
-            benchmarks_array.append(list(six.itervalues(benchmark)))
-        return np.asarray(benchmarks_array)
+        return np.asarray([
+            benchmark.values() for benchmark in self.benchmarks.values()
+        ])
