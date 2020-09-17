@@ -15,13 +15,13 @@
 # import sys
 # sys.path.insert(0, os.path.abspath('.'))
 
-import os
+from pathlib import Path
 
 # -- Project information -----------------------------------------------------
 
 info = {}
-project_folder = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-with open(os.path.join(project_folder, 'madminer', '__info__.py')) as f:
+project_folder = Path(__file__).parent.parent
+with open(project_folder.joinpath('madminer', '__info__.py')) as f:
     exec(f.read(), info)
 
 project = 'MadMiner'
