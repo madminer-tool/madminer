@@ -1,6 +1,5 @@
 import logging
 import numpy as np
-import six
 
 from madminer.utils.interfaces.madminer_hdf5 import load_madminer_settings, madminer_event_loader
 from madminer.utils.morphing import PhysicsMorpher, NuisanceMorpher
@@ -227,7 +226,7 @@ class DataAnalyzer(object):
         # Process and return appropriate weights
         if theta is None:
             return x, weights_benchmarks
-        elif isinstance(theta, six.string_types):
+        elif isinstance(theta, str):
             i_benchmark = list(self.benchmarks.keys()).index(theta)
             return x, weights_benchmarks[:, i_benchmark]
         elif derivative:
@@ -535,7 +534,7 @@ class DataAnalyzer(object):
             self.include_nuisance_parameters = False
 
         logger.info(f"Found {self.n_benchmarks} benchmarks")
-        for (key, values), is_nuisance in zip(six.iteritems(self.benchmarks), self.benchmark_is_nuisance):
+        for (key, values), is_nuisance in zip(self.benchmarks.items(), self.benchmark_is_nuisance):
             if is_nuisance:
                 logger.debug("   %s: systematics", key)
             else:
@@ -548,7 +547,7 @@ class DataAnalyzer(object):
 
         logger.info(f"Found {self.n_samples} events")
         if self.n_events_generated_per_benchmark is not None:
-            for events, name in zip(self.n_events_generated_per_benchmark, six.iterkeys(self.benchmarks)):
+            for events, name in zip(self.n_events_generated_per_benchmark, self.benchmarks.keys()):
                 if events > 0:
                     logger.info("  %s signal events sampled from benchmark %s", events, name)
             if self.n_events_backgrounds is not None and self.n_events_backgrounds > 0:
@@ -582,17 +581,19 @@ class DataAnalyzer(object):
         matrix = np.zeros(
             (self.n_benchmarks, self.n_parameters, self.n_benchmarks)
         )  # (n_thetas, n_gradients, n_benchmarks)
-        benchmark_names = list(six.iterkeys(self.benchmarks))
 
-        # We'll generally try to find the tupels p, i, j, k such that matrix[i, p, j] = - 1 / eps and matrix[i, p, i] = 1 / eps
+        benchmark_names = list(self.benchmarks.keys())
 
-        for i, benchmark in enumerate(six.iterkeys(self.benchmarks)):
-            # For the FD-shited benchmarks, we assume that the gradients are the same as at the original point, and will just copy the matrix later
+        # We'll generally try to find the tuples p, i, j, k such that
+        # matrix[i, p, j] = - 1 / eps and matrix[i, p, i] = 1 / eps
+        for i, benchmark in enumerate(self.benchmarks.keys()):
+            # For the FD-shifted benchmarks, we assume that the gradients are
+            # the same as at the original point, and will just copy the matrix later
             copy_to = []
             if benchmark not in self.finite_difference_benchmarks:
                 continue
 
-            for p, param in enumerate(six.iterkeys(self.parameters)):
+            for p, param in enumerate(self.parameters.keys()):
                 shifted_benchmark = self.finite_difference_benchmarks[benchmark][param]
                 j = benchmark_names.index(shifted_benchmark)
                 copy_to.append(j)
@@ -872,7 +873,7 @@ class DataAnalyzer(object):
         return start_event, end_event, correction_factor
 
     def _get_theta_value(self, theta):
-        if isinstance(theta, six.string_types):
+        if isinstance(theta, str):
             benchmark = self.benchmarks[theta]
             theta_value = np.array([benchmark[key] for key in benchmark])
         elif isinstance(theta, int):
@@ -897,7 +898,7 @@ class DataAnalyzer(object):
             theta_matrix = np.zeros(self.n_benchmarks)
             theta_matrix[: unpadded_theta_matrix.shape[0]] = unpadded_theta_matrix
 
-        elif isinstance(theta, six.string_types):
+        elif isinstance(theta, str):
             i_benchmark = list(self.benchmarks).index(theta)
             theta_matrix = self._get_theta_benchmark_matrix(i_benchmark)
 
@@ -921,18 +922,18 @@ class DataAnalyzer(object):
             dtheta_matrix = np.zeros((unpadded_theta_matrix.shape[0], self.n_benchmarks))
             dtheta_matrix[:, : unpadded_theta_matrix.shape[1]] = unpadded_theta_matrix
 
-        elif isinstance(theta, six.string_types) and mode == "morphing":
+        elif isinstance(theta, str) and mode == "morphing":
             benchmark = self.benchmarks[theta]
-            benchmark = np.array([value for _, value in six.iteritems(benchmark)])
+            benchmark = np.array([value for _, value in benchmark.items()])
             dtheta_matrix = self._get_dtheta_benchmark_matrix(benchmark)
 
         elif isinstance(theta, int) and mode == "morphing":
             benchmark = self.benchmarks[list(self.benchmarks.keys())[theta]]
-            benchmark = np.array([value for _, value in six.iteritems(benchmark)])
+            benchmark = np.array([value for _, value in benchmark.items()])
             dtheta_matrix = self._get_dtheta_benchmark_matrix(benchmark)
 
-        elif isinstance(theta, six.string_types):  # finite differences
-            benchmark_id = list(six.iterkeys(self.benchmarks)).index(theta)
+        elif isinstance(theta, str):
+            benchmark_id = list(self.benchmarks.keys()).index(theta)
             dtheta_matrix = self._get_dtheta_benchmark_matrix(benchmark_id)
 
         elif isinstance(theta, int):  # finite differences
@@ -971,7 +972,6 @@ class DataAnalyzer(object):
         return closest_idx
 
     def _benchmark_array(self):
-        benchmarks_array = []
-        for benchmark in six.itervalues(self.benchmarks):
-            benchmarks_array.append(list(six.itervalues(benchmark)))
-        return np.asarray(benchmarks_array)
+        return np.asarray([
+            benchmark.values() for benchmark in self.benchmarks.values()
+        ])
