@@ -8,20 +8,21 @@
 
 import os
 import sys
+from pathlib import Path
 from shutil import rmtree
 
 from setuptools import find_packages, setup, Command
 
 
-project_dir = os.path.abspath(os.path.dirname(__file__))
+project_dir = Path(__file__).parent
 
 # Import the README and use it as the long-description.
-with open(os.path.join(project_dir, 'README.md')) as f:
+with open(project_dir.joinpath('README.md')) as f:
     LONG_DESCRIPTION = '\n' + f.read()
 
 # Load the package's __version__.py module as a dictionary.
 info = {}
-with open(os.path.join(project_dir, 'madminer', '__info__.py')) as f:
+with open(project_dir.joinpath('madminer', '__info__.py')) as f:
     exec(f.read(), info)
 
 
@@ -30,17 +31,15 @@ NAME = 'madminer'
 DESCRIPTION = 'Mining gold from MadGraph to improve limit setting in particle physics.'
 URL = 'https://github.com/diana-hep/madminer'
 EMAIL = 'johann.brehmer@nyu.edu'
-REQUIRES_PYTHON = '>=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*, <4'
+REQUIRES_PYTHON = '>=3.6, <4'
 AUTHORS = info['__authors__']
 VERSION = info['__version__']
 REQUIRED = [
-    "future",
     "h5py",
     "matplotlib>=2.0.0",
     "numpy>=1.13.0",
     "scipy>=1.0.0",
     "scikit-hep>=0.5.0, <0.6.0",
-    "six",
     "torch>=1.0.0",
     "uproot",
 ]
@@ -129,6 +128,8 @@ setup(
         'Programming Language :: Python',
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.8',
     ],
     # $ setup.py publish support.
     cmdclass={
