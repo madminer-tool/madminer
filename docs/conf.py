@@ -40,8 +40,7 @@ release = version
 # needs_sphinx = '1.0'
 
 # Add any Sphinx extension module names here, as strings. They can be
-# extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
-# ones.
+# extensions coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
 extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.viewcode',
@@ -56,7 +55,6 @@ templates_path = ['_templates']
 # You can specify multiple suffix as a list of string:
 #
 source_suffix = ['.rst', '.md']
-#source_suffix = '.rst'
 
 # Markdown support
 from recommonmark.parser import CommonMarkParser
@@ -107,11 +105,11 @@ html_static_path = ['_static']
 #
 # The default sidebars (for documents that don't match any pattern) are
 # defined by theme itself.  Builtin themes are using these templates by
-# default: ``['localtoc.html', 'relations.html', 'sourcelink.html',
-# 'searchbox.html']``.
+# default: ``['localtoc.html', 'relations.html', 'sourcelink.html', 'searchbox.html']``.
 #
-# html_sidebars = {"toc.rst"}
-html_sidebars = { '**': ['globaltoc.html', 'relations.html', 'sourcelink.html', 'searchbox.html'] }
+html_sidebars = {
+    '**': ['globaltoc.html', 'relations.html', 'sourcelink.html', 'searchbox.html'],
+}
 
 
 # -- Options for HTMLHelp output ---------------------------------------------
@@ -154,8 +152,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    (master_doc, 'madminer', 'MadMiner Documentation',
-     [authors], 1)
+    (master_doc, 'madminer', 'MadMiner Documentation', [authors], 1),
 ]
 
 
