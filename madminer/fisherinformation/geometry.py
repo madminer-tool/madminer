@@ -20,7 +20,7 @@ class InformationGeometry:
     one of the following functions
 
     * `InformationGeometry.information_from_formula()` defines the Fisher Information
-    explicitly as function of the theory paramters `theta`.
+    explicitly as function of the theory parameters `theta`.
     * `InformationGeometry.information_from_grid()` loads a grid of Fisher Informations
     which is then interpolated.
 
@@ -38,7 +38,7 @@ class InformationGeometry:
     def information_from_formula(self, formula, dimension):
         """
         Explicitly defines the Fisher Information as function of the theory parameter `theta`
-        through a formula that can be avaulated using `eval()`.
+        through a formula that can be evaluated using `eval()`.
 
         Parameters
         ----------
@@ -300,7 +300,7 @@ class InformationGeometry:
 
         grid_ranges : list of (tuple of float)
             Specifies the boundaries of the parameter grid in which the trajectory
-            is evaulated. It should be `[[min, max], [min, max], ..., [min, max]`,
+            is evaluated. It should be `[[min, max], [min, max], ..., [min, max]`,
             where the list goes over all parameters and `min` and `max` are float.
 
         grid_resolutions : list of int
@@ -342,12 +342,13 @@ class InformationGeometry:
         """
 
         # automatic setting of stepsize and ntrajectories
-        if stepsize == None:
+        if stepsize is None:
             stepsize = min([(limit[1] - limit[0]) / 20.0 for limit in grid_ranges])
-        if ntrajectories == None:
+        if ntrajectories is None:
             ntrajectories = 20 * self.dimension
         if self.dimension is not 2:
             continous_sampling = False
+
         limits = (1.0 + 2.0 * stepsize) * np.array(grid_ranges)
 
         # determine trajectories
