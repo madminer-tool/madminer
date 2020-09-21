@@ -84,7 +84,7 @@ class AsymptoticLimits(DataAnalyzer):
         `x_observed` specifies the observed data as an array of observables, using the same observables and their order
         as used throughout the MadMiner workflow.
 
-        The p-values with frequentist hypothesis tests using the likelihood ratio as test statistic. The asymptotic
+        The p-values with frequent hypothesis tests using the likelihood ratio as test statistic. The asymptotic
         approximation is used, see https://arxiv.org/abs/1007.1727.
 
         Depending on the keyword `mode`, the likelihood ratio is calculated with one of several different methods:
@@ -243,7 +243,8 @@ class AsymptoticLimits(DataAnalyzer):
         """
         if n_observed is None:
             n_observed = len(x_observed)
-        results = self._analyse(
+
+        return self._analyse(
             n_observed,
             x_observed,
             grid_ranges,
@@ -269,7 +270,6 @@ class AsymptoticLimits(DataAnalyzer):
             n_binning_toys=n_binning_toys,
             thetas_eval=thetas_eval,
         )
-        return results
 
     def expected_limits(
         self,
@@ -472,9 +472,11 @@ class AsymptoticLimits(DataAnalyzer):
             test_split=test_split,
             n_asimov=n_asimov,
         )
+
         n_observed = luminosity * self._calculate_xsecs([theta_true])[0]
         logger.info("Expected events: %s", n_observed)
-        results = self._analyse(
+
+        return self._analyse(
             n_observed,
             x_asimov,
             grid_ranges,
@@ -501,7 +503,6 @@ class AsymptoticLimits(DataAnalyzer):
             n_binning_toys=n_binning_toys,
             thetas_eval=thetas_eval,
         )
-        return results
 
     def asymptotic_p_value(self, log_likelihood_ratio, dof=None):
         """
@@ -525,9 +526,9 @@ class AsymptoticLimits(DataAnalyzer):
         """
         if dof is None:
             dof = self.n_parameters
+
         q = -2.0 * log_likelihood_ratio
-        p_value = chi2.sf(x=q, df=dof)
-        return p_value
+        return chi2.sf(x=q, df=dof)
 
     def _analyse(
         self,
@@ -716,6 +717,7 @@ class AsymptoticLimits(DataAnalyzer):
             histo_data = (histos, processed_summary_stats, obs_weights)
         elif return_histos:
             histo_data = histos
+
         return theta_grid, p_values, i_ml, log_r_kin, log_p_xsec, histo_data
 
     def _find_bins(self, mode, hist_bins, summary_stats):
@@ -724,6 +726,7 @@ class AsymptoticLimits(DataAnalyzer):
             n_summary_stats += 1
         elif mode == "sallino":
             n_summary_stats = 1
+
         # Bin numbers
         if hist_bins is None:
             if mode == "adaptive-sally" and n_summary_stats == 2:
@@ -749,13 +752,13 @@ class AsymptoticLimits(DataAnalyzer):
         else:
             n_bins_each = [n_bins if isinstance(n_bins, int) else len(n_bins) - 1 for n_bins in hist_bins]
             total_n_bins = np.prod(n_bins_each)
+
         return hist_bins, n_bins_each, n_summary_stats, total_n_bins
 
     def _make_summary_statistic_function(self, mode, model=None, observables=None):
         if mode == "observables":
             assert observables is not None
             x_indices = self._find_x_indices(observables)
-
             logger.debug("Preparing observables %s as summary statistic function", x_indices)
 
             def summary_function(x):
@@ -1000,17 +1003,21 @@ class AsymptoticLimits(DataAnalyzer):
 
     def _fixed_adaptive_binning(self, n_toys, processor, summary_function, test_split, thetas_binning, x_bins):
         summary_stats, all_weights = self._make_weighted_histo_data(
-            summary_function, thetas_binning, n_toys, test_split=test_split
+            summary_function=summary_function,
+            thetas=thetas_binning,
+            n_toys=n_toys,
+            test_split=test_split,
         )
+
         all_weights = np.asarray(all_weights)
         weights = np.mean(all_weights, axis=0)
         if processor is None:
             data = summary_stats
         else:
             data = processor(summary_stats, thetas_binning)
+
         histo = Histo(data, weights, x_bins, epsilon=1.0e-12)
-        x_bins = histo.edges
-        return x_bins
+        return histo.edges
 
     def _make_weighted_histo_data(self, summary_function, thetas, n_toys, test_split=0.2):
         # Get weighted events
