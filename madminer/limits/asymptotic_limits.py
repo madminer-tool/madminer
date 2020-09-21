@@ -690,7 +690,7 @@ class AsymptoticLimits(DataAnalyzer):
             log_r_kin = n_events * np.sum(log_r_kin * obs_weights[np.newaxis, :], axis=1)
 
         else:
-            raise ValueError("Unknown mode {}, has to be 'ml' or 'histo' or 'xsec'".format(mode))
+            raise ValueError(f"Unknown mode {mode}")
 
         # xsec part
         if include_xsec:
@@ -783,7 +783,7 @@ class AsymptoticLimits(DataAnalyzer):
                     return score
 
         else:
-            raise RuntimeError("Unknown mode {}, has to be 'observables' or 'sally'".format(mode))
+            raise RuntimeError(f"Unknown mode {mode}")
 
         return summary_function
 
@@ -855,7 +855,7 @@ class AsymptoticLimits(DataAnalyzer):
                 return postprocessing(h)
 
         else:
-            raise RuntimeError("Unknown score processing mode {} for summary stats dimension {}".format(mode, dim))
+            raise RuntimeError(f"Unknown score processing mode {mode} for summary stats dimension {dim}")
 
         return processor
 
@@ -1052,7 +1052,7 @@ class AsymptoticLimits(DataAnalyzer):
             try:
                 x_indices.append(x_names.index(obs))
             except ValueError:
-                raise RuntimeError("Unknown observable {}, has to be one of {}".format(obs, x_names))
+                raise RuntimeError(f"Unknown observable {obs}")
         logger.debug("Using x indices %s", x_indices)
         return x_indices
 
