@@ -241,8 +241,13 @@ class DelphesReader:
                 logger.info("Running Delphes on HepMC sample at %s", hepmc_filename)
 
             delphes_sample_filename = run_delphes(
-                delphes_directory, delphes_card, hepmc_filename, initial_command=initial_command, log_file=log_file
+                delphes_directory=delphes_directory,
+                delphes_card_filename=delphes_card,
+                hepmc_sample_filename=hepmc_filename,
+                initial_command=initial_command,
+                log_file=log_file,
             )
+
             self.delphes_sample_filenames[i] = delphes_sample_filename
 
     def set_acceptance(
@@ -527,7 +532,11 @@ class DelphesReader:
         self.cuts_default_pass = []
 
     def analyse_delphes_samples(
-        self, generator_truth=False, delete_delphes_files=False, reference_benchmark=None, parse_lhe_events_as_xml=True
+        self,
+        generator_truth=False,
+        delete_delphes_files=False,
+        reference_benchmark=None,
+        parse_lhe_events_as_xml=True,
     ):
         """
         Main function that parses the Delphes samples (ROOT files), checks acceptance and cuts, and extracts
@@ -674,6 +683,7 @@ class DelphesReader:
         for name, n_events in zip(self.benchmark_names_phys, self.signal_events_per_benchmark):
             if n_events > 0:
                 logger.info("  %s from %s", n_events, name)
+
         if self.background_events > 0:
             logger.info("  %s from backgrounds", self.background_events)
 
@@ -710,6 +720,7 @@ class DelphesReader:
         logger.debug("Extracting nuisance parameter definitions from LHE file")
         systematics_dict = extract_nuisance_parameters_from_lhe_file(lhe_file, systematics_used)
         logger.debug("systematics_dict: %s", systematics_dict)
+
         # systematics_dict has structure
         # {systematics_name : {nuisance_parameter_name : ((benchmark0, weight0), (benchmark1, weight1), processing)}}
 
@@ -769,11 +780,11 @@ class DelphesReader:
             _, this_weights = parse_lhe_file(
                 filename=lhe_file_for_weights,
                 sampling_benchmark=sampling_benchmark,
-                benchmark_names=self.benchmark_names_phys,
                 observables=OrderedDict(),
+                benchmark_names=self.benchmark_names_phys,
+                is_background=is_background,
                 parse_events_as_xml=parse_lhe_events_as_xml,
                 systematics_dict=systematics_dict,
-                is_background=is_background,
             )
 
             logger.debug("Found weights %s in LHE file", list(this_weights.keys()))
