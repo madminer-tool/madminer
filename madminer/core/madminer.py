@@ -1,10 +1,7 @@
-from __future__ import absolute_import, division, print_function, unicode_literals
-import six
-
 import os
 import logging
-from collections import OrderedDict
 import tempfile
+from collections import OrderedDict
 
 from madminer.utils.morphing import PhysicsMorpher
 from madminer.utils.interfaces.madminer_hdf5 import save_madminer_settings, load_madminer_settings
@@ -96,8 +93,8 @@ class MadMiner:
             parameter_name = f"parameter_{len(self.parameters)}"
 
         # Check and sanitize input
-        assert isinstance(parameter_name, six.string_types), f"Parameter name is not a string: {parameter_name}"
-        assert isinstance(lha_block, six.string_types), f"LHA block is not a string: {lha_block}"
+        assert isinstance(parameter_name, str), f"Parameter name is not a string: {parameter_name}"
+        assert isinstance(lha_block, str), f"LHA block is not a string: {lha_block}"
         assert isinstance(lha_id, int), f"LHA id is not an integer: {lha_id}"
 
         parameter_name = parameter_name.replace(" ", "_")
@@ -163,7 +160,7 @@ class MadMiner:
         self.parameters = OrderedDict()
 
         if isinstance(parameters, dict):
-            for key, values in six.iteritems(parameters):
+            for key, values in parameters.items():
                 if len(values) == 5:
                     self.add_parameter(
                         lha_block=values[0],
@@ -232,7 +229,7 @@ class MadMiner:
         if not isinstance(parameter_values, dict):
             raise RuntimeError(f"Parameter values are not a dict: {parameter_values}")
 
-        for key, value in six.iteritems(parameter_values):
+        for key, value in parameter_values.items():
             if key not in self.parameters:
                 raise RuntimeError(f"Unknown parameter: {key}")
 
@@ -279,7 +276,7 @@ class MadMiner:
         self.default_benchmark = None
 
         if isinstance(benchmarks, dict):
-            for name, values in six.iteritems(benchmarks):
+            for name, values in benchmarks.items():
                 self.add_benchmark(values, name, verbose=verbose)
         else:
             for values in benchmarks:
@@ -440,7 +437,7 @@ class MadMiner:
         # Default name
         if systematic_name is None:
             i = 0
-            while f"{effect}_{i}" in list(six.iterkeys(self.systematics)):
+            while f"{effect}_{i}" in list(self.systematics.keys()):
                 i += 1
             systematic_name = f"{type}_{i}"
         systematic_name = systematic_name.replace(" ", "_")
@@ -493,7 +490,7 @@ class MadMiner:
         ) = load_madminer_settings(filename, include_nuisance_benchmarks=False)
 
         logger.info("Found %s parameters:", len(self.parameters))
-        for key, values in six.iteritems(self.parameters):
+        for key, values in self.parameters.items():
             logger.info(
                 "   %s (LHA: %s %s, maximal power in squared ME: %s, range: %s)",
                 key,
@@ -504,7 +501,7 @@ class MadMiner:
             )
 
         logger.info("Found %s benchmarks:", len(self.benchmarks))
-        for key, values in six.iteritems(self.benchmarks):
+        for key, values in self.benchmarks.items():
             logger.info("   %s: %s", key, format_benchmark(values))
 
             if self.default_benchmark is None:
@@ -531,7 +528,7 @@ class MadMiner:
         else:
             logger.info("Found systematics setup with %s nuisance parameter groups", len(self.systematics))
 
-            for key, value in six.iteritems(self.systematics):
+            for key, value in self.systematics.items():
                 logger.debug("  %s: %s", key, " / ".join(str(x) for x in value))
 
     def save(self, filename):
@@ -1202,7 +1199,7 @@ class MadMiner:
             )
 
     def _check_pdf_or_scale_variation(self, systematics):
-        for value in six.itervalues(systematics):
+        for value in systematics.values():
             if value[0] in ["pdf", "scale"]:
                 return True
         return False
