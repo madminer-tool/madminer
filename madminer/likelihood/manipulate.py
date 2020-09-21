@@ -49,7 +49,7 @@ def fix_params(negative_log_likelihood, theta, fixed_components=None):
         if len(theta) != len(fixed_components):
             raise ValueError("Length of fixed_components and theta should be the same")
         if len(params) + len(fixed_components) != n_dimension:
-            raise ValueError("Length of params should be %s", n_dimension - len(fixed_components))
+            raise ValueError(f"Length of params should be {n_dimension-len(fixed_components)}")
 
         # Initialize full paramaters
         params_full = np.zeros(n_dimension)
@@ -275,9 +275,8 @@ def profile_log_likelihood(
         dof = m_paramaters
 
     # Method
-    supported_methods = ["TNC", " L-BFGS-B"]
-    if method not in supported_methods:
-        raise ValueError("Method %s unknown. Choose one of the following methods: %s", method, supported_methods)
+    if method not in {"TNC", " L-BFGS-B"}:
+        raise ValueError(f"Method {method} unknown.")
 
     # Initial guess for theta
     if theta_start is None:
