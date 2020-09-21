@@ -11,13 +11,20 @@ logger = logging.getLogger(__name__)
 
 
 class BaseLikelihood(DataAnalyzer):
+
     def create_negative_log_likelihood(self, *args, **kwargs):
-        raise NotImplementedError
+        raise NotImplementedError()
 
     def create_expected_negative_log_likelihood(self, *args, **kwargs):
-        raise NotImplementedError
+        raise NotImplementedError()
 
-    def _asimov_data(self, theta, test_split=0.2, sample_only_from_closest_benchmark=True, n_asimov=None):
+    def _asimov_data(
+        self,
+        theta,
+        test_split=0.2,
+        sample_only_from_closest_benchmark=True,
+        n_asimov=None,
+    ):
 
         # get data
         start_event, end_event, correction_factor = self._train_test_split(False, test_split)
@@ -39,13 +46,19 @@ class BaseLikelihood(DataAnalyzer):
         return x, weights_theta
 
     def _log_likelihood(self, *args, **kwargs):
-        raise NotImplementedError
+        raise NotImplementedError()
 
     def _log_likelihood_kinematic(self, *args, **kwargs):
-        raise NotImplementedError
+        raise NotImplementedError()
 
     def _log_likelihood_poisson(
-        self, n_observed, theta, nu, luminosity=300000.0, weights_benchmarks=None, total_weights=None
+        self,
+        n_observed,
+        theta,
+        nu,
+        luminosity=300000.0,
+        weights_benchmarks=None,
+        total_weights=None,
     ):
         if total_weights is not None and nu is None:
             # `histo` mode: Efficient morphing of whole cross section for the case without nuisance parameters
@@ -72,8 +85,8 @@ class BaseLikelihood(DataAnalyzer):
         if xsec < 0:
             logger.warning("Total cross section is negative (%s pb) at theta=%s)", xsec, theta)
             n_predicted = 10 ** -5
-        n_observed_rounded = int(np.round(n_observed, 0))
 
+        n_observed_rounded = int(np.round(n_observed, 0))
         log_likelihood = poisson.logpmf(k=n_observed_rounded, mu=n_predicted)
 
         logger.debug(
