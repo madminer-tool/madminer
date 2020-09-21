@@ -1,9 +1,6 @@
-from __future__ import absolute_import, division, print_function, unicode_literals
-
-import six
-from collections import OrderedDict
-import numpy as np
 import logging
+import numpy as np
+from collections import OrderedDict
 
 from madminer.utils.interfaces.madminer_hdf5 import (
     save_events_to_madminer_file,
@@ -677,10 +674,8 @@ class LHEReader:
         # {systematics_name : {nuisance_parameter_name : ((benchmark0, weight0), (benchmark1, weight1), processing)}}
 
         # Store nuisance parameters
-        for systematics_name, nuisance_info in six.iteritems(systematics_dict):
-            for nuisance_parameter_name, ((benchmark0, weight0), (benchmark1, weight1), _) in six.iteritems(
-                nuisance_info
-            ):
+        for systematics_name, nuisance_info in systematics_dict.items():
+            for nuisance_parameter_name, ((benchmark0, weight0), (benchmark1, weight1), _) in nuisance_info.items():
                 if (
                     self.nuisance_parameters is not None
                     and nuisance_parameter_name in self.nuisance_parameters
@@ -739,7 +734,7 @@ class LHEReader:
 
         # Check number of events in observables, and their dtype
         n_events = None
-        for key, obs in six.iteritems(this_observations):
+        for key, obs in this_observations.items():
             this_n_events = len(obs)
             if n_events is None:
                 n_events = this_n_events
@@ -761,7 +756,7 @@ class LHEReader:
                     obs,
                 )
         # Check number of events in weights, and thier dtype
-        for key, weights in six.iteritems(this_weights):
+        for key, weights in this_weights.items():
             this_n_events = len(weights)
             if n_events is None:
                 n_events = this_n_events
