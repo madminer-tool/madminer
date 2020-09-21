@@ -111,7 +111,14 @@ class LHEReader:
         # Initialize nuisance parameters
         self.nuisance_parameters = OrderedDict()
 
-    def add_sample(self, lhe_filename, sampled_from_benchmark, is_background=False, k_factor=1.0, systematics=None):
+    def add_sample(
+        self,
+        lhe_filename,
+        sampled_from_benchmark,
+        is_background=False,
+        k_factor=1.0,
+        systematics=None,
+    ):
         """
         Adds an LHE sample of simulated events.
 
@@ -665,6 +672,7 @@ class LHEReader:
         logger.debug("Extracting nuisance parameter definitions from LHE file")
         systematics_dict = extract_nuisance_parameters_from_lhe_file(lhe_file, systematics_used)
         logger.debug("systematics_dict: %s", systematics_dict)
+
         # systematics_dict has structure
         # {systematics_name : {nuisance_parameter_name : ((benchmark0, weight0), (benchmark1, weight1), processing)}}
 
