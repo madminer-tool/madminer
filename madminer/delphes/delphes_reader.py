@@ -100,6 +100,48 @@ class DelphesReader:
         # Initialize nuisance parameters
         self.nuisance_parameters = OrderedDict()
 
+    @staticmethod
+    def _check_python_syntax(expression):
+        """
+        Evaluates a Python expression to check for syntax errors
+
+        Parameters
+        ----------
+        expression : str
+            Python expression to be evaluated. The evaluation raises either SyntaxError or NameError
+
+        Returns
+        -------
+            None
+        """
+
+        try:
+            eval(expression)
+        except SyntaxError:
+            raise ValueError("The provided Python expression is invalid")
+        except NameError:
+            pass
+
+    @staticmethod
+    def _check_sample_elements(this_elements, n_events=None):
+        """ Sanity checks """
+
+        # Check number of events in observables
+        for key, elems in this_elements.items():
+            this_n_events = len(elems)
+
+            if n_events is None:
+                n_events = this_n_events
+                logger.debug(f"Found {n_events} events")
+
+            if this_n_events != n_events:
+                raise RuntimeError(f"Mismatching number of events for {key}: "f"{n_events} vs {this_n_events}")
+
+            if not np.issubdtype(elems.dtype, np.number):
+                logger.warning(f"For key {key} have non-numeric dtype {elems.dtype}.")
+
+        return n_events
+
     def add_sample(
         self,
         hepmc_filename,
@@ -767,7 +809,7 @@ class DelphesReader:
             logger.debug("Did not extract weights from Delphes file")
 
         # Sanity checks
-        n_events = self._check_sample_observations(this_observations)
+        n_events = self._check_sample_elements(this_observations, None)
 
         # Find weights in LHE file
         if lhe_file_for_weights is not None:
@@ -793,7 +835,7 @@ class DelphesReader:
             raise RuntimeError("Could not extract weights from Delphes ROOT file or LHE file.")
 
         # Sanity checks
-        n_events = self._check_sample_weights(n_events, this_weights)
+        n_events = self._check_sample_elements(this_weights, n_events)
 
         # k factors
         if k_factor is not None:
@@ -816,74 +858,6 @@ class DelphesReader:
                 this_weights[key] = reference_weights / sampling_weights * this_weights[key]
 
         return this_observations, this_weights, n_events
-
-    def _check_python_syntax(self, expression):
-        """
-        Evaluates a Python expression to check for syntax errors
-
-        Parameters
-        ----------
-        expression : str
-            Python expression to be evaluated. The evaluation raises either SyntaxError or NameError
-
-        Returns
-        -------
-            None
-        """
-
-        try:
-            eval(expression)
-        except SyntaxError:
-            raise ValueError("The provided Python expression is invalid")
-        except NameError:
-            pass
-
-    def _check_sample_observations(self, this_observations):
-        """ Sanity checks """
-        # Check number of events in observables
-        n_events = None
-        for key, obs in this_observations.items():
-            this_n_events = len(obs)
-            if n_events is None:
-                n_events = this_n_events
-                logger.debug("Found %s events", n_events)
-
-            if this_n_events != n_events:
-                raise RuntimeError(
-                    f"Mismatching number of events in Delphes observations for {key}:"
-                    f"{n_events} vs {this_n_events}"
-                )
-
-            if not np.issubdtype(obs.dtype, np.number):
-                logger.warning(
-                    f"Observations for observable {key} have non-numeric dtype {obs.dtype}."
-                    f"This usually means something is wrong in the observable definition."
-                    f"Data: {obs}"
-                )
-        return n_events
-
-    def _check_sample_weights(self, n_events, this_weights):
-        """ Sanity checks """
-        # Check number of events in weights
-        for key, weights in this_weights.items():
-            this_n_events = len(weights)
-            if n_events is None:
-                n_events = this_n_events
-                logger.debug("Found %s events", n_events)
-
-            if this_n_events != n_events:
-                raise RuntimeError(
-                    f"Mismatching number of events in weights {key}:"
-                    f"{n_events} vs {this_n_events}"
-                )
-
-            if not np.issubdtype(weights.dtype, np.number):
-                logger.warning(
-                    f"Weights {key} have non-numeric dtype {weights.dtype}."
-                    f"This usually means something is wrong in the observable definition."
-                    f"Data: {weights}"
-                )
-        return n_events
 
     def save(self, filename_out, shuffle=True):
         """
