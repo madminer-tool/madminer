@@ -359,7 +359,8 @@ class InformationGeometry:
                 dth0 = np.array([np.cos(angle), np.sin(angle)])
             else:
                 dth0 = np.array([random.uniform(-1, 1) for _ in range(self.dimension)])
-            logger.debug("Calculate Trajectory Number %s with dtheta0=%s", i, dth0)
+
+            logger.debug(f"Calculate Trajectory Number {i} with dtheta0={dth0}")
             ths, ds = self.find_trajectory(theta0, dth0, limits, stepsize)
             for th in ths:
                 thetas.append(th)

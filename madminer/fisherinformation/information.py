@@ -200,8 +200,8 @@ class FisherInformation(DataAnalyzer):
         """
 
         # Check input
-        if mode not in ["score", "information", "modified_score"]:
-            raise ValueError("Unknown mode {}, has to be 'score', 'modified_score', or 'information'!".format(mode))
+        if mode not in {"score", "information", "modified_score"}:
+            raise ValueError(f"Unknown mode {mode}")
 
         # Load Estimator model
         if os.path.isdir(model_file) and os.path.exists(model_file + "/ensemble.json"):
@@ -671,8 +671,8 @@ class FisherInformation(DataAnalyzer):
             i_bins1 = np.searchsorted(bin1_boundaries, histo1_observables)
             i_bins2 = np.searchsorted(bin2_boundaries, histo2_observables)
 
-            assert ((0 <= i_bins1) & (i_bins1 < n_bins1_total)).all(), "Wrong bin {}".format(i_bins1)
-            assert ((0 <= i_bins2) & (i_bins2 < n_bins1_total)).all(), "Wrong bin {}".format(i_bins2)
+            assert ((0 <= i_bins1) & (i_bins1 < n_bins1_total)).all(), f"Wrong bin {i_bins1}"
+            assert ((0 <= i_bins2) & (i_bins2 < n_bins1_total)).all(), f"Wrong bin {i_bins2}"
 
             # Add up
             for i in range(n_bins1_total):
@@ -823,7 +823,7 @@ class FisherInformation(DataAnalyzer):
 
                 # Find bins
                 bins = np.searchsorted(bin_boundaries, histo_observables)
-                assert ((0 <= bins) & (bins < n_bins_total)).all(), "Wrong bin {}".format(bins)
+                assert ((0 <= bins) & (bins < n_bins_total)).all(), f"Wrong bin {bins}"
 
                 # Add up
                 for i in range(n_bins_total):
@@ -834,7 +834,7 @@ class FisherInformation(DataAnalyzer):
         # ML case
         else:
             # Load SALLY model
-            if os.path.isdir(model_file) and os.path.exists(model_file + "/ensemble.json"):
+            if os.path.isdir(model_file) and os.path.exists(f"{model_file}/ensemble.json"):
                 model_is_ensemble = True
                 model = Ensemble()
                 model.load(model_file)
@@ -946,7 +946,7 @@ class FisherInformation(DataAnalyzer):
 
                 # Find bins
                 bins = np.searchsorted(bin_boundaries, histo_observables)
-                assert ((0 <= bins) & (bins < n_bins_total)).all(), "Wrong bin {}".format(bins)
+                assert ((0 <= bins) & (bins < n_bins_total)).all(), f"Wrong bin {bins}"
 
                 # Add up
                 for i in range(n_bins_total):
