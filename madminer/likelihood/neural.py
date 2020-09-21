@@ -11,6 +11,7 @@ logger = logging.getLogger(__name__)
 
 
 class NeuralLikelihood(BaseLikelihood):
+
     def create_negative_log_likelihood(
         self,
         model_file,
