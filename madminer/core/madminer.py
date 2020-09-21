@@ -111,7 +111,13 @@ class MadMiner:
             morphing_max_power = (morphing_max_power,)
 
         # Add parameter
-        self.parameters[parameter_name] = (lha_block, lha_id, morphing_max_power, parameter_range, param_card_transform)
+        self.parameters[parameter_name] = (
+            lha_block,
+            lha_id,
+            morphing_max_power,
+            parameter_range,
+            param_card_transform,
+        )
 
         # After manually adding parameters, the morphing information is not accurate anymore
         self.morpher = None
@@ -165,11 +171,15 @@ class MadMiner:
                         lha_block=values[0],
                         lha_id=values[1],
                         parameter_name=key,
-                        parameter_range=[values[3], values[4]],
+                        parameter_range=(values[3], values[4]),
                         morphing_max_power=values[2],
                     )
                 elif len(values) == 2:
-                    self.add_parameter(lha_block=values[0], lha_id=values[1], parameter_name=key)
+                    self.add_parameter(
+                        lha_block=values[0],
+                        lha_id=values[1],
+                        parameter_name=key,
+                    )
                 else:
                     raise ValueError(f"Parameter properties has unexpected length: {values}")
 
@@ -284,7 +294,12 @@ class MadMiner:
             self.export_morphing = False
 
     def set_morphing(
-        self, max_overall_power=4, n_bases=1, include_existing_benchmarks=True, n_trials=100, n_test_thetas=100
+        self,
+        max_overall_power=4,
+        n_bases=1,
+        include_existing_benchmarks=True,
+        n_trials=100,
+        n_test_thetas=100,
     ):
         """
         Sets up the morphing environment.
@@ -353,7 +368,10 @@ class MadMiner:
         else:
             n_predefined_benchmarks = 0
             basis = morpher.optimize_basis(
-                n_bases=n_bases, fixed_benchmarks_from_madminer=None, n_trials=n_trials, n_test_thetas=n_test_thetas
+                n_bases=n_bases,
+                fixed_benchmarks_from_madminer=None,
+                n_trials=n_trials,
+                n_test_thetas=n_test_thetas,
             )
 
             basis.update(self.benchmarks)
@@ -424,7 +442,7 @@ class MadMiner:
 
         scale : {"mu", "mur", "muf"}, optional
             If type is "scale", this sets whether only the regularization scale ("mur"), only the factorization scale
-            ("muf"), or both simulatenously ("mu") are varied. Default value:
+            ("muf"), or both simultaneously ("mu") are varied. Default value:
             "mu".
 
         norm_variation : float, optional
@@ -1104,8 +1122,13 @@ class MadMiner:
         # Master shell script
         if only_prepare_script:
             master_script_filename = f"{mg_process_directory}/madminer/run.sh"
-            create_master_script(log_directory, master_script_filename, mg_directory, mg_process_directory, mg_scripts)
-
+            create_master_script(
+                log_directory,
+                master_script_filename,
+                mg_directory,
+                mg_process_directory,
+                mg_scripts,
+            )
             logger.info(
                 "To generate events, please run:\n\n %s [MG_directory] [MG_process_directory] [log_dir]\n\n",
                 master_script_filename,
@@ -1129,7 +1152,6 @@ class MadMiner:
         reweight_benchmarks=None,
         only_prepare_script=False,
         log_directory=None,
-        temp_directory=None,
         initial_command=None,
     ):
         """
