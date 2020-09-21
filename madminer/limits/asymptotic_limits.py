@@ -1,15 +1,13 @@
-from __future__ import absolute_import, division, print_function, unicode_literals
-
 import logging
 import numpy as np
 from scipy.stats import chi2, poisson
 
+from madminer import sampling
 from madminer.analysis import DataAnalyzer
-from madminer.utils.various import mdot, less_logging
 from madminer.ml import ParameterizedRatioEstimator, Ensemble, ScoreEstimator, LikelihoodEstimator, load_estimator
 from madminer.utils.histo import Histo
+from madminer.utils.various import mdot, less_logging
 from madminer.sampling import SampleAugmenter
-from madminer import sampling
 
 logger = logging.getLogger(__name__)
 
