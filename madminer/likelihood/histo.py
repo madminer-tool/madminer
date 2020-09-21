@@ -1,15 +1,13 @@
-from __future__ import absolute_import, division, print_function, unicode_literals
-
 import logging
 import numpy as np
 from itertools import product
 
-from ..utils.various import mdot, less_logging, math_commands
+from .base import BaseLikelihood
+from .. import sampling
 from ..ml import ScoreEstimator, Ensemble, load_estimator
 from ..utils.histo import Histo
+from ..utils.various import mdot, less_logging, math_commands
 from ..sampling import SampleAugmenter
-from .. import sampling
-from .base import BaseLikelihood
 
 logger = logging.getLogger(__name__)
 
