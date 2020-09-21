@@ -16,7 +16,7 @@ class FisherInformation(DataAnalyzer):
     """
     Functions to calculate expected Fisher information matrices.
 
-    After inializing a `FisherInformation` instance with the filename of a MadMiner file, different information matrices
+    After initializing a `FisherInformation` instance with the filename of a MadMiner file, different information matrices
     can be calculated:
 
     * `FisherInformation.truth_information()` calculates the full truth-level Fisher information.
@@ -51,7 +51,12 @@ class FisherInformation(DataAnalyzer):
         super(FisherInformation, self).__init__(filename, False, include_nuisance_parameters)
 
     def truth_information(
-        self, theta, luminosity=300000.0, cuts=None, efficiency_functions=None, include_nuisance_parameters=True
+        self,
+        theta,
+        luminosity=300000.0,
+        cuts=None,
+        efficiency_functions=None,
+        include_nuisance_parameters=True,
     ):
         """
         Calculates the full Fisher information at parton / truth level. This is the information in an idealized
@@ -299,7 +304,9 @@ class FisherInformation(DataAnalyzer):
 
             for i_batch, (observations, weights_benchmarks) in enumerate(
                 self.event_loader(
-                    batch_size=batch_size, start=start_event, include_nuisance_parameters=include_nuisance_parameters
+                    batch_size=batch_size,
+                    start=start_event,
+                    include_nuisance_parameters=include_nuisance_parameters,
                 )
             ):
                 if (i_batch + 1) % n_batches_verbose == 0:
@@ -329,6 +336,7 @@ class FisherInformation(DataAnalyzer):
                             n_events=luminosity * total_xsec * np.sum(weights_theta) / total_sum_weights_theta,
                         )
                     this_covariance = None
+
                 # Sum up results
                 if fisher_info_kin is None:
                     fisher_info_kin = this_fisher_info
@@ -371,7 +379,12 @@ class FisherInformation(DataAnalyzer):
         return fisher_info_rate + fisher_info_kin, rate_covariance
 
     def rate_information(
-        self, theta, luminosity, cuts=None, efficiency_functions=None, include_nuisance_parameters=True
+        self,
+        theta,
+        luminosity,
+        cuts=None,
+        efficiency_functions=None,
+        include_nuisance_parameters=True,
     ):
         """
         Calculates the Fisher information in a measurement of the total cross section (without any kinematic
@@ -527,7 +540,7 @@ class FisherInformation(DataAnalyzer):
 
             # Find bins
             i_bins = np.searchsorted(bin_boundaries, histo_observables)
-            assert ((0 <= i_bins) & (i_bins < n_bins_total)).all(), "Wrong bin {}".format(i_bins)
+            assert ((0 <= i_bins) & (i_bins < n_bins_total)).all(), f"Wrong bin {i_bins}"
 
             # Add up
             for i in range(n_bins_total):
@@ -637,10 +650,23 @@ class FisherInformation(DataAnalyzer):
 
         # Binning
         bin1_boundaries, n_bins1_total = self._calculate_binning(
-            bins1, cuts, efficiency_functions, histrange1, n_events_dynamic_binning, observable1, theta
+            bins1,
+            cuts,
+            efficiency_functions,
+            histrange1,
+            n_events_dynamic_binning,
+            observable1,
+            theta,
         )
+
         bin2_boundaries, n_bins2_total = self._calculate_binning(
-            bins2, cuts, efficiency_functions, histrange2, n_events_dynamic_binning, observable2, theta
+            bins2,
+            cuts,
+            efficiency_functions,
+            histrange2,
+            n_events_dynamic_binning,
+            observable2,
+            theta,
         )
 
         # Loop over batches
@@ -879,11 +905,6 @@ class FisherInformation(DataAnalyzer):
             else:
                 start_event = int(round((1.0 - test_split) * self.n_samples, 0)) + 1
 
-            if start_event > 0:
-                total_sum_weights_theta = self._calculate_xsec(theta=theta, start_event=start_event)
-            else:
-                total_sum_weights_theta = total_xsec
-
             # Number of batches
             n_batches = int(np.ceil((self.n_samples - start_event) / batch_size))
             n_batches_verbose = max(int(round(n_batches / 10, 0)), 1)
@@ -978,36 +999,36 @@ class FisherInformation(DataAnalyzer):
         Parameters
         ----------
         theta : ndarray
-        Parameter point `theta` at which the Fisher information matrix `I_ij(theta)` is evaluated.
+            Parameter point `theta` at which the Fisher information matrix `I_ij(theta)` is evaluated.
                                                 
         observable : str
-        Expression for the observable to be sliced. The str will be parsed by Python's `eval()` function
-        and can use the names of the observables in the MadMiner files.
+            Expression for the observable to be sliced. The str will be parsed by Python's `eval()` function
+            and can use the names of the observables in the MadMiner files.
                                                 
         nbins : int
-        Number of bins in the slicing, excluding overflow bins.
+            Number of bins in the slicing, excluding overflow bins.
                                                 
         histrange : tuple of float
-        Minimum and maximum value of the slicing in the form `(min, max)`. Overflow bins are always added.
+            Minimum and maximum value of the slicing in the form `(min, max)`. Overflow bins are always added.
                                                 
         cuts : None or list of str, optional
-        Cuts. Each entry is a parseable Python expression that returns a bool (True if the event should pass a cut,
-        False otherwise). Default value: None.
+            Cuts. Each entry is a parseable Python expression that returns a bool (True if the event should pass a cut,
+            False otherwise). Default value: None.
                                                 
         efficiency_functions : list of str or None
-        Efficiencies. Each entry is a parseable Python expression that returns a float for the efficiency of one
-        component. Default value: None.
+            Efficiencies. Each entry is a parseable Python expression that returns a float for the efficiency of one
+            component. Default value: None.
 
         Returns
         -------
         bin_boundaries : ndarray
-        Observable slice boundaries.
+            Observable slice boundaries.
                                                 
         sigma_bins : ndarray
-        Cross section in pb in each of the slices.
+            Cross section in pb in each of the slices.
         
         dsigma_bins : ndarray
-        Cross section in pb in each of the slices.
+            Cross section in pb in each of the slices.
         """
 
         # Input
@@ -1071,11 +1092,20 @@ class FisherInformation(DataAnalyzer):
     def nuisance_constraint_information(self):
         """ Builds the Fisher information term representing the Gaussian constraints on the nuisance parameters """
 
-        diagonal = np.array([0.0 for _ in range(self.n_parameters)] + [1.0 for _ in range(self.n_nuisance_parameters)])
-        return np.diag(diagonal)
+        return np.diag(
+            np.array(
+                [0.0 for _ in range(self.n_parameters)] +
+                [1.0 for _ in range(self.n_nuisance_parameters)]
+            )
+        )
 
     def _check_binning_stats(
-        self, weights_benchmarks, weights_benchmark_uncertainties, theta, report=5, n_bins_last_axis=None
+        self,
+        weights_benchmarks,
+        weights_benchmark_uncertainties,
+        theta,
+        report=5,
+        n_bins_last_axis=None,
     ):
         theta_matrix = self._get_theta_benchmark_matrix(theta, zero_pad=False)  # (n_benchmarks_phys,)
         sigma = mdot(theta_matrix, weights_benchmarks)  # Shape (n_bins,)
@@ -1098,7 +1128,14 @@ class FisherInformation(DataAnalyzer):
             )
 
     def _calculate_binning(
-        self, bins, cuts, efficiency_functions, histrange, n_events_dynamic_binning, observable, theta
+        self,
+        bins,
+        cuts,
+        efficiency_functions,
+        histrange,
+        n_events_dynamic_binning,
+        observable,
+        theta,
     ):
         dynamic_binning = histrange is None and isinstance(bins, int)
         if dynamic_binning:
@@ -1113,6 +1150,7 @@ class FisherInformation(DataAnalyzer):
         else:
             bin_boundaries = bins
             n_bins_total = len(bins) + 1
+
         return bin_boundaries, n_bins_total
 
     def _calculate_fisher_information(
@@ -1485,7 +1523,13 @@ class FisherInformation(DataAnalyzer):
         return xsec
 
     def _calculate_dynamic_binning(
-        self, observable, theta, n_bins, n_events=None, cuts=None, efficiency_functions=None
+        self,
+        observable,
+        theta,
+        n_bins,
+        n_events=None,
+        cuts=None,
+        efficiency_functions=None,
     ):
 
         if cuts is None:
