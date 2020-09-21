@@ -450,25 +450,25 @@ class DelphesReader:
             [n_leptons_max, n_photons_max, n_jets_max], ["l", "a", "j"], [False, False, include_charge]
         ):
             if include_numbers:
-                self.add_observable("n_{}s".format(symbol), "len({})".format(symbol), required=True)
+                self.add_observable(f"n_{symbol}s", f"len({symbol})", required=True)
 
             for i in range(n):
                 self.add_observable(
-                    "e_{}{}".format(symbol, i + 1), "{}[{}].e".format(symbol, i), required=False, default=0.0
+                    f"e_{symbol}{i+1}", f"{symbol}[{i}].e", required=False, default=0.0
                 )
                 self.add_observable(
-                    "pt_{}{}".format(symbol, i + 1), "{}[{}].pt".format(symbol, i), required=False, default=0.0
+                    f"pt_{symbol}{i+1}", f"{symbol}[{i}].pt", required=False, default=0.0
                 )
                 self.add_observable(
-                    "eta_{}{}".format(symbol, i + 1), "{}[{}].eta".format(symbol, i), required=False, default=0.0
+                    f"eta_{symbol}{i+1}", f"{symbol}[{i}].eta", required=False, default=0.0
                 )
                 self.add_observable(
-                    "phi_{}{}".format(symbol, i + 1), "{}[{}].phi()".format(symbol, i), required=False, default=0.0
+                    f"phi_{symbol}{i+1}", f"{symbol}[{i}].phi()", required=False, default=0.0
                 )
                 if include_this_charge and symbol == "l":
                     self.add_observable(
-                        "charge_{}{}".format(symbol, i + 1),
-                        "{}[{}].charge".format(symbol, i),
+                        f"charge_{symbol}{i+1}",
+                        f"{symbol}[{i}].charge",
                         required=False,
                         default=0.0,
                     )
@@ -638,9 +638,8 @@ class DelphesReader:
             # Following results: check consistency with previous results
             if len(self.observations) != len(this_observations):
                 raise ValueError(
-                    "Number of observations in different Delphes files incompatible: {} vs {}".format(
-                        len(self.observations), len(this_observations)
-                    )
+                    f"Number of observations in different Delphes files incompatible: "
+                    f"{len(self.observations)} vs {len(this_observations)}"
                 )
 
             # Merge weights with previous
@@ -664,7 +663,7 @@ class DelphesReader:
 
             # Merge observations with previous (should always be the same observables)
             for key in self.observations:
-                assert key in this_observations, "Observable {} not found in Delphes sample!".format(key)
+                assert key in this_observations, f"Observable {key} not found in Delphes sample!"
                 self.observations[key] = np.hstack([self.observations[key], this_observations[key]])
 
             self.events_sampling_benchmark_ids = np.hstack(
@@ -725,11 +724,9 @@ class DelphesReader:
                     and (systematics_name, benchmark0, benchmark1) != self.nuisance_parameters[nuisance_parameter_name]
                 ):
                     raise RuntimeError(
-                        "Inconsistent information for same nuisance parameter {}. Old: {}. New: {}.".format(
-                            nuisance_parameter_name,
-                            self.nuisance_parameters[nuisance_parameter_name],
-                            (systematics_name, benchmark0, benchmark1),
-                        )
+                        f"Inconsistent information for same nuisance parameter {nuisance_parameter_name}. "
+                        f"Old: {self.nuisance_parameters[nuisance_parameter_name]}. "
+                        f"New: {(systematics_name, benchmark0, benchmark1)}."
                     )
                 self.nuisance_parameters[nuisance_parameter_name] = (systematics_name, benchmark0, benchmark1)
 
@@ -796,8 +793,8 @@ class DelphesReader:
         if k_factor is not None:
             for key in this_weights:
                 this_weights[key] = k_factor * this_weights[key]
-        # Background scenario: we only have one set of weights, but these should be true for all benchmarks
 
+        # Background scenario: we only have one set of weights, but these should be true for all benchmarks
         if is_background:
             logger.debug("Sample is background")
             benchmarks_weight = list(six.itervalues(this_weights))[0]
@@ -847,18 +844,15 @@ class DelphesReader:
 
             if this_n_events != n_events:
                 raise RuntimeError(
-                    "Mismatching number of events in Delphes observations for {}: {} vs {}".format(
-                        key, n_events, this_n_events
-                    )
+                    f"Mismatching number of events in Delphes observations for {key}:"
+                    f"{n_events} vs {this_n_events}"
                 )
 
             if not np.issubdtype(obs.dtype, np.number):
                 logger.warning(
-                    "Observations for observable %s have non-numeric dtype %s. This usually means something "
-                    "is wrong in the definition of the observable. Data: %s",
-                    key,
-                    obs.dtype,
-                    obs,
+                    f"Observations for observable {key} have non-numeric dtype {obs.dtype}."
+                    f"This usually means something is wrong in the observable definition."
+                    f"Data: {obs}"
                 )
         return n_events
 
@@ -873,16 +867,15 @@ class DelphesReader:
 
             if this_n_events != n_events:
                 raise RuntimeError(
-                    "Mismatching number of events in weights {}: {} vs {}".format(key, n_events, this_n_events)
+                    f"Mismatching number of events in weights {key}:"
+                    f"{n_events} vs {this_n_events}"
                 )
 
             if not np.issubdtype(weights.dtype, np.number):
                 logger.warning(
-                    "Weights %s have non-numeric dtype %s. This usually means something "
-                    "is wrong in the definition of the observable. Data: %s",
-                    key,
-                    weights.dtype,
-                    weights,
+                    f"Weights {key} have non-numeric dtype {weights.dtype}."
+                    f"This usually means something is wrong in the observable definition."
+                    f"Data: {weights}"
                 )
         return n_events
 
