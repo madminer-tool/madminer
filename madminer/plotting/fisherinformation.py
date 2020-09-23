@@ -105,7 +105,8 @@ def plot_fisher_information_contours_2d(
 
     if fisher_information_matrices.shape != (n_matrices, 2, 2):
         raise RuntimeError(
-            "Fisher information matrices have shape {}, not (n, 2,2)!".format(fisher_information_matrices.shape)
+            f"Fisher information matrices have shape {fisher_information_matrices.shape}. "
+            f"Not (n, 2,2)!"
         )
 
     if fisher_information_covariances is None:
@@ -301,7 +302,7 @@ def plot_fisherinfo_barplot(
         bar_colors_light = bar_colors
 
     if eigenvalue_colors is None:
-        eigenvalue_colors = ["C{}".format(str(i)) for i in range(10)]
+        eigenvalue_colors = [f"C{i}" for i in range(10)]
     eigenvalue_linewidth = 1.5
 
     # Upper plot
