@@ -295,7 +295,7 @@ def plot_systematics(
     bandcolors : None or list of str, optional
         Error band colors. Default value: None.
 
-    ratio_range : tuple of two floar
+    ratio_range : tuple of two float
         y-axis range for the plots of the ratio to the central prediction. Default value: (0.8, 1.2).
 
     Returns

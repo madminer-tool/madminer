@@ -69,7 +69,7 @@ def plot_distributions(
         Whether the distribution is normalized to the total cross section. Default value: False.
 
     log : bool, optional
-        Whether to draw the y axes on a logarithmic scale. Defaul value: False.
+        Whether to draw the y axes on a logarithmic scale. Default value: False.
 
     observable_labels : None or list of (str or None), optional
         x-axis labels naming the observables. If None, the observable names from the MadMiner file are used. Default
