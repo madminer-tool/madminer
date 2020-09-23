@@ -271,13 +271,9 @@ class LikelihoodEstimator(ConditionalEstimator):
             self.n_parameters = n_parameters
 
         if n_parameters != self.n_parameters:
-            raise RuntimeError(
-                "Number of parameters does not match model: {} vs {}".format(n_parameters, self.n_parameters)
-            )
+            raise RuntimeError(f"Number of parameters does not match: {n_parameters} vs {self.n_parameters}")
         if n_observables != self.n_observables:
-            raise RuntimeError(
-                "Number of observables does not match model: {} vs {}".format(n_observables, self.n_observables)
-            )
+            raise RuntimeError(f"Number of observables does not match: {n_observables} vs {self.n_observables}")
 
         # Data
         data = self._package_training_data(method, x, theta, t_xz)
@@ -515,7 +511,7 @@ class LikelihoodEstimator(ConditionalEstimator):
     @staticmethod
     def _check_required_data(method, t_xz):
         if method == ["scandal"] and t_xz is None:
-            raise RuntimeError("Method {} requires joint score information".format(method))
+            raise RuntimeError(f"Method {method} requires joint score information")
 
     @staticmethod
     def _package_training_data(method, x, theta, t_xz):
@@ -539,7 +535,7 @@ class LikelihoodEstimator(ConditionalEstimator):
 
         estimator_type = str(settings["estimator_type"])
         if estimator_type != "likelihood":
-            raise RuntimeError("Saved model is an incompatible estimator type {}.".format(estimator_type))
+            raise RuntimeError(f"Saved model is an incompatible estimator type {estimator_type}.")
 
         self.n_components = int(settings["n_components"])
         self.n_mades = int(settings["n_mades"])

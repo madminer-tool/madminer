@@ -283,13 +283,9 @@ class ParameterizedRatioEstimator(ConditionalEstimator):
             self.n_parameters = n_parameters
 
         if n_parameters != self.n_parameters:
-            raise RuntimeError(
-                "Number of parameters does not match model: {} vs {}".format(n_parameters, self.n_parameters)
-            )
+            raise RuntimeError(f"Number of parameters does not match: {n_parameters} vs {self.n_parameters}")
         if n_observables != self.n_observables:
-            raise RuntimeError(
-                "Number of observables does not match model: {} vs {}".format(n_observables, self.n_observables)
-            )
+            raise RuntimeError(f"Number of observables does not match: {n_observables} vs {self.n_observables}")
 
         # Data
         data = self._package_training_data(method, x, theta, y, r_xz, t_xz)
@@ -503,7 +499,7 @@ class ParameterizedRatioEstimator(ConditionalEstimator):
         if nuisance_mode == "keep":
             logger.debug("Keeping nuisance parameter in score")
         else:
-            raise ValueError("Unknown nuisance_mode {}".format(nuisance_mode))
+            raise ValueError(f"Unknown nuisance_mode {nuisance_mode}")
 
         _, all_t_hat = self.evaluate_log_likelihood_ratio(x, theta, test_all_combinations=False, evaluate_score=True)
         return all_t_hat
@@ -528,10 +524,10 @@ class ParameterizedRatioEstimator(ConditionalEstimator):
 
     @staticmethod
     def _check_required_data(method, r_xz, t_xz):
-        if method in ["cascal", "alices", "rascal"] and t_xz is None:
-            raise RuntimeError("Method {} requires joint score information".format(method))
-        if method in ["rolr", "alice", "alices", "rascal"] and r_xz is None:
-            raise RuntimeError("Method {} requires joint likelihood ratio information".format(method))
+        if method in {"cascal", "alices", "rascal"} and t_xz is None:
+            raise RuntimeError(f"Method {method} requires joint score information")
+        if method in {"rolr", "alice", "alices", "rascal"} and r_xz is None:
+            raise RuntimeError(f"Method {method} requires joint likelihood ratio information")
 
     @staticmethod
     def _package_training_data(method, x, theta, y, r_xz, t_xz):
@@ -555,4 +551,4 @@ class ParameterizedRatioEstimator(ConditionalEstimator):
 
         estimator_type = str(settings["estimator_type"])
         if estimator_type != "parameterized_ratio":
-            raise RuntimeError("Saved model is an incompatible estimator type {}.".format(estimator_type))
+            raise RuntimeError(f"Saved model is an incompatible estimator type {estimator_type}.")

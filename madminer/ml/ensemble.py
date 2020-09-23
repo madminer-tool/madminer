@@ -144,7 +144,7 @@ class Ensemble:
             if not isinstance(value, list):
                 kwargs[key] = [value for _ in range(self.n_estimators)]
 
-            assert len(kwargs[key]) == self.n_estimators, "Keyword {} has wrong length {}".format(key, len(value))
+            assert len(kwargs[key]) == self.n_estimators, f"Keyword {key} has wrong length {len(value)}"
 
         for i, estimator in enumerate(self.estimators):
             kwargs_this_estimator = {}
@@ -407,7 +407,7 @@ class Ensemble:
 
         # Check input
         if mode not in ["score", "information"]:
-            raise ValueError("Unknown mode {}, has to be 'score' or 'information'!".format(mode))
+            raise ValueError(f"Unknown mode {mode}!")
 
         # Calculate estimator_weights of each estimator in vote
         if estimator_weights is None:
@@ -604,12 +604,12 @@ class Ensemble:
         logger.debug("Saving ensemble setup to %s/ensemble.json", folder)
         settings = {"estimator_type": self.estimator_type, "n_estimators": self.n_estimators}
 
-        with open(folder + "/ensemble.json", "w") as f:
+        with open(f"{folder}/ensemble.json", "w") as f:
             json.dump(settings, f)
 
         # Save estimators
         for i, estimator in enumerate(self.estimators):
-            estimator.save(folder + "/estimator_" + str(i), save_model=save_model)
+            estimator.save(f"{folder}/estimator_{i}", save_model=save_model)
 
     def load(self, folder):
         """
@@ -627,7 +627,7 @@ class Ensemble:
         """
         # Load ensemble settings
         logger.debug("Loading ensemble setup from %s/ensemble.json", folder)
-        with open(folder + "/ensemble.json", "r") as f:
+        with open(f"{folder}/ensemble.json", "r") as f:
             settings = json.load(f)
 
         self.n_estimators = int(settings["n_estimators"])
@@ -644,7 +644,7 @@ class Ensemble:
         self.estimators = []
         for i in range(self.n_estimators):
             estimator = self._get_estimator_class(estimator_type)()
-            estimator.load(folder + "/estimator_" + str(i))
+            estimator.load(f"{folder}/estimator_{i}")
             self.estimators.append(estimator)
         self._check_consistency()
 
@@ -725,4 +725,4 @@ class Ensemble:
         elif estimator_type == "likelihood":
             return LikelihoodEstimator
         else:
-            raise RuntimeError("Unknown estimator type {}!".format(estimator_type))
+            raise RuntimeError(f"Unknown estimator type {estimator_type}!")

@@ -215,13 +215,9 @@ class ScoreEstimator(Estimator):
             self.n_parameters = n_parameters
 
         if n_parameters != self.n_parameters:
-            raise RuntimeError(
-                "Number of parameters does not match model: {} vs {}".format(n_parameters, self.n_parameters)
-            )
+            raise RuntimeError(f"Number of parameters does not match: {n_parameters} vs {self.n_parameters}")
         if n_observables != self.n_observables:
-            raise RuntimeError(
-                "Number of observables does not match model: {} vs {}".format(n_observables, self.n_observables)
-            )
+            raise RuntimeError(f"Number of observables does not match: {n_observables} vs {self.n_observables}")
 
         # Data
         data = self._package_training_data(x, t_xz)
@@ -284,9 +280,8 @@ class ScoreEstimator(Estimator):
         """
         if fisher_information.shape != (self.n_parameters, self.n_parameters):
             raise ValueError(
-                "Fisher information has wrong shape {}, expected {}".format(
-                    fisher_information.shape, (self.n_parameters, self.n_parameters)
-                )
+                f"Fisher information has wrong shape {fisher_information.shape}. "
+                f"Expected {(self.n_parameters, self.n_parameters)}"
             )
 
         n_parameters_of_interest = len(parameters_of_interest)
@@ -386,7 +381,7 @@ class ScoreEstimator(Estimator):
             t_hat = np.einsum("ij,xj->xi", self.nuisance_profile_matrix, t_hat)
 
         else:
-            raise ValueError("Unknown nuisance_mode {}".format(nuisance_mode))
+            raise ValueError(f"Unknown nuisance_mode {nuisance_mode}")
 
         return t_hat
 
@@ -416,16 +411,16 @@ class ScoreEstimator(Estimator):
                 filename,
                 filename,
             )
-            np.save(filename + "_nuisance_profile_matrix.npy", self.nuisance_profile_matrix)
-            np.save(filename + "_nuisance_project_matrix.npy", self.nuisance_project_matrix)
+            np.save(f"{filename}_nuisance_profile_matrix.npy", self.nuisance_profile_matrix)
+            np.save(f"{filename}_nuisance_project_matrix.npy", self.nuisance_project_matrix)
 
     def load(self, filename):
         super(ScoreEstimator, self).load(filename)
 
         # Load scaling
         try:
-            self.nuisance_profile_matrix = np.load(filename + "_nuisance_profile_matrix.npy")
-            self.nuisance_project_matrix = np.load(filename + "_nuisance_project_matrix.npy")
+            self.nuisance_profile_matrix = np.load(f"{filename}_nuisance_profile_matrix.npy")
+            self.nuisance_project_matrix = np.load(f"{filename}_nuisance_project_matrix.npy")
             logger.debug(
                 "  Found nuisance profiling / projection matrices:\nProfiling:\n%s\nProjection:\n%s",
                 self.nuisance_profile_matrix,
@@ -463,7 +458,7 @@ class ScoreEstimator(Estimator):
 
         estimator_type = str(settings["estimator_type"])
         if estimator_type != "score":
-            raise RuntimeError("Saved model is an incompatible estimator type {}.".format(estimator_type))
+            raise RuntimeError(f"Saved model is an incompatible estimator type {estimator_type}.")
 
         try:
             self.nuisance_mode_default = str(settings["nuisance_mode_default"])
