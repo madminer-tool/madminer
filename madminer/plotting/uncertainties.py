@@ -1,13 +1,10 @@
-from __future__ import absolute_import, division, print_function, unicode_literals
-
-import six
 import logging
 import numpy as np
 from matplotlib import pyplot as plt, gridspec
 
+from ..sampling import SampleAugmenter
 from ..utils.morphing import NuisanceMorpher
 from ..utils.various import mdot, shuffle, sanitize_array
-from ..sampling import SampleAugmenter
 
 logger = logging.getLogger(__name__)
 
@@ -120,7 +117,7 @@ def plot_uncertainty(
     # Restrict nuisance parameters
     if systematics is not None:
         nuisance_parameters = []
-        for npar, (npar_syst, _, _) in six.iteritems(sa.nuisance_parameters):
+        for npar, (npar_syst, _, _) in sa.nuisance_parameters.items():
             if npar_syst in systematics:
                 nuisance_parameters.append(npar)
 
@@ -342,7 +339,7 @@ def plot_systematics(
 
     # Systematics
     n_systematics = len(sa.systematics) + 1
-    labels = list(six.iterkeys(sa.systematics)) + ["combined"]
+    labels = list(sa.systematics.keys()) + ["combined"]
 
     # Nuisance parameters
     n_nuisance_params = sa.n_nuisance_parameters
@@ -351,11 +348,11 @@ def plot_systematics(
     nuisance_toys = nuisance_toys.reshape(n_systematics, n_toys, n_nuisance_params)
 
     # Restrict nuisance parameters
-    all_nuisance_parameters = list(six.iterkeys(sa.nuisance_parameters))
-    for i_syst, syst_name in enumerate(six.iterkeys(sa.systematics)):
+    all_nuisance_parameters = list(sa.nuisance_parameters.keys())
+    for i_syst, syst_name in enumerate(sa.systematics.keys()):
         n_used = n_nuisance_params
         used_nuisance_parameters = []
-        for npar, (npar_syst, _, _) in six.iteritems(sa.nuisance_parameters):
+        for npar, (npar_syst, _, _) in sa.nuisance_parameters.items():
             if npar_syst == syst_name:
                 used_nuisance_parameters.append(npar)
 

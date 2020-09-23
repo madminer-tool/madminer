@@ -1,13 +1,11 @@
-from __future__ import absolute_import, division, print_function, unicode_literals
-
 import logging
 import matplotlib
 import numpy as np
 from matplotlib import pyplot as plt
 
+from ..sampling import SampleAugmenter
 from ..utils.morphing import NuisanceMorpher
 from ..utils.various import shuffle, sanitize_array, mdot, weighted_quantile
-from ..sampling import SampleAugmenter
 
 logger = logging.getLogger(__name__)
 
