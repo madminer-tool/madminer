@@ -90,7 +90,7 @@ class DoubleParameterizedRatioEstimator(ConditionalEstimator):
             Observations, or filename of a pickled numpy array.
 
         y : ndarray or str
-            Class labels (0 = numeerator, 1 = denominator), or filename of a pickled numpy array.
+            Class labels (0 = numerator, 1 = denominator), or filename of a pickled numpy array.
 
         theta0 : ndarray or str
             Numerator parameter point, or filename of a pickled numpy array.
@@ -259,6 +259,7 @@ class DoubleParameterizedRatioEstimator(ConditionalEstimator):
             assert x_val.shape[1] == n_observables
             assert theta0_val.shape[1] == n_parameters
             assert theta1_val.shape[1] == n_parameters
+
             if r_xz is not None:
                 assert r_xz_val is not None, "When providing r_xz and sep. validation data, also provide r_xz_val"
             if t_xz0 is not None:
@@ -315,9 +316,17 @@ class DoubleParameterizedRatioEstimator(ConditionalEstimator):
 
         # Data
         data = self._package_training_data(method, x, theta0, theta1, y, r_xz, t_xz0, t_xz1)
+
         if external_validation:
             data_val = self._package_training_data(
-                method, x_val, theta0_val, theta1_val, y_val, r_xz_val, t_xz0_val, t_xz1_val
+                method,
+                x_val,
+                theta0_val,
+                theta1_val,
+                y_val,
+                r_xz_val,
+                t_xz0_val,
+                t_xz1_val,
             )
         else:
             data_val = None

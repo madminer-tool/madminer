@@ -267,10 +267,10 @@ class ScoreEstimator(Estimator):
         Parameters
         ----------
         fisher_information : ndarray
-            Fisher informatioin with shape `(n_parameters, n_parameters)`.
+            Fisher information with shape `(n_parameters, n_parameters)`.
 
         parameters_of_interest : list of int
-            List of int, with 0 <= remaining_compoinents[i] < n_parameters. Denotes which parameters are kept in the
+            List of int, with 0 <= remaining_components[i] < n_parameters. Denotes which parameters are kept in the
             profiling, and their new order.
 
         Returns
@@ -350,7 +350,7 @@ class ScoreEstimator(Estimator):
         # Scale observables
         x = self._transform_inputs(x)
 
-        # Restrict featuers
+        # Restrict features
         if self.features is not None:
             x = x[:, self.features]
 
@@ -358,7 +358,7 @@ class ScoreEstimator(Estimator):
         logger.debug("Starting score evaluation")
         t_hat = evaluate_local_score_model(model=self.model, xs=x)
 
-        # Treatment of nuisance paramters
+        # Treatment of nuisance parameters
         if nuisance_mode == "keep":
             logger.debug("Keeping nuisance parameter in score")
 
@@ -395,10 +395,8 @@ class ScoreEstimator(Estimator):
         return self.evaluate_score(*args, **kwargs)
 
     def calculate_fisher_information(self, x, theta=None, weights=None, n_events=1, sum_events=True):
-        fisher_information = super(ScoreEstimator, self).calculate_fisher_information(
-            x, theta, weights, n_events, sum_events
-        )
-        return fisher_information
+        return super(ScoreEstimator, self) \
+            .calculate_fisher_information(x, theta, weights, n_events, sum_events)
 
     def save(self, filename, save_model=False):
         super(ScoreEstimator, self).save(filename, save_model)
