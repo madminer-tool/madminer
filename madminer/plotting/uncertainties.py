@@ -307,7 +307,7 @@ def plot_systematics(
 
     # Colors
     if bandcolors is None:
-        bandcolors = ["C{}".format(i) for i in range(10)]
+        bandcolors = [f"C{i}" for i in range(10)]
 
     # Load data
     sa = SampleAugmenter(filename, include_nuisance_parameters=True)
