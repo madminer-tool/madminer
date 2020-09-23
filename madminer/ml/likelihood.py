@@ -1,16 +1,14 @@
-from __future__ import absolute_import, division, print_function
-
 import logging
 import numpy as np
 from collections import OrderedDict
 
+from .base import ConditionalEstimator
+from ..utils.ml.eval import evaluate_flow_model
 from ..utils.ml.models.maf import ConditionalMaskedAutoregressiveFlow
 from ..utils.ml.models.maf_mog import ConditionalMixtureMaskedAutoregressiveFlow
-from ..utils.ml.eval import evaluate_flow_model
+from ..utils.ml.trainer import FlowTrainer
 from ..utils.ml.utils import get_optimizer, get_loss
 from ..utils.various import load_and_check, shuffle, restrict_samplesize
-from ..utils.ml.trainer import FlowTrainer
-from .base import ConditionalEstimator
 
 try:
     FileNotFoundError

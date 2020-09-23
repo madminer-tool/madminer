@@ -1,16 +1,13 @@
-from __future__ import absolute_import, division, print_function
-
 import logging
 import numpy as np
 from collections import OrderedDict
 
-from ..utils.ml.models.score import DenseLocalScoreModel
-from ..utils.ml.eval import evaluate_local_score_model
-from ..utils.ml.utils import get_optimizer, get_loss
-from ..utils.various import load_and_check, shuffle, restrict_samplesize
-from ..utils.various import separate_information_blocks
-from ..utils.ml.trainer import LocalScoreTrainer
 from .base import Estimator, TheresAGoodReasonThisDoesntWork
+from ..utils.ml.eval import evaluate_local_score_model
+from ..utils.ml.models.score import DenseLocalScoreModel
+from ..utils.ml.trainer import LocalScoreTrainer
+from ..utils.ml.utils import get_optimizer, get_loss
+from ..utils.various import load_and_check, shuffle, restrict_samplesize, separate_information_blocks
 
 try:
     FileNotFoundError
