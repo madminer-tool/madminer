@@ -55,7 +55,12 @@ def save_nuisance_setup_to_madminer_file(
 
 
 def save_preformatted_events_to_madminer_file(
-    filename, observations, weights, sampling_benchmarks, copy_setup_from, overwrite_existing_samples=True
+    filename,
+    observations,
+    weights,
+    sampling_benchmarks,
+    copy_setup_from,
+    overwrite_existing_samples=True,
 ):
     _copy_madminer_file(copy_setup_from, filename, overwrite_existing_samples)
     _save_events(
@@ -263,6 +268,7 @@ def madminer_event_loader(
 
 def _save_parameters(filename, overwrite_existing_files, parameters):
     io_tag = "w" if overwrite_existing_files else "x"
+
     with h5py.File(filename, io_tag) as f:
         # Prepare parameters
         parameter_names = [pname for pname in parameters]
@@ -287,11 +293,13 @@ def _save_parameters(filename, overwrite_existing_files, parameters):
         f.create_dataset("parameters/max_power", data=parameter_max_power)
         f.create_dataset("parameters/ranges", data=parameter_ranges)
         f.create_dataset("parameters/transforms", (n_parameters,), dtype="S256", data=parameter_transforms)
+
     return parameter_names
 
 
 def _save_benchmarks(benchmarks, benchmarks_is_nuisance, filename, parameter_names):
     io_tag = "a"  # Read-write if file exists, otherwise create
+
     with h5py.File(filename, io_tag) as f:
         # Prepare benchmarks
         benchmark_names = [bname for bname in benchmarks]
@@ -314,6 +322,7 @@ def _save_benchmarks(benchmarks, benchmarks_is_nuisance, filename, parameter_nam
 
 def _save_benchmarks2(benchmark_is_nuisance, benchmark_names, benchmark_values, filename, reference_benchmark):
     io_tag = "a"  # Read-write if file exists, otherwise create
+
     with h5py.File(filename, io_tag) as f:
         # Prepare benchmarks for saving
         n_benchmarks = len(benchmark_names)
@@ -342,6 +351,7 @@ def _save_benchmarks2(benchmark_is_nuisance, benchmark_names, benchmark_values, 
 
 def _save_morphing(filename, morphing_components, morphing_matrix):
     io_tag = "a"  # Read-write if file exists, otherwise create
+
     with h5py.File(filename, io_tag) as f:
         # Store morphing info
         if morphing_components is not None:
@@ -352,6 +362,7 @@ def _save_morphing(filename, morphing_components, morphing_matrix):
 
 def _save_systematics(filename, systematics):
     io_tag = "a"
+
     with h5py.File(filename, io_tag) as f:
         # Prepare and store systematics setup
         if systematics is not None and len(systematics) > 0:
@@ -368,6 +379,7 @@ def _save_systematics(filename, systematics):
 
 def _save_nuisance_parameters(filename, nuisance_parameters, overwrite_existing_nuisance_parameters):
     io_tag = "a"  # Read-write if file exists, otherwise create
+
     with h5py.File(filename, io_tag) as f:
         # Make space for nuisance params
         if overwrite_existing_nuisance_parameters:
@@ -416,6 +428,7 @@ def _save_nuisance_parameters(filename, nuisance_parameters, overwrite_existing_
 
 def _save_n_events(filename, n_events_background, n_events_per_sampling_benchmark, overwrite_existing_samples):
     io_tag = "a"  # Read-write if file exists, otherwise create
+
     with h5py.File(filename, io_tag) as f:
         # Check if groups exist already
         if overwrite_existing_samples:
@@ -468,6 +481,7 @@ def _save_events(
 
 def _save_observables(filename, observables, overwrite_existing_samples):
     io_tag = "a"  # Read-write if file exists, otherwise create
+
     if observables is None:
         return None
 
@@ -499,6 +513,7 @@ def _save_observables(filename, observables, overwrite_existing_samples):
 
 
 def _load_parameters(filename):
+
     with h5py.File(filename, "r") as f:
         # Parameters
         try:
@@ -531,10 +546,12 @@ def _load_parameters(filename):
 
         except KeyError:
             raise IOError("Cannot read parameters from HDF5 file")
+
     return parameter_names, parameters
 
 
 def _load_benchmarks(filename, include_nuisance_benchmarks, parameter_names, return_dict=True):
+
     with h5py.File(filename, "r") as f:
         # Benchmarks
         try:
@@ -576,6 +593,7 @@ def _load_benchmarks(filename, include_nuisance_benchmarks, parameter_names, ret
 
 
 def _load_n_samples(filename):
+
     with h5py.File(filename, "r") as f:
         # Number of samples
         try:
@@ -601,6 +619,7 @@ def _load_n_samples(filename):
 
 
 def _load_morphing(filename):
+
     with h5py.File(filename, "r") as f:
         # Morphing
         try:
@@ -614,6 +633,7 @@ def _load_morphing(filename):
 
 
 def _load_nuisance_params(filename):
+
     with h5py.File(filename, "r") as f:
         # Nuisance parameters
         try:
@@ -643,10 +663,12 @@ def _load_nuisance_params(filename):
 
         except KeyError:
             nuisance_parameters = None
+
     return nuisance_parameters
 
 
 def _load_systematics(filename):
+
     with h5py.File(filename, "r") as f:
         # Systematics setup
         try:
@@ -672,10 +694,12 @@ def _load_systematics(filename):
 
         except KeyError:
             systematics = OrderedDict()
+
     return systematics
 
 
 def _load_observables(filename):
+
     with h5py.File(filename, "r") as f:
         # Observables
         try:
@@ -690,6 +714,7 @@ def _load_observables(filename):
                 observables[oname] = odef
         except KeyError:
             observables = None
+
     return observables
 
 
@@ -727,6 +752,7 @@ def _sort_weights(benchmark_names, weights):
     except Exception as e:
         logger.warning("Issue matching weight names in HepMC file to benchmark names in MadMiner file:\n%s", e)
         weights_sorted = [weights[key] for key in weights]
+
     return weights_sorted
 
 
