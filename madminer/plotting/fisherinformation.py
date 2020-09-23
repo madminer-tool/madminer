@@ -92,6 +92,7 @@ def plot_fisher_information_contours_2d(
 
     ax: axes or None, optional
         Predefined axes as part of figure instead of standalone figure. Default: None
+
     Returns
     -------
     figure : Figure
@@ -220,7 +221,11 @@ def plot_fisher_information_contours_2d(
 
 
 def plot_fisherinfo_barplot(
-    fisher_information_matrices, labels, determinant_indices=None, eigenvalue_colors=None, bar_colors=None
+    fisher_information_matrices,
+    labels,
+    determinant_indices=None,
+    eigenvalue_colors=None,
+    bar_colors=None,
 ):
     """
 
