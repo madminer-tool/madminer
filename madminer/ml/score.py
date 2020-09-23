@@ -9,10 +9,6 @@ from ..utils.ml.trainer import LocalScoreTrainer
 from ..utils.ml.utils import get_optimizer, get_loss
 from ..utils.various import load_and_check, shuffle, restrict_samplesize, separate_information_blocks
 
-try:
-    FileNotFoundError
-except NameError:
-    FileNotFoundError = IOError
 
 logger = logging.getLogger(__name__)
 

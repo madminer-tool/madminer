@@ -6,10 +6,6 @@ from ..utils.interfaces.madminer_hdf5 import load_madminer_settings
 from ..utils.ml.models.ratio import DenseMorphingAwareRatioModel
 from ..utils.morphing import PhysicsMorpher
 
-try:
-    FileNotFoundError
-except NameError:
-    FileNotFoundError = IOError
 
 logger = logging.getLogger(__name__)
 
