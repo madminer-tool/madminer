@@ -182,8 +182,8 @@ class SampleAugmenter(DataAnalyzer):
 
         # Save data
         if filename is not None and folder is not None:
-            np.save(folder + "/theta_" + filename + ".npy", theta)
-            np.save(folder + "/x_" + filename + ".npy", x)
+            np.save(f"{folder}/theta_{filename}.npy", theta)
+            np.save(f"{folder}/x_{filename}.npy", x)
 
         return x, theta, min(effective_n_samples)
 
@@ -327,9 +327,9 @@ class SampleAugmenter(DataAnalyzer):
 
         # Save data
         if filename is not None and folder is not None:
-            np.save(folder + "/theta_" + filename + ".npy", theta)
-            np.save(folder + "/x_" + filename + ".npy", x)
-            np.save(folder + "/t_xz_" + filename + ".npy", t_xz)
+            np.save(f"{folder}/theta_{filename}.npy", theta)
+            np.save(f"{folder}/x_{filename}.npy", x)
+            np.save(f"{folder}/t_xz_{filename}.npy", t_xz)
 
         return x, theta, t_xz, min(effective_n_samples)
 
@@ -699,13 +699,13 @@ class SampleAugmenter(DataAnalyzer):
 
         # Save data
         if filename is not None and folder is not None:
-            np.save(folder + "/theta0_" + filename + ".npy", theta0)
-            np.save(folder + "/theta1_" + filename + ".npy", theta1)
-            np.save(folder + "/x_" + filename + ".npy", x)
-            np.save(folder + "/y_" + filename + ".npy", y)
-            np.save(folder + "/r_xz_" + filename + ".npy", r_xz)
+            np.save(f"{folder}/theta0_{filename}.npy", theta0)
+            np.save(f"{folder}/theta1_{filename}.npy", theta1)
+            np.save(f"{folder}/x_{filename}.npy", x)
+            np.save(f"{folder}/y_{filename}.npy", y)
+            np.save(f"{folder}/r_xz_{filename}.npy", r_xz)
             if self.morpher is not None:
-                np.save(folder + "/t_xz_" + filename + ".npy", t_xz)
+                np.save(f"{folder}/t_xz_{filename}.npy", t_xz)
 
         if not return_individual_n_effective:
             n_effective = np.min(n_effective)
@@ -1029,13 +1029,13 @@ class SampleAugmenter(DataAnalyzer):
 
         # Save data
         if filename is not None and folder is not None:
-            np.save(folder + "/theta0_" + filename + ".npy", theta0)
-            np.save(folder + "/theta1_" + filename + ".npy", theta1)
-            np.save(folder + "/x_" + filename + ".npy", x)
-            np.save(folder + "/y_" + filename + ".npy", y)
-            np.save(folder + "/r_xz_" + filename + ".npy", r_xz)
-            np.save(folder + "/t_xz0_" + filename + ".npy", t_xz0)
-            np.save(folder + "/t_xz1_" + filename + ".npy", t_xz1)
+            np.save(f"{folder}/theta0_{filename}.npy", theta0)
+            np.save(f"{folder}/theta1_{filename}.npy", theta1)
+            np.save(f"{folder}/x_{filename}.npy", x)
+            np.save(f"{folder}/y_{filename}.npy", y)
+            np.save(f"{folder}/r_xz_{filename}.npy", r_xz)
+            np.save(f"{folder}/t_xz0_{filename}.npy", t_xz0)
+            np.save(f"{folder}/t_xz1_{filename}.npy", t_xz1)
 
         return x, theta0, theta1, y, r_xz, t_xz0, t_xz1, min(min(n_effective_samples_0), min(n_effective_samples_1))
 
@@ -1146,8 +1146,8 @@ class SampleAugmenter(DataAnalyzer):
 
         # Save data
         if filename is not None and folder is not None:
-            np.save(folder + "/theta_" + filename + ".npy", theta)
-            np.save(folder + "/x_" + filename + ".npy", x)
+            np.save(f"{folder}/theta_{filename}.npy", theta)
+            np.save(f"{folder}/x_{filename}.npy", x)
 
         return x, theta, min(n_effective_samples)
 
@@ -1675,9 +1675,8 @@ class SampleAugmenter(DataAnalyzer):
             # Check that we got 'em all, otherwise repeat
             if not np.all(done):
                 logger.debug(
-                    "  After full pass through event files, {} / {} samples not found, with u = {}".format(
-                        np.sum(np.invert(done)), done.size, u[np.invert(done)]
-                    )
+                    f"  After full pass through event files, {np.sum(np.invert(done))} / {done.size} "
+                    f"samples not found, with u = {u[np.invert(done)]}"
                 )
 
         n_eff_samples = 1.0 / max(1.0e-12, largest_event_probability)
@@ -1716,7 +1715,7 @@ class SampleAugmenter(DataAnalyzer):
                 score = score.T  # (n_samples, n_gradients)
                 augmented_data.append(score)
             else:
-                raise ValueError("Unknown augmented data type {}".format(definition[0]))
+                raise ValueError(f"Unknown augmented data type {definition[0]}")
 
         return augmented_data
 
@@ -1815,11 +1814,11 @@ class SampleAugmenter(DataAnalyzer):
                     prior_std = prior[2]
                     thetas_out.append(np.random.normal(loc=prior_mean, scale=prior_std, size=n_benchmarks))
                 else:
-                    raise ValueError("Unknown prior {}".format(prior))
+                    raise ValueError(f"Unknown prior {prior}")
             thetas_out = np.array(thetas_out).T
 
         else:
-            raise ValueError("Unknown theta specification {}".format(theta))
+            raise ValueError(f"Unknown theta specification {theta}")
 
         return thetas_out, n_samples_per_theta
 
@@ -1861,18 +1860,18 @@ class SampleAugmenter(DataAnalyzer):
                     prior_std = prior[2]
                     nu_out.append(np.random.normal(loc=prior_mean, scale=prior_std, size=n_thetas))
                 else:
-                    raise ValueError("Unknown prior {}".format(prior))
+                    raise ValueError(f"Unknown prior {prior}")
             nu_out = np.array(nu_out).T
 
         else:
-            raise ValueError("Unknown nu specification {}".format(nu))
+            raise ValueError(f"Unknown nu specification {nu}")
 
         return nu_out
 
     @staticmethod
     def _build_sets(thetas, nus):
         if len(nus) != len(thetas):
-            raise RuntimeError("Mismatching thetas and nus: {} vs {}".format(len(thetas), len(nus)))
+            raise RuntimeError(f"Mismatching thetas and nus: {len(thetas)} vs {len(nus)}")
 
         n_sets = max([len(param) for param in thetas + nus])
         sets = [[] for _ in range(n_sets)]
@@ -1883,9 +1882,8 @@ class SampleAugmenter(DataAnalyzer):
 
             if n_theta_sets_before <= 0 or n_nu_sets_before <= 0:
                 raise RuntimeError(
-                    (
-                        "Inconsistent number of sets in _build_sets: thetas = {}, nus = {}, theta = {}, " "nu = {}"
-                    ).format(thetas, nus, theta, nu)
+                    f"Inconsistent number of sets in _build_sets: "
+                    f"thetas = {thetas}, nus = {nus}, theta = {theta}, nu = {nu}"
                 )
 
             for i_set in range(n_sets):
@@ -1900,19 +1898,19 @@ class SampleAugmenter(DataAnalyzer):
         elif theta[0] == "morphing_point":
             return str(theta[1])
         elif theta[0] == "benchmarks":
-            return "{} benchmarks, starting with {}".format(len(theta[1]), theta[1][:3])
+            return f"{len(theta[1])} benchmarks, starting with {theta[1][:3]}"
         elif theta[0] == "morphing_points":
-            return "{} morphing points, starting with {}".format(len(theta[1]), theta[1][:3])
+            return f"{len(theta[1])} morphing points, starting with {theta[1][:3]}"
         elif theta[0] == "random_morphing_points":
             prior_str = ""
             for i, (type_, arg0, arg1) in enumerate(theta[1][1]):
                 prior_str += "\n"
                 if type_ == "gaussian":
-                    prior_str += "  theta_{} ~ Gaussian with mean {} and std {}".format(i, arg0, arg1)
+                    prior_str += f"  theta_{i} ~ Gaussian with mean {arg0} and std {arg1}"
                 elif type_ == "flat":
-                    prior_str += "  theta_{} ~ flat from {} to {}".format(i, arg0, arg1)
+                    prior_str += f"  theta_{i} ~ flat from {arg0} to {arg1}"
 
             if theta[1][0] is None:
-                return "Maximally many random morphing points, drawn from the following priors:{}".format(prior_str)
+                return f"Maximally many random morphing points, drawn from the following priors: {prior_str}"
             else:
-                return "{} random morphing points, drawn from the following priors:{}".format(theta[1][0], prior_str)
+                return f"{theta[1][0]} random morphing points, drawn from the following priors: {prior_str}"
