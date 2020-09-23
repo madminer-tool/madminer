@@ -6,10 +6,6 @@ import torch
 
 from ..utils.various import create_missing_folders, load_and_check
 
-try:
-    FileNotFoundError
-except NameError:
-    FileNotFoundError = IOError
 
 logger = logging.getLogger(__name__)
 

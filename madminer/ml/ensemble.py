@@ -10,11 +10,6 @@ from .parameterized_ratio import ParameterizedRatioEstimator
 from .score import ScoreEstimator
 
 
-try:
-    FileNotFoundError
-except NameError:
-    FileNotFoundError = IOError
-
 logger = logging.getLogger(__name__)
 
 
