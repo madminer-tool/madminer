@@ -711,7 +711,7 @@ def _load_systematics(filename):
                     syst_data[1] = str(syst_data[1])
                     syst_data[2] = str(syst_data[2])
                 else:
-                    raise RuntimeError("Error while reading systematics from HDF5 file: {}".format(syst_data))
+                    raise RuntimeError(f"Error while reading systematics from HDF5 file: {syst_data}")
                 systematics[name] = tuple(syst_data)
 
         except KeyError:

@@ -285,10 +285,10 @@ def _get_particles_truth(tree, pt_min, eta_max, included_pdgids=None):
 
 
 def _get_particles_charged(tree, name, mass, pdgid_positive_charge, pt_min, eta_max):
-    pts = tree.array(name + ".PT")
-    etas = tree.array(name + ".Eta")
-    phis = tree.array(name + ".Phi")
-    charges = tree.array(name + ".Charge")
+    pts = tree.array(f"{name}.PT")
+    etas = tree.array(f"{name}.Eta")
+    phis = tree.array(f"{name}.Phi")
+    charges = tree.array(f"{name}.Charge")
 
     all_particles = []
 

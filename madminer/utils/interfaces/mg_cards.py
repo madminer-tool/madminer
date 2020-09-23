@@ -49,7 +49,7 @@ def export_param_card(benchmark, parameters, param_card_template_file, mg_proces
                     continue
 
                 if lha_id == parameter_lha_id:
-                    lines[i] = "    " + str(parameter_lha_id) + "    " + str(parameter_value) + "    # MadMiner"
+                    lines[i] = f"    {parameter_lha_id}    {parameter_value}    # MadMiner"
                     changed_line = True
                     break
 
@@ -61,25 +61,18 @@ def export_param_card(benchmark, parameters, param_card_template_file, mg_proces
 
                 current_block = None
                 if lha_id == parameter_lha_id:
-                    lines[i] = (
-                        str(parameter_lha_block)
-                        + "    "
-                        + str(parameter_lha_id)
-                        + "    "
-                        + str(parameter_value)
-                        + "    # MadMiner"
-                    )
+                    lines[i] = f"{parameter_lha_block}    {parameter_lha_id}    {parameter_value}    # MadMiner"
                     changed_line = True
                     break
 
         if not changed_line:
-            raise ValueError("Could not find LHA ID {0} in param_card template!".format(parameter_lha_id))
+            raise ValueError(f"Could not find LHA ID {parameter_lha_id} in param_card template!")
 
         param_card = "\n".join(lines)
 
     # Output filename
     if param_card_filename is None:
-        param_card_filename = mg_process_directory + "/Cards/param_card.dat"
+        param_card_filename = f"{mg_process_directory}/Cards/param_card.dat"
 
     # Save param_card.dat
     with open(param_card_filename, "w") as file:
@@ -114,7 +107,7 @@ def export_reweight_card(sample_benchmark, benchmarks, parameters, mg_process_di
                 variables = {"theta": parameter_value}
                 parameter_value = eval(parameter_transform, variables)
 
-            lines.append("  set {0} {1} {2}".format(parameter_lha_block, parameter_lha_id, parameter_value))
+            lines.append(f"  set {parameter_lha_block} {parameter_lha_id} {parameter_value}")
 
         lines.append("")
 
@@ -122,7 +115,7 @@ def export_reweight_card(sample_benchmark, benchmarks, parameters, mg_process_di
 
     # Output filename
     if reweight_card_filename is None:
-        reweight_card_filename = mg_process_directory + "/Cards/reweight_card.dat"
+        reweight_card_filename = f"{mg_process_directory}/Cards/reweight_card.dat"
 
     # Save param_card.dat
     with open(reweight_card_filename, "w") as file:
@@ -182,7 +175,7 @@ def export_run_card(template_filename, run_card_filename, systematics=None, orde
         line_key = elements[-1].strip()
 
         if line_key in entries_to_comment_out:
-            run_card_lines[i] = "# {} # Commented out by MadMiner".format(line)
+            run_card_lines[i] = f"# {line} # Commented out by MadMiner"
             continue
 
     # Add new entries - sytematics
@@ -192,7 +185,7 @@ def export_run_card(template_filename, run_card_filename, systematics=None, orde
         run_card_lines.append("# MadMiner systematics setup                                         *")
         run_card_lines.append("#*********************************************************************")
         for key, value in six.iteritems(settings):
-            run_card_lines.append("{} = {}".format(value, key))
+            run_card_lines.append(f"{value} = {key}")
         run_card_lines.append("")
 
     # Write new run card
@@ -217,31 +210,31 @@ def create_systematics_arguments(systematics):
         if value[0] == "scale" and value[1] == "mu":
             if mur_done or muf_done:
                 raise ValueError("Multiple nuisance parameter for scale variation!")
-            systematics_arguments.append("'--mur={}'".format(value[2]))
-            systematics_arguments.append("'--muf={}'".format(value[2]))
-            systematics_arguments.append("'--together=mur,muf'")
-            systematics_arguments.append("'--dyn=-1'")
+            systematics_arguments.append(f"'--mur={value[2]}'")
+            systematics_arguments.append(f"'--muf={value[2]}'")
+            systematics_arguments.append(f"'--together=mur,muf'")
+            systematics_arguments.append(f"'--dyn=-1'")
             mur_done = True
             muf_done = True
         elif value[0] == "scale" and value[1] == "mur":
             if mur_done:
                 raise ValueError("Multiple nuisance parameter for mur variation!")
-            systematics_arguments.append("'--mur={}'".format(value[2]))
-            systematics_arguments.append("'--dyn=-1'")
+            systematics_arguments.append(f"'--mur={value[2]}'")
+            systematics_arguments.append(f"'--dyn=-1'")
             mur_done = True
         elif value[0] == "scale" and value[1] == "muf":
             if muf_done:
                 raise ValueError("Multiple nuisance parameter for muf variation!")
-            systematics_arguments.append("'--muf={}'".format(value[2]))
-            systematics_arguments.append("'--dyn=-1'")
+            systematics_arguments.append(f"'--muf={value[2]}'")
+            systematics_arguments.append(f"'--dyn=-1'")
             muf_done = True
         elif value[0] == "pdf":
             if pdf_done:
                 raise ValueError("Multiple nuisance parameter for PDF variation!")
-            systematics_arguments.append("'--pdf={}'".format(value[1]))
+            systematics_arguments.append(f"'--pdf={value[1]}'")
             pdf_done = True
 
     if len(systematics_arguments) > 0:
-        return "[" + ", ".join(systematics_arguments) + "]"
+        return f"[{', '.join(systematics_arguments)}]"
 
     return ""

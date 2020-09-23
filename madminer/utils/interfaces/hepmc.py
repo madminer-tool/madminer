@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 
 def extract_weight_order(filename, default_weight_label=None):
-    # Untar event file
+    # Unzip event file
     new_filename, extension = os.path.splitext(filename)
     if extension == ".gz":
         if not os.path.exists(new_filename):

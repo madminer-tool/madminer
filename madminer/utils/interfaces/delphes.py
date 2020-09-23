@@ -20,7 +20,7 @@ def run_delphes(
 ):
     """ Runs Delphes on a HepMC sample """
 
-    # Untar event file
+    # Unzip event file
     filename, extension = os.path.splitext(hepmc_sample_filename)
     to_delete = None
     if extension == ".gz":
@@ -38,9 +38,9 @@ def run_delphes(
 
         for i in range(1, 1000):
             if i == 1:
-                filename_candidate = filename_prefix + "_delphes.root"
+                filename_candidate = f"{filename_prefix}_delphes.root"
             else:
-                filename_candidate = filename_prefix + "_delphes_" + str(i) + ".root"
+                filename_candidate = f"{filename_prefix}_delphes_{i}.root"
 
             if not os.path.exists(filename_candidate):
                 delphes_sample_filename = filename_candidate
@@ -61,13 +61,14 @@ def run_delphes(
 
     # Call Delphes
     _ = call_command(
-        "{}{}/DelphesHepMC {} {} {}".format(
-            initial_command, delphes_directory, delphes_card_filename, delphes_sample_filename, hepmc_sample_filename
-        ),
+        f"{initial_command}{delphes_directory}/DelphesHepMC "
+        f"{delphes_card_filename} "
+        f"{delphes_sample_filename} "
+        f"{hepmc_sample_filename}",
         log_file=log_file,
     )
 
-    # Delete untarred file
+    # Delete unzipped file
     if to_delete is not None:
         logger.debug("Deleting %s", to_delete)
         os.remove(to_delete)

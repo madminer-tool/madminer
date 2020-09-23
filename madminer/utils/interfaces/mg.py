@@ -70,31 +70,27 @@ def generate_mg_process(
         copy_ufo_model(ufo_model_directory, mg_directory)
 
     # MG commands
-    temp_proc_card_file = temp_directory + "/generate.mg5"
+    temp_proc_card_file = f"{temp_directory}/generate.mg5"
     shutil.copyfile(proc_card_file, temp_proc_card_file)
 
     with open(temp_proc_card_file, "a") as myfile:
-        myfile.write("\n\noutput " + mg_process_directory)
+        myfile.write(f"\n")
+        myfile.write(f"\n")
+        myfile.write(f"output {mg_process_directory}")
 
     # Call MG5
-    if initial_command is None:
-        initial_command = ""
-    else:
-        initial_command = initial_command + "; "
+    initial_command = f"{initial_command}; " if initial_command else ""
 
     # Explicitly call Python 2 if necessary
     if explicit_python_call:
-        python_call = python_executable + " " if python_executable is not None else "python2.7 "
+        python_call = f"{python_executable} "  if python_executable is not None else "python2.7 "
     else:
         python_call = ""
 
-    logger.info(
-        "Calling MadGraph: %s", initial_command + python_call + mg_directory + "/bin/mg5_aMC " + temp_proc_card_file
-    )
+    command = f"{initial_command}{python_call}{mg_directory}/bin/mg5_aMC {temp_proc_card_file}"
+    logger.info(f"Calling MadGraph: {command}")
 
-    _ = call_command(
-        initial_command + python_call + mg_directory + "/bin/mg5_aMC " + temp_proc_card_file, log_file=log_file
-    )
+    _ = call_command(cmd=command, log_file=log_file)
 
 
 def setup_mg_with_scripts(
@@ -198,19 +194,19 @@ def setup_mg_with_scripts(
     # Find filenames for process card and script
     if proc_card_filename_from_mgprocdir is None:
         for i in range(1000):
-            proc_card_filename_from_mgprocdir = "/Cards/start_event_generation_{}.mg5".format(i)
-            if not os.path.isfile(mg_process_directory + "/" + proc_card_filename_from_mgprocdir):
+            proc_card_filename_from_mgprocdir = f"/Cards/start_event_generation_{i}.mg5"
+            if not os.path.isfile(f"{mg_process_directory}/{proc_card_filename_from_mgprocdir}"):
                 break
     else:
         proc_card_filename = mg_process_directory + "/" + proc_card_filename_from_mgprocdir
 
     if script_file_from_mgprocdir is None:
         for i in range(1000):
-            script_file = mg_process_directory + "/madminer/scripts/madminer_run_{}.sh".format(i)
+            script_file = f"{mg_process_directory}/madminer/scripts/madminer_run_{i}.sh"
             if not os.path.isfile(script_file):
                 break
     else:
-        script_file = mg_process_directory + "/" + script_file_from_mgprocdir
+        script_file = f"{mg_process_directory}/{script_file_from_mgprocdir}"
 
     script_filename = os.path.basename(script_file)
 
@@ -243,48 +239,34 @@ def setup_mg_with_scripts(
     #  Card copying commands
     copy_commands = ""
     if run_card_file_from_mgprocdir is not None:
-        copy_commands += "cp {}/{} {}{}\n".format(
-            mg_process_directory_placeholder,
-            run_card_file_from_mgprocdir,
-            mg_process_directory_placeholder,
-            "/Cards/run_card.dat",
-        )
+        copy_commands += f"cp " \
+            f"{mg_process_directory_placeholder}/{run_card_file_from_mgprocdir} " \
+            f"{mg_process_directory_placeholder}/Cards/run_card.dat\n"
+
     if param_card_file_from_mgprocdir is not None:
-        copy_commands += "cp {}/{} {}{}\n".format(
-            mg_process_directory_placeholder,
-            param_card_file_from_mgprocdir,
-            mg_process_directory_placeholder,
-            "/Cards/param_card.dat",
-        )
+        copy_commands += f"cp " \
+            f"{mg_process_directory_placeholder}/{param_card_file_from_mgprocdir} " \
+            f"{mg_process_directory_placeholder}/Cards/param_card.dat\n"
+
     if reweight_card_file_from_mgprocdir is not None and not is_background:
-        copy_commands += "cp {}/{} {}{}\n".format(
-            mg_process_directory_placeholder,
-            reweight_card_file_from_mgprocdir,
-            mg_process_directory_placeholder,
-            "/Cards/reweight_card.dat",
-        )
+        copy_commands += f"cp " \
+            f"{mg_process_directory_placeholder}/{reweight_card_file_from_mgprocdir} " \
+            f"{mg_process_directory_placeholder}/Cards/reweight_card.dat\n"
+
     if pythia8_card_file_from_mgprocdir is not None and order == "LO":
-        copy_commands += "cp {}/{} {}{}\n".format(
-            mg_process_directory_placeholder,
-            pythia8_card_file_from_mgprocdir,
-            mg_process_directory_placeholder,
-            "/Cards/pythia8_card.dat",
-        )
-    elif pythia8_card_file_from_mgprocdir is not None and order == "NLO":
-        copy_commands += "cp {}/{} {}{}\n".format(
-            mg_process_directory_placeholder,
-            pythia8_card_file_from_mgprocdir,
-            mg_process_directory_placeholder,
-            "/Cards/shower_card.dat",
-        )
+        copy_commands += f"cp " \
+            f"{mg_process_directory_placeholder}/{pythia8_card_file_from_mgprocdir} " \
+            f"{mg_process_directory_placeholder}/Cards/pythia8_card.dat\n"
+
+    if pythia8_card_file_from_mgprocdir is not None and order == "NLO":
+        copy_commands += f"cp " \
+            f"{mg_process_directory_placeholder}/{pythia8_card_file_from_mgprocdir} " \
+            f"{mg_process_directory_placeholder}/Cards/shower_card.dat\n"
 
     if configuration_file_from_mgprocdir is not None:
-        copy_commands += "cp {}/{} {}{}\n".format(
-            mg_process_directory_placeholder,
-            configuration_file_from_mgprocdir,
-            mg_process_directory_placeholder,
-            "/Cards/me5_configuration.txt",
-        )
+        copy_commands += f"cp " \
+            f"{mg_process_directory_placeholder}/{configuration_file_from_mgprocdir} " \
+            f"{mg_process_directory_placeholder}/Cards/me5_configuration.txt\n"
 
     # Replace environment variable in proc card
     replacement_command = """sed -e 's@\$mgprocdir@'"$mgprocdir"'@' {}/{} > {}/{}""".format(
@@ -323,13 +305,11 @@ def setup_mg_with_scripts(
     make_file_executable(script_file)
 
     # How to call it from master script
-    call_placeholder = "{}/{} {} {} {}".format(
-        mg_process_directory_placeholder,
-        script_file_from_mgprocdir,
-        mg_directory_placeholder,
-        mg_process_directory_placeholder,
-        log_dir_placeholder,
-    )
+    call_placeholder = \
+        f"{mg_process_directory_placeholder}/{script_file_from_mgprocdir} " \
+        f"{mg_directory_placeholder} " \
+        f"{mg_process_directory_placeholder} " \
+        f"{log_dir_placeholder}"
 
     return call_placeholder
 
@@ -415,22 +395,22 @@ def run_mg(
 
     # Copy cards
     if run_card_file is not None:
-        shutil.copyfile(run_card_file, mg_process_directory + "/Cards/run_card.dat")
+        shutil.copyfile(run_card_file, f"{mg_process_directory}/Cards/run_card.dat")
     if param_card_file is not None:
-        shutil.copyfile(param_card_file, mg_process_directory + "/Cards/param_card.dat")
+        shutil.copyfile(param_card_file, f"{mg_process_directory}/Cards/param_card.dat")
     if reweight_card_file is not None and not is_background:
-        shutil.copyfile(reweight_card_file, mg_process_directory + "/Cards/reweight_card.dat")
+        shutil.copyfile(reweight_card_file, f"{mg_process_directory}/Cards/reweight_card.dat")
     if pythia8_card_file is not None and order == "LO":
-        shutil.copyfile(pythia8_card_file, mg_process_directory + "/Cards/pythia8_card.dat")
+        shutil.copyfile(pythia8_card_file, f"{mg_process_directory}/Cards/pythia8_card.dat")
     if pythia8_card_file is not None and order == "NLO":
-        shutil.copyfile(pythia8_card_file, mg_process_directory + "/Cards/shower_card.dat")
+        shutil.copyfile(pythia8_card_file, f"{mg_process_directory}/Cards/shower_card.dat")
     if configuration_card_file is not None:
-        shutil.copyfile(configuration_card_file, mg_process_directory + "/Cards/me5_configuration.txt")
+        shutil.copyfile(configuration_card_file, f"{mg_process_directory}/Cards/me5_configuration.txt")
 
     # Find filenames for process card and script
     if proc_card_filename is None:
         for i in range(1000):
-            proc_card_filename = mg_process_directory + "/Cards/start_event_generation_{}.mg5".format(i)
+            proc_card_filename = f"{mg_process_directory}/Cards/start_event_generation_{i}.mg5"
             if not os.path.isfile(proc_card_filename):
                 break
 
@@ -454,20 +434,18 @@ def run_mg(
         file.write(mg_commands)
 
     # Call MG5
-    if initial_command is None:
-        initial_command = ""
-    else:
-        initial_command = initial_command + "; "
+    initial_command = f"{initial_command}; " if initial_command else ""
 
     # Explicitly call Python 2 if necessary
     if explicit_python_call:
-        python_call = python_executable + " " if python_executable is not None else "python2.7 "
+        python_call = f"{python_executable} "  if python_executable is not None else "python2.7 "
     else:
         python_call = ""
 
-    _ = call_command(
-        initial_command + python_call + mg_directory + "/bin/mg5_aMC " + proc_card_filename, log_file=log_file
-    )
+    command = f"{initial_command}{python_call}{mg_directory}/bin/mg5_aMC {proc_card_filename}"
+    logger.info(f"Calling MadGraph: {command}")
+
+    _ = call_command(cmd=command, log_file=log_file)
 
 
 def setup_mg_reweighting_with_scripts(
@@ -525,10 +503,11 @@ def setup_mg_reweighting_with_scripts(
     log_dir_placeholder = "$mmlogdir"
     placeholder_definition = r"mgprocdir=${1:-" + mg_process_directory + r"}" + "\n"
     placeholder_definition += r"mmlogdir=${2:-" + log_dir + r"}"
+
     if script_file_from_mgprocdir is None:
-        script_file = mg_process_directory + "/madminer/scripts/madminer_reweight_{}.sh".format(run_name)
+        script_file = f"{mg_process_directory}/madminer/scripts/madminer_reweight_{run_name}.sh"
     else:
-        script_file = mg_process_directory + "/" + script_file_from_mgprocdir
+        script_file = f"{mg_process_directory}/{script_file_from_mgprocdir}"
 
     script_filename = os.path.basename(script_file)
 
@@ -541,12 +520,9 @@ def setup_mg_reweighting_with_scripts(
 
     #  Card copying commands
     if reweight_card_file_from_mgprocdir is not None:
-        copy_commands = "cp {}/{} {}{}\n".format(
-            mg_process_directory_placeholder,
-            reweight_card_file_from_mgprocdir,
-            mg_process_directory_placeholder,
-            "/Cards/reweight_card.dat",
-        )
+        copy_commands = f"cp " \
+            f"{mg_process_directory_placeholder}/{reweight_card_file_from_mgprocdir} " \
+            f"{mg_process_directory_placeholder}/Cards/reweight_card.dat\n"
     else:
         copy_commands = ""
 
@@ -570,9 +546,9 @@ def setup_mg_reweighting_with_scripts(
     make_file_executable(script_file)
 
     # How to call it from master script
-    call_instruction = "{}/{} [MG_process_directory] [log_directory]".format(
-        mg_process_directory, script_file_from_mgprocdir
-    )
+    call_instruction = \
+        f"{mg_process_directory}/{script_file_from_mgprocdir} " \
+        f"[MG_process_directory] [log_directory]"
 
     return call_instruction
 
@@ -618,19 +594,17 @@ def run_mg_reweighting(mg_process_directory, run_name, reweight_card_file=None, 
         shutil.copyfile(reweight_card_file, mg_process_directory + "/Cards/reweight_card.dat")
 
     # Call MG5 reweight feature
-    if initial_command is None:
-        initial_command = ""
-    else:
-        initial_command = initial_command + "; "
+    initial_command = f"{initial_command}; " if initial_command else ""
 
     _ = call_command(
-        "{}{}/bin/madevent reweight {} -f".format(initial_command, mg_process_directory, run_name), log_file=log_file
+        cmd=f"{initial_command}{mg_process_directory}/bin/madevent reweight {run_name} -f",
+        log_file=log_file,
     )
 
 
 def copy_ufo_model(ufo_directory, mg_directory):
     _, model_name = os.path.split(ufo_directory)
-    destination = mg_directory + "/models/" + model_name
+    destination = f"{mg_directory}/models/{model_name}"
 
     if os.path.isdir(destination):
         return
@@ -648,6 +622,7 @@ def create_master_script(log_directory, master_script_filename, mg_directory, mg
         + "# Usage: run.sh [MG_directory] [MG_process_directory] [log_directory]\n\n"
         + "{}\n\n{}"
     ).format(placeholder_definition, commands)
+
     with open(master_script_filename, "w") as file:
         file.write(script)
     make_file_executable(master_script_filename)

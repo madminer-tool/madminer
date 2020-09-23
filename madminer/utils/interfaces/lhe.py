@@ -273,7 +273,7 @@ def parse_lhe_file(
             elif isinstance(processing, float):
                 output_weights[nuisance_benchmark0] = processing * weights_all_events[weight_name0]
             else:
-                raise RuntimeError("Unknown nuisance processiing {}".format(processing))
+                raise RuntimeError(f"Unknown nuisance processing {processing}")
 
             # Store second benchmark associated with nuisance param
             if nuisance_benchmark1 is None or weight_name1 is None:
@@ -283,7 +283,7 @@ def parse_lhe_file(
             elif isinstance(processing, float):
                 output_weights[nuisance_benchmark1] = processing * weights_all_events[weight_name1]
             else:
-                raise RuntimeError("Unknown nuisance processing {}".format(processing))
+                raise RuntimeError(f"Unknown nuisance processing {processing}")
 
     return observations_dict, output_weights
 
@@ -532,8 +532,8 @@ def _extract_nuisance_param_dict(weight_groups, systematics_name, systematics_de
     syst_type = systematics_definition[0]
 
     if syst_type == "norm":
-        nuisance_param_name = "{}_nuisance_param_0".format(systematics_name)
-        benchmark_name = "{}_benchmark_0".format(nuisance_param_name)
+        nuisance_param_name = f"{systematics_name}_nuisance_param_0"
+        benchmark_name = f"{nuisance_param_name}_benchmark_0"
         nuisance_param_definition = (benchmark_name, None), (None, None), systematics_definition[1]
         return {nuisance_param_name: nuisance_param_definition}
 
@@ -596,7 +596,7 @@ def _extract_nuisance_param_dict(weight_groups, systematics_name, systematics_de
 
                     # Matching time!
                     if approx_equal(weight_mur, mur) and approx_equal(weight_muf, muf):
-                        benchmark_name = "{}_nuisance_param_0_benchmark_{}".format(systematics_name, k)
+                        benchmark_name = f"{systematics_name}_nuisance_param_0_benchmark_{k}"
                         nuisance_param_definition_parts.append((benchmark_name, weight_id))
                         break
 
@@ -614,7 +614,7 @@ def _extract_nuisance_param_dict(weight_groups, systematics_name, systematics_de
             return {}
         else:
             # Output
-            nuisance_param_name = "{}_nuisance_param_0".format(systematics_name)
+            nuisance_param_name = f"{systematics_name}_nuisance_param_0"
             if len(nuisance_param_definition_parts) > 1:
                 nuisance_dict = {
                     nuisance_param_name: (nuisance_param_definition_parts[0], nuisance_param_definition_parts[1], None)
@@ -657,8 +657,8 @@ def _extract_nuisance_param_dict(weight_groups, systematics_name, systematics_de
                 logger.debug("Found PDF weight %s / %s", weight_id, weight_pdf)
 
                 # Add every PDF Hessian direction to nuisance parameters
-                nuisance_param_name = "{}_nuisance_param_{}".format(systematics_name, i)
-                benchmark_name = "{}_benchmark_0".format(nuisance_param_name)
+                nuisance_param_name = f"{systematics_name}_nuisance_param_{i}"
+                benchmark_name = f"{nuisance_param_name}_benchmark_0"
                 nuisance_dict[nuisance_param_name] = (benchmark_name, weight_id), (None, None), None
 
         # Check that everything was found
@@ -854,7 +854,7 @@ def _parse_lhe_file_with_bad_chars(filename):
 
 
 def _untar_and_parse_lhe_file(filename, tags=None):
-    # Untar event file
+    # Unzip event file
     new_filename, extension = os.path.splitext(filename)
     if extension == ".gz":
         if not os.path.exists(new_filename):
