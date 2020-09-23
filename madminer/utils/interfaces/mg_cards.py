@@ -178,7 +178,7 @@ def export_run_card(template_filename, run_card_filename, systematics=None, orde
             run_card_lines[i] = f"# {line} # Commented out by MadMiner"
             continue
 
-    # Add new entries - sytematics
+    # Add new entries - systematics
     if order == "LO":
         run_card_lines.append("")
         run_card_lines.append("#*********************************************************************")

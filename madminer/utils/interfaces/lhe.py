@@ -70,7 +70,7 @@ def parse_lhe_file(
     if efficiencies_default_pass is None:
         efficiencies_default_pass = {key: 1.0 for key in six.iterkeys(efficiencies)}
 
-    # Untar and open LHE file
+    # Unzip and open LHE file
     run_card = None
     for elem in _untar_and_parse_lhe_file(filename):
         if elem.tag == "MGRunCard":
@@ -305,11 +305,14 @@ def _report_parse_results(
         logger.info("  %s / %s events pass efficiency %s", n_pass, n_pass + n_fail, efficiency)
     for n_eff, efficiency, n_pass, n_fail in zip(avg_efficiencies, efficiencies, pass_efficiencies, fail_efficiencies):
         logger.info("  average efficiency for %s is %s", efficiency, n_eff / (n_pass + n_fail))
+
     n_events_pass = len(observations_all_events)
+
     if len(cuts) > 0:
         logger.info("  %s events pass all cuts/efficiencies", n_events_pass)
     if n_events_with_negative_weights > 0:
         logger.warning("  %s events contain negative weights", n_events_with_negative_weights)
+
     return n_events_pass
 
 
@@ -365,14 +368,26 @@ def _parse_event(
     pass_all_cuts = True
     if pass_all_observation:
         pass_all_cuts = _parse_cuts(
-            cuts, cuts_default_pass, fail_cuts, observables, observations, pass_all_cuts, pass_cuts, variables
+            cuts,
+            cuts_default_pass,
+            fail_cuts,
+            observables,
+            observations,
+            pass_all_cuts,
+            pass_cuts,
+            variables,
         )
 
     # Efficiencies
     pass_all_efficiencies = True
     if pass_all_observation and pass_all_cuts:
         pass_all_efficiencies, total_efficiency = _parse_efficiencies(
-            avg_efficiencies, efficiencies, efficiencies_default_pass, fail_efficiencies, pass_efficiencies, variables
+            avg_efficiencies,
+            efficiencies,
+            efficiencies_default_pass,
+            fail_efficiencies,
+            pass_efficiencies,
+            variables,
         )
 
         if pass_all_efficiencies:
@@ -395,18 +410,21 @@ def _parse_event(
 
 def _report_negative_weights(n_events_with_negative_weights, weights):
     n_negative_weights = np.sum(np.array(list(weights.values())) < 0.0)
+
     if n_negative_weights > 0:
         n_events_with_negative_weights += 1
         if n_events_with_negative_weights <= 3:
             logger.warning("Found %s negative weights in event. Weights: %s", n_negative_weights, weights)
         if n_events_with_negative_weights == 3:
             logger.warning("Skipping warnings about negative weights from now on...")
+
     return n_events_with_negative_weights
 
 
 def _parse_observations(observables, observables_defaults, observables_required, variables):
     observations = []
     pass_all_observation = True
+
     for obs_name, obs_definition in six.iteritems(observables):
         if isinstance(obs_definition, six.string_types):
             try:
@@ -434,15 +452,22 @@ def _parse_observations(observables, observables_defaults, observables_required,
                 if default is None:
                     default = np.nan
                 observations.append(default)
+
     return observations, pass_all_observation
 
 
 def _parse_efficiencies(
-    avg_efficiencies, efficiencies, efficiencies_default_pass, fail_efficiencies, pass_efficiencies, variables
+    avg_efficiencies,
+    efficiencies,
+    efficiencies_default_pass,
+    fail_efficiencies,
+    pass_efficiencies,
+    variables,
 ):
     # Apply efficiencies
     total_efficiency = 1.0
     pass_all_efficiencies = True
+
     for i_efficiency, (efficiency, default_pass) in enumerate(zip(efficiencies, efficiencies_default_pass)):
         try:
             efficiency_result = eval(efficiency, variables)
@@ -462,6 +487,7 @@ def _parse_efficiencies(
             else:
                 fail_efficiencies[i_efficiency] += 1
                 pass_all_efficiencies = False
+
     return pass_all_efficiencies, total_efficiency
 
 
@@ -469,6 +495,7 @@ def _parse_cuts(cuts, cuts_default_pass, fail_cuts, observables, observations, p
     # Objects for cuts
     for obs_name, obs_value in zip(observables.keys(), observations):
         variables[obs_name] = obs_value
+
     # Check cuts
     for i_cut, (cut, default_pass) in enumerate(zip(cuts, cuts_default_pass)):
         try:
@@ -485,6 +512,7 @@ def _parse_cuts(cuts, cuts_default_pass, fail_cuts, observables, observations, p
             else:
                 fail_cuts[i_cut] += 1
                 pass_all_cuts = False
+
     return pass_all_cuts
 
 
@@ -504,7 +532,7 @@ def extract_nuisance_parameters_from_lhe_file(filename, systematics):
     # Parse scale factors from strings in systematics
     logger.debug("Systematics setup: %s", systematics)
 
-    # Untar and parse LHE file
+    # Unzip and parse LHE file
     initrwgts = _untar_and_parse_lhe_file(filename, ["initrwgt"])
 
     # Find weight groups
