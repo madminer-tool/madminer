@@ -679,7 +679,7 @@ class Ensemble:
                     " or local score estimators. Found types " + ", ".join(all_types) + "."
                 )
 
-        # Check consistency of parameter and observable numnbers
+        # Check consistency of parameter and observable numbers
         self.n_parameters = None
         self.n_observables = None
 

@@ -46,34 +46,31 @@ class Estimator(object):
         self.x_scaling_stds = None
 
     def train(self, *args, **kwargs):
-        raise NotImplementedError
+        raise NotImplementedError()
 
     def evaluate_log_likelihood(self, *args, **kwargs):
         """
         Log likelihood estimation. Signature depends on the type of estimator. The first returned value is the log
         likelihood with shape `(n_thetas, n_x)`.
         """
-        raise NotImplementedError
+        raise NotImplementedError()
 
     def evaluate_log_likelihood_ratio(self, *args, **kwargs):
         """
         Log likelihood ratio estimation. Signature depends on the type of estimator. The first returned value is the log
         likelihood ratio with shape `(n_thetas, n_x)` or `(n_x)`.
         """
-        raise NotImplementedError
+        raise NotImplementedError()
 
     def evaluate_score(self, *args, **kwargs):
         """
         Score estimation. Signature depends on the type of estimator. The only returned value is the score with shape
         `(n_x)`.
         """
-        raise NotImplementedError
+        raise NotImplementedError()
 
     def evaluate(self, *args, **kwargs):
-        raise NotImplementedError
-
-    def calculate_fisher_information(self, *args, **kwargs):
-        raise NotImplementedError
+        raise NotImplementedError()
 
     def save(self, filename, save_model=False):
 
@@ -237,7 +234,7 @@ class Estimator(object):
             )
 
     def _create_model(self):
-        raise NotImplementedError
+        raise NotImplementedError()
 
     def calculate_fisher_information(self, x, theta=None, weights=None, n_events=1, sum_events=True):
         """

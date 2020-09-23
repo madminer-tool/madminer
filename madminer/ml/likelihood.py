@@ -45,7 +45,7 @@ class LikelihoodEstimator(ConditionalEstimator):
     activation : {'tanh', 'sigmoid', 'relu'}, optional
         Activation function. Default value: 'tanh'.
 
-    batch_norm : None or floar, optional
+    batch_norm : None or float, optional
         If not None, batch normalization is used, where this value sets the alpha parameter in the calculation
         of the running average of the mean and variance. Default value: None.
 
@@ -365,7 +365,7 @@ class LikelihoodEstimator(ConditionalEstimator):
         # Scale observables
         x = self._transform_inputs(x)
 
-        # Restrict featuers
+        # Restrict features
         if self.features is not None:
             x = x[:, self.features]
 

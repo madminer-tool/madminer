@@ -88,7 +88,7 @@ class ParameterizedRatioEstimator(ConditionalEstimator):
             Observations, or filename of a pickled numpy array.
 
         y : ndarray or str
-            Class labels (0 = numeerator, 1 = denominator), or filename of a pickled numpy array.
+            Class labels (0 = numerator, 1 = denominator), or filename of a pickled numpy array.
 
         theta : ndarray or str
             Numerator parameter point, or filename of a pickled numpy array.
@@ -330,7 +330,7 @@ class ParameterizedRatioEstimator(ConditionalEstimator):
 
     def evaluate_log_likelihood_ratio(self, x, theta, test_all_combinations=True, evaluate_score=False):
         """
-        Evaluates the log likelihood ratio for given observations x betwen the given parameter point theta and the
+        Evaluates the log likelihood ratio for given observations x between the given parameter point theta and the
         reference hypothesis.
 
         Parameters
@@ -421,7 +421,7 @@ class ParameterizedRatioEstimator(ConditionalEstimator):
 
     def evaluate_log_likelihood_ratio_torch(self, x, theta, test_all_combinations=True):
         """
-        Evaluates the log likelihood ratio for given observations x betwen the given parameter point theta and the
+        Evaluates the log likelihood ratio for given observations x between the given parameter point theta and the
         reference hypothesis.
 
         Parameters
@@ -474,7 +474,7 @@ class ParameterizedRatioEstimator(ConditionalEstimator):
 
     def evaluate_score(self, x, theta, nuisance_mode="keep"):
         """
-        Evaluates the scores for given observations x betwen at a given parameter point theta.
+        Evaluates the scores for given observations x between at a given parameter point theta.
 
         Parameters
         ----------
@@ -505,10 +505,8 @@ class ParameterizedRatioEstimator(ConditionalEstimator):
         return all_t_hat
 
     def calculate_fisher_information(self, x, theta, weights=None, n_events=1, sum_events=True):
-        fisher_information = super(ParameterizedRatioEstimator, self).calculate_fisher_information(
-            x, theta, weights, n_events, sum_events
-        )
-        return fisher_information
+        return super(ParameterizedRatioEstimator, self) \
+            .calculate_fisher_information(x, theta, weights, n_events, sum_events)
 
     def evaluate(self, *args, **kwargs):
         return self.evaluate_log_likelihood_ratio(*args, **kwargs)
