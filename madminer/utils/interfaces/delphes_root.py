@@ -1,11 +1,8 @@
-from __future__ import absolute_import, division, print_function, unicode_literals
-import six
-
-import numpy as np
-from collections import OrderedDict
-import uproot
-import os
 import logging
+import numpy as np
+import os
+import uproot
+from collections import OrderedDict
 
 from madminer.utils.particle import MadMinerParticle
 from madminer.utils.various import math_commands
@@ -124,14 +121,14 @@ def parse_delphes_root_file(
     # Observations
     observable_values = OrderedDict()
 
-    for obs_name, obs_definition in six.iteritems(observables):
+    for obs_name, obs_definition in observables.items():
         values_this_observable = []
 
         # Loop over events
         for event in range(n_events):
             variables = get_objects(event)
 
-            if isinstance(obs_definition, six.string_types):
+            if isinstance(obs_definition, str):
                 try:
                     values_this_observable.append(eval(obs_definition, variables))
                 except (SyntaxError, NameError, TypeError, ZeroDivisionError, IndexError):
@@ -184,7 +181,7 @@ def parse_delphes_root_file(
     # Check for existence of required observables
     combined_filter = None
 
-    for obs_name, obs_required in six.iteritems(observables_required):
+    for obs_name, obs_required in observables_required.items():
         if obs_required:
             this_filter = np.isfinite(observable_values[obs_name])
             n_pass = np.sum(this_filter)

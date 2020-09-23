@@ -1,11 +1,9 @@
-from __future__ import absolute_import, division, print_function, unicode_literals
-
-import six
-import shutil
 import h5py
-import numpy as np
-from collections import OrderedDict
 import logging
+import numpy as np
+import shutil
+from collections import OrderedDict
+
 
 logger = logging.getLogger(__name__)
 
@@ -525,7 +523,7 @@ def _save_observables(filename, observables, overwrite_existing_samples):
         observable_definitions = []
         for key in observable_names:
             definition = observables[key]
-            if isinstance(definition, six.string_types):
+            if isinstance(definition, str):
                 observable_definitions.append(definition.encode("ascii", "ignore"))
             else:
                 observable_definitions.append("".encode("ascii", "ignore"))

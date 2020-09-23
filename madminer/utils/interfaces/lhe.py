@@ -1,22 +1,17 @@
-from __future__ import absolute_import, division, print_function, unicode_literals
-
-import six
-import numpy as np
-from collections import OrderedDict
-import os
 import logging
+import numpy as np
+import os
+from collections import OrderedDict
 
 try:
     import xml.etree.cElementTree as ET
-
     use_celementtree = True
 except ImportError:
     import xml.etree.ElementTree as ET
-
     use_celementtree = False
 
-from madminer.utils.various import unzip_file, approx_equal, math_commands
 from madminer.utils.particle import MadMinerParticle
+from madminer.utils.various import unzip_file, approx_equal, math_commands
 
 logger = logging.getLogger(__name__)
 
@@ -56,19 +51,19 @@ def parse_lhe_file(
     if k_factor is None:
         k_factor = 1.0
     if observables_required is None:
-        observables_required = {key: False for key in six.iterkeys(observables)}
+        observables_required = {key: False for key in observables.keys()}
     if observables_defaults is None:
-        observables_defaults = {key: None for key in six.iterkeys(observables)}
+        observables_defaults = {key: None for key in observables.keys()}
     if is_background and benchmark_names is None:
         raise RuntimeError("Parsing background LHE files required benchmark names to be provided.")
     if cuts is None:
         cuts = OrderedDict()
     if cuts_default_pass is None:
-        cuts_default_pass = {key: False for key in six.iterkeys(cuts)}
+        cuts_default_pass = {key: False for key in cuts.keys()}
     if efficiencies is None:
         efficiencies = OrderedDict()
     if efficiencies_default_pass is None:
-        efficiencies_default_pass = {key: 1.0 for key in six.iterkeys(efficiencies)}
+        efficiencies_default_pass = {key: 1.0 for key in efficiencies.keys()}
 
     # Unzip and open LHE file
     run_card = None
@@ -260,11 +255,12 @@ def parse_lhe_file(
             output_weights[benchmark_name] = weights_all_events[sampling_benchmark]
         else:
             output_weights[benchmark_name] = weights_all_events[benchmark_name]
-    for syst_name, syst_data in six.iteritems(systematics_dict):
+
+    for syst_name, syst_data in systematics_dict.items():
         for (
             nuisance_param_name,
             ((nuisance_benchmark0, weight_name0), (nuisance_benchmark1, weight_name1), processing),
-        ) in six.iteritems(syst_data):
+        ) in syst_data.items():
             # Store first benchmark associated with nuisance param
             if weight_name0 is None:
                 weight_name0 = sampling_benchmark
@@ -425,8 +421,8 @@ def _parse_observations(observables, observables_defaults, observables_required,
     observations = []
     pass_all_observation = True
 
-    for obs_name, obs_definition in six.iteritems(observables):
-        if isinstance(obs_definition, six.string_types):
+    for obs_name, obs_definition in observables.items():
+        if isinstance(obs_definition, str):
             try:
                 observations.append(eval(obs_definition, variables))
             except (SyntaxError, NameError, TypeError, ZeroDivisionError, IndexError):
@@ -547,7 +543,7 @@ def extract_nuisance_parameters_from_lhe_file(filename, systematics):
     logger.debug("%s weight groups", len(weight_groups))
 
     # Loop over systematics
-    for syst_name, syst_value in six.iteritems(systematics):
+    for syst_name, syst_value in systematics.items():
         nuisance_param_dict = _extract_nuisance_param_dict(weight_groups, syst_name, syst_value)
         systematics_dict[syst_name] = nuisance_param_dict
 
@@ -1023,10 +1019,10 @@ def _smear_particles(particles, energy_resolutions, pt_resolutions, eta_resoluti
         pdgid = particle.pdgid
 
         if (
-            pdgid not in six.iterkeys(energy_resolutions)
-            or pdgid not in six.iterkeys(pt_resolutions)
-            or pdgid not in six.iterkeys(eta_resolutions)
-            or pdgid not in six.iterkeys(phi_resolutions)
+            pdgid not in energy_resolutions.keys()
+            or pdgid not in pt_resolutions.keys()
+            or pdgid not in eta_resolutions.keys()
+            or pdgid not in phi_resolutions.keys()
         ):
             continue
 
