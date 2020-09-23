@@ -22,8 +22,8 @@ class SampleAugmenter(DataAnalyzer):
     (related) tasks: unweighting, i.e. the creation of samples that do not carry individual weights but follow some
     distribution, and the extraction of the joint likelihood ratio and / or joint score (the "augmented data").
 
-    After inializing `SampleAugmenter` with the filename of a MadMiner file, this is done with a single function call.
-    Depending on the downstream infference algorithm, there are different possibilities:
+    After initializing `SampleAugmenter` with the filename of a MadMiner file, this is done with a single function call.
+    Depending on the downstream inference algorithm, there are different possibilities:
 
     * `SampleAugmenter.sample_train_plain()` creates plain training samples without augmented data.
     * `SampleAugmenter.sample_train_local()` creates training samples for local methods based on the score,
@@ -685,6 +685,7 @@ class SampleAugmenter(DataAnalyzer):
             t_xz = np.vstack([t_xz0, t_xz1])
         else:
             t_xz = None
+
         theta0 = np.vstack([theta0_0, theta0_1])
         theta1 = np.vstack([theta1_0, theta1_1])
         y = np.zeros(x.shape[0])
@@ -1168,7 +1169,7 @@ class SampleAugmenter(DataAnalyzer):
             Tuple (type, value) that defines the nuisance parameter point or prior over nuisance parameter points at
             which the cross section is calculated. Pass the output of the functions `benchmark()`,
             `benchmarks()`, `morphing_point()`, `morphing_points()`, or
-            `random_morphing_points()`. Default valuee: None.
+            `random_morphing_points()`. Default value: None.
 
         Returns
         -------
@@ -1247,17 +1248,20 @@ class SampleAugmenter(DataAnalyzer):
             If True, any joint score in the augmented data definitions is also calculated with respect to the nuisance
             parameters. Default value: True.
 
-        use_train_events : bool, optional
-            Decides whether to use the train or test split of the events. Default value: True.
+        partition : {"train", "test", "validation", "all"}, optional
+            Which event partition to use. Default value: "train".
 
         test_split : float or None, optional
             Fraction of events reserved for the evaluation sample (that will not be used for any training samples).
             Default value: 0.2.
 
+        validation_split : float or None, optional
+            Fraction of events reserved for testing. Default value: 0.2.
+
         n_processes : None or int, optional
             If None or larger than 1, MadMiner will use multiprocessing to parallelize the sampling. In this case,
-            n_workers sets the number of jobs running in parallel, and None will use the number of CPUs. Default value:
-            1.
+            n_workers sets the number of jobs running in parallel, and None will use the number of CPUs.
+            Default value: 1.
 
         update_patience : float, optional
             Wait time (in s) between log update checks if n_workers > 1 (or None). Default value: 0.01
@@ -1270,6 +1274,9 @@ class SampleAugmenter(DataAnalyzer):
             If not None, MadMiner will require the relative weights of the events to be smaller than 1/n_eff_forced
             and ignore other events. This can help to reduce statistical effects caused by a small number of events
             with very large weights obtained by the morphing procedure. Default value: None
+
+        double_precision : bool, optional
+            Use double floating-point precision. Default value: False.
 
         Returns
         -------
@@ -1720,8 +1727,7 @@ class SampleAugmenter(DataAnalyzer):
         return augmented_data
 
     def _combine_thetas_nus(self, all_thetas, all_nus):
-        n_thetas = len(all_thetas)
-        assert n_thetas == len(all_nus)
+        assert len(all_thetas) == len(all_nus)
 
         # all_nus is a list of a list of (None or ndarray)
         # Figure out if there's anything nontrivial in there
@@ -1870,8 +1876,7 @@ class SampleAugmenter(DataAnalyzer):
 
     @staticmethod
     def _build_sets(thetas, nus):
-        if len(nus) != len(thetas):
-            raise RuntimeError(f"Mismatching thetas and nus: {len(thetas)} vs {len(nus)}")
+        assert len(thetas) == len(nus)
 
         n_sets = max([len(param) for param in thetas + nus])
         sets = [[] for _ in range(n_sets)]
