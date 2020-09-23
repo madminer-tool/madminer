@@ -1,8 +1,6 @@
-from __future__ import absolute_import, division, print_function, unicode_literals
-
-import os
-from io import open
 import logging
+import os
+
 from madminer.utils.various import call_command
 
 logger = logging.getLogger(__name__)

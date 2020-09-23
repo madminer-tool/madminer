@@ -1,8 +1,6 @@
-from __future__ import absolute_import, division, print_function, unicode_literals
-
+import logging
 import os
 import shutil
-import logging
 
 from madminer.utils.various import call_command, make_file_executable, create_missing_folders
 

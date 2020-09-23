@@ -1,6 +1,3 @@
-from __future__ import absolute_import, division, print_function, unicode_literals
-
-import six
 import logging
 from collections import OrderedDict
 
@@ -14,7 +11,7 @@ def export_param_card(benchmark, parameters, param_card_template_file, mg_proces
     lines = param_card.splitlines()
 
     # Replace parameter values
-    for parameter_name, parameter_value in six.iteritems(benchmark):
+    for parameter_name, parameter_value in benchmark.items():
         parameter_lha_block = parameters[parameter_name][0]
         parameter_lha_id = parameters[parameter_name][1]
 
@@ -89,7 +86,7 @@ def export_reweight_card(sample_benchmark, benchmarks, parameters, mg_process_di
         "change helicity False",
     ]
 
-    for benchmark_name, benchmark in six.iteritems(benchmarks):
+    for benchmark_name, benchmark in benchmarks.items():
         if benchmark_name == sample_benchmark:
             continue
 
@@ -97,7 +94,7 @@ def export_reweight_card(sample_benchmark, benchmarks, parameters, mg_process_di
         lines.append("# MadMiner benchmark " + benchmark_name)
         lines.append("launch --rwgt_name=" + benchmark_name)
 
-        for parameter_name, parameter_value in six.iteritems(benchmark):
+        for parameter_name, parameter_value in benchmark.items():
             parameter_lha_block = parameters[parameter_name][0]
             parameter_lha_id = parameters[parameter_name][1]
 
@@ -131,7 +128,7 @@ def export_run_card(template_filename, run_card_filename, systematics=None):
 
     # Do we actually have to run MadGraph's systematics feature?
     run_systematics = False
-    for value in six.itervalues(systematics):
+    for value in systematics.values():
         if value[0] in ["pdf", "scale"]:
             run_systematics = True
 
@@ -183,7 +180,8 @@ def export_run_card(template_filename, run_card_filename, systematics=None):
     run_card_lines.append("#*********************************************************************")
     run_card_lines.append("# MadMiner systematics setup                                         *")
     run_card_lines.append("#*********************************************************************")
-    for key, value in six.iteritems(settings):
+
+    for key, value in settings.items():
         run_card_lines.append(f"{value} = {key}")
     run_card_lines.append("")
 
@@ -205,7 +203,7 @@ def create_systematics_arguments(systematics):
     muf_done = False
     pdf_done = False
 
-    for value in six.itervalues(systematics):
+    for value in systematics.values():
         if value[0] == "scale" and value[1] == "mu":
             if mur_done or muf_done:
                 raise ValueError("Multiple nuisance parameter for scale variation!")
