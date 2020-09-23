@@ -9,11 +9,11 @@ logger = logging.getLogger(__name__)
 
 
 def extract_weight_order(filename, default_weight_label=None):
-    # Untar event file
+    # Unzip event file
     new_filename, extension = os.path.splitext(filename)
     if extension == ".gz":
         if not os.path.exists(new_filename):
-            call_command("gunzip -c {} > {}".format(filename, new_filename))
+            call_command(f"gunzip -c {filename} > {new_filename}")
         filename = new_filename
 
     with open(filename, encoding="latin-1") as file:
