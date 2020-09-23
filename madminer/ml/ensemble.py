@@ -1,11 +1,8 @@
-from __future__ import absolute_import, division, print_function
-
-import six
-import logging
 import json
+import logging
 import numpy as np
-
 from madminer.utils.various import create_missing_folders, load_and_check
+
 from .base import Estimator
 from .double_parameterized_ratio import DoubleParameterizedRatioEstimator
 from .likelihood import LikelihoodEstimator
@@ -140,7 +137,7 @@ class Ensemble:
         """
         logger.info("Training %s estimators in ensemble", self.n_estimators)
 
-        for key, value in six.iteritems(kwargs):
+        for key, value in kwargs.items():
             if not isinstance(value, list):
                 kwargs[key] = [value for _ in range(self.n_estimators)]
 
@@ -148,7 +145,7 @@ class Ensemble:
 
         for i, estimator in enumerate(self.estimators):
             kwargs_this_estimator = {}
-            for key, value in six.iteritems(kwargs):
+            for key, value in kwargs.items():
                 kwargs_this_estimator[key] = value[i]
 
             logger.info("Training estimator %s / %s in ensemble", i + 1, self.n_estimators)
@@ -448,7 +445,7 @@ class Ensemble:
         # "modified_score" mode:
         elif mode == "modified_score":
             # Load training data
-            if isinstance(x, six.string_types):
+            if isinstance(x, str):
                 x = load_and_check(x)
             n_samples = x.shape[0]
 
@@ -511,7 +508,7 @@ class Ensemble:
         # "score" mode:
         elif mode == "score":
             # Load training data
-            if isinstance(x, six.string_types):
+            if isinstance(x, str):
                 x = load_and_check(x)
             n_samples = x.shape[0]
 

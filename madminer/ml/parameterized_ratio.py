@@ -1,16 +1,14 @@
-from __future__ import absolute_import, division, print_function
-
 import logging
 import numpy as np
-from collections import OrderedDict
 import torch
+from collections import OrderedDict
 
-from ..utils.ml.models.ratio import DenseSingleParameterizedRatioModel
+from .base import ConditionalEstimator, TheresAGoodReasonThisDoesntWork
 from ..utils.ml.eval import evaluate_ratio_model
+from ..utils.ml.models.ratio import DenseSingleParameterizedRatioModel
+from ..utils.ml.trainer import SingleParameterizedRatioTrainer
 from ..utils.ml.utils import get_optimizer, get_loss
 from ..utils.various import load_and_check, shuffle, restrict_samplesize
-from ..utils.ml.trainer import SingleParameterizedRatioTrainer
-from .base import ConditionalEstimator, TheresAGoodReasonThisDoesntWork
 
 try:
     FileNotFoundError

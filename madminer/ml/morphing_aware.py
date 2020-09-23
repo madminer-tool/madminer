@@ -1,12 +1,10 @@
-from __future__ import absolute_import, division, print_function
-
 import logging
 import numpy as np
 
-from ..utils.ml.models.ratio import DenseMorphingAwareRatioModel
-from ..utils.interfaces.madminer_hdf5 import load_madminer_settings
-from ..utils.morphing import PhysicsMorpher
 from .parameterized_ratio import ParameterizedRatioEstimator
+from ..utils.interfaces.madminer_hdf5 import load_madminer_settings
+from ..utils.ml.models.ratio import DenseMorphingAwareRatioModel
+from ..utils.morphing import PhysicsMorpher
 
 try:
     FileNotFoundError
