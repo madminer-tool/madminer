@@ -105,13 +105,13 @@ def shuffle(*arrays):
 
         shuffled_a = a[permutation]
         shuffled_arrays.append(shuffled_a)
-        a = None
 
     return shuffled_arrays
 
 
 def restrict_samplesize(n, *arrays):
     restricted_arrays = []
+
     for i, a in enumerate(arrays):
         if a is None:
             restricted_arrays.append(None)
@@ -258,8 +258,10 @@ def weighted_quantile(values, quantiles, sample_weight=None, values_sorted=False
     # Input
     values = np.array(values, dtype=np.float64)
     quantiles = np.array(quantiles)
+
     if sample_weight is None:
         sample_weight = np.ones(len(values))
+
     sample_weight = np.array(sample_weight, dtype=np.float64)
     assert np.all(quantiles >= 0.0) and np.all(quantiles <= 1.0), "quantiles should be in [0, 1]"
 
