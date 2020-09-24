@@ -1,12 +1,9 @@
-from __future__ import absolute_import, division, print_function, unicode_literals
-
-import six
 import logging
-from collections import OrderedDict
 import numpy as np
 import time
 import torch
 import torch.optim as optim
+from collections import OrderedDict
 from torch.utils.data import Dataset, DataLoader
 from torch.utils.data.sampler import SubsetRandomSampler
 from torch.nn.utils import clip_grad_norm_
@@ -221,7 +218,7 @@ class Trainer(object):
     @staticmethod
     def report_data(data):
         logger.debug("Training data:")
-        for key, value in six.iteritems(data):
+        for key, value in data.items():
             if value is None:
                 logger.debug("  %s: -", key)
             else:
@@ -243,7 +240,7 @@ class Trainer(object):
         data_arrays = []
         data_labels = []
 
-        for key, value in six.iteritems(data):
+        for key, value in data.items():
             data_labels.append(key)
             data_arrays.append(value)
         dataset = NumpyDataset(*data_arrays, dtype=self.dtype)
@@ -547,7 +544,7 @@ class Trainer(object):
 
     def _report_timer(self):
         logger.info("Training time spend on:")
-        for key, value in six.iteritems(self.timer):
+        for key, value in self.timer.items():
             logger.info(f"  {key:>32s}: {(value/3600.0):6.2f}h")
 
 

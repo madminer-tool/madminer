@@ -1,13 +1,12 @@
-from __future__ import absolute_import, division, print_function, unicode_literals
-
+import logging
+import madminer.utils
 import numpy as np
 import torch
-from torch.nn import functional as F
-import logging
-from torch import optim
 
-import madminer.utils
 from madminer.utils.ml import losses
+from torch import optim
+from torch.nn import functional as F
+
 
 logger = logging.getLogger(__name__)
 
