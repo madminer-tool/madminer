@@ -65,7 +65,7 @@ class ConditionalMixtureMaskedAutoregressiveFlow(BaseConditionalFlow):
             mode=mode,
         )
 
-        # Batch normalizatino
+        # Batch normalization
         self.bns = None
         if self.batch_norm:
             self.bns = nn.ModuleList()

@@ -56,20 +56,15 @@ class BatchNorm(BaseFlow):
         return u, logdet
 
     def inverse(self, u):
-
         """Calculates u -> x(u) (the approximate inverse transformation based on running mean and variance)"""
 
-        x = torch.sqrt(self.running_var) * u + self.running_mean
-
-        return x
+        return torch.sqrt(self.running_var) * u + self.running_mean
 
     def generate_samples(self, n_samples=1, u=None, **kwargs):
         if u is None:
             u = tensor(rng.randn(n_samples, self.n_inputs))
 
-        x = torch.sqrt(self.running_var) * u + self.running_mean
-
-        return x
+        return torch.sqrt(self.running_var) * u + self.running_mean
 
     def to(self, *args, **kwargs):
         logger.debug("Transforming BatchNorm to %s", args)

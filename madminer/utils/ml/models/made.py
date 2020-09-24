@@ -52,7 +52,6 @@ class GaussianMADE(BaseFlow):
 
         **kwargs :
 
-
         Returns
         -------
 
@@ -94,7 +93,6 @@ class GaussianMADE(BaseFlow):
              (Default value = None)
         **kwargs :
 
-
         Returns
         -------
 
@@ -131,7 +129,6 @@ class GaussianMADE(BaseFlow):
 
         **kwargs :
 
-
         Returns
         -------
 
@@ -159,7 +156,13 @@ class ConditionalGaussianMADE(BaseConditionalFlow):
     """ """
 
     def __init__(
-        self, n_conditionals, n_inputs, n_hiddens, activation="relu", input_order="sequential", mode="sequential"
+        self,
+        n_conditionals,
+        n_inputs,
+        n_hiddens,
+        activation="relu",
+        input_order="sequential",
+        mode="sequential",
     ):
         super(ConditionalGaussianMADE, self).__init__(n_conditionals, n_inputs)
 
@@ -198,7 +201,10 @@ class ConditionalGaussianMADE(BaseConditionalFlow):
         x :
 
         **kwargs :
+<<<<<<< HEAD
 
+=======
+>>>>>>> src: utils/ml/models module improve fmt
 
         Returns
         -------
@@ -267,7 +273,6 @@ class ConditionalGaussianMADE(BaseConditionalFlow):
              (Default value = None)
         **kwargs :
 
-
         Returns
         -------
 
@@ -305,7 +310,6 @@ class ConditionalGaussianMADE(BaseConditionalFlow):
         *args :
 
         **kwargs :
-
 
         Returns
         -------

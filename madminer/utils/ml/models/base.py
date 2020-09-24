@@ -11,14 +11,13 @@ class BaseFlow(nn.Module):
 
     def __init__(self, n_inputs, **kwargs):
         super(BaseFlow, self).__init__()
-
         self.n_inputs = n_inputs
 
     def forward(self, x, **kwargs):
-        raise NotImplementedError
+        raise NotImplementedError()
 
     def generate_samples(self, n_samples=1, u=None, **kwargs):
-        raise NotImplementedError
+        raise NotImplementedError()
 
     def log_likelihood(self, x, **kwargs):
         """ Calculates log p(x) with a Gaussian base density """
@@ -39,17 +38,17 @@ class BaseFlow(nn.Module):
 
 
 class BaseConditionalFlow(nn.Module):
+
     def __init__(self, n_conditionals, n_inputs, **kwargs):
         super(BaseConditionalFlow, self).__init__()
-
         self.n_conditionals = n_conditionals
         self.n_inputs = n_inputs
 
     def forward(self, theta, x, **kwargs):
-        raise NotImplementedError
+        raise NotImplementedError()
 
     def generate_samples(self, theta, u=None, **kwargs):
-        raise NotImplementedError
+        raise NotImplementedError()
 
     def log_likelihood(self, theta, x, **kwargs):
         """ Calculates u(x) and log p(x) with a Gaussian base density """

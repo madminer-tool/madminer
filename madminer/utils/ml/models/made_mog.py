@@ -73,7 +73,6 @@ class ConditionalMixtureMADE(BaseConditionalFlow):
 
         **kwargs :
 
-
         Returns
         -------
 
@@ -174,7 +173,8 @@ class ConditionalMixtureMADE(BaseConditionalFlow):
             u = u.to(*self.to_args, **self.to_kwargs)
 
         for i in range(1, self.n_inputs + 1):
-            self.forward(theta, x)  # Sets Gaussian parameters (self.m and self.logp) and mixture coeffs (self.loga)
+            # Sets Gaussian parameters (self.m and self.logp) and mixture coeffs (self.loga)
+            self.forward(theta, x)
 
             ix = np.argwhere(self.input_order == i)[0, 0]
 

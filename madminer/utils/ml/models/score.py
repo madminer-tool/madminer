@@ -53,9 +53,13 @@ class DenseLocalScoreModel(nn.Module):
 
         # Calculate gradient
         if return_grad_x:
-            x_gradient = grad(t_hat, x, grad_outputs=torch.ones_like(t_hat.data), only_inputs=True, create_graph=True)[
-                0
-            ]
+            x_gradient = grad(
+                t_hat,
+                x,
+                grad_outputs=torch.ones_like(t_hat.data),
+                only_inputs=True,
+                create_graph=True,
+            )[0]
 
             return t_hat, x_gradient
 
