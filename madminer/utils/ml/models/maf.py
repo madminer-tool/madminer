@@ -1,12 +1,11 @@
-from __future__ import absolute_import, division, print_function
-
+import logging
 import numpy.random as rng
 import torch.nn as nn
+
 from torch import tensor
 from madminer.utils.ml.models.base import BaseFlow, BaseConditionalFlow
 from madminer.utils.ml.models.made import GaussianMADE, ConditionalGaussianMADE
 from madminer.utils.ml.models.batch_norm import BatchNorm
-import logging
 
 logger = logging.getLogger(__name__)
 

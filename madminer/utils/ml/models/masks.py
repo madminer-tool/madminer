@@ -1,10 +1,9 @@
-from __future__ import absolute_import, division, print_function
-
+import logging
 import numpy as np
 import numpy.random as rng
-from torch import tensor
 import torch.nn as nn
-import logging
+
+from torch import tensor
 
 logger = logging.getLogger(__name__)
 
