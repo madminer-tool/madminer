@@ -66,7 +66,7 @@ def check_required_data(method, r_xz, t_xz0, t_xz1, theta0, theta1, x, y):
         data_is_there = False
     if (
         method
-        in [
+        in {
             "carl",
             "carl2",
             "nde",
@@ -79,23 +79,24 @@ def check_required_data(method, r_xz, t_xz0, t_xz1, theta0, theta1, x, y):
             "alice2",
             "rascal2",
             "alices2",
-        ]
+        }
         and theta0 is None
     ):
         data_is_there = False
-    if method in ["rolr", "alice", "rascal", "alices", "rolr2", "alice2", "rascal2", "alices2"] and r_xz is None:
+    if method in {"rolr", "alice", "rascal", "alices", "rolr2", "alice2", "rascal2", "alices2"} and r_xz is None:
         data_is_there = False
     if (
-        method in ["carl", "carl2", "rolr", "alice", "rascal", "alices", "rolr2", "alice2", "rascal2", "alices2"]
+        method in {"carl", "carl2", "rolr", "alice", "rascal", "alices", "rolr2", "alice2", "rascal2", "alices2"}
         and y is None
     ):
         data_is_there = False
-    if method in ["scandal", "rascal", "alices", "rascal2", "alices2", "sally", "sallino"] and t_xz0 is None:
+    if method in {"scandal", "rascal", "alices", "rascal2", "alices2", "sally", "sallino"} and t_xz0 is None:
         data_is_there = False
-    if method in ["carl2", "rolr2", "alice2", "rascal2", "alices2"] and theta1 is None:
+    if method in {"carl2", "rolr2", "alice2", "rascal2", "alices2"} and theta1 is None:
         data_is_there = False
-    if method in ["rascal2", "alices2"] and t_xz1 is None:
+    if method in {"rascal2", "alices2"} and t_xz1 is None:
         data_is_there = False
+
     return data_is_there
 
 
@@ -166,4 +167,5 @@ def get_loss(method, alpha):
         loss_labels = ["nll", "mse_score"]
     else:
         raise NotImplementedError("Unknown method {method}")
+
     return loss_functions, loss_labels, loss_weights

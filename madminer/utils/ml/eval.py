@@ -114,20 +114,39 @@ def evaluate_ratio_model(
         if method_type == "parameterized_ratio":
             if return_grad_x:
                 s_hat, log_r_hat, t_hat0, x_gradients = model(
-                    theta0s, xs, return_grad_x=True, track_score=evaluate_score, create_gradient_graph=False
+                    theta0s,
+                    xs,
+                    return_grad_x=True,
+                    track_score=evaluate_score,
+                    create_gradient_graph=False,
                 )
             else:
-                s_hat, log_r_hat, t_hat0 = model(theta0s, xs, track_score=evaluate_score, create_gradient_graph=False)
+                s_hat, log_r_hat, t_hat0 = model(
+                    theta0s,
+                    xs,
+                    track_score=evaluate_score,
+                    create_gradient_graph=False,
+                )
                 x_gradients = None
             t_hat1 = None
+
         elif method_type == "double_parameterized_ratio":
             if return_grad_x:
                 s_hat, log_r_hat, t_hat0, t_hat1, x_gradients = model(
-                    theta0s, theta1s, xs, return_grad_x=True, track_score=evaluate_score, create_gradient_graph=False
+                    theta0s,
+                    theta1s,
+                    xs,
+                    return_grad_x=True,
+                    track_score=evaluate_score,
+                    create_gradient_graph=False,
                 )
             else:
                 s_hat, log_r_hat, t_hat0, t_hat1 = model(
-                    theta0s, theta1s, xs, track_score=evaluate_score, create_gradient_graph=False
+                    theta0s,
+                    theta1s,
+                    xs,
+                    track_score=evaluate_score,
+                    create_gradient_graph=False,
                 )
                 x_gradients = None
         else:
