@@ -24,7 +24,8 @@ def call_command(cmd, log_file=None, return_std=False):
 
         if exitcode != 0:
             raise RuntimeError(
-                "Calling command {} returned exit code {}. Output in file {}.".format(cmd, exitcode, log_file)
+                f"Calling command {cmd} returned exit code {exitcode}. "
+                f"Output in file {log_file}."
             )
     else:
         proc = Popen(cmd, stdout=PIPE, stderr=PIPE, shell=True)
@@ -33,9 +34,12 @@ def call_command(cmd, log_file=None, return_std=False):
 
         if exitcode != 0:
             raise RuntimeError(
-                "Calling command {} returned exit code {}.\n\nStd output:\n\n{}Error output:\n\n{}".format(
-                    cmd, exitcode, out, err
-                )
+                f"Calling command {cmd} returned exit code {exitcode}."
+                f"\n\n"
+                f"Std output: {out}"
+                f"\n\n"
+                f"Error output: {err}"
+                f"\n\n"
             )
 
         if return_std:
@@ -56,7 +60,7 @@ def create_missing_folders(folders):
             os.makedirs(folder)
 
         elif not os.path.isdir(folder):
-            raise OSError("Path {} exists, but is no directory!".format(folder))
+            raise OSError(f"Path {folder} exists, but is no directory!")
 
 
 def format_benchmark(parameters, precision=2):

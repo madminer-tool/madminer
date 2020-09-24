@@ -36,9 +36,8 @@ class Histo:
 
         if weights is not None:
             weights = weights.flatten()
-            assert weights.shape == (self.n_samples,), "Inconsistent weight shape {} should be {}".format(
-                weights.shape, (self.n_samples,)
-            )
+            assert weights.shape == (self.n_samples,), \
+                f"Inconsistent weight shape {weights.shape} should be {(self.n_samples,)}"
 
         logger.debug("Creating histogram:")
         logger.debug("  Samples:       %s", self.n_samples)

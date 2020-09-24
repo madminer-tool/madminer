@@ -142,9 +142,8 @@ class PhysicsMorpher:
         for max_power in self.parameter_max_power:
             if n_regions != len(max_power):
                 raise RuntimeError(
-                    "Parameters have different number of partitions of max powers: {} {}".format(
-                        max_overall_power, self.parameter_max_power
-                    )
+                    f"Parameters have different number of partitions of max powers: "
+                    f"{max_overall_power} vs {self.parameter_max_power}"
                 )
 
         # Go through regions and finds components for each
