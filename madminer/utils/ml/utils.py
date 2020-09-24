@@ -1,14 +1,13 @@
-from __future__ import absolute_import, division, print_function, unicode_literals
-
+import logging
 import numpy as np
 import torch
-from torch.nn import functional as F
-import logging
-from torch import optim
 
-import madminer.utils
-from madminer.utils.ml import losses
+from torch import optim
+from torch.nn import functional as F
 from torch.utils.data import Dataset
+
+from madminer.utils.ml import losses
+
 
 logger = logging.getLogger(__name__)
 
@@ -177,11 +176,11 @@ def get_loss(method, alpha):
         loss_weights = [1.0]
         loss_labels = ["mse_score"]
     elif method == "nde":
-        loss_functions = [madminer.utils.ml.losses.flow_nll]
+        loss_functions = [losses.flow_nll]
         loss_weights = [1.0]
         loss_labels = ["nll"]
     elif method == "scandal":
-        loss_functions = [madminer.utils.ml.losses.flow_nll, madminer.utils.ml.losses.flow_score_mse]
+        loss_functions = [losses.flow_nll, losses.flow_score_mse]
         loss_weights = [1.0, alpha]
         loss_labels = ["nll", "mse_score"]
     else:

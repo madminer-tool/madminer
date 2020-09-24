@@ -1,11 +1,12 @@
-from __future__ import absolute_import, division, print_function, unicode_literals
-
 import logging
 import numpy as np
 import torch
 from torch import tensor
 
-from madminer.utils.ml.models.ratio import DenseSingleParameterizedRatioModel, DenseDoublyParameterizedRatioModel
+from madminer.utils.ml.models.ratio import (
+    DenseSingleParameterizedRatioModel,
+    DenseDoublyParameterizedRatioModel,
+)
 
 logger = logging.getLogger(__name__)
 
