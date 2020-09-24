@@ -130,7 +130,7 @@ def get_optimizer(optimizer, nesterov_momentum):
         if nesterov_momentum is not None:
             opt_kwargs = {"momentum": nesterov_momentum}
     else:
-        raise ValueError("Unknown optimizer {}".format(optimizer))
+        raise ValueError(f"Unknown optimizer {optimizer}")
     return opt, opt_kwargs
 
 
@@ -184,7 +184,7 @@ def get_loss(method, alpha):
         loss_weights = [1.0, alpha]
         loss_labels = ["nll", "mse_score"]
     else:
-        raise NotImplementedError("Unknown method {}".format(method))
+        raise NotImplementedError("Unknown method {method}")
     return loss_functions, loss_labels, loss_weights
 
 

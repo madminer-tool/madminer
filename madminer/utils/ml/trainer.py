@@ -216,7 +216,7 @@ class Trainer(object):
             )
 
         else:
-            assert 0.0 < validation_split < 1.0, "Wrong validation split: {}".format(validation_split)
+            assert 0.0 < validation_split < 1.0, f"Wrong validation split: {validation_split}"
 
             n_samples = len(dataset)
             indices = list(range(n_samples))
@@ -402,7 +402,7 @@ class Trainer(object):
     @staticmethod
     def report_batch(i_epoch, i_batch, loss_train):
         if i_batch in [0, 1, 10, 100, 1000]:
-            logger.debug("  Epoch {:>3d}, batch {:>3d}: loss {:>8.5f}".format(i_epoch + 1, i_batch + 1, loss_train))
+            logger.debug(f"  Epoch {(i_epoch+1):>3d}, batch {(i_batch+1):>3d}: loss {loss_train:>8.5f}")
 
     @staticmethod
     def report_epoch(
@@ -415,18 +415,16 @@ class Trainer(object):
             for i, (label, value) in enumerate(zip(labels, contributions)):
                 if i > 0:
                     summary += ", "
-                summary += "{}: {:>6.3f}".format(label, value)
+                summary += f"{label}: {value:>6.3f}"
             return summary
 
-        train_report = "  Epoch {:>3d}: train loss {:>8.5f} ({})".format(
-            i_epoch + 1, loss_train, contribution_summary(loss_labels, loss_contributions_train)
-        )
+        summary = contribution_summary(loss_labels, loss_contributions_train)
+        train_report = f"  Epoch {(i_epoch+1):>3d}: train loss {loss_train:>8.5f} ({summary})"
         logging_fn(train_report)
 
         if loss_val is not None:
-            val_report = "             val. loss  {:>8.5f} ({})".format(
-                loss_val, contribution_summary(loss_labels, loss_contributions_val)
-            )
+            summary = contribution_summary(loss_labels, loss_contributions_train)
+            val_report = f"             val. loss  {loss_val:>8.5f} ({summary})"
             logging_fn(val_report)
 
     def wrap_up_early_stopping(self, best_model, currrent_loss, best_loss, best_epoch):
@@ -476,7 +474,7 @@ class Trainer(object):
     def _report_timer(self):
         logger.info("Training time spend on:")
         for key, value in six.iteritems(self.timer):
-            logger.info("  {:>32s}: {:6.2f}h".format(key, value / 3600.0))
+            logger.info(f"  {key:>32s}: {(value/3600.0):6.2f}h")
 
 
 class SingleParameterizedRatioTrainer(Trainer):
