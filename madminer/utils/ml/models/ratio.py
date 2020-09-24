@@ -1,10 +1,9 @@
-from __future__ import absolute_import, division, print_function, unicode_literals
-
+import logging
 import torch
 import torch.nn as nn
-from torch.autograd import grad
+
 from madminer.utils.ml.utils import get_activation_function
-import logging
+from torch.autograd import grad
 
 logger = logging.getLogger(__name__)
 

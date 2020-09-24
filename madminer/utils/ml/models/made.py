@@ -1,16 +1,14 @@
-from __future__ import absolute_import, division, print_function
-
+import logging
 import numpy as np
 import numpy.random as rng
 import torch
-from torch import tensor
 import torch.nn as nn
 import torch.nn.functional as F
 
 from madminer.utils.ml.models.base import BaseFlow, BaseConditionalFlow
 from madminer.utils.ml.models.masks import create_degrees, create_masks, create_weights, create_weights_conditional
 from madminer.utils.ml.utils import get_activation_function
-import logging
+from torch import tensor
 
 logger = logging.getLogger(__name__)
 
