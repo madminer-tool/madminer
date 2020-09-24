@@ -1,14 +1,11 @@
-from __future__ import absolute_import, division, print_function, unicode_literals
-
-import six
 import logging
-import os
-import stat
-from subprocess import Popen, PIPE
-import io
 import numpy as np
+import os
 import shutil
+import stat
+
 from contextlib import contextmanager
+from subprocess import Popen, PIPE
 
 logger = logging.getLogger(__name__)
 
@@ -17,7 +14,7 @@ initialized = False
 
 def call_command(cmd, log_file=None, return_std=False):
     if log_file is not None:
-        with io.open(log_file, "wb") as log:
+        with open(log_file, "wb") as log:
             proc = Popen(cmd, stdout=log, stderr=log, shell=True)
             _ = proc.communicate()
             exitcode = proc.returncode
@@ -66,7 +63,7 @@ def create_missing_folders(folders):
 def format_benchmark(parameters, precision=2):
     output = ""
 
-    for i, (key, value) in enumerate(six.iteritems(parameters)):
+    for i, (key, value) in enumerate(parameters.items()):
         if i > 0:
             output += ", "
 
@@ -153,7 +150,7 @@ def load_and_check(filename, warning_threshold=1.0e9, memmap_files_larger_than_g
     if filename is None:
         return None
 
-    if not isinstance(filename, six.string_types):
+    if not isinstance(filename, str):
         data = filename
         memmap = False
     else:

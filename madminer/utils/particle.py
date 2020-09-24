@@ -1,7 +1,5 @@
-from __future__ import absolute_import, division, print_function, unicode_literals
-
-from skhep.math.vectors import LorentzVector
 import logging
+from skhep.math.vectors import LorentzVector
 
 logger = logging.getLogger(__name__)
 

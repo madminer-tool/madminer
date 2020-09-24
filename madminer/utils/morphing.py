@@ -1,11 +1,8 @@
-from __future__ import absolute_import, division, print_function, unicode_literals
-
-import six
+import itertools
 import logging
 import numpy as np
-from collections import OrderedDict
-import itertools
 
+from collections import OrderedDict
 from madminer.utils.various import sanitize_array
 
 logger = logging.getLogger(__name__)
@@ -200,7 +197,7 @@ class PhysicsMorpher:
 
         if basis_from_madminer is not None:
             self.basis = []
-            for bname, benchmark_in in six.iteritems(basis_from_madminer):
+            for bname, benchmark_in in basis_from_madminer.items():
                 self.basis.append([benchmark_in[key] for key in self.parameter_names])
             self.basis = np.array(self.basis)
         elif basis_numpy is not None:
@@ -268,7 +265,7 @@ class PhysicsMorpher:
         if fixed_benchmarks_from_madminer is not None:
             fixed_benchmarks = []
             fixed_benchmark_names = []
-            for bname, benchmark_in in six.iteritems(fixed_benchmarks_from_madminer):
+            for bname, benchmark_in in fixed_benchmarks_from_madminer.items():
                 fixed_benchmark_names.append(bname)
                 fixed_benchmarks.append([benchmark_in[key] for key in self.parameter_names])
             fixed_benchmarks = np.array(fixed_benchmarks)
@@ -655,7 +652,7 @@ class NuisanceMorpher:
         self.i_benchmarks_neg = []
         self.degrees = []
 
-        for key, value in six.iteritems(self.nuisance_parameters):
+        for key, value in self.nuisance_parameters.items():
             self.i_benchmarks_pos.append(benchmark_names.index(value[1]))
             if value[2] is None:
                 self.degrees.append(1)
