@@ -308,16 +308,6 @@ class DenseMorphingAwareRatioModel(nn.Module):
             component_weights.append(component_weight.unsqueeze(1))
         component_weights = torch.cat(component_weights, dim=1)  # (batchsize, n_components)
 
-        # # Debugging
-        # # morphing_matrix:  (n_benchmarks, n_components)
-        # weights = torch.einsum("cn,bc->bn", [self.morphing_matrix, component_weights])  # (batchsize, n_benchmarks)
-        # # logger.debug("Thetas -> weights:")
-        # # for i in range(weights.size(0)):
-        # #     logger.debug("  %s -> %s", theta[i].detach().numpy(), weights[i].detach().numpy())
-        # logger.debug("Weights: %s", weights.detach().numpy())
-        # logger.debug("Component predictions: %s", log_r_hat_components.detach().numpy())
-        # logger.debug("Combined prediction: %s", log_r_hat.detach().numpy())
-
         # Put together
         log_r_hat = torch.einsum("cn,bc,bno->bo", [self.morphing_matrix, component_weights, log_r_hat_components])
 

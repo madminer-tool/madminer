@@ -157,7 +157,7 @@ class ConditionalMaskedAutoregressiveFlow(BaseConditionalFlow):
             if not (isinstance(input_order, str) and input_order != "random"):
                 input_order = made.input_order[::-1]
 
-        # Batch normalizatino
+        # Batch normalization
         self.bns = None
         if self.batch_norm:
             self.bns = nn.ModuleList()
@@ -171,9 +171,9 @@ class ConditionalMaskedAutoregressiveFlow(BaseConditionalFlow):
         Parameters
         ----------
         theta :
-            
+
         x :
-            
+
         fix_batch_norm :
              (Default value = None)
 
@@ -215,11 +215,10 @@ class ConditionalMaskedAutoregressiveFlow(BaseConditionalFlow):
         Parameters
         ----------
         theta :
-            
+
         u :
              (Default value = None)
         **kwargs :
-            
 
         Returns
         -------
@@ -249,9 +248,8 @@ class ConditionalMaskedAutoregressiveFlow(BaseConditionalFlow):
         Parameters
         ----------
         *args :
-            
+
         **kwargs :
-            
 
         Returns
         -------
