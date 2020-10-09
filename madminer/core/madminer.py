@@ -668,6 +668,7 @@ class MadMiner:
         initial_command=None,
         python2_override=False,
         systematics=None,
+	order='LO',
     ):
 
         """
@@ -748,6 +749,10 @@ class MadMiner:
 
         systematics : None or list of str, optional
             If list of str, defines which systematics are used for this run.
+	 
+	order : 'LO' or 'NLO', optional
+            Differentiates between LO and NLO order runs. Minor changes to writing, reading and naming cards.
+	    Default value: 'LO'
 
         Returns
         -------
@@ -775,6 +780,7 @@ class MadMiner:
             initial_command=initial_command,
             python2_override=python2_override,
             systematics=systematics,
+            order=order,
         )
 
     def run_multiple(
@@ -795,6 +801,7 @@ class MadMiner:
         initial_command=None,
         python2_override=False,
         systematics=None,
+	order='LO',
     ):
 
         """
@@ -868,7 +875,11 @@ class MadMiner:
 
         systematics : None or list of str, optional
             If list of str, defines which systematics are used for these runs.
-
+	    
+	order : 'LO' or 'NLO', optional
+            Differentiates between LO and NLO order runs. Minor changes to writing, reading and naming cards.
+	    Default value: 'LO'
+	    
         Returns
         -------
             None
@@ -984,6 +995,7 @@ class MadMiner:
                         template_filename=run_card_file,
                         run_card_filename=mg_process_directory + "/" + new_run_card_file,
                         systematics=systematics_used,
+						order=order,
                     )
 
                 # Copy Pythia card
@@ -1010,6 +1022,7 @@ class MadMiner:
                         log_dir=log_directory,
                         log_file_from_logdir=log_file_run,
                         explicit_python_call=python2_override,
+                        order=order,
                     )
                     mg_scripts.append(mg_script)
                 else:
@@ -1026,6 +1039,7 @@ class MadMiner:
                         initial_command=initial_command,
                         log_file=log_directory + "/" + log_file_run,
                         explicit_python_call=python2_override,
+                        order=order,
                     )
 
                 i += 1

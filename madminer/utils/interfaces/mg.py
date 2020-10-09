@@ -100,6 +100,7 @@ def setup_mg_with_scripts(
     log_dir=None,
     log_file_from_logdir=None,
     explicit_python_call=False,
+    order='LO',
 ):
     """
     Prepares a bash script that will start the event generation.
@@ -247,12 +248,19 @@ def setup_mg_with_scripts(
             mg_process_directory_placeholder,
             "/Cards/reweight_card.dat",
         )
-    if pythia8_card_file_from_mgprocdir is not None:
+    if pythia8_card_file_from_mgprocdir is not None and order == 'LO':
         copy_commands += "cp {}/{} {}{}\n".format(
             mg_process_directory_placeholder,
             pythia8_card_file_from_mgprocdir,
             mg_process_directory_placeholder,
             "/Cards/pythia8_card.dat",
+        )
+    elif pythia8_card_file_from_mgprocdir is not None and order == 'NLO':
+        copy_commands += "cp {}/{} {}{}\n".format(
+            mg_process_directory_placeholder,
+            pythia8_card_file_from_mgprocdir,
+            mg_process_directory_placeholder,
+            "/Cards/shower_card.dat",
         )
 
     if configuration_file_from_mgprocdir is not None:
@@ -321,6 +329,7 @@ def run_mg(
     initial_command=None,
     log_file=None,
     explicit_python_call=False,
+	order='LO',
 ):
     """
     Calls MadGraph to generate events.
@@ -392,8 +401,10 @@ def run_mg(
         shutil.copyfile(param_card_file, mg_process_directory + "/Cards/param_card.dat")
     if reweight_card_file is not None and not is_background:
         shutil.copyfile(reweight_card_file, mg_process_directory + "/Cards/reweight_card.dat")
-    if pythia8_card_file is not None:
+    if pythia8_card_file is not None and order=='LO':
         shutil.copyfile(pythia8_card_file, mg_process_directory + "/Cards/pythia8_card.dat")
+    if pythia8_card_file is not None and order=='NLO':
+        shutil.copyfile(pythia8_card_file, mg_process_directory + "/Cards/shower_card.dat")
     if configuration_card_file is not None:
         shutil.copyfile(configuration_card_file, mg_process_directory + "/Cards/me5_configuration.txt")
 
