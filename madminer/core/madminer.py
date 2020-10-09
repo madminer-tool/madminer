@@ -668,7 +668,7 @@ class MadMiner:
         initial_command=None,
         python2_override=False,
         systematics=None,
-		order='LO',
+	order='LO',
     ):
 
         """
@@ -749,6 +749,10 @@ class MadMiner:
 
         systematics : None or list of str, optional
             If list of str, defines which systematics are used for this run.
+	 
+	order : 'LO' or 'NLO', optional
+            Differentiates between LO and NLO order runs. Minor changes to writing, reading and naming cards.
+	    Default value: 'LO'
 
         Returns
         -------
