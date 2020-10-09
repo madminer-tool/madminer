@@ -216,9 +216,7 @@ class MadMiner:
 
         # Default names
         if benchmark_name is None:
-            benchmark_name = "benchmark_" + str(len(self.benchmarks))	order : 'LO' or 'NLO', optional
-            Differentiates between LO and NLO order runs. Minor changes to writing, reading and naming cards.
-	    Default value: 'LO'
+            benchmark_name = "benchmark_" + str(len(self.benchmarks))
 
         # Check input
         if not isinstance(parameter_values, dict):
@@ -348,9 +346,7 @@ class MadMiner:
                 n_bases=n_bases,
                 fixed_benchmarks_from_madminer=self.benchmarks,
                 n_trials=n_trials,
-                n_test_thetas=n_test_thetas,	order : 'LO' or 'NLO', optional
-            Differentiates between LO and NLO order runs. Minor changes to writing, reading and naming cards.
-	    Default value: 'LO'
+                n_test_thetas=n_test_thetas,
             )
         else:
             n_predefined_benchmarks = 0
@@ -784,7 +780,7 @@ class MadMiner:
             initial_command=initial_command,
             python2_override=python2_override,
             systematics=systematics,
-			order=order,
+            order=order,
         )
 
     def run_multiple(
@@ -1043,7 +1039,7 @@ class MadMiner:
                         initial_command=initial_command,
                         log_file=log_directory + "/" + log_file_run,
                         explicit_python_call=python2_override,
-						order=order,
+                        order=order,
                     )
 
                 i += 1
