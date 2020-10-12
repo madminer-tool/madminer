@@ -129,7 +129,7 @@ def export_reweight_card(sample_benchmark, benchmarks, parameters, mg_process_di
         file.write(reweight_card)
 
 
-def export_run_card(template_filename, run_card_filename, systematics=None, order='LO'):
+def export_run_card(template_filename, run_card_filename, systematics=None, order="LO"):
     # Open parameter card template
     with open(template_filename) as file:
         run_card_template = file.read()
@@ -186,7 +186,7 @@ def export_run_card(template_filename, run_card_filename, systematics=None, orde
             continue
 
     # Add new entries - sytematics
-    if order=='LO':
+    if order == "LO":
         run_card_lines.append("")
         run_card_lines.append("#*********************************************************************")
         run_card_lines.append("# MadMiner systematics setup                                         *")

@@ -63,7 +63,7 @@ class DenseSingleParameterizedRatioModel(nn.Module):
 
         # Score t
         if track_score:
-            t_hat, = grad(
+            (t_hat,) = grad(
                 log_r_hat,
                 theta,
                 grad_outputs=torch.ones_like(log_r_hat.data),
@@ -76,7 +76,7 @@ class DenseSingleParameterizedRatioModel(nn.Module):
 
         # Calculate gradient wrt x
         if return_grad_x:
-            x_gradient, = grad(
+            (x_gradient,) = grad(
                 log_r_hat,
                 x,
                 grad_outputs=torch.ones_like(log_r_hat.data),
@@ -164,14 +164,14 @@ class DenseDoublyParameterizedRatioModel(nn.Module):
 
         # Score t
         if track_score:
-            t_hat0, = grad(
+            (t_hat0,) = grad(
                 log_r_hat,
                 theta0,
                 grad_outputs=torch.ones_like(log_r_hat.data),
                 only_inputs=True,
                 create_graph=create_gradient_graph,
             )
-            t_hat1, = grad(
+            (t_hat1,) = grad(
                 log_r_hat,
                 theta1,
                 grad_outputs=torch.ones_like(log_r_hat.data),
@@ -186,7 +186,7 @@ class DenseDoublyParameterizedRatioModel(nn.Module):
 
         # Calculate gradient wrt x
         if return_grad_x:
-            x_gradient, = grad(
+            (x_gradient,) = grad(
                 log_r_hat,
                 x,
                 grad_outputs=torch.ones_like(log_r_hat.data),
@@ -326,7 +326,7 @@ class DenseMorphingAwareRatioModel(nn.Module):
 
         # Score t
         if track_score:
-            t_hat, = grad(
+            (t_hat,) = grad(
                 log_r_hat,
                 theta,
                 grad_outputs=torch.ones_like(log_r_hat.data),
@@ -339,7 +339,7 @@ class DenseMorphingAwareRatioModel(nn.Module):
 
         # Calculate gradient wrt x
         if return_grad_x:
-            x_gradient, = grad(
+            (x_gradient,) = grad(
                 log_r_hat,
                 x,
                 grad_outputs=torch.ones_like(log_r_hat.data),

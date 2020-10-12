@@ -1393,7 +1393,16 @@ class SampleAugmenter(DataAnalyzer):
                 else:
                     logger.debug("Sampling from parameter point %s / %s", i_set + 1, n_sets)
 
-                x, thetas, nus, augmented_data, eff_n_samples, n_stats_warnings, n_neg_weights_warnings, n_too_large_weights_warnings = self._sample_set(
+                (
+                    x,
+                    thetas,
+                    nus,
+                    augmented_data,
+                    eff_n_samples,
+                    n_stats_warnings,
+                    n_neg_weights_warnings,
+                    n_too_large_weights_warnings,
+                ) = self._sample_set(
                     set_,
                     n_samples=n_samples_per_set,
                     augmented_data_definitions=augmented_data_definitions,
