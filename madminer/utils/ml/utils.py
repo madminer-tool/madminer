@@ -8,6 +8,7 @@ from torch import optim
 
 import madminer.utils
 from madminer.utils.ml import losses
+from torch.utils.data import Dataset
 
 logger = logging.getLogger(__name__)
 
@@ -47,6 +48,24 @@ def r_from_s(s, epsilon=1.0e-6):
 
 def sigmoid(x):
     return 1.0 / (1.0 + np.exp(-x))
+
+
+def check_for_nan(label, *tensors):
+    for tensor in tensors:
+        if tensor is None:
+            continue
+        if torch.isnan(tensor).any():
+            logger.warning("%s contains NaNs!\n%s", label, tensor)
+            raise NanException
+
+
+def check_for_nonpos(label, *tensors):
+    for tensor in tensors:
+        if tensor is None:
+            continue
+        if (tensor <= 0.).any():
+            logger.warning("%s contains non-positive numbers!\n%s", label, tensor)
+            raise NanException
 
 
 def check_for_nans_in_parameters(model, check_gradients=True):
@@ -167,3 +186,48 @@ def get_loss(method, alpha):
     else:
         raise NotImplementedError("Unknown method {}".format(method))
     return loss_functions, loss_labels, loss_weights
+
+
+class EarlyStoppingException(Exception):
+    pass
+
+
+class NanException(Exception):
+    pass
+
+
+class NumpyDataset(Dataset):
+    """ Dataset for numpy arrays with explicit memmap support """
+
+    def __init__(self, *arrays, **kwargs):
+
+        self.dtype = kwargs.get("dtype", torch.float)
+        self.memmap = []
+        self.data = []
+        self.n = None
+
+        for array in arrays:
+            if self.n is None:
+                self.n = array.shape[0]
+            assert array.shape[0] == self.n
+
+            if isinstance(array, np.memmap):
+                self.memmap.append(True)
+                self.data.append(array)
+            else:
+                self.memmap.append(False)
+                tensor = torch.from_numpy(array).to(self.dtype)
+                self.data.append(tensor)
+
+    def __getitem__(self, index):
+        items = []
+        for memmap, array in zip(self.memmap, self.data):
+            if memmap:
+                tensor = np.array(array[index])
+                items.append(torch.from_numpy(tensor).to(self.dtype))
+            else:
+                items.append(array[index])
+        return tuple(items)
+
+    def __len__(self):
+        return self.n

@@ -7,56 +7,12 @@ import numpy as np
 import time
 import torch
 import torch.optim as optim
-from torch.utils.data import Dataset, DataLoader
+from madminer.utils.ml.utils import EarlyStoppingException, NanException, NumpyDataset
+from torch.utils.data import DataLoader
 from torch.utils.data.sampler import SubsetRandomSampler
 from torch.nn.utils import clip_grad_norm_
 
 logger = logging.getLogger(__name__)
-
-
-class EarlyStoppingException(Exception):
-    pass
-
-
-class NanException(Exception):
-    pass
-
-
-class NumpyDataset(Dataset):
-    """ Dataset for numpy arrays with explicit memmap support """
-
-    def __init__(self, *arrays, **kwargs):
-
-        self.dtype = kwargs.get("dtype", torch.float)
-        self.memmap = []
-        self.data = []
-        self.n = None
-
-        for array in arrays:
-            if self.n is None:
-                self.n = array.shape[0]
-            assert array.shape[0] == self.n
-
-            if isinstance(array, np.memmap):
-                self.memmap.append(True)
-                self.data.append(array)
-            else:
-                self.memmap.append(False)
-                tensor = torch.from_numpy(array).to(self.dtype)
-                self.data.append(tensor)
-
-    def __getitem__(self, index):
-        items = []
-        for memmap, array in zip(self.memmap, self.data):
-            if memmap:
-                tensor = np.array(array[index])
-                items.append(torch.from_numpy(tensor).to(self.dtype))
-            else:
-                items.append(array[index])
-        return tuple(items)
-
-    def __len__(self):
-        return self.n
 
 
 class Trainer(object):

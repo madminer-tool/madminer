@@ -2,8 +2,9 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import torch
 import torch.nn as nn
+import numpy as np
 from torch.autograd import grad
-from madminer.utils.ml.utils import get_activation_function
+from madminer.utils.ml.utils import get_activation_function, check_for_nan, check_for_nonpos, NanException
 import logging
 
 logger = logging.getLogger(__name__)
@@ -36,7 +37,7 @@ class DenseSingleParameterizedRatioModel(nn.Module):
         # Log r layer
         if self.dropout_prob > 1.0e-9:
             self.layers.append(nn.Dropout(self.dropout_prob))
-        self.layers.append(nn.Linear(n_last, 1))
+        self.append = self.layers.append(nn.Linear(n_last, 1))
 
     def forward(self, theta, x, track_score=True, return_grad_x=False, create_gradient_graph=True):
 
@@ -259,7 +260,7 @@ class DenseComponentRatioModel(nn.Module):
 
 class DenseMorphingAwareRatioModel(nn.Module):
     def __init__(
-        self, components, morphing_matrix, n_observables, n_parameters, n_hidden, activation="tanh", dropout_prob=0.0
+        self, components, morphing_matrix, n_observables, n_parameters, n_hidden, activation="tanh", dropout_prob=0.0, clamp_component_ratios=5.0
     ):
 
         super(DenseMorphingAwareRatioModel, self).__init__()
@@ -269,6 +270,7 @@ class DenseMorphingAwareRatioModel(nn.Module):
         self.activation = get_activation_function(activation)
         self.dropout_prob = dropout_prob
         self.n_components, self.n_parameters = components.shape
+        self.clamp_component_ratios = clamp_component_ratios
 
         # Morphing setup
         self.register_buffer("components", torch.tensor(components))
@@ -277,11 +279,13 @@ class DenseMorphingAwareRatioModel(nn.Module):
         logger.debug("Loaded morphing matrix into PyTorch model:\n %s", morphing_matrix)
 
         # Build networks for all components
-        self.component_estimators = nn.ModuleList()
+        self.dsigma_component_estimators = nn.ModuleList()
         for _ in range(self.n_components):
-            self.component_estimators.append(
+            self.dsigma_component_estimators.append(
                 DenseComponentRatioModel(n_observables, n_hidden, activation, dropout_prob)
             )
+
+        self.log_sigma_ratio_components = torch.nn.Parameter(torch.zeros((self.n_components, 1)))  # (n_components, 1)
 
     def forward(self, theta, x, track_score=True, return_grad_x=False, create_gradient_graph=True):
 
@@ -295,11 +299,15 @@ class DenseMorphingAwareRatioModel(nn.Module):
         if return_grad_x and not x.requires_grad:
             x.requires_grad = True
 
-        # Calculate individual components
-        log_r_hat_components = [component(x).unsqueeze(1) for component in self.component_estimators]
-        log_r_hat_components = torch.cat(log_r_hat_components, 1)  # (batchsize, n_components, 1)
+        # Calculate individual components dsigma_c(x) / dsigma1
+        dsigma_ratio_components = [component(x).unsqueeze(1) for component in self.dsigma_component_estimators]
+        dsigma_ratio_components = torch.cat(dsigma_ratio_components, 1)  # (batchsize, n_components, 1)
+        dsigma_ratio_components = torch.exp(torch.clamp(dsigma_ratio_components, -self.clamp_component_ratios, self.clamp_component_ratios))
 
-        # Calculate weights
+        # Denominator (for changes in total xsecs with theta)
+        sigma_ratio_components = torch.exp(torch.clamp(self.log_sigma_ratio_components, -self.clamp_component_ratios, self.clamp_component_ratios))
+
+        # Calculate morphing weights
         component_weights = []
         for c in range(self.n_components):
             component_weight = 1.0
@@ -308,21 +316,51 @@ class DenseMorphingAwareRatioModel(nn.Module):
             component_weights.append(component_weight.unsqueeze(1))
         component_weights = torch.cat(component_weights, dim=1)  # (batchsize, n_components)
 
-        # # Debugging
-        # # morphing_matrix:  (n_benchmarks, n_components)
-        # weights = torch.einsum("cn,bc->bn", [self.morphing_matrix, component_weights])  # (batchsize, n_benchmarks)
-        # # logger.debug("Thetas -> weights:")
-        # # for i in range(weights.size(0)):
-        # #     logger.debug("  %s -> %s", theta[i].detach().numpy(), weights[i].detach().numpy())
-        # logger.debug("Weights: %s", weights.detach().numpy())
-        # logger.debug("Component predictions: %s", log_r_hat_components.detach().numpy())
-        # logger.debug("Combined prediction: %s", log_r_hat.detach().numpy())
-
         # Put together
-        log_r_hat = torch.einsum("cn,bc,bno->bo", [self.morphing_matrix, component_weights, log_r_hat_components])
+        weights = torch.einsum("cn,bc->bn", [self.morphing_matrix, component_weights])  # (batchsize, n_benchmarks)
+        numerator = torch.einsum("bn,bno->bo", [weights, dsigma_ratio_components])
+        denominator = torch.einsum("bn,no->bo", [weights, sigma_ratio_components])
+
+        numerator = torch.clamp(numerator, np.exp(-self.clamp_component_ratios), np.exp(self.clamp_component_ratios))
+        denominator = torch.clamp(denominator, np.exp(-self.clamp_component_ratios), np.exp(self.clamp_component_ratios))
+        r_hat = numerator / denominator
+
+        # # Debugging
+        # try:
+        #     check_for_nonpos("Morphing-aware model: numerator", numerator)
+        #     check_for_nonpos("Morphing-aware model: denominator", denominator)
+        #     check_for_nonpos("Morphing-aware model: ratio", r_hat)
+        # except NanException:
+        #     logger.error("Inconsistent inputs in the morphing-aware model.")
+        #
+        #     filter = torch.where((r_hat <= 0.).any(axis = 1))
+        #
+        #     logger.error(  "x = %s", x[filter])
+        #     logger.error(  "theta = %s", theta[filter])
+        #     logger.error(  "morphing_matrix = %s", self.morphing_matrix)
+        #     logger.error(  "dsigma_ratio_components = %s", dsigma_ratio_components[filter])
+        #     logger.error(  "sigma_ratio_components = %s", sigma_ratio_components)
+        #     logger.error(  "component_weights = %s", component_weights[filter])
+        #     logger.error(  "numerator = %s", numerator[filter])
+        #     logger.error(  "denominator = %s", denominator[filter])
+        #     logger.error(  "ratio = %s", r_hat[filter])
+        #
+        #     logger.error("Let's go into this calculation a bit more:")
+        #     # morphing_matrix:  (n_benchmarks, n_components)
+        #     weights = torch.einsum("cn,bc->bn", [self.morphing_matrix, component_weights])  # (batchsize, n_benchmarks)
+        #     logger.error("Thetas -> weights:")
+        #     for i in range(weights.size(0)):
+        #         logger.error("  %s -> %s", theta[i].detach().numpy(), weights[i].detach().numpy())
+        #     logger.error("Weights: %s", weights.detach().numpy())
+        #     logger.error("Component predictions for numerator: %s", sigma_ratio_components.detach().numpy())
+        #     logger.error("Combined numerator: %s", numerator.detach().numpy())
+        #
+        #     raise
 
         # Bayes-optimal s
-        s_hat = 1.0 / (1.0 + torch.exp(log_r_hat))
+        r_hat = torch.clamp(r_hat, np.exp(-self.clamp_component_ratios), np.exp(self.clamp_component_ratios))
+        log_r_hat = torch.log(torch.clamp(r_hat, 1.e-6, 1.e6))
+        s_hat = 1.0 / (1.0 + r_hat)
 
         # Score t
         if track_score:
@@ -330,7 +368,6 @@ class DenseMorphingAwareRatioModel(nn.Module):
                 log_r_hat,
                 theta,
                 grad_outputs=torch.ones_like(log_r_hat.data),
-                # grad_outputs=log_r_hat.data.new(log_r_hat.shape).fill_(1),
                 only_inputs=True,
                 create_graph=create_gradient_graph,
             )
@@ -351,12 +388,75 @@ class DenseMorphingAwareRatioModel(nn.Module):
 
         return s_hat, log_r_hat, t_hat
 
-    def to(self, *args, **kwargs):
-        self = super(DenseMorphingAwareRatioModel, self).to(*args, **kwargs)
 
-        self.components = self.components.to(*args, **kwargs)
-        self.morphing_matrix = self.morphing_matrix.to(*args, **kwargs)
-        for i, component in enumerate(self.component_estimators):
-            self.component_estimators[i] = component.to(*args, **kwargs)
+class DenseQuadraticMorphingAwareRatioModel(nn.Module):
+    def __init__(
+        self, n_observables, n_parameters, n_hidden, activation="tanh", dropout_prob=0.0
+    ):
+        assert n_parameters == 1
+        super(DenseQuadraticMorphingAwareRatioModel, self).__init__()
 
-        return self
+        # Save input
+        self.n_hidden = n_hidden
+        self.activation = get_activation_function(activation)
+        self.dropout_prob = dropout_prob
+
+        # Build networks for all components
+        self.dsigma_a = DenseComponentRatioModel(n_observables, n_hidden, activation, dropout_prob)
+        self.dsigma_b = DenseComponentRatioModel(n_observables, n_hidden, activation, dropout_prob)
+        self.sigma_a = torch.nn.Parameter(torch.ones((1,)))
+        self.sigma_b = torch.nn.Parameter(torch.ones((1,)))
+
+    def forward(self, theta, x, track_score=True, return_grad_x=False, create_gradient_graph=True):
+
+        """ Calculates estimated log likelihood ratio and the derived score. """
+
+        assert theta.size()[1] == 1
+
+        # Track gradient wrt theta
+        if track_score and not theta.requires_grad:
+            theta.requires_grad = True
+
+        # Track gradient wrt x
+        if return_grad_x and not x.requires_grad:
+            x.requires_grad = True
+
+        # Calculate individual components
+        dsigma_a = self.dsigma_a(x)  # (batch, 1)
+        dsigma_b = self.dsigma_b(x)  # (batch, 1)
+
+        # Put together
+        dsigma_ratio = (1 + theta * dsigma_a)**2 + (theta * dsigma_b)**2
+        sigma_ratio = (1 + theta * self.sigma_a)**2 + (theta * self.sigma_b)**2
+        r_hat = dsigma_ratio / sigma_ratio
+
+        # Bayes-optimal s
+        log_r_hat = torch.log(r_hat + 1.e-9)
+        s_hat = 1.0 / (1.0 + r_hat)
+
+        # Score t
+        if track_score:
+            (t_hat,) = grad(
+                log_r_hat,
+                theta,
+                grad_outputs=torch.ones_like(log_r_hat.data),
+                only_inputs=True,
+                create_graph=create_gradient_graph,
+            )
+        else:
+            t_hat = None
+
+        # Calculate gradient wrt x
+        if return_grad_x:
+            (x_gradient,) = grad(
+                log_r_hat,
+                x,
+                grad_outputs=torch.ones_like(log_r_hat.data),
+                only_inputs=True,
+                create_graph=create_gradient_graph,
+            )
+
+            return s_hat, log_r_hat, t_hat, x_gradient
+
+        return s_hat, log_r_hat, t_hat
+
