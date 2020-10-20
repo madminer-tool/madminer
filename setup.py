@@ -6,68 +6,64 @@
 # Note: To use the 'upload' functionality of this file, you must:
 #   $ pip install twine
 
-import io
 import os
 import sys
 from shutil import rmtree
 
 from setuptools import find_packages, setup, Command
 
+
+project_dir = os.path.abspath(os.path.dirname(__file__))
+
+# Import the README and use it as the long-description.
+with open(os.path.join(project_dir, 'README.md')) as f:
+    LONG_DESCRIPTION = '\n' + f.read()
+
+# Load the package's __version__.py module as a dictionary.
+info = {}
+with open(os.path.join(project_dir, 'madminer', '__info__.py')) as f:
+    exec(f.read(), info)
+
+
 # Package meta-data.
 NAME = 'madminer'
 DESCRIPTION = 'Mining gold from MadGraph to improve limit setting in particle physics.'
-URL = 'https://github.com/johannbrehmer/madminer'
+URL = 'https://github.com/diana-hep/madminer'
 EMAIL = 'johann.brehmer@nyu.edu'
-AUTHOR = 'Johann Brehmer, Felix Kling, Irina Espejo, Kyle Cranmer'
 REQUIRES_PYTHON = '>=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*, <4'
-VERSION = '0.7.1'
-
-# What packages are required for this module to be executed?
+AUTHORS = info['__authors__']
+VERSION = info['__version__']
 REQUIRED = [
-    "six",
+    "future",
+    "h5py",
+    "matplotlib>=2.0.0",
     "numpy>=1.13.0",
     "scipy>=1.0.0",
-    "h5py",
     "scikit-hep>=0.5.0, <0.6.0",
-    "scikit-learn>=0.19.0",
+    "six",
     "torch>=1.0.0",
-    "bqplot",
     "uproot",
-    "matplotlib>=2.0.0",
-    "numpydoc",
-    "pytest",
-    "sphinx>=1.4",
-    "sphinx_rtd_theme",
-    "recommonmark",
 ]
 
-# What packages are optional?
-EXTRAS = {
-    # 'fancy feature': ['django'],
-}
-
-# The rest you shouldn't have to touch too much :)
-# ------------------------------------------------
-# Except, perhaps the License and Trove Classifiers!
-# If you do change the License, remember to change the Trove Classifier for that!
-
-here = os.path.abspath(os.path.dirname(__file__))
-
-# Import the README and use it as the long-description.
-# Note: this will only work if 'README.md' is present in your MANIFEST.in file!
-try:
-    with io.open(os.path.join(here, 'README.md'), encoding='utf-8') as f:
-        long_description = '\n' + f.read()
-except FileNotFoundError:
-    long_description = DESCRIPTION
-
-# Load the package's __version__.py module as a dictionary.
-about = {}
-if not VERSION:
-    with open(os.path.join(here, NAME, '__version__.py')) as f:
-        exec(f.read(), about)
-else:
-    about['__version__'] = VERSION
+EXTRAS_DOCS = sorted(
+    [
+        "numpydoc",
+        "recommonmark",
+        "sphinx>=1.4",
+        "sphinx_rtd_theme",
+    ]
+)
+EXTRAS_TEST = sorted(
+    EXTRAS_DOCS + [
+        "pytest",
+    ]
+)
+EXTRAS_EXAMPLES = sorted(
+    [
+        "bqplot",
+        "pandas",
+    ]
+)
 
 
 class UploadCommand(Command):
@@ -90,7 +86,7 @@ class UploadCommand(Command):
     def run(self):
         try:
             self.status('Removing previous builds…')
-            rmtree(os.path.join(here, 'dist'))
+            rmtree(os.path.join(project_dir, 'dist'))
         except OSError:
             pass
 
@@ -101,32 +97,29 @@ class UploadCommand(Command):
         os.system('twine upload dist/*')
 
         self.status('Pushing git tags…')
-        os.system('git tag v{0}'.format(about['__version__']))
+        os.system('git tag v{0}'.format(VERSION))
         os.system('git push --tags')
 
         sys.exit()
 
 
-# Where the magic happens:
 setup(
     name=NAME,
-    version=about['__version__'],
+    version=VERSION,
     description=DESCRIPTION,
-    long_description=long_description,
+    long_description=LONG_DESCRIPTION,
     long_description_content_type='text/markdown',
-    author=AUTHOR,
+    author=AUTHORS,
     author_email=EMAIL,
     python_requires=REQUIRES_PYTHON,
     url=URL,
     packages=find_packages(exclude=('tests',)),
-    # If your package is a single module, use this instead of 'packages':
-    # py_modules=['mypackage'],
-
-    # entry_points={
-    #     'console_scripts': ['mycli=mymodule:cli'],
-    # },
     install_requires=REQUIRED,
-    extras_require=EXTRAS,
+    extras_require={
+        "docs": EXTRAS_DOCS,
+        "test": EXTRAS_TEST,
+        "examples": EXTRAS_EXAMPLES,
+    },
     include_package_data=True,
     license='MIT',
     classifiers=[

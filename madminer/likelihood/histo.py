@@ -117,6 +117,10 @@ class HistoLikelihood(BaseLikelihood):
         supported_modes = ["sampled", "weighted", "histo"]
         if mode not in supported_modes:
             raise ValueError("Mode %s unknown. Choose one of the following methods: %s", mode, supported_modes)
+        if mode == "histo" and self.n_nuisance_parameters > 0:
+            raise ValueError(
+                "Mode histo is currently not supported in the presence of nuisance parameters. Please use mode weighted or sampled."
+            )
 
         # Load model - nothing interesting
         if score_components != []:
@@ -599,10 +603,3 @@ class HistoLikelihood(BaseLikelihood):
         # create histogram
         histo = Histo(bin_centers, weights=histo_weights_theta, bins=hist_bins, epsilon=1.0e-12)
         return histo
-
-    def _clean_nans(self, array):
-        not_finite = np.any(~np.isfinite(array), axis=0)
-        if np.sum(not_finite) > 0:
-            logger.warning("Removing %s inf / nan results from calculation")
-            array[:, not_finite] = 0.0
-        return array

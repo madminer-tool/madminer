@@ -8,6 +8,65 @@ from matplotlib import pyplot as plt
 logger = logging.getLogger(__name__)
 
 
+def plot_1d_morphing_basis(
+    morpher,
+    xlabel=r"$\theta$",
+    xrange=(-1.0, 1.0),
+    resolution=100,
+):
+    """
+    Visualizes a morphing basis and morphing errors for problems with a two-dimensional parameter space.
+
+    Parameters
+    ----------
+    morpher : PhysicsMorpher
+        PhysicsMorpher instance with defined basis.
+
+    xlabel : str, optional
+        Label for the x axis. Default value: r'$\theta$'.
+
+    xrange : tuple of float, optional
+        Range `(min, max)` for the x axis. Default value: (-1., 1.).
+
+    resolution : int, optional
+        Number of points per axis for the rendering of the squared morphing weights. Default value: 100.
+
+    Returns
+    -------
+    figure : Figure
+        Plot as Matplotlib Figure instance.
+
+    """
+
+    basis = morpher.basis
+
+    assert basis is not None, "No basis defined"
+    assert basis.shape[1] == 1, "Only 1d problems can be plotted with this function"
+
+    theta_test = np.linspace(xrange[0], xrange[1], resolution).reshape((-1, 1))
+
+    squared_weights = []
+    for theta in theta_test:
+        wi = morpher.calculate_morphing_weights(theta, None)
+        squared_weights.append(np.sum(wi * wi) ** 0.5)
+
+    fig = plt.figure(figsize=(5, 5))
+    ax = plt.gca()
+
+    ax.plot(theta_test.flatten(), squared_weights)
+
+    plt.scatter(basis[:, 0], [0. for _ in basis[:, 0]], s=50.0, c="black")
+
+    plt.xlabel(xlabel)
+    plt.ylabel(r"$\sqrt{\sum w_i^2}$")
+    plt.xlim(xrange[0], xrange[1])
+    plt.ylim(0., None)
+
+    plt.tight_layout()
+
+    return fig
+
+
 def plot_2d_morphing_basis(
     morpher,
     xlabel=r"$\theta_0$",

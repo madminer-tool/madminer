@@ -668,6 +668,7 @@ class MadMiner:
         initial_command=None,
         python2_override=False,
         systematics=None,
+	order='LO',
     ):
 
         """
@@ -726,10 +727,6 @@ class MadMiner:
             If True, the event generation is not started, but instead a run.sh script is created in the process
             directory. Default value: False.
 
-        only_prepare_script : bool, optional
-            If True, MadGraph is not executed, but instead a run.sh script is created in
-            the process directory. Default value: False.
-
         ufo_model_directory : str or None, optional
             Path to an UFO model directory that should be used, but is not yet installed in mg_directory/models. The
             model will be copied to the MadGraph model directory before the process directory is generated. (Default
@@ -752,6 +749,10 @@ class MadMiner:
 
         systematics : None or list of str, optional
             If list of str, defines which systematics are used for this run.
+	 
+	order : 'LO' or 'NLO', optional
+            Differentiates between LO and NLO order runs. Minor changes to writing, reading and naming cards.
+	    Default value: 'LO'
 
         Returns
         -------
@@ -779,6 +780,7 @@ class MadMiner:
             initial_command=initial_command,
             python2_override=python2_override,
             systematics=systematics,
+            order=order,
         )
 
     def run_multiple(
@@ -799,6 +801,7 @@ class MadMiner:
         initial_command=None,
         python2_override=False,
         systematics=None,
+	order='LO',
     ):
 
         """
@@ -849,10 +852,6 @@ class MadMiner:
             If True, the event generation is not started, but instead a run.sh script is created in the process
             directory. Default value: False.
 
-        only_prepare_script : bool, optional
-            If True, MadGraph is not executed, but instead a run.sh script is created in
-            the process directory. Default value: False.
-
         ufo_model_directory : str or None, optional
             Path to an UFO model directory that should be used, but is not yet installed in mg_directory/models. The
             model will be copied to the MadGraph model directory before the process directory is generated. (Default
@@ -866,6 +865,7 @@ class MadMiner:
 
         initial_command : str or None, optional
             Initial shell commands that have to be executed before MG is run (e.g. to load a virtual environment).
+            If not specified and `python2_override` is True, it adds the user-installed Python2 binaries to the PATH.
             Default value: None.
 
         python2_override : bool, optional
@@ -875,7 +875,11 @@ class MadMiner:
 
         systematics : None or list of str, optional
             If list of str, defines which systematics are used for these runs.
-
+	    
+	order : 'LO' or 'NLO', optional
+            Differentiates between LO and NLO order runs. Minor changes to writing, reading and naming cards.
+	    Default value: 'LO'
+	    
         Returns
         -------
             None
@@ -894,6 +898,14 @@ class MadMiner:
 
         if sample_benchmarks is None:
             sample_benchmarks = [benchmark for benchmark in self.benchmarks]
+
+        # Gives 'python2_override' full power if 'initial_command' is empty.
+        # (Reference: https://github.com/diana-hep/madminer/issues/422)
+        if python2_override and initial_command is None:
+            logger.info("Adding Python2.7 bin folder to PATH")
+            binary_path = os.popen("command -v python2.7").read().strip()
+            binary_folder = os.path.dirname(os.path.realpath(binary_path))
+            initial_command = "export PATH={}:$PATH".format(binary_folder)
 
         # Generate process folder
         log_file_generate = log_directory + "/generate.log"
@@ -936,18 +948,18 @@ class MadMiner:
                 # Files
                 script_file = "madminer/scripts/run_{}.sh".format(i)
                 log_file_run = "run_{}.log".format(i)
-                mg_commands_filename = "/madminer/cards/mg_commands_{}.dat".format(i)
-                param_card_file = "/madminer/cards/param_card_{}.dat".format(i)
-                reweight_card_file = "/madminer/cards/reweight_card_{}.dat".format(i)
+                mg_commands_filename = "madminer/cards/mg_commands_{}.dat".format(i)
+                param_card_file = "madminer/cards/param_card_{}.dat".format(i)
+                reweight_card_file = "madminer/cards/reweight_card_{}.dat".format(i)
                 new_pythia8_card_file = None
                 if pythia8_card_file is not None:
-                    new_pythia8_card_file = "/madminer/cards/pythia8_card_{}.dat".format(i)
+                    new_pythia8_card_file = "madminer/cards/pythia8_card_{}.dat".format(i)
                 new_run_card_file = None
                 if run_card_file is not None:
-                    new_run_card_file = "/madminer/cards/run_card_{}.dat".format(i)
+                    new_run_card_file = "madminer/cards/run_card_{}.dat".format(i)
                 new_configuration_file = None
                 if configuration_file is not None:
-                    new_configuration_file = "/madminer/cards/me5_configuration_{}.txt".format(i)
+                    new_configuration_file = "madminer/cards/me5_configuration_{}.txt".format(i)
 
                 logger.info("Run %s", i)
                 logger.info("  Sampling from benchmark: %s", sample_benchmark)
@@ -983,6 +995,7 @@ class MadMiner:
                         template_filename=run_card_file,
                         run_card_filename=mg_process_directory + "/" + new_run_card_file,
                         systematics=systematics_used,
+						order=order,
                     )
 
                 # Copy Pythia card
@@ -1001,18 +1014,15 @@ class MadMiner:
                         run_card_file_from_mgprocdir=new_run_card_file,
                         param_card_file_from_mgprocdir=param_card_file,
                         reweight_card_file_from_mgprocdir=reweight_card_file,
-                        pythia8_card_file_from_mgprocdir=None
-                        if new_pythia8_card_file is None
-                        else new_pythia8_card_file,
-                        configuration_file_from_mgprocdir=None
-                        if new_configuration_file is None
-                        else new_configuration_file,
+                        pythia8_card_file_from_mgprocdir=new_pythia8_card_file,
+                        configuration_file_from_mgprocdir=new_configuration_file,
                         is_background=is_background,
                         script_file_from_mgprocdir=script_file,
                         initial_command=initial_command,
                         log_dir=log_directory,
                         log_file_from_logdir=log_file_run,
                         explicit_python_call=python2_override,
+                        order=order,
                     )
                     mg_scripts.append(mg_script)
                 else:
@@ -1029,6 +1039,7 @@ class MadMiner:
                         initial_command=initial_command,
                         log_file=log_directory + "/" + log_file_run,
                         explicit_python_call=python2_override,
+                        order=order,
                     )
 
                 i += 1
