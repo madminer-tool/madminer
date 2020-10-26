@@ -225,29 +225,35 @@ def setup_mg_with_scripts(
     #  Card copying commands
     copy_commands = ""
     if run_card_file_from_mgprocdir is not None:
-        copy_commands += f"cp " \
-            f"{mg_process_directory_placeholder}/{run_card_file_from_mgprocdir} " \
+        copy_commands += (
+            f"cp "
+            f"{mg_process_directory_placeholder}/{run_card_file_from_mgprocdir} "
             f"{mg_process_directory_placeholder}/Cards/run_card.dat\n"
-
+        )
     if param_card_file_from_mgprocdir is not None:
-        copy_commands += f"cp " \
-            f"{mg_process_directory_placeholder}/{param_card_file_from_mgprocdir} " \
+        copy_commands += (
+            f"cp "
+            f"{mg_process_directory_placeholder}/{param_card_file_from_mgprocdir} "
             f"{mg_process_directory_placeholder}/Cards/param_card.dat\n"
-
+        )
     if reweight_card_file_from_mgprocdir is not None and not is_background:
-        copy_commands += f"cp " \
-            f"{mg_process_directory_placeholder}/{reweight_card_file_from_mgprocdir} " \
+        copy_commands += (
+            f"cp "
+            f"{mg_process_directory_placeholder}/{reweight_card_file_from_mgprocdir} "
             f"{mg_process_directory_placeholder}/Cards/reweight_card.dat\n"
-
+        )
     if pythia8_card_file_from_mgprocdir is not None:
-        copy_commands += f"cp " \
-            f"{mg_process_directory_placeholder}/{pythia8_card_file_from_mgprocdir} " \
+        copy_commands += (
+            f"cp "
+            f"{mg_process_directory_placeholder}/{pythia8_card_file_from_mgprocdir} "
             f"{mg_process_directory_placeholder}/Cards/pythia8_card.dat\n"
-
+        )
     if configuration_file_from_mgprocdir is not None:
-        copy_commands += f"cp " \
-            f"{mg_process_directory_placeholder}/{configuration_file_from_mgprocdir} " \
+        copy_commands += (
+            f"cp "
+            f"{mg_process_directory_placeholder}/{configuration_file_from_mgprocdir} "
             f"{mg_process_directory_placeholder}/Cards/me5_configuration.txt\n"
+        )
 
     # Replace environment variable in proc card
     replacement_command = """sed -e 's@\$mgprocdir@'"$mgprocdir"'@' {}/{} > {}/{}""".format(
@@ -283,11 +289,12 @@ def setup_mg_with_scripts(
     make_file_executable(script_file)
 
     # How to call it from master script
-    call_placeholder = \
-        f"{mg_process_directory_placeholder}/{script_file_from_mgprocdir} " \
-        f"{mg_directory_placeholder} " \
-        f"{mg_process_directory_placeholder} " \
+    call_placeholder = (
+        f"{mg_process_directory_placeholder}/{script_file_from_mgprocdir} "
+        f"{mg_directory_placeholder} "
+        f"{mg_process_directory_placeholder} "
         f"{log_dir_placeholder}"
+    )
 
     return call_placeholder
 
@@ -491,9 +498,11 @@ def setup_mg_reweighting_with_scripts(
 
     #  Card copying commands
     if reweight_card_file_from_mgprocdir is not None:
-        copy_commands = f"cp " \
-            f"{mg_process_directory_placeholder}/{reweight_card_file_from_mgprocdir} " \
+        copy_commands = (
+            f"cp "
+            f"{mg_process_directory_placeholder}/{reweight_card_file_from_mgprocdir} "
             f"{mg_process_directory_placeholder}/Cards/reweight_card.dat\n"
+        )
     else:
         copy_commands = ""
 
@@ -517,9 +526,10 @@ def setup_mg_reweighting_with_scripts(
     make_file_executable(script_file)
 
     # How to call it from master script
-    call_instruction = \
-        f"{mg_process_directory}/{script_file_from_mgprocdir} " \
+    call_instruction = (
+        f"{mg_process_directory}/{script_file_from_mgprocdir} "
         f"[MG_process_directory] [log_directory]"
+    )
 
     return call_instruction
 
