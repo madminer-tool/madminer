@@ -82,7 +82,7 @@ class AsymptoticLimits(DataAnalyzer):
         `x_observed` specifies the observed data as an array of observables, using the same observables and their order
         as used throughout the MadMiner workflow.
 
-        The p-values with frequent hypothesis tests using the likelihood ratio as test statistic. The asymptotic
+        The p-values with frequentist hypothesis tests using the likelihood ratio as test statistic. The asymptotic
         approximation is used, see https://arxiv.org/abs/1007.1727.
 
         Depending on the keyword `mode`, the likelihood ratio is calculated with one of several different methods:
@@ -1089,11 +1089,17 @@ class AsymptoticLimits(DataAnalyzer):
     def _calculate_log_likelihood_ratio_kinematics(self, x_observed, theta_grid, model, theta1=None):
         if isinstance(model, ParameterizedRatioEstimator):
             log_r, _ = model.evaluate_log_likelihood_ratio(
-                x=x_observed, theta=theta_grid, test_all_combinations=True, evaluate_score=False
+                x=x_observed,
+                theta=theta_grid,
+                test_all_combinations=True,
+                evaluate_score=False,
             )
         elif isinstance(model, LikelihoodEstimator):
             log_r, _ = model.evaluate_log_likelihood(
-                x=x_observed, theta=theta_grid, test_all_combinations=True, evaluate_score=False
+                x=x_observed,
+                theta=theta_grid,
+                test_all_combinations=True,
+                evaluate_score=False,
             )
         elif isinstance(model, Ensemble) and model.estimator_type == "parameterized_ratio":
             log_r, _ = model.evaluate_log_likelihood_ratio(
@@ -1114,7 +1120,7 @@ class AsymptoticLimits(DataAnalyzer):
         else:
             raise NotImplementedError(
                 "Likelihood ratio estimation is currently only implemented for "
-                "ParameterizedRatioEstimator and LikelihoodEstimator instancees"
+                "ParameterizedRatioEstimator and LikelihoodEstimator instances"
             )
         return log_r
 
