@@ -260,7 +260,15 @@ class DenseComponentRatioModel(nn.Module):
 
 class DenseMorphingAwareRatioModel(nn.Module):
     def __init__(
-        self, components, morphing_matrix, n_observables, n_parameters, n_hidden, activation="tanh", dropout_prob=0.0, clamp_component_ratios=5.0
+        self,
+        components,
+        morphing_matrix,
+        n_observables,
+        n_parameters,
+        n_hidden,
+        activation="tanh",
+        dropout_prob=0.0,
+        clamp_component_ratios=5.0,
     ):
 
         super(DenseMorphingAwareRatioModel, self).__init__()
@@ -302,10 +310,14 @@ class DenseMorphingAwareRatioModel(nn.Module):
         # Calculate individual components dsigma_c(x) / dsigma1
         dsigma_ratio_components = [component(x).unsqueeze(1) for component in self.dsigma_component_estimators]
         dsigma_ratio_components = torch.cat(dsigma_ratio_components, 1)  # (batchsize, n_components, 1)
-        dsigma_ratio_components = torch.exp(torch.clamp(dsigma_ratio_components, -self.clamp_component_ratios, self.clamp_component_ratios))
+        dsigma_ratio_components = torch.exp(
+            torch.clamp(dsigma_ratio_components, -self.clamp_component_ratios, self.clamp_component_ratios)
+        )
 
         # Denominator (for changes in total xsecs with theta)
-        sigma_ratio_components = torch.exp(torch.clamp(self.log_sigma_ratio_components, -self.clamp_component_ratios, self.clamp_component_ratios))
+        sigma_ratio_components = torch.exp(
+            torch.clamp(self.log_sigma_ratio_components, -self.clamp_component_ratios, self.clamp_component_ratios)
+        )
 
         # Calculate morphing weights
         component_weights = []
@@ -322,7 +334,9 @@ class DenseMorphingAwareRatioModel(nn.Module):
         denominator = torch.einsum("bn,no->bo", [weights, sigma_ratio_components])
 
         numerator = torch.clamp(numerator, np.exp(-self.clamp_component_ratios), np.exp(self.clamp_component_ratios))
-        denominator = torch.clamp(denominator, np.exp(-self.clamp_component_ratios), np.exp(self.clamp_component_ratios))
+        denominator = torch.clamp(
+            denominator, np.exp(-self.clamp_component_ratios), np.exp(self.clamp_component_ratios)
+        )
         r_hat = numerator / denominator
 
         # # Debugging
@@ -359,7 +373,7 @@ class DenseMorphingAwareRatioModel(nn.Module):
 
         # Bayes-optimal s
         r_hat = torch.clamp(r_hat, np.exp(-self.clamp_component_ratios), np.exp(self.clamp_component_ratios))
-        log_r_hat = torch.log(torch.clamp(r_hat, 1.e-6, 1.e6))
+        log_r_hat = torch.log(torch.clamp(r_hat, 1.0e-6, 1.0e6))
         s_hat = 1.0 / (1.0 + r_hat)
 
         # Score t
@@ -390,9 +404,7 @@ class DenseMorphingAwareRatioModel(nn.Module):
 
 
 class DenseQuadraticMorphingAwareRatioModel(nn.Module):
-    def __init__(
-        self, n_observables, n_parameters, n_hidden, activation="tanh", dropout_prob=0.0
-    ):
+    def __init__(self, n_observables, n_parameters, n_hidden, activation="tanh", dropout_prob=0.0):
         assert n_parameters == 1
         super(DenseQuadraticMorphingAwareRatioModel, self).__init__()
 
@@ -426,12 +438,12 @@ class DenseQuadraticMorphingAwareRatioModel(nn.Module):
         dsigma_b = self.dsigma_b(x)  # (batch, 1)
 
         # Put together
-        dsigma_ratio = (1 + theta * dsigma_a)**2 + (theta * dsigma_b)**2
-        sigma_ratio = (1 + theta * self.sigma_a)**2 + (theta * self.sigma_b)**2
+        dsigma_ratio = (1 + theta * dsigma_a) ** 2 + (theta * dsigma_b) ** 2
+        sigma_ratio = (1 + theta * self.sigma_a) ** 2 + (theta * self.sigma_b) ** 2
         r_hat = dsigma_ratio / sigma_ratio
 
         # Bayes-optimal s
-        log_r_hat = torch.log(r_hat + 1.e-9)
+        log_r_hat = torch.log(r_hat + 1.0e-9)
         s_hat = 1.0 / (1.0 + r_hat)
 
         # Score t
@@ -459,4 +471,3 @@ class DenseQuadraticMorphingAwareRatioModel(nn.Module):
             return s_hat, log_r_hat, t_hat, x_gradient
 
         return s_hat, log_r_hat, t_hat
-

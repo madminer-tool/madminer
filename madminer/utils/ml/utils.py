@@ -63,7 +63,7 @@ def check_for_nonpos(label, *tensors):
     for tensor in tensors:
         if tensor is None:
             continue
-        if (tensor <= 0.).any():
+        if (tensor <= 0.0).any():
             logger.warning("%s contains non-positive numbers!\n%s", label, tensor)
             raise NanException
 
