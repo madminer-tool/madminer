@@ -9,7 +9,7 @@ from madminer.utils.various import math_commands, weighted_quantile, sanitize_ar
 from madminer.utils.various import less_logging
 from madminer.ml import ParameterizedRatioEstimator, ScoreEstimator, Ensemble, load_estimator
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger(__name__) 
 
 
 class FisherInformation(DataAnalyzer):
