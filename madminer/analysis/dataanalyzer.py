@@ -512,24 +512,13 @@ class DataAnalyzer(object):
 
     def _report_setup(self):
         logger.info("Found %s parameters", self.n_parameters)
-        for ikey, key in enumerate(self.parameters):
-            values = self.parameters[key]
-            logger.info("  %s: %s (%s)",  str(ikey) , key, " / ".join(str(x) for x in values))
-        for key, values in six.iteritems(self.parameters):
-            logger.debug(
-                "   %s (LHA: %s %s, maximal power in squared ME: %s, range: %s)",
-                key,
-                values[0],
-                values[1],
-                values[2],
-                values[3],
-            )
+        for i, (key, values) in enumerate(six.iteritems(self.parameters)):
+            logger.info("  %s: %s (%s)", i, key, " / ".join(str(x) for x in values))
 
         if self.nuisance_parameters is not None:
             logger.info("Found %s nuisance parameters", self.n_nuisance_parameters)
-            for ikey, key in enumerate(self.systematics):
-                values = self.systematics[key]
-                logger.info("  %s: %s (%s)",  str(ikey) , key, " / ".join(str(x) for x in values))
+            for i, (key, values) in enumerate(six.iteritems(self.systematics)):
+                logger.info("  %s: %s (%s)", i, key, " / ".join(str(x) for x in values))
         else:
             logger.info("Did not find nuisance parameters")
             self.include_nuisance_parameters = False
