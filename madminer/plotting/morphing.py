@@ -8,12 +8,7 @@ from matplotlib import pyplot as plt
 logger = logging.getLogger(__name__)
 
 
-def plot_1d_morphing_basis(
-    morpher,
-    xlabel=r"$\theta$",
-    xrange=(-1.0, 1.0),
-    resolution=100,
-):
+def plot_1d_morphing_basis(morpher, xlabel=r"$\theta$", xrange=(-1.0, 1.0), resolution=100):
     """
     Visualizes a morphing basis and morphing errors for problems with a two-dimensional parameter space.
 
@@ -55,12 +50,12 @@ def plot_1d_morphing_basis(
 
     ax.plot(theta_test.flatten(), squared_weights)
 
-    plt.scatter(basis[:, 0], [0. for _ in basis[:, 0]], s=50.0, c="black")
+    plt.scatter(basis[:, 0], [0.0 for _ in basis[:, 0]], s=50.0, c="black")
 
     plt.xlabel(xlabel)
     plt.ylabel(r"$\sqrt{\sum w_i^2}$")
     plt.xlim(xrange[0], xrange[1])
-    plt.ylim(0., None)
+    plt.ylim(0.0, None)
 
     plt.tight_layout()
 

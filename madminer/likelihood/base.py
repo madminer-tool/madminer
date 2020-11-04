@@ -56,7 +56,9 @@ class BaseLikelihood(DataAnalyzer):
             logger.debug("Using nuisance interpolation")
             theta_matrix = self._get_theta_benchmark_matrix(theta)
             xsec = mdot(theta_matrix, total_weights)
-            nuisance_effects = self.nuisance_morpher.calculate_nuisance_factors(nu, total_weights.reshape((1, -1))).flatten()
+            nuisance_effects = self.nuisance_morpher.calculate_nuisance_factors(
+                nu, total_weights.reshape((1, -1))
+            ).flatten()
             xsec *= nuisance_effects
         elif weights_benchmarks is not None:
             # `weighted` mode: Reweights existing events to (theta, nu) -- better than entirely new xsec calculation

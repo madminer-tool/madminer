@@ -668,7 +668,7 @@ class MadMiner:
         initial_command=None,
         python2_override=False,
         systematics=None,
-	order='LO',
+        order="LO",
     ):
 
         """
@@ -801,7 +801,7 @@ class MadMiner:
         initial_command=None,
         python2_override=False,
         systematics=None,
-	order='LO',
+        order="LO",
     ):
 
         """
@@ -995,7 +995,7 @@ class MadMiner:
                         template_filename=run_card_file,
                         run_card_filename=mg_process_directory + "/" + new_run_card_file,
                         systematics=systematics_used,
-						order=order,
+                        order=order,
                     )
 
                 # Copy Pythia card

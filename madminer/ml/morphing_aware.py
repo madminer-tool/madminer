@@ -3,7 +3,7 @@ from __future__ import absolute_import, division, print_function
 import logging
 import numpy as np
 
-from ..utils.ml.models.ratio import DenseMorphingAwareRatioModel
+from ..utils.ml.models.ratio import DenseMorphingAwareRatioModel, DenseQuadraticMorphingAwareRatioModel
 from ..utils.interfaces.madminer_hdf5 import load_madminer_settings
 from ..utils.morphing import PhysicsMorpher
 from .parameterized_ratio import ParameterizedRatioEstimator
@@ -84,3 +84,23 @@ class MorphingAwareRatioEstimator(ParameterizedRatioEstimator):
 
         self.components = np.array(settings["components"])
         self.morphing_matrix = np.array(settings["morphing_matrix"])
+
+
+class QuadraticMorphingAwareRatioEstimator(ParameterizedRatioEstimator):
+    """
+    Specific morphing-aware likelihood ratio estimator for a single parameter and theta1 = 0.
+
+    Uses the quadratic parameterization of 2007.10356: r_hat(x, theta) = (1 + theta A(x))^2 + (theta B(x))^2.
+    """
+
+    def train(self, *args, **kwargs):
+        super(QuadraticMorphingAwareRatioEstimator, self).train(*args, scale_parameters=False, **kwargs)
+
+    def _create_model(self):
+        self.model = DenseQuadraticMorphingAwareRatioModel(
+            n_observables=self.n_observables,
+            n_parameters=self.n_parameters,
+            n_hidden=self.n_hidden,
+            activation=self.activation,
+            dropout_prob=self.dropout_prob,
+        )
