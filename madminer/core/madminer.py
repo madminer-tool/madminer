@@ -42,6 +42,7 @@ class MadMiner:
         self.export_morphing = False
         self.systematics = OrderedDict()
         self.finite_difference_benchmarks = None
+        self.finite_difference_epsilon = None
 
     def add_parameter(
         self,
@@ -377,7 +378,11 @@ class MadMiner:
         Don't add any more benchmarks or parameters after calling this!
         """
 
-        logger.info("Adding finite-differences benchmarks")
+        logger.info("Adding finite-differences benchmarks with epsilon = %s", epsilon)
+
+        self.finite_difference_benchmarks = OrderedDict()
+        self.finite_difference_epsilon = epsilon
+
         for benchmark_key, benchmark_spec in six.iteritems(self.benchmarks):
             fd_keys = {}
 
@@ -580,6 +585,7 @@ class MadMiner:
                 morphing_matrix=self.morpher.morphing_matrix,
                 systematics=self.systematics,
                 finite_difference_benchmarks=self.finite_difference_benchmarks,
+                finite_difference_epsilon=self.finite_difference_epsilon,
                 overwrite_existing_files=True,
             )
         else:
@@ -591,6 +597,7 @@ class MadMiner:
                 benchmarks=self.benchmarks,
                 systematics=self.systematics,
                 finite_difference_benchmarks=self.finite_difference_benchmarks,
+                finite_difference_epsilon=self.finite_difference_epsilon,
                 overwrite_existing_files=True,
             )
 
