@@ -41,6 +41,7 @@ class MadMiner:
         self.morpher = None
         self.export_morphing = False
         self.systematics = OrderedDict()
+        self.finite_difference_benchmarks = None
 
     def add_parameter(
         self,
@@ -369,6 +370,29 @@ class MadMiner:
             morpher.n_components - n_predefined_benchmarks,
         )
 
+    def finite_differences(self, epsilon=0.01):
+        """
+        Adds benchmarks so that the score can be computed from finite differences
+
+        Don't add any more benchmarks or parameters after calling this!
+        """
+
+        logger.info("Adding finite-differences benchmarks")
+        for benchmark_key, benchmark_spec in six.iteritems(self.benchmarks):
+            fd_keys = {}
+
+            for param_key, param_value in six.iteritems(benchmark_spec):
+                fd_key = benchmark_key + "_plus_" + param_key
+                fd_spec = benchmark_spec.copy()
+                fd_spec[param_key] += epsilon
+
+                self.add_benchmark(fd_spec, fd_key)
+                fd_keys[param_key] = fd_key
+
+            self.finite_difference_benchmarks[benchmark_key] = fd_keys
+
+
+
     def reset_systematics(self):
         self.systematics = OrderedDict()
 
@@ -555,6 +579,7 @@ class MadMiner:
                 morphing_components=self.morpher.components,
                 morphing_matrix=self.morpher.morphing_matrix,
                 systematics=self.systematics,
+                finite_difference_benchmarks=self.finite_difference_benchmarks,
                 overwrite_existing_files=True,
             )
         else:
@@ -565,6 +590,7 @@ class MadMiner:
                 parameters=self.parameters,
                 benchmarks=self.benchmarks,
                 systematics=self.systematics,
+                finite_difference_benchmarks=self.finite_difference_benchmarks,
                 overwrite_existing_files=True,
             )
 
@@ -875,11 +901,11 @@ class MadMiner:
 
         systematics : None or list of str, optional
             If list of str, defines which systematics are used for these runs.
-	    
-	order : 'LO' or 'NLO', optional
+
+        order : 'LO' or 'NLO', optional
             Differentiates between LO and NLO order runs. Minor changes to writing, reading and naming cards.
-	    Default value: 'LO'
-	    
+            Default value: 'LO'
+
         Returns
         -------
             None

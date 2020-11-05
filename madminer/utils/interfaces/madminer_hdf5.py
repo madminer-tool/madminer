@@ -18,6 +18,7 @@ def save_madminer_settings(
     morphing_components=None,
     morphing_matrix=None,
     systematics=None,
+    finite_difference_benchmarks=None,
     overwrite_existing_files=True,
 ):
     """Saves all MadMiner settings into an HDF5 file."""
@@ -25,6 +26,7 @@ def save_madminer_settings(
     parameter_names = _save_parameters(filename, overwrite_existing_files, parameters)
     _save_benchmarks(benchmarks, benchmarks_is_nuisance, filename, parameter_names)
     _save_morphing(filename, morphing_components, morphing_matrix)
+    _save_finite_differences(filename, finite_difference_benchmarks)
     _save_systematics(filename, systematics)
 
 
@@ -338,6 +340,24 @@ def _save_benchmarks2(benchmark_is_nuisance, benchmark_names, benchmark_values, 
         f.create_dataset("benchmarks/values", data=benchmark_values)
         f.create_dataset("benchmarks/is_nuisance", data=benchmark_is_nuisance)
         f.create_dataset("benchmarks/is_reference", data=benchmark_is_reference)
+
+
+def _save_finite_differences(filename, finite_difference_benchmarks):
+    if finite_difference_benchmarks is None:
+        return
+    io_tag = "a"  # Read-write if file exists, otherwise create
+    with h5py.File(filename, io_tag) as f:
+        n_keys = len(finite_difference_benchmarks)
+        n_values = len(finite_difference_benchmarks[list(six.iterkeys(finite_difference_benchmarks))[0]])
+
+        keys_ascii = [key.encode("ascii", "ignore") for key in six.itervalues(finite_difference_benchmarks)]
+        values_ascii = [
+            [val.encode("ascii", "ignore") for val in six.itervalues(values)]
+            for values in six.itervalues(finite_difference_benchmarks)
+        ]
+
+        f.create_dataset("finite_differences/base_benchmarks", (n_keys, n_values), dtype="S256", data=keys_ascii)
+        f.create_dataset("finite_differences/shifted_benchmarks", data=values_ascii)
 
 
 def _save_morphing(filename, morphing_components, morphing_matrix):
