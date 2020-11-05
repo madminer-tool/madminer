@@ -298,7 +298,6 @@ class DataAnalyzer(object):
         # Inputs
         if thetas is not None:
             include_nuisance_benchmarks = True
-
         if thetas is not None:
             if nus is None:
                 nus = [None for _ in thetas]
@@ -565,6 +564,37 @@ class DataAnalyzer(object):
         else:
             return 1.0
 
+    def _finite_differences_theta_gradient_matrices(self):
+        """ Constructs the matrix that translates benchmark weights to the gradient of the weight evaluated at the benchmarks """
+        assert self.finite_difference_benchmarks is not None
+        assert self.finite_difference_epsilon is not None
+
+        matrix = np.zeros(
+            (self.n_benchmarks, self.n_parameters, self.n_benchmarks)
+        )  # (n_thetas, n_gradients, n_benchmarks)
+        benchmark_names = list(six.iterkeys(self.benchmarks))
+
+        # We'll generally try to find the tupels p, i, j, k such that matrix[i, p, j] = - 1 / eps and matrix[i, p, i] = 1 / eps
+
+        for i, benchmark in enumerate(six.iterkeys(self.benchmarks)):
+            # For the FD-shited benchmarks, we assume that the gradients are the same as at the original point, and will just copy the matrix later
+            copy_to = []
+            if benchmark not in self.finite_difference_benchmarks:
+                continue
+
+            for p, param in enumerate(six.iterkeys(self.parameters)):
+                shifted_benchmark = self.finite_difference_benchmarks[benchmark][param]
+                j = benchmark_names.index(shifted_benchmark)
+                copy_to.append(j)
+
+                matrix[i, p, j] = 1.0 / self.finite_difference_epsilon
+                matrix[i, p, i] = -1.0 / self.finite_difference_epsilon
+
+            for j in copy_to:
+                matrix[j, :, :] = matrix[i, :, :]
+
+        return matrix
+
     @staticmethod
     def _any_nontrivial_nus(nus):
         if nus is None:
@@ -573,6 +603,17 @@ class DataAnalyzer(object):
             if nu is not None:
                 return True
         return False
+
+    def _derivative_mode(self):
+        if self.morpher is not None:
+            mode = "morphing"
+        elif self.finite_difference_benchmarks is not None:
+            mode = "fd"
+        else:
+            raise RuntimeError(
+                "Cannot compute xsec gradients when neither morphing nor finite differences are correctly set up!"
+            )
+        return mode
 
     def _weights(self, thetas, nus, benchmark_weights, theta_matrices=None):
         """
@@ -871,25 +912,36 @@ class DataAnalyzer(object):
     def _get_dtheta_benchmark_matrix(self, theta, zero_pad=True):
         """Calculates matrix A_ij such that d dsigma(theta) / d theta_i = A_ij * dsigma (benchmark j)"""
 
-        if self.morpher is None:
-            raise RuntimeError("Cannot calculate score without morphing")
+        mode = self._derivative_mode()
 
         if zero_pad:
             unpadded_theta_matrix = self._get_dtheta_benchmark_matrix(theta, zero_pad=False)
             dtheta_matrix = np.zeros((unpadded_theta_matrix.shape[0], self.n_benchmarks))
             dtheta_matrix[:, : unpadded_theta_matrix.shape[1]] = unpadded_theta_matrix
 
-        elif isinstance(theta, six.string_types):
+        elif isinstance(theta, six.string_types) and mode == "morphing":
             benchmark = self.benchmarks[theta]
             benchmark = np.array([value for _, value in six.iteritems(benchmark)])
             dtheta_matrix = self._get_dtheta_benchmark_matrix(benchmark)
 
-        elif isinstance(theta, int):
+        elif isinstance(theta, int) and mode == "morphing":
             benchmark = self.benchmarks[list(self.benchmarks.keys())[theta]]
             benchmark = np.array([value for _, value in six.iteritems(benchmark)])
             dtheta_matrix = self._get_dtheta_benchmark_matrix(benchmark)
 
+        elif isinstance(theta, six.string_types):  # finite differences
+            benchmark_id = list(six.iterkeys(self.benchmarks)).index(theta)
+            dtheta_matrix = self._get_dtheta_benchmark_matrix(benchmark_id)
+
+        elif isinstance(theta, int):  # finite differences
+            dtheta_matrix = self._finite_differences_theta_gradient_matrices()[
+                theta
+            ]  # TODO: avoid constructing the full matrix every time
+
         else:
+            if mode == "fd":
+                raise RuntimeError("Cannot calculate score for arbitrary parameter points without morphing setup")
+
             dtheta_matrix = self.morpher.calculate_morphing_weight_gradient(
                 theta
             )  # Shape (n_parameters, n_benchmarks_phys)
