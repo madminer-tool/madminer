@@ -15,18 +15,18 @@ class InformationGeometry:
 
     """
     Functions to calculate limits using Information Geometry.
-        
+
     After initializing the `InformationGeometry` class, a Fisher Information needs to be provided using
     one of the following functions
-        
+
     * `InformationGeometry.information_from_formula()` defines the Fisher Information
     explicitly as function of the theory paramters `theta`.
     * `InformationGeometry.information_from_grid()` loads a grid of Fisher Informations
     which is then interpolated.
-        
+
     Using information geometrical methods, the function `InformationGeometry.distance_contours()` then
     calculates the distance contours and equivalently the p-values throughout parameter space.
-        
+
     """
 
     def __init__(self):
@@ -39,14 +39,14 @@ class InformationGeometry:
         """
         Explicitly defines the Fisher Information as function of the theory parameter `theta`
         through a formula that can be avaulated using `eval()`.
-            
+
         Parameters
         ----------
         formula : str
             Explicit definition of the Fisher Information as ndarray, which can be a function of
             the n-dimensional theory parameter `theta`.
             Example: formula="np.array([[1+theta[0],1],[1,2*theta[1]**2]])"
-            
+
         dimension : int
             Dimensionality of the theory parameter space.
         """
@@ -58,21 +58,21 @@ class InformationGeometry:
     def information_from_grid(self, theta_grid, fisherinformation_grid, option="smooth", inverse="exact"):
         """
         Loads a grid of coordinates and corresponding Fisher Information, which is then interpolated.
-            
+
         Parameters
         ----------
         theta_grid : ndarray
             List if parameter points `theta` at which the Fisher information matrices `I_ij(theta)`
             is evaluated. Shape (n_gridpoints, n_dimension).
-            
+
         fisherinformation_grid : ndarray
             List if Fisher information matrices `I_ij(theta)`. Shape (n_gridpoints, n_dimension, n_dimension).
-            
+
         option : {"smooth", "linear"}
             Defines if the Fisher Information is interpolated smoothly using the function
             CloughTocher2DInterpolator() or piecewise linear using LinearNDInterpolator().
             Default = 'smooth'.
-            
+
         inverse : {"exact", "interpolate"}
             Defines if the inverse Fisher Information is obtained by either first interpolating
             the Fisher Information and then inverting it ("exact") or by first inverting the grid
@@ -107,12 +107,12 @@ class InformationGeometry:
         """
         Low level function that calculates the Fisher Information as function of
         the theory parameter `theta`
-        
+
         Parameters
         ----------
         theta : ndarray
             Parameter point `theta` at which the Fisher information matrix `I_ij(theta)` is evaluated.
-            
+
         Returns
         -------
         fisher_information : ndarray
@@ -142,13 +142,13 @@ class InformationGeometry:
         """
         Low level function that calculates the inverse Fisher Information as function of
         the theory parameter `theta`.
-        
+
         Parameters
         ----------
         theta : ndarray
             Parameter point `theta` at which the inverse Fisher information
             matrix `I^{-1}_ij(theta)` is evaluated.
-            
+
         Returns
         -------
         inverse_fisher_information : ndarray
@@ -164,13 +164,13 @@ class InformationGeometry:
         """
         Low level function that calculates the derivative of Fisher Information
         `\partial_k I_{ij}` at the theory parameter `theta`.
-        
+
         Parameters
         ----------
         theta : ndarray
             Parameter point `theta` at which the derivative of the Fisher information
             matrix is evaluated.
-            
+
         Returns
         -------
         fisher_information_derivative : ndarray
@@ -188,12 +188,12 @@ class InformationGeometry:
         Low level function that calculates the Christoffel symbol (2nd kind) Gamma^i_jk at
         the theory parameter `theta`.  Here Gamma^i_jk=0.5*I^{im}(\partial_k I_{mj}
         + \partial_j I_{mk} - \partial_m I_{jk})
-        
+
         Parameters
         ----------
         theta : ndarray
             Parameter point `theta` at which the Christoffel symbol is evaluated.
-            
+
         Returns
         -------
         christoffel_symbol : ndarray
@@ -209,32 +209,32 @@ class InformationGeometry:
         """
         Finds the geodesic trajectory starting at a parameter point theta0 going in the
         initial direction dtheta0.
-        
+
         Parameters
         ----------
         theta0 : ndarray
             Parameter point `theta0` at which the geodesic trajectory starts.
-            
+
         dtheta0 : ndarray
             Initial direction `dtheta0` of the geodesic
-            
+
         limits : list of (tuple of float)
             Specifies the boundaries of the parameter grid in which the trajectory
             is evaulated. It should be `[[min, max], [min, max], ..., [min, max]`,
             where the list goes over all parameters and `min` and `max` are float.
-            
+
         stepsize : int, optional
             Maximal stepsize `|Delta theta|` during numerical integration in parameter space.
             $Default: 1
-            
+
         Returns
         -------
         list_of_theta : ndarray
             List of parameter points theta `(n_points, n_dimension)`.
-            
+
         list_of_distance : ndarray
             List of distances from the staring point theta0 `(n_points, )`.
-            
+
         """
 
         # initiate starting point
@@ -292,53 +292,53 @@ class InformationGeometry:
         """
         Finds the distance values from the point theta0 and the corresponding p-value
         within the parameter space bounded by `grid_ranges`.
-        
+
         Parameters
         ----------
         theta0 : ndarray
             Parameter point `theta0` at which the geodesic trajectory starts.
-            
+
         grid_ranges : list of (tuple of float)
             Specifies the boundaries of the parameter grid in which the trajectory
             is evaulated. It should be `[[min, max], [min, max], ..., [min, max]`,
             where the list goes over all parameters and `min` and `max` are float.
-            
+
         grid_resolutions : list of int
             Resolution of the parameter space grid on which the p-values are evaluated.
             The individual entries specify the number of points along each parameter individually.
-            
+
         stepsize : float or None, optional
             Maximal stepsize `|Delta theta|` during numerical integration in parameter space.
             If None, stepsize = min([(max-min)/20 for (min,max) in grid_ranges]). Default: None
-            
+
         ntrajectories : int or None, optional
             Number of sampled trajectories. If None, ntrajectories = 20 times the
             number of dimensions. Default: None
-            
+
         continous_sampling : bool, optional
             If n_dimension is 2, the trajectories are sampled continously in the angular
             direction. Default: False
-            
+
         return_trajectories : bool, optional
             Returns the trajectories (parameter points and distances). Default: False
-            
+
         Returns
         -------
         theta_grid : ndarray
             Parameter points at which the p-values are evaluated with shape `(n_grid_points, n_dimension)`.
-            
+
         p_values : ndarray
             Observed p-values for each parameter point on the grid, with shape `(n_grid_points,)`.
-            
+
         p_values : ndarray
             Interpolated distance from theta0 for each parameter point on the grid,
             with shape `(n_grid_points,)`.
-            
+
         (list_of_theta, list_of_distance) : (ndarray,ndarray)
             Only returned if return_trajectories is True. List of parameter points
             theta `(n_points, n_dimension)` and List of distances from the
             staring point theta0 `(n_points, )`.
-            
+
         """
 
         # automatic setting of stepsize and ntrajectories

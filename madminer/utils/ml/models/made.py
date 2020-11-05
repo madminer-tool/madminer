@@ -49,9 +49,9 @@ class GaussianMADE(BaseFlow):
         Parameters
         ----------
         x :
-            
+
         **kwargs :
-            
+
 
         Returns
         -------
@@ -93,7 +93,7 @@ class GaussianMADE(BaseFlow):
         u :
              (Default value = None)
         **kwargs :
-            
+
 
         Returns
         -------
@@ -128,9 +128,9 @@ class GaussianMADE(BaseFlow):
         Parameters
         ----------
         *args :
-            
+
         **kwargs :
-            
+
 
         Returns
         -------
@@ -194,11 +194,11 @@ class ConditionalGaussianMADE(BaseConditionalFlow):
         Parameters
         ----------
         theta :
-            
+
         x :
-            
+
         **kwargs :
-            
+
 
         Returns
         -------
@@ -262,11 +262,11 @@ class ConditionalGaussianMADE(BaseConditionalFlow):
         Parameters
         ----------
         theta :
-            
+
         u :
              (Default value = None)
         **kwargs :
-            
+
 
         Returns
         -------
@@ -303,9 +303,9 @@ class ConditionalGaussianMADE(BaseConditionalFlow):
         Parameters
         ----------
         *args :
-            
+
         **kwargs :
-            
+
 
         Returns
         -------

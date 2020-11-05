@@ -68,11 +68,11 @@ class ConditionalMixtureMADE(BaseConditionalFlow):
         Parameters
         ----------
         theta :
-            
+
         x :
-            
+
         **kwargs :
-            
+
 
         Returns
         -------

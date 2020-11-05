@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 
 class ScoreEstimator(Estimator):
-    """ A neural estimator of the score evaluated at a fixed reference hypothesis as a function of the
+    """A neural estimator of the score evaluated at a fixed reference hypothesis as a function of the
      observation x.
 
     Parameters

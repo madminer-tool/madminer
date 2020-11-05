@@ -48,6 +48,8 @@ class DataAnalyzer(object):
             self.nuisance_parameters,
             self.n_events_generated_per_benchmark,
             self.n_events_backgrounds,
+            self.finite_difference_benchmarks,
+            self.finite_difference_epsilon,
         ) = load_madminer_settings(filename, include_nuisance_benchmarks=include_nuisance_parameters)
 
         self.n_parameters = len(self.parameters)

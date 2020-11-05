@@ -489,7 +489,7 @@ def _parse_cuts(cuts, cuts_default_pass, fail_cuts, observables, observations, p
 
 
 def extract_nuisance_parameters_from_lhe_file(filename, systematics):
-    """ Extracts the definition of nuisance parameters from the LHE file and returns a systematics_dict with structure
+    """Extracts the definition of nuisance parameters from the LHE file and returns a systematics_dict with structure
     {systematics_name : {nuisance_parameter_name : ((benchmark0, weight0), (benchmark1, weight1), processing) }"""
 
     logger.debug("Parsing nuisance parameter setup from LHE file at %s", filename)

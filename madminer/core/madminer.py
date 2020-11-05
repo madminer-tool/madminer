@@ -20,7 +20,7 @@ class MadMiner:
     """
     The central class to manage parameter spaces, benchmarks, and the generation of events through MadGraph and
     Pythia.
-    
+
     An instance of this class is the starting point of most MadMiner applications. It is typically used in four steps:
 
     * Defining the parameter space through `MadMiner.add_parameter`
@@ -29,7 +29,7 @@ class MadMiner:
     * Saving this setup with `MadMiner.save()` (it can be loaded in a new instance with `MadMiner.load()`)
     * Running MadGraph and Pythia with the appropriate settings with `MadMiner.run()` or `MadMiner.run_multiple()` (the
       latter allows the user to combine runs from multiple run cards and sampling points)
-    
+
     Please see the tutorial for a hands-on introduction to its methods.
 
     """
@@ -85,7 +85,7 @@ class MadMiner:
         parameter_range : tuple of float
             The range of parameter values of primary interest. Only affects the
             basis optimization. Default value: (0., 1.).
-            
+
 
         Returns
         -------
@@ -396,8 +396,6 @@ class MadMiner:
 
             self.finite_difference_benchmarks[benchmark_key] = fd_keys
 
-
-
     def reset_systematics(self):
         self.systematics = OrderedDict()
 
@@ -477,7 +475,7 @@ class MadMiner:
         ----------
         filename : str
             Path to the MadMiner file.
-            
+
         disable_morphing : bool, optional
             If True, the morphing setup is not loaded from the file. Default value: False.
 
@@ -501,6 +499,8 @@ class MadMiner:
             _,
             _,
             _,
+            self.finite_difference_benchmarks,
+            self.finite_difference_epsilon,
         ) = load_madminer_settings(filename, include_nuisance_benchmarks=False)
 
         logger.info("Found %s parameters:", len(self.parameters))
@@ -741,7 +741,7 @@ class MadMiner:
         pythia8_card_file : str or None, optional
             Path to the MadGraph Pythia8 card. If None, the card present in the process folder is used.
             Default value: None.
-            
+
         configuration_file : str, optional
             Path to the MadGraph me5_configuration card. If None, the card present in the process folder
             is used. Default value: None.
@@ -818,9 +818,8 @@ class MadMiner:
             python2_override=python2_override,
             systematics=systematics,
             order=order,
-            python_executable=python_executable
+            python_executable=python_executable,
         )
-
 
     def run_multiple(
         self,
@@ -872,7 +871,7 @@ class MadMiner:
         pythia8_card_file : str, optional
             Path to the MadGraph Pythia8 card. If None, the card present in the process folder
             is used. Default value: None.
-        
+
         configuration_file : str, optional
             Path to the MadGraph me5_configuration card. If None, the card present in the process folder
             is used. Default value: None.
@@ -966,7 +965,7 @@ class MadMiner:
             initial_command=initial_command,
             log_file=log_file_generate,
             explicit_python_call=python2_override or (python_executable is not None),
-            python_executable=python_executable
+            python_executable=python_executable,
         )
 
         # Make MadMiner folders

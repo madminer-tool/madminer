@@ -11,8 +11,8 @@ logger = logging.getLogger(__name__)
 
 
 class DenseSingleParameterizedRatioModel(nn.Module):
-    """ Module that implements agnostic parameterized likelihood estimators such as RASCAL or ALICES. Only the
-    numerator of the ratio is parameterized. """
+    """Module that implements agnostic parameterized likelihood estimators such as RASCAL or ALICES. Only the
+    numerator of the ratio is parameterized."""
 
     def __init__(self, n_observables, n_parameters, n_hidden, activation="tanh", dropout_prob=0.0):
 
@@ -99,8 +99,8 @@ class DenseSingleParameterizedRatioModel(nn.Module):
 
 
 class DenseDoublyParameterizedRatioModel(nn.Module):
-    """ Module that implements agnostic parameterized likelihood estimators such as RASCAL or ALICES. Both
-    numerator and denominator of the ratio are parameterized. """
+    """Module that implements agnostic parameterized likelihood estimators such as RASCAL or ALICES. Both
+    numerator and denominator of the ratio are parameterized."""
 
     def __init__(self, n_observables, n_parameters, n_hidden, activation="tanh", dropout_prob=0.0):
 
@@ -209,8 +209,8 @@ class DenseDoublyParameterizedRatioModel(nn.Module):
 
 
 class DenseComponentRatioModel(nn.Module):
-    """ Module that implements agnostic parameterized likelihood estimators such as RASCAL or ALICES. Only the
-    numerator of the ratio is parameterized. """
+    """Module that implements agnostic parameterized likelihood estimators such as RASCAL or ALICES. Only the
+    numerator of the ratio is parameterized."""
 
     def __init__(self, n_observables, n_hidden, activation="tanh", dropout_prob=0.0):
 

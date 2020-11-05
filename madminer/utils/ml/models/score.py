@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 class DenseLocalScoreModel(nn.Module):
     """Module that implements local score estimators for methods like SALLY and SALLINO, or the calculation
-     of Fisher information matrices."""
+    of Fisher information matrices."""
 
     def __init__(self, n_observables, n_parameters, n_hidden, activation="tanh", dropout_prob=0.0):
 

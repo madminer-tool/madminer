@@ -23,12 +23,12 @@ logger = logging.getLogger(__name__)
 class DelphesReader:
     """
     Detector simulation with Delphes and simple calculation of observables.
-    
+
     After setting up the parameter space and benchmarks and running MadGraph and Pythia, all of which is organized
     in the madminer.core.MadMiner class, the next steps are the simulation of detector effects and the calculation of
     observables.  Different tools can be used for these tasks, please feel free to implement the detector simulation and
     analysis routine of your choice.
-    
+
     This class provides an example implementation based on Delphes. Its workflow consists of the following steps:
 
     * Initializing the class with the filename of a MadMiner HDF5 file (the output of `madminer.core.MadMiner.save()`)
@@ -41,7 +41,7 @@ class DelphesReader:
     * Optionally, cuts can be set with `DelphesProcessor.add_cut()`
     * Calculating the observables from the Delphes ROOT files with `DelphesProcessor.analyse_delphes_samples()`
     * Saving the results with `DelphesProcessor.save()`
-    
+
     Please see the tutorial for a detailed walk-through.
 
     Parameters
@@ -94,7 +94,7 @@ class DelphesReader:
 
         # Information from .h5 file
         self.filename = filename
-        (parameters, benchmarks, _, _, _, _, _, self.systematics, _, _, _, _) = load_madminer_settings(
+        (parameters, benchmarks, _, _, _, _, _, self.systematics, _, _, _, _, _, _) = load_madminer_settings(
             filename, include_nuisance_benchmarks=False
         )
         self.benchmark_names_phys = list(benchmarks.keys())
@@ -205,10 +205,10 @@ class DelphesReader:
         ----------
         delphes_directory : str
             Path to the Delphes directory.
-            
+
         delphes_card : str
             Path to a Delphes card.
-            
+
         initial_command : str or None, optional
             Initial bash commands that have to be executed before Delphes is run (e.g. to load the correct virtual
             environment). Default value: None.
@@ -311,7 +311,7 @@ class DelphesReader:
         name : str
             Name of the observable. Since this name will be used in `eval()` calls for cuts, this should not contain
             spaces or special characters.
-            
+
         definition : str
             An expression that can be parsed by Python's `eval()` function. As objects, the visible particles can be
             used: `e`, `mu`, `j`, `a`, and `l` provide lists of electrons, muons, jets, photons, and leptons (electrons
@@ -323,7 +323,7 @@ class DelphesReader:
             which return the charge in units of elementary charges (i.e. an electron has `e[0].charge = -1.`), and the
             PDG particle ID. For instance, `"abs(j[0].phi() - j[1].phi())"` defines the azimuthal angle between the two
             hardest jets.
-            
+
         required : bool, optional
             Whether the observable is required. If True, an event will only be retained if this observable is
             successfully parsed. For instance, any observable involving `"j[1]"` will only be parsed if there are at

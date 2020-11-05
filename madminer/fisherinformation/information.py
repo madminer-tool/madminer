@@ -974,26 +974,26 @@ class FisherInformation(DataAnalyzer):
     def histogram_of_sigma_dsigma(self, theta, observable, nbins, histrange, cuts=None, efficiency_functions=None):
         """
         Fills events into histograms and calculates the cross section and first derivative for each bin
-                                                
+
         Parameters
         ----------
         theta : ndarray
         Parameter point `theta` at which the Fisher information matrix `I_ij(theta)` is evaluated.
-                                                
+
         observable : str
         Expression for the observable to be sliced. The str will be parsed by Python's `eval()` function
         and can use the names of the observables in the MadMiner files.
-                                                
+
         nbins : int
         Number of bins in the slicing, excluding overflow bins.
-                                                
+
         histrange : tuple of float
         Minimum and maximum value of the slicing in the form `(min, max)`. Overflow bins are always added.
-                                                
+
         cuts : None or list of str, optional
         Cuts. Each entry is a parseable Python expression that returns a bool (True if the event should pass a cut,
         False otherwise). Default value: None.
-                                                
+
         efficiency_functions : list of str or None
         Efficiencies. Each entry is a parseable Python expression that returns a float for the efficiency of one
         component. Default value: None.
@@ -1002,10 +1002,10 @@ class FisherInformation(DataAnalyzer):
         -------
         bin_boundaries : ndarray
         Observable slice boundaries.
-                                                
+
         sigma_bins : ndarray
         Cross section in pb in each of the slices.
-        
+
         dsigma_bins : ndarray
         Cross section in pb in each of the slices.
         """

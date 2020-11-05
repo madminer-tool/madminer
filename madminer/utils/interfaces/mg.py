@@ -88,7 +88,9 @@ def generate_mg_process(
     else:
         python_call = ""
 
-    logger.info("Calling MadGraph: %s", initial_command + python_call + mg_directory + "/bin/mg5_aMC " + temp_proc_card_file)
+    logger.info(
+        "Calling MadGraph: %s", initial_command + python_call + mg_directory + "/bin/mg5_aMC " + temp_proc_card_file
+    )
 
     _ = call_command(
         initial_command + python_call + mg_directory + "/bin/mg5_aMC " + temp_proc_card_file, log_file=log_file
@@ -377,7 +379,7 @@ def run_mg(
 
     pythia8_card_file : str or None, optional
         Path to the MadGraph Pythia8 card. If None, Pythia is not run. Default value: None.
-        
+
     configuration_card_file : str or None, optional
         Path to the MadGraph configuration card. If None, the card present in the process folder is used. (Default
         value: None).

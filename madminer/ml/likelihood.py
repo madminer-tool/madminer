@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 
 class LikelihoodEstimator(ConditionalEstimator):
-    """ A neural estimator of the density or likelihood evaluated at a reference hypothesis as a function
+    """A neural estimator of the density or likelihood evaluated at a reference hypothesis as a function
      of the observation x.
 
     Parameters
