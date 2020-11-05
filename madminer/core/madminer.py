@@ -702,6 +702,7 @@ class MadMiner:
         python2_override=False,
         systematics=None,
         order="LO",
+        python_executable=None,
     ):
 
         """
@@ -782,10 +783,13 @@ class MadMiner:
 
         systematics : None or list of str, optional
             If list of str, defines which systematics are used for this run.
-	 
-	order : 'LO' or 'NLO', optional
+
+        order : 'LO' or 'NLO', optional
             Differentiates between LO and NLO order runs. Minor changes to writing, reading and naming cards.
-	    Default value: 'LO'
+            Default value: 'LO'
+
+        python_executable : None or str, optional
+            Provides a path to the Python executable that should be used to call MadMiner. Default: None.
 
         Returns
         -------
@@ -814,7 +818,9 @@ class MadMiner:
             python2_override=python2_override,
             systematics=systematics,
             order=order,
+            python_executable=python_executable
         )
+
 
     def run_multiple(
         self,
@@ -835,6 +841,7 @@ class MadMiner:
         python2_override=False,
         systematics=None,
         order="LO",
+        python_executable=None,
     ):
 
         """
@@ -913,6 +920,9 @@ class MadMiner:
             Differentiates between LO and NLO order runs. Minor changes to writing, reading and naming cards.
             Default value: 'LO'
 
+        python_executable : None or str, optional
+            Provides a path to the Python executable that should be used to call MadMiner. Default: None.
+
         Returns
         -------
             None
@@ -932,13 +942,17 @@ class MadMiner:
         if sample_benchmarks is None:
             sample_benchmarks = [benchmark for benchmark in self.benchmarks]
 
+        # Python 2 override options
+
         # Gives 'python2_override' full power if 'initial_command' is empty.
         # (Reference: https://github.com/diana-hep/madminer/issues/422)
-        if python2_override and initial_command is None:
+        if python2_override and initial_command is None and not python_executable:
+            logger.warning("The keyword python2_override is discouraged. Instead, consider using python_executable.")
             logger.info("Adding Python2.7 bin folder to PATH")
             binary_path = os.popen("command -v python2.7").read().strip()
             binary_folder = os.path.dirname(os.path.realpath(binary_path))
             initial_command = "export PATH={}:$PATH".format(binary_folder)
+            logger.info("Using Python executable %s", binary_path)
 
         # Generate process folder
         log_file_generate = log_directory + "/generate.log"
@@ -951,7 +965,8 @@ class MadMiner:
             ufo_model_directory=ufo_model_directory,
             initial_command=initial_command,
             log_file=log_file_generate,
-            explicit_python_call=python2_override,
+            explicit_python_call=python2_override or (python_executable is not None),
+            python_executable=python_executable
         )
 
         # Make MadMiner folders
@@ -1054,7 +1069,8 @@ class MadMiner:
                         initial_command=initial_command,
                         log_dir=log_directory,
                         log_file_from_logdir=log_file_run,
-                        explicit_python_call=python2_override,
+                        explicit_python_call=python2_override or (python_executable is not None),
+                        python_executable=python_executable,
                         order=order,
                     )
                     mg_scripts.append(mg_script)
@@ -1071,7 +1087,8 @@ class MadMiner:
                         is_background=is_background,
                         initial_command=initial_command,
                         log_file=log_directory + "/" + log_file_run,
-                        explicit_python_call=python2_override,
+                        explicit_python_call=python2_override or (python_executable is not None),
+                        python_executable=python_executable,
                         order=order,
                     )
 
