@@ -3,7 +3,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import os
 from io import open
 import logging
-from madminer.utils.various import call_command
+from madminer.utils.various import unzip_file
 
 logger = logging.getLogger(__name__)
 
@@ -13,7 +13,7 @@ def extract_weight_order(filename, default_weight_label=None):
     new_filename, extension = os.path.splitext(filename)
     if extension == ".gz":
         if not os.path.exists(new_filename):
-            call_command("gunzip -c {} > {}".format(filename, new_filename))
+            unzip_file(filename, new_filename)
         filename = new_filename
 
     with open(filename, encoding="latin-1") as file:

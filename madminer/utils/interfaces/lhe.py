@@ -15,7 +15,7 @@ except ImportError:
 
     use_celementtree = False
 
-from madminer.utils.various import call_command, approx_equal, math_commands
+from madminer.utils.various import unzip_file, approx_equal, math_commands
 from madminer.utils.particle import MadMinerParticle
 
 logger = logging.getLogger(__name__)
@@ -858,7 +858,7 @@ def _untar_and_parse_lhe_file(filename, tags=None):
     new_filename, extension = os.path.splitext(filename)
     if extension == ".gz":
         if not os.path.exists(new_filename):
-            call_command("gunzip -c {} > {}".format(filename, new_filename))
+            unzip_file(filename, new_filename)
         filename = new_filename
 
     for event, elem in ET.iterparse(filename):
