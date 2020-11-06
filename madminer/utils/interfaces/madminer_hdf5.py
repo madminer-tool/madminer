@@ -237,7 +237,7 @@ def madminer_event_loader(
             if include_nuisance_parameters:
                 this_weights = np.array(weights[current:this_end])
             else:
-                this_weights = np.array(weights[current:this_end, benchmark_filter])
+                this_weights = np.array(weights[current:this_end])[:, benchmark_filter]
 
             if sampling_ids is not None:
                 this_sampling_ids = np.array(sampling_ids[current:this_end])
