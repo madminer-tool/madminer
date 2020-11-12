@@ -171,9 +171,9 @@ class ConditionalMaskedAutoregressiveFlow(BaseConditionalFlow):
         Parameters
         ----------
         theta :
-            
+
         x :
-            
+
         fix_batch_norm :
              (Default value = None)
 
@@ -215,11 +215,11 @@ class ConditionalMaskedAutoregressiveFlow(BaseConditionalFlow):
         Parameters
         ----------
         theta :
-            
+
         u :
              (Default value = None)
         **kwargs :
-            
+
 
         Returns
         -------
@@ -249,9 +249,9 @@ class ConditionalMaskedAutoregressiveFlow(BaseConditionalFlow):
         Parameters
         ----------
         *args :
-            
+
         **kwargs :
-            
+
 
         Returns
         -------

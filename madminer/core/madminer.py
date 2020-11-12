@@ -20,7 +20,7 @@ class MadMiner:
     """
     The central class to manage parameter spaces, benchmarks, and the generation of events through MadGraph and
     Pythia.
-    
+
     An instance of this class is the starting point of most MadMiner applications. It is typically used in four steps:
 
     * Defining the parameter space through `MadMiner.add_parameter`
@@ -29,7 +29,7 @@ class MadMiner:
     * Saving this setup with `MadMiner.save()` (it can be loaded in a new instance with `MadMiner.load()`)
     * Running MadGraph and Pythia with the appropriate settings with `MadMiner.run()` or `MadMiner.run_multiple()` (the
       latter allows the user to combine runs from multiple run cards and sampling points)
-    
+
     Please see the tutorial for a hands-on introduction to its methods.
 
     """
@@ -41,6 +41,8 @@ class MadMiner:
         self.morpher = None
         self.export_morphing = False
         self.systematics = OrderedDict()
+        self.finite_difference_benchmarks = None
+        self.finite_difference_epsilon = None
 
     def add_parameter(
         self,
@@ -83,7 +85,7 @@ class MadMiner:
         parameter_range : tuple of float
             The range of parameter values of primary interest. Only affects the
             basis optimization. Default value: (0., 1.).
-            
+
 
         Returns
         -------
@@ -369,6 +371,33 @@ class MadMiner:
             morpher.n_components - n_predefined_benchmarks,
         )
 
+    def finite_differences(self, epsilon=0.01):
+        """
+        Adds benchmarks so that the score can be computed from finite differences
+
+        Don't add any more benchmarks or parameters after calling this!
+        """
+
+        logger.info("Adding finite-differences benchmarks with epsilon = %s", epsilon)
+
+        self.finite_difference_benchmarks = OrderedDict()
+        self.finite_difference_epsilon = epsilon
+
+        for benchmark_key, benchmark_spec in six.iteritems(
+            self.benchmarks.copy()
+        ):  # Copy is necessary to avoid endless loop :/
+            fd_keys = {}
+
+            for param_key, param_value in six.iteritems(benchmark_spec):
+                fd_key = benchmark_key + "_plus_" + param_key
+                fd_spec = benchmark_spec.copy()
+                fd_spec[param_key] += epsilon
+
+                self.add_benchmark(fd_spec, fd_key)
+                fd_keys[param_key] = fd_key
+
+            self.finite_difference_benchmarks[benchmark_key] = fd_keys
+
     def reset_systematics(self):
         self.systematics = OrderedDict()
 
@@ -448,7 +477,7 @@ class MadMiner:
         ----------
         filename : str
             Path to the MadMiner file.
-            
+
         disable_morphing : bool, optional
             If True, the morphing setup is not loaded from the file. Default value: False.
 
@@ -472,6 +501,8 @@ class MadMiner:
             _,
             _,
             _,
+            self.finite_difference_benchmarks,
+            self.finite_difference_epsilon,
         ) = load_madminer_settings(filename, include_nuisance_benchmarks=False)
 
         logger.info("Found %s parameters:", len(self.parameters))
@@ -555,6 +586,8 @@ class MadMiner:
                 morphing_components=self.morpher.components,
                 morphing_matrix=self.morpher.morphing_matrix,
                 systematics=self.systematics,
+                finite_difference_benchmarks=self.finite_difference_benchmarks,
+                finite_difference_epsilon=self.finite_difference_epsilon,
                 overwrite_existing_files=True,
             )
         else:
@@ -565,6 +598,8 @@ class MadMiner:
                 parameters=self.parameters,
                 benchmarks=self.benchmarks,
                 systematics=self.systematics,
+                finite_difference_benchmarks=self.finite_difference_benchmarks,
+                finite_difference_epsilon=self.finite_difference_epsilon,
                 overwrite_existing_files=True,
             )
 
@@ -669,6 +704,7 @@ class MadMiner:
         python2_override=False,
         systematics=None,
         order="LO",
+        python_executable=None,
     ):
 
         """
@@ -707,7 +743,7 @@ class MadMiner:
         pythia8_card_file : str or None, optional
             Path to the MadGraph Pythia8 card. If None, the card present in the process folder is used.
             Default value: None.
-            
+
         configuration_file : str, optional
             Path to the MadGraph me5_configuration card. If None, the card present in the process folder
             is used. Default value: None.
@@ -749,10 +785,13 @@ class MadMiner:
 
         systematics : None or list of str, optional
             If list of str, defines which systematics are used for this run.
-	 
-	order : 'LO' or 'NLO', optional
+
+        order : 'LO' or 'NLO', optional
             Differentiates between LO and NLO order runs. Minor changes to writing, reading and naming cards.
-	    Default value: 'LO'
+            Default value: 'LO'
+
+        python_executable : None or str, optional
+            Provides a path to the Python executable that should be used to call MadMiner. Default: None.
 
         Returns
         -------
@@ -781,6 +820,7 @@ class MadMiner:
             python2_override=python2_override,
             systematics=systematics,
             order=order,
+            python_executable=python_executable,
         )
 
     def run_multiple(
@@ -802,6 +842,7 @@ class MadMiner:
         python2_override=False,
         systematics=None,
         order="LO",
+        python_executable=None,
     ):
 
         """
@@ -832,7 +873,7 @@ class MadMiner:
         pythia8_card_file : str, optional
             Path to the MadGraph Pythia8 card. If None, the card present in the process folder
             is used. Default value: None.
-        
+
         configuration_file : str, optional
             Path to the MadGraph me5_configuration card. If None, the card present in the process folder
             is used. Default value: None.
@@ -875,11 +916,14 @@ class MadMiner:
 
         systematics : None or list of str, optional
             If list of str, defines which systematics are used for these runs.
-	    
-	order : 'LO' or 'NLO', optional
+
+        order : 'LO' or 'NLO', optional
             Differentiates between LO and NLO order runs. Minor changes to writing, reading and naming cards.
-	    Default value: 'LO'
-	    
+            Default value: 'LO'
+
+        python_executable : None or str, optional
+            Provides a path to the Python executable that should be used to call MadMiner. Default: None.
+
         Returns
         -------
             None
@@ -899,13 +943,17 @@ class MadMiner:
         if sample_benchmarks is None:
             sample_benchmarks = [benchmark for benchmark in self.benchmarks]
 
+        # Python 2 override options
+
         # Gives 'python2_override' full power if 'initial_command' is empty.
         # (Reference: https://github.com/diana-hep/madminer/issues/422)
-        if python2_override and initial_command is None:
+        if python2_override and initial_command is None and not python_executable:
+            logger.warning("The keyword python2_override is discouraged. Instead, consider using python_executable.")
             logger.info("Adding Python2.7 bin folder to PATH")
             binary_path = os.popen("command -v python2.7").read().strip()
             binary_folder = os.path.dirname(os.path.realpath(binary_path))
             initial_command = "export PATH={}:$PATH".format(binary_folder)
+            logger.info("Using Python executable %s", binary_path)
 
         # Generate process folder
         log_file_generate = log_directory + "/generate.log"
@@ -918,7 +966,8 @@ class MadMiner:
             ufo_model_directory=ufo_model_directory,
             initial_command=initial_command,
             log_file=log_file_generate,
-            explicit_python_call=python2_override,
+            explicit_python_call=python2_override or (python_executable is not None),
+            python_executable=python_executable,
         )
 
         # Make MadMiner folders
@@ -1021,7 +1070,8 @@ class MadMiner:
                         initial_command=initial_command,
                         log_dir=log_directory,
                         log_file_from_logdir=log_file_run,
-                        explicit_python_call=python2_override,
+                        explicit_python_call=python2_override or (python_executable is not None),
+                        python_executable=python_executable,
                         order=order,
                     )
                     mg_scripts.append(mg_script)
@@ -1038,7 +1088,8 @@ class MadMiner:
                         is_background=is_background,
                         initial_command=initial_command,
                         log_file=log_directory + "/" + log_file_run,
-                        explicit_python_call=python2_override,
+                        explicit_python_call=python2_override or (python_executable is not None),
+                        python_executable=python_executable,
                         order=order,
                     )
 

@@ -46,9 +46,22 @@ class MorphingAwareRatioEstimator(ParameterizedRatioEstimator):
         super(MorphingAwareRatioEstimator, self).train(*args, scale_parameters=False, **kwargs)
 
     def _load_morphing_setup(self, filename, optimize_morphing_basis=False):
-        parameters, benchmarks, _, morphing_components, morphing_matrix, _, _, _, _, _, _, _ = load_madminer_settings(
-            filename, include_nuisance_benchmarks=False
-        )
+        (
+            parameters,
+            benchmarks,
+            _,
+            morphing_components,
+            morphing_matrix,
+            _,
+            _,
+            _,
+            _,
+            _,
+            _,
+            _,
+            _,
+            _,
+        ) = load_madminer_settings(filename, include_nuisance_benchmarks=False)
         if optimize_morphing_basis:
             logger.info("Optimizing morphing basis for morphing-aware estimator")
             morpher = PhysicsMorpher(parameters_from_madminer=parameters)

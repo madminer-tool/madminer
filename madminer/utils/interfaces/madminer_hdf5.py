@@ -18,6 +18,8 @@ def save_madminer_settings(
     morphing_components=None,
     morphing_matrix=None,
     systematics=None,
+    finite_difference_benchmarks=None,
+    finite_difference_epsilon=None,
     overwrite_existing_files=True,
 ):
     """Saves all MadMiner settings into an HDF5 file."""
@@ -25,6 +27,7 @@ def save_madminer_settings(
     parameter_names = _save_parameters(filename, overwrite_existing_files, parameters)
     _save_benchmarks(benchmarks, benchmarks_is_nuisance, filename, parameter_names)
     _save_morphing(filename, morphing_components, morphing_matrix)
+    _save_finite_differences(filename, finite_difference_benchmarks, finite_difference_epsilon)
     _save_systematics(filename, systematics)
 
 
@@ -113,6 +116,7 @@ def load_madminer_settings(filename, include_nuisance_benchmarks=False):
         filename, include_nuisance_benchmarks, parameter_names
     )
     morphing_components, morphing_matrix = _load_morphing(filename)
+    finite_difference_benchmarks, finite_difference_epsilon = _load_finite_differences(filename, parameter_names)
     observables = _load_observables(filename)
     n_background_events, n_samples, n_signal_events_generated_per_benchmark = _load_n_samples(filename)
     systematics = _load_systematics(filename)
@@ -131,6 +135,8 @@ def load_madminer_settings(filename, include_nuisance_benchmarks=False):
         nuisance_parameters,
         n_signal_events_generated_per_benchmark,
         n_background_events,
+        finite_difference_benchmarks,
+        finite_difference_epsilon,
     )
 
 
@@ -231,7 +237,7 @@ def madminer_event_loader(
             if include_nuisance_parameters:
                 this_weights = np.array(weights[current:this_end])
             else:
-                this_weights = np.array(weights[current:this_end, benchmark_filter])
+                this_weights = np.array(weights[current:this_end])[:, benchmark_filter]
 
             if sampling_ids is not None:
                 this_sampling_ids = np.array(sampling_ids[current:this_end])
@@ -338,6 +344,25 @@ def _save_benchmarks2(benchmark_is_nuisance, benchmark_names, benchmark_values, 
         f.create_dataset("benchmarks/values", data=benchmark_values)
         f.create_dataset("benchmarks/is_nuisance", data=benchmark_is_nuisance)
         f.create_dataset("benchmarks/is_reference", data=benchmark_is_reference)
+
+
+def _save_finite_differences(filename, finite_difference_benchmarks, finite_difference_epsilon):
+    if finite_difference_benchmarks is None:
+        return
+    io_tag = "a"  # Read-write if file exists, otherwise create
+    with h5py.File(filename, io_tag) as f:
+        n_keys = len(finite_difference_benchmarks)
+        n_values = len(finite_difference_benchmarks[list(six.iterkeys(finite_difference_benchmarks))[0]])
+
+        keys_ascii = [key.encode("ascii", "ignore") for key in six.iterkeys(finite_difference_benchmarks)]
+        values_ascii = [
+            [val.encode("ascii", "ignore") for val in six.itervalues(values)]
+            for values in six.itervalues(finite_difference_benchmarks)
+        ]
+
+        f.create_dataset("finite_differences/base_benchmarks", (n_keys,), dtype="S256", data=keys_ascii)
+        f.create_dataset("finite_differences/shifted_benchmarks", (n_keys, n_values), data=values_ascii)
+        f.create_dataset("finite_differences/epsilon", (1,), data=[finite_difference_epsilon])
 
 
 def _save_morphing(filename, morphing_components, morphing_matrix):
@@ -573,6 +598,25 @@ def _load_benchmarks(filename, include_nuisance_benchmarks, parameter_names, ret
         return benchmark_is_nuisance, benchmarks, reference_benchmark
 
     return benchmark_is_nuisance, benchmark_names, benchmark_values, reference_benchmark
+
+
+def _load_finite_differences(filename, parameter_names):
+    with h5py.File(filename, "r") as f:
+        try:
+            base_benchmarks = f["finite_differences/base_benchmarks"][()]
+            shifted_benchmarks = f["finite_differences/shifted_benchmarks"][()]
+            epsilon = float(f["finite_differences/epsilon"][()][0])
+
+            finite_difference_benchmarks = {
+                key.decode("ascii"): {param: val.decode("ascii") for param, val in zip(parameter_names, values)}
+                for key, values in zip(base_benchmarks, shifted_benchmarks)
+            }
+
+        except KeyError:
+            finite_difference_benchmarks = None
+            epsilon = None
+
+    return finite_difference_benchmarks, epsilon
 
 
 def _load_n_samples(filename):

@@ -13,17 +13,17 @@ def fix_params(negative_log_likelihood, theta, fixed_components=None):
     """
     Function that reduces the dimensionality of a likelihood function by
     fixing some of the components.
-        
+
     Parameters
     ----------
     negative_log_likelihood : likelihood
         Function returned by Likelihood class (for example
         NeuralLikelihood.create_expected_negative_log_likelihood()`)
         which takes an n-dimensional input parameter.
-        
+
     theta : list of float
         m-dimensional vector of coordinate which will be fixed.
-        
+
     fixed_components : list of int or None, optional.
         m-dimensional vector of coordinate indices provided in theta.
         `fixed_components=[0,1]` will fix the 1st and 2nd
@@ -34,7 +34,7 @@ def fix_params(negative_log_likelihood, theta, fixed_components=None):
     constrained_nll_negative_log_likelihood : likelihood
         Constrained likelihood function which takes an
         n-m dimensional input parameter.
-        
+
     """
     if fixed_components is None:
         fixed_components = list(range(len(theta)))
@@ -84,59 +84,59 @@ def project_log_likelihood(
     Takes a likelihood function depending on N parameters, and evaluates
     for a set of M-dimensional parameter points (either grid or explicitly specified)
     while the remaining N-M paramters are set to zero.
-        
+
     Parameters
     ----------
     negative_log_likelihood : likelihood
         Function returned by Likelihood class (for example
         NeuralLikelihood.create_expected_negative_log_likelihood()`).
-        
+
     remaining_components : list of int or None , optional
         List with M entries, each an int with 0 <= remaining_components[i] < N.
         Denotes which parameters are kept, and their new order.
         All other parameters or projected out (set to zero). If None, all components
         are kept. Default: None
-        
+
     grid_ranges : list of (tuple of float) or None, optional
         Specifies the boundaries of the parameter grid on which the p-values
         are evaluated. It should be `[(min, max), (min, max), ..., (min, max)]`,
         where the list goes over all parameters and `min` and `max` are
         float. If None, thetas_eval has to be given. Default: None.
-        
+
     grid_resolutions : int or list of int, optional
         Resolution of the parameter space grid on which the p-values are
         evaluated. If int, the resolution is the same along every dimension
         of the hypercube. If list of int, the individual entries specify the number of
         points along each parameter individually. Doesn't have any effect if
         grid_ranges is None. Default value: 25.
-        
+
     dof : int or None, optional
         If not None, sets the number of parameters for the calculation of the p-values.
         If None, the overall number of parameters is used. Default value: None.
-        
+
     thetas_eval : ndarray or None , optional
         Manually specifies the parameter point at which the likelihood and p-values
         are evaluated. If None, grid_ranges and resolution are used instead to construct
         a regular grid. Default value: None.
-        
+
     Returns
     -------
     parameter_grid : ndarray
         Parameter points at which the p-values are evaluated with shape
         `(n_grid_points, n_parameters)`.
-        
+
     p_values : ndarray
         Observed p-values for each parameter point on the grid,
         with shape `(n_grid_points,)`.
-        
+
     mle : int
         Index of the parameter point with the best fit (largest p-value
         / smallest -2 log likelihood ratio).
-        
+
     log_likelihood_ratio : ndarray or None
         log likelihood ratio based only on kinematics for each point of the grid,
         with shape `(n_grid_points,)`.
-        
+
     """
 
     # Components
@@ -200,68 +200,68 @@ def profile_log_likelihood(
     Takes a likelihood function depending on N parameters, and evaluates
     for a set of M-dimensional parameter points (either grid or explicitly specified)
     while the remaining N-M paramters are profiled over.
-        
+
     Parameters
     ----------
     negative_log_likelihood : likelihood
         Function returned by Likelihood class (for example
         NeuralLikelihood.create_expected_negative_log_likelihood()`).
-        
+
     remaining_components : list of int or None , optional
         List with M entries, each an int with 0 <= remaining_components[i] < N.
         Denotes which parameters are kept, and their new order.
         All other parameters or projected out (set to zero). If None, all components
         are kept. Default: None
-        
+
     grid_ranges : list of (tuple of float) or None, optional
         Specifies the boundaries of the parameter grid on which the p-values
         are evaluated. It should be `[(min, max), (min, max), ..., (min, max)]`,
         where the list goes over all parameters and `min` and `max` are
         float. If None, thetas_eval has to be given. Default: None.
-        
+
     grid_resolutions : int or list of int, optional
         Resolution of the parameter space grid on which the p-values are
         evaluated. If int, the resolution is the same along every dimension
         of the hypercube. If list of int, the individual entries specify the number of
         points along each parameter individually. Doesn't have any effect if
         grid_ranges is None. Default value: 25.
-        
+
     thetas_eval : ndarray or None , optional
         Manually specifies the parameter point at which the likelihood and p-values
         are evaluated. If None, grid_ranges and resolution are used instead to construct
         a regular grid. Default value: None.
-        
+
     theta_start : ndarray or None , optional
         Manually specifies a parameter point which is the starting point
         for the minimization algorithm which find the maximum likelihood point.
         If None, theta_start = 0 is used.
         Default is None.
-        
+
     dof : int or None, optional
         If not None, sets the number of parameters for the calculation of the p-values.
         If None, the overall number of parameters is used. Default value: None.
-        
+
     method : {"TNC", " L-BFGS-B"} , optional
         Mimization method used. Default value: "TNC"
-        
+
     Returns
     -------
     parameter_grid : ndarray
         Parameter points at which the p-values are evaluated with shape
         `(n_grid_points, n_parameters)`.
-        
+
     p_values : ndarray
         Observed p-values for each parameter point on the grid,
         with shape `(n_grid_points,)`.
-        
+
     mle : int
         Index of the parameter point with the best fit (largest p-value
         / smallest -2 log likelihood ratio).
-        
+
     log_likelihood_ratio : ndarray or None
         log likelihood ratio based only on kinematics for each point of the grid,
         with shape `(n_grid_points,)`.
-        
+
     """
 
     # Components

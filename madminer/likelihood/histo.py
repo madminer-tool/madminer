@@ -34,50 +34,50 @@ class HistoLikelihood(BaseLikelihood):
         """
         Returns a function which calculates the negative log likelihood for a given
         parameter point, evaulated with a dataset (x_observed,n_observed,x_observed_weights).
-            
+
         Parameters
         ----------
-            
+
         x_observed : list of ndarray
             Set of event observables with shape `(n_events, n_observables)`.
-            
+
         observables : list of str or None , optional
             Kinematic variables used in the histograms. The names are the same as
             used for instance in `DelphesReader`.
-            
+
         score_components : None or list of int, optional
             Defines the score components used. Default value: None.
-            
+
         n_observed : int or None , optional
             If int, number of observed events. If None, n_observed is defined by
             the length of x_observed. Default: None.
-            
+
         x_observed_weights : list of float or None , optional
             List of event weights with shape `(n_events)`. If None, all events have equal
             weights. Default: None.
-            
+
         include_xsec : bool, optional
             Whether the Poisson likelihood representing the total number of events is
             included in the analysis. Default value: True.
-            
+
         luminosity : float, optional
             Integrated luminosity in pb^{-1} assumed in the analysis. Default value: 300000.
-            
+
         mode : {"weighted" , "sampled", "histo"} , optional
             If "sampled", for each evaulation of the likelihood function, a separate
             set of events are sampled and histogram is created to construct the
             likelihood function. If "weighted", first a set of weighted events is
             sampled which is then used to create histograms. Default value: "sampled"
-            
+
         n_histo_toys : int or None, optional
             Number of events drawn to construct the histograms used. If None and weighted_histo
             is True, all events in the training fraction of the MadMiner file are used. If None
             and weighted_histo is False, 100000 events are used. Default value: 100000.
-            
+
         model_file : str or None, optional
             Filename of a saved neural network estimating the score. Required if
             score_components is not None. Default value: None.
-            
+
         hist_bins : int or list of (int or ndarray) or None, optional
             Defines the histogram binning. If int, gives the number of bins automatically
             chosen for each summary statistic. If list, each entry corresponds to one
@@ -86,19 +86,19 @@ class HistoLikelihood(BaseLikelihood):
             the bin edges along this dimension explicitly. If None, the bins are chosen according
             to the defaults: for one summary statistic the default is 25 bins, for 2 it's 8 bins
             along each direction, for more it's 5 per dimension. Default value: None.
-            
+
         thetas_binning : list of ndarray or None
             Specifies the parameter points used to determine the optimal binning.
             This is requires if hist_bins doesn't already fully specify the
             binning of the histogram. Default value : None
-            
+
         test_split :
-            
+
         Returns
         -------
         negative_log_likelihood : likelihood
             Function that evaluates the negative log likelihood for a given parameter point
-            
+
         """
 
         # Check input and join observables and score components - nothing interesting
@@ -238,48 +238,48 @@ class HistoLikelihood(BaseLikelihood):
         """
         Returns a function which calculates the expected negative log likelihood for a given
         parameter point, evaulated with test data sampled according to theta_true.
-        
+
         Parameters
         ----------
         theta_true : ndarray
             Specifies the physical paramaters according to which the test data is sampled.
-        
+
         nu_true : ndarray
             Specifies the nuisance paramaters according to which the test data is sampled.
-        
+
         observables : list of str or None , optional
             Kinematic variables used in the histograms. The names are the same as
             used for instance in `DelphesReader`.
-        
+
         score_components : None or list of int, optional
             Defines the score components used. Default value: None.
-        
+
         include_xsec : bool, optional
             Whether the Poisson likelihood representing the total number of events is
             included in the analysis. Default value: True.
-        
+
         luminosity : float, optional
             Integrated luminosity in pb^{-1} assumed in the analysis. Default value: 300000.
-        
+
         n_asimov : int or None, optional
             Size of the Asimov sample. If None, all weighted events in the MadMiner
             file are used. Default value: None.
-        
+
         mode : {"weighted" , "sampled"} , optional
             If "sampled", for each evaulation of the likelihood function, a separate
             set of events are sampled and histogram is created to construct the
             likelihood function. If "weighted", first a set of weighted events is
             sampled which is then used to create histograms. Default value: "sampled"
-        
+
         n_histo_toys : int or None, optional
             Number of events drawn to construct the histograms used. If None and weighted_histo
             is True, all events in the training fraction of the MadMiner file are used. If None
             and weighted_histo is False, 100000 events are used. Default value: 100000.
-        
+
         model_file : str or None, optional
             Filename of a saved neural network estimating the score. Required if
             score_components is not None. Default value: None.
-        
+
         hist_bins : int or list of (int or ndarray) or None, optional
             Defines the histogram binning. If int, gives the number of bins automatically
             chosen for each summary statistic. If list, each entry corresponds to one
@@ -288,18 +288,18 @@ class HistoLikelihood(BaseLikelihood):
             the bin edges along this dimension explicitly. If None, the bins are chosen according
             to the defaults: for one summary statistic the default is 25 bins, for 2 it's 8 bins
             along each direction, for more it's 5 per dimension. Default value: None.
-        
+
         thetas_binning : list of ndarray or None
             Specifies the parameter points used to determine the optimal binning.
             If none, theta_true will be used. Default value : None
-            
+
         test_split :
-        
+
         Returns
         -------
         negative_log_likelihood : likelihood
             Function that evaluates the negative log likelihood for a given parameter point
-        
+
         """
 
         if thetas_binning is None:

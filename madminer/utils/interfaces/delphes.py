@@ -3,7 +3,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import os
 import logging
 
-from madminer.utils.various import call_command
+from madminer.utils.various import call_command, unzip_file
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +26,7 @@ def run_delphes(
     if extension == ".gz":
         logger.debug("Unzipping %s", hepmc_sample_filename)
         if not os.path.exists(filename):
-            call_command("gunzip -c {} > {}".format(hepmc_sample_filename, filename))
+            unzip_file(hepmc_sample_filename, filename)
         if delete_unzipped_file:
             to_delete = filename
         hepmc_sample_filename = filename

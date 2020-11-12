@@ -15,7 +15,7 @@ except ImportError:
 
     use_celementtree = False
 
-from madminer.utils.various import call_command, approx_equal, math_commands
+from madminer.utils.various import unzip_file, approx_equal, math_commands
 from madminer.utils.particle import MadMinerParticle
 
 logger = logging.getLogger(__name__)
@@ -489,7 +489,7 @@ def _parse_cuts(cuts, cuts_default_pass, fail_cuts, observables, observations, p
 
 
 def extract_nuisance_parameters_from_lhe_file(filename, systematics):
-    """ Extracts the definition of nuisance parameters from the LHE file and returns a systematics_dict with structure
+    """Extracts the definition of nuisance parameters from the LHE file and returns a systematics_dict with structure
     {systematics_name : {nuisance_parameter_name : ((benchmark0, weight0), (benchmark1, weight1), processing) }"""
 
     logger.debug("Parsing nuisance parameter setup from LHE file at %s", filename)
@@ -858,7 +858,7 @@ def _untar_and_parse_lhe_file(filename, tags=None):
     new_filename, extension = os.path.splitext(filename)
     if extension == ".gz":
         if not os.path.exists(new_filename):
-            call_command("gunzip -c {} > {}".format(filename, new_filename))
+            unzip_file(filename, new_filename)
         filename = new_filename
 
     for event, elem in ET.iterparse(filename):

@@ -9,6 +9,7 @@ import io
 import numpy as np
 import shutil
 from contextlib import contextmanager
+import gzip
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +43,12 @@ def call_command(cmd, log_file=None, return_std=False):
             return out, err
 
     return exitcode
+
+
+def unzip_file(filename, new_filename, block_size=65536):
+    # call_command("gunzip -c {} > {}".format(filename, new_filename))  # Doesn't work under windows
+    with gzip.open(filename, "rb") as s_file, open(new_filename, "wb") as d_file:
+        shutil.copyfileobj(s_file, d_file, block_size)
 
 
 def create_missing_folders(folders):

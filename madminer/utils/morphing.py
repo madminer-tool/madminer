@@ -408,7 +408,7 @@ class PhysicsMorpher:
         ----------
         theta : ndarray
             Parameter point `theta` with shape `(n_parameters,)`.
-            
+
         basis : ndarray or None, optional
              Manually specified morphing basis for which the weights are calculated. This array has shape
              `(n_basis_benchmarks, n_parameters)`. If None, the basis from the last call of `set_basis()` or

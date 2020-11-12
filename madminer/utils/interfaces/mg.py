@@ -18,6 +18,7 @@ def generate_mg_process(
     log_file=None,
     initial_command=None,
     explicit_python_call=False,
+    python_executable=None,
 ):
 
     """
@@ -51,6 +52,9 @@ def generate_mg_process(
     explicit_python_call : bool, optional
         Calls `python2.7` instead of `python`.
 
+    python_executable : None or str, optional
+        Overwrites the default Python executable
+
     Returns
     -------
         None
@@ -79,7 +83,14 @@ def generate_mg_process(
         initial_command = initial_command + "; "
 
     # Explicitly call Python 2 if necessary
-    python_call = "python2.7 " if explicit_python_call else ""
+    if explicit_python_call:
+        python_call = python_executable + " " if python_executable is not None else "python2.7 "
+    else:
+        python_call = ""
+
+    logger.info(
+        "Calling MadGraph: %s", initial_command + python_call + mg_directory + "/bin/mg5_aMC " + temp_proc_card_file
+    )
 
     _ = call_command(
         initial_command + python_call + mg_directory + "/bin/mg5_aMC " + temp_proc_card_file, log_file=log_file
@@ -101,6 +112,7 @@ def setup_mg_with_scripts(
     log_file_from_logdir=None,
     explicit_python_call=False,
     order="LO",
+    python_executable=None,
 ):
     """
     Prepares a bash script that will start the event generation.
@@ -156,6 +168,9 @@ def setup_mg_with_scripts(
 
     explicit_python_call : bool, optional
         Calls `python2.7` instead of `python`.
+
+    python_executable : None or str, optional
+        Overwrites the default Python executable
 
     Returns
     -------
@@ -280,7 +295,10 @@ def setup_mg_with_scripts(
     )
 
     # Explicitly call Python 2 if necessary
-    python_call = "python2.7 " if explicit_python_call else ""
+    if explicit_python_call:
+        python_call = python_executable + " " if python_executable is not None else "python2.7 "
+    else:
+        python_call = ""
 
     # Put together script
     script = (
@@ -330,6 +348,7 @@ def run_mg(
     log_file=None,
     explicit_python_call=False,
     order="LO",
+    python_executable=None,
 ):
     """
     Calls MadGraph to generate events.
@@ -360,7 +379,7 @@ def run_mg(
 
     pythia8_card_file : str or None, optional
         Path to the MadGraph Pythia8 card. If None, Pythia is not run. Default value: None.
-        
+
     configuration_card_file : str or None, optional
         Path to the MadGraph configuration card. If None, the card present in the process folder is used. (Default
         value: None).
@@ -440,8 +459,12 @@ def run_mg(
     else:
         initial_command = initial_command + "; "
 
-    # Python 2 support
-    python_call = "python2.7 " if explicit_python_call else ""
+    # Explicitly call Python 2 if necessary
+    if explicit_python_call:
+        python_call = python_executable + " " if python_executable is not None else "python2.7 "
+    else:
+        python_call = ""
+
     _ = call_command(
         initial_command + python_call + mg_directory + "/bin/mg5_aMC " + proc_card_filename, log_file=log_file
     )

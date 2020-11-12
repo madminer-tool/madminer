@@ -116,6 +116,8 @@ def combine_and_shuffle(
             _,
             n_signal_events_generated_per_benchmark,
             n_background_events,
+            _,
+            _,
         ) = load_madminer_settings(filename)
         n_benchmarks = len(benchmarks)
 

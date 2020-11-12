@@ -296,8 +296,8 @@ class SampleAugmenter(DataAnalyzer):
         # Check setup
         if nuisance_score == "auto":
             nuisance_score = self.nuisance_morpher is not None
-        if self.morpher is None:
-            raise RuntimeError("No morphing setup loaded. Cannot calculate score.")
+        if self.morpher is None and self.finite_difference_benchmarks is None:
+            raise RuntimeError("Neither morphing setup nor finite-difference setup loaded. Cannot calculate score.")
         if self.nuisance_morpher is None and nuisance_score:
             raise RuntimeError("No nuisance parameters defined. Cannot calculate nuisance score.")
 
@@ -584,8 +584,8 @@ class SampleAugmenter(DataAnalyzer):
         # Check setup
         if nuisance_score == "auto":
             nuisance_score = self.nuisance_morpher is not None
-        if self.morpher is None:
-            logging.warning("No morphing setup loaded. Cannot calculate joint score.")
+        if self.morpher is None and self.finite_difference_benchmarks is None:
+            raise RuntimeError("Neither morphing setup nor finite-difference setup loaded. Cannot calculate score.")
         if self.nuisance_morpher is None and nuisance_score:
             raise RuntimeError("No nuisance parameters defined. Cannot calculate nuisance score.")
 
@@ -855,8 +855,8 @@ class SampleAugmenter(DataAnalyzer):
         # Check setup
         if nuisance_score == "auto":
             nuisance_score = self.nuisance_morpher is not None
-        if self.morpher is None:
-            raise RuntimeError("No morphing setup loaded. Cannot calculate score.")
+        if self.morpher is None and self.finite_difference_benchmarks is None:
+            raise RuntimeError("Neither morphing setup nor finite-difference setup loaded. Cannot calculate score.")
         if self.nuisance_morpher is None and nuisance_score:
             raise RuntimeError("No nuisance parameters defined. Cannot calculate nuisance score.")
         if additional_thetas is None:
@@ -1625,7 +1625,7 @@ class SampleAugmenter(DataAnalyzer):
                             logger.warning("Skipping warnings about negative weights in the future...")
                     p_sampling[p_sampling < 0.0] = 0.0
 
-                # Remove events with too large weights
+                # Remove events with too large weights (not recommended)
                 if n_eff_forced is not None:
                     n_too_large_weights = np.sum(p_sampling > 1.0 / n_eff_forced)
                     if n_too_large_weights > 0:

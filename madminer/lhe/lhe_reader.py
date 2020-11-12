@@ -102,7 +102,7 @@ class LHEReader:
 
         # Information from .h5 file
         self.filename = filename
-        (parameters, benchmarks, _, _, _, _, _, self.systematics, _, _, _, _) = load_madminer_settings(
+        (parameters, benchmarks, _, _, _, _, _, self.systematics, _, _, _, _, _, _) = load_madminer_settings(
             filename, include_nuisance_benchmarks=False
         )
         self.benchmark_names_phys = list(benchmarks.keys())
@@ -465,30 +465,30 @@ class LHEReader:
     def add_efficiency(self, definition, value_if_not_parsed=1.0):
 
         """
-            Adds an efficiency as a string that can be parsed by Python's `eval()` function and returns a bool.
+        Adds an efficiency as a string that can be parsed by Python's `eval()` function and returns a bool.
 
-            Parameters
-            ----------
-            definition : str
-            An expression that can be parsed by Python's `eval()` function and returns a floating number which reweights
-            the event weights. In the definition, all visible particles can be used: `e`, `mu`, `j`, `a`, and `l` provide
-            lists of electrons, muons, jets, photons, and leptons (electrons and muons combined), in each case sorted
-            by descending transverse momentum. `met` provides a missing ET object. `visible` and `all` provide access to
-            the sum of all visible particles and the sum of all visible particles plus MET, respectively. All these
-            objects are instances of `MadMinerParticle`, which inherits from scikit-hep's
-            [LorentzVector](http://scikit-hep.org/api/math.html#vector-classes). See the link for a
-            documentation of their properties. In addition, `MadMinerParticle` have  properties `charge` and `pdg_id`,
-            which return the charge in units of elementary charges (i.e. an electron has `e[0].charge = -1.`), and the
-            PDG particle ID.
+        Parameters
+        ----------
+        definition : str
+        An expression that can be parsed by Python's `eval()` function and returns a floating number which reweights
+        the event weights. In the definition, all visible particles can be used: `e`, `mu`, `j`, `a`, and `l` provide
+        lists of electrons, muons, jets, photons, and leptons (electrons and muons combined), in each case sorted
+        by descending transverse momentum. `met` provides a missing ET object. `visible` and `all` provide access to
+        the sum of all visible particles and the sum of all visible particles plus MET, respectively. All these
+        objects are instances of `MadMinerParticle`, which inherits from scikit-hep's
+        [LorentzVector](http://scikit-hep.org/api/math.html#vector-classes). See the link for a
+        documentation of their properties. In addition, `MadMinerParticle` have  properties `charge` and `pdg_id`,
+        which return the charge in units of elementary charges (i.e. an electron has `e[0].charge = -1.`), and the
+        PDG particle ID.
 
-            value_if_not_parsed : float, optional
-            Value if te efficiency function cannot be parsed. Default value: 1.
+        value_if_not_parsed : float, optional
+        Value if te efficiency function cannot be parsed. Default value: 1.
 
-            Returns
-            -------
-            None
+        Returns
+        -------
+        None
 
-            """
+        """
         logger.debug("Adding efficiency %s", definition)
 
         self.efficiencies.append(definition)
