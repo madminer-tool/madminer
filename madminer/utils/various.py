@@ -47,7 +47,7 @@ def call_command(cmd, log_file=None, return_std=False):
 
 def unzip_file(filename, new_filename, block_size=65536):
     # call_command("gunzip -c {} > {}".format(filename, new_filename))  # Doesn't work under windows
-    with gzip.open(filename, 'rb') as s_file, open(new_filename, 'wb') as d_file:
+    with gzip.open(filename, "rb") as s_file, open(new_filename, "wb") as d_file:
         shutil.copyfileobj(s_file, d_file, block_size)
 
 

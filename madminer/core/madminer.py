@@ -383,7 +383,9 @@ class MadMiner:
         self.finite_difference_benchmarks = OrderedDict()
         self.finite_difference_epsilon = epsilon
 
-        for benchmark_key, benchmark_spec in six.iteritems(self.benchmarks.copy()):  # Copy is necessary to avoid endless loop :/
+        for benchmark_key, benchmark_spec in six.iteritems(
+            self.benchmarks.copy()
+        ):  # Copy is necessary to avoid endless loop :/
             fd_keys = {}
 
             for param_key, param_value in six.iteritems(benchmark_spec):
