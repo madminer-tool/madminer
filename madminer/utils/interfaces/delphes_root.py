@@ -1,7 +1,7 @@
 import logging
 import numpy as np
 import os
-import uproot
+import uproot3
 from collections import OrderedDict
 
 from madminer.utils.particle import MadMinerParticle
@@ -39,7 +39,7 @@ def parse_delphes_root_file(
         logger.debug("Extracting weights %s", weight_labels)
 
     # Delphes ROOT file
-    root_file = uproot.open(delphes_sample_file)
+    root_file = uproot3.open(delphes_sample_file)
 
     # Delphes tree
     tree = root_file["Delphes"]
