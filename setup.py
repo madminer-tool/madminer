@@ -41,7 +41,7 @@ REQUIRED = [
     "scipy>=1.0.0",
     "scikit-hep>=0.5.0, <0.6.0",
     "torch>=1.0.0",
-    "uproot",
+    "uproot>=3.11.0,<4.0.0",
 ]
 
 EXTRAS_DOCS = sorted(
