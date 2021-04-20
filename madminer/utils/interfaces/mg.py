@@ -15,7 +15,6 @@ def generate_mg_process(
     ufo_model_directory=None,
     log_file=None,
     initial_command=None,
-    explicit_python_call=False,
     python_executable=None,
 ):
 
@@ -47,9 +46,6 @@ def generate_mg_process(
     log_file : str or None, optional
         Path to a log file in which the MadGraph output is saved. Default value: None.
 
-    explicit_python_call : bool, optional
-        Calls `python2.7` instead of `python`.
-
     python_executable : None or str, optional
         Overwrites the default Python executable
 
@@ -76,16 +72,11 @@ def generate_mg_process(
         myfile.write(f"\n")
         myfile.write(f"output {mg_process_directory}")
 
-    # Call MG5
-    initial_command = f"{initial_command}; " if initial_command else ""
+    # Call specific initial command and Python binary
+    initial_command = f"{initial_command}; " if initial_command is not None else ""
+    python_binary = f"{python_executable} " if python_executable is not None else ""
 
-    # Explicitly call Python 2 if necessary
-    if explicit_python_call:
-        python_call = f"{python_executable} "  if python_executable is not None else "python2.7 "
-    else:
-        python_call = ""
-
-    command = f"{initial_command}{python_call}{mg_directory}/bin/mg5_aMC {temp_proc_card_file}"
+    command = f"{initial_command}{python_binary}{mg_directory}/bin/mg5_aMC {temp_proc_card_file}"
     logger.info(f"Calling MadGraph: {command}")
 
     _ = call_command(cmd=command, log_file=log_file)
@@ -104,7 +95,6 @@ def setup_mg_with_scripts(
     initial_command=None,
     log_dir=None,
     log_file_from_logdir=None,
-    explicit_python_call=False,
     order="LO",
     python_executable=None,
 ):
@@ -159,9 +149,6 @@ def setup_mg_with_scripts(
     log_file_from_logdir : str or None, optional
         Path to a log file in which the MadGraph output is saved, relative from the default log directory. Default
         value: None.
-
-    explicit_python_call : bool, optional
-        Calls `python2.7` instead of `python`.
 
     python_executable : None or str, optional
         Overwrites the default Python executable
@@ -230,10 +217,6 @@ def setup_mg_with_scripts(
     with open(proc_card_filename, "w") as file:
         file.write(mg_commands)
 
-    # Initial commands
-    if initial_command is None:
-        initial_command = ""
-
     #  Card copying commands
     copy_commands = ""
     if run_card_file_from_mgprocdir is not None:
@@ -281,11 +264,9 @@ def setup_mg_with_scripts(
         "Cards/mg_commands.mg5",
     )
 
-    # Explicitly call Python 2 if necessary
-    if explicit_python_call:
-        python_call = python_executable + " " if python_executable is not None else "python2.7 "
-    else:
-        python_call = ""
+    # Call specific initial command and Python binary
+    initial_command = f"{initial_command} " if initial_command is not None else ""
+    python_binary = f"{python_executable} " if python_executable is not None else ""
 
     # Put together script
     script = (
@@ -297,7 +278,7 @@ def setup_mg_with_scripts(
         placeholder_definition,
         copy_commands,
         replacement_command,
-        python_call,
+        python_binary,
         mg_directory_placeholder,
         mg_process_directory_placeholder,
         "Cards/mg_commands.mg5",
@@ -332,7 +313,6 @@ def run_mg(
     is_background=False,
     initial_command=None,
     log_file=None,
-    explicit_python_call=False,
     order="LO",
     python_executable=None,
 ):
@@ -382,8 +362,8 @@ def run_mg(
     log_file : str or None, optional
         Path to a log file in which the MadGraph output is saved. Default value: None.
 
-    explicit_python_call : bool, optional
-        Calls `python2.7` instead of `python`.
+    python_executable : None or str, optional
+        Overwrites the default Python executable
 
     Returns
     -------
@@ -439,16 +419,11 @@ def run_mg(
     with open(proc_card_filename, "w") as file:
         file.write(mg_commands)
 
-    # Call MG5
-    initial_command = f"{initial_command}; " if initial_command else ""
+    # Call specific initial command and Python binary
+    initial_command = f"{initial_command}; " if initial_command is not None else ""
+    python_binary = f"{python_executable} " if python_executable is not None else ""
 
-    # Explicitly call Python 2 if necessary
-    if explicit_python_call:
-        python_call = f"{python_executable} "  if python_executable is not None else "python2.7 "
-    else:
-        python_call = ""
-
-    command = f"{initial_command}{python_call}{mg_directory}/bin/mg5_aMC {proc_card_filename}"
+    command = f"{initial_command}{python_binary}{mg_directory}/bin/mg5_aMC {proc_card_filename}"
     logger.info(f"Calling MadGraph: {command}")
 
     _ = call_command(cmd=command, log_file=log_file)
