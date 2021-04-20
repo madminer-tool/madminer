@@ -3,10 +3,8 @@
 ## Simulator dependencies
 
 Make sure the following tools are installed and running:
-- MadGraph (we've tested our setup with MG5_aMC v2.6.2 and v2.6.5). See
-  [https://launchpad.net/mg5amcnlo](https://launchpad.net/mg5amcnlo) for installation instructions. Note that MadGraph
-  requires a Fortran compiler as well as Python 2.6 or 2.7. (Note that you can still run most MadMiner analysis steps
-  with Python 3.)
+- MadGraph (we've tested our setup with MG5_aMC v2.8.0+). See [https://launchpad.net/mg5amcnlo](https://launchpad.net/mg5amcnlo)
+  for installation instructions. Note that MadGraph requires a Fortran compiler as well as Python 3.6+.
 - For the analysis of systematic uncertainties, LHAPDF6 has to be installed with Python support (see also
   [the documentation of MadGraph's systematics tool](https://cp3.irmp.ucl.ac.be/projects/madgraph/wiki/Systematics)).
 
