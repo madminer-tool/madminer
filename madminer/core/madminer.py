@@ -716,7 +716,6 @@ class MadMiner:
         log_directory=None,
         temp_directory=None,
         initial_command=None,
-        python2_override=False,
         systematics=None,
         order="LO",
         python_executable=None,
@@ -793,11 +792,6 @@ class MadMiner:
             Initial shell commands that have to be executed before MG is run (e.g. to load a virtual environment).
             Default value: None.
 
-        python2_override : bool, optional
-            If True, MadMiner explicitly calls "python2" instead of relying on the system Python version to be
-            Python 2.6 or Python 2.7. If you use systematics, make sure that the python interface of LHAPDF was compiled
-            with the Python version you are using. Default: False.
-
         systematics : None or list of str, optional
             If list of str, defines which systematics are used for this run.
 
@@ -832,7 +826,6 @@ class MadMiner:
             log_directory=log_directory,
             temp_directory=temp_directory,
             initial_command=initial_command,
-            python2_override=python2_override,
             systematics=systematics,
             order=order,
             python_executable=python_executable,
@@ -854,7 +847,6 @@ class MadMiner:
         log_directory=None,
         temp_directory=None,
         initial_command=None,
-        python2_override=False,
         systematics=None,
         order="LO",
         python_executable=None,
@@ -924,11 +916,6 @@ class MadMiner:
             If not specified and `python2_override` is True, it adds the user-installed Python2 binaries to the PATH.
             Default value: None.
 
-        python2_override : bool, optional
-            If True, MadMiner explicitly calls "python2" instead of relying on the system Python version to be
-            Python 2.6 or Python 2.7. If you use systematics, make sure that the python interface of LHAPDF was compiled
-            with the Python version you are using. Default: False.
-
         systematics : None or list of str, optional
             If list of str, defines which systematics are used for these runs.
 
@@ -958,19 +945,14 @@ class MadMiner:
         if sample_benchmarks is None:
             sample_benchmarks = [benchmark for benchmark in self.benchmarks]
 
-        # Python 2 override options
+        # This snippet is useful when using virtual envs.
+        # (Derives from a Python2 - Python3 issue).
+        # Ref: https://github.com/diana-hep/madminer/issues/422
+        if python_executable and initial_command is None:
+            logger.info(f"Adding {python_executable} bin folder to PATH")
+            binary_path = os.popen(f"command -v {python_executable}").read().strip()
+            binary_folder = os.path.dirname(binary_path)
 
-        # Gives 'python2_override' full power if 'initial_command' is empty.
-        # (Reference: https://github.com/diana-hep/madminer/issues/422)
-        if python2_override and initial_command is None and not python_executable:
-            logger.warning(
-                "The keyword python2_override is discouraged. "
-                "Instead, consider using python_executable."
-            )
-
-            logger.info("Adding Python2.7 bin folder to PATH")
-            binary_path = os.popen("command -v python2.7").read().strip()
-            binary_folder = os.path.dirname(os.path.realpath(binary_path))
             initial_command = f"export PATH={binary_folder}:$PATH"
             logger.info(f"Using Python executable {binary_path}")
 
@@ -985,7 +967,6 @@ class MadMiner:
             ufo_model_directory=ufo_model_directory,
             initial_command=initial_command,
             log_file=log_file_generate,
-            explicit_python_call=python2_override or (python_executable is not None),
             python_executable=python_executable,
         )
 
@@ -1089,7 +1070,6 @@ class MadMiner:
                         initial_command=initial_command,
                         log_dir=log_directory,
                         log_file_from_logdir=log_file_run,
-                        explicit_python_call=python2_override or (python_executable is not None),
                         python_executable=python_executable,
                         order=order,
                     )
@@ -1107,7 +1087,6 @@ class MadMiner:
                         is_background=is_background,
                         initial_command=initial_command,
                         log_file=f"{log_directory}/{log_file_run}",
-                        explicit_python_call=python2_override or (python_executable is not None),
                         python_executable=python_executable,
                         order=order,
                     )
