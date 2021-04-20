@@ -359,12 +359,12 @@ def _save_finite_differences(filename, finite_difference_benchmarks, finite_diff
     io_tag = "a"  # Read-write if file exists, otherwise create
     with h5py.File(filename, io_tag) as f:
         n_keys = len(finite_difference_benchmarks)
-        n_values = len(finite_difference_benchmarks[list(six.iterkeys(finite_difference_benchmarks))[0]])
+        n_values = len(finite_difference_benchmarks[list(finite_difference_benchmarks.keys())[0]])
 
-        keys_ascii = [key.encode("ascii", "ignore") for key in six.iterkeys(finite_difference_benchmarks)]
+        keys_ascii = [key.encode("ascii", "ignore") for key in finite_difference_benchmarks.keys()]
         values_ascii = [
-            [val.encode("ascii", "ignore") for val in six.itervalues(values)]
-            for values in six.itervalues(finite_difference_benchmarks)
+            [val.encode("ascii", "ignore") for val in values.values()]
+            for values in finite_difference_benchmarks.values()
         ]
 
         f.create_dataset("finite_differences/base_benchmarks", (n_keys,), dtype="S256", data=keys_ascii)
