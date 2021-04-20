@@ -42,7 +42,7 @@ REQUIRED = [
     "scikit-hep>=0.5.0, <0.6.0",
     "six",
     "torch>=1.0.0",
-    "uproot",
+    "uproot3>=3.14.1",
 ]
 
 EXTRAS_DOCS = sorted(

@@ -3,7 +3,7 @@ import six
 
 import numpy as np
 from collections import OrderedDict
-import uproot
+import uproot3
 import os
 import logging
 
@@ -42,7 +42,7 @@ def parse_delphes_root_file(
         logger.debug("Extracting weights %s", weight_labels)
 
     # Delphes ROOT file
-    root_file = uproot.open(str(delphes_sample_file))
+    root_file = uproot3.open(str(delphes_sample_file))
     # The str() call is important when using numpy 1.16.0 and Python 2.7. In this combination of versions, a unicode
     # delphes_sample_file would lead to a crash.
 
