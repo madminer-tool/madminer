@@ -1,14 +1,13 @@
-from __future__ import absolute_import, division, print_function
-
+import logging
 import numpy as np
 import numpy.random as rng
 import torch
-from torch import tensor
 import torch.nn.functional as F
+
 from madminer.utils.ml.models.base import BaseConditionalFlow
 from madminer.utils.ml.models.masks import create_degrees, create_masks, create_weights_conditional
 from madminer.utils.ml.utils import get_activation_function
-import logging
+from torch import tensor
 
 logger = logging.getLogger(__name__)
 
@@ -72,7 +71,6 @@ class ConditionalMixtureMADE(BaseConditionalFlow):
         x :
 
         **kwargs :
-
 
         Returns
         -------
@@ -174,7 +172,8 @@ class ConditionalMixtureMADE(BaseConditionalFlow):
             u = u.to(*self.to_args, **self.to_kwargs)
 
         for i in range(1, self.n_inputs + 1):
-            self.forward(theta, x)  # Sets Gaussian parameters (self.m and self.logp) and mixture coeffs (self.loga)
+            # Sets Gaussian parameters (self.m and self.logp) and mixture coeffs (self.loga)
+            self.forward(theta, x)
 
             ix = np.argwhere(self.input_order == i)[0, 0]
 

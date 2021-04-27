@@ -1,11 +1,10 @@
-from __future__ import absolute_import, division, print_function, unicode_literals
-
+import logging
+import numpy as np
 import torch
 import torch.nn as nn
-import numpy as np
-from torch.autograd import grad
+
 from madminer.utils.ml.utils import get_activation_function, check_for_nan, check_for_nonpos, NanException
-import logging
+from torch.autograd import grad
 
 logger = logging.getLogger(__name__)
 

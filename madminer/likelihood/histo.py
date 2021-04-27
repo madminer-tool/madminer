@@ -1,20 +1,19 @@
-from __future__ import absolute_import, division, print_function, unicode_literals
-
 import logging
 import numpy as np
 from itertools import product
 
-from ..utils.various import mdot, less_logging, math_commands
+from .base import BaseLikelihood
+from .. import sampling
 from ..ml import ScoreEstimator, Ensemble, load_estimator
 from ..utils.histo import Histo
+from ..utils.various import mdot, less_logging, math_commands
 from ..sampling import SampleAugmenter
-from .. import sampling
-from .base import BaseLikelihood
 
 logger = logging.getLogger(__name__)
 
 
 class HistoLikelihood(BaseLikelihood):
+
     def create_negative_log_likelihood(
         self,
         x_observed,
@@ -33,7 +32,7 @@ class HistoLikelihood(BaseLikelihood):
     ):
         """
         Returns a function which calculates the negative log likelihood for a given
-        parameter point, evaulated with a dataset (x_observed,n_observed,x_observed_weights).
+        parameter point, evaluated with a dataset (x_observed,n_observed,x_observed_weights).
 
         Parameters
         ----------
@@ -64,7 +63,7 @@ class HistoLikelihood(BaseLikelihood):
             Integrated luminosity in pb^{-1} assumed in the analysis. Default value: 300000.
 
         mode : {"weighted" , "sampled", "histo"} , optional
-            If "sampled", for each evaulation of the likelihood function, a separate
+            If "sampled", for each evaluation of the likelihood function, a separate
             set of events are sampled and histogram is created to construct the
             likelihood function. If "weighted", first a set of weighted events is
             sampled which is then used to create histograms. Default value: "sampled"
@@ -114,16 +113,13 @@ class HistoLikelihood(BaseLikelihood):
         if n_observed is None:
             n_observed = len(x_observed)
 
-        supported_modes = ["sampled", "weighted", "histo"]
-        if mode not in supported_modes:
-            raise ValueError("Mode %s unknown. Choose one of the following methods: %s", mode, supported_modes)
+        if mode not in {"sampled", "weighted", "histo"}:
+            raise ValueError(f"Mode {mode} unknown.")
         if mode == "histo" and self.n_nuisance_parameters > 0:
-            raise ValueError(
-                "Mode histo is currently not supported in the presence of nuisance parameters. Please use mode weighted or sampled."
-            )
+            raise ValueError("Mode histo is currently not supported in the presence of nuisance parameters")
 
         # Load model - nothing interesting
-        if score_components != []:
+        if score_components:
             assert all([isinstance(score_component, int) for score_component in score_components])
             if model_file is None:
                 raise ValueError("You need to provide a model_file!")
@@ -134,7 +130,7 @@ class HistoLikelihood(BaseLikelihood):
         # Create summary function
         logger.info("Setting up standard summary statistics")
         summary_function = None
-        if observables != []:
+        if observables:
             summary_function = self._make_summary_statistic_function(observables=observables, model=model)
 
         # Weighted sampled
@@ -237,15 +233,15 @@ class HistoLikelihood(BaseLikelihood):
     ):
         """
         Returns a function which calculates the expected negative log likelihood for a given
-        parameter point, evaulated with test data sampled according to theta_true.
+        parameter point, evaluated with test data sampled according to theta_true.
 
         Parameters
         ----------
         theta_true : ndarray
-            Specifies the physical paramaters according to which the test data is sampled.
+            Specifies the physical parameters according to which the test data is sampled.
 
         nu_true : ndarray
-            Specifies the nuisance paramaters according to which the test data is sampled.
+            Specifies the nuisance parameters according to which the test data is sampled.
 
         observables : list of str or None , optional
             Kinematic variables used in the histograms. The names are the same as
@@ -266,7 +262,7 @@ class HistoLikelihood(BaseLikelihood):
             file are used. Default value: None.
 
         mode : {"weighted" , "sampled"} , optional
-            If "sampled", for each evaulation of the likelihood function, a separate
+            If "sampled", for each evaluation of the likelihood function, a separate
             set of events are sampled and histogram is created to construct the
             likelihood function. If "weighted", first a set of weighted events is
             sampled which is then used to create histograms. Default value: "sampled"
@@ -420,9 +416,7 @@ class HistoLikelihood(BaseLikelihood):
             histo = self._histogram_morphing(theta, benchmark_histograms, hist_bins, bin_centers)
 
         # calculate log-likelihood from histogram
-        log_p = histo.log_likelihood(summary_stats)
-
-        return log_p
+        return histo.log_likelihood(summary_stats)
 
     def _make_summary_statistic_function(self, observables=None, model=None):
         """
@@ -437,7 +431,7 @@ class HistoLikelihood(BaseLikelihood):
             if not "score" in x_indices and not "function" in x_indices:
                 return xs[:, x_indices]
 
-            # evaulate some observables using eval() - more slow
+            # evaluate some observables using eval() - more slow
             data_events = []
             for x in xs:
                 data_event = []
@@ -479,6 +473,7 @@ class HistoLikelihood(BaseLikelihood):
                     x_indices.append(x_names.index(obs))
                 except:
                     x_indices.append("function")
+
         logger.debug("Using x indices %s", x_indices)
         return x_indices
 
@@ -498,9 +493,7 @@ class HistoLikelihood(BaseLikelihood):
             )
 
         # Calculate summary stats
-        data = summary_function(x)
-
-        return data
+        return summary_function(x)
 
     def _make_histo_data_weighted(self, summary_function, n_toys, test_split=None):
         """
@@ -533,6 +526,7 @@ class HistoLikelihood(BaseLikelihood):
         elif isinstance(hist_bins, int):
             # hist_bins = tuple([hist_bins] * n_summary_stats)
             hist_bins = [hist_bins for _ in range(n_summary_stats)]
+
         return hist_bins
 
     def _fixed_adaptive_binning(
@@ -552,7 +546,9 @@ class HistoLikelihood(BaseLikelihood):
         # Get weighted data
         if data is None:
             data, weights_benchmarks = self._make_histo_data_weighted(
-                summary_function=summary_function, n_toys=n_toys, test_split=test_split
+                summary_function=summary_function,
+                n_toys=n_toys,
+                test_split=test_split,
             )
 
         # Calculate weights for thetas
@@ -587,8 +583,6 @@ class HistoLikelihood(BaseLikelihood):
         """
         Low-level function that morphes histograms
         """
-        # get binning
-        hist_nbins = [len(bins) - 1 for bins in hist_bins]
 
         # get array of flattened histograms
         flattened_histo_weights = []

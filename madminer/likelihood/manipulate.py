@@ -1,5 +1,3 @@
-from __future__ import absolute_import, division, print_function, unicode_literals
-
 import logging
 import numpy as np
 import time
@@ -27,7 +25,7 @@ def fix_params(negative_log_likelihood, theta, fixed_components=None):
     fixed_components : list of int or None, optional.
         m-dimensional vector of coordinate indices provided in theta.
         `fixed_components=[0,1]` will fix the 1st and 2nd
-        component of the paramater point. If None, uses [0, ..., m-1].
+        component of the parameter point. If None, uses [0, ..., m-1].
 
     Returns
     -------
@@ -49,9 +47,9 @@ def fix_params(negative_log_likelihood, theta, fixed_components=None):
         if len(theta) != len(fixed_components):
             raise ValueError("Length of fixed_components and theta should be the same")
         if len(params) + len(fixed_components) != n_dimension:
-            raise ValueError("Length of params should be %s", n_dimension - len(fixed_components))
+            raise ValueError(f"Length of params should be {n_dimension-len(fixed_components)}")
 
-        # Initialize full paramaters
+        # Initialize full parameters
         params_full = np.zeros(n_dimension)
 
         # fill fixed components
@@ -83,7 +81,7 @@ def project_log_likelihood(
     """
     Takes a likelihood function depending on N parameters, and evaluates
     for a set of M-dimensional parameter points (either grid or explicitly specified)
-    while the remaining N-M paramters are set to zero.
+    while the remaining N-M parameters are set to zero.
 
     Parameters
     ----------
@@ -199,7 +197,7 @@ def profile_log_likelihood(
     """
     Takes a likelihood function depending on N parameters, and evaluates
     for a set of M-dimensional parameter points (either grid or explicitly specified)
-    while the remaining N-M paramters are profiled over.
+    while the remaining N-M parameters are profiled over.
 
     Parameters
     ----------
@@ -275,9 +273,8 @@ def profile_log_likelihood(
         dof = m_paramaters
 
     # Method
-    supported_methods = ["TNC", " L-BFGS-B"]
-    if method not in supported_methods:
-        raise ValueError("Method %s unknown. Choose one of the following methods: %s", method, supported_methods)
+    if method not in {"TNC", " L-BFGS-B"}:
+        raise ValueError(f"Method {method} unknown.")
 
     # Initial guess for theta
     if theta_start is None:

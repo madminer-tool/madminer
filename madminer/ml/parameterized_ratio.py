@@ -1,21 +1,15 @@
-from __future__ import absolute_import, division, print_function
-
 import logging
 import numpy as np
-from collections import OrderedDict
 import torch
+from collections import OrderedDict
 
-from ..utils.ml.models.ratio import DenseSingleParameterizedRatioModel
+from .base import ConditionalEstimator, TheresAGoodReasonThisDoesntWork
 from ..utils.ml.eval import evaluate_ratio_model
+from ..utils.ml.models.ratio import DenseSingleParameterizedRatioModel
+from ..utils.ml.trainer import SingleParameterizedRatioTrainer
 from ..utils.ml.utils import get_optimizer, get_loss
 from ..utils.various import load_and_check, shuffle, restrict_samplesize
-from ..utils.ml.trainer import SingleParameterizedRatioTrainer
-from .base import ConditionalEstimator, TheresAGoodReasonThisDoesntWork
 
-try:
-    FileNotFoundError
-except NameError:
-    FileNotFoundError = IOError
 
 logger = logging.getLogger(__name__)
 
@@ -88,7 +82,7 @@ class ParameterizedRatioEstimator(ConditionalEstimator):
             Observations, or filename of a pickled numpy array.
 
         y : ndarray or str
-            Class labels (0 = numeerator, 1 = denominator), or filename of a pickled numpy array.
+            Class labels (0 = numerator, 1 = denominator), or filename of a pickled numpy array.
 
         theta : ndarray or str
             Numerator parameter point, or filename of a pickled numpy array.
@@ -283,13 +277,9 @@ class ParameterizedRatioEstimator(ConditionalEstimator):
             self.n_parameters = n_parameters
 
         if n_parameters != self.n_parameters:
-            raise RuntimeError(
-                "Number of parameters does not match model: {} vs {}".format(n_parameters, self.n_parameters)
-            )
+            raise RuntimeError(f"Number of parameters does not match: {n_parameters} vs {self.n_parameters}")
         if n_observables != self.n_observables:
-            raise RuntimeError(
-                "Number of observables does not match model: {} vs {}".format(n_observables, self.n_observables)
-            )
+            raise RuntimeError(f"Number of observables does not match: {n_observables} vs {self.n_observables}")
 
         # Data
         data = self._package_training_data(method, x, theta, y, r_xz, t_xz)
@@ -334,7 +324,7 @@ class ParameterizedRatioEstimator(ConditionalEstimator):
 
     def evaluate_log_likelihood_ratio(self, x, theta, test_all_combinations=True, evaluate_score=False):
         """
-        Evaluates the log likelihood ratio for given observations x betwen the given parameter point theta and the
+        Evaluates the log likelihood ratio for given observations x between the given parameter point theta and the
         reference hypothesis.
 
         Parameters
@@ -425,7 +415,7 @@ class ParameterizedRatioEstimator(ConditionalEstimator):
 
     def evaluate_log_likelihood_ratio_torch(self, x, theta, test_all_combinations=True):
         """
-        Evaluates the log likelihood ratio for given observations x betwen the given parameter point theta and the
+        Evaluates the log likelihood ratio for given observations x between the given parameter point theta and the
         reference hypothesis.
 
         Parameters
@@ -478,7 +468,7 @@ class ParameterizedRatioEstimator(ConditionalEstimator):
 
     def evaluate_score(self, x, theta, nuisance_mode="keep"):
         """
-        Evaluates the scores for given observations x betwen at a given parameter point theta.
+        Evaluates the scores for given observations x between at a given parameter point theta.
 
         Parameters
         ----------
@@ -503,16 +493,14 @@ class ParameterizedRatioEstimator(ConditionalEstimator):
         if nuisance_mode == "keep":
             logger.debug("Keeping nuisance parameter in score")
         else:
-            raise ValueError("Unknown nuisance_mode {}".format(nuisance_mode))
+            raise ValueError(f"Unknown nuisance_mode {nuisance_mode}")
 
         _, all_t_hat = self.evaluate_log_likelihood_ratio(x, theta, test_all_combinations=False, evaluate_score=True)
         return all_t_hat
 
     def calculate_fisher_information(self, x, theta, weights=None, n_events=1, sum_events=True):
-        fisher_information = super(ParameterizedRatioEstimator, self).calculate_fisher_information(
-            x, theta, weights, n_events, sum_events
-        )
-        return fisher_information
+        return super(ParameterizedRatioEstimator, self) \
+            .calculate_fisher_information(x, theta, weights, n_events, sum_events)
 
     def evaluate(self, *args, **kwargs):
         return self.evaluate_log_likelihood_ratio(*args, **kwargs)
@@ -528,10 +516,10 @@ class ParameterizedRatioEstimator(ConditionalEstimator):
 
     @staticmethod
     def _check_required_data(method, r_xz, t_xz):
-        if method in ["cascal", "alices", "rascal"] and t_xz is None:
-            raise RuntimeError("Method {} requires joint score information".format(method))
-        if method in ["rolr", "alice", "alices", "rascal"] and r_xz is None:
-            raise RuntimeError("Method {} requires joint likelihood ratio information".format(method))
+        if method in {"cascal", "alices", "rascal"} and t_xz is None:
+            raise RuntimeError(f"Method {method} requires joint score information")
+        if method in {"rolr", "alice", "alices", "rascal"} and r_xz is None:
+            raise RuntimeError(f"Method {method} requires joint likelihood ratio information")
 
     @staticmethod
     def _package_training_data(method, x, theta, y, r_xz, t_xz):
@@ -555,4 +543,4 @@ class ParameterizedRatioEstimator(ConditionalEstimator):
 
         estimator_type = str(settings["estimator_type"])
         if estimator_type != "parameterized_ratio":
-            raise RuntimeError("Saved model is an incompatible estimator type {}.".format(estimator_type))
+            raise RuntimeError(f"Saved model is an incompatible estimator type {estimator_type}.")

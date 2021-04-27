@@ -1,16 +1,15 @@
-from __future__ import absolute_import, division, print_function, unicode_literals
-
 import logging
 import numpy as np
 
-from ..utils.various import less_logging
-from ..ml import ParameterizedRatioEstimator, Ensemble, LikelihoodEstimator, load_estimator
 from .base import BaseLikelihood
+from ..ml import ParameterizedRatioEstimator, Ensemble, LikelihoodEstimator, load_estimator
+from ..utils.various import less_logging
 
 logger = logging.getLogger(__name__)
 
 
 class NeuralLikelihood(BaseLikelihood):
+
     def create_negative_log_likelihood(
         self,
         model_file,

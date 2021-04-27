@@ -1,15 +1,13 @@
-from __future__ import absolute_import, division, print_function, unicode_literals
-
 import logging
 import numpy as np
 from scipy.stats import chi2, poisson
 
+from madminer import sampling
 from madminer.analysis import DataAnalyzer
-from madminer.utils.various import mdot, less_logging
 from madminer.ml import ParameterizedRatioEstimator, Ensemble, ScoreEstimator, LikelihoodEstimator, load_estimator
 from madminer.utils.histo import Histo
+from madminer.utils.various import mdot, less_logging
 from madminer.sampling import SampleAugmenter
-from madminer import sampling
 
 logger = logging.getLogger(__name__)
 
@@ -243,7 +241,8 @@ class AsymptoticLimits(DataAnalyzer):
         """
         if n_observed is None:
             n_observed = len(x_observed)
-        results = self._analyse(
+
+        return self._analyse(
             n_observed,
             x_observed,
             grid_ranges,
@@ -269,7 +268,6 @@ class AsymptoticLimits(DataAnalyzer):
             n_binning_toys=n_binning_toys,
             thetas_eval=thetas_eval,
         )
-        return results
 
     def expected_limits(
         self,
@@ -472,9 +470,11 @@ class AsymptoticLimits(DataAnalyzer):
             test_split=test_split,
             n_asimov=n_asimov,
         )
+
         n_observed = luminosity * self._calculate_xsecs([theta_true])[0]
         logger.info("Expected events: %s", n_observed)
-        results = self._analyse(
+
+        return self._analyse(
             n_observed,
             x_asimov,
             grid_ranges,
@@ -501,7 +501,6 @@ class AsymptoticLimits(DataAnalyzer):
             n_binning_toys=n_binning_toys,
             thetas_eval=thetas_eval,
         )
-        return results
 
     def asymptotic_p_value(self, log_likelihood_ratio, dof=None):
         """
@@ -525,9 +524,9 @@ class AsymptoticLimits(DataAnalyzer):
         """
         if dof is None:
             dof = self.n_parameters
+
         q = -2.0 * log_likelihood_ratio
-        p_value = chi2.sf(x=q, df=dof)
-        return p_value
+        return chi2.sf(x=q, df=dof)
 
     def _analyse(
         self,
@@ -690,7 +689,7 @@ class AsymptoticLimits(DataAnalyzer):
             log_r_kin = n_events * np.sum(log_r_kin * obs_weights[np.newaxis, :], axis=1)
 
         else:
-            raise ValueError("Unknown mode {}, has to be 'ml' or 'histo' or 'xsec'".format(mode))
+            raise ValueError(f"Unknown mode {mode}")
 
         # xsec part
         if include_xsec:
@@ -716,6 +715,7 @@ class AsymptoticLimits(DataAnalyzer):
             histo_data = (histos, processed_summary_stats, obs_weights)
         elif return_histos:
             histo_data = histos
+
         return theta_grid, p_values, i_ml, log_r_kin, log_p_xsec, histo_data
 
     def _find_bins(self, mode, hist_bins, summary_stats):
@@ -724,6 +724,7 @@ class AsymptoticLimits(DataAnalyzer):
             n_summary_stats += 1
         elif mode == "sallino":
             n_summary_stats = 1
+
         # Bin numbers
         if hist_bins is None:
             if mode == "adaptive-sally" and n_summary_stats == 2:
@@ -749,13 +750,13 @@ class AsymptoticLimits(DataAnalyzer):
         else:
             n_bins_each = [n_bins if isinstance(n_bins, int) else len(n_bins) - 1 for n_bins in hist_bins]
             total_n_bins = np.prod(n_bins_each)
+
         return hist_bins, n_bins_each, n_summary_stats, total_n_bins
 
     def _make_summary_statistic_function(self, mode, model=None, observables=None):
         if mode == "observables":
             assert observables is not None
             x_indices = self._find_x_indices(observables)
-
             logger.debug("Preparing observables %s as summary statistic function", x_indices)
 
             def summary_function(x):
@@ -783,7 +784,7 @@ class AsymptoticLimits(DataAnalyzer):
                     return score
 
         else:
-            raise RuntimeError("Unknown mode {}, has to be 'observables' or 'sally'".format(mode))
+            raise RuntimeError(f"Unknown mode {mode}")
 
         return summary_function
 
@@ -855,7 +856,7 @@ class AsymptoticLimits(DataAnalyzer):
                 return postprocessing(h)
 
         else:
-            raise RuntimeError("Unknown score processing mode {} for summary stats dimension {}".format(mode, dim))
+            raise RuntimeError(f"Unknown score processing mode {mode} for summary stats dimension {dim}")
 
         return processor
 
@@ -1000,17 +1001,21 @@ class AsymptoticLimits(DataAnalyzer):
 
     def _fixed_adaptive_binning(self, n_toys, processor, summary_function, test_split, thetas_binning, x_bins):
         summary_stats, all_weights = self._make_weighted_histo_data(
-            summary_function, thetas_binning, n_toys, test_split=test_split
+            summary_function=summary_function,
+            thetas=thetas_binning,
+            n_toys=n_toys,
+            test_split=test_split,
         )
+
         all_weights = np.asarray(all_weights)
         weights = np.mean(all_weights, axis=0)
         if processor is None:
             data = summary_stats
         else:
             data = processor(summary_stats, thetas_binning)
+
         histo = Histo(data, weights, x_bins, epsilon=1.0e-12)
-        x_bins = histo.edges
-        return x_bins
+        return histo.edges
 
     def _make_weighted_histo_data(self, summary_function, thetas, n_toys, test_split=0.2):
         # Get weighted events
@@ -1052,7 +1057,7 @@ class AsymptoticLimits(DataAnalyzer):
             try:
                 x_indices.append(x_names.index(obs))
             except ValueError:
-                raise RuntimeError("Unknown observable {}, has to be one of {}".format(obs, x_names))
+                raise RuntimeError(f"Unknown observable {obs}")
         logger.debug("Using x indices %s", x_indices)
         return x_indices
 
@@ -1084,11 +1089,17 @@ class AsymptoticLimits(DataAnalyzer):
     def _calculate_log_likelihood_ratio_kinematics(self, x_observed, theta_grid, model, theta1=None):
         if isinstance(model, ParameterizedRatioEstimator):
             log_r, _ = model.evaluate_log_likelihood_ratio(
-                x=x_observed, theta=theta_grid, test_all_combinations=True, evaluate_score=False
+                x=x_observed,
+                theta=theta_grid,
+                test_all_combinations=True,
+                evaluate_score=False,
             )
         elif isinstance(model, LikelihoodEstimator):
             log_r, _ = model.evaluate_log_likelihood(
-                x=x_observed, theta=theta_grid, test_all_combinations=True, evaluate_score=False
+                x=x_observed,
+                theta=theta_grid,
+                test_all_combinations=True,
+                evaluate_score=False,
             )
         elif isinstance(model, Ensemble) and model.estimator_type == "parameterized_ratio":
             log_r, _ = model.evaluate_log_likelihood_ratio(
@@ -1109,7 +1120,7 @@ class AsymptoticLimits(DataAnalyzer):
         else:
             raise NotImplementedError(
                 "Likelihood ratio estimation is currently only implemented for "
-                "ParameterizedRatioEstimator and LikelihoodEstimator instancees"
+                "ParameterizedRatioEstimator and LikelihoodEstimator instances"
             )
         return log_r
 

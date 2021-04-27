@@ -1,13 +1,11 @@
-from __future__ import absolute_import, division, print_function, unicode_literals
-
 import logging
 import matplotlib
 import numpy as np
 from matplotlib import pyplot as plt
 
+from ..sampling import SampleAugmenter
 from ..utils.morphing import NuisanceMorpher
 from ..utils.various import shuffle, sanitize_array, mdot, weighted_quantile
-from ..sampling import SampleAugmenter
 
 logger = logging.getLogger(__name__)
 
@@ -69,7 +67,7 @@ def plot_distributions(
         Whether the distribution is normalized to the total cross section. Default value: False.
 
     log : bool, optional
-        Whether to draw the y axes on a logarithmic scale. Defaul value: False.
+        Whether to draw the y axes on a logarithmic scale. Default value: False.
 
     observable_labels : None or list of (str or None), optional
         x-axis labels naming the observables. If None, the observable names from the MadMiner file are used. Default
@@ -148,7 +146,7 @@ def plot_distributions(
     n_parameter_points = len(parameter_points)
 
     if colors is None:
-        colors = ["C" + str(i) for i in range(10)] * (n_parameter_points // 10 + 1)
+        colors = [f"C{i}" for i in range(10)] * (n_parameter_points // 10 + 1)
     elif not isinstance(colors, list):
         colors = [colors for _ in range(n_parameter_points)]
 
@@ -421,11 +419,11 @@ def plot_histograms(
     # Basic setup
     n_histos = len(histos)
     dim = len(histos[0].edges)
-    assert dim in [1, 2], "Only 1- or 2-dimensional histograms are supported, but found {} dimensions".format(dim)
+    assert dim in [1, 2], f"Only 1- or 2-dimensional histograms are supported, but found {dim} dimensions"
 
     # Defaults
     if colors is None:
-        colors = ["C" + str(i) for i in range(10)] * (n_histos // 10 + 1)
+        colors = [f"C{i}" for i in range(10)] * (n_histos // 10 + 1)
     elif not isinstance(colors, list):
         colors = [colors for _ in range(n_histos)]
     if linestyles is None:
@@ -435,7 +433,7 @@ def plot_histograms(
     if not isinstance(linewidths, list):
         linewidths = [linewidths for _ in range(n_histos)]
     if histo_labels is None:
-        histo_labels = ["Histogram {}".format(i + 1) for i in range(n_histos)]
+        histo_labels = [f"Histogram {i+1}" for i in range(n_histos)]
 
     # 1D plot
     if dim == 1:

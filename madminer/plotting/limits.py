@@ -1,5 +1,3 @@
-from __future__ import absolute_import, division, print_function, unicode_literals
-
 import logging
 import matplotlib
 import numpy as np
@@ -134,20 +132,20 @@ def plot_pvalue_limits(
             cmap="Greys_r",
         )
         cbar = fig.colorbar(pcm, ax=ax, extend="both")
-        cbar.set_label("Expected p-value ({})".format(labels[show_index]))
+        cbar.set_label(f"Expected p-value ({labels[show_index]})")
     for ipanel in range(len(p_values)):
         ax.contour(
             xcenters,
             ycenters,
             p_values[ipanel].reshape((grid_resolutions[0], grid_resolutions[1])).T,
             levels=levels,
-            colors="C{}".format(ipanel),
+            colors=f"C{ipanel}",
         )
         ax.scatter(
             theta_grid[best_fits[ipanel]][0],
             theta_grid[best_fits[ipanel]][1],
             s=80.0,
-            color="C{}".format(ipanel),
+            color=f"C{ipanel}",
             marker="*",
             label=labels[ipanel],
         )
@@ -167,19 +165,19 @@ def plot_pvalue_limits(
                 cmap="Greys_r",
             )
             cbar = fig.colorbar(pcm, ax=ax, extend="both")
-            cbar.set_label("Expected p-value ({})".format(labels[ipanel]))
+            cbar.set_label(f"Expected p-value ({labels[ipanel]})")
             ax.contour(
                 xcenters,
                 ycenters,
                 p_values[ipanel].reshape((grid_resolutions[0], grid_resolutions[1])).T,
                 levels=levels,
-                colors="C{}".format(ipanel),
+                colors=f"C{ipanel}",
             )
             ax.scatter(
                 theta_grid[best_fits[ipanel]][0],
                 theta_grid[best_fits[ipanel]][1],
                 s=80.0,
-                color="C{}".format(ipanel),
+                color=f"C{ipanel}",
                 marker="*",
                 label=labels[ipanel],
             )

@@ -1,21 +1,14 @@
-from __future__ import absolute_import, division, print_function
-
 import logging
 import numpy as np
 from collections import OrderedDict
 
-from ..utils.ml.models.score import DenseLocalScoreModel
-from ..utils.ml.eval import evaluate_local_score_model
-from ..utils.ml.utils import get_optimizer, get_loss
-from ..utils.various import load_and_check, shuffle, restrict_samplesize
-from ..utils.various import separate_information_blocks
-from ..utils.ml.trainer import LocalScoreTrainer
 from .base import Estimator, TheresAGoodReasonThisDoesntWork
+from ..utils.ml.eval import evaluate_local_score_model
+from ..utils.ml.models.score import DenseLocalScoreModel
+from ..utils.ml.trainer import LocalScoreTrainer
+from ..utils.ml.utils import get_optimizer, get_loss
+from ..utils.various import load_and_check, shuffle, restrict_samplesize, separate_information_blocks
 
-try:
-    FileNotFoundError
-except NameError:
-    FileNotFoundError = IOError
 
 logger = logging.getLogger(__name__)
 
@@ -215,13 +208,9 @@ class ScoreEstimator(Estimator):
             self.n_parameters = n_parameters
 
         if n_parameters != self.n_parameters:
-            raise RuntimeError(
-                "Number of parameters does not match model: {} vs {}".format(n_parameters, self.n_parameters)
-            )
+            raise RuntimeError(f"Number of parameters does not match: {n_parameters} vs {self.n_parameters}")
         if n_observables != self.n_observables:
-            raise RuntimeError(
-                "Number of observables does not match model: {} vs {}".format(n_observables, self.n_observables)
-            )
+            raise RuntimeError(f"Number of observables does not match: {n_observables} vs {self.n_observables}")
 
         # Data
         data = self._package_training_data(x, t_xz)
@@ -271,10 +260,10 @@ class ScoreEstimator(Estimator):
         Parameters
         ----------
         fisher_information : ndarray
-            Fisher informatioin with shape `(n_parameters, n_parameters)`.
+            Fisher information with shape `(n_parameters, n_parameters)`.
 
         parameters_of_interest : list of int
-            List of int, with 0 <= remaining_compoinents[i] < n_parameters. Denotes which parameters are kept in the
+            List of int, with 0 <= remaining_components[i] < n_parameters. Denotes which parameters are kept in the
             profiling, and their new order.
 
         Returns
@@ -284,9 +273,8 @@ class ScoreEstimator(Estimator):
         """
         if fisher_information.shape != (self.n_parameters, self.n_parameters):
             raise ValueError(
-                "Fisher information has wrong shape {}, expected {}".format(
-                    fisher_information.shape, (self.n_parameters, self.n_parameters)
-                )
+                f"Fisher information has wrong shape {fisher_information.shape}. "
+                f"Expected {(self.n_parameters, self.n_parameters)}"
             )
 
         n_parameters_of_interest = len(parameters_of_interest)
@@ -355,7 +343,7 @@ class ScoreEstimator(Estimator):
         # Scale observables
         x = self._transform_inputs(x)
 
-        # Restrict featuers
+        # Restrict features
         if self.features is not None:
             x = x[:, self.features]
 
@@ -363,7 +351,7 @@ class ScoreEstimator(Estimator):
         logger.debug("Starting score evaluation")
         t_hat = evaluate_local_score_model(model=self.model, xs=x)
 
-        # Treatment of nuisance paramters
+        # Treatment of nuisance parameters
         if nuisance_mode == "keep":
             logger.debug("Keeping nuisance parameter in score")
 
@@ -386,7 +374,7 @@ class ScoreEstimator(Estimator):
             t_hat = np.einsum("ij,xj->xi", self.nuisance_profile_matrix, t_hat)
 
         else:
-            raise ValueError("Unknown nuisance_mode {}".format(nuisance_mode))
+            raise ValueError(f"Unknown nuisance_mode {nuisance_mode}")
 
         return t_hat
 
@@ -400,10 +388,8 @@ class ScoreEstimator(Estimator):
         return self.evaluate_score(*args, **kwargs)
 
     def calculate_fisher_information(self, x, theta=None, weights=None, n_events=1, sum_events=True):
-        fisher_information = super(ScoreEstimator, self).calculate_fisher_information(
-            x, theta, weights, n_events, sum_events
-        )
-        return fisher_information
+        return super(ScoreEstimator, self) \
+            .calculate_fisher_information(x, theta, weights, n_events, sum_events)
 
     def save(self, filename, save_model=False):
         super(ScoreEstimator, self).save(filename, save_model)
@@ -416,16 +402,16 @@ class ScoreEstimator(Estimator):
                 filename,
                 filename,
             )
-            np.save(filename + "_nuisance_profile_matrix.npy", self.nuisance_profile_matrix)
-            np.save(filename + "_nuisance_project_matrix.npy", self.nuisance_project_matrix)
+            np.save(f"{filename}_nuisance_profile_matrix.npy", self.nuisance_profile_matrix)
+            np.save(f"{filename}_nuisance_project_matrix.npy", self.nuisance_project_matrix)
 
     def load(self, filename):
         super(ScoreEstimator, self).load(filename)
 
         # Load scaling
         try:
-            self.nuisance_profile_matrix = np.load(filename + "_nuisance_profile_matrix.npy")
-            self.nuisance_project_matrix = np.load(filename + "_nuisance_project_matrix.npy")
+            self.nuisance_profile_matrix = np.load(f"{filename}_nuisance_profile_matrix.npy")
+            self.nuisance_project_matrix = np.load(f"{filename}_nuisance_project_matrix.npy")
             logger.debug(
                 "  Found nuisance profiling / projection matrices:\nProfiling:\n%s\nProjection:\n%s",
                 self.nuisance_profile_matrix,
@@ -463,7 +449,7 @@ class ScoreEstimator(Estimator):
 
         estimator_type = str(settings["estimator_type"])
         if estimator_type != "score":
-            raise RuntimeError("Saved model is an incompatible estimator type {}.".format(estimator_type))
+            raise RuntimeError(f"Saved model is an incompatible estimator type {estimator_type}.")
 
         try:
             self.nuisance_mode_default = str(settings["nuisance_mode_default"])

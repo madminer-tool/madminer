@@ -1,11 +1,8 @@
-from __future__ import absolute_import, division, print_function, unicode_literals
-import six
-
-import numpy as np
-from collections import OrderedDict
-import uproot3
-import os
 import logging
+import numpy as np
+import os
+import uproot3
+from collections import OrderedDict
 
 from madminer.utils.particle import MadMinerParticle
 from madminer.utils.various import math_commands
@@ -42,15 +39,12 @@ def parse_delphes_root_file(
         logger.debug("Extracting weights %s", weight_labels)
 
     # Delphes ROOT file
-    root_file = uproot3.open(str(delphes_sample_file))
-    # The str() call is important when using numpy 1.16.0 and Python 2.7. In this combination of versions, a unicode
-    # delphes_sample_file would lead to a crash.
+    root_file = uproot3.open(delphes_sample_file)
 
     # Delphes tree
     tree = root_file["Delphes"]
 
     # Weights
-    n_weights = 0
     weights = None
     if weight_labels is not None:
         try:
@@ -127,14 +121,14 @@ def parse_delphes_root_file(
     # Observations
     observable_values = OrderedDict()
 
-    for obs_name, obs_definition in six.iteritems(observables):
+    for obs_name, obs_definition in observables.items():
         values_this_observable = []
 
         # Loop over events
         for event in range(n_events):
             variables = get_objects(event)
 
-            if isinstance(obs_definition, six.string_types):
+            if isinstance(obs_definition, str):
                 try:
                     values_this_observable.append(eval(obs_definition, variables))
                 except (SyntaxError, NameError, TypeError, ZeroDivisionError, IndexError):
@@ -187,7 +181,7 @@ def parse_delphes_root_file(
     # Check for existence of required observables
     combined_filter = None
 
-    for obs_name, obs_required in six.iteritems(observables_required):
+    for obs_name, obs_required in observables_required.items():
         if obs_required:
             this_filter = np.isfinite(observable_values[obs_name])
             n_pass = np.sum(this_filter)
@@ -285,10 +279,10 @@ def _get_particles_truth(tree, pt_min, eta_max, included_pdgids=None):
 
 
 def _get_particles_charged(tree, name, mass, pdgid_positive_charge, pt_min, eta_max):
-    pts = tree.array(name + ".PT")
-    etas = tree.array(name + ".Eta")
-    phis = tree.array(name + ".Phi")
-    charges = tree.array(name + ".Charge")
+    pts = tree.array(f"{name}.PT")
+    etas = tree.array(f"{name}.Eta")
+    phis = tree.array(f"{name}.Phi")
+    charges = tree.array(f"{name}.Charge")
 
     all_particles = []
 

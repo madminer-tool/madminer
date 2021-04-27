@@ -1,11 +1,10 @@
-from __future__ import absolute_import, division, print_function
-
-import torch.nn as nn
-from madminer.utils.ml.models.base import BaseConditionalFlow
-from madminer.utils.ml.models.made import ConditionalGaussianMADE
-from madminer.utils.ml.models.batch_norm import BatchNorm
-from madminer.utils.ml.models.made_mog import ConditionalMixtureMADE
 import logging
+import torch.nn as nn
+
+from madminer.utils.ml.models.base import BaseConditionalFlow
+from madminer.utils.ml.models.batch_norm import BatchNorm
+from madminer.utils.ml.models.made import ConditionalGaussianMADE
+from madminer.utils.ml.models.made_mog import ConditionalMixtureMADE
 
 logger = logging.getLogger(__name__)
 
@@ -65,7 +64,7 @@ class ConditionalMixtureMaskedAutoregressiveFlow(BaseConditionalFlow):
             mode=mode,
         )
 
-        # Batch normalizatino
+        # Batch normalization
         self.bns = None
         if self.batch_norm:
             self.bns = nn.ModuleList()

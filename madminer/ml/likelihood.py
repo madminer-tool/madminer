@@ -1,21 +1,15 @@
-from __future__ import absolute_import, division, print_function
-
 import logging
 import numpy as np
 from collections import OrderedDict
 
+from .base import ConditionalEstimator
+from ..utils.ml.eval import evaluate_flow_model
 from ..utils.ml.models.maf import ConditionalMaskedAutoregressiveFlow
 from ..utils.ml.models.maf_mog import ConditionalMixtureMaskedAutoregressiveFlow
-from ..utils.ml.eval import evaluate_flow_model
+from ..utils.ml.trainer import FlowTrainer
 from ..utils.ml.utils import get_optimizer, get_loss
 from ..utils.various import load_and_check, shuffle, restrict_samplesize
-from ..utils.ml.trainer import FlowTrainer
-from .base import ConditionalEstimator
 
-try:
-    FileNotFoundError
-except NameError:
-    FileNotFoundError = IOError
 
 logger = logging.getLogger(__name__)
 
@@ -45,7 +39,7 @@ class LikelihoodEstimator(ConditionalEstimator):
     activation : {'tanh', 'sigmoid', 'relu'}, optional
         Activation function. Default value: 'tanh'.
 
-    batch_norm : None or floar, optional
+    batch_norm : None or float, optional
         If not None, batch normalization is used, where this value sets the alpha parameter in the calculation
         of the running average of the mean and variance. Default value: None.
 
@@ -271,13 +265,9 @@ class LikelihoodEstimator(ConditionalEstimator):
             self.n_parameters = n_parameters
 
         if n_parameters != self.n_parameters:
-            raise RuntimeError(
-                "Number of parameters does not match model: {} vs {}".format(n_parameters, self.n_parameters)
-            )
+            raise RuntimeError(f"Number of parameters does not match: {n_parameters} vs {self.n_parameters}")
         if n_observables != self.n_observables:
-            raise RuntimeError(
-                "Number of observables does not match model: {} vs {}".format(n_observables, self.n_observables)
-            )
+            raise RuntimeError(f"Number of observables does not match: {n_observables} vs {self.n_observables}")
 
         # Data
         data = self._package_training_data(method, x, theta, t_xz)
@@ -369,7 +359,7 @@ class LikelihoodEstimator(ConditionalEstimator):
         # Scale observables
         x = self._transform_inputs(x)
 
-        # Restrict featuers
+        # Restrict features
         if self.features is not None:
             x = x[:, self.features]
 
@@ -515,7 +505,7 @@ class LikelihoodEstimator(ConditionalEstimator):
     @staticmethod
     def _check_required_data(method, t_xz):
         if method == ["scandal"] and t_xz is None:
-            raise RuntimeError("Method {} requires joint score information".format(method))
+            raise RuntimeError(f"Method {method} requires joint score information")
 
     @staticmethod
     def _package_training_data(method, x, theta, t_xz):
@@ -539,7 +529,7 @@ class LikelihoodEstimator(ConditionalEstimator):
 
         estimator_type = str(settings["estimator_type"])
         if estimator_type != "likelihood":
-            raise RuntimeError("Saved model is an incompatible estimator type {}.".format(estimator_type))
+            raise RuntimeError(f"Saved model is an incompatible estimator type {estimator_type}.")
 
         self.n_components = int(settings["n_components"])
         self.n_mades = int(settings["n_mades"])

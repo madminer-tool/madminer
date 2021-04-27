@@ -1,10 +1,7 @@
-from __future__ import absolute_import, division, print_function, unicode_literals
-
-import six
-from collections import OrderedDict
-import numpy as np
 import logging
+import numpy as np
 import os
+from collections import OrderedDict
 
 from madminer.utils.interfaces.madminer_hdf5 import (
     save_events_to_madminer_file,
@@ -102,6 +99,48 @@ class DelphesReader:
 
         # Initialize nuisance parameters
         self.nuisance_parameters = OrderedDict()
+
+    @staticmethod
+    def _check_python_syntax(expression):
+        """
+        Evaluates a Python expression to check for syntax errors
+
+        Parameters
+        ----------
+        expression : str
+            Python expression to be evaluated. The evaluation raises either SyntaxError or NameError
+
+        Returns
+        -------
+            None
+        """
+
+        try:
+            eval(expression)
+        except SyntaxError:
+            raise ValueError("The provided Python expression is invalid")
+        except NameError:
+            pass
+
+    @staticmethod
+    def _check_sample_elements(this_elements, n_events=None):
+        """ Sanity checks """
+
+        # Check number of events in observables
+        for key, elems in this_elements.items():
+            this_n_events = len(elems)
+
+            if n_events is None:
+                n_events = this_n_events
+                logger.debug(f"Found {n_events} events")
+
+            if this_n_events != n_events:
+                raise RuntimeError(f"Mismatching number of events for {key}: "f"{n_events} vs {this_n_events}")
+
+            if not np.issubdtype(elems.dtype, np.number):
+                logger.warning(f"For key {key} have non-numeric dtype {elems.dtype}.")
+
+        return n_events
 
     def add_sample(
         self,
@@ -241,8 +280,13 @@ class DelphesReader:
                 logger.info("Running Delphes on HepMC sample at %s", hepmc_filename)
 
             delphes_sample_filename = run_delphes(
-                delphes_directory, delphes_card, hepmc_filename, initial_command=initial_command, log_file=log_file
+                delphes_directory=delphes_directory,
+                delphes_card_filename=delphes_card,
+                hepmc_sample_filename=hepmc_filename,
+                initial_command=initial_command,
+                log_file=log_file,
             )
+
             self.delphes_sample_filenames[i] = delphes_sample_filename
 
     def set_acceptance(
@@ -450,25 +494,25 @@ class DelphesReader:
             [n_leptons_max, n_photons_max, n_jets_max], ["l", "a", "j"], [False, False, include_charge]
         ):
             if include_numbers:
-                self.add_observable("n_{}s".format(symbol), "len({})".format(symbol), required=True)
+                self.add_observable(f"n_{symbol}s", f"len({symbol})", required=True)
 
             for i in range(n):
                 self.add_observable(
-                    "e_{}{}".format(symbol, i + 1), "{}[{}].e".format(symbol, i), required=False, default=0.0
+                    f"e_{symbol}{i+1}", f"{symbol}[{i}].e", required=False, default=0.0
                 )
                 self.add_observable(
-                    "pt_{}{}".format(symbol, i + 1), "{}[{}].pt".format(symbol, i), required=False, default=0.0
+                    f"pt_{symbol}{i+1}", f"{symbol}[{i}].pt", required=False, default=0.0
                 )
                 self.add_observable(
-                    "eta_{}{}".format(symbol, i + 1), "{}[{}].eta".format(symbol, i), required=False, default=0.0
+                    f"eta_{symbol}{i+1}", f"{symbol}[{i}].eta", required=False, default=0.0
                 )
                 self.add_observable(
-                    "phi_{}{}".format(symbol, i + 1), "{}[{}].phi()".format(symbol, i), required=False, default=0.0
+                    f"phi_{symbol}{i+1}", f"{symbol}[{i}].phi()", required=False, default=0.0
                 )
                 if include_this_charge and symbol == "l":
                     self.add_observable(
-                        "charge_{}{}".format(symbol, i + 1),
-                        "{}[{}].charge".format(symbol, i),
+                        f"charge_{symbol}{i+1}",
+                        f"{symbol}[{i}].charge",
                         required=False,
                         default=0.0,
                     )
@@ -527,7 +571,11 @@ class DelphesReader:
         self.cuts_default_pass = []
 
     def analyse_delphes_samples(
-        self, generator_truth=False, delete_delphes_files=False, reference_benchmark=None, parse_lhe_events_as_xml=True
+        self,
+        generator_truth=False,
+        delete_delphes_files=False,
+        reference_benchmark=None,
+        parse_lhe_events_as_xml=True,
     ):
         """
         Main function that parses the Delphes samples (ROOT files), checks acceptance and cuts, and extracts
@@ -638,9 +686,8 @@ class DelphesReader:
             # Following results: check consistency with previous results
             if len(self.observations) != len(this_observations):
                 raise ValueError(
-                    "Number of observations in different Delphes files incompatible: {} vs {}".format(
-                        len(self.observations), len(this_observations)
-                    )
+                    f"Number of observations in different Delphes files incompatible: "
+                    f"{len(self.observations)} vs {len(this_observations)}"
                 )
 
             # Merge weights with previous
@@ -664,7 +711,7 @@ class DelphesReader:
 
             # Merge observations with previous (should always be the same observables)
             for key in self.observations:
-                assert key in this_observations, "Observable {} not found in Delphes sample!".format(key)
+                assert key in this_observations, f"Observable {key} not found in Delphes sample!"
                 self.observations[key] = np.hstack([self.observations[key], this_observations[key]])
 
             self.events_sampling_benchmark_ids = np.hstack(
@@ -675,6 +722,7 @@ class DelphesReader:
         for name, n_events in zip(self.benchmark_names_phys, self.signal_events_per_benchmark):
             if n_events > 0:
                 logger.info("  %s from %s", n_events, name)
+
         if self.background_events > 0:
             logger.info("  %s from backgrounds", self.background_events)
 
@@ -711,25 +759,22 @@ class DelphesReader:
         logger.debug("Extracting nuisance parameter definitions from LHE file")
         systematics_dict = extract_nuisance_parameters_from_lhe_file(lhe_file, systematics_used)
         logger.debug("systematics_dict: %s", systematics_dict)
+
         # systematics_dict has structure
         # {systematics_name : {nuisance_parameter_name : ((benchmark0, weight0), (benchmark1, weight1), processing)}}
 
         # Store nuisance parameters
-        for systematics_name, nuisance_info in six.iteritems(systematics_dict):
-            for nuisance_parameter_name, ((benchmark0, weight0), (benchmark1, weight1), _) in six.iteritems(
-                nuisance_info
-            ):
+        for systematics_name, nuisance_info in systematics_dict.items():
+            for nuisance_parameter_name, ((benchmark0, weight0), (benchmark1, weight1), _) in nuisance_info.items():
                 if (
                     self.nuisance_parameters is not None
                     and nuisance_parameter_name in self.nuisance_parameters
                     and (systematics_name, benchmark0, benchmark1) != self.nuisance_parameters[nuisance_parameter_name]
                 ):
                     raise RuntimeError(
-                        "Inconsistent information for same nuisance parameter {}. Old: {}. New: {}.".format(
-                            nuisance_parameter_name,
-                            self.nuisance_parameters[nuisance_parameter_name],
-                            (systematics_name, benchmark0, benchmark1),
-                        )
+                        f"Inconsistent information for same nuisance parameter {nuisance_parameter_name}. "
+                        f"Old: {self.nuisance_parameters[nuisance_parameter_name]}. "
+                        f"New: {(systematics_name, benchmark0, benchmark1)}."
                     )
                 self.nuisance_parameters[nuisance_parameter_name] = (systematics_name, benchmark0, benchmark1)
 
@@ -764,7 +809,7 @@ class DelphesReader:
             logger.debug("Did not extract weights from Delphes file")
 
         # Sanity checks
-        n_events = self._check_sample_observations(this_observations)
+        n_events = self._check_sample_elements(this_observations, None)
 
         # Find weights in LHE file
         if lhe_file_for_weights is not None:
@@ -772,35 +817,35 @@ class DelphesReader:
             _, this_weights = parse_lhe_file(
                 filename=lhe_file_for_weights,
                 sampling_benchmark=sampling_benchmark,
-                benchmark_names=self.benchmark_names_phys,
                 observables=OrderedDict(),
+                benchmark_names=self.benchmark_names_phys,
+                is_background=is_background,
                 parse_events_as_xml=parse_lhe_events_as_xml,
                 systematics_dict=systematics_dict,
-                is_background=is_background,
             )
 
             logger.debug("Found weights %s in LHE file", list(this_weights.keys()))
 
             # Apply cuts
             logger.debug("Applying Delphes-based cuts to LHE weights")
-            for key, weights in six.iteritems(this_weights):
+            for key, weights in this_weights.items():
                 this_weights[key] = weights[cut_filter]
 
         if this_weights is None:
             raise RuntimeError("Could not extract weights from Delphes ROOT file or LHE file.")
 
         # Sanity checks
-        n_events = self._check_sample_weights(n_events, this_weights)
+        n_events = self._check_sample_elements(this_weights, n_events)
 
         # k factors
         if k_factor is not None:
             for key in this_weights:
                 this_weights[key] = k_factor * this_weights[key]
-        # Background scenario: we only have one set of weights, but these should be true for all benchmarks
 
+        # Background scenario: we only have one set of weights, but these should be true for all benchmarks
         if is_background:
             logger.debug("Sample is background")
-            benchmarks_weight = list(six.itervalues(this_weights))[0]
+            benchmarks_weight = list(this_weights.values())[0]
 
             for benchmark_name in self.benchmark_names_phys:
                 this_weights[benchmark_name] = benchmarks_weight
@@ -813,78 +858,6 @@ class DelphesReader:
                 this_weights[key] = reference_weights / sampling_weights * this_weights[key]
 
         return this_observations, this_weights, n_events
-
-    def _check_python_syntax(self, expression):
-        """
-        Evaluates a Python expression to check for syntax errors
-
-        Parameters
-        ----------
-        expression : str
-            Python expression to be evaluated. The evaluation raises either SyntaxError or NameError
-
-        Returns
-        -------
-            None
-        """
-
-        try:
-            eval(expression)
-        except SyntaxError:
-            raise ValueError("The provided Python expression is invalid")
-        except NameError:
-            pass
-
-    def _check_sample_observations(self, this_observations):
-        """ Sanity checks """
-        # Check number of events in observables
-        n_events = None
-        for key, obs in six.iteritems(this_observations):
-            this_n_events = len(obs)
-            if n_events is None:
-                n_events = this_n_events
-                logger.debug("Found %s events", n_events)
-
-            if this_n_events != n_events:
-                raise RuntimeError(
-                    "Mismatching number of events in Delphes observations for {}: {} vs {}".format(
-                        key, n_events, this_n_events
-                    )
-                )
-
-            if not np.issubdtype(obs.dtype, np.number):
-                logger.warning(
-                    "Observations for observable %s have non-numeric dtype %s. This usually means something "
-                    "is wrong in the definition of the observable. Data: %s",
-                    key,
-                    obs.dtype,
-                    obs,
-                )
-        return n_events
-
-    def _check_sample_weights(self, n_events, this_weights):
-        """ Sanity checks """
-        # Check number of events in weights
-        for key, weights in six.iteritems(this_weights):
-            this_n_events = len(weights)
-            if n_events is None:
-                n_events = this_n_events
-                logger.debug("Found %s events", n_events)
-
-            if this_n_events != n_events:
-                raise RuntimeError(
-                    "Mismatching number of events in weights {}: {} vs {}".format(key, n_events, this_n_events)
-                )
-
-            if not np.issubdtype(weights.dtype, np.number):
-                logger.warning(
-                    "Weights %s have non-numeric dtype %s. This usually means something "
-                    "is wrong in the definition of the observable. Data: %s",
-                    key,
-                    weights.dtype,
-                    weights,
-                )
-        return n_events
 
     def save(self, filename_out, shuffle=True):
         """

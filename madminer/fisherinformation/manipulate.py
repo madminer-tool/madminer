@@ -1,7 +1,6 @@
-from __future__ import absolute_import, division, print_function, unicode_literals
-
 import logging
 import numpy as np
+
 from ..utils.various import separate_information_blocks
 
 logger = logging.getLogger(__name__)
@@ -18,7 +17,7 @@ def project_information(fisher_information, remaining_components, covariance=Non
         Original n x n Fisher information.
 
     remaining_components : list of int
-        List with m entries, each an int with 0 <= remaining_compoinents[i] < n. Denotes which parameters are kept, and
+        List with m entries, each an int with 0 <= remaining_components[i] < n. Denotes which parameters are kept, and
         their new order. All other parameters or projected out.
 
     covariance : ndarray or None, optional
@@ -74,7 +73,7 @@ def profile_information(
         Original n x n Fisher information.
 
     remaining_components : list of int
-        List with m entries, each an int with 0 <= remaining_compoinents[i] < n. Denotes which parameters are kept, and
+        List with m entries, each an int with 0 <= remaining_components[i] < n. Denotes which parameters are kept, and
         their new order. All other parameters or profiled out.
 
     covariance : ndarray or None, optional

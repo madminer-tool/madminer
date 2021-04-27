@@ -1,9 +1,6 @@
-from __future__ import absolute_import, division, print_function, unicode_literals
-
-import six
-from collections import OrderedDict
-import numpy as np
 import logging
+import numpy as np
+from collections import OrderedDict
 
 from madminer.utils.interfaces.madminer_hdf5 import (
     save_events_to_madminer_file,
@@ -111,7 +108,35 @@ class LHEReader:
         # Initialize nuisance parameters
         self.nuisance_parameters = OrderedDict()
 
-    def add_sample(self, lhe_filename, sampled_from_benchmark, is_background=False, k_factor=1.0, systematics=None):
+    @staticmethod
+    def _check_sample_elements(this_elements, n_events=None):
+        """ Sanity checks """
+
+        # Check number of events in observables
+        for key, elems in this_elements.items():
+            this_n_events = len(elems)
+
+            if n_events is None:
+                n_events = this_n_events
+                logger.debug(f"Found {n_events} events")
+
+            if this_n_events != n_events:
+                raise RuntimeError(
+                    f"Mismatching number of events for {key}: "f"{n_events} vs {this_n_events}")
+
+            if not np.issubdtype(elems.dtype, np.number):
+                logger.warning(f"For key {key} have non-numeric dtype {elems.dtype}.")
+
+        return n_events
+
+    def add_sample(
+        self,
+        lhe_filename,
+        sampled_from_benchmark,
+        is_background=False,
+        k_factor=1.0,
+        systematics=None,
+    ):
         """
         Adds an LHE sample of simulated events.
 
@@ -406,25 +431,25 @@ class LHEReader:
             [n_leptons_max, n_photons_max, n_jets_max], ["l", "a", "j"], [False, False, include_charge]
         ):
             if include_numbers:
-                self.add_observable("n_{}s".format(symbol), "len({})".format(symbol), required=True)
+                self.add_observable(f"n_{symbol}s", f"len({symbol})", required=True)
 
             for i in range(n):
                 self.add_observable(
-                    "e_{}{}".format(symbol, i + 1), "{}[{}].e".format(symbol, i), required=False, default=0.0
+                    f"e_{symbol}{i+1}", f"{symbol}[{i}].e", required=False, default=0.0
                 )
                 self.add_observable(
-                    "pt_{}{}".format(symbol, i + 1), "{}[{}].pt".format(symbol, i), required=False, default=0.0
+                    f"pt_{symbol}{i+1}", f"{symbol}[{i}].pt", required=False, default=0.0
                 )
                 self.add_observable(
-                    "eta_{}{}".format(symbol, i + 1), "{}[{}].eta".format(symbol, i), required=False, default=0.0
+                    f"eta_{symbol}{i+1}", f"{symbol}[{i}].eta", required=False, default=0.0
                 )
                 self.add_observable(
-                    "phi_{}{}".format(symbol, i + 1), "{}[{}].phi()".format(symbol, i), required=False, default=0.0
+                    f"phi_{symbol}{i+1}", f"{symbol}[{i}].phi()", required=False, default=0.0
                 )
                 if include_this_charge and symbol == "l":
                     self.add_observable(
-                        "charge_{}{}".format(symbol, i + 1),
-                        "{}[{}].charge".format(symbol, i),
+                        f"charge_{symbol}{i+1}",
+                        f"{symbol}[{i}].charge",
                         required=False,
                         default=0.0,
                     )
@@ -605,9 +630,8 @@ class LHEReader:
             # Following results: check consistency with previous results
             if len(self.observations) != len(this_observations):
                 raise ValueError(
-                    "Number of observations in different Delphes files incompatible: {} vs {}".format(
-                        len(self.observations), len(this_observations)
-                    )
+                    f"Number of observations in different Delphes files incompatible: "
+                    f"{len(self.observations)} vs {len(this_observations)}"
                 )
 
             # Merge weights with previous
@@ -631,7 +655,7 @@ class LHEReader:
 
             # Merge observations with previous (should always be the same observables)
             for key in self.observations:
-                assert key in this_observations, "Observable {} not found in Delphes sample!".format(key)
+                assert key in this_observations, f"Observable {key} not found in Delphes sample!"
                 self.observations[key] = np.hstack([self.observations[key], this_observations[key]])
 
             self.events_sampling_benchmark_ids = np.hstack(
@@ -666,25 +690,22 @@ class LHEReader:
         logger.debug("Extracting nuisance parameter definitions from LHE file")
         systematics_dict = extract_nuisance_parameters_from_lhe_file(lhe_file, systematics_used)
         logger.debug("systematics_dict: %s", systematics_dict)
+
         # systematics_dict has structure
         # {systematics_name : {nuisance_parameter_name : ((benchmark0, weight0), (benchmark1, weight1), processing)}}
 
         # Store nuisance parameters
-        for systematics_name, nuisance_info in six.iteritems(systematics_dict):
-            for nuisance_parameter_name, ((benchmark0, weight0), (benchmark1, weight1), _) in six.iteritems(
-                nuisance_info
-            ):
+        for systematics_name, nuisance_info in systematics_dict.items():
+            for nuisance_parameter_name, ((benchmark0, weight0), (benchmark1, weight1), _) in nuisance_info.items():
                 if (
                     self.nuisance_parameters is not None
                     and nuisance_parameter_name in self.nuisance_parameters
                     and (systematics_name, benchmark0, benchmark1) != self.nuisance_parameters[nuisance_parameter_name]
                 ):
                     raise RuntimeError(
-                        "Inconsistent information for same nuisance parameter {}. Old: {}. New: {}.".format(
-                            nuisance_parameter_name,
-                            self.nuisance_parameters[nuisance_parameter_name],
-                            (systematics_name, benchmark0, benchmark1),
-                        )
+                        f"Inconsistent information for same nuisance parameter {nuisance_parameter_name}. "
+                        f"Old: {self.nuisance_parameters[nuisance_parameter_name]}. "
+                        f"New: {(systematics_name, benchmark0, benchmark1)}."
                     )
                 self.nuisance_parameters[nuisance_parameter_name] = (systematics_name, benchmark0, benchmark1)
 
@@ -716,8 +737,8 @@ class LHEReader:
             return None, None
         logger.debug("Found weights %s in LHE file", list(this_weights.keys()))
 
-        # Sanity checks
-        n_events = self._check_sample_observations_and_weights(this_observations, this_weights)
+        n_events = self._check_sample_elements(this_observations, None)
+        n_events = self._check_sample_elements(this_weights, None)
 
         # Rescale nuisance parameters to reference benchmark
         reference_weights = this_weights[reference_benchmark]
@@ -727,55 +748,6 @@ class LHEReader:
                 this_weights[key] = reference_weights / sampling_weights * this_weights[key]
 
         return this_observations, this_weights, n_events
-
-    @staticmethod
-    def _check_sample_observations_and_weights(this_observations, this_weights):
-        """ Sanity checks """
-
-        # Check number of events in observables, and their dtype
-        n_events = None
-        for key, obs in six.iteritems(this_observations):
-            this_n_events = len(obs)
-            if n_events is None:
-                n_events = this_n_events
-                logger.debug("Found %s events", n_events)
-
-            if this_n_events != n_events:
-                raise RuntimeError(
-                    "Mismatching number of events in LHE observations for {}: {} vs {}".format(
-                        key, n_events, this_n_events
-                    )
-                )
-
-            if not np.issubdtype(obs.dtype, np.number):
-                logger.warning(
-                    "Observations for observable %s have non-numeric dtype %s. This usually means something "
-                    "is wrong in the definition of the observable. Data: %s",
-                    key,
-                    obs.dtype,
-                    obs,
-                )
-        # Check number of events in weights, and thier dtype
-        for key, weights in six.iteritems(this_weights):
-            this_n_events = len(weights)
-            if n_events is None:
-                n_events = this_n_events
-                logger.debug("Found %s events", n_events)
-
-            if this_n_events != n_events:
-                raise RuntimeError(
-                    "Mismatching number of events in weights {}: {} vs {}".format(key, n_events, this_n_events)
-                )
-
-            if not np.issubdtype(weights.dtype, np.number):
-                logger.warning(
-                    "Weights %s have non-numeric dtype %s. This usually means something "
-                    "is wrong in the definition of the observable. Data: %s",
-                    key,
-                    weights.dtype,
-                    weights,
-                )
-        return n_events
 
     def save(self, filename_out, shuffle=True):
         """

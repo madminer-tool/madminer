@@ -1,16 +1,19 @@
-from __future__ import absolute_import, division, print_function, unicode_literals
-
-import six
 import logging
-from collections import OrderedDict
 import numpy as np
 import time
 import torch
 import torch.optim as optim
-from madminer.utils.ml.utils import EarlyStoppingException, NanException, NumpyDataset
+
+from collections import OrderedDict
+from torch.nn.utils import clip_grad_norm_
 from torch.utils.data import DataLoader
 from torch.utils.data.sampler import SubsetRandomSampler
-from torch.nn.utils import clip_grad_norm_
+
+from madminer.utils.ml.utils import (
+    EarlyStoppingException,
+    NanException,
+    NumpyDataset,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -68,12 +71,15 @@ class Trainer(object):
             logger.debug("Found external validation data set")
             self.check_data(data_val)
             self.report_data(data_val)
+
         self._timer(stop="check data", start="make dataset")
         data_labels, dataset = self.make_dataset(data)
+
         if data_val is not None:
             _, dataset_val = self.make_dataset(data_val)
         else:
             dataset_val = None
+
         self._timer(stop="make dataset", start="make dataloader")
         train_loader, val_loader = self.make_dataloaders(dataset, dataset_val, validation_split, batch_size)
 
@@ -84,6 +90,7 @@ class Trainer(object):
 
         early_stopping = early_stopping and (validation_split is not None) and (epochs > 1)
         best_loss, best_model, best_epoch = None, None, None
+
         if early_stopping and early_stopping_patience is None:
             logger.debug("Using early stopping with infinite patience")
         elif early_stopping:
@@ -173,7 +180,7 @@ class Trainer(object):
     @staticmethod
     def report_data(data):
         logger.debug("Training data:")
-        for key, value in six.iteritems(data):
+        for key, value in data.items():
             if value is None:
                 logger.debug("  %s: -", key)
             else:
@@ -194,29 +201,43 @@ class Trainer(object):
     def make_dataset(self, data):
         data_arrays = []
         data_labels = []
-        for key, value in six.iteritems(data):
+
+        for key, value in data.items():
             data_labels.append(key)
             data_arrays.append(value)
         dataset = NumpyDataset(*data_arrays, dtype=self.dtype)
+
         return data_labels, dataset
 
     def make_dataloaders(self, dataset, dataset_val, validation_split, batch_size):
         if dataset_val is None and (validation_split is None or validation_split <= 0.0):
             train_loader = DataLoader(
-                dataset, batch_size=batch_size, shuffle=True, pin_memory=self.run_on_gpu, num_workers=self.n_workers
+                dataset,
+                batch_size=batch_size,
+                shuffle=True,
+                pin_memory=self.run_on_gpu,
+                num_workers=self.n_workers,
             )
             val_loader = None
 
         elif dataset_val is not None:
             train_loader = DataLoader(
-                dataset, batch_size=batch_size, shuffle=True, pin_memory=self.run_on_gpu, num_workers=self.n_workers
+                dataset,
+                batch_size=batch_size,
+                shuffle=True,
+                pin_memory=self.run_on_gpu,
+                num_workers=self.n_workers,
             )
             val_loader = DataLoader(
-                dataset_val, batch_size=batch_size, shuffle=True, pin_memory=self.run_on_gpu, num_workers=self.n_workers
+                dataset_val,
+                batch_size=batch_size,
+                shuffle=True,
+                pin_memory=self.run_on_gpu,
+                num_workers=self.n_workers,
             )
 
         else:
-            assert 0.0 < validation_split < 1.0, "Wrong validation split: {}".format(validation_split)
+            assert 0.0 < validation_split < 1.0, f"Wrong validation split: {validation_split}"
 
             n_samples = len(dataset)
             indices = list(range(n_samples))
@@ -344,6 +365,7 @@ class Trainer(object):
         loss = loss.item()
         loss_contributions = [contrib.item() for contrib in loss_contributions]
         self._timer(stop="validation sum losses")
+
         return loss, loss_contributions
 
     def forward_pass(self, batch_data, loss_functions):
@@ -364,13 +386,16 @@ class Trainer(object):
             Losses as scalar pyTorch tensors.
 
         """
-        raise NotImplementedError
+
+        raise NotImplementedError()
 
     @staticmethod
     def sum_losses(contributions, weights):
         loss = weights[0] * contributions[0]
+
         for _w, _l in zip(weights[1:], contributions[1:]):
             loss = loss + _w * _l
+
         return loss
 
     def optimizer_step(self, optimizer, loss, clip_gradient):
@@ -379,8 +404,10 @@ class Trainer(object):
         self._timer(stop="opt: zero grad", start="opt: backward")
         loss.backward()
         self._timer(start="opt: clip grad norm", stop="opt: backward")
+
         if clip_gradient is not None:
             clip_grad_norm_(self.model.parameters(), clip_gradient)
+
         self._timer(stop="opt: clip grad norm", start="opt: step")
         optimizer.step()
         self._timer(stop="opt: step")
@@ -402,11 +429,17 @@ class Trainer(object):
     @staticmethod
     def report_batch(i_epoch, i_batch, loss_train):
         if i_batch in [0, 1, 10, 100, 1000]:
-            logger.debug("  Epoch {:>3d}, batch {:>3d}: loss {:>8.5f}".format(i_epoch + 1, i_batch + 1, loss_train))
+            logger.debug(f"  Epoch {(i_epoch+1):>3d}, batch {(i_batch+1):>3d}: loss {loss_train:>8.5f}")
 
     @staticmethod
     def report_epoch(
-        i_epoch, loss_labels, loss_train, loss_val, loss_contributions_train, loss_contributions_val, verbose=False
+        i_epoch,
+        loss_labels,
+        loss_train,
+        loss_val,
+        loss_contributions_train,
+        loss_contributions_val,
+        verbose=False,
     ):
         logging_fn = logger.info if verbose else logger.debug
 
@@ -415,18 +448,16 @@ class Trainer(object):
             for i, (label, value) in enumerate(zip(labels, contributions)):
                 if i > 0:
                     summary += ", "
-                summary += "{}: {:>6.3f}".format(label, value)
+                summary += f"{label}: {value:>6.3f}"
             return summary
 
-        train_report = "  Epoch {:>3d}: train loss {:>8.5f} ({})".format(
-            i_epoch + 1, loss_train, contribution_summary(loss_labels, loss_contributions_train)
-        )
+        summary = contribution_summary(loss_labels, loss_contributions_train)
+        train_report = f"  Epoch {(i_epoch+1):>3d}: train loss {loss_train:>8.5f} ({summary})"
         logging_fn(train_report)
 
         if loss_val is not None:
-            val_report = "             val. loss  {:>8.5f} ({})".format(
-                loss_val, contribution_summary(loss_labels, loss_contributions_val)
-            )
+            summary = contribution_summary(loss_labels, loss_contributions_train)
+            val_report = f"             val. loss  {loss_val:>8.5f} ({summary})"
             logging_fn(val_report)
 
     def wrap_up_early_stopping(self, best_model, currrent_loss, best_loss, best_epoch):
@@ -475,8 +506,8 @@ class Trainer(object):
 
     def _report_timer(self):
         logger.info("Training time spend on:")
-        for key, value in six.iteritems(self.timer):
-            logger.info("  {:>32s}: {:6.2f}h".format(key, value / 3600.0))
+        for key, value in self.timer.items():
+            logger.info(f"  {key:>32s}: {(value/3600.0):6.2f}h")
 
 
 class SingleParameterizedRatioTrainer(Trainer):
@@ -490,7 +521,7 @@ class SingleParameterizedRatioTrainer(Trainer):
             raise ValueError("Missing required information 'x', 'theta', or 'y' in training data!")
 
         for key in data_keys:
-            if key not in ["x", "theta", "y", "r_xz", "t_xz"]:
+            if key not in {"x", "theta", "y", "r_xz", "t_xz"}:
                 logger.warning("Unknown key %s in training data! Ignoring it.", key)
 
         self.calculate_model_score = "t_xz" in data_keys
@@ -504,6 +535,7 @@ class SingleParameterizedRatioTrainer(Trainer):
         theta = batch_data["theta"].to(self.device, self.dtype, non_blocking=True)
         x = batch_data["x"].to(self.device, self.dtype, non_blocking=True)
         y = batch_data["y"].to(self.device, self.dtype, non_blocking=True)
+
         try:
             r_xz = batch_data["r_xz"].to(self.device, self.dtype, non_blocking=True)
         except KeyError:
@@ -512,6 +544,7 @@ class SingleParameterizedRatioTrainer(Trainer):
             t_xz = batch_data["t_xz"].to(self.device, self.dtype, non_blocking=True)
         except KeyError:
             t_xz = None
+
         self._timer(stop="fwd: move data", start="fwd: check for nans")
         self._check_for_nans("Training data", theta, x, y)
         self._check_for_nans("Augmented training data", r_xz, t_xz)
@@ -560,6 +593,7 @@ class DoubleParameterizedRatioTrainer(Trainer):
         theta1 = batch_data["theta1"].to(self.device, self.dtype, non_blocking=True)
         x = batch_data["x"].to(self.device, self.dtype, non_blocking=True)
         y = batch_data["y"].to(self.device, self.dtype, non_blocking=True)
+
         try:
             r_xz = batch_data["r_xz"].to(self.device, self.dtype, non_blocking=True)
         except KeyError:
@@ -572,6 +606,7 @@ class DoubleParameterizedRatioTrainer(Trainer):
             t_xz1 = batch_data["t_xz1"].to(self.device, self.dtype, non_blocking=True)
         except KeyError:
             t_xz1 = None
+
         self._timer(stop="fwd: move data", start="fwd: check for nans")
         self._check_for_nans("Training data", theta0, theta1, x, y)
         self._check_for_nans("Augmented training data", r_xz, t_xz0, t_xz1)
@@ -641,7 +676,7 @@ class FlowTrainer(Trainer):
             raise ValueError("Missing required information 'x' or 'theta' in training data!")
 
         for key in data_keys:
-            if key not in ["x", "theta", "t_xz"]:
+            if key not in {"x", "theta", "t_xz"}:
                 logger.warning("Unknown key %s in training data! Ignoring it.", key)
 
         self.calculate_model_score = "t_xz" in data_keys
@@ -654,21 +689,25 @@ class FlowTrainer(Trainer):
         self._timer(start="fwd: move data")
         x = batch_data["x"].to(self.device, self.dtype, non_blocking=True)
         theta = batch_data["theta"].to(self.device, self.dtype, non_blocking=True)
+
         try:
             t_xz = batch_data["t_xz"].to(self.device, self.dtype, non_blocking=True)
         except KeyError:
             t_xz = None
+
         self._timer(stop="fwd: move data", start="fwd: check for nans")
         self._check_for_nans("Training data", theta, x)
         self._check_for_nans("Augmented training data", t_xz)
 
         self._timer(start="fwd: model.forward", stop="fwd: check for nans")
+
         if self.calculate_model_score:
             theta.requires_grad = True
             _, log_likelihood, t_hat = self.model.log_likelihood_and_score(theta, x)
         else:
             _, log_likelihood = self.model.log_likelihood(theta, x)
             t_hat = None
+
         self._timer(stop="fwd: model.forward", start="fwd: check for nans")
         self._check_for_nans("Model output", log_likelihood, t_hat)
 

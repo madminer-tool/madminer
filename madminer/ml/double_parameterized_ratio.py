@@ -1,20 +1,14 @@
-from __future__ import absolute_import, division, print_function
-
 import logging
 import numpy as np
 from collections import OrderedDict
 
-from ..utils.ml.models.ratio import DenseDoublyParameterizedRatioModel
+from .base import ConditionalEstimator, TheresAGoodReasonThisDoesntWork
 from ..utils.ml.eval import evaluate_ratio_model
+from ..utils.ml.models.ratio import DenseDoublyParameterizedRatioModel
+from ..utils.ml.trainer import DoubleParameterizedRatioTrainer
 from ..utils.ml.utils import get_optimizer, get_loss
 from ..utils.various import load_and_check, shuffle, restrict_samplesize
-from ..utils.ml.trainer import DoubleParameterizedRatioTrainer
-from .base import ConditionalEstimator, TheresAGoodReasonThisDoesntWork
 
-try:
-    FileNotFoundError
-except NameError:
-    FileNotFoundError = IOError
 
 logger = logging.getLogger(__name__)
 
@@ -90,7 +84,7 @@ class DoubleParameterizedRatioEstimator(ConditionalEstimator):
             Observations, or filename of a pickled numpy array.
 
         y : ndarray or str
-            Class labels (0 = numeerator, 1 = denominator), or filename of a pickled numpy array.
+            Class labels (0 = numerator, 1 = denominator), or filename of a pickled numpy array.
 
         theta0 : ndarray or str
             Numerator parameter point, or filename of a pickled numpy array.
@@ -259,6 +253,7 @@ class DoubleParameterizedRatioEstimator(ConditionalEstimator):
             assert x_val.shape[1] == n_observables
             assert theta0_val.shape[1] == n_parameters
             assert theta1_val.shape[1] == n_parameters
+
             if r_xz is not None:
                 assert r_xz_val is not None, "When providing r_xz and sep. validation data, also provide r_xz_val"
             if t_xz0 is not None:
@@ -309,19 +304,23 @@ class DoubleParameterizedRatioEstimator(ConditionalEstimator):
             self.n_parameters = n_parameters
 
         if n_parameters != self.n_parameters:
-            raise RuntimeError(
-                "Number of parameters does not match model: {} vs {}".format(n_parameters, self.n_parameters)
-            )
+            raise RuntimeError(f"Number of parameters does not match: {n_parameters} vs {self.n_parameters}")
         if n_observables != self.n_observables:
-            raise RuntimeError(
-                "Number of observables does not match model: {} vs {}".format(n_observables, self.n_observables)
-            )
+            raise RuntimeError(f"Number of observables does not match: {n_observables} vs {self.n_observables}")
 
         # Data
         data = self._package_training_data(method, x, theta0, theta1, y, r_xz, t_xz0, t_xz1)
+
         if external_validation:
             data_val = self._package_training_data(
-                method, x_val, theta0_val, theta1_val, y_val, r_xz_val, t_xz0_val, t_xz1_val
+                method,
+                x_val,
+                theta0_val,
+                theta1_val,
+                y_val,
+                r_xz_val,
+                t_xz0_val,
+                t_xz1_val,
             )
         else:
             data_val = None
@@ -499,9 +498,9 @@ class DoubleParameterizedRatioEstimator(ConditionalEstimator):
     @staticmethod
     def _check_required_data(method, r_xz, t_xz0, t_xz1):
         if method in ["cascal", "alices", "rascal"] and (t_xz0 is None or t_xz1 is None):
-            raise RuntimeError("Method {} requires joint score information".format(method))
+            raise RuntimeError(f"Method {method} requires joint score information")
         if method in ["rolr", "alice", "alices", "rascal"] and r_xz is None:
-            raise RuntimeError("Method {} requires joint likelihood ratio information".format(method))
+            raise RuntimeError(f"Method {method} requires joint likelihood ratio information")
 
     @staticmethod
     def _package_training_data(method, x, theta0, theta1, y, r_xz, t_xz0, t_xz1):
@@ -527,4 +526,4 @@ class DoubleParameterizedRatioEstimator(ConditionalEstimator):
 
         estimator_type = str(settings["estimator_type"])
         if estimator_type != "double_parameterized_ratio":
-            raise RuntimeError("Saved model is an incompatible estimator type {}.".format(estimator_type))
+            raise RuntimeError(f"Saved model is an incompatible estimator type {estimator_type}.")

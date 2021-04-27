@@ -1,11 +1,8 @@
-from __future__ import absolute_import, division, print_function, unicode_literals
-
-import six
+import itertools
 import logging
 import numpy as np
-from collections import OrderedDict
-import itertools
 
+from collections import OrderedDict
 from madminer.utils.various import sanitize_array
 
 logger = logging.getLogger(__name__)
@@ -103,7 +100,6 @@ class PhysicsMorpher:
             scales a given component. For instance, a typical signal, interference, background situation with one
             parameter might be described by the components [[2], [1], [0]].
 
-
         Returns
         -------
             None
@@ -142,9 +138,8 @@ class PhysicsMorpher:
         for max_power in self.parameter_max_power:
             if n_regions != len(max_power):
                 raise RuntimeError(
-                    "Parameters have different number of partitions of max powers: {} {}".format(
-                        max_overall_power, self.parameter_max_power
-                    )
+                    f"Parameters have different number of partitions of max powers: "
+                    f"{max_overall_power} vs {self.parameter_max_power}"
                 )
 
         # Go through regions and finds components for each
@@ -202,7 +197,7 @@ class PhysicsMorpher:
 
         if basis_from_madminer is not None:
             self.basis = []
-            for bname, benchmark_in in six.iteritems(basis_from_madminer):
+            for bname, benchmark_in in basis_from_madminer.items():
                 self.basis.append([benchmark_in[key] for key in self.parameter_names])
             self.basis = np.array(self.basis)
         elif basis_numpy is not None:
@@ -228,7 +223,7 @@ class PhysicsMorpher:
     ):
 
         """
-        Optimizes the morphing basis. If either fixed_benchmarks_from_maxminer or fixed_benchmarks_numpy are not
+        Optimizes the morphing basis. If either fixed_benchmarks_from_madminer or fixed_benchmarks_numpy are not
         None, then these will be used as fixed basis points and only the remaining part of the basis will be optimized.
 
         Parameters
@@ -270,7 +265,7 @@ class PhysicsMorpher:
         if fixed_benchmarks_from_madminer is not None:
             fixed_benchmarks = []
             fixed_benchmark_names = []
-            for bname, benchmark_in in six.iteritems(fixed_benchmarks_from_madminer):
+            for bname, benchmark_in in fixed_benchmarks_from_madminer.items():
                 fixed_benchmark_names.append(bname)
                 fixed_benchmarks.append([benchmark_in[key] for key in self.parameter_names])
             fixed_benchmarks = np.array(fixed_benchmarks)
@@ -346,7 +341,6 @@ class PhysicsMorpher:
         morphing_matrix : ndarray
             Morphing matrix with shape `(n_basis_benchmarks, n_components)`
 
-
         """
 
         # Check all data is there
@@ -395,9 +389,7 @@ class PhysicsMorpher:
             morphing_submatrix = morphing_submatrix.T
             morphing_matrix[i * n_benchmarks_this_basis : (i + 1) * n_benchmarks_this_basis] = morphing_submatrix
 
-        morphing_matrix = morphing_matrix.T
-
-        return morphing_matrix
+        return morphing_matrix.T
 
     def calculate_morphing_weights(self, theta, basis=None, morphing_matrix=None):
 
@@ -455,9 +447,7 @@ class PhysicsMorpher:
         component_weights = np.array(component_weights)
 
         # Transform to basis weights
-        weights = morphing_matrix.T.dot(component_weights)
-
-        return weights
+        return morphing_matrix.T.dot(component_weights)
 
     def calculate_morphing_weight_gradient(self, theta, basis=None, morphing_matrix=None):
 
@@ -523,11 +513,8 @@ class PhysicsMorpher:
                 component_weight_gradients[c, i] = factor
 
         # Transform to basis weights
-        weight_gradients = morphing_matrix.T.dot(
-            component_weight_gradients
-        ).T  # Shape (n_parameters, n_benchmarks_phys)
-
-        return weight_gradients
+        # Shape (n_parameters, n_benchmarks_phys)
+        return morphing_matrix.T.dot(component_weight_gradients).T
 
     def evaluate_morphing(self, basis=None, morphing_matrix=None, n_test_thetas=100, return_weights_and_thetas=False):
 
@@ -664,7 +651,8 @@ class NuisanceMorpher:
         self.i_benchmarks_pos = []
         self.i_benchmarks_neg = []
         self.degrees = []
-        for key, value in six.iteritems(self.nuisance_parameters):
+
+        for key, value in self.nuisance_parameters.items():
             self.i_benchmarks_pos.append(benchmark_names.index(value[1]))
             if value[2] is None:
                 self.degrees.append(1)

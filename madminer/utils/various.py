@@ -1,15 +1,12 @@
-from __future__ import absolute_import, division, print_function, unicode_literals
-
-import six
 import logging
-import os
-import stat
-from subprocess import Popen, PIPE
-import io
-import numpy as np
-import shutil
-from contextlib import contextmanager
 import gzip
+import numpy as np
+import os
+import shutil
+import stat
+
+from contextlib import contextmanager
+from subprocess import Popen, PIPE
 
 logger = logging.getLogger(__name__)
 
@@ -18,14 +15,15 @@ initialized = False
 
 def call_command(cmd, log_file=None, return_std=False):
     if log_file is not None:
-        with io.open(log_file, "wb") as log:
+        with open(log_file, "wb") as log:
             proc = Popen(cmd, stdout=log, stderr=log, shell=True)
             _ = proc.communicate()
             exitcode = proc.returncode
 
         if exitcode != 0:
             raise RuntimeError(
-                "Calling command {} returned exit code {}. Output in file {}.".format(cmd, exitcode, log_file)
+                f"Calling command {cmd} returned exit code {exitcode}. "
+                f"Output in file {log_file}."
             )
     else:
         proc = Popen(cmd, stdout=PIPE, stderr=PIPE, shell=True)
@@ -34,9 +32,12 @@ def call_command(cmd, log_file=None, return_std=False):
 
         if exitcode != 0:
             raise RuntimeError(
-                "Calling command {} returned exit code {}.\n\nStd output:\n\n{}Error output:\n\n{}".format(
-                    cmd, exitcode, out, err
-                )
+                f"Calling command {cmd} returned exit code {exitcode}."
+                f"\n\n"
+                f"Std output: {out}"
+                f"\n\n"
+                f"Error output: {err}"
+                f"\n\n"
             )
 
         if return_std:
@@ -63,13 +64,13 @@ def create_missing_folders(folders):
             os.makedirs(folder)
 
         elif not os.path.isdir(folder):
-            raise OSError("Path {} exists, but is no directory!".format(folder))
+            raise OSError(f"Path {folder} exists, but is no directory!")
 
 
 def format_benchmark(parameters, precision=2):
     output = ""
 
-    for i, (key, value) in enumerate(six.iteritems(parameters)):
+    for i, (key, value) in enumerate(parameters.items()):
         if i > 0:
             output += ", "
 
@@ -108,13 +109,13 @@ def shuffle(*arrays):
 
         shuffled_a = a[permutation]
         shuffled_arrays.append(shuffled_a)
-        a = None
 
     return shuffled_arrays
 
 
 def restrict_samplesize(n, *arrays):
     restricted_arrays = []
+
     for i, a in enumerate(arrays):
         if a is None:
             restricted_arrays.append(None)
@@ -156,7 +157,7 @@ def load_and_check(filename, warning_threshold=1.0e9, memmap_files_larger_than_g
     if filename is None:
         return None
 
-    if not isinstance(filename, six.string_types):
+    if not isinstance(filename, str):
         data = filename
         memmap = False
     else:
@@ -261,8 +262,10 @@ def weighted_quantile(values, quantiles, sample_weight=None, values_sorted=False
     # Input
     values = np.array(values, dtype=np.float64)
     quantiles = np.array(quantiles)
+
     if sample_weight is None:
         sample_weight = np.ones(len(values))
+
     sample_weight = np.array(sample_weight, dtype=np.float64)
     assert np.all(quantiles >= 0.0) and np.all(quantiles <= 1.0), "quantiles should be in [0, 1]"
 

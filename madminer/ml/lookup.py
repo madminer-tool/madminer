@@ -1,7 +1,5 @@
-from __future__ import absolute_import, division, print_function
-
-import os
 import json
+import os
 
 from .ensemble import Ensemble
 from .double_parameterized_ratio import DoubleParameterizedRatioEstimator
@@ -16,7 +14,7 @@ def load_estimator(filename):
         model.load(filename)
 
     else:
-        with open(filename + "_settings.json", "r") as f:
+        with open(f"{filename}_settings.json", "r") as f:
             settings = json.load(f)
         try:
             estimator_type = settings["estimator_type"]
@@ -32,7 +30,7 @@ def load_estimator(filename):
         elif estimator_type == "likelihood":
             model = LikelihoodEstimator()
         else:
-            raise RuntimeError("Unknown estimator type {}!".format(estimator_type))
+            raise RuntimeError(f"Unknown estimator type {estimator_type}!")
 
         model.load(filename)
 

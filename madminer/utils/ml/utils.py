@@ -1,14 +1,13 @@
-from __future__ import absolute_import, division, print_function, unicode_literals
-
+import logging
 import numpy as np
 import torch
-from torch.nn import functional as F
-import logging
-from torch import optim
 
-import madminer.utils
-from madminer.utils.ml import losses
+from torch import optim
+from torch.nn import functional as F
 from torch.utils.data import Dataset
+
+from madminer.utils.ml import losses
+
 
 logger = logging.getLogger(__name__)
 
@@ -85,7 +84,7 @@ def check_required_data(method, r_xz, t_xz0, t_xz1, theta0, theta1, x, y):
         data_is_there = False
     if (
         method
-        in [
+        in {
             "carl",
             "carl2",
             "nde",
@@ -98,23 +97,24 @@ def check_required_data(method, r_xz, t_xz0, t_xz1, theta0, theta1, x, y):
             "alice2",
             "rascal2",
             "alices2",
-        ]
+        }
         and theta0 is None
     ):
         data_is_there = False
-    if method in ["rolr", "alice", "rascal", "alices", "rolr2", "alice2", "rascal2", "alices2"] and r_xz is None:
+    if method in {"rolr", "alice", "rascal", "alices", "rolr2", "alice2", "rascal2", "alices2"} and r_xz is None:
         data_is_there = False
     if (
-        method in ["carl", "carl2", "rolr", "alice", "rascal", "alices", "rolr2", "alice2", "rascal2", "alices2"]
+        method in {"carl", "carl2", "rolr", "alice", "rascal", "alices", "rolr2", "alice2", "rascal2", "alices2"}
         and y is None
     ):
         data_is_there = False
-    if method in ["scandal", "rascal", "alices", "rascal2", "alices2", "sally", "sallino"] and t_xz0 is None:
+    if method in {"scandal", "rascal", "alices", "rascal2", "alices2", "sally", "sallino"} and t_xz0 is None:
         data_is_there = False
-    if method in ["carl2", "rolr2", "alice2", "rascal2", "alices2"] and theta1 is None:
+    if method in {"carl2", "rolr2", "alice2", "rascal2", "alices2"} and theta1 is None:
         data_is_there = False
-    if method in ["rascal2", "alices2"] and t_xz1 is None:
+    if method in {"rascal2", "alices2"} and t_xz1 is None:
         data_is_there = False
+
     return data_is_there
 
 
@@ -130,7 +130,7 @@ def get_optimizer(optimizer, nesterov_momentum):
         if nesterov_momentum is not None:
             opt_kwargs = {"momentum": nesterov_momentum}
     else:
-        raise ValueError("Unknown optimizer {}".format(optimizer))
+        raise ValueError(f"Unknown optimizer {optimizer}")
     return opt, opt_kwargs
 
 
@@ -176,15 +176,16 @@ def get_loss(method, alpha):
         loss_weights = [1.0]
         loss_labels = ["mse_score"]
     elif method == "nde":
-        loss_functions = [madminer.utils.ml.losses.flow_nll]
+        loss_functions = [losses.flow_nll]
         loss_weights = [1.0]
         loss_labels = ["nll"]
     elif method == "scandal":
-        loss_functions = [madminer.utils.ml.losses.flow_nll, madminer.utils.ml.losses.flow_score_mse]
+        loss_functions = [losses.flow_nll, losses.flow_score_mse]
         loss_weights = [1.0, alpha]
         loss_labels = ["nll", "mse_score"]
     else:
-        raise NotImplementedError("Unknown method {}".format(method))
+        raise NotImplementedError("Unknown method {method}")
+
     return loss_functions, loss_labels, loss_weights
 
 

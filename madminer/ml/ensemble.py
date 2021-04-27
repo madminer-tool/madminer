@@ -1,22 +1,14 @@
-from __future__ import absolute_import, division, print_function
-
-import six
-import logging
 import json
+import logging
 import numpy as np
-
 from madminer.utils.various import create_missing_folders, load_and_check
+
 from .base import Estimator
 from .double_parameterized_ratio import DoubleParameterizedRatioEstimator
 from .likelihood import LikelihoodEstimator
 from .parameterized_ratio import ParameterizedRatioEstimator
 from .score import ScoreEstimator
 
-
-try:
-    FileNotFoundError
-except NameError:
-    FileNotFoundError = IOError
 
 logger = logging.getLogger(__name__)
 
@@ -140,15 +132,15 @@ class Ensemble:
         """
         logger.info("Training %s estimators in ensemble", self.n_estimators)
 
-        for key, value in six.iteritems(kwargs):
+        for key, value in kwargs.items():
             if not isinstance(value, list):
                 kwargs[key] = [value for _ in range(self.n_estimators)]
 
-            assert len(kwargs[key]) == self.n_estimators, "Keyword {} has wrong length {}".format(key, len(value))
+            assert len(kwargs[key]) == self.n_estimators, f"Keyword {key} has wrong length {len(value)}"
 
         for i, estimator in enumerate(self.estimators):
             kwargs_this_estimator = {}
-            for key, value in six.iteritems(kwargs):
+            for key, value in kwargs.items():
                 kwargs_this_estimator[key] = value[i]
 
             logger.info("Training estimator %s / %s in ensemble", i + 1, self.n_estimators)
@@ -407,7 +399,7 @@ class Ensemble:
 
         # Check input
         if mode not in ["score", "information"]:
-            raise ValueError("Unknown mode {}, has to be 'score' or 'information'!".format(mode))
+            raise ValueError(f"Unknown mode {mode}!")
 
         # Calculate estimator_weights of each estimator in vote
         if estimator_weights is None:
@@ -448,7 +440,7 @@ class Ensemble:
         # "modified_score" mode:
         elif mode == "modified_score":
             # Load training data
-            if isinstance(x, six.string_types):
+            if isinstance(x, str):
                 x = load_and_check(x)
             n_samples = x.shape[0]
 
@@ -511,7 +503,7 @@ class Ensemble:
         # "score" mode:
         elif mode == "score":
             # Load training data
-            if isinstance(x, six.string_types):
+            if isinstance(x, str):
                 x = load_and_check(x)
             n_samples = x.shape[0]
 
@@ -604,12 +596,12 @@ class Ensemble:
         logger.debug("Saving ensemble setup to %s/ensemble.json", folder)
         settings = {"estimator_type": self.estimator_type, "n_estimators": self.n_estimators}
 
-        with open(folder + "/ensemble.json", "w") as f:
+        with open(f"{folder}/ensemble.json", "w") as f:
             json.dump(settings, f)
 
         # Save estimators
         for i, estimator in enumerate(self.estimators):
-            estimator.save(folder + "/estimator_" + str(i), save_model=save_model)
+            estimator.save(f"{folder}/estimator_{i}", save_model=save_model)
 
     def load(self, folder):
         """
@@ -627,7 +619,7 @@ class Ensemble:
         """
         # Load ensemble settings
         logger.debug("Loading ensemble setup from %s/ensemble.json", folder)
-        with open(folder + "/ensemble.json", "r") as f:
+        with open(f"{folder}/ensemble.json", "r") as f:
             settings = json.load(f)
 
         self.n_estimators = int(settings["n_estimators"])
@@ -644,7 +636,7 @@ class Ensemble:
         self.estimators = []
         for i in range(self.n_estimators):
             estimator = self._get_estimator_class(estimator_type)()
-            estimator.load(folder + "/estimator_" + str(i))
+            estimator.load(f"{folder}/estimator_{i}")
             self.estimators.append(estimator)
         self._check_consistency()
 
@@ -679,7 +671,7 @@ class Ensemble:
                     " or local score estimators. Found types " + ", ".join(all_types) + "."
                 )
 
-        # Check consistency of parameter and observable numnbers
+        # Check consistency of parameter and observable numbers
         self.n_parameters = None
         self.n_observables = None
 
@@ -725,4 +717,4 @@ class Ensemble:
         elif estimator_type == "likelihood":
             return LikelihoodEstimator
         else:
-            raise RuntimeError("Unknown estimator type {}!".format(estimator_type))
+            raise RuntimeError(f"Unknown estimator type {estimator_type}!")

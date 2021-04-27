@@ -1,7 +1,5 @@
-from __future__ import absolute_import, division, print_function, unicode_literals
-
-import numpy as np
 import logging
+import numpy as np
 from madminer.utils.various import weighted_quantile
 
 logger = logging.getLogger(__name__)
@@ -36,9 +34,8 @@ class Histo:
 
         if weights is not None:
             weights = weights.flatten()
-            assert weights.shape == (self.n_samples,), "Inconsistent weight shape {} should be {}".format(
-                weights.shape, (self.n_samples,)
-            )
+            assert weights.shape == (self.n_samples,), \
+                f"Inconsistent weight shape {weights.shape} should be {(self.n_samples,)}"
 
         logger.debug("Creating histogram:")
         logger.debug("  Samples:       %s", self.n_samples)
@@ -124,9 +121,20 @@ class Histo:
     def _fit(self, x, weights=None, epsilon=0.0):
         # Fill histograms
         ranges = [(edges[0], edges[-1]) for edges in self.edges]
-        histo, _ = np.histogramdd(x, bins=self.edges, range=ranges, normed=False, weights=weights)
+
+        histo, _ = np.histogramdd(
+            x,
+            bins=self.edges,
+            range=ranges,
+            normed=False,
+            weights=weights,
+        )
         histo_w2, _ = np.histogramdd(
-            x, bins=self.edges, range=ranges, normed=False, weights=None if weights is None else weights ** 2
+            x,
+            bins=self.edges,
+            range=ranges,
+            normed=False,
+            weights=None if weights is None else weights ** 2,
         )
 
         # Uncertainties
@@ -155,10 +163,12 @@ class Histo:
                     axis_edges[-1], axis_edges[-1] + 2.0 * (axis_edges[-1] - axis_edges[-2])
                 )  # Last bin is treated as at most twice as big as second-to-last
             modified_histo_edges.append(axis_edges)
+
         # Calculate cell volumes
         bin_widths = [axis_edges[1:] - axis_edges[:-1] for axis_edges in modified_histo_edges]
         shape = tuple(self.n_bins)
         volumes = np.ones(shape)
+
         for obs in range(self.n_observables):
             # Broadcast bin widths to array with shape like volumes
             bin_widths_broadcasted = np.ones(shape)
@@ -184,7 +194,9 @@ class Histo:
 
     def _report_uncertainties(self):
         rel_uncertainties = np.where(
-            self.histo.flatten() > 0.0, self.histo_uncertainties.flatten() / self.histo.flatten(), np.nan
+            self.histo.flatten() > 0.0,
+            self.histo_uncertainties.flatten() / self.histo.flatten(),
+            np.nan,
         )
         if np.nanmax(rel_uncertainties) > 0.5:
             logger.debug(

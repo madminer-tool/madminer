@@ -1,12 +1,11 @@
-from __future__ import absolute_import, division, print_function
-
+import logging
 import numpy.random as rng
 import torch.nn as nn
+
 from torch import tensor
 from madminer.utils.ml.models.base import BaseFlow, BaseConditionalFlow
 from madminer.utils.ml.models.made import GaussianMADE, ConditionalGaussianMADE
 from madminer.utils.ml.models.batch_norm import BatchNorm
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -157,7 +156,7 @@ class ConditionalMaskedAutoregressiveFlow(BaseConditionalFlow):
             if not (isinstance(input_order, str) and input_order != "random"):
                 input_order = made.input_order[::-1]
 
-        # Batch normalizatino
+        # Batch normalization
         self.bns = None
         if self.batch_norm:
             self.bns = nn.ModuleList()
@@ -220,7 +219,6 @@ class ConditionalMaskedAutoregressiveFlow(BaseConditionalFlow):
              (Default value = None)
         **kwargs :
 
-
         Returns
         -------
 
@@ -251,7 +249,6 @@ class ConditionalMaskedAutoregressiveFlow(BaseConditionalFlow):
         *args :
 
         **kwargs :
-
 
         Returns
         -------

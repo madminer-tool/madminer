@@ -1,17 +1,11 @@
-from __future__ import absolute_import, division, print_function
-
 import logging
 import numpy as np
 
-from ..utils.ml.models.ratio import DenseMorphingAwareRatioModel, DenseQuadraticMorphingAwareRatioModel
-from ..utils.interfaces.madminer_hdf5 import load_madminer_settings
-from ..utils.morphing import PhysicsMorpher
 from .parameterized_ratio import ParameterizedRatioEstimator
+from ..utils.interfaces.madminer_hdf5 import load_madminer_settings
+from ..utils.ml.models.ratio import DenseMorphingAwareRatioModel, DenseQuadraticMorphingAwareRatioModel
+from ..utils.morphing import PhysicsMorpher
 
-try:
-    FileNotFoundError
-except NameError:
-    FileNotFoundError = IOError
 
 logger = logging.getLogger(__name__)
 

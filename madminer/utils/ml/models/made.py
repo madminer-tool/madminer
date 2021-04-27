@@ -1,16 +1,14 @@
-from __future__ import absolute_import, division, print_function
-
+import logging
 import numpy as np
 import numpy.random as rng
 import torch
-from torch import tensor
 import torch.nn as nn
 import torch.nn.functional as F
 
 from madminer.utils.ml.models.base import BaseFlow, BaseConditionalFlow
 from madminer.utils.ml.models.masks import create_degrees, create_masks, create_weights, create_weights_conditional
 from madminer.utils.ml.utils import get_activation_function
-import logging
+from torch import tensor
 
 logger = logging.getLogger(__name__)
 
@@ -51,7 +49,6 @@ class GaussianMADE(BaseFlow):
         x :
 
         **kwargs :
-
 
         Returns
         -------
@@ -94,7 +91,6 @@ class GaussianMADE(BaseFlow):
              (Default value = None)
         **kwargs :
 
-
         Returns
         -------
 
@@ -131,7 +127,6 @@ class GaussianMADE(BaseFlow):
 
         **kwargs :
 
-
         Returns
         -------
 
@@ -159,7 +154,13 @@ class ConditionalGaussianMADE(BaseConditionalFlow):
     """ """
 
     def __init__(
-        self, n_conditionals, n_inputs, n_hiddens, activation="relu", input_order="sequential", mode="sequential"
+        self,
+        n_conditionals,
+        n_inputs,
+        n_hiddens,
+        activation="relu",
+        input_order="sequential",
+        mode="sequential",
     ):
         super(ConditionalGaussianMADE, self).__init__(n_conditionals, n_inputs)
 
@@ -198,7 +199,10 @@ class ConditionalGaussianMADE(BaseConditionalFlow):
         x :
 
         **kwargs :
+<<<<<<< HEAD
 
+=======
+>>>>>>> src: utils/ml/models module improve fmt
 
         Returns
         -------
@@ -267,7 +271,6 @@ class ConditionalGaussianMADE(BaseConditionalFlow):
              (Default value = None)
         **kwargs :
 
-
         Returns
         -------
 
@@ -305,7 +308,6 @@ class ConditionalGaussianMADE(BaseConditionalFlow):
         *args :
 
         **kwargs :
-
 
         Returns
         -------

@@ -1,5 +1,3 @@
-from __future__ import absolute_import, division, print_function, unicode_literals
-
 import logging
 import numpy as np
 
@@ -109,7 +107,7 @@ def random_morphing_points(n_thetas, priors):
 def iid_nuisance_parameters(shape="gaussian", param0=0.0, param1=1.0):
     """
     Utility function to be used as input to various SampleAugmenter functions, specifying that nuisance parameters are
-    fixed at their nominal valuees.
+    fixed at their nominal values.
 
     Parameters
     ----------
@@ -134,7 +132,7 @@ def iid_nuisance_parameters(shape="gaussian", param0=0.0, param1=1.0):
 def nominal_nuisance_parameters():
     """
     Utility function to be used as input to various SampleAugmenter functions, specifying that nuisance parameters are
-    fixed at their nominal valuees.
+    fixed at their nominal values.
 
     Returns
     -------

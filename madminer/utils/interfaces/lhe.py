@@ -1,22 +1,17 @@
-from __future__ import absolute_import, division, print_function, unicode_literals
-
-import six
-import numpy as np
-from collections import OrderedDict
-import os
 import logging
+import numpy as np
+import os
+from collections import OrderedDict
 
 try:
     import xml.etree.cElementTree as ET
-
     use_celementtree = True
 except ImportError:
     import xml.etree.ElementTree as ET
-
     use_celementtree = False
 
-from madminer.utils.various import unzip_file, approx_equal, math_commands
 from madminer.utils.particle import MadMinerParticle
+from madminer.utils.various import unzip_file, approx_equal, math_commands
 
 logger = logging.getLogger(__name__)
 
@@ -56,21 +51,21 @@ def parse_lhe_file(
     if k_factor is None:
         k_factor = 1.0
     if observables_required is None:
-        observables_required = {key: False for key in six.iterkeys(observables)}
+        observables_required = {key: False for key in observables.keys()}
     if observables_defaults is None:
-        observables_defaults = {key: None for key in six.iterkeys(observables)}
+        observables_defaults = {key: None for key in observables.keys()}
     if is_background and benchmark_names is None:
         raise RuntimeError("Parsing background LHE files required benchmark names to be provided.")
     if cuts is None:
         cuts = OrderedDict()
     if cuts_default_pass is None:
-        cuts_default_pass = {key: False for key in six.iterkeys(cuts)}
+        cuts_default_pass = {key: False for key in cuts.keys()}
     if efficiencies is None:
         efficiencies = OrderedDict()
     if efficiencies_default_pass is None:
-        efficiencies_default_pass = {key: 1.0 for key in six.iterkeys(efficiencies)}
+        efficiencies_default_pass = {key: 1.0 for key in efficiencies.keys()}
 
-    # Untar and open LHE file
+    # Unzip and open LHE file
     run_card = None
     for elem in _untar_and_parse_lhe_file(filename):
         if elem.tag == "MGRunCard":
@@ -260,11 +255,12 @@ def parse_lhe_file(
             output_weights[benchmark_name] = weights_all_events[sampling_benchmark]
         else:
             output_weights[benchmark_name] = weights_all_events[benchmark_name]
-    for syst_name, syst_data in six.iteritems(systematics_dict):
+
+    for syst_name, syst_data in systematics_dict.items():
         for (
             nuisance_param_name,
             ((nuisance_benchmark0, weight_name0), (nuisance_benchmark1, weight_name1), processing),
-        ) in six.iteritems(syst_data):
+        ) in syst_data.items():
             # Store first benchmark associated with nuisance param
             if weight_name0 is None:
                 weight_name0 = sampling_benchmark
@@ -273,7 +269,7 @@ def parse_lhe_file(
             elif isinstance(processing, float):
                 output_weights[nuisance_benchmark0] = processing * weights_all_events[weight_name0]
             else:
-                raise RuntimeError("Unknown nuisance processiing {}".format(processing))
+                raise RuntimeError(f"Unknown nuisance processing {processing}")
 
             # Store second benchmark associated with nuisance param
             if nuisance_benchmark1 is None or weight_name1 is None:
@@ -283,7 +279,7 @@ def parse_lhe_file(
             elif isinstance(processing, float):
                 output_weights[nuisance_benchmark1] = processing * weights_all_events[weight_name1]
             else:
-                raise RuntimeError("Unknown nuisance processing {}".format(processing))
+                raise RuntimeError(f"Unknown nuisance processing {processing}")
 
     return observations_dict, output_weights
 
@@ -305,11 +301,14 @@ def _report_parse_results(
         logger.info("  %s / %s events pass efficiency %s", n_pass, n_pass + n_fail, efficiency)
     for n_eff, efficiency, n_pass, n_fail in zip(avg_efficiencies, efficiencies, pass_efficiencies, fail_efficiencies):
         logger.info("  average efficiency for %s is %s", efficiency, n_eff / (n_pass + n_fail))
+
     n_events_pass = len(observations_all_events)
+
     if len(cuts) > 0:
         logger.info("  %s events pass all cuts/efficiencies", n_events_pass)
     if n_events_with_negative_weights > 0:
         logger.warning("  %s events contain negative weights", n_events_with_negative_weights)
+
     return n_events_pass
 
 
@@ -365,14 +364,26 @@ def _parse_event(
     pass_all_cuts = True
     if pass_all_observation:
         pass_all_cuts = _parse_cuts(
-            cuts, cuts_default_pass, fail_cuts, observables, observations, pass_all_cuts, pass_cuts, variables
+            cuts,
+            cuts_default_pass,
+            fail_cuts,
+            observables,
+            observations,
+            pass_all_cuts,
+            pass_cuts,
+            variables,
         )
 
     # Efficiencies
     pass_all_efficiencies = True
     if pass_all_observation and pass_all_cuts:
         pass_all_efficiencies, total_efficiency = _parse_efficiencies(
-            avg_efficiencies, efficiencies, efficiencies_default_pass, fail_efficiencies, pass_efficiencies, variables
+            avg_efficiencies,
+            efficiencies,
+            efficiencies_default_pass,
+            fail_efficiencies,
+            pass_efficiencies,
+            variables,
         )
 
         if pass_all_efficiencies:
@@ -395,20 +406,23 @@ def _parse_event(
 
 def _report_negative_weights(n_events_with_negative_weights, weights):
     n_negative_weights = np.sum(np.array(list(weights.values())) < 0.0)
+
     if n_negative_weights > 0:
         n_events_with_negative_weights += 1
         if n_events_with_negative_weights <= 3:
             logger.warning("Found %s negative weights in event. Weights: %s", n_negative_weights, weights)
         if n_events_with_negative_weights == 3:
             logger.warning("Skipping warnings about negative weights from now on...")
+
     return n_events_with_negative_weights
 
 
 def _parse_observations(observables, observables_defaults, observables_required, variables):
     observations = []
     pass_all_observation = True
-    for obs_name, obs_definition in six.iteritems(observables):
-        if isinstance(obs_definition, six.string_types):
+
+    for obs_name, obs_definition in observables.items():
+        if isinstance(obs_definition, str):
             try:
                 observations.append(eval(obs_definition, variables))
             except (SyntaxError, NameError, TypeError, ZeroDivisionError, IndexError):
@@ -434,15 +448,22 @@ def _parse_observations(observables, observables_defaults, observables_required,
                 if default is None:
                     default = np.nan
                 observations.append(default)
+
     return observations, pass_all_observation
 
 
 def _parse_efficiencies(
-    avg_efficiencies, efficiencies, efficiencies_default_pass, fail_efficiencies, pass_efficiencies, variables
+    avg_efficiencies,
+    efficiencies,
+    efficiencies_default_pass,
+    fail_efficiencies,
+    pass_efficiencies,
+    variables,
 ):
     # Apply efficiencies
     total_efficiency = 1.0
     pass_all_efficiencies = True
+
     for i_efficiency, (efficiency, default_pass) in enumerate(zip(efficiencies, efficiencies_default_pass)):
         try:
             efficiency_result = eval(efficiency, variables)
@@ -462,6 +483,7 @@ def _parse_efficiencies(
             else:
                 fail_efficiencies[i_efficiency] += 1
                 pass_all_efficiencies = False
+
     return pass_all_efficiencies, total_efficiency
 
 
@@ -469,6 +491,7 @@ def _parse_cuts(cuts, cuts_default_pass, fail_cuts, observables, observations, p
     # Objects for cuts
     for obs_name, obs_value in zip(observables.keys(), observations):
         variables[obs_name] = obs_value
+
     # Check cuts
     for i_cut, (cut, default_pass) in enumerate(zip(cuts, cuts_default_pass)):
         try:
@@ -485,6 +508,7 @@ def _parse_cuts(cuts, cuts_default_pass, fail_cuts, observables, observations, p
             else:
                 fail_cuts[i_cut] += 1
                 pass_all_cuts = False
+
     return pass_all_cuts
 
 
@@ -504,7 +528,7 @@ def extract_nuisance_parameters_from_lhe_file(filename, systematics):
     # Parse scale factors from strings in systematics
     logger.debug("Systematics setup: %s", systematics)
 
-    # Untar and parse LHE file
+    # Unzip and parse LHE file
     initrwgts = _untar_and_parse_lhe_file(filename, ["initrwgt"])
 
     # Find weight groups
@@ -519,7 +543,7 @@ def extract_nuisance_parameters_from_lhe_file(filename, systematics):
     logger.debug("%s weight groups", len(weight_groups))
 
     # Loop over systematics
-    for syst_name, syst_value in six.iteritems(systematics):
+    for syst_name, syst_value in systematics.items():
         nuisance_param_dict = _extract_nuisance_param_dict(weight_groups, syst_name, syst_value)
         systematics_dict[syst_name] = nuisance_param_dict
 
@@ -532,8 +556,8 @@ def _extract_nuisance_param_dict(weight_groups, systematics_name, systematics_de
     syst_type = systematics_definition[0]
 
     if syst_type == "norm":
-        nuisance_param_name = "{}_nuisance_param_0".format(systematics_name)
-        benchmark_name = "{}_benchmark_0".format(nuisance_param_name)
+        nuisance_param_name = f"{systematics_name}_nuisance_param_0"
+        benchmark_name = f"{nuisance_param_name}_benchmark_0"
         nuisance_param_definition = (benchmark_name, None), (None, None), systematics_definition[1]
         return {nuisance_param_name: nuisance_param_definition}
 
@@ -596,7 +620,7 @@ def _extract_nuisance_param_dict(weight_groups, systematics_name, systematics_de
 
                     # Matching time!
                     if approx_equal(weight_mur, mur) and approx_equal(weight_muf, muf):
-                        benchmark_name = "{}_nuisance_param_0_benchmark_{}".format(systematics_name, k)
+                        benchmark_name = f"{systematics_name}_nuisance_param_0_benchmark_{k}"
                         nuisance_param_definition_parts.append((benchmark_name, weight_id))
                         break
 
@@ -614,7 +638,7 @@ def _extract_nuisance_param_dict(weight_groups, systematics_name, systematics_de
             return {}
         else:
             # Output
-            nuisance_param_name = "{}_nuisance_param_0".format(systematics_name)
+            nuisance_param_name = f"{systematics_name}_nuisance_param_0"
             if len(nuisance_param_definition_parts) > 1:
                 nuisance_dict = {
                     nuisance_param_name: (nuisance_param_definition_parts[0], nuisance_param_definition_parts[1], None)
@@ -657,8 +681,8 @@ def _extract_nuisance_param_dict(weight_groups, systematics_name, systematics_de
                 logger.debug("Found PDF weight %s / %s", weight_id, weight_pdf)
 
                 # Add every PDF Hessian direction to nuisance parameters
-                nuisance_param_name = "{}_nuisance_param_{}".format(systematics_name, i)
-                benchmark_name = "{}_benchmark_0".format(nuisance_param_name)
+                nuisance_param_name = f"{systematics_name}_nuisance_param_{i}"
+                benchmark_name = f"{nuisance_param_name}_benchmark_0"
                 nuisance_dict[nuisance_param_name] = (benchmark_name, weight_id), (None, None), None
 
         # Check that everything was found
@@ -854,7 +878,7 @@ def _parse_lhe_file_with_bad_chars(filename):
 
 
 def _untar_and_parse_lhe_file(filename, tags=None):
-    # Untar event file
+    # Unzip event file
     new_filename, extension = os.path.splitext(filename)
     if extension == ".gz":
         if not os.path.exists(new_filename):
@@ -995,10 +1019,10 @@ def _smear_particles(particles, energy_resolutions, pt_resolutions, eta_resoluti
         pdgid = particle.pdgid
 
         if (
-            pdgid not in six.iterkeys(energy_resolutions)
-            or pdgid not in six.iterkeys(pt_resolutions)
-            or pdgid not in six.iterkeys(eta_resolutions)
-            or pdgid not in six.iterkeys(phi_resolutions)
+            pdgid not in energy_resolutions.keys()
+            or pdgid not in pt_resolutions.keys()
+            or pdgid not in eta_resolutions.keys()
+            or pdgid not in phi_resolutions.keys()
         ):
             continue
 

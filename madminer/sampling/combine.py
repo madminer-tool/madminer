@@ -1,5 +1,3 @@
-from __future__ import absolute_import, division, print_function, unicode_literals
-
 import logging
 import numpy as np
 
@@ -14,15 +12,21 @@ logger = logging.getLogger(__name__)
 def _calculate_n_events(sampling_ids, n_benchmarks):
     if sampling_ids is None:
         return None, None
+
     unique, counts = np.unique(sampling_ids, return_counts=True)
     results = dict(zip(unique, counts))
+
     n_events_backgrounds = results.get(-1, 0)
     n_events_signal_per_benchmark = np.array([results.get(i, 0) for i in range(n_benchmarks)], dtype=np.int)
     return n_events_signal_per_benchmark, n_events_backgrounds
 
 
 def combine_and_shuffle(
-    input_filenames, output_filename, k_factors=None, overwrite_existing_file=True, recalculate_header=True
+    input_filenames,
+    output_filename,
+    k_factors=None,
+    overwrite_existing_file=True,
+    recalculate_header=True,
 ):
     """
     Combines multiple MadMiner files into one, and shuffles the order of the events.
@@ -78,7 +82,8 @@ def combine_and_shuffle(
 
     if len(input_filenames) != len(k_factors):
         raise RuntimeError(
-            "Inconsistent length of input filenames and k factors: %s vs %s", len(input_filenames), len(k_factors)
+            f"Inconsistent length of input filenames and k factors: "
+            f"{len(input_filenames)} vs {len(k_factors)}"
         )
 
     # Copy first file to output_filename
