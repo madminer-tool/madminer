@@ -50,17 +50,19 @@ jobs:
     - name: "Install Python dependencies"
       run: |
         pip install --no-cache-dir --upgrade pip setuptools wheel
-        pip install --no-cache-dir --upgrade build twine
+        pip install --no-cache-dir --upgrade build
         pip install --no-cache-dir --quiet .
         pip list
     - name: "Build Python package"
       run: |
-        python -m build --sdist --wheel --outdir dist .
-    - name: "Check Python package"
-      run: |
-        twine check dist/*
+        python -m build \
+          --sdist \
+          --wheel \
+          --outdir dist \
+          .
     - name: "Publish Python package"
       uses: pypa/gh-action-pypi-publish@v1.4
       with:
         user: __token__
         password: ${{ secrets.PYPI_API_TOKEN }}
+        verify_metadata: true
