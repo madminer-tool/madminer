@@ -1,6 +1,9 @@
 name: Continuous Integration
 
 on:
+  # Run every Monday at 00:00 UTC
+  schedule:
+    - cron: "00 00 * * 1"
   push:
     branches:
       - master
