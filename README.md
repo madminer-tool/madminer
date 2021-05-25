@@ -3,7 +3,7 @@
 **By Johann Brehmer, Felix Kling, Irina Espejo, Sinclert Pérez, and Kyle Cranmer**
 
 [![PyPI version](https://badge.fury.io/py/madminer.svg)](https://badge.fury.io/py/madminer)
-[![Build Status](https://travis-ci.com/diana-hep/madminer.svg?branch=master)](https://travis-ci.com/diana-hep/madminer)
+[![CI Status](https://github.com/diana-hep/madminer/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/diana-hep/madminer/actions/workflows/ci.yml?query=branch%3Amaster)
 [![Documentation Status](https://readthedocs.org/projects/madminer/badge/?version=latest)](https://madminer.readthedocs.io/en/latest/?badge=latest)
 [![Gitter](https://badges.gitter.im/madminer/community.svg)](https://gitter.im/madminer/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/ambv/black)

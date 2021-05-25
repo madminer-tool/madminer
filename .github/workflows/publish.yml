@@ -1,0 +1,68 @@
+name: Publish artifacts
+
+on:
+  release:
+    ### NOTE:
+    ###
+    ### There are multiple types of release trigger events.
+    ### Ref: https://docs.github.com/en/actions/reference/events-that-trigger-workflows#release
+    ###
+    ### Given that GitHub allows the creation of 'release'
+    ### and 'pre-release' publications to differentiate between
+    ### production and beta releases, the trigger type to use,
+    ### as it wraps them both, must be 'published'.
+    types: [published]
+
+jobs:
+
+  docker:
+    needs: []
+    runs-on: ubuntu-latest
+    steps:
+    - name: "Set up GitHub Actions"
+      uses: actions/checkout@v2
+    - name: "Login to DockerHub"
+      uses: docker/login-action@v1
+      with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+    - name: "Build and publish to registry"
+      uses: docker/build-push-action@v2
+      with:
+        push: true
+        context: .
+        tags: madminertool/docker-madminer:latest
+        labels: |
+          org.opencontainers.image.source=${{ github.event.repository.html_url }}
+          org.opencontainers.image.created=${{ steps.prep.outputs.created }}
+          org.opencontainers.image.revision=${{ github.sha }}
+
+  package:
+    needs: []
+    runs-on: ubuntu-latest
+    steps:
+    - name: "Set up GitHub Actions"
+      uses: actions/checkout@v2
+    - name: "Set up Python 3.6"
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.6
+    - name: "Install Python dependencies"
+      run: |
+        pip install --no-cache-dir --upgrade pip setuptools wheel
+        pip install --no-cache-dir --upgrade build
+        pip install --no-cache-dir --quiet .
+        pip list
+    - name: "Build Python package"
+      run: |
+        python -m build \
+          --sdist \
+          --wheel \
+          --outdir dist \
+          .
+    - name: "Publish Python package"
+      uses: pypa/gh-action-pypi-publish@v1.4
+      with:
+        user: __token__
+        password: ${{ secrets.PYPI_API_TOKEN }}
+        verify_metadata: true
