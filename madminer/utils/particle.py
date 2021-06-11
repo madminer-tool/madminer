@@ -1,10 +1,10 @@
 import logging
-from skhep.math.vectors import LorentzVector
+import vector
 
 logger = logging.getLogger(__name__)
 
 
-class MadMinerParticle(LorentzVector):
+class MadMinerParticle(vector.VectorObject4D):
     """ """
 
     def __init__(self, *args, **kwargs):
@@ -50,6 +50,7 @@ class MadMinerParticle(LorentzVector):
         self.spin = spin
 
     def __iadd__(self, other):
+        assert isinstance(other, self.__class__)
         super(MadMinerParticle, self).__iadd__(other)
         self.charge = None if self.charge is None or other.charge is None else self.charge + other.charge
         self.pdgid = None
@@ -60,6 +61,7 @@ class MadMinerParticle(LorentzVector):
         return self
 
     def __isub__(self, other):
+        assert isinstance(other, self.__class__)
         super(MadMinerParticle, self).__isub__(other)
         self.charge = None if self.charge is None or other.charge is None else self.charge - other.charge
         self.pdgid = None
@@ -73,6 +75,7 @@ class MadMinerParticle(LorentzVector):
         return self
 
     def __add__(self, other):
+        assert isinstance(other, self.__class__)
         vec = super(MadMinerParticle, self).__add__(other)
         vec.charge = None if self.charge is None or other.charge is None else self.charge + other.charge
         vec.pdgid = None
@@ -83,6 +86,7 @@ class MadMinerParticle(LorentzVector):
         return vec
 
     def __sub__(self, other):
+        assert isinstance(other, self.__class__)
         vec = super(MadMinerParticle, self).__sub__(other)
         vec.charge = None if self.charge is None or other.charge is None else self.charge - other.charge
         vec.pdgid = None
@@ -95,7 +99,7 @@ class MadMinerParticle(LorentzVector):
     def boost(self, *args):
         vec = super(MadMinerParticle, self).boost(*args)
 
-        particle = MadMinerParticle().from4vector(vec)
+        particle = MadMinerParticle().from_xyzt(vec.x, vec.y, vec.z, vec.t)
         particle.charge = self.charge
         particle.spin = self.spin
         particle.pdgid = self.pdgid
