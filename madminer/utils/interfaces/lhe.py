@@ -744,7 +744,7 @@ def _parse_xml_event(event, sampling_benchmark):
             e = float(elements[9])
             spin = float(elements[12])
             particle = MadMinerParticle()
-            particle.setpxpypze(px, py, pz, e)
+            particle.from_xyzt(px, py, pz, e)
             particle.set_pdgid(pdgid)
             particle.set_spin(spin)
             particles.append(particle)
@@ -854,7 +854,7 @@ def _parse_txt_events(filename, sampling_benchmark):
                     e = float(elements[9])
                     spin = float(elements[12])
                     particle = MadMinerParticle()
-                    particle.setpxpypze(px, py, pz, e)
+                    particle.from_xyzt(px, py, pz, e)
                     particle.set_pdgid(pdgid)
                     particle.set_spin(spin)
                     particles.append(particle)
@@ -945,7 +945,7 @@ def _get_objects(particles, particles_truth, met_resolution=None, global_event_d
     # Sum over all particles
     ht = 0.0
     visible_sum = MadMinerParticle()
-    visible_sum.setpxpypze(0.0, 0.0, 0.0, 0.0)
+    visible_sum.from_xyzt(0.0, 0.0, 0.0, 0.0)
 
     for particle in particles:
         pdgid = abs(particle.pdgid)
@@ -963,10 +963,10 @@ def _get_objects(particles, particles_truth, met_resolution=None, global_event_d
         noise_y = 0.0
 
     # MET
-    met_x = -visible_sum.px + noise_x
-    met_y = -visible_sum.py + noise_y
+    met_x = -visible_sum.x + noise_x
+    met_y = -visible_sum.y + noise_y
     met = MadMinerParticle()
-    met.setpxpypze(met_x, met_y, 0.0, (met_x ** 2 + met_y ** 2) ** 0.5)
+    met.from_xyzt(met_x, met_y, 0.0, (met_x ** 2 + met_y ** 2) ** 0.5)
 
     # Build objects
     objects = math_commands()
@@ -1059,7 +1059,7 @@ def _smear_particles(particles, energy_resolutions, pt_resolutions, eta_resoluti
 
         if None in energy_resolutions[pdgid]:
             # Calculate E from on-shell conditions
-            smeared_particle.setptetaphim(pt, eta, phi, particle.m)
+            smeared_particle.from_rhophietatau(pt, phi, eta, particle.m)
 
         elif None in pt_resolutions[pdgid]:
             # Calculate pT from on-shell conditions
@@ -1067,11 +1067,11 @@ def _smear_particles(particles, energy_resolutions, pt_resolutions, eta_resoluti
                 pt = (e ** 2 - m ** 2) ** 0.5 / np.cosh(eta)
             else:
                 pt = 0.0
-            smeared_particle.setptetaphie(pt, eta, phi, e)
+            smeared_particle.from_rhophietat(pt, phi, eta, e)
 
         else:
             # Everything smeared manually
-            smeared_particle.setptetaphie(pt, eta, phi, e)
+            smeared_particle.from_rhophietat(pt, phi, eta, e)
 
         # PDG id (also sets charge)
         smeared_particle.set_pdgid(pdgid)
