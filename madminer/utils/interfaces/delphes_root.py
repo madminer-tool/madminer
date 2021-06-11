@@ -112,7 +112,7 @@ def parse_delphes_root_file(
                 "met": met_all_events[ievent][0],
                 "visible": visible_momentum,
                 "all": all_momentum,
-                "boost_to_com": lambda momentum: momentum.boost(all_momentum.boost_vector()),
+                "boost_to_com": lambda momentum: momentum.boost(all_momentum.to_Vector3D()),
             }
         )
 
@@ -269,7 +269,7 @@ def _get_particles_truth(tree, pt_min, eta_max, included_pdgids=None):
                 continue
 
             particle = MadMinerParticle()
-            particle.setptetaphie(pt, eta, phi, e)
+            particle.from_rhophietat(pt, phi, eta, e)
             particle.set_pdgid(pdgid)
             event_particles.append(particle)
 
@@ -299,7 +299,7 @@ def _get_particles_charged(tree, name, mass, pdgid_positive_charge, pt_min, eta_
             pdgid = pdgid_positive_charge if charge >= 0.0 else -pdgid_positive_charge
 
             particle = MadMinerParticle()
-            particle.setptetaphim(pt, eta, phi, mass)
+            particle.from_rhophietatau(pt, phi, eta, mass)
             particle.set_pdgid(pdgid)
             event_particles.append(particle)
 
@@ -363,7 +363,7 @@ def _get_particles_leptons(tree, pt_min_e, eta_max_e, pt_min_mu, eta_max_mu):
                 continue
 
             particle = MadMinerParticle()
-            particle.setptetaphim(pt, eta, phi, mass)
+            particle.from_rhophietatau(pt, phi, eta, mass)
             particle.set_pdgid(pdgid)
             event_particles.append(particle)
 
@@ -398,7 +398,7 @@ def _get_particles_truth_leptons(tree, pt_min_e, eta_max_e, pt_min_mu, eta_max_m
                 continue
 
             particle = MadMinerParticle()
-            particle.setptetaphie(pt, eta, phi, e)
+            particle.from_rhophietat(pt, phi, eta, e)
             particle.set_pdgid(pdgid)
             event_particles.append(particle)
 
@@ -426,7 +426,7 @@ def _get_particles_photons(tree, pt_min, eta_max):
                 continue
 
             particle = MadMinerParticle()
-            particle.setptetaphie(pt, eta, phi, e)
+            particle.from_rhophietat(pt, phi, eta, e)
             particle.set_pdgid(22)
             event_particles.append(particle)
 
@@ -466,7 +466,7 @@ def _get_particles_jets(tree, pt_min, eta_max):
                 continue
 
             particle = MadMinerParticle()
-            particle.setptetaphim(pt, eta, phi, mass)
+            particle.from_rhophietatau(pt, phi, eta, mass)
             particle.set_pdgid(9)
             particle.set_tags(tau_tag >= 1, b_tag >= 1, False)
             event_particles.append(particle)
@@ -507,7 +507,7 @@ def _get_particles_truth_jets(tree, pt_min, eta_max):
                 continue
 
             particle = MadMinerParticle()
-            particle.setptetaphim(pt, eta, phi, mass)
+            particle.from_rhophietatau(pt, phi, eta, mass)
             particle.set_pdgid(9)
             particle.set_tags(tau_tag >= 1, b_tag >= 1, False)
             event_particles.append(particle)
@@ -528,7 +528,7 @@ def _get_particles_truth_met(tree):
 
         for met, phi in zip(mets[ievent], phis[ievent]):
             particle = MadMinerParticle()
-            particle.setptetaphim(met, 0.0, phi, 0.0)
+            particle.from_rhophietatau(met, phi, 0.0, 0.0)
             particle.set_pdgid(0)
             event_particles.append(particle)
 
@@ -548,7 +548,7 @@ def _get_particles_met(tree):
 
         for met, phi in zip(mets[ievent], phis[ievent]):
             particle = MadMinerParticle()
-            particle.setptetaphim(met, 0.0, phi, 0.0)
+            particle.from_rhophietatau(met, phi, 0.0, 0.0)
             particle.set_pdgid(0)
             event_particles.append(particle)
 
