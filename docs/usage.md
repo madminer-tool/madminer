@@ -5,8 +5,8 @@ We provide different resources that help with the use of MadMiner:
 
 ## Paper
 
-Our main publication [MadMiner: Machine-learning-based inference for particle physics]() provides an overview over this
-package. We recommend reading it first before jumping into the code.
+Our main publication [MadMiner: Machine-learning-based inference for particle physics](https://arxiv.org/abs/1907.10621)
+provides an overview over this package. We recommend reading it first before jumping into the code.
 
 
 ## Tutorials
@@ -47,4 +47,4 @@ The madminer API is documented on here as well, just look through the pages link
 
 If you have any questions, please
 chat to us [in our Gitter community](https://gitter.im/madminer/community) or write us at 
-[johann.brehmer@nyu.edu](johann.brehmer@nyu.edu).
+[johann.brehmer@nyu.edu](mailto:johann.brehmer@nyu.edu).

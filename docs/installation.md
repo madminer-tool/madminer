@@ -35,5 +35,5 @@ folder.
 ### Docker image
 
 At [https://hub.docker.com/u/madminertool/](https://hub.docker.com/u/madminertool/) we provide Docker images for
-the latest version of MadMiner and the physics simulator. Please email [iem244@nyu.edu](iem244@nyu.edu) for any
+the latest version of MadMiner and the physics simulator. Please email [iem244@nyu.edu](mailto:iem244@nyu.edu) for any
 questions about the Docker images.
