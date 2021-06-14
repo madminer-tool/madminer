@@ -85,8 +85,8 @@ class Ensemble:
         Returns
         -------
             None
-
         """
+
         if not isinstance(estimator, Estimator):
             raise ValueError("Entry {} in estimators is neither str nor Estimator instance")
 
@@ -109,7 +109,6 @@ class Ensemble:
         Returns
         -------
             None
-
         """
 
         self.estimators[i].train(**kwargs)
@@ -128,7 +127,6 @@ class Ensemble:
         Returns
         -------
             None
-
         """
         logger.info("Training %s estimators in ensemble", self.n_estimators)
 
@@ -169,7 +167,6 @@ class Ensemble:
 
         covariance : ndarray or None
             If calculate_covariance is True, the covariance matrix between the estimators. Otherwise None.
-
         """
 
         logger.debug("Evaluating %s estimators in ensemble", self.n_estimators)
@@ -223,7 +220,6 @@ class Ensemble:
 
         covariance : ndarray or None
             If calculate_covariance is True, the covariance matrix between the estimators. Otherwise None.
-
         """
 
         logger.debug("Evaluating %s estimators in ensemble", self.n_estimators)
@@ -277,7 +273,6 @@ class Ensemble:
 
         covariance : ndarray or None
             If calculate_covariance is True, the covariance matrix between the estimators. Otherwise None.
-
         """
 
         logger.debug("Evaluating %s estimators in ensemble", self.n_estimators)
@@ -330,6 +325,7 @@ class Ensemble:
         more precise and is the default.
 
         In the "score" mode, the covariance matrix of the final result is calculated in the following way:
+
         - For each event `x` and each estimator `a`, the "shifted" predicted score is calculated as
           `t_a'(x) = t(x) + 1/sqrt(n) * (t_a(x) - t(x))`. Here `t(x)` is the mean score (averaged over the ensemble)
           for this event, `t_a(x)` is the prediction of estimator `a` for this event, and `n` is the number of
@@ -388,6 +384,7 @@ class Ensemble:
             The covariance of the estimated Fisher information matrix. This object has four indices, `cov_(ij)(i'j')`,
             ordered as i j i' j'. It has shape `(n_parameters, n_parameters, n_parameters, n_parameters)`.
         """
+
         logger.debug("Evaluating Fisher information for %s estimators in ensemble", self.n_estimators)
 
         # Check ensemble
@@ -586,7 +583,6 @@ class Ensemble:
         Returns
         -------
             None
-
         """
 
         # Check paths
@@ -615,8 +611,8 @@ class Ensemble:
         Returns
         -------
             None
-
         """
+
         # Load ensemble settings
         logger.debug("Loading ensemble setup from %s/ensemble.json", folder)
         with open(f"{folder}/ensemble.json", "r") as f:
@@ -650,8 +646,8 @@ class Ensemble:
         ------
         RuntimeError
             Estimators are inconsistent.
-
         """
+
         # Accumulate methods of all estimators
         all_types = [self._get_estimator_type(estimator) for estimator in self.estimators]
         all_n_parameters = [estimator.n_parameters for estimator in self.estimators]
