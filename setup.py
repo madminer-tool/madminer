@@ -45,8 +45,8 @@ REQUIRED = [
 ]
 
 EXTRAS_DOCS = [
+    "myst-parser",
     "numpydoc",
-    "recommonmark",
     "sphinx>=1.4",
     "sphinx_rtd_theme",
 ]
