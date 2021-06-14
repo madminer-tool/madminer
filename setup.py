@@ -44,25 +44,22 @@ REQUIRED = [
     "uproot3>=3.14.1",
 ]
 
-EXTRAS_DOCS = sorted(
-    [
-        "numpydoc",
-        "recommonmark",
-        "sphinx>=1.4",
-        "sphinx_rtd_theme",
-    ]
-)
-EXTRAS_TEST = sorted(
-    EXTRAS_DOCS + [
-        "pytest",
-    ]
-)
-EXTRAS_EXAMPLES = sorted(
-    [
-        "bqplot",
-        "pandas",
-    ]
-)
+EXTRAS_DOCS = [
+    "myst-parser",
+    "numpydoc",
+    "sphinx>=1.4",
+    "sphinx_rtd_theme",
+]
+
+EXTRAS_TEST = [
+    *EXTRAS_DOCS,
+    "pytest",
+]
+
+EXTRAS_EXAMPLES = [
+    "bqplot",
+    "pandas",
+]
 
 
 class UploadCommand(Command):

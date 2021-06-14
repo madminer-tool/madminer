@@ -34,7 +34,6 @@ MadMiner
    madminer.likelihood
    madminer.limits
    madminer.ml
-   madminer.morphing
    madminer.plotting
    madminer.sampling
 
