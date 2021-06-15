@@ -973,5 +973,5 @@ class DataAnalyzer(object):
 
     def _benchmark_array(self):
         return np.asarray([
-            benchmark.values() for benchmark in self.benchmarks.values()
+            list(benchmark.values()) for benchmark in self.benchmarks.values()
         ])
