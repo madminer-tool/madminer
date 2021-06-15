@@ -1,5 +1,5 @@
 # Docker image that contains madminer and root
-FROM rootproject/root-ubuntu
+FROM rootproject/root:6.24.00-ubuntu20.04
 
 USER root
 
