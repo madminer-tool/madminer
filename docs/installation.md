@@ -13,11 +13,10 @@ option to calculate truth-level observables which do not require any additional 
 a fast detector simulation based on Delphes with a flexible framework to calculate observables. 
 Using this adds additional requirements:
 
-- Pythia8 and the MG-Pythia interface, installed from within the MadGraph command line interface: execute
- `<MadGraph5_directory>/bin/mg5_aMC`, and then inside the MadGraph interface, run `install pythia8` and
- `install mg5amc_py8_interface`.
-- Delphes. Again, you can (but this time you don't have to) install it from the MadGraph command line interface with
-  `install Delphes`.
+```shell
+echo "install pythia8" | python3 <MadGraph_dir>/bin/mg5_aMC
+echo "install Delphes" | python3 <MadGraph_dir>/bin/mg5_aMC
+```
 
 Finally, Delphes can be replaced with another detector simulation, for instance a full detector simulation based
 with Geant4. In this case, the user has to implement code that runs the detector simulation, calculates the observables,
