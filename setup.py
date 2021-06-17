@@ -39,9 +39,9 @@ REQUIRED = [
     "matplotlib>=2.0.0",
     "numpy>=1.13.0",
     "scipy>=1.0.0",
-    "scikit-hep>=0.5.0, <0.6.0",
     "torch>=1.0.0",
     "uproot3>=3.14.1",
+    "vector>=0.8.0",
 ]
 
 EXTRAS_DOCS = [
