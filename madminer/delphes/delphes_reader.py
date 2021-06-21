@@ -361,9 +361,7 @@ class DelphesReader:
             used: `e`, `mu`, `j`, `a`, and `l` provide lists of electrons, muons, jets, photons, and leptons (electrons
             and muons combined), in each case sorted by descending transverse momentum. `met` provides a missing ET
             object. `visible` and `all` provide access to the sum of all visible particles and the sum of all visible
-            particles plus MET, respectively. All these objects are instances of `MadMinerParticle`, which inherits from
-            scikit-hep's [LorentzVector](http://scikit-hep.org/api/math.html#vector-classes). See the link for a
-            documentation of their properties. In addition, `MadMinerParticle` have  properties `charge` and `pdg_id`,
+            particles plus MET, respectively. In addition, `MadMinerParticle` have  properties `charge` and `pdg_id`,
             which return the charge in units of elementary charges (i.e. an electron has `e[0].charge = -1.`), and the
             PDG particle ID. For instance, `"abs(j[0].phi() - j[1].phi())"` defines the azimuthal angle between the two
             hardest jets.
@@ -530,9 +528,7 @@ class DelphesReader:
             used: `e`, `mu`, `j`, `a`, and `l` provide lists of electrons, muons, jets, photons, and leptons (electrons
             and muons combined), in each case sorted by descending transverse momentum. `met` provides a missing ET
             object. `visible` and `all` provide access to the sum of all visible particles and the sum of all visible
-            particles plus MET, respectively. All these objects are instances of `MadMinerParticle`, which inherits from
-            scikit-hep's [LorentzVector](http://scikit-hep.org/api/math.html#vector-classes). See the link for a
-            documentation of their properties. In addition, `MadMinerParticle` have  properties `charge` and `pdg_id`,
+            particles plus MET, respectively. In addition, `MadMinerParticle` have  properties `charge` and `pdg_id`,
             which return the charge in units of elementary charges (i.e. an electron has `e[0].charge = -1.`), and the
             PDG particle ID. For instance, `"len(e) >= 2"` requires at least two electrons passing the acceptance cuts,
             while `"mu[0].charge > 0."` specifies that the hardest muon is positively charged.
