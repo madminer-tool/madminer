@@ -102,9 +102,9 @@ class HistoLikelihood(BaseLikelihood):
 
         # Check input and join observables and score components - nothing interesting
         if observables is None:
-            observables = list([])
+            observables = []
         if score_components is None:
-            score_components = list([])
+            score_components = []
         if observables == [] and score_components == []:
             logger.info("No observables and scores provided. Calculate LLR due to rate and set include_xsec=True.")
             include_xsec = True
