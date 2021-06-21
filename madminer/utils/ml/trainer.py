@@ -18,7 +18,7 @@ from madminer.utils.ml.utils import (
 logger = logging.getLogger(__name__)
 
 
-class Trainer(object):
+class Trainer:
     """ Trainer class. Any subclass has to implement the forward_pass() function. """
 
     def __init__(self, model, run_on_gpu=True, double_precision=False, n_workers=8):

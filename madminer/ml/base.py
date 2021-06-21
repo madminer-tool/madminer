@@ -10,7 +10,7 @@ from ..utils.various import create_missing_folders, load_and_check
 logger = logging.getLogger(__name__)
 
 
-class Estimator(object):
+class Estimator:
     """
     Abstract class for any ML estimator. Subclassed by ParameterizedRatioEstimator, DoubleParameterizedRatioEstimator,
     ScoreEstimator, and LikelihoodEstimator.

@@ -8,7 +8,7 @@ from madminer.utils.various import format_benchmark, mdot
 logger = logging.getLogger(__name__)
 
 
-class DataAnalyzer(object):
+class DataAnalyzer:
     """
     Collects common functionality that is used when analysing data in the MadMiner file.
 
