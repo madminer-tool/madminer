@@ -428,7 +428,7 @@ class HistoLikelihood(BaseLikelihood):
 
         def summary_function(xs):
             # only prefined observables - very fast
-            if not "score" in x_indices and not "function" in x_indices:
+            if "score" not in x_indices and "function" not in x_indices:
                 return xs[:, x_indices]
 
             # evaluate some observables using eval() - more slow
