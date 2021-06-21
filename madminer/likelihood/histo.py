@@ -120,7 +120,7 @@ class HistoLikelihood(BaseLikelihood):
 
         # Load model - nothing interesting
         if score_components:
-            assert all([isinstance(score_component, int) for score_component in score_components])
+            assert all(isinstance(score_component, int) for score_component in score_components)
             if model_file is None:
                 raise ValueError("You need to provide a model_file!")
             model = load_estimator(model_file)
@@ -146,7 +146,7 @@ class HistoLikelihood(BaseLikelihood):
         # find binning
         logger.info("Setting up binning")
         if observables != [] and (
-            hist_bins is None or not all([hasattr(hist_bin, "__len__") for hist_bin in hist_bins])
+            hist_bins is None or not all(hasattr(hist_bin, "__len__") for hist_bin in hist_bins)
         ):
             if thetas_binning is None:
                 raise ValueError("Your input requires adaptive binning: thetas_binning can not be None.")
