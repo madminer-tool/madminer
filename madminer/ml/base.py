@@ -10,7 +10,7 @@ from ..utils.various import create_missing_folders, load_and_check
 logger = logging.getLogger(__name__)
 
 
-class Estimator(object):
+class Estimator:
     """
     Abstract class for any ML estimator. Subclassed by ParameterizedRatioEstimator, DoubleParameterizedRatioEstimator,
     ScoreEstimator, and LikelihoodEstimator.
@@ -215,7 +215,7 @@ class Estimator(object):
         if self.features == "None":
             self.features = None
         if self.features is not None:
-            self.features = list([int(item) for item in self.features])
+            self.features = [int(item) for item in self.features]
 
         try:
             self.dropout_prob = float(settings["dropout_prob"])

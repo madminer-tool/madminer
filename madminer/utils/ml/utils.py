@@ -184,7 +184,7 @@ def get_loss(method, alpha):
         loss_weights = [1.0, alpha]
         loss_labels = ["nll", "mse_score"]
     else:
-        raise NotImplementedError("Unknown method {method}")
+        raise NotImplementedError(f"Unknown method {method}")
 
     return loss_functions, loss_labels, loss_weights
 
