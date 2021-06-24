@@ -10,8 +10,6 @@ from subprocess import Popen, PIPE
 
 logger = logging.getLogger(__name__)
 
-initialized = False
-
 
 def call_command(cmd, log_file=None, return_std=False):
     if log_file is not None:
