@@ -54,7 +54,7 @@ The second, called [_Particle physics_][examples-physics-path], shows all steps 
 
 These examples are the basis of [the online tutorial][jupyter-tutorial-link] built on Jupyter Books. It also walks
 through how to run MadMiner using Docker so that you do not have to install Fortran, MadGraph, Pythia, Delphes, etc.
-You can even run it with no install using Binder. 
+You can even run it with no install using Binder.
 
 ### Documentation
 The madminer API is documented on [Read the Docs][docs-index].
@@ -136,11 +136,11 @@ We are grateful for the support of [IRIS-HEP][web-iris-hep] and [DIANA-HEP][web-
 
 [docs-index]: https://madminer.readthedocs.io/en/latest/
 [docs-installation-guide ]: https://madminer.readthedocs.io/en/latest/installation.html
-[examples-folder-path]: examples
-[examples-physics-path]: examples/tutorial_particle_physics
-[examples-simulator-path]: examples/tutorial_toy_simulator/tutorial_toy_simulator.ipynb
+[examples-folder-path]: https://github.com/diana-hep/madminer/tree/master/examples
+[examples-physics-path]: https://github.com/diana-hep/madminer/tree/master/examples/tutorial_particle_physics
+[examples-simulator-path]: https://github.com/diana-hep/madminer/tree/master/examples/tutorial_toy_simulator
 [image-iris-logo]: https://iris-hep.org/assets/logos/Iris-hep-4-no-long-name.png
-[image-rascal-diagram]: docs/img/rascal-explainer.png
+[image-rascal-diagram]: https://raw.githubusercontent.com/diana-hep/madminer/master/docs/img/rascal-explainer.png
 [jupyter-tutorial-link]: https://cranmer.github.io/madminer-tutorial/intro
 [ref-arxiv-alice]: https://arxiv.org/abs/1808.00973
 [ref-arxiv-carl]: https://arxiv.org/abs/1506.02169

@@ -100,23 +100,23 @@ class Estimator:
 
         settings = self._wrap_settings()
 
-        with open(filename + "_settings.json", "w") as f:
+        with open(f"{filename}_settings.json", "w") as f:
             json.dump(settings, f)
 
         # Save scaling
         if self.x_scaling_stds is not None and self.x_scaling_means is not None:
             logger.debug("Saving input scaling information to %s_x_means.npy and %s_x_stds.npy", filename, filename)
-            np.save(filename + "_x_means.npy", self.x_scaling_means)
-            np.save(filename + "_x_stds.npy", self.x_scaling_stds)
+            np.save(f"{filename}_x_means.npy", self.x_scaling_means)
+            np.save(f"{filename}_x_stds.npy", self.x_scaling_stds)
 
         # Save state dict
         logger.debug("Saving state dictionary to %s_state_dict.pt", filename)
-        torch.save(self.model.state_dict(), filename + "_state_dict.pt")
+        torch.save(self.model.state_dict(), f"{filename}_state_dict.pt")
 
         # Save model
         if save_model:
             logger.debug("Saving model to %s_model.pt", filename)
-            torch.save(self.model, filename + "_model.pt")
+            torch.save(self.model, f"{filename}_model.pt")
 
     def load(self, filename):
 
@@ -138,15 +138,15 @@ class Estimator:
 
         # Load settings and create model
         logger.debug("Loading settings from %s_settings.json", filename)
-        with open(filename + "_settings.json", "r") as f:
+        with open(f"{filename}_settings.json", "r") as f:
             settings = json.load(f)
         self._unwrap_settings(settings)
         self._create_model()
 
         # Load scaling
         try:
-            self.x_scaling_means = np.load(filename + "_x_means.npy")
-            self.x_scaling_stds = np.load(filename + "_x_stds.npy")
+            self.x_scaling_means = np.load(f"{filename}_x_means.npy")
+            self.x_scaling_stds = np.load(f"{filename}_x_stds.npy")
             logger.debug(
                 "  Found input scaling information: means %s, stds %s", self.x_scaling_means, self.x_scaling_stds
             )
@@ -157,7 +157,7 @@ class Estimator:
 
         # Load state dict
         logger.debug("Loading state dictionary from %s_state_dict.pt", filename)
-        self.model.load_state_dict(torch.load(filename + "_state_dict.pt", map_location="cpu"))
+        self.model.load_state_dict(torch.load(f"{filename}_state_dict.pt", map_location="cpu"))
 
     def initialize_input_transform(self, x, transform=True, overwrite=True):
         if self.x_scaling_stds is not None and self.x_scaling_means is not None and not overwrite:
@@ -335,8 +335,8 @@ class ConditionalEstimator(Estimator):
             logger.debug(
                 "Saving parameter scaling information to %s_theta_means.npy and %s_theta_stds.npy", filename, filename
             )
-            np.save(filename + "_theta_means.npy", self.theta_scaling_means)
-            np.save(filename + "_theta_stds.npy", self.theta_scaling_stds)
+            np.save(f"{filename}_theta_means.npy", self.theta_scaling_means)
+            np.save(f"{filename}_theta_stds.npy", self.theta_scaling_stds)
 
     def load(self, filename):
 
@@ -358,8 +358,8 @@ class ConditionalEstimator(Estimator):
 
         # Load param scaling
         try:
-            self.theta_scaling_means = np.load(filename + "_theta_means.npy")
-            self.theta_scaling_stds = np.load(filename + "_theta_stds.npy")
+            self.theta_scaling_means = np.load(f"{filename}_theta_means.npy")
+            self.theta_scaling_stds = np.load(f"{filename}_theta_stds.npy")
             logger.debug(
                 "  Found parameter scaling information: means %s, stds %s",
                 self.theta_scaling_means,

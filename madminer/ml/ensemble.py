@@ -68,7 +68,7 @@ class Ensemble:
                 if isinstance(estimator, Estimator):
                     self.estimators.append(estimator)
                 else:
-                    raise ValueError("Entry {} in estimators is neither str nor Estimator instance")
+                    raise ValueError(f"Estimator {estimator} is not an Estimator instance")
 
         self.n_estimators = len(self.estimators)
         self._check_consistency()
@@ -88,7 +88,7 @@ class Ensemble:
         """
 
         if not isinstance(estimator, Estimator):
-            raise ValueError("Entry {} in estimators is neither str nor Estimator instance")
+            raise ValueError(f"Estimator {estimator} is not an Estimator instance")
 
         self.estimators.append(estimator)
         self.n_estimators = len(self.estimators)
@@ -662,9 +662,9 @@ class Ensemble:
 
             if self.estimator_type != estimator_type:
                 raise RuntimeError(
-                    "Ensemble with inconsistent estimator methods! All methods have to be either"
-                    " single-parameterized ratio estimators, doubly parameterized ratio estimators,"
-                    " or local score estimators. Found types " + ", ".join(all_types) + "."
+                    f"Ensemble with inconsistent estimator methods! All methods have to be either "
+                    f"single-parameterized ratio estimators, doubly parameterized ratio estimators, "
+                    f"or local score estimators. Found types {', '.join(all_types)}."
                 )
 
         # Check consistency of parameter and observable numbers
@@ -679,11 +679,13 @@ class Ensemble:
 
             if self.n_parameters is not None and self.n_parameters != estimator_n_parameters:
                 raise RuntimeError(
-                    "Ensemble with inconsistent numbers of parameters for different estimators: %s", all_n_parameters
+                    f"Ensemble with inconsistent numbers of parameters for different estimators: "
+                    f"{all_n_parameters}"
                 )
             if self.n_observables is not None and self.n_observables != estimator_n_observables:
                 raise RuntimeError(
-                    "Ensemble with inconsistent numbers of parameters for different estimators: %s", all_n_observables
+                    f"Ensemble with inconsistent numbers of observables for different estimators: "
+                    f"{all_n_observables}"
                 )
 
     @staticmethod
