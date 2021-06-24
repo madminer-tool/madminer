@@ -186,8 +186,8 @@ class DoubleParameterizedRatioEstimator(ConditionalEstimator):
 
         Returns
         -------
-            None
-
+        result: ndarray
+            Training and validation losses from DoubleParameterizedRatioTrainer.train
         """
 
         logger.info("Starting training")
