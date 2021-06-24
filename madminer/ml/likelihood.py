@@ -168,8 +168,8 @@ class LikelihoodEstimator(ConditionalEstimator):
 
         Returns
         -------
-            None
-
+        result: ndarray
+            Training and validation losses from FlowTrainer.train
         """
 
         logger.info("Starting training")
