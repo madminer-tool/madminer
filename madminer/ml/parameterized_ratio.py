@@ -172,8 +172,8 @@ class ParameterizedRatioEstimator(ConditionalEstimator):
 
         Returns
         -------
-        results: ndarray
-            Results from SingleParameterizedRatioTrainer.train or DoubleParameterizedRatioTrainer.train for example
+        result: ndarray
+            Training and validation losses from SingleParameterizedRatioTrainer.train or DoubleParameterizedRatioTrainer.train for example
 
         """
 

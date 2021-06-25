@@ -126,8 +126,8 @@ class ScoreEstimator(Estimator):
 
         Returns
         -------
-            None
-
+        result: ndarray
+            Training and validation losses from LocalScoreTrainer.train
         """
 
         if method not in ["sally", "sallino"]:

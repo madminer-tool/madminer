@@ -108,10 +108,13 @@ class Ensemble:
 
         Returns
         -------
-            None
+        result: ndarray
+            Training and validation losses from estimator training
+            
         """
 
-        self.estimators[i].train(**kwargs)
+        result=self.estimators[i].train(**kwargs)
+        return result
 
     def train_all(self, **kwargs):
         """
@@ -126,9 +129,13 @@ class Ensemble:
 
         Returns
         -------
-            None
+        result_list: list of ndarray
+            List of training and validation losses from estimator training
+
         """
         logger.info("Training %s estimators in ensemble", self.n_estimators)
+
+        result_list=[]
 
         for key, value in kwargs.items():
             if not isinstance(value, list):
@@ -142,7 +149,10 @@ class Ensemble:
                 kwargs_this_estimator[key] = value[i]
 
             logger.info("Training estimator %s / %s in ensemble", i + 1, self.n_estimators)
-            estimator.train(**kwargs_this_estimator)
+            result=estimator.train(**kwargs_this_estimator)
+            result_list.append(result)
+
+        return result_list
 
     def evaluate_log_likelihood(self, estimator_weights=None, calculate_covariance=False, **kwargs):
         """
