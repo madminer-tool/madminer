@@ -4,7 +4,7 @@ import vector
 logger = logging.getLogger(__name__)
 
 
-class MadMinerParticle(vector.VectorObject4D):
+class MadMinerParticle(vector.MomentumObject4D):
     """ """
 
     def __init__(self, *args, **kwargs):
