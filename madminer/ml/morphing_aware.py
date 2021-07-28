@@ -20,7 +20,7 @@ class MorphingAwareRatioEstimator(ParameterizedRatioEstimator):
         activation="tanh",
         dropout_prob=0.0,
     ):
-        super(ParameterizedRatioEstimator, self).__init__(features, n_hidden, activation, dropout_prob)
+        super().__init__(features, n_hidden, activation, dropout_prob)
 
         if morphing_setup_filename is not None:
             self.components, self.morphing_matrix = self._load_morphing_setup(
