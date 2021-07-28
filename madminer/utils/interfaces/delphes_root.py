@@ -439,12 +439,12 @@ def _get_particles_jets(tree, pt_min, eta_max):
         tau_tags = tree.array("Jet.TauTag")
     except:
         logger.warning("Did not find tau-tag information in Delphes ROOT file.")
-        tau_tags = [0 for _ in range(len(pts))]
+        tau_tags = [0] * len(pts)
     try:
         b_tags = tree.array("Jet.BTag")
     except:
         logger.warning("Did not find b-tag information in Delphes ROOT file.")
-        b_tags = [0 for _ in range(len(pts))]
+        b_tags = [0] * len(pts)
 
     all_particles = []
 
@@ -479,12 +479,12 @@ def _get_particles_truth_jets(tree, pt_min, eta_max):
         tau_tags = tree.array("GenJet.TauTag")
     except:
         logger.warning("Did not find tau-tag information for GenJets in Delphes ROOT file.")
-        tau_tags = [0 for _ in range(len(pts))]
+        tau_tags = [0] * len(pts)
     try:
         b_tags = tree.array("GenJet.BTag")
     except:
         logger.warning("Did not find b-tag information for GenJets in Delphes ROOT file.")
-        b_tags = [0 for _ in range(len(pts))]
+        b_tags = [0] * len(pts)
 
     all_particles = []
 
