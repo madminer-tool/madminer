@@ -101,7 +101,7 @@ class QuadraticMorphingAwareRatioEstimator(ParameterizedRatioEstimator):
     """
 
     def train(self, *args, **kwargs):
-        super().train(*args, scale_parameters=False, **kwargs)
+        super().train(*args, **kwargs, scale_parameters=False)
 
     def _create_model(self):
         self.model = DenseQuadraticMorphingAwareRatioModel(
