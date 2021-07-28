@@ -199,10 +199,6 @@ class ConditionalGaussianMADE(BaseConditionalFlow):
         x :
 
         **kwargs :
-<<<<<<< HEAD
-
-=======
->>>>>>> src: utils/ml/models module improve fmt
 
         Returns
         -------
