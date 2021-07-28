@@ -91,7 +91,7 @@ def parse_delphes_root_file(
 
     # Prepare variables
     def get_objects(ievent):
-        visible_momentum = MadMinerParticle()
+        visible_momentum = MadMinerParticle.from_xyzt(0.0, 0.0, 0.0, 0.0)
         for p in (
             electrons_all_events[ievent]
             + jets_all_events[ievent]
@@ -268,8 +268,7 @@ def _get_particles_truth(tree, pt_min, eta_max, included_pdgids=None):
             if (included_pdgids is not None) and (not pdgid in included_pdgids):
                 continue
 
-            particle = MadMinerParticle()
-            particle.from_rhophietat(pt, phi, eta, e)
+            particle = MadMinerParticle.from_rhophietat(pt, phi, eta, e)
             particle.set_pdgid(pdgid)
             event_particles.append(particle)
 
@@ -298,8 +297,7 @@ def _get_particles_charged(tree, name, mass, pdgid_positive_charge, pt_min, eta_
 
             pdgid = pdgid_positive_charge if charge >= 0.0 else -pdgid_positive_charge
 
-            particle = MadMinerParticle()
-            particle.from_rhophietatau(pt, phi, eta, mass)
+            particle = MadMinerParticle.from_rhophietatau(pt, phi, eta, mass)
             particle.set_pdgid(pdgid)
             event_particles.append(particle)
 
@@ -362,8 +360,7 @@ def _get_particles_leptons(tree, pt_min_e, eta_max_e, pt_min_mu, eta_max_mu):
                 logger.warning("Delphes ROOT file has lepton with PDG ID %s, ignoring it", pdgid)
                 continue
 
-            particle = MadMinerParticle()
-            particle.from_rhophietatau(pt, phi, eta, mass)
+            particle = MadMinerParticle.from_rhophietatau(pt, phi, eta, mass)
             particle.set_pdgid(pdgid)
             event_particles.append(particle)
 
@@ -397,8 +394,7 @@ def _get_particles_truth_leptons(tree, pt_min_e, eta_max_e, pt_min_mu, eta_max_m
             if pdgid in [13, -13] and (eta_max_mu is not None and abs(eta) > eta_max_mu):
                 continue
 
-            particle = MadMinerParticle()
-            particle.from_rhophietat(pt, phi, eta, e)
+            particle = MadMinerParticle.from_rhophietat(pt, phi, eta, e)
             particle.set_pdgid(pdgid)
             event_particles.append(particle)
 
@@ -425,8 +421,7 @@ def _get_particles_photons(tree, pt_min, eta_max):
             if eta_max is not None and abs(eta) > eta_max:
                 continue
 
-            particle = MadMinerParticle()
-            particle.from_rhophietat(pt, phi, eta, e)
+            particle = MadMinerParticle.from_rhophietat(pt, phi, eta, e)
             particle.set_pdgid(22)
             event_particles.append(particle)
 
@@ -465,8 +460,7 @@ def _get_particles_jets(tree, pt_min, eta_max):
             if eta_max is not None and abs(eta) > eta_max:
                 continue
 
-            particle = MadMinerParticle()
-            particle.from_rhophietatau(pt, phi, eta, mass)
+            particle = MadMinerParticle.from_rhophietatau(pt, phi, eta, mass)
             particle.set_pdgid(9)
             particle.set_tags(tau_tag >= 1, b_tag >= 1, False)
             event_particles.append(particle)
@@ -506,8 +500,7 @@ def _get_particles_truth_jets(tree, pt_min, eta_max):
             if eta_max is not None and abs(eta) > eta_max:
                 continue
 
-            particle = MadMinerParticle()
-            particle.from_rhophietatau(pt, phi, eta, mass)
+            particle = MadMinerParticle.from_rhophietatau(pt, phi, eta, mass)
             particle.set_pdgid(9)
             particle.set_tags(tau_tag >= 1, b_tag >= 1, False)
             event_particles.append(particle)
@@ -527,8 +520,7 @@ def _get_particles_truth_met(tree):
         event_particles = []
 
         for met, phi in zip(mets[ievent], phis[ievent]):
-            particle = MadMinerParticle()
-            particle.from_rhophietatau(met, phi, 0.0, 0.0)
+            particle = MadMinerParticle.from_rhophietatau(met, phi, 0.0, 0.0)
             particle.set_pdgid(0)
             event_particles.append(particle)
 
@@ -547,8 +539,7 @@ def _get_particles_met(tree):
         event_particles = []
 
         for met, phi in zip(mets[ievent], phis[ievent]):
-            particle = MadMinerParticle()
-            particle.from_rhophietatau(met, phi, 0.0, 0.0)
+            particle = MadMinerParticle.from_rhophietatau(met, phi, 0.0, 0.0)
             particle.set_pdgid(0)
             event_particles.append(particle)
 
