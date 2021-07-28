@@ -46,7 +46,7 @@ class FisherInformation(DataAnalyzer):
     """
 
     def __init__(self, filename, include_nuisance_parameters=True):
-        super(FisherInformation, self).__init__(filename, False, include_nuisance_parameters)
+        super().__init__(filename, False, include_nuisance_parameters)
 
     def truth_information(
         self,

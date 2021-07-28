@@ -33,7 +33,7 @@ class ScoreEstimator(Estimator):
     """
 
     def __init__(self, features=None, n_hidden=(100,), activation="tanh", dropout_prob=0.0):
-        super(ScoreEstimator, self).__init__(features, n_hidden, activation, dropout_prob)
+        super().__init__(features, n_hidden, activation, dropout_prob)
 
         self.nuisance_profile_matrix = None
         self.nuisance_project_matrix = None
@@ -388,11 +388,10 @@ class ScoreEstimator(Estimator):
         return self.evaluate_score(*args, **kwargs)
 
     def calculate_fisher_information(self, x, theta=None, weights=None, n_events=1, sum_events=True):
-        return super(ScoreEstimator, self) \
-            .calculate_fisher_information(x, theta, weights, n_events, sum_events)
+        return super().calculate_fisher_information(x, theta, weights, n_events, sum_events)
 
     def save(self, filename, save_model=False):
-        super(ScoreEstimator, self).save(filename, save_model)
+        super().save(filename, save_model)
 
         # Also save Fisher information information for profiling / projections
         if self.nuisance_profile_matrix is not None and self.nuisance_project_matrix is not None:
@@ -406,7 +405,7 @@ class ScoreEstimator(Estimator):
             np.save(f"{filename}_nuisance_project_matrix.npy", self.nuisance_project_matrix)
 
     def load(self, filename):
-        super(ScoreEstimator, self).load(filename)
+        super().load(filename)
 
         # Load scaling
         try:
@@ -439,13 +438,13 @@ class ScoreEstimator(Estimator):
         return data
 
     def _wrap_settings(self):
-        settings = super(ScoreEstimator, self)._wrap_settings()
+        settings = super()._wrap_settings()
         settings["estimator_type"] = "score"
         settings["nuisance_mode_default"] = self.nuisance_mode_default
         return settings
 
     def _unwrap_settings(self, settings):
-        super(ScoreEstimator, self)._unwrap_settings(settings)
+        super()._unwrap_settings(settings)
 
         estimator_type = str(settings["estimator_type"])
         if estimator_type != "score":

@@ -13,8 +13,7 @@ class DenseLocalScoreModel(nn.Module):
     of Fisher information matrices."""
 
     def __init__(self, n_observables, n_parameters, n_hidden, activation="tanh", dropout_prob=0.0):
-
-        super(DenseLocalScoreModel, self).__init__()
+        super().__init__()
 
         # Save input
         self.n_hidden = n_hidden
@@ -65,7 +64,7 @@ class DenseLocalScoreModel(nn.Module):
         return t_hat
 
     def to(self, *args, **kwargs):
-        self = super(DenseLocalScoreModel, self).to(*args, **kwargs)
+        self = super().to(*args, **kwargs)
 
         for i, layer in enumerate(self.layers):
             self.layers[i] = layer.to(*args, **kwargs)

@@ -12,8 +12,7 @@ class BatchNorm(BaseFlow):
     """BatchNorm implementation"""
 
     def __init__(self, n_inputs, alpha=0.1, eps=1.0e-5):
-
-        super(BatchNorm, self).__init__(n_inputs)
+        super().__init__(n_inputs)
 
         self.n_inputs = n_inputs
         self.alpha = alpha
@@ -25,7 +24,6 @@ class BatchNorm(BaseFlow):
         self.running_var = torch.zeros(self.n_inputs)
 
     def forward(self, x, fixed_params=False):
-
         """Calculates x -> u(x) (batch norming)"""
 
         # batch statistics
@@ -67,7 +65,7 @@ class BatchNorm(BaseFlow):
     def to(self, *args, **kwargs):
         logger.debug("Transforming BatchNorm to %s", args)
 
-        self = super(BatchNorm, self).to(*args, **kwargs)
+        self = super().to(*args, **kwargs)
 
         self.running_mean = self.running_mean.to(*args, **kwargs)
         self.running_var = self.running_var.to(*args, **kwargs)

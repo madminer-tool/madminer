@@ -25,7 +25,7 @@ class ConditionalMixtureMADE(BaseConditionalFlow):
         input_order="sequential",
         mode="sequential",
     ):
-        super(ConditionalMixtureMADE, self).__init__(n_conditionals, n_inputs)
+        super().__init__(n_conditionals, n_inputs)
 
         # save input arguments
         self.activation = activation
@@ -200,7 +200,7 @@ class ConditionalMixtureMADE(BaseConditionalFlow):
         self.to_args = args
         self.to_kwargs = kwargs
 
-        self = super(ConditionalMixtureMADE, self).to(*args, **kwargs)
+        self = super().to(*args, **kwargs)
 
         for i, M in enumerate(self.Ms):
             self.Ms[i] = M.to(*args, **kwargs)

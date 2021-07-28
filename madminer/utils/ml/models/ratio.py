@@ -14,8 +14,7 @@ class DenseSingleParameterizedRatioModel(nn.Module):
     numerator of the ratio is parameterized."""
 
     def __init__(self, n_observables, n_parameters, n_hidden, activation="tanh", dropout_prob=0.0):
-
-        super(DenseSingleParameterizedRatioModel, self).__init__()
+        super().__init__()
 
         # Save input
         self.n_hidden = n_hidden
@@ -39,7 +38,6 @@ class DenseSingleParameterizedRatioModel(nn.Module):
         self.append = self.layers.append(nn.Linear(n_last, 1))
 
     def forward(self, theta, x, track_score=True, return_grad_x=False, create_gradient_graph=True):
-
         """ Calculates estimated log likelihood ratio and the derived score. """
 
         # Track gradient wrt theta
@@ -89,7 +87,7 @@ class DenseSingleParameterizedRatioModel(nn.Module):
         return s_hat, log_r_hat, t_hat
 
     def to(self, *args, **kwargs):
-        self = super(DenseSingleParameterizedRatioModel, self).to(*args, **kwargs)
+        self = super().to(*args, **kwargs)
 
         for i, layer in enumerate(self.layers):
             self.layers[i] = layer.to(*args, **kwargs)
@@ -102,8 +100,7 @@ class DenseDoublyParameterizedRatioModel(nn.Module):
     numerator and denominator of the ratio are parameterized."""
 
     def __init__(self, n_observables, n_parameters, n_hidden, activation="tanh", dropout_prob=0.0):
-
-        super(DenseDoublyParameterizedRatioModel, self).__init__()
+        super().__init__()
 
         # Save input
         self.n_hidden = n_hidden
@@ -127,7 +124,6 @@ class DenseDoublyParameterizedRatioModel(nn.Module):
         self.layers.append(nn.Linear(n_last, 1))
 
     def forward(self, theta0, theta1, x, track_score=True, return_grad_x=False, create_gradient_graph=True):
-
         """ Calculates estimated log likelihood ratio and the derived score. """
 
         # Track gradient wrt thetas
@@ -199,7 +195,7 @@ class DenseDoublyParameterizedRatioModel(nn.Module):
         return s_hat, log_r_hat, t_hat0, t_hat1
 
     def to(self, *args, **kwargs):
-        self = super(DenseDoublyParameterizedRatioModel, self).to(*args, **kwargs)
+        self = super().to(*args, **kwargs)
 
         for i, layer in enumerate(self.layers):
             self.layers[i] = layer.to(*args, **kwargs)
@@ -212,8 +208,7 @@ class DenseComponentRatioModel(nn.Module):
     numerator of the ratio is parameterized."""
 
     def __init__(self, n_observables, n_hidden, activation="tanh", dropout_prob=0.0):
-
-        super(DenseComponentRatioModel, self).__init__()
+        super().__init__()
 
         # Save input
         self.n_hidden = n_hidden
@@ -249,7 +244,7 @@ class DenseComponentRatioModel(nn.Module):
         return log_r_hat
 
     def to(self, *args, **kwargs):
-        self = super(DenseComponentRatioModel, self).to(*args, **kwargs)
+        self = super().to(*args, **kwargs)
 
         for i, layer in enumerate(self.layers):
             self.layers[i] = layer.to(*args, **kwargs)
@@ -258,6 +253,7 @@ class DenseComponentRatioModel(nn.Module):
 
 
 class DenseMorphingAwareRatioModel(nn.Module):
+
     def __init__(
         self,
         components,
@@ -270,7 +266,7 @@ class DenseMorphingAwareRatioModel(nn.Module):
         clamp_component_ratios=5.0,
     ):
 
-        super(DenseMorphingAwareRatioModel, self).__init__()
+        super().__init__()
 
         # Save input
         self.n_hidden = n_hidden
@@ -295,7 +291,6 @@ class DenseMorphingAwareRatioModel(nn.Module):
         self.log_sigma_ratio_components = torch.nn.Parameter(torch.zeros((self.n_components, 1)))  # (n_components, 1)
 
     def forward(self, theta, x, track_score=True, return_grad_x=False, create_gradient_graph=True):
-
         """ Calculates estimated log likelihood ratio and the derived score. """
 
         # Track gradient wrt theta
@@ -403,9 +398,11 @@ class DenseMorphingAwareRatioModel(nn.Module):
 
 
 class DenseQuadraticMorphingAwareRatioModel(nn.Module):
+
     def __init__(self, n_observables, n_parameters, n_hidden, activation="tanh", dropout_prob=0.0):
+        super().__init__()
+
         assert n_parameters == 1
-        super(DenseQuadraticMorphingAwareRatioModel, self).__init__()
 
         # Save input
         self.n_hidden = n_hidden
@@ -419,7 +416,6 @@ class DenseQuadraticMorphingAwareRatioModel(nn.Module):
         self.sigma_b = torch.nn.Parameter(torch.ones((1,)))
 
     def forward(self, theta, x, track_score=True, return_grad_x=False, create_gradient_graph=True):
-
         """ Calculates estimated log likelihood ratio and the derived score. """
 
         assert theta.size()[1] == 1

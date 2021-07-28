@@ -499,8 +499,7 @@ class ParameterizedRatioEstimator(ConditionalEstimator):
         return all_t_hat
 
     def calculate_fisher_information(self, x, theta, weights=None, n_events=1, sum_events=True):
-        return super(ParameterizedRatioEstimator, self) \
-            .calculate_fisher_information(x, theta, weights, n_events, sum_events)
+        return super().calculate_fisher_information(x, theta, weights, n_events, sum_events)
 
     def evaluate(self, *args, **kwargs):
         return self.evaluate_log_likelihood_ratio(*args, **kwargs)
@@ -534,12 +533,12 @@ class ParameterizedRatioEstimator(ConditionalEstimator):
         return data
 
     def _wrap_settings(self):
-        settings = super(ParameterizedRatioEstimator, self)._wrap_settings()
+        settings = super()._wrap_settings()
         settings["estimator_type"] = "parameterized_ratio"
         return settings
 
     def _unwrap_settings(self, settings):
-        super(ParameterizedRatioEstimator, self)._unwrap_settings(settings)
+        super()._unwrap_settings(settings)
 
         estimator_type = str(settings["estimator_type"])
         if estimator_type != "parameterized_ratio":

@@ -8,7 +8,7 @@ class MadMinerParticle(vector.MomentumObject4D):
     """ """
 
     def __init__(self, *args, **kwargs):
-        super(MadMinerParticle, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         self.charge = None
         self.pdgid = None
@@ -51,7 +51,7 @@ class MadMinerParticle(vector.MomentumObject4D):
 
     def __iadd__(self, other):
         assert isinstance(other, self.__class__)
-        super(MadMinerParticle, self).__iadd__(other)
+        super().__iadd__(other)
         self.charge = None if self.charge is None or other.charge is None else self.charge + other.charge
         self.pdgid = None
         self.spin = None
@@ -62,7 +62,7 @@ class MadMinerParticle(vector.MomentumObject4D):
 
     def __isub__(self, other):
         assert isinstance(other, self.__class__)
-        super(MadMinerParticle, self).__isub__(other)
+        super().__isub__(other)
         self.charge = None if self.charge is None or other.charge is None else self.charge - other.charge
         self.pdgid = None
         self.spin = None
@@ -76,7 +76,7 @@ class MadMinerParticle(vector.MomentumObject4D):
 
     def __add__(self, other):
         assert isinstance(other, self.__class__)
-        vec = super(MadMinerParticle, self).__add__(other)
+        vec = super().__add__(other)
         vec.charge = None if self.charge is None or other.charge is None else self.charge + other.charge
         vec.pdgid = None
         vec.spin = None
@@ -87,7 +87,7 @@ class MadMinerParticle(vector.MomentumObject4D):
 
     def __sub__(self, other):
         assert isinstance(other, self.__class__)
-        vec = super(MadMinerParticle, self).__sub__(other)
+        vec = super().__sub__(other)
         vec.charge = None if self.charge is None or other.charge is None else self.charge - other.charge
         vec.pdgid = None
         vec.spin = None
@@ -97,7 +97,7 @@ class MadMinerParticle(vector.MomentumObject4D):
         return vec
 
     def boost(self, *args):
-        vec = super(MadMinerParticle, self).boost(*args)
+        vec = super().boost(*args)
 
         particle = MadMinerParticle.from_xyzt(vec.x, vec.y, vec.z, vec.t)
         particle.charge = self.charge

@@ -9,7 +9,7 @@ class BaseFlow(nn.Module):
     """ """
 
     def __init__(self, n_inputs, **kwargs):
-        super(BaseFlow, self).__init__()
+        super().__init__()
         self.n_inputs = n_inputs
 
     def forward(self, x, **kwargs):
@@ -39,7 +39,7 @@ class BaseFlow(nn.Module):
 class BaseConditionalFlow(nn.Module):
 
     def __init__(self, n_conditionals, n_inputs, **kwargs):
-        super(BaseConditionalFlow, self).__init__()
+        super().__init__()
         self.n_conditionals = n_conditionals
         self.n_inputs = n_inputs
 

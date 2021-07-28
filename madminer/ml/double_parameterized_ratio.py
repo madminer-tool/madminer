@@ -517,12 +517,12 @@ class DoubleParameterizedRatioEstimator(ConditionalEstimator):
         return data
 
     def _wrap_settings(self):
-        settings = super(DoubleParameterizedRatioEstimator, self)._wrap_settings()
+        settings = super()._wrap_settings()
         settings["estimator_type"] = "double_parameterized_ratio"
         return settings
 
     def _unwrap_settings(self, settings):
-        super(DoubleParameterizedRatioEstimator, self)._unwrap_settings(settings)
+        super()._unwrap_settings(settings)
 
         estimator_type = str(settings["estimator_type"])
         if estimator_type != "double_parameterized_ratio":

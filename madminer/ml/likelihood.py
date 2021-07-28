@@ -47,7 +47,7 @@ class LikelihoodEstimator(ConditionalEstimator):
     """
 
     def __init__(self, features=None, n_components=1, n_mades=5, n_hidden=(100,), activation="tanh", batch_norm=None):
-        super(LikelihoodEstimator, self).__init__(features, n_hidden, activation, dropout_prob=0.0)
+        super().__init__(features, n_hidden, activation, dropout_prob=0.0)
 
         self.n_components = n_components
         self.n_mades = n_mades
@@ -517,7 +517,7 @@ class LikelihoodEstimator(ConditionalEstimator):
         return data
 
     def _wrap_settings(self):
-        settings = super(LikelihoodEstimator, self)._wrap_settings()
+        settings = super()._wrap_settings()
         settings["estimator_type"] = "likelihood"
         settings["n_components"] = self.n_components
         settings["batch_norm"] = self.batch_norm
@@ -525,7 +525,7 @@ class LikelihoodEstimator(ConditionalEstimator):
         return settings
 
     def _unwrap_settings(self, settings):
-        super(LikelihoodEstimator, self)._unwrap_settings(settings)
+        super()._unwrap_settings(settings)
 
         estimator_type = str(settings["estimator_type"])
         if estimator_type != "likelihood":
