@@ -387,9 +387,6 @@ class ScoreEstimator(Estimator):
     def evaluate(self, *args, **kwargs):
         return self.evaluate_score(*args, **kwargs)
 
-    def calculate_fisher_information(self, x, theta=None, weights=None, n_events=1, sum_events=True):
-        return super().calculate_fisher_information(x, theta, weights, n_events, sum_events)
-
     def save(self, filename, save_model=False):
         super().save(filename, save_model)
 

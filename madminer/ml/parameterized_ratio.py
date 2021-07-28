@@ -498,9 +498,6 @@ class ParameterizedRatioEstimator(ConditionalEstimator):
         _, all_t_hat = self.evaluate_log_likelihood_ratio(x, theta, test_all_combinations=False, evaluate_score=True)
         return all_t_hat
 
-    def calculate_fisher_information(self, x, theta, weights=None, n_events=1, sum_events=True):
-        return super().calculate_fisher_information(x, theta, weights, n_events, sum_events)
-
     def evaluate(self, *args, **kwargs):
         return self.evaluate_log_likelihood_ratio(*args, **kwargs)
 
