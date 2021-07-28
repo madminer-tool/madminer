@@ -90,7 +90,7 @@ class InformationGeometry:
         elif option == "smooth":
             self.infofunction = CloughTocher2DInterpolator(points=theta_grid, values=np.array(fisherinformation_grid))
         else:
-            RuntimeError("Option %s unknown", option)
+            RuntimeError(f"Option unknown: {option}")
 
         # Interpolate inverse information
         if self.inverse == "interpolate":

@@ -249,12 +249,10 @@ class FisherInformation(DataAnalyzer):
             include_nuisance_parameters = True
         else:
             raise RuntimeError(
-                "Inconsistent numbers of parameters! Found %s in %s model, %s physical parameters in "
-                "MadMiner file, and %s nuisance parameters in MadMiner file.",
-                model.n_parameters,
-                model_type,
-                self.n_parameters,
-                self.n_nuisance_parameters,
+                f"Inconsistent numbers of parameters! "
+                f"Found {model.n_parameters} in {model_type} model, "
+                f"but {self.n_parameters} physical parameters, "
+                f"and {self.n_nuisance_parameters} nuisance parameters in MadMiner file."
             )
 
         if include_nuisance_parameters:
@@ -886,11 +884,10 @@ class FisherInformation(DataAnalyzer):
                 include_nuisance_parameters = True
             else:
                 raise RuntimeError(
-                    "Inconsistent numbers of parameters! Found %s in SALLY model, %s physical parameters in "
-                    "MadMiner file, and %s nuisance parameters in MadMiner file.",
-                    model.n_parameters,
-                    self.n_parameters,
-                    self.n_nuisance_parameters,
+                    f"Inconsistent numbers of parameters! "
+                    f"Found {model.n_parameters} in SALLY model, "
+                    f"but {self.n_parameters} physical parameters in MadMiner file, "
+                    f"and {self.n_nuisance_parameters} nuisance parameters in MadMiner file."
                 )
 
             # Total xsec

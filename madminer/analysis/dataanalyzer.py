@@ -363,7 +363,8 @@ class DataAnalyzer:
 
         if n_events == 0:
             raise RuntimeError(
-                "Did not find events with test_split = %s and generated_close_to = %s", test_split, generated_close_to
+                f"Did not find events with test_split = {test_split} "
+                f"and generated_close_to = {generated_close_to}"
             )
 
         xsec_uncertainties = np.maximum(xsec_uncertainties, 0.0) ** 0.5
