@@ -99,7 +99,7 @@ class MadMinerParticle(vector.VectorObject4D):
     def boost(self, *args):
         vec = super(MadMinerParticle, self).boost(*args)
 
-        particle = MadMinerParticle().from_xyzt(vec.x, vec.y, vec.z, vec.t)
+        particle = MadMinerParticle.from_xyzt(vec.x, vec.y, vec.z, vec.t)
         particle.charge = self.charge
         particle.spin = self.spin
         particle.pdgid = self.pdgid
