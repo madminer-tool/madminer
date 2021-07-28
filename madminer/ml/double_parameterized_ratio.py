@@ -15,23 +15,8 @@ logger = logging.getLogger(__name__)
 
 class DoubleParameterizedRatioEstimator(ConditionalEstimator):
     """
-    A neural estimator of the likelihood ratio as a function of the observation x, the numerator hypothesis theta0, and
-    the denominator hypothesis theta1.
-
-    Parameters
-    ----------
-    features : list of int or None, optional
-        Indices of observables (features) that are used as input to the neural networks. If None, all observables
-        are used. Default value: None.
-
-    n_hidden : tuple of int, optional
-        Units in each hidden layer in the neural networks. If method is 'nde' or 'scandal', this refers to the
-        setup of each individual MADE layer. Default value: (100,).
-
-    activation : {'tanh', 'sigmoid', 'relu'}, optional
-        Activation function. Default value: 'tanh'.
-
-
+    A neural estimator of the likelihood ratio as a function of the observation x,
+    the numerator hypothesis theta0, and the denominator hypothesis theta1.
     """
 
     def train(

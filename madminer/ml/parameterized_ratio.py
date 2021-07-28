@@ -19,21 +19,6 @@ class ParameterizedRatioEstimator(ConditionalEstimator):
     A neural estimator of the likelihood ratio as a function of the observation x as well as
     the numerator hypothesis theta. The reference (denominator) hypothesis is kept fixed at some
     reference value and NOT modeled by the network.
-
-    Parameters
-    ----------
-    features : list of int or None, optional
-        Indices of observables (features) that are used as input to the neural networks. If None, all observables
-        are used. Default value: None.
-
-    n_hidden : tuple of int, optional
-        Units in each hidden layer in the neural networks. If method is 'nde' or 'scandal', this refers to the
-        setup of each individual MADE layer. Default value: (100,).
-
-    activation : {'tanh', 'sigmoid', 'relu'}, optional
-        Activation function. Default value: 'tanh'.
-
-
     """
 
     def train(
