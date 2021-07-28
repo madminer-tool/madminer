@@ -1,0 +1,16 @@
+cff-version: 1.1.0
+message: "If you use this software, please cite it as below."
+authors:
+  - family-names: Brehmer
+    given-names: Johann
+  - family-names: Kling
+    given-names: Felix
+  - family-names: Espejo
+    given-names: Irina
+  - family-names: Perez
+    given-names: Sinclert
+  - family-names: Cranmer
+    given-names: Kyle
+title: "MadMiner"
+doi: 10.5281/zenodo.1489147
+url: https://github.com/diana-hep/madminer

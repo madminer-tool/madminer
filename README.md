@@ -86,7 +86,7 @@ If you use MadMiner, please cite our main publication,
 The code itself can be cited as
 ```
 @misc{MadMiner_code,
-      author         = "Brehmer, Johann and Kling, Felix and Espejo, Irina and Cranmer, Kyle",
+      author         = "Brehmer, Johann and Kling, Felix and Espejo, Irina and Perez, Sinclert and Cranmer, Kyle",
       title          = "{MadMiner}",
       doi            = "10.5281/zenodo.1489147",
       url            = {https://github.com/diana-hep/madminer}
