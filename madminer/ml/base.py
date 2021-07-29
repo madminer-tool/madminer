@@ -302,7 +302,7 @@ class ConditionalEstimator(Estimator):
     """
 
     def __init__(self, features=None, n_hidden=(100,), activation="tanh", dropout_prob=0.0):
-        super(ConditionalEstimator, self).__init__(features, n_hidden, activation, dropout_prob)
+        super().__init__(features, n_hidden, activation, dropout_prob)
 
         self.theta_scaling_means = None
         self.theta_scaling_stds = None
@@ -328,7 +328,7 @@ class ConditionalEstimator(Estimator):
 
         """
 
-        super(ConditionalEstimator, self).save(filename, save_model)
+        super().save(filename, save_model)
 
         # Save param scaling
         if self.theta_scaling_stds is not None and self.theta_scaling_means is not None:
@@ -354,7 +354,7 @@ class ConditionalEstimator(Estimator):
 
         """
 
-        super(ConditionalEstimator, self).load(filename)
+        super().load(filename)
 
         # Load param scaling
         try:

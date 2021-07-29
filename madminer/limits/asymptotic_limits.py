@@ -48,7 +48,7 @@ class AsymptoticLimits(DataAnalyzer):
         if include_nuisance_parameters:
             raise NotImplementedError("AsymptoticLimits does not yet support nuisance parameters.")
 
-        super(AsymptoticLimits, self).__init__(filename, False, include_nuisance_parameters=False)
+        super().__init__(filename, False, include_nuisance_parameters=False)
 
     def observed_limits(
         self,

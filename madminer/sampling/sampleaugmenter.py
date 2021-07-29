@@ -68,7 +68,7 @@ class SampleAugmenter(DataAnalyzer):
     """
 
     def __init__(self, filename, disable_morphing=False, include_nuisance_parameters=True):
-        super(SampleAugmenter, self).__init__(filename, disable_morphing, include_nuisance_parameters)
+        super().__init__(filename, disable_morphing, include_nuisance_parameters)
 
     def sample_train_plain(
         self,

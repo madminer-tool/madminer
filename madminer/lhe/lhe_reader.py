@@ -122,7 +122,8 @@ class LHEReader:
 
             if this_n_events != n_events:
                 raise RuntimeError(
-                    f"Mismatching number of events for {key}: "f"{n_events} vs {this_n_events}")
+                    f"Mismatching number of events for {key}: "f"{n_events} vs {this_n_events}"
+                )
 
             if not np.issubdtype(elems.dtype, np.number):
                 logger.warning(f"For key {key} have non-numeric dtype {elems.dtype}.")

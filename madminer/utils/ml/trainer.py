@@ -511,8 +511,9 @@ class Trainer:
 
 
 class SingleParameterizedRatioTrainer(Trainer):
+
     def __init__(self, model, run_on_gpu=True, double_precision=False, n_workers=8):
-        super(SingleParameterizedRatioTrainer, self).__init__(model, run_on_gpu, double_precision, n_workers)
+        super().__init__(model, run_on_gpu, double_precision, n_workers)
         self.calculate_model_score = True
 
     def check_data(self, data):
@@ -568,8 +569,9 @@ class SingleParameterizedRatioTrainer(Trainer):
 
 
 class DoubleParameterizedRatioTrainer(Trainer):
+
     def __init__(self, model, run_on_gpu=True, double_precision=False, n_workers=8):
-        super(DoubleParameterizedRatioTrainer, self).__init__(model, run_on_gpu, double_precision, n_workers)
+        super().__init__(model, run_on_gpu, double_precision, n_workers)
         self.calculate_model_score = True
 
     def check_data(self, data):
@@ -634,6 +636,7 @@ class DoubleParameterizedRatioTrainer(Trainer):
 
 
 class LocalScoreTrainer(Trainer):
+
     def check_data(self, data):
         data_keys = list(data.keys())
         if "x" not in data_keys or "t_xz" not in data_keys:
@@ -666,8 +669,9 @@ class LocalScoreTrainer(Trainer):
 
 
 class FlowTrainer(Trainer):
+
     def __init__(self, model, run_on_gpu=True, double_precision=False, n_workers=8):
-        super(FlowTrainer, self).__init__(model, run_on_gpu, double_precision, n_workers)
+        super().__init__(model, run_on_gpu, double_precision, n_workers)
         self.calculate_model_score = True
 
     def check_data(self, data):

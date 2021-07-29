@@ -56,13 +56,13 @@ def plot_pvalue_limits(
         list of p-values used to draw contour lines. Default: [0.32]
 
     single_plot : bool, optional
-        If True, only one sumamry plot is shown which contains confidence contours and
+        If True, only one summary plot is shown which contains confidence contours and
         best fit points for all methods, and the p-value grid for a selected method
         (if show_index is not None). If False, additional plots with the p-value grid,
         confidence contours and best fit points for all methods are provided. Default: True
 
     show_index : int, optional
-        If None, no p-value grid is shown in sumamry plot. If show_index=n, the p-value
+        If None, no p-value grid is shown in summary plot. If show_index=n, the p-value
         grid of the nth method is shown in the summary plot. Default is None.
 
     xlabel,ylabel : string, optional
@@ -133,21 +133,21 @@ def plot_pvalue_limits(
         )
         cbar = fig.colorbar(pcm, ax=ax, extend="both")
         cbar.set_label(f"Expected p-value ({labels[show_index]})")
-    for ipanel in range(len(p_values)):
+    for i, panel in enumerate(p_values):
         ax.contour(
             xcenters,
             ycenters,
-            p_values[ipanel].reshape((grid_resolutions[0], grid_resolutions[1])).T,
+            panel.reshape((grid_resolutions[0], grid_resolutions[1])).T,
             levels=levels,
-            colors=f"C{ipanel}",
+            colors=f"C{i}",
         )
         ax.scatter(
-            theta_grid[best_fits[ipanel]][0],
-            theta_grid[best_fits[ipanel]][1],
+            theta_grid[best_fits[i]][0],
+            theta_grid[best_fits[i]][1],
             s=80.0,
-            color=f"C{ipanel}",
+            color=f"C{i}",
             marker="*",
-            label=labels[ipanel],
+            label=labels[i],
         )
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
@@ -155,31 +155,31 @@ def plot_pvalue_limits(
 
     # individual summary plot
     if single_plot is not True:
-        for ipanel in range(len(p_values)):
-            ax = plt.subplot(n_rows, n_cols, ipanel + 2)
+        for i, panel in enumerate(p_values):
+            ax = plt.subplot(n_rows, n_cols, i + 2)
             pcm = ax.pcolormesh(
                 xedges,
                 yedges,
-                p_values[ipanel].reshape((grid_resolutions[0], grid_resolutions[1])).T,
+                panel.reshape((grid_resolutions[0], grid_resolutions[1])).T,
                 norm=matplotlib.colors.LogNorm(vmin=p_val_min, vmax=p_val_max),
                 cmap="Greys_r",
             )
             cbar = fig.colorbar(pcm, ax=ax, extend="both")
-            cbar.set_label(f"Expected p-value ({labels[ipanel]})")
+            cbar.set_label(f"Expected p-value ({labels[i]})")
             ax.contour(
                 xcenters,
                 ycenters,
-                p_values[ipanel].reshape((grid_resolutions[0], grid_resolutions[1])).T,
+                panel.reshape((grid_resolutions[0], grid_resolutions[1])).T,
                 levels=levels,
-                colors=f"C{ipanel}",
+                colors=f"C{i}",
             )
             ax.scatter(
-                theta_grid[best_fits[ipanel]][0],
-                theta_grid[best_fits[ipanel]][1],
+                theta_grid[best_fits[i]][0],
+                theta_grid[best_fits[i]][1],
                 s=80.0,
-                color=f"C{ipanel}",
+                color=f"C{i}",
                 marker="*",
-                label=labels[ipanel],
+                label=labels[i],
             )
             ax.set_xlabel(xlabel)
             ax.set_ylabel(ylabel)

@@ -326,9 +326,7 @@ def plot_fisherinfo_barplot(
 
             fraction_finished = 0.0
 
-            for component in range(len(composition)):
-                fraction = composition[component]
-
+            for component, fraction in enumerate(composition):
                 if fraction >= minimal_fraction_for_plot:
                     plt.hlines(
                         [eigenvalue],

@@ -25,7 +25,7 @@ class MaskedAutoregressiveFlow(BaseFlow):
         alpha=0.1,
     ):
 
-        super(MaskedAutoregressiveFlow, self).__init__(n_inputs)
+        super().__init__(n_inputs)
 
         # save input arguments
         self.n_inputs = n_inputs
@@ -102,7 +102,7 @@ class MaskedAutoregressiveFlow(BaseFlow):
         self.to_args = args
         self.to_kwargs = kwargs
 
-        self = super(MaskedAutoregressiveFlow, self).to(*args, **kwargs)
+        self = super().to(*args, **kwargs)
 
         for i, (made) in enumerate(self.mades):
             self.mades[i] = made.to(*args, **kwargs)
@@ -130,7 +130,7 @@ class ConditionalMaskedAutoregressiveFlow(BaseConditionalFlow):
         alpha=0.1,
     ):
 
-        super(ConditionalMaskedAutoregressiveFlow, self).__init__(n_conditionals, n_inputs)
+        super().__init__(n_conditionals, n_inputs)
 
         # save input arguments
         self.n_conditionals = n_conditionals
@@ -257,7 +257,7 @@ class ConditionalMaskedAutoregressiveFlow(BaseConditionalFlow):
         self.to_args = args
         self.to_kwargs = kwargs
 
-        self = super(ConditionalMaskedAutoregressiveFlow, self).to(*args, **kwargs)
+        self = super().to(*args, **kwargs)
 
         for i, (made) in enumerate(self.mades):
             self.mades[i] = made.to(*args, **kwargs)

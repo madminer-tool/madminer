@@ -17,7 +17,7 @@ class GaussianMADE(BaseFlow):
     """ """
 
     def __init__(self, n_inputs, n_hiddens, activation="relu", input_order="sequential", mode="sequential"):
-        super(GaussianMADE, self).__init__(n_inputs)
+        super().__init__(n_inputs)
 
         # save input arguments
         self.activation = activation
@@ -134,7 +134,7 @@ class GaussianMADE(BaseFlow):
         self.to_args = args
         self.to_kwargs = kwargs
 
-        self = super(GaussianMADE, self).to(*args, **kwargs)
+        self = super().to(*args, **kwargs)
 
         for i, (M, W, b) in enumerate(zip(self.Ms, self.Ws, self.bs)):
             self.Ms[i] = M.to(*args, **kwargs)
@@ -162,7 +162,7 @@ class ConditionalGaussianMADE(BaseConditionalFlow):
         input_order="sequential",
         mode="sequential",
     ):
-        super(ConditionalGaussianMADE, self).__init__(n_conditionals, n_inputs)
+        super().__init__(n_conditionals, n_inputs)
 
         # save input arguments
         self.activation = activation
@@ -199,10 +199,6 @@ class ConditionalGaussianMADE(BaseConditionalFlow):
         x :
 
         **kwargs :
-<<<<<<< HEAD
-
-=======
->>>>>>> src: utils/ml/models module improve fmt
 
         Returns
         -------
@@ -316,7 +312,7 @@ class ConditionalGaussianMADE(BaseConditionalFlow):
         self.to_args = args
         self.to_kwargs = kwargs
 
-        self = super(ConditionalGaussianMADE, self).to(*args, **kwargs)
+        self = super().to(*args, **kwargs)
 
         for i, (M, W, b) in enumerate(zip(self.Ms, self.Ws, self.bs)):
             self.Ms[i] = M.to(*args, **kwargs)

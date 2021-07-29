@@ -100,9 +100,8 @@ def shuffle(*arrays):
 
         if a.shape[0] != n_samples:
             raise RuntimeError(
-                "Mismatching shapes when trying to simultaneously shuffle: {}".format(
-                    [None if val is None else val.shape for val in arrays]
-                )
+                f"Mismatching shapes when trying to simultaneously shuffle: "
+                f"{[None if val is None else val.shape for val in arrays]}"
             )
 
         shuffled_a = a[permutation]

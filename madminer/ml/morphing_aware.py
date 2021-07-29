@@ -20,7 +20,7 @@ class MorphingAwareRatioEstimator(ParameterizedRatioEstimator):
         activation="tanh",
         dropout_prob=0.0,
     ):
-        super(ParameterizedRatioEstimator, self).__init__(features, n_hidden, activation, dropout_prob)
+        super().__init__(features, n_hidden, activation, dropout_prob)
 
         if morphing_setup_filename is not None:
             self.components, self.morphing_matrix = self._load_morphing_setup(
@@ -37,7 +37,7 @@ class MorphingAwareRatioEstimator(ParameterizedRatioEstimator):
                 "estimator!"
             )
 
-        super(MorphingAwareRatioEstimator, self).train(*args, scale_parameters=False, **kwargs)
+        super().train(*args, scale_parameters=False, **kwargs)
 
     def _load_morphing_setup(self, filename, optimize_morphing_basis=False):
         (
@@ -81,13 +81,13 @@ class MorphingAwareRatioEstimator(ParameterizedRatioEstimator):
         )
 
     def _wrap_settings(self):
-        settings = super(MorphingAwareRatioEstimator, self)._wrap_settings()
+        settings = super()._wrap_settings()
         settings["components"] = self.components.tolist()
         settings["morphing_matrix"] = self.morphing_matrix.tolist()
         return settings
 
     def _unwrap_settings(self, settings):
-        super(MorphingAwareRatioEstimator, self)._unwrap_settings(settings)
+        super()._unwrap_settings(settings)
 
         self.components = np.array(settings["components"])
         self.morphing_matrix = np.array(settings["morphing_matrix"])
@@ -101,7 +101,7 @@ class QuadraticMorphingAwareRatioEstimator(ParameterizedRatioEstimator):
     """
 
     def train(self, *args, **kwargs):
-        super(QuadraticMorphingAwareRatioEstimator, self).train(*args, scale_parameters=False, **kwargs)
+        super().train(*args, **kwargs, scale_parameters=False)
 
     def _create_model(self):
         self.model = DenseQuadraticMorphingAwareRatioModel(

@@ -19,21 +19,6 @@ class ParameterizedRatioEstimator(ConditionalEstimator):
     A neural estimator of the likelihood ratio as a function of the observation x as well as
     the numerator hypothesis theta. The reference (denominator) hypothesis is kept fixed at some
     reference value and NOT modeled by the network.
-
-    Parameters
-    ----------
-    features : list of int or None, optional
-        Indices of observables (features) that are used as input to the neural networks. If None, all observables
-        are used. Default value: None.
-
-    n_hidden : tuple of int, optional
-        Units in each hidden layer in the neural networks. If method is 'nde' or 'scandal', this refers to the
-        setup of each individual MADE layer. Default value: (100,).
-
-    activation : {'tanh', 'sigmoid', 'relu'}, optional
-        Activation function. Default value: 'tanh'.
-
-
     """
 
     def train(
@@ -498,10 +483,6 @@ class ParameterizedRatioEstimator(ConditionalEstimator):
         _, all_t_hat = self.evaluate_log_likelihood_ratio(x, theta, test_all_combinations=False, evaluate_score=True)
         return all_t_hat
 
-    def calculate_fisher_information(self, x, theta, weights=None, n_events=1, sum_events=True):
-        return super(ParameterizedRatioEstimator, self) \
-            .calculate_fisher_information(x, theta, weights, n_events, sum_events)
-
     def evaluate(self, *args, **kwargs):
         return self.evaluate_log_likelihood_ratio(*args, **kwargs)
 
@@ -534,12 +515,12 @@ class ParameterizedRatioEstimator(ConditionalEstimator):
         return data
 
     def _wrap_settings(self):
-        settings = super(ParameterizedRatioEstimator, self)._wrap_settings()
+        settings = super()._wrap_settings()
         settings["estimator_type"] = "parameterized_ratio"
         return settings
 
     def _unwrap_settings(self, settings):
-        super(ParameterizedRatioEstimator, self)._unwrap_settings(settings)
+        super()._unwrap_settings(settings)
 
         estimator_type = str(settings["estimator_type"])
         if estimator_type != "parameterized_ratio":
