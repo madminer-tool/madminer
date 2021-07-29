@@ -1049,7 +1049,7 @@ def _smear_particles(particles, energy_resolutions, pt_resolutions, eta_resoluti
             while pt <= min_pt:
                 pt = _smear_variable(particle.pt, pt_resolutions, pdgid)
         eta = _smear_variable(particle.eta, eta_resolutions, pdgid)
-        phi = _smear_variable(particle.phi(), phi_resolutions, pdgid)
+        phi = _smear_variable(particle.phi, phi_resolutions, pdgid)
         while phi > 2.0 * np.pi:
             phi -= 2.0 * np.pi
         while phi < 0.0:
