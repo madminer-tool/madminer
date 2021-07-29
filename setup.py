@@ -41,7 +41,7 @@ REQUIRED = [
     "scipy>=1.0.0",
     "torch>=1.0.0",
     "uproot3>=3.14.1",
-    "vector>=0.8.0",
+    "vector>=0.8.4",
 ]
 
 EXTRAS_DOCS = [
