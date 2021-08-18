@@ -29,6 +29,7 @@ REQUIRED = [
     "h5py",
     "matplotlib>=2.0.0",
     "numpy>=1.13.0",
+    "particle>=0.15.1",
     "scipy>=1.0.0",
     "torch>=1.0.0",
     "uproot3>=3.14.1",
