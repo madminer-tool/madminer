@@ -1,6 +1,8 @@
 import logging
 import vector
 
+from particle import Particle
+
 logger = logging.getLogger(__name__)
 
 
@@ -24,20 +26,7 @@ class MadMinerParticle(vector.MomentumObject4D):
 
     def set_pdgid(self, pdgid):
         self.pdgid = int(pdgid)
-        self.charge = 0.0
-
-        if self.pdgid in [11, 13, 15, -24]:
-            self.charge = -1.0
-        elif self.pdgid in [-11, -13, -15, 24]:
-            self.charge = 1.0
-        elif self.pdgid in [1, 3, 5]:
-            self.charge = 2.0 / 3.0
-        elif self.pdgid in [-1, -3, -5]:
-            self.charge = -2.0 / 3.0
-        elif self.pdgid in [2, 4, 6]:
-            self.charge = -1.0 / 3.0
-        elif self.pdgid in [-2, -4, -6]:
-            self.charge = 1.0 / 3.0
+        self.charge = Particle.from_pdgid(self.pdgid).charge
 
         if self.pdgid in [5, -5]:
             self.b_tag = True
