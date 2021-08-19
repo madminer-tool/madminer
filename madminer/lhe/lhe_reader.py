@@ -78,9 +78,7 @@ class LHEReader:
         self.eta_resolution = {}
         self.phi_resolution = {}
 
-        pdgids = [1, -1, 2, -2, 3, -3, 4, -4, 5, -5, 6, -6, 9]
-        pdgids += [11, -11, 12, -12, 13, -13, 14, -14, 15, -15, 16, -16, 21, 22, 23, 24, -24, 25]
-        for pdgid in pdgids:
+        for pdgid in get_elementary_pdg_ids():
             self.energy_resolution[pdgid] = (0.0, 0.0)
             self.pt_resolution[pdgid] = (0.0, 0.0)
             self.eta_resolution[pdgid] = (0.0, 0.0)
