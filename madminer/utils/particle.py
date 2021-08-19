@@ -6,6 +6,11 @@ from particle import Particle
 logger = logging.getLogger(__name__)
 
 
+B_PDG_IDS = {int(p.pdgid) for p in Particle.findall(pdg_name="b")}
+T_PDG_IDS = {int(p.pdgid) for p in Particle.findall(pdg_name="t")}
+TAU_PDG_IDS = {int(p.pdgid) for p in Particle.findall(pdg_name="tau")}
+
+
 class MadMinerParticle(vector.MomentumObject4D):
     """ """
 
@@ -28,11 +33,11 @@ class MadMinerParticle(vector.MomentumObject4D):
         self.pdgid = int(pdgid)
         self.charge = Particle.from_pdgid(self.pdgid).charge
 
-        if self.pdgid in [5, -5]:
+        if self.pdgid in B_PDG_IDS:
             self.b_tag = True
-        elif self.pdgid in [6, -6]:
+        elif self.pdgid in T_PDG_IDS:
             self.t_tag = True
-        elif self.pdgid in [15, -15]:
+        elif self.pdgid in TAU_PDG_IDS:
             self.tau_tag = True
 
     def set_spin(self, spin):
