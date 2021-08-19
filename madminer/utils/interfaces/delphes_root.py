@@ -265,7 +265,7 @@ def _get_particles_truth(tree, pt_min, eta_max, included_pdgids=None):
                 continue
             if eta_max is not None and abs(eta) > eta_max:
                 continue
-            if (included_pdgids is not None) and (not pdgid in included_pdgids):
+            if (included_pdgids is not None) and (pdgid not in included_pdgids):
                 continue
 
             particle = MadMinerParticle.from_rhophietat(pt, phi, eta, e)
