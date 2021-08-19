@@ -302,7 +302,7 @@ class LHEReader:
             missing ET object. `p` gives all particles in the same order as in the LHE file (i.e. in the same order as
             defined in the MadGraph process card). In addition, `MadMinerParticle` have  properties `charge` and `pdg_id`,
             which return the charge in units of elementary charges (i.e. an electron has `e[0].charge = -1.`), and the
-            PDG particle ID. For instance, `"abs(j[0].phi() - j[1].phi())"` defines the azimuthal angle between the two
+            PDG particle ID. For instance, `"abs(j[0].phi - j[1].phi)"` defines the azimuthal angle between the two
             hardest jets.
 
         required : bool, optional
@@ -418,7 +418,7 @@ class LHEReader:
         # ETMiss
         if include_met:
             self.add_observable("et_miss", "met.pt", required=True)
-            self.add_observable("phi_miss", "met.phi()", required=True)
+            self.add_observable("phi_miss", "met.phi", required=True)
 
         # Sum of visible particles
         if include_visible_sum:
@@ -443,7 +443,7 @@ class LHEReader:
                     f"eta_{symbol}{i+1}", f"{symbol}[{i}].eta", required=False, default=0.0
                 )
                 self.add_observable(
-                    f"phi_{symbol}{i+1}", f"{symbol}[{i}].phi()", required=False, default=0.0
+                    f"phi_{symbol}{i+1}", f"{symbol}[{i}].phi", required=False, default=0.0
                 )
                 if include_this_charge and symbol == "l":
                     self.add_observable(
