@@ -240,7 +240,7 @@ def profile_log_likelihood(
         If None, the overall number of parameters is used. Default value: None.
 
     method : {"TNC", " L-BFGS-B"} , optional
-        Mimization method used. Default value: "TNC"
+        Minimization method used. Default value: "TNC"
 
     Returns
     -------
@@ -266,11 +266,11 @@ def profile_log_likelihood(
     n_parameters = negative_log_likelihood(None)
     if remaining_components is None:
         remaining_components = range(n_parameters)
-    m_paramaters = len(remaining_components)
+    m_parameters = len(remaining_components)
 
     # DOF
     if dof is None:
-        dof = m_paramaters
+        dof = m_parameters
 
     # Method
     if method not in {"TNC", " L-BFGS-B"}:
@@ -288,7 +288,7 @@ def profile_log_likelihood(
     elif thetas_eval is None:
         if isinstance(grid_resolutions, int):
             grid_resolutions = [grid_resolutions for _ in range(grid_ranges)]
-        if len(grid_resolutions) != m_paramaters:
+        if len(grid_resolutions) != m_parameters:
             raise ValueError("Dimension of grid should be the same as number of remaining components!")
         theta_each = []
         for resolution, (theta_min, theta_max) in zip(grid_resolutions, grid_ranges):

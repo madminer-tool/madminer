@@ -189,7 +189,7 @@ class LHEReader:
         """
         Sets up the smearing of measured momenta from shower and detector effects.
 
-        This function can be called with pdgids=None, in which case the settinigs are used for all visible particles,
+        This function can be called with pdgids=None, in which case the settings are used for all visible particles,
         or with pdgids set to a list of PDG ids representing particles, for instance [11, -11] for electrons (and
         positrons).
 
@@ -541,7 +541,7 @@ class LHEReader:
     def analyse_samples(self, reference_benchmark=None, parse_events_as_xml=True):
         """
         Main function that parses the LHE samples, applies detector effects, checks cuts,
-        evaulate efficiencies, and extracts the observables and weights.
+        evaluate efficiencies, and extracts the observables and weights.
 
         Parameters
         ----------

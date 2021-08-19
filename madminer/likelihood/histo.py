@@ -182,7 +182,7 @@ class HistoLikelihood(BaseLikelihood):
             # Process input
             if len(params) != self.n_nuisance_parameters + self.n_parameters:
                 logger.warning(
-                    "Number of parameters is %s, expected %s physical parameters and %s nuisance paramaters",
+                    "Number of parameters is %s, expected %s physical parameters and %s nuisance parameters",
                     len(params),
                     self.n_parameters,
                     self.n_nuisance_parameters,
@@ -446,13 +446,13 @@ class HistoLikelihood(BaseLikelihood):
                     else:
                         raise RuntimeError("Model has to be 'ScoreEstimator' or Ensemble thereof.")
 
-                for observable, x_indice in zip(observables, x_indices):
-                    if x_indice == "function":
+                for observable, x_index in zip(observables, x_indices):
+                    if x_index == "function":
                         data_event.append(float(eval(observable, variables)))
-                    elif x_indice == "score":
+                    elif x_index == "score":
                         data_event.append(score[observable])
                     else:
-                        data_event.append(x[x_indice])
+                        data_event.append(x[x_index])
                 data_events.append(data_event)
             return np.array(data_events)
 

@@ -180,7 +180,7 @@ def load_and_check(filename, warning_threshold=1.0e9, memmap_files_larger_than_g
         smallest = np.nanmin(data)
         largest = np.nanmax(data)
         if np.abs(smallest) > warning_threshold or np.abs(largest) > warning_threshold:
-            logger.warning("Warning: file %s has some large numbers, rangin from %s to %s", filename, smallest, largest)
+            logger.warning("Warning: file %s has some large numbers, ranging from %s to %s", filename, smallest, largest)
 
     if len(data.shape) == 1:
         data = data.reshape(-1, 1)

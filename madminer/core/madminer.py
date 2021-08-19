@@ -1113,7 +1113,7 @@ class MadMiner:
             expected_event_files = [f"{mg_process_directory}/Events/run_{(i+1):02d}" for i in range(n_runs_total)]
             expected_event_files = "\n".join(expected_event_files)
             logger.info(
-                "Finished running MadGraph! Please check that events were succesfully generated in the following "
+                "Finished running MadGraph! Please check that events were successfully generated in the following "
                 "folders:\n\n%s\n\n",
                 expected_event_files,
             )
@@ -1239,7 +1239,7 @@ class MadMiner:
                 log_file=f"{log_directory}/{log_file_run}",
             )
             logger.info(
-                "Finished running reweighting! Please check that events were succesfully reweighted in the following "
+                "Finished running reweighting! Please check that events were successfully reweighted in the following "
                 "folder:\n\n %s/Events/%s \n\n",
                 mg_process_directory,
                 run_name,

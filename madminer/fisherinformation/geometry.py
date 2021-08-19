@@ -217,7 +217,7 @@ class InformationGeometry:
 
         limits : list of (tuple of float)
             Specifies the boundaries of the parameter grid in which the trajectory
-            is evaulated. It should be `[[min, max], [min, max], ..., [min, max]`,
+            is evaluated. It should be `[[min, max], [min, max], ..., [min, max]`,
             where the list goes over all parameters and `min` and `max` are float.
 
         stepsize : int, optional

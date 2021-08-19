@@ -95,7 +95,7 @@ def profile_information(
         `remaining_components[i]`-th row or column of fisher_information.
 
     profiled_fisher_information_covariance : ndarray
-        Covariance matrix of the profiled Fishere information matrix with shape (m, m, m, m).
+        Covariance matrix of the profiled Fisher information matrix with shape (m, m, m, m).
 
     """
 

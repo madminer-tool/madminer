@@ -463,7 +463,7 @@ class Ensemble:
             # Get ensemble mean and ensemble covariance
             score_mean = np.mean(score_predictions, axis=0)  # (n_events, n_parameters)
 
-            # For uncertainty calculation: calculate points betweeen mean and original predictions with same mean and
+            # For uncertainty calculation: calculate points between mean and original predictions with same mean and
             # variance / n compared to the original predictions
             score_shifted_predictions = (score_predictions - score_mean[np.newaxis, :, :]) / self.n_estimators ** 0.5
             score_shifted_predictions = score_mean[np.newaxis, :, :] + score_shifted_predictions
@@ -526,7 +526,7 @@ class Ensemble:
             # Get ensemble mean and ensemble covariance
             score_mean = np.mean(score_predictions, axis=0)  # (n_events, n_parameters)
 
-            # For uncertainty calculation: calculate points betweeen mean and original predictions with same mean and
+            # For uncertainty calculation: calculate points between mean and original predictions with same mean and
             # variance / n compared to the original predictions
             score_shifted_predictions = epsilon_shift * (score_predictions - score_mean[np.newaxis, :, :])
             score_shifted_predictions = score_mean[np.newaxis, :, :] + score_shifted_predictions

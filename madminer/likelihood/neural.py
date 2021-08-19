@@ -47,7 +47,7 @@ class NeuralLikelihood(BaseLikelihood):
             # Process input
             if len(params) != self.n_nuisance_parameters + self.n_parameters:
                 logger.warning(
-                    "Number of parameters is %s, expected %s physical parameters and %s nuisance paramaters",
+                    "Number of parameters is %s, expected %s physical parameters and %s nuisance parameters",
                     len(params),
                     self.n_parameters,
                     self.n_nuisance_parameters,
@@ -170,7 +170,7 @@ class NeuralLikelihood(BaseLikelihood):
         else:
             raise NotImplementedError(
                 "Likelihood (ratio) estimation is currently only implemented for "
-                "ParameterizedRatioEstimator and LikelihoodEstimator and Ensemble instancees"
+                "ParameterizedRatioEstimator and LikelihoodEstimator and Ensemble instances"
             )
 
         logger.debug("Kinematic log likelihood (ratio): %s", log_r.flatten())
