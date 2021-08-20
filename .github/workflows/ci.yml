@@ -59,3 +59,21 @@ jobs:
     - name: "Test with pytest"
       run: |
         pytest -p no:cacheprovider
+
+  notebooks:
+    needs: []
+    runs-on: ubuntu-latest
+    env:
+      DOCKER_ORG: madminertool
+      DOCKER_IMAGE_NAME: madminer-jupyter-env
+      DOCKER_IMAGE_VERSION: 0.3.3
+    steps:
+    - name: "Set up GitHub Actions"
+      uses: actions/checkout@v2
+    - name: "Test within Docker"
+      run: |
+        docker run
+          --rm
+          --volume ${PWD}:${PWD}
+          ${DOCKER_ORG}/${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_VERSION}
+          /bin/bash -c "cd ${PWD}; pip install .[test] && pytest tests -m notebook"
