@@ -405,7 +405,7 @@ class Ensemble:
             )
 
         # Check input
-        if mode not in ["score", "information"]:
+        if mode not in ["score", "information", "modified_score"]:
             raise ValueError(f"Unknown mode {mode}!")
 
         # Calculate estimator_weights of each estimator in vote
