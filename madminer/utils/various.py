@@ -1,5 +1,6 @@
 import logging
 import gzip
+import math
 import numpy as np
 import os
 import shutil
@@ -190,34 +191,25 @@ def load_and_check(filename, warning_threshold=1.0e9, memmap_files_larger_than_g
 
 def math_commands():
     """Provides list with math commands - we need this when using eval"""
-
-    from math import acos, asin, atan, atan2, ceil, cos, cosh, exp, floor, log, pi, pow, sin, sinh, sqrt, tan, tanh
-
-    functions = [
-        "acos",
-        "asin",
-        "atan",
-        "atan2",
-        "ceil",
-        "cos",
-        "cosh",
-        "exp",
-        "floor",
-        "log",
-        "pi",
-        "pow",
-        "sin",
-        "sinh",
-        "sqrt",
-        "tan",
-        "tanh",
-    ]
-
-    mathdefinitions = {}
-    for f in functions:
-        mathdefinitions[f] = locals().get(f, None)
-
-    return mathdefinitions
+    return {
+        "acos": math.acos,
+        "asin": math.asin,
+        "atan": math.atan,
+        "atan2": math.atan2,
+        "ceil": math.ceil,
+        "cos": math.cos,
+        "cosh": math.cosh,
+        "exp": math.exp,
+        "floor": math.floor,
+        "log": math.log,
+        "pi": math.pi,
+        "pow": math.pow,
+        "sin": math.sin,
+        "sinh": math.sinh,
+        "sqrt": math.sqrt,
+        "tan": math.tan,
+        "tanh": math.tanh,
+    }
 
 
 def make_file_executable(filename):

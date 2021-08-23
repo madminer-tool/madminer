@@ -3,6 +3,7 @@ import numpy as np
 import os
 import uproot3
 from collections import OrderedDict
+from particle import Particle
 
 from madminer.utils.particle import MadMinerParticle
 from madminer.utils.various import math_commands
@@ -265,7 +266,7 @@ def _get_particles_truth(tree, pt_min, eta_max, included_pdgids=None):
                 continue
             if eta_max is not None and abs(eta) > eta_max:
                 continue
-            if (included_pdgids is not None) and (not pdgid in included_pdgids):
+            if (included_pdgids is not None) and (pdgid not in included_pdgids):
                 continue
 
             particle = MadMinerParticle.from_rhophietat(pt, phi, eta, e)
@@ -307,10 +308,13 @@ def _get_particles_charged(tree, name, mass, pdgid_positive_charge, pt_min, eta_
 
 
 def _get_particles_leptons(tree, pt_min_e, eta_max_e, pt_min_mu, eta_max_mu):
+    ids_mu = {int(p.pdgid) for p in Particle.findall(pdg_name="mu")}
     pt_mu = tree.array("Muon.PT")
     eta_mu = tree.array("Muon.Eta")
     phi_mu = tree.array("Muon.Phi")
     charge_mu = tree.array("Muon.Charge")
+
+    ids_e = {int(p.pdgid) for p in Particle.findall(pdg_name="e")}
     pt_e = tree.array("Electron.PT")
     eta_e = tree.array("Electron.Eta")
     phi_e = tree.array("Electron.Phi")
@@ -344,13 +348,13 @@ def _get_particles_leptons(tree, pt_min_e, eta_max_e, pt_min_mu, eta_max_mu):
 
             pdgid = pdgid_positive_charge if charge >= 0.0 else -pdgid_positive_charge
 
-            if abs(int(pdgid)) == 11:
+            if int(pdgid) in ids_e:
                 if pt_min_e is not None and pt < pt_min_e:
                     continue
                 if eta_max_e is not None and abs(eta) > eta_max_e:
                     continue
 
-            elif abs(int(pdgid)) == 13:
+            elif int(pdgid) in ids_mu:
                 if pt_min_mu is not None and pt < pt_min_mu:
                     continue
                 if eta_max_mu is not None and abs(eta) > eta_max_mu:
@@ -370,6 +374,8 @@ def _get_particles_leptons(tree, pt_min_e, eta_max_e, pt_min_mu, eta_max_mu):
 
 
 def _get_particles_truth_leptons(tree, pt_min_e, eta_max_e, pt_min_mu, eta_max_mu):
+    ids_e = {int(p.pdgid) for p in Particle.findall(pdg_name="e")}
+    ids_mu = {int(p.pdgid) for p in Particle.findall(pdg_name="mu")}
     es = tree.array("Particle.E")
     pts = tree.array("Particle.PT")
     etas = tree.array("Particle.Eta")
@@ -383,15 +389,15 @@ def _get_particles_truth_leptons(tree, pt_min_e, eta_max_e, pt_min_mu, eta_max_m
         event_particles = []
 
         for e, pt, eta, phi, pdgid in zip(es[ievent], pts[ievent], etas[ievent], phis[ievent], pdgids[ievent]):
-            if pdgid not in [11, 13, -11, -13]:
+            if pdgid not in {*ids_e, *ids_mu}:
                 continue
-            if pdgid in [11, -11] and (pt_min_e is not None and pt < pt_min_e):
+            if pdgid in ids_e and (pt_min_e is not None and pt < pt_min_e):
                 continue
-            if pdgid in [11, -11] and (eta_max_e is not None and abs(eta) > eta_max_e):
+            if pdgid in ids_e and (eta_max_e is not None and abs(eta) > eta_max_e):
                 continue
-            if pdgid in [13, -13] and (pt_min_mu is not None and pt < pt_min_mu):
+            if pdgid in ids_mu and (pt_min_mu is not None and pt < pt_min_mu):
                 continue
-            if pdgid in [13, -13] and (eta_max_mu is not None and abs(eta) > eta_max_mu):
+            if pdgid in ids_mu and (eta_max_mu is not None and abs(eta) > eta_max_mu):
                 continue
 
             particle = MadMinerParticle.from_rhophietat(pt, phi, eta, e)

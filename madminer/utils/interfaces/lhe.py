@@ -2,6 +2,7 @@ import logging
 import numpy as np
 import os
 from collections import OrderedDict
+from particle import Particle
 
 try:
     import xml.etree.cElementTree as ET
@@ -944,9 +945,15 @@ def _get_objects(particles, particles_truth, met_resolution=None, global_event_d
     ht = 0.0
     visible_sum = MadMinerParticle.from_xyzt(0.0, 0.0, 0.0, 0.0)
 
+    standard_ids = set(get_elementary_pdg_ids())
+    neutrino_ids = {int(p.pdgid) for p in [
+        *Particle.findall(pdg_name="nu(e)"),
+        *Particle.findall(pdg_name="nu(mu)"),
+        *Particle.findall(pdg_name="nu(tau)"),
+    ]}
+
     for particle in particles:
-        pdgid = abs(particle.pdgid)
-        if pdgid in [1, 2, 3, 4, 5, 6, 9, 11, 13, 15, 21, 22, 23, 24, 25]:
+        if particle.pdgid in standard_ids and particle.pdgid not in neutrino_ids:
             visible_sum += particle
             ht += particle.pt
 
@@ -1079,6 +1086,15 @@ def _smear_particles(particles, energy_resolutions, pt_resolutions, eta_resoluti
 
 
 def get_elementary_pdg_ids():
-    ids = [1, -1, 2, -2, 3, -3, 4, -4, 5, -5, 6, -6, 9, 11, -11, 12, -12, 13, -13, 14, -14, 15, -15, 16, -16]
-    ids += [21, 22, 23, 24, -24, 25]
-    return ids
+    """Get Standard Model elementary particle IDs, leaving out 4th generation leptons"""
+    pdg_ids = Particle.findall(
+        lambda p: (
+            p.pdgid.is_quark
+            or p.pdgid.is_lepton
+            or p.pdgid.is_sm_gauge_boson_or_higgs
+        )
+    )
+
+    pdg_ids = [int(p.pdgid) for p in pdg_ids]
+    pdg_ids = [pdg_id for pdg_id in pdg_ids if pdg_id not in {17, -17, 18, -18}]
+    return pdg_ids
