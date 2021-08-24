@@ -31,7 +31,11 @@ class MadMinerParticle(vector.MomentumObject4D):
 
     def set_pdgid(self, pdgid):
         self.pdgid = int(pdgid)
-        self.charge = Particle.from_pdgid(self.pdgid).charge
+
+        try:
+            self.charge = Particle.from_pdgid(self.pdgid).charge
+        except RuntimeError:
+            self.charge = 0.0
 
         if self.pdgid in B_PDG_IDS:
             self.b_tag = True
