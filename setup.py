@@ -44,7 +44,6 @@ EXTRAS_DOCS = [
 ]
 
 EXTRAS_TEST = [
-    *EXTRAS_DOCS,
     "pytest",
 ]
 
