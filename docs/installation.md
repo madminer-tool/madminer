@@ -32,13 +32,6 @@ To get the latest development version as well as the tutorials, clone the [GitHu
 and run `pip install -e .` from the repository main folder.
 
 
-## Docker image
-
-At the DockerHub [madminertool organization][docker-madminer] we provide Docker images for the latest version of MadMiner.
-Please email [Irina Espejo](mailto:iem244@nyu.edu) for any questions about the Docker images.
-
-
-[docker-madminer]: https://hub.docker.com/u/madminertool/
 [repo-madminer]: https://github.com/diana-hep/madminer
 [web-madgraph-main-page]: https://launchpad.net/mg5amcnlo
 [web-madgraph-systematics]: https://cp3.irmp.ucl.ac.be/projects/madgraph/wiki/Systematics
