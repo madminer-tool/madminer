@@ -18,3 +18,9 @@ exclude = '''
   | mg_processes
 )
 '''
+
+# Pytest available markers
+[tool.pytest.ini_options]
+markers = [
+    "notebook: Jupyter notebook tests",
+]
