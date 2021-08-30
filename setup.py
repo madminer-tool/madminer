@@ -43,6 +43,10 @@ EXTRAS_DOCS = [
     "sphinx_rtd_theme",
 ]
 
+EXTRAS_LINT = [
+    "black[jupyter]>=21.8b0",
+]
+
 EXTRAS_TEST = [
     "pytest",
 ]
@@ -67,6 +71,7 @@ setup(
     install_requires=REQUIRED,
     extras_require={
         "docs": EXTRAS_DOCS,
+        "lint": EXTRAS_LINT,
         "test": EXTRAS_TEST,
         "examples": EXTRAS_EXAMPLES,
     },
