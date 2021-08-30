@@ -1,0 +1,20 @@
+# Black formatting options
+[tool.black]
+line-length = 100
+target-version = ['py37', 'py38', 'py39']
+include = '(\.py$|\.ipynb$)'
+exclude = '''
+(
+    \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | _build
+  | buck-out
+  | build
+  | dist
+  | mg_processes
+)
+'''
