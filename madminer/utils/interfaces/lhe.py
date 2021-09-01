@@ -1086,15 +1086,13 @@ def _smear_particles(particles, energy_resolutions, pt_resolutions, eta_resoluti
 
 
 def get_elementary_pdg_ids():
-    """Get Standard Model elementary particle IDs, leaving out 4th generation leptons"""
+    """Get Standard Model elementary particle IDs"""
     pdg_ids = Particle.findall(
         lambda p: (
-            p.pdgid.is_quark
-            or p.pdgid.is_lepton
+            p.pdgid.is_sm_quark
+            or p.pdgid.is_sm_lepton
             or p.pdgid.is_sm_gauge_boson_or_higgs
         )
     )
 
-    pdg_ids = [int(p.pdgid) for p in pdg_ids]
-    pdg_ids = [pdg_id for pdg_id in pdg_ids if pdg_id not in {17, -17, 18, -18}]
-    return pdg_ids
+    return [int(p.pdgid) for p in pdg_ids]
