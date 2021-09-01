@@ -946,11 +946,10 @@ def _get_objects(particles, particles_truth, met_resolution=None, global_event_d
     visible_sum = MadMinerParticle.from_xyzt(0.0, 0.0, 0.0, 0.0)
 
     standard_ids = set(get_elementary_pdg_ids())
-    neutrino_ids = {int(p.pdgid) for p in [
-        *Particle.findall(pdg_name="nu(e)"),
-        *Particle.findall(pdg_name="nu(mu)"),
-        *Particle.findall(pdg_name="nu(tau)"),
-    ]}
+    neutrino_ids = set(
+        int(p.pdgid)
+        for p in Particle.findall(lambda p: p.pdgid.is_sm_lepton and p.charge == 0)
+    )
 
     for particle in particles:
         if particle.pdgid in standard_ids and particle.pdgid not in neutrino_ids:
