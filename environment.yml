@@ -13,6 +13,6 @@ dependencies:
 - pytest
 - pip
 - pip:
-  - particle>=0.15.1
+  - particle>=0.16.0
   - uproot3>=3.14.1
   - vector>=0.8.4
