@@ -119,6 +119,75 @@ def _save_benchmarks(
         file.create_dataset("benchmarks/is_reference", data=benchmark_reference_flags)
 
 
+def _load_num_samples(file_name: str) -> Tuple[int, int]:
+    """
+    Load the number of signal and background events
+
+    Parameters
+    ----------
+    file_name : str
+        HDF5 file name to load sample numbers from
+
+    Returns
+    -------
+    num_signal_events : int
+        Number of signal generated events per benchmark
+    num_background_events : int
+        Number of background events
+    """
+
+    with h5py.File(file_name, "r") as file:
+        try:
+            num_signal_events = int(file["sample_summary/signal_events"][()])
+            num_background_events = int(file["sample_summary/background_events"][()])
+        except KeyError:
+            num_signal_events = 0
+            num_background_events = 0
+
+    # TODO: number of samples not extracted in this function
+    # TODO: return order has been swifted
+
+    return num_signal_events, num_background_events
+
+
+def _save_num_samples(
+    file_name: str,
+    file_override: bool,
+    num_signal_events: int,
+    num_background_events: int,
+) -> None:
+    """
+    Save the number of signal and background events
+
+    Parameters
+    ----------
+    file_name: str
+        HDF5 file name to save sample numbers into
+    file_override: bool
+        Whether to override HDF5 file contents or not
+    num_signal_events : int
+        Number of signal generated events per benchmark
+    num_background_events : int
+        Number of background events
+
+    Returns
+    -------
+        None
+    """
+
+    # Append if file exists, otherwise create
+    with h5py.File(file_name, "a") as file:
+
+        if file_override:
+            with suppress(KeyError):
+                del file["sample_summary"]
+
+        file.create_dataset("sample_summary/signal_events", data=num_signal_events)
+        file.create_dataset("sample_summary/background_events", data=num_background_events)
+
+    # TODO: Do not check against None inputs
+
+
 def _encode_strings(strings: List[str]) -> List[bytes]:
     """
     Encodes a list of strings as bytes
