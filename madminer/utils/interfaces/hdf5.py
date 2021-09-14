@@ -120,6 +120,90 @@ def _save_benchmarks(
         file.create_dataset("benchmarks/is_reference", data=benchmark_reference_flags)
 
 
+def _load_finite_diffs(file_name: str) -> Tuple[List[str], List[List[str]], float]:
+    """
+    Load finite differences between benchmarks from a HDF5 data file
+
+    Parameters
+    ----------
+    file_name: str
+        HDF5 file name to load observables properties into
+
+    Returns
+    -------
+    fin_diff_base_benchmarks: list
+        List of base benchmark names
+    fin_diff_shift_benchmarks: list
+        List of shift benchmark names, for each of the parameters
+    fin_diff_epsilon: float
+        Value representing the magnitude of the numerical uncertainty
+    """
+
+    fin_diff_base_benchmarks = []
+    fin_diff_shift_benchmarks = []
+    fin_diff_epsilon = 0.0
+
+    with h5py.File(file_name, "r") as file:
+        try:
+            fin_diff_base_benchmarks = file["finite_differences/base_benchmarks"][()]
+            fin_diff_shift_benchmarks = file["finite_differences/shifted_benchmarks"][()]
+            fin_diff_epsilon = float(file["finite_differences/epsilon"][()])
+        except KeyError:
+            logger.error("HDF5 file does not contain finite difference information")
+        else:
+            fin_diff_base_benchmarks = _decode_strings(fin_diff_base_benchmarks)
+            fin_diff_shift_benchmarks = [_decode_strings(names) for names in fin_diff_shift_benchmarks]
+
+    return (
+        fin_diff_base_benchmarks,
+        fin_diff_shift_benchmarks,
+        fin_diff_epsilon,
+    )
+
+
+def _save_finite_diffs(
+    file_name: str,
+    file_override: bool,
+    fin_diff_base_benchmarks: List[str],
+    fin_diff_shift_benchmarks: List[List[str]],
+    fin_diff_epsilon: float,
+) -> None:
+    """
+    Save finite differences between benchmarks into a HDF5 data file
+
+    Parameters
+    ----------
+    file_name: str
+        HDF5 file name to save finite difference benchmarks into
+    file_override: bool
+        Whether to override HDF5 file contents or not
+    fin_diff_base_benchmarks: list
+        List of base benchmark names
+    fin_diff_shift_benchmarks: list
+        List of shift benchmark names, for each of the parameters
+    fin_diff_epsilon: float
+        Value representing the magnitude of the numerical uncertainty
+
+    Returns
+    -------
+        None
+    """
+
+    fin_diff_base_benchmarks = _encode_strings(fin_diff_base_benchmarks)
+    fin_diff_shift_benchmarks = [_encode_strings(names) for names in fin_diff_shift_benchmarks]
+
+    # Append if file exists, otherwise create
+    with h5py.File(file_name, "a") as file:
+
+        if file_override:
+            with suppress(KeyError):
+                del file["finite_differences"]
+
+        file.create_dataset("finite_differences/base_benchmarks", data=fin_diff_base_benchmarks)
+        file.create_dataset("finite_differences/shifted_benchmarks", data=fin_diff_shift_benchmarks)
+        file.create_dataset("finite_differences/epsilon", data=fin_diff_epsilon)
+
+
 def _load_observables(file_name: str) -> Tuple[List[str], List[str]]:
     """
     Load observable properties from a HDF5 data file
