@@ -1,5 +1,6 @@
 import h5py
 import logging
+import numpy as np
 
 from contextlib import suppress
 from typing import Callable
@@ -202,6 +203,69 @@ def _save_finite_diffs(
         file.create_dataset("finite_differences/base_benchmarks", data=fin_diff_base_benchmarks)
         file.create_dataset("finite_differences/shifted_benchmarks", data=fin_diff_shift_benchmarks)
         file.create_dataset("finite_differences/epsilon", data=fin_diff_epsilon)
+
+
+def _load_morphing(file_name: str) -> Tuple[np.ndarray, np.ndarray]:
+    """
+    Load morphing properties from a HDF5 data file
+
+    Parameters
+    ----------
+    file_name : str
+        HDF5 file name to load morphing properties from
+
+    Returns
+    -------
+    morphing_components : numpy.ndarray
+    morphing_matrix : numpy.ndarray
+    """
+
+    morphing_components = None
+    morphing_matrix = None
+
+    with h5py.File(file_name, "r") as file:
+        try:
+            morphing_components = np.asarray(file["morphing/components"][()], dtype=np.int)
+            morphing_matrix = np.asarray(file["morphing/morphing_matrix"][()], dtype=np.float)
+        except KeyError:
+            logger.error("HDF5 file does not contain morphing information")
+
+    return morphing_components, morphing_matrix
+
+
+def _save_morphing(
+    file_name: str,
+    file_override: bool,
+    morphing_components: np.ndarray,
+    morphing_matrix: np.ndarray,
+) -> None:
+    """
+    Save morphing properties into a HDF5 data file
+
+    Parameters
+    ----------
+    file_name : str
+    file_override : bool
+    morphing_components : numpy.ndarray
+    morphing_matrix : numpy.ndarray
+
+    Returns
+    -------
+        None
+    """
+
+    assert morphing_components is not None
+    assert morphing_matrix is not None
+
+    # Append if file exists, otherwise create
+    with h5py.File(file_name, "a") as file:
+
+        if file_override:
+            with suppress(KeyError):
+                del file["morphing"]
+
+        file.create_dataset("morphing/components", data=morphing_components.astype(np.int))
+        file.create_dataset("morphing/morphing_matrix", data=morphing_matrix.astype(np.float))
 
 
 def _load_observables(file_name: str) -> Tuple[List[str], List[str]]:
