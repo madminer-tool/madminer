@@ -2,6 +2,7 @@ import h5py
 import logging
 
 from contextlib import suppress
+from typing import Callable
 from typing import List
 from typing import Tuple
 
@@ -117,6 +118,82 @@ def _save_benchmarks(
         file.create_dataset("benchmarks/values", data=benchmark_values)
         file.create_dataset("benchmarks/is_nuisance", data=benchmark_nuisance_flags)
         file.create_dataset("benchmarks/is_reference", data=benchmark_reference_flags)
+
+
+def _load_observables(file_name: str) -> Tuple[List[str], List[str]]:
+    """
+    Load observable properties from a HDF5 data file
+
+    Parameters
+    ----------
+    file_name: str
+        HDF5 file name to load observables properties from
+
+    Returns
+    -------
+    observable_names: list
+        List of observable names
+    observable_defs: list
+        List of observable string-encoded definitions
+    """
+
+    observable_names = []
+    observable_defs = []
+
+    with h5py.File(file_name, "r") as file:
+
+        try:
+            observable_names = file["observables/names"][()]
+            observable_defs = file["observables/definitions"][()]
+        except KeyError:
+            logger.error("HDF5 file does not contain observables information")
+        else:
+            observable_names = _decode_strings(observable_names)
+            observable_defs = _decode_strings(observable_defs)
+
+    return observable_names, observable_defs
+
+
+def _save_observables(
+    file_name: str,
+    file_override: bool,
+    observable_names: List[str],
+    observable_defs: List[Union[str, Callable]],
+) -> None:
+    """
+    Save observable properties into a HDF5 data file
+
+    Parameters
+    ----------
+    file_name: str
+        HDF5 file name to save observables properties into
+    file_override: bool
+        Whether to override HDF5 file contents or not
+    observable_names : list
+        List of observable names
+    observable_defs: list
+        List of observable string-encoded or callable function definitions
+
+    Returns
+    -------
+        None
+    """
+
+    observable_names = _encode_strings(observable_names)
+
+    # Filter out callable definitions when saving into HDF5 file
+    observable_defs = [d if isinstance(d, str) else "" for d in observable_defs]
+    observable_defs = _encode_strings(observable_defs)
+
+    # Append if file exists, otherwise create
+    with h5py.File(file_name, "a") as file:
+
+        if file_override:
+            with suppress(KeyError):
+                del file["observables"]
+
+        file.create_dataset("observables/names", data=observable_names, dtype="S256")
+        file.create_dataset("observables/definitions", data=observable_defs, dtype="S256")
 
 
 def _load_num_samples(file_name: str) -> Tuple[int, int]:
