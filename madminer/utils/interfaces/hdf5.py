@@ -2,8 +2,10 @@ import h5py
 import logging
 import numpy as np
 
+from collections import OrderedDict
 from contextlib import suppress
 from typing import Callable
+from typing import Dict
 from typing import List
 from typing import Tuple
 
@@ -266,6 +268,107 @@ def _save_morphing(
 
         file.create_dataset("morphing/components", data=morphing_components.astype(np.int))
         file.create_dataset("morphing/morphing_matrix", data=morphing_matrix.astype(np.float))
+
+
+def _load_nuisance_params(file_name: str) -> Dict[str, Tuple[str, str, str]]:
+    """
+    Load nuisance parameter properties from a HDF5 data file
+
+    Parameters
+    ----------
+    file_name: str
+        HDF5 file name to load nuisance parameter properties from
+
+    Returns
+    -------
+    parameters: dict
+        Dictionary of nuisance parameter properties to each parameter name
+    """
+
+    # Replace by normal dictionary on python 3.7+
+    parameters = OrderedDict()
+
+    with h5py.File(file_name, "r") as file:
+        try:
+            param_names = file["nuisance_parameters/names"][()]
+            param_systematics = file["nuisance_parameters/systematics"][()]
+            param_benchmarks_pos = file["nuisance_parameters/benchmark_positive"][()]
+            param_benchmarks_neg = file["nuisance_parameters/benchmark_negative"][()]
+        except KeyError:
+            logger.error("HDF5 file does not contain nuisance parameters information")
+            return parameters
+        else:
+            param_names = _decode_strings(param_names)
+            param_systematics = _decode_strings(param_systematics)
+            param_benchmarks_pos = _decode_strings(param_benchmarks_pos)
+            param_benchmarks_neg = _decode_strings(param_benchmarks_neg)
+            param_benchmarks_pos = [None if name == "" else name for name in param_benchmarks_pos]
+            param_benchmarks_neg = [None if name == "" else name for name in param_benchmarks_neg]
+
+    for name, sys, benchmark_pos, benchmark_neg in zip(
+        param_names,
+        param_systematics,
+        param_benchmarks_pos,
+        param_benchmarks_neg,
+    ):
+        parameters[name] = (sys, benchmark_pos, benchmark_neg)
+
+    # TODO: The dictionary has been preserved. Harmony with other loaders?
+
+    return parameters
+
+
+def _save_nuisance_params(
+    file_name: str,
+    file_override: bool,
+    parameters: Dict[str, Tuple[str, str, str]],
+) -> None:
+    """
+    Save nuisance parameter properties into a HDF5 data file
+
+    Parameters
+    ----------
+    file_name: str
+        HDF5 file name to save nuisance parameter properties into
+    file_override: bool
+        Whether to override HDF5 file contents or not
+    parameters: dict
+        Dictionary of nuisance parameter properties to each parameter name
+
+    Returns
+    -------
+        None
+    """
+
+    param_names = _encode_strings([name for name in parameters.keys()])
+    param_systematics = _encode_strings([v[0] for v in parameters.values()])
+
+    param_benchmarks_pos = [v[1] if v[1] is not None else "" for v in parameters.values()]
+    param_benchmarks_neg = [v[2] if v[2] is not None else "" for v in parameters.values()]
+    param_benchmarks_pos = _encode_strings(param_benchmarks_pos)
+    param_benchmarks_neg = _encode_strings(param_benchmarks_neg)
+
+    # Append if file exists, otherwise create
+    with h5py.File(file_name, "a") as file:
+
+        if file_override:
+            with suppress(KeyError):
+                del file["nuisance_parameters"]
+
+        file.create_dataset("nuisance_parameters/names", data=param_names, dtype="S256")
+        file.create_dataset("nuisance_parameters/systematics", data=param_systematics, dtype="S256")
+        file.create_dataset(
+            "nuisance_parameters/benchmark_positive",
+            data=param_benchmarks_pos,
+            dtype="S256",
+        )
+        file.create_dataset(
+            "nuisance_parameters/benchmark_negative",
+            data=param_benchmarks_neg,
+            dtype="S256",
+        )
+
+        # TODO: The dictionary has been preserved. Harmony with other loaders?
 
 
 def _load_observables(file_name: str) -> Tuple[List[str], List[str]]:
