@@ -538,6 +538,85 @@ def _save_observables(
         file.create_dataset("observables/definitions", data=observable_defs, dtype="S256")
 
 
+def _load_samples(file_name: str) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """
+    Load sample properties from a HDF5 data file
+
+    Parameters
+    ----------
+    file_name: str
+        HDF5 file name to load sample properties from
+
+    Returns
+    -------
+    sample_observations: numpy.ndarray
+    sample_weights: numpy.ndarray
+    sampling_ids: numpy.ndarray
+    """
+
+    sample_observations = np.asarray([])
+    sample_weights = np.asarray([])
+    sampling_ids = np.asarray([])
+
+    with h5py.File(file_name, "r") as file:
+        try:
+            sample_observations = file["samples/observations"][()]
+            sample_weights = file["samples/weights"][()]
+            sampling_ids = file["samples/sampling_benchmarks"][()]
+        except KeyError:
+            logger.error("HDF5 file does not contain sample information")
+        else:
+            assert sample_observations.shape[0] == sample_weights.shape[0], \
+                "The number of sample observations and sample weights do not match"
+
+    return (
+        sample_observations,
+        sample_weights,
+        sampling_ids,
+    )
+
+
+def _save_samples(
+    file_name: str,
+    file_override: bool,
+    sample_observations: np.ndarray,
+    sample_weights: np.ndarray,
+    sampling_ids: np.ndarray,
+) -> None:
+    """
+    Load sample properties into a HDF5 data file.
+
+    Parameters
+    ----------
+    file_name: str
+        HDF5 file name to save sample properties into
+    file_override: bool
+        Whether to override HDF5 file contents or not
+    sample_observations: numpy.ndarray
+    sample_weights: numpy.ndarray
+    sampling_ids: numpy.ndarray
+
+    Returns
+    -------
+        None
+    """
+
+    assert sample_observations is not None
+    assert sample_weights is not None
+    assert sampling_ids is not None
+
+    # Append if file exists, otherwise create
+    with h5py.File(file_name, "a") as file:
+
+        if file_override:
+            with suppress(KeyError):
+                del file["samples"]
+
+        file.create_dataset("samples/observations", data=sample_observations)
+        file.create_dataset("samples/weights", data=sample_weights)
+        file.create_dataset("samples/sampling_benchmarks", data=sampling_ids)
+
+
 def _load_num_samples(file_name: str) -> Tuple[int, int]:
     """
     Load the number of signal and background events
