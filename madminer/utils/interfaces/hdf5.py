@@ -8,9 +8,11 @@ from typing import Callable
 from typing import Dict
 from typing import List
 from typing import Tuple
+from typing import Union
 
 # Type aliases
 ParametersDict = Dict[str, Tuple[str, int, int, tuple, str]]
+SystematicValue = Union[Tuple[str], Tuple[str, str], Tuple[float]]
 
 
 logger = logging.getLogger(__name__)
@@ -603,6 +605,93 @@ def _save_num_samples(
         file.create_dataset("sample_summary/background_events", data=num_background_events)
 
     # TODO: Do not check against None inputs
+
+
+def _load_systematics(file_name: str) -> Tuple[List[str], List[str], List[SystematicValue]]:
+    """
+    Load systematics properties into a HDF5 data file.
+
+    Parameters
+    ----------
+    file_name: str
+        HDF5 file name to load systematics properties from
+
+    Returns
+    -------
+    systematics_names: list
+        List of systematics names
+    systematics_types: list
+        List of systematics types
+    systematics_values: list
+        List of systematics values (tuples of variable length)
+    """
+
+    systematics_names = []
+    systematics_types = []
+    systematics_values = []
+
+    with h5py.File(file_name, "r") as file:
+        try:
+            systematics_names = file["systematics/names"][()]
+            systematics_types = file["systematics/types"][()]
+            systematics_values = file["systematics/values"][()]
+        except KeyError:
+            logger.error("HDF5 file does not contain systematic information")
+        else:
+            systematics_names = _decode_strings(systematics_names)
+            systematics_types = _decode_strings(systematics_types)
+            systematics_values = _decode_strings(systematics_values)
+            systematics_values = [eval(str_tuple) for str_tuple in systematics_values]
+
+    return (
+        systematics_names,
+        systematics_types,
+        systematics_values,
+    )
+
+
+def _save_systematics(
+    file_name: str,
+    file_override: bool,
+    systematics_names: List[str],
+    systematics_types: List[str],
+    systematics_values: List[SystematicValue],
+) -> None:
+    """
+    Save systematics properties into a HDF5 data file.
+
+    Parameters
+    ----------
+    file_name: str
+        HDF5 file name to save systematics properties into
+    file_override: bool
+        Whether to override HDF5 file contents or not
+    systematics_names: list
+        List of systematics names
+    systematics_types: list
+        List of systematics types
+    systematics_values: list
+        List of systematics values (tuples of variable length)
+
+    Returns
+    -------
+        None
+    """
+
+    systematics_names = _encode_strings(systematics_names)
+    systematics_types = _encode_strings(systematics_types)
+    systematics_values = _encode_strings([str(tup) for tup in systematics_values])
+
+    # Append if file exists, otherwise create
+    with h5py.File(file_name, "a") as file:
+
+        if file_override:
+            with suppress(KeyError):
+                del file["systematics"]
+
+        file.create_dataset("systematics/names", data=systematics_names, dtype="S256")
+        file.create_dataset("systematics/types", data=systematics_types, dtype="S256")
+        file.create_dataset("systematics/values", data=systematics_values, dtype="S256")
 
 
 def _encode_strings(strings: List[str]) -> List[bytes]:
