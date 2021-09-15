@@ -9,6 +9,9 @@ from typing import Dict
 from typing import List
 from typing import Tuple
 
+# Type aliases
+ParametersDict = Dict[str, Tuple[str, int, int, tuple, str]]
+
 
 logger = logging.getLogger(__name__)
 
@@ -369,6 +372,92 @@ def _save_nuisance_params(
         )
 
         # TODO: The dictionary has been preserved. Harmony with other loaders?
+
+
+def _load_analysis_params(file_name: str) -> ParametersDict:
+    """
+    Load analysis parameter properties from a HDF5 data file
+
+    Parameters
+    ----------
+    file_name : str
+        HDF5 file name to load analysis parameter properties from
+
+    Returns
+    -------
+    parameters : dict
+        Dictionary of analysis parameter properties to each parameter name
+    """
+
+    # Replace by normal dictionary on python 3.7+
+    parameters = OrderedDict()
+
+    with h5py.File(file_name, "r") as file:
+        try:
+            param_names = file["parameters/names"][()]
+            param_lha_blocks = file["parameters/lha_blocks"][()]
+            param_lha_ids = file["parameters/lha_ids"][()]
+            param_max_power = file["parameters/max_power"][()]
+            param_val_ranges = file["parameters/val_ranges"][()]
+            param_transforms = file["parameters/transforms"][()]
+        except KeyError:
+            raise IOError("Cannot read parameters from HDF5 file")
+        else:
+            param_names = _decode_strings(param_names)
+            param_lha_blocks = _decode_strings(param_lha_blocks)
+            param_transforms = _decode_strings(param_transforms)
+
+    for name, block, id, max_power, range, transform in zip(
+        param_names,
+        param_lha_blocks,
+        param_lha_ids,
+        param_max_power,
+        param_val_ranges,
+        param_transforms,
+    ):
+        parameters[name] = (str(block), int(id), int(max_power), tuple(range), str(transform))
+
+    return parameters
+
+
+def _save_analysis_parameters(file_name: str, file_override: bool, parameters: ParametersDict) -> None:
+    """
+    Save analysis parameter properties into a HDF5 data file
+
+    Parameters
+    ----------
+    file_name: str
+        HDF5 file name to save analysis parameter properties into
+    file_override: bool
+        Whether to override HDF5 file contents or not
+    parameters: dict
+        Dictionary of analysis parameter properties to each parameter name
+
+    Returns
+    -------
+        None
+    """
+
+    param_names = _encode_strings([name for name in parameters.keys()])
+    param_lha_blocks = _encode_strings([v[0] for v in parameters.values()])
+    param_lha_ids = [v[1] for v in parameters.values()]
+    param_max_power = [v[2] for v in parameters.values()]
+    param_val_ranges = [v[3] for v in parameters.values()]
+    param_transforms = _encode_strings([v[4] for v in parameters.values()])
+
+    # Append if file exists, otherwise create
+    with h5py.File(file_name, "a") as file:
+
+        if file_override:
+            with suppress(KeyError):
+                del file["parameters"]
+
+        file.create_dataset("parameters/names", data=param_names, dtype="S256")
+        file.create_dataset("parameters/lha_blocks", data=param_lha_blocks, dtype="S256")
+        file.create_dataset("parameters/lha_ids", data=param_lha_ids)
+        file.create_dataset("parameters/max_power", data=param_max_power)
+        file.create_dataset("parameters/val_ranges", data=param_val_ranges)
+        file.create_dataset("parameters/transforms", data=param_transforms, dtype="S256")
 
 
 def _load_observables(file_name: str) -> Tuple[List[str], List[str]]:
