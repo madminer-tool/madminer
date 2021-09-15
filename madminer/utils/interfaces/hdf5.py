@@ -18,6 +18,192 @@ SystematicValue = Union[Tuple[str], Tuple[str, str], Tuple[float]]
 logger = logging.getLogger(__name__)
 
 
+def load_madminer_settings(file_name: str, include_nuisance_benchmarks: bool) -> tuple:
+    """
+    Loads the complete set of Madminer settings from a HDF5 data file
+
+    Parameters
+    ----------
+    file_name: str
+        HDF5 file name to load the settings from
+    include_nuisance_benchmarks: bool
+        Whether or not to filter out the nuisance benchmarks
+
+    Returns
+    -------
+    analysis_params: OrderedDict
+    benchmarks: OrderedDict
+    benchmark_nuisance_flags: list
+    morphing_components: numpy.ndarray
+    morphing_matrix numpy.ndarray
+    observables: OrderedDict
+    num_samples: int
+    systematics: OrderedDict
+    ref_benchmark: str
+    nuisance_params: OrderedDict
+    num_signal_events: numpy.ndarray
+    num_background_events: int
+    fin_differences: dict
+    fin_diff_epsilon: float
+    """
+
+    analysis_params = _load_analysis_params(file_name)
+    nuisance_params = _load_nuisance_params(file_name)
+
+    (
+        benchmark_names,
+        benchmark_values,
+        benchmark_nuisance_flags,
+        benchmark_reference_flags,
+    ) = _load_benchmarks(file_name)
+
+    (
+        morphing_components,
+        morphing_matrix,
+    ) = _load_morphing(file_name)
+
+    (
+        fin_diff_base_benchmark,
+        fin_diff_shift_benchmark,
+        fin_diff_epsilon,
+    ) = _load_finite_diffs(file_name)
+
+    (
+        observable_names,
+        observable_defs,
+    ) = _load_observables(file_name)
+
+    (
+        num_signal_events,
+        num_background_events,
+    ) = _load_samples_summary(file_name)
+
+    (
+        sample_observations,
+        _,
+        _,
+    ) = _load_samples(file_name)
+
+    (
+        systematics_names,
+        systematics_types,
+        systematics_values,
+    ) = _load_systematics(file_name)
+
+    # Build benchmarks dictionary
+    benchmarks = OrderedDict()
+    for b_name, b_value, b_nuisance_flag in zip(benchmark_names, benchmark_values, benchmark_nuisance_flags):
+
+        # Filter out the nuisance benchmarks
+        if include_nuisance_benchmarks is False and b_nuisance_flag is True:
+            continue
+
+        benchmarks[b_name] = OrderedDict()
+        for p_name in analysis_params.keys():
+            benchmarks[b_name][p_name] = b_value
+
+    # Build observables dictionary
+    observables = OrderedDict()
+    for o_name, o_def in zip(observable_names, observable_defs):
+        observables[o_name] = o_def
+
+    # Build systematics dictionary
+    systematics = OrderedDict()
+    for s_name, s_type, s_values in zip(systematics_names, systematics_types, systematics_values):
+        systematics[s_name] = (s_type, *s_values)
+
+    # Build finite differences dictionary
+    fin_differences = OrderedDict()
+    for base, shift in zip(fin_diff_base_benchmark, fin_diff_shift_benchmark):
+        fin_differences[base] = OrderedDict()
+        for p_name in analysis_params.keys():
+            fin_differences[base][p_name] = shift
+
+    # Compute concrete values
+    num_samples = len(sample_observations)
+    ref_benchmark = [name for name, flag in zip(benchmark_names, benchmark_reference_flags) if flag]
+    ref_benchmark = ref_benchmark[0] if len(ref_benchmark) > 0 else None
+
+    return (
+        analysis_params,
+        benchmarks,
+        benchmark_nuisance_flags,
+        morphing_components,
+        morphing_matrix,
+        observables,
+        num_samples,
+        systematics,
+        ref_benchmark,
+        nuisance_params,
+        num_signal_events,
+        num_background_events,
+        fin_differences,
+        fin_diff_epsilon,
+    )
+
+
+def save_madminer_settings(
+    file_name: str,
+    file_override: bool,
+    parameters: Dict[str, Tuple],
+    benchmarks: Dict[str, Dict[str, float]],
+    morphing_components: np.ndarray = None,
+    morphing_matrix: np.ndarray = None,
+    systematics: Dict[str, Tuple[str, SystematicValue]] = None,
+    finite_differences: Dict[str, Dict[str, str]] = None,
+    finite_differences_epsilon: float = None,
+) -> None:
+    """
+    Saves the complete set of Madminer settings into a HDF5 data file
+
+    Parameters
+    ----------
+    file_name: str
+    file_override: bool
+    parameters: OrderedDict
+    benchmarks: OrderedDict
+    morphing_components: numpy.ndarray
+    morphing_matrix: numpy.ndarray
+    systematics: OrderedDict
+    finite_differences: OrderedDict
+    finite_differences_epsilon: float
+
+    Returns
+    -------
+    None
+    """
+
+    # Unpack provided dictionaries
+    benchmark_names = [name for name in benchmarks.keys()]
+    benchmark_values = [[val for val in params.values()] for params in benchmarks.values()]
+
+    fin_diffs_base_benchmarks = [name for name in finite_differences.keys()]
+    fin_diffs_shift_benchmarks = [[name for name in params.values()] for params in finite_differences.values()]
+
+    systematics_names = [name for name in systematics.keys()]
+    systematics_types = [tup[0] for tup in systematics.values()]
+    systematics_values = [tup[1:] for tup in systematics.values()]
+
+    # Save information within the HDF5 file
+    _save_analysis_parameters(file_name, file_override, parameters)
+    _save_benchmarks(file_name, file_override, benchmark_names, benchmark_values)
+    _save_morphing(file_name, file_override, morphing_components, morphing_matrix)
+    _save_finite_diffs(
+        file_name,
+        file_override,
+        fin_diffs_base_benchmarks,
+        fin_diffs_shift_benchmarks,
+        finite_differences_epsilon,
+    )
+    _save_systematics(
+        file_name,
+        file_override,
+        systematics_names,
+        systematics_types,
+        systematics_values,
+    )
+
+
 def _load_benchmarks(file_name: str) -> Tuple[List[str], List[str], List[bool], List[bool]]:
     """
     Load benchmark properties from a HDF5 data file.
