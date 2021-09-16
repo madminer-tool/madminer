@@ -5,6 +5,7 @@ import numpy as np
 from collections import OrderedDict
 from contextlib import suppress
 from typing import Callable
+from typing import Iterator
 from typing import Dict
 from typing import List
 from typing import Tuple
@@ -170,7 +171,7 @@ def save_madminer_settings(
 
     Returns
     -------
-    None
+        None
     """
 
     # Unpack provided dictionaries
@@ -202,6 +203,158 @@ def save_madminer_settings(
         systematics_types,
         systematics_values,
     )
+
+
+def load_events(
+    file_name: str,
+    start_index: int = 0,
+    final_index: int = None,
+    batch_size: int = 100_000,
+    benchmark_nuisance_flags: List[bool] = None,
+    sampling_benchmark: np.ndarray = None,
+    sampling_factors: np.ndarray = None,
+    include_nuisance_params: bool = True,
+    include_sampling_ids: bool = False,
+) -> Iterator[Union[
+        Tuple[np.ndarray, np.ndarray],
+        Tuple[np.ndarray, np.ndarray, np.ndarray]
+    ]
+]:
+    """
+    Loads generated events information from a HDF5 data file
+
+    Parameters
+    ----------
+    file_name: str
+    start_index: int
+    final_index: int
+    batch_size: int
+    benchmark_nuisance_flags: list
+    sampling_benchmark: numpy.ndarray
+    sampling_factors: numpy.ndarray
+    include_nuisance_params: bool
+    include_sampling_ids: bool
+
+    Returns
+    -------
+
+    """
+
+    # Nuisance benchmarks filtering
+    if include_nuisance_params is False and benchmark_nuisance_flags is None:
+        logger.warning("Lack of nuisance flags to filter out nuisance benchmarks")
+        logger.warning("Processing all weights")
+        include_nuisance_params = True
+
+    elif include_nuisance_params is False and benchmark_nuisance_flags is not None:
+        benchmark_filter = np.logical_not(np.array(benchmark_nuisance_flags, dtype=np.bool))
+
+    (
+        observations,
+        weights,
+        sampling_ids,
+    ) = _load_samples(file_name)
+
+    num_samples = len(observations)
+
+    if start_index is None:
+        start_index = 0
+    if final_index is None:
+        final_index = num_samples
+    if batch_size is None:
+        batch_size = num_samples
+
+    final_index = min(num_samples, final_index)
+    actual_index = start_index
+
+    while actual_index < final_index:
+        batch_final_index = min(actual_index + batch_size, final_index)
+
+        batch_observations = observations[actual_index : batch_final_index]
+        batch_weights = weights[actual_index : batch_final_index]
+        batch_sampling_ids = None
+
+        if include_nuisance_params is False:
+            batch_weights = batch_weights[:, benchmark_filter]
+
+        if sampling_ids.size > 0:
+            batch_sampling_ids = sampling_ids[actual_index : batch_final_index]
+
+            # Only return data matching sampling_benchmark
+            if sampling_benchmark is not None:
+                cut = np.logical_or(
+                    batch_sampling_ids == sampling_benchmark,
+                    batch_sampling_ids < 0,
+                )
+
+                batch_observations = batch_observations[cut]
+                batch_weights = batch_weights[cut]
+                batch_sampling_ids = batch_sampling_ids[cut]
+
+            # Rescale weights based on sampling
+            elif sampling_factors is not None:
+                k_factors = sampling_factors[batch_sampling_ids]
+                batch_weights = batch_weights * k_factors[:, np.newaxis]
+
+        if include_sampling_ids:
+            yield batch_observations, batch_weights, batch_sampling_ids
+        else:
+            yield batch_observations, batch_weights
+
+        actual_index += batch_size
+
+
+def save_events(
+    file_name: str,
+    file_override: bool,
+    observables: dict,
+    observations: dict,
+    weights: dict,
+    sampling_benchmarks: List[int] = None,
+    num_signal_events: List[int] = None,
+    num_background_events: int = None,
+) -> None:
+    """
+    Saves generated events information into a HDF5 data file
+
+    Parameters
+    ----------
+    file_name: str
+    file_override: bool
+    observables: dict
+    observations: dict
+    weights: dict
+    sampling_benchmarks: list
+    num_signal_events: list
+    num_background_events: int
+
+    Returns
+    -------
+        None
+    """
+
+    # Unpack provided dictionaries
+    observable_names = [tup[0] for tup in observables.items()]
+    observable_defs = [tup[1] for tup in observables.items()]
+    observations = [val for val in observations.values()]
+
+    _save_observables(file_name, file_override, observable_names, observable_defs)
+
+    if weights is None or observations is None:
+        return
+
+    benchmark_names, _, _, _ = _load_benchmarks(file_name)
+
+    logger.debug("Weight names to save in event file: %s", weights.keys())
+    logger.debug("Benchmark names to save in event file: %s", benchmark_names)
+    sorted_weights = _get_sorted_weights(benchmark_names, weights)
+
+    sample_observations = np.array(observations).T
+    sample_weights = np.array(sorted_weights).T
+    sampling_ids = np.array(sampling_benchmarks, dtype=np.int)
+
+    _save_samples(file_name, file_override, sample_observations, sample_weights, sampling_ids)
+    _save_samples_summary(file_name, file_override, num_signal_events, num_background_events)
 
 
 def _load_benchmarks(file_name: str) -> Tuple[List[str], List[str], List[bool], List[bool]]:
@@ -993,3 +1146,36 @@ def _decode_strings(strings: List[bytes]) -> List[str]:
     """
 
     return [s.decode("ascii") for s in strings]
+
+
+def _get_sorted_weights(benchmark_names: List[str], weights: Dict[str, float]) -> List[float]:
+    """
+    Extracts and sorts weight values from a dictionary.
+    First the benchmarks in the right order, then the remaining ones alphabetically
+
+    Parameters
+    ----------
+    benchmark_names: list
+        List of benchmark names
+    weights: dict
+        Dictionary of benchmark-to-weight values
+
+    Returns
+    -------
+    sorted_weights: list
+        List of sorted weights
+    """
+
+    sorted_keys = sorted(weights.keys())
+
+    try:
+        benchmark_weights = [weights[name] for name in benchmark_names]
+        remaining_weights = [weights[key] for key in sorted_keys if key not in benchmark_names]
+    except KeyError as error:
+        logger.warning("Issue matching weight names between the HepMC file and MadMiner:")
+        logger.warning(error)
+        sorted_weights = [weights[key] for key in weights]
+    else:
+        sorted_weights = [*benchmark_weights, *remaining_weights]
+
+    return sorted_weights
