@@ -1077,41 +1077,43 @@ def _save_samples(
         file.create_dataset("samples/sampling_benchmarks", data=sampling_ids)
 
 
-def _load_num_samples(file_name: str) -> Tuple[int, int]:
+def _load_samples_summary(file_name: str) -> Tuple[np.ndarray, int]:
     """
     Load the number of signal and background events
 
     Parameters
     ----------
-    file_name : str
+    file_name: str
         HDF5 file name to load sample numbers from
 
     Returns
     -------
-    num_signal_events : int
-        Number of signal generated events per benchmark
-    num_background_events : int
+    num_signal_events: numpy.ndarray
+        List of signal events number per benchmark
+    num_background_events: int
         Number of background events
     """
 
+    num_signal_events = np.asarray([])
+    num_background_events = 0
+
     with h5py.File(file_name, "r") as file:
         try:
-            num_signal_events = int(file["sample_summary/signal_events"][()])
-            num_background_events = int(file["sample_summary/background_events"][()])
+            num_signal_events = file["sample_summary/signal_events"][()]
+            num_background_events = file["sample_summary/background_events"][()]
         except KeyError:
-            num_signal_events = 0
-            num_background_events = 0
+            logger.error("HDF5 file does not contain sample summary information")
 
-    # TODO: number of samples not extracted in this function
-    # TODO: return order has been swifted
+    return (
+        num_signal_events,
+        num_background_events,
+    )
 
-    return num_signal_events, num_background_events
 
-
-def _save_num_samples(
+def _save_samples_summary(
     file_name: str,
     file_override: bool,
-    num_signal_events: int,
+    num_signal_events: List[int],
     num_background_events: int,
 ) -> None:
     """
@@ -1123,15 +1125,21 @@ def _save_num_samples(
         HDF5 file name to save sample numbers into
     file_override: bool
         Whether to override HDF5 file contents or not
-    num_signal_events : int
-        Number of signal generated events per benchmark
-    num_background_events : int
+    num_signal_events: list
+        List with the number of signal events per benchmark
+    num_background_events: int
         Number of background events
 
     Returns
     -------
         None
     """
+
+    if num_signal_events is None:
+        num_signal_events = []
+
+    if num_background_events is None:
+        num_background_events = 0
 
     # Append if file exists, otherwise create
     with h5py.File(file_name, "a") as file:
@@ -1142,8 +1150,6 @@ def _save_num_samples(
 
         file.create_dataset("sample_summary/signal_events", data=num_signal_events)
         file.create_dataset("sample_summary/background_events", data=num_background_events)
-
-    # TODO: Do not check against None inputs
 
 
 def _load_systematics(file_name: str) -> Tuple[List[str], List[str], List[SystematicValue]]:
