@@ -357,7 +357,62 @@ def save_events(
     _save_samples_summary(file_name, file_override, num_signal_events, num_background_events)
 
 
-def _load_benchmarks(file_name: str) -> Tuple[List[str], List[str], List[bool], List[bool]]:
+def _add_benchmarks_custom(
+    benchmark_names: List[str],
+    benchmark_values: List[np.ndarray],
+    benchmark_nuisance_flags: List[bool],
+    new_benchmark_names: List[str],
+) -> Tuple[
+    List[str],
+    List[np.ndarray],
+    List[bool]
+]:
+    """
+    Extend the lists of benchmark properties with new custom benchmarks
+
+    Parameters
+    ----------
+    benchmark_names: list
+        List of benchmark names
+    benchmark_values: list
+        List of benchmark values per parameter
+    benchmark_nuisance_flags: list
+        List of flags indicating whether the benchmarks are nuisance or not
+    new_benchmark_names: list
+        List of custom benchmark names to add
+
+    Returns
+    -------
+    benchmark_names: list
+        List of benchmark names
+    benchmark_values: list
+        List of benchmark values per parameter
+    benchmark_nuisance_flags: list
+        List of flags indicating whether the benchmarks are nuisance or not
+    """
+
+    if isinstance(benchmark_values, np.ndarray):
+        benchmark_values = list(benchmark_values)
+
+    # Sort new benchmarks by name
+    for new_name in sorted(new_benchmark_names):
+        if new_name in benchmark_names:
+            logger.debug(f"Benchmark {new_name} already in the list of benchmarks")
+            continue
+
+        logger.debug(f"Adding custom benchmark: {new_name}")
+        benchmark_names.append(new_name)
+        benchmark_values.append(np.zeros_like(benchmark_values[0]))
+        benchmark_nuisance_flags.append(True)
+
+    return (
+        benchmark_names,
+        benchmark_values,
+        benchmark_nuisance_flags,
+    )
+
+
+def _load_benchmarks(file_name: str) -> Tuple[List[str], List[List[float]], List[bool], List[bool]]:
     """
     Load benchmark properties from a HDF5 data file.
 
@@ -371,7 +426,7 @@ def _load_benchmarks(file_name: str) -> Tuple[List[str], List[str], List[bool], 
     benchmark_names: list
         List of benchmark names
     benchmark_values: list
-        List of benchmark values
+        List of benchmark values per parameter
     benchmark_nuisance_flags: list
         List of flags indicating whether the benchmarks are nuisance or not
     benchmark_reference_flags: list
@@ -416,7 +471,7 @@ def _save_benchmarks(
     file_name: str,
     file_override: bool,
     benchmark_names: List[str],
-    benchmark_values: List[str],
+    benchmark_values: List[List[float]],
     benchmark_nuisance_flags: List[bool] = None,
     benchmark_reference_flags: List[bool] = None,
 ) -> None:
@@ -432,7 +487,7 @@ def _save_benchmarks(
     benchmark_names: list
         List of benchmark names
     benchmark_values: list
-        List of benchmark values
+        List of benchmark values per parameter
     benchmark_nuisance_flags: list
         List of flags indicating whether the benchmarks are nuisance or not
     benchmark_reference_flags: list
