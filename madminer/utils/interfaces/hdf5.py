@@ -1,6 +1,7 @@
 import h5py
 import logging
 import numpy as np
+import shutil
 
 from collections import OrderedDict
 from contextlib import suppress
@@ -202,6 +203,71 @@ def save_madminer_settings(
         systematics_names,
         systematics_types,
         systematics_values,
+    )
+
+
+def save_nuisance_setup(
+    file_name: str,
+    file_override: bool,
+    nuisance_benchmarks: List[str],
+    nuisance_parameters: Dict[str, Tuple],
+    reference_benchmark: str,
+    copy_from_path: str = None,
+) -> None:
+    """
+    Saves the names of nuisance-defined parameters and benchmarks in a HDF5 data file
+
+    Parameters
+    ----------
+    file_name: str
+    file_override: bool
+    nuisance_benchmarks: list
+    nuisance_parameters: dict
+    reference_benchmark: str
+    copy_from_path: str
+
+    Returns
+    -------
+        None
+    """
+
+    if copy_from_path is not None:
+        with suppress(OSError):
+            shutil.copyfile(copy_from_path, file_name)
+
+    (
+        benchmark_names,
+        benchmark_values,
+        benchmark_nuisance_flags,
+        _,
+    ) = _load_benchmarks(file_name)
+
+    (
+        benchmark_names,
+        benchmark_values,
+        benchmark_nuisance_flags,
+    ) = _add_benchmarks_custom(
+        benchmark_names,
+        benchmark_values,
+        benchmark_nuisance_flags,
+        nuisance_benchmarks,
+    )
+
+    # Compute intermediate values
+    benchmark_reference_flags = [name == reference_benchmark for name in benchmark_names]
+
+    _save_nuisance_params(
+        file_name,
+        file_override,
+        nuisance_parameters,
+    )
+    _save_benchmarks(
+        file_name,
+        file_override,
+        benchmark_names,
+        benchmark_values,
+        benchmark_nuisance_flags,
+        benchmark_reference_flags,
     )
 
 
