@@ -51,7 +51,6 @@ class MadMiner:
         morphing_max_power=2,
         parameter_range=(0.0, 1.0),
     ):
-
         """
         Adds an individual parameter.
 
@@ -66,10 +65,9 @@ class MadMiner:
         parameter_name : str or None
             An internal name for the parameter. If None, a the default 'benchmark_i' is used.
 
-        morphing_max_power : int or tuple of int
+        morphing_max_power : int
             The maximal power with which this parameter contributes to the
-            squared matrix element of the process of interest. If a tuple is given, gives this
-            maximal power for each of several operator configurations. Typically at tree level,
+            squared matrix element of the process of interest. Typically at tree level,
             this maximal number is 2 for parameters that affect one vertex (e.g. only production
             or only decay of a particle), and 4 for parameters that affect two vertices (e.g.
             production and decay). Default value: 2.
@@ -84,11 +82,9 @@ class MadMiner:
             The range of parameter values of primary interest. Only affects the
             basis optimization. Default value: (0., 1.).
 
-
         Returns
         -------
             None
-
         """
 
         # Default names
@@ -96,17 +92,15 @@ class MadMiner:
             parameter_name = f"parameter_{len(self.parameters)}"
 
         # Check and sanitize input
-        assert isinstance(parameter_name, str), f"Parameter name is not a string: {parameter_name}"
         assert isinstance(lha_block, str), f"LHA block is not a string: {lha_block}"
         assert isinstance(lha_id, int), f"LHA id is not an integer: {lha_id}"
+        assert isinstance(parameter_name, str), f"Parameter name is not a string: {parameter_name}"
+        assert isinstance(morphing_max_power, int), f"Morphing max power is not an integer: {morphing_max_power}"
 
         parameter_name = parameter_name.replace(" ", "_")
         parameter_name = parameter_name.replace("-", "_")
 
-        assert parameter_name not in self.parameters, f"Parameter name exists already: {parameter_name}"
-
-        if isinstance(morphing_max_power, int):
-            morphing_max_power = (morphing_max_power,)
+        assert parameter_name not in self.parameters, f"Parameter already exists: {parameter_name}"
 
         # Add parameter
         self.parameters[parameter_name] = (
@@ -139,7 +133,6 @@ class MadMiner:
         self.export_morphing = False
 
     def set_parameters(self, parameters=None):
-
         """
         Manually sets all parameters, overwriting previously added parameters.
 
@@ -154,7 +147,6 @@ class MadMiner:
         Returns
         -------
             None
-
         """
 
         if parameters is None:
@@ -318,9 +310,8 @@ class MadMiner:
 
         Parameters
         ----------
-        max_overall_power : int or tuple of int, optional
-            The maximal sum of powers of all parameters contributing to the squared matrix element. If a tuple is given,
-            gives the maximal sum of powers for each of several operator configurations (see `add_parameter`).
+        max_overall_power : int, optional
+            The maximal sum of powers of all parameters contributing to the squared matrix element.
             Typically, if parameters can affect the couplings at n vertices, this number is 2n. Default value: 4.
 
         n_bases : int, optional
@@ -348,9 +339,6 @@ class MadMiner:
         """
 
         logger.info("Optimizing basis for morphing")
-
-        if isinstance(max_overall_power, int):
-            max_overall_power = (max_overall_power,)
 
         morpher = PhysicsMorpher(parameters_from_madminer=self.parameters)
         morpher.find_components(max_overall_power)
