@@ -2,7 +2,7 @@ import logging
 import numpy as np
 
 from .parameterized_ratio import ParameterizedRatioEstimator
-from ..utils.interfaces.madminer_hdf5 import load_madminer_settings
+from ..utils.interfaces.hdf5 import load_madminer_settings
 from ..utils.ml.models.ratio import DenseMorphingAwareRatioModel, DenseQuadraticMorphingAwareRatioModel
 from ..utils.morphing import PhysicsMorpher
 
@@ -42,7 +42,7 @@ class MorphingAwareRatioEstimator(ParameterizedRatioEstimator):
     def _load_morphing_setup(self, filename, optimize_morphing_basis=False):
         (
             parameters,
-            benchmarks,
+            _,
             _,
             morphing_components,
             morphing_matrix,
@@ -56,6 +56,7 @@ class MorphingAwareRatioEstimator(ParameterizedRatioEstimator):
             _,
             _,
         ) = load_madminer_settings(filename, include_nuisance_benchmarks=False)
+
         if optimize_morphing_basis:
             logger.info("Optimizing morphing basis for morphing-aware estimator")
             morpher = PhysicsMorpher(parameters_from_madminer=parameters)

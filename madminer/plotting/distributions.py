@@ -136,7 +136,7 @@ def plot_distributions(
     if parameter_points is None:
         parameter_points = []
 
-        for key, is_nuisance in zip(sa.benchmarks, sa.benchmark_is_nuisance):
+        for key, is_nuisance in zip(sa.benchmarks, sa.benchmark_nuisance_flags):
             if not is_nuisance:
                 parameter_points.append(key)
 

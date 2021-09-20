@@ -5,11 +5,11 @@ from collections import OrderedDict
 
 from madminer.utils.interfaces.madminer_hdf5 import (
     save_events_to_madminer_file,
-    load_madminer_settings,
     save_nuisance_setup_to_madminer_file,
 )
 from madminer.utils.interfaces.delphes import run_delphes
 from madminer.utils.interfaces.delphes_root import parse_delphes_root_file
+from madminer.utils.interfaces.hdf5 import load_madminer_settings
 from madminer.utils.interfaces.hepmc import extract_weight_order
 from madminer.utils.interfaces.lhe import parse_lhe_file, extract_nuisance_parameters_from_lhe_file
 from madminer.sampling import combine_and_shuffle
@@ -91,9 +91,24 @@ class DelphesReader:
 
         # Information from .h5 file
         self.filename = filename
-        (parameters, benchmarks, _, _, _, _, _, self.systematics, _, _, _, _, _, _) = load_madminer_settings(
-            filename, include_nuisance_benchmarks=False
-        )
+
+        (
+            _,
+            benchmarks,
+            _,
+            _,
+            _,
+            _,
+            _,
+            self.systematics,
+            _,
+            _,
+            _,
+            _,
+            _,
+            _,
+        ) = load_madminer_settings(filename, include_nuisance_benchmarks=False)
+
         self.benchmark_names_phys = list(benchmarks.keys())
         self.n_benchmarks_phys = len(benchmarks)
 

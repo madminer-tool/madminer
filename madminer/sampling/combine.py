@@ -1,7 +1,8 @@
 import logging
 import numpy as np
 
-from ..utils.interfaces.madminer_hdf5 import madminer_event_loader, load_madminer_settings
+from ..utils.interfaces.hdf5 import load_madminer_settings
+from ..utils.interfaces.madminer_hdf5 import madminer_event_loader
 from ..utils.interfaces.madminer_hdf5 import save_preformatted_events_to_madminer_file
 from ..utils.interfaces.madminer_hdf5 import save_sample_summary_to_madminer_file
 from ..utils.various import shuffle
@@ -123,7 +124,8 @@ def combine_and_shuffle(
             n_background_events,
             _,
             _,
-        ) = load_madminer_settings(filename)
+        ) = load_madminer_settings(filename, include_nuisance_benchmarks=False)
+
         n_benchmarks = len(benchmarks)
 
         if n_signal_events_generated_per_benchmark is not None and n_background_events is not None:

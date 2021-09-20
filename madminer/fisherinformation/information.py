@@ -1243,7 +1243,7 @@ class FisherInformation(DataAnalyzer):
         # Error propagation
         if calculate_uncertainty:
             if weights_benchmarks.shape[1] > self.n_benchmarks_phys:
-                weights_benchmarks_phys = weights_benchmarks[:, np.logical_not(self.benchmark_is_nuisance)]
+                weights_benchmarks_phys = weights_benchmarks[:, np.logical_not(self.benchmark_nuisance_flags)]
             else:
                 weights_benchmarks_phys = weights_benchmarks
 

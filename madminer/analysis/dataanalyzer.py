@@ -1,7 +1,8 @@
 import logging
 import numpy as np
 
-from madminer.utils.interfaces.madminer_hdf5 import load_madminer_settings, madminer_event_loader
+from madminer.utils.interfaces.hdf5 import load_madminer_settings
+from madminer.utils.interfaces.madminer_hdf5 import madminer_event_loader
 from madminer.utils.morphing import PhysicsMorpher, NuisanceMorpher
 from madminer.utils.various import format_benchmark, mdot
 
@@ -35,7 +36,7 @@ class DataAnalyzer:
         (
             self.parameters,
             self.benchmarks,
-            self.benchmark_is_nuisance,
+            self.benchmark_nuisance_flags,
             self.morphing_components,
             self.morphing_matrix,
             self.observables,
@@ -51,7 +52,7 @@ class DataAnalyzer:
 
         self.n_parameters = len(self.parameters)
         self.n_benchmarks = len(self.benchmarks)
-        self.n_benchmarks_phys = np.sum(np.logical_not(self.benchmark_is_nuisance))
+        self.n_benchmarks_phys = np.sum(np.logical_not(self.benchmark_nuisance_flags))
         self.n_observables = 0 if self.observables is None else len(self.observables)
 
         self.n_nuisance_parameters = 0
@@ -144,7 +145,7 @@ class DataAnalyzer:
             end,
             batch_size,
             include_nuisance_parameters,
-            benchmark_is_nuisance=self.benchmark_is_nuisance,
+            benchmark_is_nuisance=self.benchmark_nuisance_flags,
             sampling_benchmark=sampling_benchmark,
             sampling_factors=sampling_factors,
             return_sampling_ids=return_sampling_ids,
@@ -535,7 +536,7 @@ class DataAnalyzer:
             self.include_nuisance_parameters = False
 
         logger.info(f"Found {self.n_benchmarks} benchmarks")
-        for (key, values), is_nuisance in zip(self.benchmarks.items(), self.benchmark_is_nuisance):
+        for (key, values), is_nuisance in zip(self.benchmarks.items(), self.benchmark_nuisance_flags):
             if is_nuisance:
                 logger.debug("   %s: systematics", key)
             else:

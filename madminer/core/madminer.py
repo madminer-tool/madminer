@@ -4,7 +4,8 @@ import tempfile
 from collections import OrderedDict
 
 from madminer.utils.morphing import PhysicsMorpher
-from madminer.utils.interfaces.madminer_hdf5 import save_madminer_settings, load_madminer_settings
+from madminer.utils.interfaces.hdf5 import load_madminer_settings
+from madminer.utils.interfaces.madminer_hdf5 import save_madminer_settings
 from madminer.utils.interfaces.mg_cards import export_param_card, export_reweight_card, export_run_card
 from madminer.utils.interfaces.mg import generate_mg_process, setup_mg_with_scripts, run_mg, create_master_script
 from madminer.utils.interfaces.mg import setup_mg_reweighting_with_scripts, run_mg_reweighting
