@@ -5,7 +5,7 @@ from collections import OrderedDict
 
 from madminer.utils.morphing import PhysicsMorpher
 from madminer.utils.interfaces.hdf5 import load_madminer_settings
-from madminer.utils.interfaces.madminer_hdf5 import save_madminer_settings
+from madminer.utils.interfaces.hdf5 import save_madminer_settings
 from madminer.utils.interfaces.mg_cards import export_param_card, export_reweight_card, export_run_card
 from madminer.utils.interfaces.mg import generate_mg_process, setup_mg_with_scripts, run_mg, create_master_script
 from madminer.utils.interfaces.mg import setup_mg_reweighting_with_scripts, run_mg_reweighting
@@ -595,27 +595,27 @@ class MadMiner:
             logger.info("Saving setup (including morphing) to %s", filename)
 
             save_madminer_settings(
-                filename=filename,
+                file_name=filename,
+                file_override=True,
                 parameters=self.parameters,
                 benchmarks=self.benchmarks,
                 morphing_components=self.morpher.components,
                 morphing_matrix=self.morpher.morphing_matrix,
                 systematics=self.systematics,
-                finite_difference_benchmarks=self.finite_difference_benchmarks,
-                finite_difference_epsilon=self.finite_difference_epsilon,
-                overwrite_existing_files=True,
+                finite_differences=self.finite_difference_benchmarks,
+                finite_differences_epsilon=self.finite_difference_epsilon,
             )
         else:
             logger.info("Saving setup (without morphing) to %s", filename)
 
             save_madminer_settings(
-                filename=filename,
+                file_name=filename,
+                file_override=True,
                 parameters=self.parameters,
                 benchmarks=self.benchmarks,
                 systematics=self.systematics,
-                finite_difference_benchmarks=self.finite_difference_benchmarks,
-                finite_difference_epsilon=self.finite_difference_epsilon,
-                overwrite_existing_files=True,
+                finite_differences=self.finite_difference_benchmarks,
+                finite_differences_epsilon=self.finite_difference_epsilon,
             )
 
     def _export_cards(
