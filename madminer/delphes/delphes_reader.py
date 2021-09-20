@@ -3,11 +3,11 @@ import numpy as np
 import os
 from collections import OrderedDict
 
-from madminer.utils.interfaces.madminer_hdf5 import save_nuisance_setup_to_madminer_file
 from madminer.utils.interfaces.delphes import run_delphes
 from madminer.utils.interfaces.delphes_root import parse_delphes_root_file
 from madminer.utils.interfaces.hdf5 import load_madminer_settings
 from madminer.utils.interfaces.hdf5 import save_events
+from madminer.utils.interfaces.hdf5 import save_nuisance_setup
 from madminer.utils.interfaces.hepmc import extract_weight_order
 from madminer.utils.interfaces.lhe import parse_lhe_file, extract_nuisance_parameters_from_lhe_file
 from madminer.sampling import combine_and_shuffle
@@ -899,12 +899,13 @@ class DelphesReader:
         weight_names = list(self.weights.keys())
         logger.debug("Weight names: %s", weight_names)
 
-        save_nuisance_setup_to_madminer_file(
-            filename_out,
-            weight_names,
-            self.nuisance_parameters,
+        save_nuisance_setup(
+            file_name=filename_out,
+            file_override=True,
+            nuisance_benchmarks=weight_names,
+            nuisance_parameters=self.nuisance_parameters,
             reference_benchmark=self.reference_benchmark,
-            copy_from=self.filename,
+            copy_from_path=self.filename,
         )
 
         # Save events
