@@ -1,10 +1,12 @@
 import logging
 import numpy as np
+import shutil
 
+from contextlib import suppress
 from ..utils.interfaces.hdf5 import load_events
 from ..utils.interfaces.hdf5 import load_madminer_settings
-from ..utils.interfaces.madminer_hdf5 import save_preformatted_events_to_madminer_file
-from ..utils.interfaces.madminer_hdf5 import save_sample_summary_to_madminer_file
+from ..utils.interfaces.hdf5 import _save_samples
+from ..utils.interfaces.hdf5 import _save_samples_summary
 from ..utils.various import shuffle
 
 logger = logging.getLogger(__name__)
@@ -161,18 +163,24 @@ def combine_and_shuffle(
             all_n_events_background,
         )
 
+    file_copy_path = input_filenames[0]
+    if file_copy_path is not None:
+        with suppress(OSError):
+            shutil.copyfile(file_copy_path, output_filename)
+
     # Save result
-    save_preformatted_events_to_madminer_file(
-        filename=output_filename,
-        observations=all_observations,
-        weights=all_weights,
-        sampling_benchmarks=all_sampling_ids,
-        copy_setup_from=input_filenames[0],
-        overwrite_existing_samples=overwrite_existing_file,
+    _save_samples(
+        file_name=output_filename,
+        file_override=True,
+        sample_observations=all_observations,
+        sample_weights=all_weights,
+        sampling_ids=all_sampling_ids,
     )
+
     if all_n_events_background + np.sum(all_n_events_signal_per_benchmark) > 0:
-        save_sample_summary_to_madminer_file(
-            filename=output_filename,
-            n_events_background=all_n_events_background,
-            n_events_per_sampling_benchmark=all_n_events_signal_per_benchmark,
+        _save_samples_summary(
+            file_name=output_filename,
+            file_override=True,
+            num_signal_events=all_n_events_signal_per_benchmark,
+            num_background_events=all_n_events_background,
         )
