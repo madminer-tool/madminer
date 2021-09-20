@@ -1,8 +1,8 @@
 import logging
 import numpy as np
 
+from ..utils.interfaces.hdf5 import load_events
 from ..utils.interfaces.hdf5 import load_madminer_settings
-from ..utils.interfaces.madminer_hdf5 import madminer_event_loader
 from ..utils.interfaces.madminer_hdf5 import save_preformatted_events_to_madminer_file
 from ..utils.interfaces.madminer_hdf5 import save_sample_summary_to_madminer_file
 from ..utils.various import shuffle
@@ -132,7 +132,7 @@ def combine_and_shuffle(
             all_n_events_signal_per_benchmark += n_signal_events_generated_per_benchmark
             all_n_events_background += n_background_events
 
-        for observations, weights, sampling_ids in madminer_event_loader(filename, return_sampling_ids=True):
+        for observations, weights, sampling_ids in load_events(filename, include_sampling_ids=True):
             logger.debug("Sampling benchmarks: %s", sampling_ids)
             if all_observations is None:
                 all_observations = observations
