@@ -4,7 +4,7 @@
 
 Make sure the following tools are installed and running:
 - MadGraph (we have tested our setup with version 2.8.0+). See [MadGraph's website][web-madgraph-main-page]
-  for installation instructions. Note that MadGraph requires a Fortran compiler as well as Python 3.6+.
+  for installation instructions. Note that MadGraph requires a Fortran compiler as well as Python 3.7+.
 - For the analysis of systematic uncertainties, LHAPDF6 has to be installed with Python support
   (see also [the documentation of MadGraph's systematics tool][web-madgraph-systematics]).
 
