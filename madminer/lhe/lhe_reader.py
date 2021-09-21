@@ -2,11 +2,9 @@ import logging
 import numpy as np
 from collections import OrderedDict
 
-from madminer.utils.interfaces.madminer_hdf5 import (
-    save_events_to_madminer_file,
-    load_madminer_settings,
-    save_nuisance_setup_to_madminer_file,
-)
+from madminer.utils.interfaces.hdf5 import load_madminer_settings
+from madminer.utils.interfaces.hdf5 import save_events
+from madminer.utils.interfaces.hdf5 import save_nuisance_setup
 from madminer.utils.interfaces.lhe import (
     parse_lhe_file,
     extract_nuisance_parameters_from_lhe_file,
@@ -89,7 +87,7 @@ class LHEReader:
         self.reference_benchmark = None
         self.observations = None
         self.weights = None
-        self.events_sampling_benchmark_ids = None
+        self.events_sampling_benchmark_ids = []
 
         # Initialize event summary
         self.signal_events_per_benchmark = None
@@ -97,9 +95,24 @@ class LHEReader:
 
         # Information from .h5 file
         self.filename = filename
-        (parameters, benchmarks, _, _, _, _, _, self.systematics, _, _, _, _, _, _) = load_madminer_settings(
-            filename, include_nuisance_benchmarks=False
-        )
+
+        (
+            _,
+            benchmarks,
+            _,
+            _,
+            _,
+            _,
+            _,
+            self.systematics,
+            _,
+            _,
+            _,
+            _,
+            _,
+            _,
+        ) = load_madminer_settings(filename, include_nuisance_benchmarks=False)
+
         self.benchmark_names_phys = list(benchmarks.keys())
         self.n_benchmarks_phys = len(benchmarks)
 
@@ -568,7 +581,7 @@ class LHEReader:
         self.observations = None
         self.weights = None
         self.nuisance_parameters = OrderedDict()
-        self.events_sampling_benchmark_ids = None
+        self.events_sampling_benchmark_ids = []
         self.signal_events_per_benchmark = [0 for _ in range(self.n_benchmarks_phys)]
         self.background_events = 0
 
@@ -772,23 +785,25 @@ class LHEReader:
         weight_names = list(self.weights.keys())
         logger.debug("Weight names: %s", weight_names)
 
-        save_nuisance_setup_to_madminer_file(
-            filename_out,
-            weight_names,
-            self.nuisance_parameters,
+        save_nuisance_setup(
+            file_name=filename_out,
+            file_override=True,
+            nuisance_benchmarks=weight_names,
+            nuisance_parameters=self.nuisance_parameters,
             reference_benchmark=self.reference_benchmark,
-            copy_from=self.filename,
+            copy_from_path=self.filename,
         )
 
         # Save events
-        save_events_to_madminer_file(
-            filename_out,
-            self.observables,
-            self.observations,
-            self.weights,
-            self.events_sampling_benchmark_ids,
-            self.signal_events_per_benchmark,
-            self.background_events,
+        save_events(
+            file_name=filename_out,
+            file_override=True,
+            observables=self.observables,
+            observations=self.observations,
+            weights=self.weights,
+            sampling_benchmarks=self.events_sampling_benchmark_ids,
+            num_signal_events=self.signal_events_per_benchmark,
+            num_background_events=self.background_events,
         )
 
         if shuffle:

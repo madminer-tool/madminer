@@ -46,13 +46,11 @@ class PhysicsMorpher:
         Parameters in the `MadMiner.parameters` convention. OrderedDict with keys equal to the parameter names and
         values equal to tuples (LHA_block, LHA_ID, morphing_max_power, param_min, param_max)
 
-    parameter_max_power : None or list of int  or list of tuple of int, optional
+    parameter_max_power : None or list of int, optional
         Only used if parameters_from_madminer is None. Maximal power with which each parameter contributes to
-        the squared matrix element. If tuples are given, gives this
-        maximal power for each of several operator configurations. Typically at tree level,
-        this maximal number is 2 for parameters that affect one vertex (e.g. only production
-        or only decay of a particle), and 4 for parameters that affect two vertices (e.g.
-        production and decay).
+        the squared matrix element. Typically at tree level, this maximal number is 2 for parameters
+        that affect one vertex (e.g. only production or only decay of a particle),
+        and 4 for parameters that affect two vertices (e.g. production and decay).
 
     parameter_range : None or list of tuple of float, optional
         Only used if parameters_from_madminer is None. Parameter range (param_min, param_max) for each parameter.
@@ -76,11 +74,7 @@ class PhysicsMorpher:
             self.use_madminer_interface = False
             self.n_parameters = len(parameter_max_power)
             self.parameter_names = None
-
-            if isinstance(parameter_max_power[0], int):
-                parameter_max_power = [(mp,) for mp in parameter_max_power]
             self.parameter_max_power = parameter_max_power
-
             self.parameter_range = np.array(parameter_range)
 
         # Currently empty
@@ -110,15 +104,13 @@ class PhysicsMorpher:
         self.n_components = len(self.components)
 
     def find_components(self, max_overall_power=4):
-
         """
         Finds the components, i.e. the individual terms contributing to the squared matrix element.
 
         Parameters
         ----------
-        max_overall_power : int or tuple of int, optional
-            The maximal sum of powers of all parameters contributing to the squared matrix element. If a tuple is given,
-            gives the maximal sum of powers for each of several operator configurations (see constructor).
+        max_overall_power : int, optional
+            The maximal sum of powers of all parameters contributing to the squared matrix element.
             Typically, if parameters can affect the couplings at n vertices, this number is 2n. Default value: 4.
 
         Returns
@@ -126,47 +118,26 @@ class PhysicsMorpher:
         components : ndarray
             Array with shape (n_components, n_parameters), where each entry gives the power with which a parameter
             scales a given component.
-
         """
 
-        if isinstance(max_overall_power, int):
-            max_overall_power = [max_overall_power]
+        logger.debug("Max overall power %s", max_overall_power)
+        logger.debug("Max individual power %s", [max_power for max_power in self.parameter_max_power])
 
-        n_regions = len(max_overall_power)
-
-        # Check that number of regions is consistent
-        for max_power in self.parameter_max_power:
-            if n_regions != len(max_power):
-                raise RuntimeError(
-                    f"Parameters have different number of partitions of max powers: "
-                    f"{max_overall_power} vs {self.parameter_max_power}"
-                )
+        powers_each_component = [range(max_power + 1) for max_power in self.parameter_max_power]
 
         # Go through regions and finds components for each
         components = []
+        for powers in itertools.product(*powers_each_component):
+            powers = np.array(powers, dtype=np.int)
 
-        for i in range(n_regions):
-            this_max_overall_power = max_overall_power[i]
-            powers_each_component = [range(max_power[i] + 1) for max_power in self.parameter_max_power]
+            if np.sum(powers) > max_overall_power:
+                continue
 
-            logger.debug(
-                "Region %s: max overall power %s, max individual powers %s",
-                i,
-                this_max_overall_power,
-                [max_power[i] for max_power in self.parameter_max_power],
-            )
-
-            for powers in itertools.product(*powers_each_component):
-                powers = np.array(powers, dtype=np.int)
-
-                if np.sum(powers) > this_max_overall_power:
-                    continue
-
-                if not any((powers == x).all() for x in components):
-                    logger.debug("  Adding component %s", powers)
-                    components.append(np.copy(powers))
-                else:
-                    logger.debug("  Not adding component %s again", powers)
+            if not any((powers == x).all() for x in components):
+                logger.debug("  Adding component %s", powers)
+                components.append(np.copy(powers))
+            else:
+                logger.debug("  Not adding component %s again", powers)
 
         self.components = np.array(components, dtype=np.int)
         self.n_components = len(self.components)
