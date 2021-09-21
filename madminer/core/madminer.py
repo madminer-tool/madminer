@@ -39,8 +39,8 @@ class MadMiner:
         self.morpher = None
         self.export_morphing = False
         self.systematics = OrderedDict()
-        self.finite_difference_benchmarks = None
-        self.finite_difference_epsilon = None
+        self.finite_difference_benchmarks = OrderedDict()
+        self.finite_difference_epsilon = 0.0
 
     def add_parameter(
         self,
@@ -386,7 +386,6 @@ class MadMiner:
 
         logger.info("Adding finite-differences benchmarks with epsilon = %s", epsilon)
 
-        self.finite_difference_benchmarks = OrderedDict()
         self.finite_difference_epsilon = epsilon
 
         # Copy is necessary to avoid endless loop :/
