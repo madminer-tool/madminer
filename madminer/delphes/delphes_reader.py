@@ -81,7 +81,7 @@ class DelphesReader:
         self.reference_benchmark = None
         self.observations = None
         self.weights = None
-        self.events_sampling_benchmark_ids = None
+        self.events_sampling_benchmark_ids = []
 
         # Initialize event summary
         self.signal_events_per_benchmark = None
@@ -625,7 +625,7 @@ class DelphesReader:
         self.observations = None
         self.weights = None
         self.nuisance_parameters = OrderedDict()
-        self.events_sampling_benchmark_ids = None
+        self.events_sampling_benchmark_ids = []
         self.signal_events_per_benchmark = [0 for _ in range(self.n_benchmarks_phys)]
         self.background_events = 0
 
