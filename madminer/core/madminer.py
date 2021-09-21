@@ -90,6 +90,8 @@ class MadMiner:
         # Default names
         if parameter_name is None:
             parameter_name = f"parameter_{len(self.parameters)}"
+        if param_card_transform is None:
+            param_card_transform = ""
 
         # Check and sanitize input
         assert isinstance(lha_block, str), f"LHA block is not a string: {lha_block}"
