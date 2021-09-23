@@ -79,3 +79,34 @@ class Benchmark:
             )
 
         return formatted_pairs
+
+
+@dataclass
+class FiniteDiffBenchmark:
+
+    base_name: str
+    shift_names: Dict[str, str]
+
+    @classmethod
+    def from_params(cls, base_name: str, param_names: Iterable[str], shift_names: Iterable[str]):
+        """
+        Creates an instance from lists of parameter names and shift names
+
+        Parameters
+        ----------
+        base_name: str
+        param_names: list
+        shift_names: list
+
+        Returns
+        -------
+            Benchmark
+        """
+
+        return cls(
+            base_name=base_name,
+            shift_names=OrderedDict(
+                (p_name, shift_name)
+                for p_name, shift_name in zip(param_names, shift_names)
+            ),
+        )
