@@ -692,10 +692,13 @@ def _load_morphing(file_name: str) -> Tuple[np.ndarray, np.ndarray]:
 
     with h5py.File(file_name, "r") as file:
         try:
-            morphing_components = np.asarray(file["morphing/components"][()], dtype=np.int)
-            morphing_matrix = np.asarray(file["morphing/morphing_matrix"][()], dtype=np.float)
+            morphing_components = file["morphing/components"][()]
+            morphing_matrix = file["morphing/morphing_matrix"][()]
         except KeyError:
             logger.error("HDF5 file does not contain morphing information")
+        else:
+            morphing_components = np.asarray(morphing_components, dtype=np.int)
+            morphing_matrix = np.asarray(morphing_matrix, dtype=np.float)
 
     return morphing_components, morphing_matrix
 
