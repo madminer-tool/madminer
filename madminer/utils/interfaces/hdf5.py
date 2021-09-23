@@ -94,15 +94,15 @@ def load_madminer_settings(file_name: str, include_nuisance_benchmarks: bool) ->
 
     # Build benchmarks dictionary
     benchmarks = OrderedDict()
-    for b_name, b_value, b_nuisance_flag in zip(benchmark_names, benchmark_values, benchmark_nuisance_flags):
+    for b_name, b_matrix, b_nuisance_flag in zip(benchmark_names, benchmark_values, benchmark_nuisance_flags):
 
         # Filter out the nuisance benchmarks
         if include_nuisance_benchmarks is False and b_nuisance_flag is True:
             continue
 
         benchmarks[b_name] = OrderedDict()
-        for p_name in analysis_params.keys():
-            benchmarks[b_name][p_name] = b_value
+        for p_name, p_value in zip(analysis_params.keys(), b_matrix):
+            benchmarks[b_name][p_name] = p_value
 
     # Build observables dictionary
     observables = OrderedDict()
