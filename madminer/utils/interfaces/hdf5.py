@@ -116,10 +116,10 @@ def load_madminer_settings(file_name: str, include_nuisance_benchmarks: bool) ->
 
     # Build finite differences dictionary
     fin_differences = OrderedDict()
-    for base, shift in zip(fin_diff_base_benchmark, fin_diff_shift_benchmark):
-        fin_differences[base] = OrderedDict()
-        for p_name in analysis_params.keys():
-            fin_differences[base][p_name] = shift
+    for base_name, matrix in zip(fin_diff_base_benchmark, fin_diff_shift_benchmark):
+        fin_differences[base_name] = OrderedDict()
+        for p_name, shift_name in zip(analysis_params.keys(), matrix):
+            fin_differences[base_name][p_name] = shift_name
 
     # Compute concrete values
     num_samples = len(sample_observations)
