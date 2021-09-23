@@ -724,8 +724,8 @@ def _save_morphing(
         None
     """
 
-    assert morphing_components is not None
-    assert morphing_matrix is not None
+    if morphing_components is None or morphing_matrix is None:
+        return
 
     # Append if file exists, otherwise create
     with h5py.File(file_name, "a") as file:
