@@ -22,7 +22,7 @@ NAME = 'madminer'
 DESCRIPTION = 'Mining gold from MadGraph to improve limit setting in particle physics.'
 URL = 'https://github.com/diana-hep/madminer'
 EMAIL = 'johann.brehmer@nyu.edu'
-REQUIRES_PYTHON = '>=3.6, <4'
+REQUIRES_PYTHON = '>=3.7, <4'
 AUTHORS = info['__authors__']
 VERSION = info['__version__']
 REQUIRED = [
@@ -78,8 +78,8 @@ setup(
         'License :: OSI Approved :: MIT License',
         'Programming Language :: Python',
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
+        'Programming Language :: Python :: 3.9',
     ],
 )
