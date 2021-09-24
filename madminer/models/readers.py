@@ -5,6 +5,20 @@ from typing import Union
 
 
 @dataclass
+class Cut:
+
+    name: str
+    val_expression: str
+    is_required: bool = False
+
+    def __post_init__(self):
+        """Perform certain attribute quality assertions"""
+
+        with suppress(NameError):
+            eval(self.val_expression)
+
+
+@dataclass
 class Observable:
 
     name: str
