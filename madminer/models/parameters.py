@@ -36,3 +36,29 @@ class AnalysisParameter:
 
         with suppress(NameError):
             eval(self.transform)
+
+
+@dataclass
+class NuisanceParameter:
+
+    name: str
+    systematic: str
+    benchmark_pos: str = None
+    benchmark_neg: str = None
+
+    def __str__(self) -> str:
+        """
+        Formats the nuisance parameter in a nice way
+
+        Returns
+        -------
+            Formatted parameter string
+        """
+
+        return (
+            f"{self.name} "
+            f"("
+            f"Systematic: {self.systematic}, "
+            f"Benchmarks: {self.benchmark_pos} | {self.benchmark_neg}"
+            f")"
+        )
