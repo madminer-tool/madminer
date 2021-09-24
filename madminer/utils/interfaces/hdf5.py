@@ -12,6 +12,9 @@ from typing import List
 from typing import Tuple
 from typing import Union
 
+from madminer.models import Benchmark
+
+
 # Type aliases
 ParametersDict = Dict[str, Tuple[str, int, int, tuple, str]]
 SystematicValue = Union[Tuple[str], Tuple[str, str], Tuple[float]]
@@ -100,9 +103,7 @@ def load_madminer_settings(file_name: str, include_nuisance_benchmarks: bool) ->
         if include_nuisance_benchmarks is False and b_nuisance_flag is True:
             continue
 
-        benchmarks[b_name] = OrderedDict()
-        for p_name, p_value in zip(analysis_params.keys(), b_matrix):
-            benchmarks[b_name][p_name] = p_value
+        benchmarks[b_name] = Benchmark.from_params(b_name, analysis_params.keys(), b_matrix)
 
     # Build observables dictionary
     observables = OrderedDict()
@@ -148,7 +149,7 @@ def save_madminer_settings(
     file_name: str,
     file_override: bool,
     parameters: Dict[str, Tuple],
-    benchmarks: Dict[str, Dict[str, float]],
+    benchmarks: Dict[str, Benchmark],
     morphing_components: np.ndarray = None,
     morphing_matrix: np.ndarray = None,
     systematics: Dict[str, Tuple[str, SystematicValue]] = None,
@@ -176,8 +177,8 @@ def save_madminer_settings(
     """
 
     # Unpack provided dictionaries
-    benchmark_names = [name for name in benchmarks.keys()]
-    benchmark_values = [[val for val in params.values()] for params in benchmarks.values()]
+    benchmark_names = [b.name for b in benchmarks.values()]
+    benchmark_values = [[val for val in b.values.values()] for b in benchmarks.values()]
 
     fin_diffs_base_benchmarks = [name for name in finite_differences.keys()]
     fin_diffs_shift_benchmarks = [[name for name in params.values()] for params in finite_differences.values()]
