@@ -14,6 +14,7 @@ from typing import Union
 
 from madminer.models import Benchmark
 from madminer.models import FiniteDiffBenchmark
+from madminer.models import Observable
 
 
 # Type aliases
@@ -109,7 +110,7 @@ def load_madminer_settings(file_name: str, include_nuisance_benchmarks: bool) ->
     # Build observables dictionary
     observables = OrderedDict()
     for o_name, o_def in zip(observable_names, observable_defs):
-        observables[o_name] = o_def
+        observables[o_name] = Observable(o_name, o_def)
 
     # Build systematics dictionary
     systematics = OrderedDict()
@@ -373,7 +374,7 @@ def load_events(
 def save_events(
     file_name: str,
     file_override: bool,
-    observables: dict,
+    observables: Dict[str, Observable],
     observations: dict,
     weights: dict,
     sampling_benchmarks: List[int] = None,
@@ -400,8 +401,8 @@ def save_events(
     """
 
     # Unpack provided dictionaries
-    observable_names = [tup[0] for tup in observables.items()]
-    observable_defs = [tup[1] for tup in observables.items()]
+    observable_names = [o.name for o in observables.values()]
+    observable_defs = [o.val_expression for o in observables.values()]
     observations = [val for val in observations.values()]
 
     _save_observables(file_name, file_override, observable_names, observable_defs)
