@@ -19,6 +19,20 @@ class Cut:
 
 
 @dataclass
+class Efficiency:
+
+    name: str
+    val_expression: str
+    val_default: float = 1.0
+
+    def __post_init__(self):
+        """Perform certain attribute quality assertions"""
+
+        with suppress(NameError):
+            eval(self.val_expression)
+
+
+@dataclass
 class Observable:
 
     name: str
