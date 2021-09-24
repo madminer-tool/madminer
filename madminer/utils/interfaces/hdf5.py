@@ -13,6 +13,7 @@ from typing import Tuple
 from typing import Union
 
 from madminer.models import Benchmark
+from madminer.models import FiniteDiffBenchmark
 
 
 # Type aliases
@@ -118,9 +119,7 @@ def load_madminer_settings(file_name: str, include_nuisance_benchmarks: bool) ->
     # Build finite differences dictionary
     fin_differences = OrderedDict()
     for base_name, matrix in zip(fin_diff_base_benchmark, fin_diff_shift_benchmark):
-        fin_differences[base_name] = OrderedDict()
-        for p_name, shift_name in zip(analysis_params.keys(), matrix):
-            fin_differences[base_name][p_name] = shift_name
+        fin_differences[base_name] = FiniteDiffBenchmark.from_params(base_name, analysis_params.keys(), matrix)
 
     # Compute concrete values
     num_samples = len(sample_observations)
@@ -153,7 +152,7 @@ def save_madminer_settings(
     morphing_components: np.ndarray = None,
     morphing_matrix: np.ndarray = None,
     systematics: Dict[str, Tuple[str, SystematicValue]] = None,
-    finite_differences: Dict[str, Dict[str, str]] = None,
+    finite_differences: Dict[str, FiniteDiffBenchmark] = None,
     finite_differences_epsilon: float = None,
 ) -> None:
     """
@@ -180,8 +179,8 @@ def save_madminer_settings(
     benchmark_names = [b.name for b in benchmarks.values()]
     benchmark_values = [[val for val in b.values.values()] for b in benchmarks.values()]
 
-    fin_diffs_base_benchmarks = [name for name in finite_differences.keys()]
-    fin_diffs_shift_benchmarks = [[name for name in params.values()] for params in finite_differences.values()]
+    fin_diffs_base_benchmarks = [b.base_name for b in finite_differences.values()]
+    fin_diffs_shift_benchmarks = [[shift_name for shift_name in b.shift_names.values()] for b in finite_differences.values()]
 
     systematics_names = [name for name in systematics.keys()]
     systematics_types = [tup[0] for tup in systematics.values()]
