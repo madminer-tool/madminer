@@ -12,13 +12,13 @@ from typing import List
 from typing import Tuple
 from typing import Union
 
+from madminer.models import AnalysisParameter
 from madminer.models import Benchmark
 from madminer.models import FiniteDiffBenchmark
 from madminer.models import Observable
 
 
 # Type aliases
-ParametersDict = Dict[str, Tuple[str, int, int, tuple, str]]
 SystematicValue = Union[Tuple[str], Tuple[str, str], Tuple[float]]
 
 
@@ -148,7 +148,7 @@ def load_madminer_settings(file_name: str, include_nuisance_benchmarks: bool) ->
 def save_madminer_settings(
     file_name: str,
     file_override: bool,
-    parameters: Dict[str, Tuple],
+    parameters: Dict[str, AnalysisParameter],
     benchmarks: Dict[str, Benchmark],
     morphing_components: np.ndarray = None,
     morphing_matrix: np.ndarray = None,
@@ -840,7 +840,7 @@ def _save_nuisance_params(
         # TODO: The dictionary has been preserved. Harmony with other loaders?
 
 
-def _load_analysis_params(file_name: str) -> ParametersDict:
+def _load_analysis_params(file_name: str) -> Dict[str, AnalysisParameter]:
     """
     Load analysis parameter properties from a HDF5 data file
 
@@ -881,12 +881,21 @@ def _load_analysis_params(file_name: str) -> ParametersDict:
         param_val_ranges,
         param_transforms,
     ):
-        parameters[name] = (str(block), int(id), int(max_power), tuple(range), str(transform))
+        parameters[name] = AnalysisParameter(
+            str(name),
+            str(block),
+            int(id),
+            int(max_power),
+            tuple(range),
+            str(transform),
+        )
 
     return parameters
 
 
-def _save_analysis_parameters(file_name: str, file_override: bool, parameters: ParametersDict) -> None:
+def _save_analysis_parameters(
+    file_name: str, file_override: bool, parameters: Dict[str, AnalysisParameter]
+) -> None:
     """
     Save analysis parameter properties into a HDF5 data file
 
@@ -904,12 +913,16 @@ def _save_analysis_parameters(file_name: str, file_override: bool, parameters: P
         None
     """
 
-    param_names = _encode_strings([name for name in parameters.keys()])
-    param_lha_blocks = _encode_strings([v[0] for v in parameters.values()])
-    param_lha_ids = [v[1] for v in parameters.values()]
-    param_max_power = [v[2] for v in parameters.values()]
-    param_val_ranges = [v[3] for v in parameters.values()]
-    param_transforms = _encode_strings([v[4] for v in parameters.values()])
+    param_names = [p.name for p in parameters.values()]
+    param_lha_blocks = [p.lha_block for p in parameters.values()]
+    param_lha_ids = [p.lha_id for p in parameters.values()]
+    param_max_power = [p.max_power for p in parameters.values()]
+    param_val_ranges = [p.val_range for p in parameters.values()]
+    param_transforms = [p.transform for p in parameters.values()]
+
+    param_names = _encode_strings(param_names)
+    param_lha_blocks = _encode_strings(param_lha_blocks)
+    param_transforms = _encode_strings(param_transforms)
 
     # Append if file exists, otherwise create
     with h5py.File(file_name, "a") as file:
