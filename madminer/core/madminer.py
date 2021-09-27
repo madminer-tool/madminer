@@ -393,7 +393,7 @@ class MadMiner:
             fd_keys = {}
 
             for param_key, param_value in benchmark_spec.items():
-                fd_key = benchmark_key + "_plus_" + param_key
+                fd_key = f"{benchmark_key}_plus_{param_key}"
                 fd_spec = benchmark_spec.copy()
                 fd_spec[param_key] += epsilon
 

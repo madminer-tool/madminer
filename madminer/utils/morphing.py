@@ -54,7 +54,6 @@ class PhysicsMorpher:
 
     parameter_range : None or list of tuple of float, optional
         Only used if parameters_from_madminer is None. Parameter range (param_min, param_max) for each parameter.
-
     """
 
     def __init__(self, parameters_from_madminer=None, parameter_max_power=None, parameter_range=None):
@@ -97,7 +96,6 @@ class PhysicsMorpher:
         Returns
         -------
             None
-
         """
 
         self.components = components
@@ -163,7 +161,6 @@ class PhysicsMorpher:
         Returns
         -------
             None
-
         """
 
         if basis_from_madminer is not None:
@@ -192,14 +189,12 @@ class PhysicsMorpher:
         n_trials=100,
         n_test_thetas=100,
     ):
-
         """
         Optimizes the morphing basis. If either fixed_benchmarks_from_madminer or fixed_benchmarks_numpy are not
         None, then these will be used as fixed basis points and only the remaining part of the basis will be optimized.
 
         Parameters
         ----------
-
         n_bases : int, optional
             The number of morphing bases generated. If n_bases > 1, multiple bases are combined, and the
             weights for each basis are reduced by a factor 1 / n_bases. Currently only the default choice of 1 is
@@ -223,7 +218,6 @@ class PhysicsMorpher:
         -------
         basis : OrderedDict or ndarray
             Optimized basis in the same format (MadMiner or numpy) as the parameters provided during instantiation.
-
         """
 
         # Check all data is there
@@ -284,7 +278,7 @@ class PhysicsMorpher:
                 if i < len(fixed_benchmark_names):
                     benchmark_name = fixed_benchmark_names[i]
                 else:
-                    benchmark_name = "morphing_basis_vector_" + str(len(basis_madminer))
+                    benchmark_name = f"morphing_basis_vector_{len(basis_madminer)}"
                 parameter = OrderedDict()
                 for p, pname in enumerate(self.parameter_names):
                     parameter[pname] = benchmark[p]
@@ -296,7 +290,6 @@ class PhysicsMorpher:
         return best_basis
 
     def calculate_morphing_matrix(self, basis=None):
-
         """
         Calculates the morphing matrix that links the components to the basis benchmarks.
 
@@ -311,7 +304,6 @@ class PhysicsMorpher:
         -------
         morphing_matrix : ndarray
             Morphing matrix with shape `(n_basis_benchmarks, n_components)`
-
         """
 
         # Check all data is there
@@ -363,7 +355,6 @@ class PhysicsMorpher:
         return morphing_matrix.T
 
     def calculate_morphing_weights(self, theta, basis=None, morphing_matrix=None):
-
         """
         Calculates the morphing weights `w_b(theta)` for a given morphing basis `{theta_b}`.
 
@@ -386,7 +377,6 @@ class PhysicsMorpher:
         -------
         morphing_weights : ndarray
             Morphing weights as an array with shape `(n_basis_benchmarks,)`.
-
         """
 
         # Check all data is there
@@ -421,7 +411,6 @@ class PhysicsMorpher:
         return morphing_matrix.T.dot(component_weights)
 
     def calculate_morphing_weight_gradient(self, theta, basis=None, morphing_matrix=None):
-
         """
         Calculates the gradient of the morphing weights, `grad_i w_b(theta)`.
 
@@ -445,7 +434,6 @@ class PhysicsMorpher:
         morphing_weight_gradients : ndarray
             Morphing weights as an array with shape `(n_parameters, n_basis_benchmarks,)`, where the first component
             refers to the gradient direction.
-
         """
 
         # Check all data is there
@@ -488,7 +476,6 @@ class PhysicsMorpher:
         return morphing_matrix.T.dot(component_weight_gradients).T
 
     def evaluate_morphing(self, basis=None, morphing_matrix=None, n_test_thetas=100, return_weights_and_thetas=False):
-
         """
         Evaluates the expected sum of the squared morphing weights for a given basis.
 
@@ -524,7 +511,6 @@ class PhysicsMorpher:
         negative_expected_sum_squared_weights : float
             Negative expected sum of the square of the morphing weights. Objective function in the optimization.
             Only returned with `return_weights_and_thetas=False`.
-
         """
 
         # Check all data is there
@@ -565,7 +551,6 @@ class PhysicsMorpher:
         return -squared_weights
 
     def _propose_basis(self, fixed_benchmarks, n_missing_benchmarks):
-
         """ Proposes a random basis. """
 
         if len(fixed_benchmarks) > 0:
@@ -576,7 +561,6 @@ class PhysicsMorpher:
         return basis
 
     def _draw_random_thetas(self, n_thetas):
-
         """ Randomly draws parameter vectors within the specified parameter ranges. """
 
         # First draw random numbers in range [0, 1)^n_parameters
@@ -681,7 +665,6 @@ class NuisanceMorpher:
         -------
         b : ndarray
             Coefficients b_i(x) with shape `(n_nuisance_parameters, n_events)`.
-
         """
         b = []
 
@@ -721,7 +704,6 @@ class NuisanceMorpher:
         -------
         nuisance_factors : ndarray
             Nuisance factor `dsigma(x |  theta, nu) / dsigma(x | theta, 0)` with shape `(n_events,)`.
-
         """
 
         if nuisance_parameters is None:
@@ -755,7 +737,6 @@ class NuisanceMorpher:
         log_nuisance_factor_gradients : ndarray
             Log nuisance factor gradients `grad_nu log (dsigma(x | theta, nu) / dsigma(x | theta, 0))` with shape
             `(n_parameters, n_events)`.
-
         """
 
         if nuisance_parameters is None:
@@ -788,7 +769,6 @@ class NuisanceMorpher:
         nuisance_factor_gradients : ndarray
             Nuisance factor gradients `grad_nu (dsigma(x | theta, nu) / dsigma(x | theta, 0))` with shape
             `(n_parameters, n_events)`.
-
         """
 
         if nuisance_parameters is None:
