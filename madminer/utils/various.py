@@ -66,23 +66,6 @@ def create_missing_folders(folders):
             raise OSError(f"Path {folder} exists, but is no directory!")
 
 
-def format_benchmark(parameters, precision=2):
-    output = ""
-
-    for i, (key, value) in enumerate(parameters.items()):
-        if i > 0:
-            output += ", "
-
-        value = float(value)
-
-        if value < 2.0 * 10.0 ** (-precision) or value > 100.0:
-            output += str(key) + (" = {0:." + str(precision) + "e}").format(value)
-        else:
-            output += str(key) + (" = {0:." + str(precision) + "f}").format(value)
-
-    return output
-
-
 def shuffle(*arrays):
     """ Shuffles multiple arrays simultaneously """
 

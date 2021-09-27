@@ -4,7 +4,7 @@ import numpy as np
 from madminer.utils.interfaces.hdf5 import load_events
 from madminer.utils.interfaces.hdf5 import load_madminer_settings
 from madminer.utils.morphing import PhysicsMorpher, NuisanceMorpher
-from madminer.utils.various import format_benchmark, mdot
+from madminer.utils.various import mdot
 
 logger = logging.getLogger(__name__)
 
@@ -536,11 +536,11 @@ class DataAnalyzer:
             self.include_nuisance_parameters = False
 
         logger.info(f"Found {self.n_benchmarks} benchmarks")
-        for (key, values), is_nuisance in zip(self.benchmarks.items(), self.benchmark_nuisance_flags):
-            if is_nuisance:
-                logger.debug("   %s: systematics", key)
+        for benchmark in self.benchmarks.values():
+            if benchmark.is_nuisance:
+                logger.debug("   %s: systematics", benchmark.name)
             else:
-                logger.debug("   %s: %s", key, format_benchmark(values))
+                logger.debug("   %s", benchmark)
 
         logger.info(f"Found {self.n_observables} observables")
         if self.observables is not None:
@@ -588,15 +588,15 @@ class DataAnalyzer:
 
         # We'll generally try to find the tuples p, i, j, k such that
         # matrix[i, p, j] = - 1 / eps and matrix[i, p, i] = 1 / eps
-        for i, benchmark in enumerate(self.benchmarks.keys()):
+        for i, b_name in enumerate(self.benchmarks.keys()):
             # For the FD-shifted benchmarks, we assume that the gradients are
             # the same as at the original point, and will just copy the matrix later
             copy_to = []
-            if benchmark not in self.finite_difference_benchmarks:
+            if b_name not in self.finite_difference_benchmarks:
                 continue
 
-            for p, param in enumerate(self.parameters.keys()):
-                shifted_benchmark = self.finite_difference_benchmarks[benchmark][param]
+            for p, p_name in enumerate(self.parameters.keys()):
+                shifted_benchmark = self.finite_difference_benchmarks[b_name][p_name]
                 j = benchmark_names.index(shifted_benchmark)
                 copy_to.append(j)
 
@@ -975,5 +975,5 @@ class DataAnalyzer:
 
     def _benchmark_array(self):
         return np.asarray([
-            list(benchmark.values()) for benchmark in self.benchmarks.values()
+            list(benchmark.values.values()) for benchmark in self.benchmarks.values()
         ])

@@ -3,6 +3,9 @@ import logging
 import numpy as np
 
 from collections import OrderedDict
+from typing import Dict
+
+from madminer.models import Benchmark
 from madminer.utils.various import sanitize_array
 
 logger = logging.getLogger(__name__)
@@ -142,7 +145,7 @@ class PhysicsMorpher:
 
         return self.components
 
-    def set_basis(self, basis_from_madminer=None, basis_numpy=None, morphing_matrix=None):
+    def set_basis(self, basis_from_madminer: Dict[str, Benchmark] = None, basis_numpy=None, morphing_matrix=None):
         """
         Manually sets the basis benchmarks.
 
@@ -165,8 +168,8 @@ class PhysicsMorpher:
 
         if basis_from_madminer is not None:
             self.basis = []
-            for bname, benchmark_in in basis_from_madminer.items():
-                self.basis.append([benchmark_in[key] for key in self.parameter_names])
+            for benchmark in basis_from_madminer.values():
+                self.basis.append([benchmark.values[key] for key in self.parameter_names])
             self.basis = np.array(self.basis)
         elif basis_numpy is not None:
             self.basis = np.array(basis_numpy)
@@ -184,8 +187,8 @@ class PhysicsMorpher:
     def optimize_basis(
         self,
         n_bases=1,
-        fixed_benchmarks_from_madminer=None,
-        fixed_benchmarks_numpy=None,
+        benchmarks_from_madminer: Dict[str, Benchmark] = None,
+        benchmarks_numpy=None,
         n_trials=100,
         n_test_thetas=100,
     ):
@@ -200,10 +203,10 @@ class PhysicsMorpher:
             weights for each basis are reduced by a factor 1 / n_bases. Currently only the default choice of 1 is
             fully implemented. Do not use any other value for now. Default value: 1.
 
-        fixed_benchmarks_from_madminer : OrderedDict or None, optional
+        benchmarks_from_madminer : OrderedDict or None, optional
             Input basis vectors in the `MadMiner.benchmarks` conventions. Default value: None.
 
-        fixed_benchmarks_numpy : ndarray or None, optional
+        benchmarks_numpy : ndarray or None, optional
             Input basis vectors as a ndarray with shape `(n_fixed_basis_points, n_parameters)`. Default value: None.
 
         n_trials : int, optional
@@ -227,15 +230,15 @@ class PhysicsMorpher:
             )
 
         # Fixed benchmarks
-        if fixed_benchmarks_from_madminer is not None:
+        if benchmarks_from_madminer is not None:
             fixed_benchmarks = []
             fixed_benchmark_names = []
-            for bname, benchmark_in in fixed_benchmarks_from_madminer.items():
-                fixed_benchmark_names.append(bname)
-                fixed_benchmarks.append([benchmark_in[key] for key in self.parameter_names])
+            for benchmark in benchmarks_from_madminer.values():
+                fixed_benchmark_names.append(benchmark.name)
+                fixed_benchmarks.append([benchmark.values[key] for key in self.parameter_names])
             fixed_benchmarks = np.array(fixed_benchmarks)
-        elif fixed_benchmarks_numpy is not None:
-            fixed_benchmarks = np.array(fixed_benchmarks_numpy)
+        elif benchmarks_numpy is not None:
+            fixed_benchmarks = np.array(benchmarks_numpy)
             fixed_benchmark_names = []
         else:
             fixed_benchmarks = np.array([])
@@ -280,8 +283,8 @@ class PhysicsMorpher:
                 else:
                     benchmark_name = f"morphing_basis_vector_{len(basis_madminer)}"
                 parameter = OrderedDict()
-                for p, pname in enumerate(self.parameter_names):
-                    parameter[pname] = benchmark[p]
+                for p, p_name in enumerate(self.parameter_names):
+                    parameter[p_name] = benchmark[p]
                 basis_madminer[benchmark_name] = parameter
 
             return basis_madminer

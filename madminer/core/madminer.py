@@ -1,15 +1,20 @@
 import os
 import logging
 import tempfile
-from collections import OrderedDict
 
+from collections import OrderedDict
+from typing import Dict
+from typing import List
+from typing import Union
+
+from madminer.models import Benchmark
 from madminer.utils.morphing import PhysicsMorpher
 from madminer.utils.interfaces.hdf5 import load_madminer_settings
 from madminer.utils.interfaces.hdf5 import save_madminer_settings
 from madminer.utils.interfaces.mg_cards import export_param_card, export_reweight_card, export_run_card
 from madminer.utils.interfaces.mg import generate_mg_process, setup_mg_with_scripts, run_mg, create_master_script
 from madminer.utils.interfaces.mg import setup_mg_reweighting_with_scripts, run_mg_reweighting
-from madminer.utils.various import create_missing_folders, format_benchmark, copy_file
+from madminer.utils.various import create_missing_folders, copy_file
 
 logger = logging.getLogger(__name__)
 
@@ -189,20 +194,18 @@ class MadMiner:
         self.morpher = None
         self.export_morphing = False
 
-    def add_benchmark(self, parameter_values, benchmark_name=None, verbose=True):
+    def add_benchmark(
+        self, parameter_values: Dict[str, float], benchmark_name: str = None, verbose: float = True
+    ):
         """
         Manually adds an individual benchmark, that is, a parameter point that will be evaluated by MadGraph.
-
-        If this command is called before
 
         Parameters
         ----------
         parameter_values : dict
             The keys of this dict should be the parameter names and the values the corresponding parameter values.
-
         benchmark_name : str or None, optional
             Name of benchmark. If None, a default name is used. Default value: None.
-
         verbose : bool, optional
             If True, prints output about each benchmark. Default value: True.
 
@@ -215,7 +218,6 @@ class MadMiner:
         RuntimeError
             If a benchmark with the same name already exists, if parameter_values is not a dict, or if a key of
             parameter_values does not correspond to a defined parameter.
-
         """
 
         # Default names
@@ -226,36 +228,39 @@ class MadMiner:
         if not isinstance(parameter_values, dict):
             raise RuntimeError(f"Parameter values are not a dict: {parameter_values}")
 
-        for key, value in parameter_values.items():
-            if key not in self.parameters:
-                raise RuntimeError(f"Unknown parameter: {key}")
+        for p_name in parameter_values.keys():
+            if p_name not in self.parameters.keys():
+                raise RuntimeError(f"Unknown parameter: {p_name}")
 
-        if benchmark_name in self.benchmarks:
+        if benchmark_name in self.benchmarks.keys():
             raise RuntimeError(f"Benchmark {benchmark_name} exists already")
 
         # Add benchmark
-        self.benchmarks[benchmark_name] = parameter_values
+        self.benchmarks[benchmark_name] = Benchmark(
+            name=benchmark_name,
+            values=parameter_values,
+        )
 
         # If first benchmark, this will be the default for sampling
         if len(self.benchmarks) == 1:
             self.default_benchmark = benchmark_name
 
         if verbose:
-            logger.info("Added benchmark %s: %s)", benchmark_name, format_benchmark(parameter_values))
+            logger.info("Added benchmark %s", self.benchmarks[benchmark_name])
         else:
-            logger.debug("Added benchmark %s: %s)", benchmark_name, format_benchmark(parameter_values))
+            logger.debug("Added benchmark %s", self.benchmarks[benchmark_name])
 
-    def set_benchmarks(self, benchmarks=None, verbose=True):
+    def set_benchmarks(self, benchmarks: Union[Dict[str, dict], List[dict]], verbose: bool = True):
         """
         Manually sets all benchmarks, that is, parameter points that will be evaluated by MadGraph. Calling this
         function overwrites all previously defined benchmarks.
 
         Parameters
         ----------
-        benchmarks : dict or list or None, optional
+        benchmarks : dict or list
             Specifies all benchmarks. If None, all benchmarks are reset. If dict, the keys are the benchmark names and
-            the values are dicts of the form {parameter_name:value}. If list, the entries are dicts
-            {parameter_name:value} (and the benchmark names are chosen automatically). Default value: None.
+            the values the Benchmark instances. If list, the entries are dicts {parameter_name:value}
+            (and the benchmark names are chosen automatically). Default value: None.
 
         verbose : bool, optional
             If True, prints output about each benchmark. Default value: True.
@@ -263,11 +268,7 @@ class MadMiner:
         Returns
         -------
             None
-
         """
-
-        if benchmarks is None:
-            benchmarks = OrderedDict()
 
         self.benchmarks = OrderedDict()
         self.default_benchmark = None
@@ -275,9 +276,11 @@ class MadMiner:
         if isinstance(benchmarks, dict):
             for name, values in benchmarks.items():
                 self.add_benchmark(values, name, verbose=verbose)
-        else:
+        elif isinstance(benchmarks, list):
             for values in benchmarks:
                 self.add_benchmark(values)
+        else:
+            raise RuntimeError(f"Invalid set of benchmarks: {benchmarks}")
 
         # After manually adding benchmarks, the morphing information is not accurate anymore
         if self.morpher is not None:
@@ -349,7 +352,7 @@ class MadMiner:
             n_predefined_benchmarks = len(self.benchmarks)
             basis = morpher.optimize_basis(
                 n_bases=n_bases,
-                fixed_benchmarks_from_madminer=self.benchmarks,
+                benchmarks_from_madminer=self.benchmarks,
                 n_trials=n_trials,
                 n_test_thetas=n_test_thetas,
             )
@@ -357,7 +360,7 @@ class MadMiner:
             n_predefined_benchmarks = 0
             basis = morpher.optimize_basis(
                 n_bases=n_bases,
-                fixed_benchmarks_from_madminer=None,
+                benchmarks_from_madminer=None,
                 n_trials=n_trials,
                 n_test_thetas=n_test_thetas,
             )
@@ -389,18 +392,18 @@ class MadMiner:
         self.finite_difference_epsilon = epsilon
 
         # Copy is necessary to avoid endless loop :/
-        for benchmark_key, benchmark_spec in self.benchmarks.copy().items():
+        for b_name, benchmark in self.benchmarks.copy().items():
             fd_keys = {}
 
-            for param_key, param_value in benchmark_spec.items():
-                fd_key = f"{benchmark_key}_plus_{param_key}"
-                fd_spec = benchmark_spec.copy()
-                fd_spec[param_key] += epsilon
+            for param_name, param_value in benchmark.values.items():
+                fd_key = f"{b_name}_plus_{param_name}"
+                fd_obj = benchmark.copy()
+                fd_obj.values[param_name] += epsilon
 
-                self.add_benchmark(fd_spec, fd_key)
-                fd_keys[param_key] = fd_key
+                self.add_benchmark(fd_obj, fd_key)
+                fd_keys[param_name] = fd_key
 
-            self.finite_difference_benchmarks[benchmark_key] = fd_keys
+            self.finite_difference_benchmarks[b_name] = fd_keys
 
     def reset_systematics(self):
         self.systematics = OrderedDict()
@@ -521,11 +524,11 @@ class MadMiner:
             )
 
         logger.info("Found %s benchmarks:", len(self.benchmarks))
-        for key, values in self.benchmarks.items():
-            logger.info("   %s: %s", key, format_benchmark(values))
+        for benchmark in self.benchmarks.values():
+            logger.info("   %s", benchmark)
 
             if self.default_benchmark is None:
-                self.default_benchmark = key
+                self.default_benchmark = benchmark.name
 
         # Morphing
         self.morpher = None
@@ -932,7 +935,7 @@ class MadMiner:
             log_directory = "./logs"
 
         if sample_benchmarks is None:
-            sample_benchmarks = [benchmark for benchmark in self.benchmarks]
+            sample_benchmarks = [benchmark for benchmark in self.benchmarks.keys()]
 
         # This snippet is useful when using virtual envs.
         # (Derives from a Python2 - Python3 issue).
@@ -1186,8 +1189,8 @@ class MadMiner:
 
         # Missing benchmarks
         missing_benchmarks = OrderedDict()
-        for benchmark in reweight_benchmarks:
-            missing_benchmarks[benchmark] = self.benchmarks[benchmark]
+        for benchmark_name in reweight_benchmarks:
+            missing_benchmarks[benchmark_name] = self.benchmarks[benchmark_name]
 
         # Inform user
         logger.info("Reweighting setup")
