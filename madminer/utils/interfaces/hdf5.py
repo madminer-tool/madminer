@@ -13,6 +13,7 @@ from typing import Tuple
 from typing import Union
 
 from madminer.models import AnalysisParameter
+from madminer.models import NuisanceParameter
 from madminer.models import Benchmark
 from madminer.models import FiniteDiffBenchmark
 from madminer.models import Observable
@@ -211,7 +212,7 @@ def save_nuisance_setup(
     file_name: str,
     file_override: bool,
     nuisance_benchmarks: List[str],
-    nuisance_parameters: Dict[str, Tuple],
+    nuisance_parameters: Dict[str, NuisanceParameter],
     reference_benchmark: str,
     copy_from_path: str = None,
 ) -> None:
@@ -739,7 +740,7 @@ def _save_morphing(
         file.create_dataset("morphing/morphing_matrix", data=morphing_matrix.astype(np.float))
 
 
-def _load_nuisance_params(file_name: str) -> Dict[str, Tuple[str, str, str]]:
+def _load_nuisance_params(file_name: str) -> Dict[str, NuisanceParameter]:
     """
     Load nuisance parameter properties from a HDF5 data file
 
@@ -780,7 +781,7 @@ def _load_nuisance_params(file_name: str) -> Dict[str, Tuple[str, str, str]]:
         param_benchmarks_pos,
         param_benchmarks_neg,
     ):
-        parameters[name] = (sys, benchmark_pos, benchmark_neg)
+        parameters[name] = NuisanceParameter(name, sys, benchmark_pos, benchmark_neg)
 
     # TODO: The dictionary has been preserved. Harmony with other loaders?
 
@@ -790,7 +791,7 @@ def _load_nuisance_params(file_name: str) -> Dict[str, Tuple[str, str, str]]:
 def _save_nuisance_params(
     file_name: str,
     file_override: bool,
-    parameters: Dict[str, Tuple[str, str, str]],
+    parameters: Dict[str, NuisanceParameter],
 ) -> None:
     """
     Save nuisance parameter properties into a HDF5 data file
@@ -809,11 +810,13 @@ def _save_nuisance_params(
         None
     """
 
-    param_names = _encode_strings([name for name in parameters.keys()])
-    param_systematics = _encode_strings([v[0] for v in parameters.values()])
+    param_names = [p.name for p in parameters.values()]
+    param_systematics = [p.systematic for p in parameters.values()]
+    param_benchmarks_pos = [p.benchmark_pos if p.benchmark_pos else "" for p in parameters.values()]
+    param_benchmarks_neg = [p.benchmark_neg if p.benchmark_neg else "" for p in parameters.values()]
 
-    param_benchmarks_pos = [v[1] if v[1] is not None else "" for v in parameters.values()]
-    param_benchmarks_neg = [v[2] if v[2] is not None else "" for v in parameters.values()]
+    param_names = _encode_strings(param_names)
+    param_systematics = _encode_strings(param_systematics)
     param_benchmarks_pos = _encode_strings(param_benchmarks_pos)
     param_benchmarks_neg = _encode_strings(param_benchmarks_neg)
 
