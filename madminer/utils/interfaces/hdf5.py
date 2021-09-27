@@ -17,10 +17,10 @@ from madminer.models import NuisanceParameter
 from madminer.models import Benchmark
 from madminer.models import FiniteDiffBenchmark
 from madminer.models import Observable
-
-
-# Type aliases
-SystematicValue = Union[Tuple[str], Tuple[str, str], Tuple[float]]
+from madminer.models import Systematic
+from madminer.models import SystematicScale
+from madminer.models import SystematicType
+from madminer.models import SystematicValue
 
 
 logger = logging.getLogger(__name__)
@@ -93,9 +93,10 @@ def load_madminer_settings(file_name: str, include_nuisance_benchmarks: bool) ->
     ) = _load_samples(file_name)
 
     (
-        systematics_names,
-        systematics_types,
-        systematics_values,
+        syst_names,
+        syst_types,
+        syst_values,
+        syst_scales,
     ) = _load_systematics(file_name)
 
     # Build benchmarks dictionary
@@ -115,8 +116,10 @@ def load_madminer_settings(file_name: str, include_nuisance_benchmarks: bool) ->
 
     # Build systematics dictionary
     systematics = OrderedDict()
-    for s_name, s_type, s_values in zip(systematics_names, systematics_types, systematics_values):
-        systematics[s_name] = (s_type, *s_values)
+    for s_name, s_type, s_value, s_scale in zip(syst_names, syst_types, syst_values, syst_scales):
+        s_type = SystematicType.from_str(s_type)
+        s_scale = SystematicScale.from_str(s_scale)
+        systematics[s_name] = Systematic(s_name, s_type, s_value, s_scale)
 
     # Build finite differences dictionary
     fin_differences = OrderedDict()
@@ -153,7 +156,7 @@ def save_madminer_settings(
     benchmarks: Dict[str, Benchmark],
     morphing_components: np.ndarray = None,
     morphing_matrix: np.ndarray = None,
-    systematics: Dict[str, Tuple[str, SystematicValue]] = None,
+    systematics: Dict[str, Systematic] = None,
     finite_differences: Dict[str, FiniteDiffBenchmark] = None,
     finite_differences_epsilon: float = None,
 ) -> None:
@@ -184,9 +187,10 @@ def save_madminer_settings(
     fin_diffs_base_benchmarks = [b.base_name for b in finite_differences.values()]
     fin_diffs_shift_benchmarks = [[shift_name for shift_name in b.shift_names.values()] for b in finite_differences.values()]
 
-    systematics_names = [name for name in systematics.keys()]
-    systematics_types = [tup[0] for tup in systematics.values()]
-    systematics_values = [tup[1:] for tup in systematics.values()]
+    systematics_names = [s.name for s in systematics.values()]
+    systematics_types = [s.type.value for s in systematics.values()]
+    systematics_scales = [s.scale.value for s in systematics.values()]
+    systematics_values = [s.value for s in systematics.values()]
 
     # Save information within the HDF5 file
     _save_analysis_parameters(file_name, file_override, parameters)
@@ -205,6 +209,7 @@ def save_madminer_settings(
         systematics_names,
         systematics_types,
         systematics_values,
+        systematics_scales,
     )
 
 
@@ -1172,7 +1177,7 @@ def _save_samples_summary(
         file.create_dataset("sample_summary/background_events", data=num_background_events)
 
 
-def _load_systematics(file_name: str) -> Tuple[List[str], List[str], List[SystematicValue]]:
+def _load_systematics(file_name: str) -> Tuple[List[str], List[str], List[SystematicValue], List[str]]:
     """
     Load systematics properties into a HDF5 data file.
 
@@ -1188,30 +1193,35 @@ def _load_systematics(file_name: str) -> Tuple[List[str], List[str], List[System
     systematics_types: list
         List of systematics types
     systematics_values: list
-        List of systematics values (tuples of variable length)
+        List of systematics values (str or float)
+    systematics_scales: list
+        List of systematics scales
     """
 
     systematics_names = []
     systematics_types = []
     systematics_values = []
+    systematics_scales = []
 
     with h5py.File(file_name, "r") as file:
         try:
             systematics_names = file["systematics/names"][()]
             systematics_types = file["systematics/types"][()]
             systematics_values = file["systematics/values"][()]
+            systematics_scales = file["systematics/scales"][()]
         except KeyError:
             logger.error("HDF5 file does not contain systematic information")
         else:
             systematics_names = _decode_strings(systematics_names)
             systematics_types = _decode_strings(systematics_types)
-            systematics_values = _decode_strings(systematics_values)
-            systematics_values = [eval(str_tuple) for str_tuple in systematics_values]
+            systematics_scales = _decode_strings(systematics_scales)
+            systematics_scales = [None if scale == "" else scale for scale in systematics_scales]
 
     return (
         systematics_names,
         systematics_types,
         systematics_values,
+        systematics_scales,
     )
 
 
@@ -1221,6 +1231,7 @@ def _save_systematics(
     systematics_names: List[str],
     systematics_types: List[str],
     systematics_values: List[SystematicValue],
+    systematics_scales: List[str],
 ) -> None:
     """
     Save systematics properties into a HDF5 data file.
@@ -1236,16 +1247,20 @@ def _save_systematics(
     systematics_types: list
         List of systematics types
     systematics_values: list
-        List of systematics values (tuples of variable length)
+        List of systematics values (str or float)
+    systematics_scales: list
+        List of systematics scales
 
     Returns
     -------
         None
     """
 
+    systematics_scales = [scale if scale else "" for scale in systematics_scales]
+
     systematics_names = _encode_strings(systematics_names)
     systematics_types = _encode_strings(systematics_types)
-    systematics_values = _encode_strings([str(tup) for tup in systematics_values])
+    systematics_scales = _encode_strings(systematics_scales)
 
     # Append if file exists, otherwise create
     with h5py.File(file_name, "a") as file:
@@ -1257,6 +1272,7 @@ def _save_systematics(
         file.create_dataset("systematics/names", data=systematics_names, dtype="S256")
         file.create_dataset("systematics/types", data=systematics_types, dtype="S256")
         file.create_dataset("systematics/values", data=systematics_values, dtype="S256")
+        file.create_dataset("systematics/scales", data=systematics_scales, dtype="S256")
 
 
 def _encode_strings(strings: List[str]) -> List[bytes]:
