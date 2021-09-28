@@ -2,6 +2,7 @@ import logging
 import numpy as np
 from collections import OrderedDict
 
+from madminer.models import Observable
 from madminer.utils.interfaces.hdf5 import load_madminer_settings
 from madminer.utils.interfaces.hdf5 import save_events
 from madminer.utils.interfaces.hdf5 import save_nuisance_setup
@@ -59,8 +60,6 @@ class LHEReader:
 
         # Initialize observables
         self.observables = OrderedDict()
-        self.observables_required = OrderedDict()
-        self.observables_defaults = OrderedDict()
 
         # Initialize cuts
         self.cuts = []
@@ -328,7 +327,6 @@ class LHEReader:
         Returns
         -------
             None
-
         """
 
         if required:
@@ -336,9 +334,12 @@ class LHEReader:
         else:
             logger.debug("Adding optional observable %s = %s with default %s", name, definition, default)
 
-        self.observables[name] = definition
-        self.observables_required[name] = required
-        self.observables_defaults[name] = default
+        self.observables[name] = Observable(
+            name=name,
+            val_expression=definition,
+            val_default=default,
+            is_required=required,
+        )
 
     def add_observable_from_function(self, name, fn, required=False, default=None):
         """
@@ -378,9 +379,12 @@ class LHEReader:
                 "Adding optional observable %s defined through external function with default %s", name, default
             )
 
-        self.observables[name] = fn
-        self.observables_required[name] = required
-        self.observables_defaults[name] = default
+        self.observables[name] = Observable(
+            name=name,
+            val_expression=fn,
+            val_default=default,
+            is_required=required,
+        )
 
     def add_default_observables(
         self,
@@ -528,10 +532,7 @@ class LHEReader:
         """ Resets all observables. """
 
         logger.debug("Resetting observables")
-
         self.observables = OrderedDict()
-        self.observables_required = OrderedDict()
-        self.observables_defaults = OrderedDict()
 
     def reset_cuts(self):
         """ Resets all cuts. """
@@ -721,8 +722,6 @@ class LHEReader:
             benchmark_names=self.benchmark_names_phys,
             is_background=is_background,
             observables=self.observables,
-            observables_required=self.observables_required,
-            observables_defaults=self.observables_defaults,
             cuts=self.cuts,
             cuts_default_pass=self.cuts_default_pass,
             efficiencies=self.efficiencies,

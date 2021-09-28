@@ -3,6 +3,7 @@ import numpy as np
 import os
 from collections import OrderedDict
 
+from madminer.models import Observable
 from madminer.utils.interfaces.delphes import run_delphes
 from madminer.utils.interfaces.delphes_root import parse_delphes_root_file
 from madminer.utils.interfaces.hdf5 import load_madminer_settings
@@ -60,8 +61,6 @@ class DelphesReader:
 
         # Initialize observables
         self.observables = OrderedDict()
-        self.observables_required = OrderedDict()
-        self.observables_defaults = OrderedDict()
 
         # Initialize cuts
         self.cuts = []
@@ -391,19 +390,19 @@ class DelphesReader:
         Returns
         -------
             None
-
         """
-
-        self._check_python_syntax(definition)
 
         if required:
             logger.debug("Adding required observable %s = %s", name, definition)
         else:
             logger.debug("Adding optional observable %s = %s with default %s", name, definition, default)
 
-        self.observables[name] = definition
-        self.observables_required[name] = required
-        self.observables_defaults[name] = default
+        self.observables[name] = Observable(
+            name=name,
+            val_expression=definition,
+            val_default=default,
+            is_required=required,
+        )
 
     def add_observable_from_function(self, name, fn, required=False, default=None):
         """
@@ -432,7 +431,6 @@ class DelphesReader:
         Returns
         -------
             None
-
         """
 
         if required:
@@ -442,9 +440,12 @@ class DelphesReader:
                 "Adding optional observable %s defined through external function with default %s", name, default
             )
 
-        self.observables[name] = fn
-        self.observables_required[name] = required
-        self.observables_defaults[name] = default
+        self.observables[name] = Observable(
+            name=name,
+            val_expression=fn,
+            val_default=default,
+            is_required=required,
+        )
 
     def add_default_observables(
         self,
@@ -486,8 +487,8 @@ class DelphesReader:
         Returns
         -------
             None
-
         """
+
         logger.debug("Adding default observables")
 
         # ETMiss
@@ -566,10 +567,7 @@ class DelphesReader:
         """ Resets all observables. """
 
         logger.debug("Resetting observables")
-
         self.observables = OrderedDict()
-        self.observables_required = OrderedDict()
-        self.observables_defaults = OrderedDict()
 
     def reset_cuts(self):
         """ Resets all cuts. """
@@ -791,8 +789,6 @@ class DelphesReader:
         this_observations, this_weights, cut_filter = parse_delphes_root_file(
             delphes_file,
             self.observables,
-            self.observables_required,
-            self.observables_defaults,
             self.cuts,
             self.cuts_default_pass,
             weight_labels,

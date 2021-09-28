@@ -2,9 +2,13 @@ import logging
 import numpy as np
 import os
 import uproot3
-from collections import OrderedDict
-from particle import Particle
 
+from collections import OrderedDict
+from typing import Callable
+from typing import Dict
+
+from particle import Particle
+from madminer.models import Observable
 from madminer.utils.particle import MadMinerParticle
 from madminer.utils.various import math_commands
 
@@ -13,9 +17,7 @@ logger = logging.getLogger(__name__)
 
 def parse_delphes_root_file(
     delphes_sample_file,
-    observables,
-    observables_required,
-    observables_defaults,
+    observables: Dict[str, Observable],
     cuts,
     cuts_default_pass,
     weight_labels=None,
@@ -122,41 +124,36 @@ def parse_delphes_root_file(
     # Observations
     observable_values = OrderedDict()
 
-    for obs_name, obs_definition in observables.items():
+    for name, observable in observables.items():
         values_this_observable = []
+        definition = observable.val_expression
+        default = observable.val_default
 
         # Loop over events
         for event in range(n_events):
             variables = get_objects(event)
 
-            if isinstance(obs_definition, str):
-                try:
-                    values_this_observable.append(eval(obs_definition, variables))
-                except (SyntaxError, NameError, TypeError, ZeroDivisionError, IndexError):
-                    default = observables_defaults[obs_name]
-                    if default is None:
-                        default = np.nan
-                    values_this_observable.append(default)
-            else:
-                try:
-                    values_this_observable.append(
-                        obs_definition(
-                            leptons_all_events[event],
-                            photons_all_events[event],
-                            jets_all_events[event],
-                            met_all_events[event][0],
-                        )
+            try:
+                if isinstance(definition, str):
+                    value = eval(definition, variables)
+                elif isinstance(definition, Callable):
+                    value = definition(
+                        leptons_all_events[event],
+                        photons_all_events[event],
+                        jets_all_events[event],
+                        met_all_events[event][0],
                     )
-                except RuntimeError:
-                    default = observables_defaults[obs_name]
-                    if default is None:
-                        default = np.nan
-                    values_this_observable.append(default)
+                else:
+                    raise TypeError("Not a valid observable")
+            except (IndexError, NameError, RuntimeError, SyntaxError, TypeError, ZeroDivisionError):
+                value = default if default is not None else np.nan
+            finally:
+                values_this_observable.append(value)
 
         values_this_observable = np.array(values_this_observable, dtype=np.float)
-        observable_values[obs_name] = values_this_observable
+        observable_values[name] = values_this_observable
 
-        logger.debug("  First 10 values for observable %s:\n%s", obs_name, values_this_observable[:10])
+        logger.debug("  First 10 values for observable %s:\n%s", name, values_this_observable[:10])
 
     # Cuts
     cut_values = []
@@ -182,18 +179,20 @@ def parse_delphes_root_file(
     # Check for existence of required observables
     combined_filter = None
 
-    for obs_name, obs_required in observables_required.items():
-        if obs_required:
-            this_filter = np.isfinite(observable_values[obs_name])
-            n_pass = np.sum(this_filter)
-            n_fail = np.sum(np.invert(this_filter))
+    for name, observable in observables.items():
+        if not observable.is_required:
+            continue
 
-            logger.debug("  %s / %s events pass required observable %s", n_pass, n_pass + n_fail, obs_name)
+        this_filter = np.isfinite(observable_values[name])
+        n_pass = np.sum(this_filter)
+        n_fail = np.sum(np.invert(this_filter))
 
-            if combined_filter is None:
-                combined_filter = this_filter
-            else:
-                combined_filter = np.logical_and(combined_filter, this_filter)
+        logger.debug("  %s / %s events pass required observable %s", n_pass, n_pass + n_fail, name)
+
+        if combined_filter is None:
+            combined_filter = this_filter
+        else:
+            combined_filter = np.logical_and(combined_filter, this_filter)
 
     # Check cuts
     for cut, values_this_cut in zip(cuts, cut_values):
@@ -213,7 +212,7 @@ def parse_delphes_root_file(
         n_fail = np.sum(np.invert(combined_filter))
 
         if n_pass == 0:
-            logger.warning("  No observations remainining!")
+            logger.warning("  No observations remaining!")
 
             return None, None, combined_filter
 

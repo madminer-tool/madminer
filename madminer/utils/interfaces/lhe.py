@@ -1,8 +1,10 @@
 import logging
 import numpy as np
 import os
+
 from collections import OrderedDict
-from particle import Particle
+from typing import Callable
+from typing import Dict
 
 try:
     import xml.etree.cElementTree as ET
@@ -11,6 +13,8 @@ except ImportError:
     import xml.etree.ElementTree as ET
     use_celementtree = False
 
+from particle import Particle
+from madminer.models import Observable
 from madminer.utils.particle import MadMinerParticle
 from madminer.utils.various import unzip_file, approx_equal, math_commands
 
@@ -20,9 +24,7 @@ logger = logging.getLogger(__name__)
 def parse_lhe_file(
     filename,
     sampling_benchmark,
-    observables,
-    observables_required=None,
-    observables_defaults=None,
+    observables: Dict[str, Observable],
     cuts=None,
     cuts_default_pass=None,
     efficiencies=None,
@@ -51,10 +53,6 @@ def parse_lhe_file(
     # Inputs
     if k_factor is None:
         k_factor = 1.0
-    if observables_required is None:
-        observables_required = {key: False for key in observables.keys()}
-    if observables_defaults is None:
-        observables_defaults = {key: None for key in observables.keys()}
     if is_background and benchmark_names is None:
         raise RuntimeError("Parsing background LHE files required benchmark names to be provided.")
     if cuts is None:
@@ -156,8 +154,6 @@ def parse_lhe_file(
                 fail_efficiencies,
                 n_events_with_negative_weights,
                 observables,
-                observables_defaults,
-                observables_required,
                 particles,
                 pass_cuts,
                 pass_efficiencies,
@@ -196,8 +192,6 @@ def parse_lhe_file(
                 fail_efficiencies,
                 n_events_with_negative_weights,
                 observables,
-                observables_defaults,
-                observables_required,
                 particles,
                 pass_cuts,
                 pass_efficiencies,
@@ -324,9 +318,7 @@ def _parse_event(
     fail_cuts,
     fail_efficiencies,
     n_events_with_negative_weights,
-    observables,
-    observables_defaults,
-    observables_required,
+    observables: Dict[str, Observable],
     particles,
     pass_cuts,
     pass_efficiencies,
@@ -357,9 +349,7 @@ def _parse_event(
         variables = _get_objects(particles_smeared, particles, met_resolution=None, global_event_data=global_event_data)
 
     # Observables
-    observations, pass_all_observation = _parse_observations(
-        observables, observables_defaults, observables_required, variables
-    )
+    observations, pass_all_observation = _parse_observations(observables, variables)
 
     # Cuts
     pass_all_cuts = True
@@ -418,39 +408,34 @@ def _report_negative_weights(n_events_with_negative_weights, weights):
     return n_events_with_negative_weights
 
 
-def _parse_observations(observables, observables_defaults, observables_required, variables):
+def _parse_observations(observables: Dict[str, Observable], variables: Dict[str, list]):
     observations = []
-    pass_all_observation = True
+    passed_all = True
 
-    for obs_name, obs_definition in observables.items():
-        if isinstance(obs_definition, str):
-            try:
-                observations.append(eval(obs_definition, variables))
-            except (SyntaxError, NameError, TypeError, ZeroDivisionError, IndexError):
-                if observables_required[obs_name]:
-                    pass_all_observation = False
+    for name, observable in observables.items():
+        definition = observable.val_expression
+        default = observable.val_default
 
-                default = observables_defaults[obs_name]
-                if default is None:
-                    default = np.nan
-                observations.append(default)
-        else:
-            try:
-                observations.append(
-                    obs_definition(
-                        variables["p_truth"], variables["l"], variables["a"], variables["j"], variables["met"]
-                    )
+        try:
+            if isinstance(definition, str):
+                value = eval(definition, variables)
+            elif isinstance(definition, Callable):
+                value = definition(
+                    variables["p_truth"],
+                    variables["l"],
+                    variables["a"],
+                    variables["j"],
+                    variables["met"],
                 )
-            except RuntimeError:
-                if observables_required[obs_name]:
-                    pass_all_observation = False
+            else:
+                raise TypeError("Not a valid observable")
+        except (IndexError, NameError, RuntimeError, SyntaxError, TypeError, ZeroDivisionError):
+            passed_all = False
+            value = default if default is not None else np.nan
+        finally:
+            observations.append(value)
 
-                default = observables_defaults[obs_name]
-                if default is None:
-                    default = np.nan
-                observations.append(default)
-
-    return observations, pass_all_observation
+    return observations, passed_all
 
 
 def _parse_efficiencies(

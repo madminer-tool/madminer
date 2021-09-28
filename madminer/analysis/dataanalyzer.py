@@ -50,10 +50,10 @@ class DataAnalyzer:
             self.finite_difference_epsilon,
         ) = load_madminer_settings(filename, include_nuisance_benchmarks=include_nuisance_parameters)
 
+        self.n_observables = len(self.observables)
         self.n_parameters = len(self.parameters)
         self.n_benchmarks = len(self.benchmarks)
         self.n_benchmarks_phys = np.sum(np.logical_not(self.benchmark_nuisance_flags))
-        self.n_observables = 0 if self.observables is None else len(self.observables)
 
         self.n_nuisance_parameters = 0
         if self.nuisance_parameters is not None and include_nuisance_parameters:
@@ -543,9 +543,8 @@ class DataAnalyzer:
                 logger.debug("   %s", benchmark)
 
         logger.info(f"Found {self.n_observables} observables")
-        if self.observables is not None:
-            for i, obs in enumerate(self.observables):
-                logger.debug("  %2.2s %s", i, obs)
+        for i, obs in enumerate(self.observables):
+            logger.debug("  %2.2s %s", i, obs)
 
         logger.info(f"Found {self.n_samples} events")
         if self.n_events_generated_per_benchmark is not None:
