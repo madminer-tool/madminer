@@ -403,7 +403,7 @@ class MadMiner:
                 self.add_benchmark(fd_obj, fd_key)
                 fd_keys[param_name] = fd_key
 
-            self.finite_difference_benchmarks[b_name] = fd_keys
+            self.finite_difference_benchmarks[b_name].shift_names = fd_keys
 
     def reset_systematics(self):
         self.systematics = OrderedDict()

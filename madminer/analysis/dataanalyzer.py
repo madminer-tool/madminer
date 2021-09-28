@@ -592,12 +592,13 @@ class DataAnalyzer:
             # For the FD-shifted benchmarks, we assume that the gradients are
             # the same as at the original point, and will just copy the matrix later
             copy_to = []
-            if b_name not in self.finite_difference_benchmarks:
+            if b_name not in self.finite_difference_benchmarks.keys():
                 continue
 
             for p, p_name in enumerate(self.parameters.keys()):
-                shifted_benchmark = self.finite_difference_benchmarks[b_name][p_name]
-                j = benchmark_names.index(shifted_benchmark)
+                shifted_benchmark_dict = self.finite_difference_benchmarks[b_name].shift_names
+                shifted_benchmark_name = shifted_benchmark_dict[p_name]
+                j = benchmark_names.index(shifted_benchmark_name)
                 copy_to.append(j)
 
                 matrix[i, p, j] = 1.0 / self.finite_difference_epsilon
