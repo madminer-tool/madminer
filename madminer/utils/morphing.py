@@ -6,6 +6,7 @@ from collections import OrderedDict
 from typing import Dict
 
 from madminer.models import Benchmark
+from madminer.models import AnalysisParameter
 from madminer.utils.various import sanitize_array
 
 logger = logging.getLogger(__name__)
@@ -47,7 +48,7 @@ class PhysicsMorpher:
     ----------
     parameters_from_madminer : OrderedDict or None, optional
         Parameters in the `MadMiner.parameters` convention. OrderedDict with keys equal to the parameter names and
-        values equal to tuples (LHA_block, LHA_ID, morphing_max_power, param_min, param_max)
+        values equal to AnalysisParameter model instances.
 
     parameter_max_power : None or list of int, optional
         Only used if parameters_from_madminer is None. Maximal power with which each parameter contributes to
@@ -59,17 +60,23 @@ class PhysicsMorpher:
         Only used if parameters_from_madminer is None. Parameter range (param_min, param_max) for each parameter.
     """
 
-    def __init__(self, parameters_from_madminer=None, parameter_max_power=None, parameter_range=None):
+    def __init__(
+        self,
+        parameters_from_madminer: Dict[str, AnalysisParameter] = None,
+        parameter_max_power=None,
+        parameter_range=None,
+    ):
 
         # MadMiner interface
         if parameters_from_madminer is not None:
             self.use_madminer_interface = True
             self.n_parameters = len(parameters_from_madminer)
-            self.parameter_names = [key for key in parameters_from_madminer]
-            self.parameter_max_power = np.array(
-                [parameters_from_madminer[key][2] for key in self.parameter_names], dtype=np.int
-            )
-            self.parameter_range = np.array([parameters_from_madminer[key][3] for key in self.parameter_names])
+            self.parameter_names = [param.name for param in parameters_from_madminer.values()]
+            self.parameter_max_power = [param.max_power for param in parameters_from_madminer.values()]
+            self.parameter_range = [param.val_range for param in parameters_from_madminer.values()]
+
+            self.parameter_max_power = np.array(self.parameter_max_power, dtype=np.int)
+            self.parameter_range = np.array(self.parameter_range)
 
         # Generic interface
         else:

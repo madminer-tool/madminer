@@ -3,6 +3,7 @@ import logging
 from collections import OrderedDict
 from typing import Dict
 
+from madminer.models import AnalysisParameter
 from madminer.models import Benchmark
 
 
@@ -11,10 +12,10 @@ logger = logging.getLogger(__name__)
 
 def export_param_card(
     benchmark: Benchmark,
-    parameters,
-    param_card_template_file,
-    mg_process_directory,
-    param_card_filename=None,
+    parameters: Dict[str, AnalysisParameter],
+    param_card_template_file: str,
+    mg_process_directory: str,
+    param_card_filename: str = None,
 ):
     # Open parameter card template
     with open(param_card_template_file) as file:
@@ -22,16 +23,17 @@ def export_param_card(
     lines = param_card.splitlines()
 
     # Replace parameter values
-    for parameter_name, parameter_value in benchmark.values.items():
-        parameter_lha_block = parameters[parameter_name][0]
-        parameter_lha_id = parameters[parameter_name][1]
+    for param_name, param_value in benchmark.values.items():
+        param_lha_block = parameters[param_name].lha_block
+        param_lha_id = parameters[param_name].lha_id
+        param_transform = parameters[param_name].transform
 
         # Transform parameters if needed
-        parameter_transform = parameters[parameter_name][4]
-        if parameter_transform is not None:
-            variables = {"theta": parameter_value}
-            parameter_value = eval(parameter_transform, variables)
-        parameter_value = float(parameter_value)
+        if param_transform is not None:
+            variables = {"theta": param_value}
+            param_value = eval(param_transform, variables)
+
+        param_value = float(param_value)
 
         # Find entry
         current_block = None
@@ -50,31 +52,31 @@ def export_param_card(
             if len(elements) == 2 and elements[0].lower() == "block":
                 current_block = elements[1].lower()
 
-            elif len(elements) == 2 and parameter_lha_block.lower() == current_block:
+            elif len(elements) == 2 and param_lha_block.lower() == current_block:
                 try:
                     lha_id = int(elements[0])
                 except ValueError:
                     continue
 
-                if lha_id == parameter_lha_id:
-                    lines[i] = f"    {parameter_lha_id}    {parameter_value}    # MadMiner"
+                if lha_id == param_lha_id:
+                    lines[i] = f"    {param_lha_id}    {param_value}    # MadMiner"
                     changed_line = True
                     break
 
-            elif len(elements) == 3 and elements[0].lower() == parameter_lha_block.lower():
+            elif len(elements) == 3 and elements[0].lower() == param_lha_block.lower():
                 try:
                     lha_id = int(elements[1])
                 except ValueError:
                     continue
 
                 current_block = None
-                if lha_id == parameter_lha_id:
-                    lines[i] = f"{parameter_lha_block}    {parameter_lha_id}    {parameter_value}    # MadMiner"
+                if lha_id == param_lha_id:
+                    lines[i] = f"{param_lha_block}    {param_lha_id}    {param_value}    # MadMiner"
                     changed_line = True
                     break
 
         if not changed_line:
-            raise ValueError(f"Could not find LHA ID {parameter_lha_id} in param_card template!")
+            raise ValueError(f"Could not find LHA ID {param_lha_id} in param_card template!")
 
         param_card = "\n".join(lines)
 
@@ -90,9 +92,9 @@ def export_param_card(
 def export_reweight_card(
     sample_benchmark: Benchmark,
     benchmarks: Dict[str, Benchmark],
-    parameters,
-    mg_process_directory,
-    reweight_card_filename=None,
+    parameters: Dict[str, AnalysisParameter],
+    mg_process_directory: str,
+    reweight_card_filename: str = None,
 ):
     # Global setup
     lines = [
@@ -111,17 +113,17 @@ def export_reweight_card(
         lines.append("# MadMiner benchmark " + benchmark_name)
         lines.append("launch --rwgt_name=" + benchmark_name)
 
-        for parameter_name, parameter_value in benchmark.values.items():
-            parameter_lha_block = parameters[parameter_name][0]
-            parameter_lha_id = parameters[parameter_name][1]
+        for param_name, param_value in benchmark.values.items():
+            param_lha_block = parameters[param_name].lha_block
+            param_lha_id = parameters[param_name].lha_id
+            param_transform = parameters[param_name].transform
 
             # Transform parameters if needed
-            parameter_transform = parameters[parameter_name][4]
-            if parameter_transform is not None:
-                variables = {"theta": parameter_value}
-                parameter_value = eval(parameter_transform, variables)
+            if param_transform is not None:
+                variables = {"theta": param_value}
+                param_value = eval(param_transform, variables)
 
-            lines.append(f"  set {parameter_lha_block} {parameter_lha_id} {parameter_value}")
+            lines.append(f"  set {param_lha_block} {param_lha_id} {param_value}")
 
         lines.append("")
 

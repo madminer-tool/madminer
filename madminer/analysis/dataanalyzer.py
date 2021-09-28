@@ -522,9 +522,8 @@ class DataAnalyzer:
 
     def _report_setup(self):
         logger.info(f"Found {self.n_parameters} parameters")
-        for i, (key, values) in enumerate(self.parameters.items()):
-            values_str = " / ".join(str(x) for x in values)
-            logger.info(f"  {i}: {key} ({values_str})")
+        for i, param in enumerate(self.parameters.values()):
+            logger.info("  %s: %s", i, param)
 
         if self.nuisance_parameters is not None:
             logger.info(f"Found {self.n_nuisance_parameters} nuisance parameters")

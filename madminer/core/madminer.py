@@ -7,6 +7,7 @@ from typing import Dict
 from typing import List
 from typing import Union
 
+from madminer.models import AnalysisParameter
 from madminer.models import Benchmark
 from madminer.utils.morphing import PhysicsMorpher
 from madminer.utils.interfaces.hdf5 import load_madminer_settings
@@ -46,6 +47,17 @@ class MadMiner:
         self.systematics = OrderedDict()
         self.finite_difference_benchmarks = OrderedDict()
         self.finite_difference_epsilon = 0.0
+
+    def _reset_systematics(self):
+        self.systematics = OrderedDict()
+
+    def _reset_benchmarks(self):
+        self.benchmarks = OrderedDict()
+        self.default_benchmark = None
+
+    def _reset_morpher(self):
+        self.morpher = None
+        self.export_morphing = False
 
     def add_parameter(
         self,
@@ -96,7 +108,7 @@ class MadMiner:
         if parameter_name is None:
             parameter_name = f"parameter_{len(self.parameters)}"
         if param_card_transform is None:
-            param_card_transform = ""
+            param_card_transform = "_"
 
         # Check and sanitize input
         assert isinstance(lha_block, str), f"LHA block is not a string: {lha_block}"
@@ -109,8 +121,8 @@ class MadMiner:
 
         assert parameter_name not in self.parameters, f"Parameter already exists: {parameter_name}"
 
-        # Add parameter
-        self.parameters[parameter_name] = (
+        parameter = AnalysisParameter(
+            parameter_name,
             lha_block,
             lha_id,
             morphing_max_power,
@@ -118,81 +130,52 @@ class MadMiner:
             param_card_transform,
         )
 
-        # After manually adding parameters, the morphing information is not accurate anymore
-        self.morpher = None
+        # Add parameter
+        logger.info("Adding parameter: %s", parameter)
+        self.parameters[parameter_name] = parameter
 
-        logger.info(
-            "Added parameter %s (LHA: %s %s, maximal power in squared ME: %s, range: %s)",
-            parameter_name,
-            lha_block,
-            lha_id,
-            morphing_max_power,
-            parameter_range,
-        )
+        # The morphing information is not accurate anymore
+        logger.warning("Resetting benchmarks and morphing")
+        self._reset_benchmarks()
+        self._reset_morpher()
 
-        # Reset benchmarks
-        if len(self.benchmarks) > 0:
-            logger.warning("Resetting benchmarks and morphing")
-
-        self.benchmarks = OrderedDict()
-        self.default_benchmark = None
-        self.morpher = None
-        self.export_morphing = False
-
-    def set_parameters(self, parameters=None):
+    def set_parameters(self, parameters: Union[Dict[str, AnalysisParameter], List[tuple]]):
         """
         Manually sets all parameters, overwriting previously added parameters.
 
         Parameters
         ----------
-        parameters : dict or list or None, optional
-             If parameters is None, resets parameters. If parameters is an dict, the keys should be str and give the
-             parameter names, and the values are tuples of the form (LHA_block, LHA_ID, morphing_max_power, param_min,
-             param_max) or of the form (LHA_block, LHA_ID). If parameters is a list, the items should be tuples of the
-             form (LHA_block, LHA_ID). Default value: None.
+        parameters : dict or list
+             If parameters is an dict, the keys should be str and give the parameter names, and the values are
+             AnalysisParameter model instances. If parameters is a list, the items should be tuples of the
+             form (LHA_block, LHA_ID).
 
         Returns
         -------
             None
         """
 
-        if parameters is None:
-            parameters = OrderedDict()
-
         self.parameters = OrderedDict()
 
         if isinstance(parameters, dict):
-            for key, values in parameters.items():
-                if len(values) == 5:
-                    self.add_parameter(
-                        lha_block=values[0],
-                        lha_id=values[1],
-                        parameter_name=key,
-                        parameter_range=(values[3], values[4]),
-                        morphing_max_power=values[2],
-                    )
-                elif len(values) == 2:
-                    self.add_parameter(
-                        lha_block=values[0],
-                        lha_id=values[1],
-                        parameter_name=key,
-                    )
-                else:
-                    raise ValueError(f"Parameter properties has unexpected length: {values}")
-
-        else:
+            for param in parameters.values():
+                self.add_parameter(
+                    lha_block=param.lha_block,
+                    lha_id=param.lha_id,
+                    parameter_name=param.name,
+                    morphing_max_power=param.max_power,
+                    parameter_range=param.val_range,
+                )
+        elif isinstance(parameters, list):
             for values in parameters:
-                assert len(values) == 2, f"Parameter list entry does not have length 2: {values}"
                 self.add_parameter(values[0], values[1])
+        else:
+            raise RuntimeError(f"Invalid set of parameters: {parameters}")
 
-        # After manually adding parameters, the morphing information is not accurate anymore
-        if len(self.benchmarks) > 0:
-            logger.warning("Resetting benchmarks and morphing")
-
-        self.benchmarks = OrderedDict()
-        self.default_benchmark = None
-        self.morpher = None
-        self.export_morphing = False
+        # The morphing information is not accurate anymore
+        logger.warning("Resetting benchmarks and morphing")
+        self._reset_benchmarks()
+        self._reset_morpher()
 
     def add_benchmark(
         self, parameter_values: Dict[str, float], benchmark_name: str = None, verbose: float = True
@@ -405,9 +388,6 @@ class MadMiner:
 
             self.finite_difference_benchmarks[b_name].shift_names = fd_keys
 
-    def reset_systematics(self):
-        self.systematics = OrderedDict()
-
     def add_systematics(
         self,
         effect,
@@ -477,8 +457,8 @@ class MadMiner:
 
     def load(self, filename, disable_morphing=False):
         """
-        Loads MadMiner setup from a file. All parameters, benchmarks, and morphing settings are overwritten. See `save`
-        for more details.
+        Loads MadMiner setup from a file. All parameters, benchmarks, and morphing settings are overwritten.
+        See `save` for more details.
 
         Parameters
         ----------
@@ -491,7 +471,6 @@ class MadMiner:
         Returns
         -------
             None
-
         """
 
         # Load data
@@ -513,15 +492,8 @@ class MadMiner:
         ) = load_madminer_settings(filename, include_nuisance_benchmarks=False)
 
         logger.info("Found %s parameters:", len(self.parameters))
-        for key, values in self.parameters.items():
-            logger.info(
-                "   %s (LHA: %s %s, maximal power in squared ME: %s, range: %s)",
-                key,
-                values[0],
-                values[1],
-                values[2],
-                values[3],
-            )
+        for param in self.parameters.values():
+            logger.info("   %s", param)
 
         logger.info("Found %s benchmarks:", len(self.benchmarks))
         for benchmark in self.benchmarks.values():
