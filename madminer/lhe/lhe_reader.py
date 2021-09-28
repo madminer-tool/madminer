@@ -3,6 +3,7 @@ import numpy as np
 from collections import OrderedDict
 
 from madminer.models import Cut
+from madminer.models import Efficiency
 from madminer.models import Observable
 from madminer.utils.interfaces.hdf5 import load_madminer_settings
 from madminer.utils.interfaces.hdf5 import save_events
@@ -67,7 +68,6 @@ class LHEReader:
 
         # Initialize efficiencies
         self.efficiencies = []
-        self.efficiencies_default_pass = []
 
         # Smearing function parameters
         self.energy_resolution = {}
@@ -501,8 +501,7 @@ class LHEReader:
             is_required=required,
         ))
 
-    def add_efficiency(self, definition, value_if_not_parsed=1.0):
-
+    def add_efficiency(self, definition, default=1.0):
         """
         Adds an efficiency as a string that can be parsed by Python's `eval()` function and returns a bool.
 
@@ -517,18 +516,21 @@ class LHEReader:
             `MadMinerParticle` have  properties `charge` and `pdg_id`, which return the charge in units of elementary charges
             (i.e. an electron has `e[0].charge = -1.`), and the PDG particle ID.
 
-        value_if_not_parsed : float, optional
+        default : float, optional
             Value if te efficiency function cannot be parsed. Default value: 1.
 
         Returns
         -------
-        None
-
+            None
         """
+
         logger.debug("Adding efficiency %s", definition)
 
-        self.efficiencies.append(definition)
-        self.efficiencies_default_pass.append(value_if_not_parsed)
+        self.efficiencies.append(Efficiency(
+            name="EFFICIENCY",
+            val_expression=definition,
+            val_default=default,
+        ))
 
     def reset_observables(self):
         """ Resets all observables. """
@@ -546,9 +548,7 @@ class LHEReader:
         """ Resets all efficiencies. """
 
         logger.debug("Resetting efficiencies")
-
         self.efficiencies = []
-        self.efficiencies_default_pass = []
 
     def analyse_samples(self, reference_benchmark=None, parse_events_as_xml=True):
         """
@@ -724,7 +724,6 @@ class LHEReader:
             observables=self.observables,
             cuts=self.cuts,
             efficiencies=self.efficiencies,
-            efficiencies_default_pass=self.efficiencies_default_pass,
             energy_resolutions=self.energy_resolution,
             pt_resolutions=self.pt_resolution,
             eta_resolutions=self.eta_resolution,

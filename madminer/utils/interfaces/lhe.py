@@ -16,6 +16,7 @@ except ImportError:
 
 from particle import Particle
 from madminer.models import Cut
+from madminer.models import Efficiency
 from madminer.models import Observable
 from madminer.utils.particle import MadMinerParticle
 from madminer.utils.various import unzip_file, approx_equal, math_commands
@@ -28,8 +29,7 @@ def parse_lhe_file(
     sampling_benchmark,
     observables: Dict[str, Observable],
     cuts: List[Cut] = None,
-    efficiencies=None,
-    efficiencies_default_pass=None,
+    efficiencies: List[Efficiency] = None,
     benchmark_names=None,
     is_background=False,
     energy_resolutions=None,
@@ -52,16 +52,14 @@ def parse_lhe_file(
         )
 
     # Inputs
-    if k_factor is None:
-        k_factor = 1.0
-    if is_background and benchmark_names is None:
-        raise RuntimeError("Parsing background LHE files required benchmark names to be provided.")
     if cuts is None:
         cuts = OrderedDict()
     if efficiencies is None:
         efficiencies = OrderedDict()
-    if efficiencies_default_pass is None:
-        efficiencies_default_pass = {key: 1.0 for key in efficiencies.keys()}
+    if k_factor is None:
+        k_factor = 1.0
+    if is_background and benchmark_names is None:
+        raise RuntimeError("Parsing background LHE files required benchmark names to be provided.")
 
     # Unzip and open LHE file
     run_card = None
@@ -145,7 +143,6 @@ def parse_lhe_file(
                 avg_efficiencies,
                 cuts,
                 efficiencies,
-                efficiencies_default_pass,
                 energy_resolutions,
                 eta_resolutions,
                 fail_cuts,
@@ -182,7 +179,6 @@ def parse_lhe_file(
                 avg_efficiencies,
                 cuts,
                 efficiencies,
-                efficiencies_default_pass,
                 energy_resolutions,
                 eta_resolutions,
                 fail_cuts,
@@ -307,8 +303,7 @@ def _report_parse_results(
 def _parse_event(
     avg_efficiencies,
     cuts: List[Cut],
-    efficiencies,
-    efficiencies_default_pass,
+    efficiencies: List[Efficiency],
     energy_resolutions,
     eta_resolutions,
     fail_cuts,
@@ -366,7 +361,6 @@ def _parse_event(
         pass_all_efficiencies, total_efficiency = _parse_efficiencies(
             avg_efficiencies,
             efficiencies,
-            efficiencies_default_pass,
             fail_efficiencies,
             pass_efficiencies,
             variables,
@@ -436,7 +430,6 @@ def _parse_observations(observables: Dict[str, Observable], variables: Dict[str,
 def _parse_efficiencies(
     avg_efficiencies,
     efficiencies,
-    efficiencies_default_pass,
     fail_efficiencies,
     pass_efficiencies,
     variables,
@@ -445,9 +438,12 @@ def _parse_efficiencies(
     total_efficiency = 1.0
     pass_all_efficiencies = True
 
-    for i_efficiency, (efficiency, default_pass) in enumerate(zip(efficiencies, efficiencies_default_pass)):
+    for i_efficiency, efficiency in enumerate(efficiencies):
+        definition = efficiency.val_expression
+        default = efficiency.val_default
+
         try:
-            efficiency_result = eval(efficiency, variables)
+            efficiency_result = eval(definition, variables)
             if efficiency_result > 0.0:
                 pass_efficiencies[i_efficiency] += 1
                 total_efficiency *= efficiency_result
@@ -457,10 +453,10 @@ def _parse_efficiencies(
                 pass_all_efficiencies = False
 
         except (SyntaxError, NameError, TypeError, ZeroDivisionError, IndexError):
-            if default_pass > 0.0:
+            if default > 0.0:
                 pass_efficiencies[i_efficiency] += 1
-                total_efficiency *= default_pass
-                avg_efficiencies[i_efficiency] += default_pass
+                total_efficiency *= default
+                avg_efficiencies[i_efficiency] += default
             else:
                 fail_efficiencies[i_efficiency] += 1
                 pass_all_efficiencies = False
