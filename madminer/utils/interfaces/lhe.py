@@ -5,6 +5,7 @@ import os
 from collections import OrderedDict
 from typing import Callable
 from typing import Dict
+from typing import List
 
 try:
     import xml.etree.cElementTree as ET
@@ -14,6 +15,7 @@ except ImportError:
     use_celementtree = False
 
 from particle import Particle
+from madminer.models import Cut
 from madminer.models import Observable
 from madminer.utils.particle import MadMinerParticle
 from madminer.utils.various import unzip_file, approx_equal, math_commands
@@ -25,8 +27,7 @@ def parse_lhe_file(
     filename,
     sampling_benchmark,
     observables: Dict[str, Observable],
-    cuts=None,
-    cuts_default_pass=None,
+    cuts: List[Cut] = None,
     efficiencies=None,
     efficiencies_default_pass=None,
     benchmark_names=None,
@@ -57,8 +58,6 @@ def parse_lhe_file(
         raise RuntimeError("Parsing background LHE files required benchmark names to be provided.")
     if cuts is None:
         cuts = OrderedDict()
-    if cuts_default_pass is None:
-        cuts_default_pass = {key: False for key in cuts.keys()}
     if efficiencies is None:
         efficiencies = OrderedDict()
     if efficiencies_default_pass is None:
@@ -145,7 +144,6 @@ def parse_lhe_file(
             n_events_with_negative_weights, observations, pass_all, weight_names_all_events, weights = _parse_event(
                 avg_efficiencies,
                 cuts,
-                cuts_default_pass,
                 efficiencies,
                 efficiencies_default_pass,
                 energy_resolutions,
@@ -183,7 +181,6 @@ def parse_lhe_file(
             n_events_with_negative_weights, observations, pass_all, weight_names_all_events, weights = _parse_event(
                 avg_efficiencies,
                 cuts,
-                cuts_default_pass,
                 efficiencies,
                 efficiencies_default_pass,
                 energy_resolutions,
@@ -309,8 +306,7 @@ def _report_parse_results(
 
 def _parse_event(
     avg_efficiencies,
-    cuts,
-    cuts_default_pass,
+    cuts: List[Cut],
     efficiencies,
     efficiencies_default_pass,
     energy_resolutions,
@@ -356,7 +352,6 @@ def _parse_event(
     if pass_all_observation:
         pass_all_cuts = _parse_cuts(
             cuts,
-            cuts_default_pass,
             fail_cuts,
             observables,
             observations,
@@ -473,13 +468,13 @@ def _parse_efficiencies(
     return pass_all_efficiencies, total_efficiency
 
 
-def _parse_cuts(cuts, cuts_default_pass, fail_cuts, observables, observations, pass_all_cuts, pass_cuts, variables):
+def _parse_cuts(cuts, fail_cuts, observables, observations, pass_all_cuts, pass_cuts, variables):
     # Objects for cuts
     for obs_name, obs_value in zip(observables.keys(), observations):
         variables[obs_name] = obs_value
 
     # Check cuts
-    for i_cut, (cut, default_pass) in enumerate(zip(cuts, cuts_default_pass)):
+    for i_cut, cut in enumerate(cuts):
         try:
             cut_result = eval(cut, variables)
             if cut_result:
@@ -489,7 +484,7 @@ def _parse_cuts(cuts, cuts_default_pass, fail_cuts, observables, observations, p
                 pass_all_cuts = False
 
         except (SyntaxError, NameError, TypeError, ZeroDivisionError, IndexError):
-            if default_pass:
+            if cut.is_required:
                 pass_cuts[i_cut] += 1
             else:
                 fail_cuts[i_cut] += 1

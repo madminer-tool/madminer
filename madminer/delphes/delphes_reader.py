@@ -3,6 +3,7 @@ import numpy as np
 import os
 from collections import OrderedDict
 
+from madminer.models import Cut
 from madminer.models import Observable
 from madminer.utils.interfaces.delphes import run_delphes
 from madminer.utils.interfaces.delphes_root import parse_delphes_root_file
@@ -64,7 +65,6 @@ class DelphesReader:
 
         # Initialize cuts
         self.cuts = []
-        self.cuts_default_pass = []
 
         # Initialize acceptance cuts
         self.acceptance_pt_min_e = None
@@ -111,28 +111,6 @@ class DelphesReader:
 
         # Initialize nuisance parameters
         self.nuisance_parameters = OrderedDict()
-
-    @staticmethod
-    def _check_python_syntax(expression):
-        """
-        Evaluates a Python expression to check for syntax errors
-
-        Parameters
-        ----------
-        expression : str
-            Python expression to be evaluated. The evaluation raises either SyntaxError or NameError
-
-        Returns
-        -------
-            None
-        """
-
-        try:
-            eval(expression)
-        except SyntaxError:
-            raise ValueError("The provided Python expression is invalid")
-        except NameError:
-            pass
 
     @staticmethod
     def _check_sample_elements(this_elements, n_events=None):
@@ -529,8 +507,7 @@ class DelphesReader:
                         default=0.0,
                     )
 
-    def add_cut(self, definition, pass_if_not_parsed=False):
-
+    def add_cut(self, definition, required=False):
         """
         Adds a cut as a string that can be parsed by Python's `eval()` function and returns a bool.
 
@@ -547,21 +524,21 @@ class DelphesReader:
             PDG particle ID. For instance, `"len(e) >= 2"` requires at least two electrons passing the acceptance cuts,
             while `"mu[0].charge > 0."` specifies that the hardest muon is positively charged.
 
-        pass_if_not_parsed : bool, optional
+        required : bool, optional
             Whether the cut is passed if the observable cannot be parsed. Default value: False.
 
         Returns
         -------
             None
-
         """
-
-        self._check_python_syntax(definition)
 
         logger.debug("Adding cut %s", definition)
 
-        self.cuts.append(definition)
-        self.cuts_default_pass.append(pass_if_not_parsed)
+        self.cuts.append(Cut(
+            name="CUT",
+            val_expression=definition,
+            is_required=required,
+        ))
 
     def reset_observables(self):
         """ Resets all observables. """
@@ -573,9 +550,7 @@ class DelphesReader:
         """ Resets all cuts. """
 
         logger.debug("Resetting cuts")
-
         self.cuts = []
-        self.cuts_default_pass = []
 
     def analyse_delphes_samples(
         self,
@@ -790,7 +765,6 @@ class DelphesReader:
             delphes_file,
             self.observables,
             self.cuts,
-            self.cuts_default_pass,
             weight_labels,
             use_generator_truth=generator_truth,
             delete_delphes_sample_file=delete_delphes_files,

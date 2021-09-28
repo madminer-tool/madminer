@@ -6,8 +6,10 @@ import uproot3
 from collections import OrderedDict
 from typing import Callable
 from typing import Dict
+from typing import List
 
 from particle import Particle
+from madminer.models import Cut
 from madminer.models import Observable
 from madminer.utils.particle import MadMinerParticle
 from madminer.utils.various import math_commands
@@ -18,8 +20,7 @@ logger = logging.getLogger(__name__)
 def parse_delphes_root_file(
     delphes_sample_file,
     observables: Dict[str, Observable],
-    cuts,
-    cuts_default_pass,
+    cuts: List[Cut],
     weight_labels=None,
     use_generator_truth=False,
     acceptance_pt_min_e=None,
@@ -158,7 +159,7 @@ def parse_delphes_root_file(
     # Cuts
     cut_values = []
 
-    for cut, default_pass in zip(cuts, cuts_default_pass):
+    for cut in cuts:
         values_this_cut = []
 
         # Loop over events
@@ -169,9 +170,11 @@ def parse_delphes_root_file(
                 variables[obs_name] = observable_values[obs_name][event]
 
             try:
-                values_this_cut.append(eval(cut, variables))
+                value = eval(cut.val_expression, variables)
             except (SyntaxError, NameError, TypeError, ZeroDivisionError, IndexError):
-                values_this_cut.append(default_pass)
+                value = cut.is_required
+            finally:
+                values_this_cut.append(value)
 
         values_this_cut = np.array(values_this_cut, dtype=np.bool)
         cut_values.append(values_this_cut)

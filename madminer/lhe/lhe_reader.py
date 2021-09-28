@@ -2,6 +2,7 @@ import logging
 import numpy as np
 from collections import OrderedDict
 
+from madminer.models import Cut
 from madminer.models import Observable
 from madminer.utils.interfaces.hdf5 import load_madminer_settings
 from madminer.utils.interfaces.hdf5 import save_events
@@ -63,7 +64,6 @@ class LHEReader:
 
         # Initialize cuts
         self.cuts = []
-        self.cuts_default_pass = []
 
         # Initialize efficiencies
         self.efficiencies = []
@@ -468,8 +468,7 @@ class LHEReader:
                         default=0.0,
                     )
 
-    def add_cut(self, definition, pass_if_not_parsed=False):
-
+    def add_cut(self, definition, required=False):
         """
         Adds a cut as a string that can be parsed by Python's `eval()` function and returns a bool.
 
@@ -486,18 +485,21 @@ class LHEReader:
             PDG particle ID. For instance, `"len(e) >= 2"` requires at least two electrons passing the cuts,
             while `"mu[0].charge > 0."` specifies that the hardest muon is positively charged.
 
-        pass_if_not_parsed : bool, optional
+        required : bool, optional
             Whether the cut is passed if the observable cannot be parsed. Default value: False.
 
         Returns
         -------
             None
-
         """
+
         logger.debug("Adding cut %s", definition)
 
-        self.cuts.append(definition)
-        self.cuts_default_pass.append(pass_if_not_parsed)
+        self.cuts.append(Cut(
+            name="CUT",
+            val_expression=definition,
+            is_required=required,
+        ))
 
     def add_efficiency(self, definition, value_if_not_parsed=1.0):
 
@@ -538,9 +540,7 @@ class LHEReader:
         """ Resets all cuts. """
 
         logger.debug("Resetting cuts")
-
         self.cuts = []
-        self.cuts_default_pass = []
 
     def reset_efficiencies(self):
         """ Resets all efficiencies. """
@@ -723,7 +723,6 @@ class LHEReader:
             is_background=is_background,
             observables=self.observables,
             cuts=self.cuts,
-            cuts_default_pass=self.cuts_default_pass,
             efficiencies=self.efficiencies,
             efficiencies_default_pass=self.efficiencies_default_pass,
             energy_resolutions=self.energy_resolution,
