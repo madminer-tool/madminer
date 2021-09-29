@@ -5,6 +5,9 @@ from typing import Dict
 
 from madminer.models import AnalysisParameter
 from madminer.models import Benchmark
+from madminer.models import Systematic
+from madminer.models import SystematicScale
+from madminer.models import SystematicType
 
 
 logger = logging.getLogger(__name__)
@@ -138,7 +141,12 @@ def export_reweight_card(
         file.write(reweight_card)
 
 
-def export_run_card(template_filename, run_card_filename, systematics=None, order="LO"):
+def export_run_card(
+    template_filename: str,
+    run_card_filename: str,
+    systematics: Dict[str, Systematic] = None,
+    order: str = "LO",
+):
     # Open parameter card template
     with open(template_filename) as file:
         run_card_template = file.read()
@@ -147,9 +155,10 @@ def export_run_card(template_filename, run_card_filename, systematics=None, orde
 
     # Do we actually have to run MadGraph's systematics feature?
     run_systematics = False
-    for value in systematics.values():
-        if value[0] in ["pdf", "scale"]:
+    for syst in systematics.values():
+        if syst.type in {SystematicType.PDF, SystematicType.SCALE}:
             run_systematics = True
+            break
 
     # Lines to be removed
     entries_to_comment_out = [
@@ -210,7 +219,7 @@ def export_run_card(template_filename, run_card_filename, systematics=None, orde
         file.write(new_run_card)
 
 
-def create_systematics_arguments(systematics):
+def create_systematics_arguments(systematics: Dict[str, Systematic]):
     """ Put together systematics_arguments string for MadGraph run card """
 
     if systematics is None:
@@ -222,32 +231,36 @@ def create_systematics_arguments(systematics):
     muf_done = False
     pdf_done = False
 
-    for value in systematics.values():
-        if value[0] == "scale" and value[1] == "mu":
+    for systematic in systematics.values():
+
+        if systematic.type == SystematicType.SCALE and systematic.scale == SystematicScale.MU:
             if mur_done or muf_done:
                 raise ValueError("Multiple nuisance parameter for scale variation!")
-            systematics_arguments.append(f"'--mur={value[2]}'")
-            systematics_arguments.append(f"'--muf={value[2]}'")
+            systematics_arguments.append(f"'--mur={systematic.value}'")
+            systematics_arguments.append(f"'--muf={systematic.value}'")
             systematics_arguments.append(f"'--together=mur,muf'")
             systematics_arguments.append(f"'--dyn=-1'")
             mur_done = True
             muf_done = True
-        elif value[0] == "scale" and value[1] == "mur":
+
+        elif systematic.type == SystematicType.SCALE and systematic.scale == SystematicScale.MUR:
             if mur_done:
                 raise ValueError("Multiple nuisance parameter for mur variation!")
-            systematics_arguments.append(f"'--mur={value[2]}'")
+            systematics_arguments.append(f"'--mur={systematic.value}'")
             systematics_arguments.append(f"'--dyn=-1'")
             mur_done = True
-        elif value[0] == "scale" and value[1] == "muf":
+
+        elif systematic.type == SystematicType.SCALE and systematic.scale == SystematicScale.MUF:
             if muf_done:
                 raise ValueError("Multiple nuisance parameter for muf variation!")
-            systematics_arguments.append(f"'--muf={value[2]}'")
+            systematics_arguments.append(f"'--muf={systematic.value}'")
             systematics_arguments.append(f"'--dyn=-1'")
             muf_done = True
-        elif value[0] == "pdf":
+
+        elif systematic.type == SystematicType.PDF:
             if pdf_done:
                 raise ValueError("Multiple nuisance parameter for PDF variation!")
-            systematics_arguments.append(f"'--pdf={value[1]}'")
+            systematics_arguments.append(f"'--pdf={systematic.value}'")
             pdf_done = True
 
     if len(systematics_arguments) > 0:

@@ -18,6 +18,9 @@ from particle import Particle
 from madminer.models import Cut
 from madminer.models import Efficiency
 from madminer.models import Observable
+from madminer.models import Systematic
+from madminer.models import SystematicScale
+from madminer.models import SystematicType
 from madminer.utils.particle import MadMinerParticle
 from madminer.utils.various import unzip_file, approx_equal, math_commands
 
@@ -489,9 +492,12 @@ def _parse_cuts(cuts, fail_cuts, observables, observations, pass_all_cuts, pass_
     return pass_all_cuts
 
 
-def extract_nuisance_parameters_from_lhe_file(filename, systematics):
-    """Extracts the definition of nuisance parameters from the LHE file and returns a systematics_dict with structure
-    {systematics_name : {nuisance_parameter_name : ((benchmark0, weight0), (benchmark1, weight1), processing) }"""
+def extract_nuisance_parameters_from_lhe_file(filename: str, systematics: Dict[str, Systematic]):
+    """
+    Extracts the definition of nuisance parameters from the LHE file
+    and returns a systematics_dict with structure:
+    {systematics_name: {nuisance_parameter_name: ((benchmark0, weight0), (benchmark1, weight1), processing) }
+    """
 
     logger.debug("Parsing nuisance parameter setup from LHE file at %s", filename)
 
@@ -520,33 +526,32 @@ def extract_nuisance_parameters_from_lhe_file(filename, systematics):
     logger.debug("%s weight groups", len(weight_groups))
 
     # Loop over systematics
-    for syst_name, syst_value in systematics.items():
-        nuisance_param_dict = _extract_nuisance_param_dict(weight_groups, syst_name, syst_value)
+    for syst_name, syst_obj in systematics.items():
+        nuisance_param_dict = _extract_nuisance_param_dict(weight_groups, syst_name, syst_obj)
         systematics_dict[syst_name] = nuisance_param_dict
 
     return systematics_dict
 
 
-def _extract_nuisance_param_dict(weight_groups, systematics_name, systematics_definition):
+def _extract_nuisance_param_dict(weight_groups: list, systematics_name: str, systematic: Systematic):
     logger.debug("Extracting nuisance parameter information for systematic %s", systematics_name)
 
-    syst_type = systematics_definition[0]
-
-    if syst_type == "norm":
+    if systematic.type == SystematicType.NORM:
         nuisance_param_name = f"{systematics_name}_nuisance_param_0"
         benchmark_name = f"{nuisance_param_name}_benchmark_0"
-        nuisance_param_definition = (benchmark_name, None), (None, None), systematics_definition[1]
+        nuisance_param_definition = (benchmark_name, None), (None, None), systematic.value
         return {nuisance_param_name: nuisance_param_definition}
 
-    elif syst_type == "scale":
+    elif systematic.type == SystematicType.SCALE:
         # Prepare output
         nuisance_param_definition_parts = []
 
         # Parse scale variations we need to find
-        scale_factors = systematics_definition[2].split(",")
+        scale_factors = systematic.value.split(",")
         scale_factors = [float(sf) for sf in scale_factors]
+
         if len(scale_factors) == 0:
-            raise RuntimeError("Cannot parse scale factor string %s", systematics_definition[2])
+            raise RuntimeError("Cannot parse scale factor string %s", systematic.value)
         elif len(scale_factors) == 1:
             scale_factors = (scale_factors[0],)
         else:
@@ -554,8 +559,8 @@ def _extract_nuisance_param_dict(weight_groups, systematics_name, systematics_de
 
         # Loop over scale factors
         for k, scale_factor in enumerate(scale_factors):
-            muf = scale_factor if systematics_definition[1] in ["mu", "muf"] else 1.0
-            mur = scale_factor if systematics_definition[1] in ["mu", "mur"] else 1.0
+            muf = scale_factor if systematic.scale in {SystematicScale.MU, SystematicScale.MUF} else 1.0
+            mur = scale_factor if systematic.scale in {SystematicScale.MU, SystematicScale.MUR} else 1.0
 
             # Loop over weight groups and weights and identify benchmarks
             for wg in weight_groups:
@@ -624,8 +629,9 @@ def _extract_nuisance_param_dict(weight_groups, systematics_name, systematics_de
                 nuisance_dict = {nuisance_param_name: (nuisance_param_definition_parts[0], (None, None), None)}
             return nuisance_dict
 
-    elif syst_type == "pdf":
+    elif systematic.type == SystematicType.PDF:
         nuisance_dict = OrderedDict()
+
         # Loop over weight groups and weights and identify benchmarks
         for wg in weight_groups:
             try:
@@ -635,8 +641,11 @@ def _extract_nuisance_param_dict(weight_groups, systematics_name, systematics_de
                 continue
             logger.debug("New weight group: %s", wg_name)
 
-            if "mg_reweighting" in wg_name.lower() or not (
-                systematics_definition[1] in wg_name.lower() or "pdf" in wg_name.lower() or "ct" in wg_name.lower()
+            if (
+                "mg_reweighting" in wg_name.lower()
+                or "pdf" not in wg_name.lower()
+                or "ct" not in wg_name.lower()
+                or systematic.value not in wg_name.lower()
             ):
                 continue
 
@@ -676,7 +685,7 @@ def _extract_nuisance_param_dict(weight_groups, systematics_name, systematics_de
         return nuisance_dict
 
     else:
-        raise RuntimeError("Unknown systematics type %s", syst_type)
+        raise RuntimeError("Unknown systematics type %s", systematic.type)
 
 
 def _parse_xml_event(event, sampling_benchmark):
