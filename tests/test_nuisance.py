@@ -2,6 +2,7 @@ import os
 import numpy as np
 from collections import OrderedDict
 
+from madminer.models import NuisanceParameter
 from madminer import MadMiner, LHEReader, FisherInformation, profile_information
 
 
@@ -22,10 +23,10 @@ def theta_limit_madminer(xsec=0.001, lumi=1000000.0, effect_phys=0.1, effect_sys
 
     # Set up observations
     proc = LHEReader(".data.h5")
-    proc.add_observable("x", "no one cares")
+    proc.add_observable("x", "_")
     proc.reference_benchmark = "benchmark_0"
     proc.nuisance_parameters = OrderedDict()
-    proc.nuisance_parameters["nu"] = ("syst", "benchmark_nuisance", None)
+    proc.nuisance_parameters["nu"] = NuisanceParameter("nu", "syst", "benchmark_nuisance")
     proc.observations = OrderedDict()
     proc.observations["x"] = np.array([1.0])
     proc.weights = OrderedDict()
