@@ -54,12 +54,7 @@ class DataAnalyzer:
         self.n_parameters = len(self.parameters)
         self.n_benchmarks = len(self.benchmarks)
         self.n_benchmarks_phys = np.sum(np.logical_not(self.benchmark_nuisance_flags))
-
-        self.n_nuisance_parameters = 0
-        if self.nuisance_parameters is not None and include_nuisance_parameters:
-            self.n_nuisance_parameters = len(self.nuisance_parameters)
-        else:
-            self.nuisance_parameters = None
+        self.n_nuisance_parameters = len(self.nuisance_parameters)
 
         # Morphing
         self.morpher = None
@@ -69,17 +64,14 @@ class DataAnalyzer:
             self.morpher.set_basis(self.benchmarks, morphing_matrix=self.morphing_matrix)
 
         # Nuisance morphing
-        self.nuisance_morpher = None
-        if self.nuisance_parameters is not None:
-            self.nuisance_morpher = NuisanceMorpher(
-                self.nuisance_parameters, list(self.benchmarks.keys()), self.reference_benchmark
-            )
-        else:
-            self.include_nuisance_parameters = False
+        self.nuisance_morpher = NuisanceMorpher(
+            self.nuisance_parameters,
+            self.benchmarks.keys(),
+            self.reference_benchmark,
+        )
 
         # Check event numbers
         self._check_n_events()
-
         self._report_setup()
 
     def event_loader(
@@ -525,14 +517,12 @@ class DataAnalyzer:
         for i, param in enumerate(self.parameters.values()):
             logger.info("  %s: %s", i, param)
 
-        if self.nuisance_parameters is not None:
+        if self.n_nuisance_parameters > 0:
             logger.info(f"Found {self.n_nuisance_parameters} nuisance parameters")
-            for i, (key, values) in enumerate(self.systematics.items()):
-                values_str = " / ".join(str(x) for x in values)
-                logger.info(f"  {i}: {key} ({values_str})")
+            for i, param in enumerate(self.nuisance_parameters.values()):
+                logger.info("  %s: %s", i, param)
         else:
             logger.info("Did not find nuisance parameters")
-            self.include_nuisance_parameters = False
 
         logger.info(f"Found {self.n_benchmarks} benchmarks")
         for benchmark in self.benchmarks.values():

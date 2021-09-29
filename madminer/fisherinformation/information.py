@@ -97,7 +97,8 @@ class FisherInformation(DataAnalyzer):
             cuts = []
         if efficiency_functions is None:
             efficiency_functions = []
-        include_nuisance_parameters = include_nuisance_parameters and (self.nuisance_parameters is not None)
+
+        include_nuisance_parameters = include_nuisance_parameters and self.n_nuisance_parameters > 0
 
         # Loop over batches
         n_all_parameters = self.n_parameters
@@ -414,9 +415,9 @@ class FisherInformation(DataAnalyzer):
             Covariance matrix of the Fisher information matrix with shape
             `(n_parameters, n_parameters, n_parameters, n_parameters)`, calculated with plain Gaussian error
             propagation.
-
         """
-        include_nuisance_parameters = include_nuisance_parameters and (self.nuisance_parameters is not None)
+
+        include_nuisance_parameters = include_nuisance_parameters and self.n_nuisance_parameters > 0
 
         # Get weights at benchmarks
         weights_benchmarks, weights_benchmark_uncertainties = self._calculate_xsec(

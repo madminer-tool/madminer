@@ -4,9 +4,11 @@ import numpy as np
 
 from collections import OrderedDict
 from typing import Dict
+from typing import Iterable
 
 from madminer.models import Benchmark
 from madminer.models import AnalysisParameter
+from madminer.models import NuisanceParameter
 from madminer.utils.various import sanitize_array
 
 logger = logging.getLogger(__name__)
@@ -603,11 +605,16 @@ class NuisanceMorpher:
         Name of the reference benchmark.
     """
 
-    def __init__(self, nuisance_parameters_from_madminer, benchmark_names, reference_benchmark):
+    def __init__(
+        self,
+        nuisance_parameters_from_madminer: Dict[str, NuisanceParameter],
+        benchmark_names: Iterable[str],
+        reference_benchmark: str
+    ):
 
         # Benchmarks
-        self.benchmark_names = benchmark_names
-        self.i_benchmark_ref = benchmark_names.index(reference_benchmark)
+        self.benchmark_names = list(benchmark_names)
+        self.i_benchmark_ref = list(benchmark_names).index(reference_benchmark)
 
         # Nuisance parameters
         self.nuisance_parameters = nuisance_parameters_from_madminer
@@ -617,14 +624,24 @@ class NuisanceMorpher:
         self.i_benchmarks_neg = []
         self.degrees = []
 
-        for key, value in self.nuisance_parameters.items():
-            self.i_benchmarks_pos.append(benchmark_names.index(value[1]))
-            if value[2] is None:
-                self.degrees.append(1)
-                self.i_benchmarks_neg.append(None)
+        for param in self.nuisance_parameters.values():
+            degrees = 0
+
+            if param.benchmark_pos is not None:
+                degrees += 1
+                index_benchmark_pos = self.benchmark_names.index(param.benchmark_pos)
             else:
-                self.degrees.append(2)
-                self.i_benchmarks_neg.append(benchmark_names.index(value[2]))
+                index_benchmark_pos = None
+
+            if param.benchmark_neg is not None:
+                degrees += 1
+                index_benchmark_neg = self.benchmark_names.index(param.benchmark_neg)
+            else:
+                index_benchmark_neg = None
+
+            self.i_benchmarks_pos.append(index_benchmark_pos)
+            self.i_benchmarks_neg.append(index_benchmark_neg)
+            self.degrees.append(degrees)
 
     def calculate_a(self, benchmark_weights):
         """
@@ -643,8 +660,8 @@ class NuisanceMorpher:
         -------
         a : ndarray
             Coefficients a_i(x) with shape `(n_nuisance_parameters, n_events)`.
-
         """
+
         a = []
 
         with np.errstate(divide="ignore", invalid="ignore"):
@@ -676,6 +693,7 @@ class NuisanceMorpher:
         b : ndarray
             Coefficients b_i(x) with shape `(n_nuisance_parameters, n_events)`.
         """
+
         b = []
 
         for i_pos, i_neg, degree in zip(self.i_benchmarks_pos, self.i_benchmarks_neg, self.degrees):
