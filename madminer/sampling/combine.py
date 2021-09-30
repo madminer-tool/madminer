@@ -3,6 +3,9 @@ import numpy as np
 import shutil
 
 from contextlib import suppress
+from typing import List
+from typing import Union
+
 from ..utils.interfaces.hdf5 import load_events
 from ..utils.interfaces.hdf5 import load_madminer_settings
 from ..utils.interfaces.hdf5 import _save_samples
@@ -25,11 +28,10 @@ def _calculate_n_events(sampling_ids, n_benchmarks):
 
 
 def combine_and_shuffle(
-    input_filenames,
-    output_filename,
-    k_factors=None,
-    overwrite_existing_file=True,
-    recalculate_header=True,
+    input_filenames: List[str],
+    output_filename: str,
+    k_factors: Union[List[float], float] = None,
+    recalculate_header: bool = True,
 ):
     """
     Combines multiple MadMiner files into one, and shuffles the order of the events.
@@ -47,11 +49,8 @@ def combine_and_shuffle(
         Path to the combined MadMiner file.
 
     k_factors : float or list of float, optional
-        Multiplies the weights in input_filenames with a universal factor (if k_factors is a float) or with independent
-        factors (if it is a list of float). Default value: None.
-
-    overwrite_existing_file : bool, optional
-        If True and if the output file exists, it is overwritten. Default value: True.
+        Multiplies the weights in input_filenames with a universal factor (if k_factors is a float)
+        or with independent factors (if it is a list of float). Default value: None.
 
     recalculate_header : bool, optional
         Recalculates the total number of events. Default value: True.
@@ -59,7 +58,6 @@ def combine_and_shuffle(
     Returns
     -------
         None
-
     """
 
     # TODO: merge different nuisance setups

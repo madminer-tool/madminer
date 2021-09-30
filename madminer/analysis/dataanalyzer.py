@@ -499,12 +499,9 @@ class DataAnalyzer:
         return xsec_gradients
 
     def _check_n_events(self):
-        if self.n_events_generated_per_benchmark is None:
-            return
-
-        n_events_check = sum(self.n_events_generated_per_benchmark)
-        if self.n_events_backgrounds is not None:
-            n_events_check += self.n_events_backgrounds
+        n_events_check = \
+            sum(self.n_events_generated_per_benchmark) \
+            + self.n_events_backgrounds
 
         if self.n_samples != n_events_check:
             logger.warning(
@@ -536,10 +533,9 @@ class DataAnalyzer:
             logger.debug("  %2.2s %s", i, obs)
 
         logger.info(f"Found {self.n_samples} events")
-        if self.n_events_generated_per_benchmark is not None:
+        if len(self.n_events_generated_per_benchmark) > 0:
             for events, name in zip(self.n_events_generated_per_benchmark, self.benchmarks.keys()):
-                if events > 0:
-                    logger.info("  %s signal events sampled from benchmark %s", events, name)
+                logger.info("  %s signal events sampled from benchmark %s", events, name)
             if self.n_events_backgrounds is not None and self.n_events_backgrounds > 0:
                 logger.info("  %s background events", self.n_events_backgrounds)
         else:
@@ -956,7 +952,7 @@ class DataAnalyzer:
         distances = [np.linalg.norm(benchmark - theta) for benchmark in benchmarks]
 
         # Don't use benchmarks where we don't actually have events
-        if self.n_events_generated_per_benchmark is not None:
+        if len(self.n_events_generated_per_benchmark) > 0:
             distances = distances + 1.0e9 * (self.n_events_generated_per_benchmark == 0).astype(np.float)
 
         closest_idx = np.argmin(distances)
