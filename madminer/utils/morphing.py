@@ -3,6 +3,12 @@ import logging
 import numpy as np
 
 from collections import OrderedDict
+from typing import Dict
+from typing import Iterable
+
+from madminer.models import Benchmark
+from madminer.models import AnalysisParameter
+from madminer.models import NuisanceParameter
 from madminer.utils.various import sanitize_array
 
 logger = logging.getLogger(__name__)
@@ -44,7 +50,7 @@ class PhysicsMorpher:
     ----------
     parameters_from_madminer : OrderedDict or None, optional
         Parameters in the `MadMiner.parameters` convention. OrderedDict with keys equal to the parameter names and
-        values equal to tuples (LHA_block, LHA_ID, morphing_max_power, param_min, param_max)
+        values equal to AnalysisParameter model instances.
 
     parameter_max_power : None or list of int, optional
         Only used if parameters_from_madminer is None. Maximal power with which each parameter contributes to
@@ -54,20 +60,25 @@ class PhysicsMorpher:
 
     parameter_range : None or list of tuple of float, optional
         Only used if parameters_from_madminer is None. Parameter range (param_min, param_max) for each parameter.
-
     """
 
-    def __init__(self, parameters_from_madminer=None, parameter_max_power=None, parameter_range=None):
+    def __init__(
+        self,
+        parameters_from_madminer: Dict[str, AnalysisParameter] = None,
+        parameter_max_power=None,
+        parameter_range=None,
+    ):
 
         # MadMiner interface
         if parameters_from_madminer is not None:
             self.use_madminer_interface = True
             self.n_parameters = len(parameters_from_madminer)
-            self.parameter_names = [key for key in parameters_from_madminer]
-            self.parameter_max_power = np.array(
-                [parameters_from_madminer[key][2] for key in self.parameter_names], dtype=np.int
-            )
-            self.parameter_range = np.array([parameters_from_madminer[key][3] for key in self.parameter_names])
+            self.parameter_names = [param.name for param in parameters_from_madminer.values()]
+            self.parameter_max_power = [param.max_power for param in parameters_from_madminer.values()]
+            self.parameter_range = [param.val_range for param in parameters_from_madminer.values()]
+
+            self.parameter_max_power = np.array(self.parameter_max_power, dtype=np.int)
+            self.parameter_range = np.array(self.parameter_range)
 
         # Generic interface
         else:
@@ -97,7 +108,6 @@ class PhysicsMorpher:
         Returns
         -------
             None
-
         """
 
         self.components = components
@@ -144,7 +154,7 @@ class PhysicsMorpher:
 
         return self.components
 
-    def set_basis(self, basis_from_madminer=None, basis_numpy=None, morphing_matrix=None):
+    def set_basis(self, basis_from_madminer: Dict[str, Benchmark] = None, basis_numpy=None, morphing_matrix=None):
         """
         Manually sets the basis benchmarks.
 
@@ -163,13 +173,12 @@ class PhysicsMorpher:
         Returns
         -------
             None
-
         """
 
         if basis_from_madminer is not None:
             self.basis = []
-            for bname, benchmark_in in basis_from_madminer.items():
-                self.basis.append([benchmark_in[key] for key in self.parameter_names])
+            for benchmark in basis_from_madminer.values():
+                self.basis.append([benchmark.values[key] for key in self.parameter_names])
             self.basis = np.array(self.basis)
         elif basis_numpy is not None:
             self.basis = np.array(basis_numpy)
@@ -187,28 +196,26 @@ class PhysicsMorpher:
     def optimize_basis(
         self,
         n_bases=1,
-        fixed_benchmarks_from_madminer=None,
-        fixed_benchmarks_numpy=None,
+        benchmarks_from_madminer: Dict[str, Benchmark] = None,
+        benchmarks_numpy=None,
         n_trials=100,
         n_test_thetas=100,
     ):
-
         """
         Optimizes the morphing basis. If either fixed_benchmarks_from_madminer or fixed_benchmarks_numpy are not
         None, then these will be used as fixed basis points and only the remaining part of the basis will be optimized.
 
         Parameters
         ----------
-
         n_bases : int, optional
             The number of morphing bases generated. If n_bases > 1, multiple bases are combined, and the
             weights for each basis are reduced by a factor 1 / n_bases. Currently only the default choice of 1 is
             fully implemented. Do not use any other value for now. Default value: 1.
 
-        fixed_benchmarks_from_madminer : OrderedDict or None, optional
+        benchmarks_from_madminer : OrderedDict or None, optional
             Input basis vectors in the `MadMiner.benchmarks` conventions. Default value: None.
 
-        fixed_benchmarks_numpy : ndarray or None, optional
+        benchmarks_numpy : ndarray or None, optional
             Input basis vectors as a ndarray with shape `(n_fixed_basis_points, n_parameters)`. Default value: None.
 
         n_trials : int, optional
@@ -223,7 +230,6 @@ class PhysicsMorpher:
         -------
         basis : OrderedDict or ndarray
             Optimized basis in the same format (MadMiner or numpy) as the parameters provided during instantiation.
-
         """
 
         # Check all data is there
@@ -233,15 +239,15 @@ class PhysicsMorpher:
             )
 
         # Fixed benchmarks
-        if fixed_benchmarks_from_madminer is not None:
+        if benchmarks_from_madminer is not None:
             fixed_benchmarks = []
             fixed_benchmark_names = []
-            for bname, benchmark_in in fixed_benchmarks_from_madminer.items():
-                fixed_benchmark_names.append(bname)
-                fixed_benchmarks.append([benchmark_in[key] for key in self.parameter_names])
+            for benchmark in benchmarks_from_madminer.values():
+                fixed_benchmark_names.append(benchmark.name)
+                fixed_benchmarks.append([benchmark.values[key] for key in self.parameter_names])
             fixed_benchmarks = np.array(fixed_benchmarks)
-        elif fixed_benchmarks_numpy is not None:
-            fixed_benchmarks = np.array(fixed_benchmarks_numpy)
+        elif benchmarks_numpy is not None:
+            fixed_benchmarks = np.array(benchmarks_numpy)
             fixed_benchmark_names = []
         else:
             fixed_benchmarks = np.array([])
@@ -284,10 +290,10 @@ class PhysicsMorpher:
                 if i < len(fixed_benchmark_names):
                     benchmark_name = fixed_benchmark_names[i]
                 else:
-                    benchmark_name = "morphing_basis_vector_" + str(len(basis_madminer))
+                    benchmark_name = f"morphing_basis_vector_{len(basis_madminer)}"
                 parameter = OrderedDict()
-                for p, pname in enumerate(self.parameter_names):
-                    parameter[pname] = benchmark[p]
+                for p, p_name in enumerate(self.parameter_names):
+                    parameter[p_name] = benchmark[p]
                 basis_madminer[benchmark_name] = parameter
 
             return basis_madminer
@@ -296,7 +302,6 @@ class PhysicsMorpher:
         return best_basis
 
     def calculate_morphing_matrix(self, basis=None):
-
         """
         Calculates the morphing matrix that links the components to the basis benchmarks.
 
@@ -311,7 +316,6 @@ class PhysicsMorpher:
         -------
         morphing_matrix : ndarray
             Morphing matrix with shape `(n_basis_benchmarks, n_components)`
-
         """
 
         # Check all data is there
@@ -363,7 +367,6 @@ class PhysicsMorpher:
         return morphing_matrix.T
 
     def calculate_morphing_weights(self, theta, basis=None, morphing_matrix=None):
-
         """
         Calculates the morphing weights `w_b(theta)` for a given morphing basis `{theta_b}`.
 
@@ -386,7 +389,6 @@ class PhysicsMorpher:
         -------
         morphing_weights : ndarray
             Morphing weights as an array with shape `(n_basis_benchmarks,)`.
-
         """
 
         # Check all data is there
@@ -421,7 +423,6 @@ class PhysicsMorpher:
         return morphing_matrix.T.dot(component_weights)
 
     def calculate_morphing_weight_gradient(self, theta, basis=None, morphing_matrix=None):
-
         """
         Calculates the gradient of the morphing weights, `grad_i w_b(theta)`.
 
@@ -445,7 +446,6 @@ class PhysicsMorpher:
         morphing_weight_gradients : ndarray
             Morphing weights as an array with shape `(n_parameters, n_basis_benchmarks,)`, where the first component
             refers to the gradient direction.
-
         """
 
         # Check all data is there
@@ -488,7 +488,6 @@ class PhysicsMorpher:
         return morphing_matrix.T.dot(component_weight_gradients).T
 
     def evaluate_morphing(self, basis=None, morphing_matrix=None, n_test_thetas=100, return_weights_and_thetas=False):
-
         """
         Evaluates the expected sum of the squared morphing weights for a given basis.
 
@@ -524,7 +523,6 @@ class PhysicsMorpher:
         negative_expected_sum_squared_weights : float
             Negative expected sum of the square of the morphing weights. Objective function in the optimization.
             Only returned with `return_weights_and_thetas=False`.
-
         """
 
         # Check all data is there
@@ -565,7 +563,6 @@ class PhysicsMorpher:
         return -squared_weights
 
     def _propose_basis(self, fixed_benchmarks, n_missing_benchmarks):
-
         """ Proposes a random basis. """
 
         if len(fixed_benchmarks) > 0:
@@ -576,7 +573,6 @@ class PhysicsMorpher:
         return basis
 
     def _draw_random_thetas(self, n_thetas):
-
         """ Randomly draws parameter vectors within the specified parameter ranges. """
 
         # First draw random numbers in range [0, 1)^n_parameters
@@ -609,11 +605,16 @@ class NuisanceMorpher:
         Name of the reference benchmark.
     """
 
-    def __init__(self, nuisance_parameters_from_madminer, benchmark_names, reference_benchmark):
+    def __init__(
+        self,
+        nuisance_parameters_from_madminer: Dict[str, NuisanceParameter],
+        benchmark_names: Iterable[str],
+        reference_benchmark: str
+    ):
 
         # Benchmarks
-        self.benchmark_names = benchmark_names
-        self.i_benchmark_ref = benchmark_names.index(reference_benchmark)
+        self.benchmark_names = list(benchmark_names)
+        self.i_benchmark_ref = list(benchmark_names).index(reference_benchmark)
 
         # Nuisance parameters
         self.nuisance_parameters = nuisance_parameters_from_madminer
@@ -623,14 +624,24 @@ class NuisanceMorpher:
         self.i_benchmarks_neg = []
         self.degrees = []
 
-        for key, value in self.nuisance_parameters.items():
-            self.i_benchmarks_pos.append(benchmark_names.index(value[1]))
-            if value[2] is None:
-                self.degrees.append(1)
-                self.i_benchmarks_neg.append(None)
+        for param in self.nuisance_parameters.values():
+            degrees = 0
+
+            if param.benchmark_pos is not None:
+                degrees += 1
+                index_benchmark_pos = self.benchmark_names.index(param.benchmark_pos)
             else:
-                self.degrees.append(2)
-                self.i_benchmarks_neg.append(benchmark_names.index(value[2]))
+                index_benchmark_pos = None
+
+            if param.benchmark_neg is not None:
+                degrees += 1
+                index_benchmark_neg = self.benchmark_names.index(param.benchmark_neg)
+            else:
+                index_benchmark_neg = None
+
+            self.i_benchmarks_pos.append(index_benchmark_pos)
+            self.i_benchmarks_neg.append(index_benchmark_neg)
+            self.degrees.append(degrees)
 
     def calculate_a(self, benchmark_weights):
         """
@@ -649,8 +660,8 @@ class NuisanceMorpher:
         -------
         a : ndarray
             Coefficients a_i(x) with shape `(n_nuisance_parameters, n_events)`.
-
         """
+
         a = []
 
         with np.errstate(divide="ignore", invalid="ignore"):
@@ -681,8 +692,8 @@ class NuisanceMorpher:
         -------
         b : ndarray
             Coefficients b_i(x) with shape `(n_nuisance_parameters, n_events)`.
-
         """
+
         b = []
 
         for i_pos, i_neg, degree in zip(self.i_benchmarks_pos, self.i_benchmarks_neg, self.degrees):
@@ -721,7 +732,6 @@ class NuisanceMorpher:
         -------
         nuisance_factors : ndarray
             Nuisance factor `dsigma(x |  theta, nu) / dsigma(x | theta, 0)` with shape `(n_events,)`.
-
         """
 
         if nuisance_parameters is None:
@@ -755,7 +765,6 @@ class NuisanceMorpher:
         log_nuisance_factor_gradients : ndarray
             Log nuisance factor gradients `grad_nu log (dsigma(x | theta, nu) / dsigma(x | theta, 0))` with shape
             `(n_parameters, n_events)`.
-
         """
 
         if nuisance_parameters is None:
@@ -788,7 +797,6 @@ class NuisanceMorpher:
         nuisance_factor_gradients : ndarray
             Nuisance factor gradients `grad_nu (dsigma(x | theta, nu) / dsigma(x | theta, 0))` with shape
             `(n_parameters, n_events)`.
-
         """
 
         if nuisance_parameters is None:

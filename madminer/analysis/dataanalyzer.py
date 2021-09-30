@@ -4,7 +4,7 @@ import numpy as np
 from madminer.utils.interfaces.hdf5 import load_events
 from madminer.utils.interfaces.hdf5 import load_madminer_settings
 from madminer.utils.morphing import PhysicsMorpher, NuisanceMorpher
-from madminer.utils.various import format_benchmark, mdot
+from madminer.utils.various import mdot
 
 logger = logging.getLogger(__name__)
 
@@ -50,16 +50,11 @@ class DataAnalyzer:
             self.finite_difference_epsilon,
         ) = load_madminer_settings(filename, include_nuisance_benchmarks=include_nuisance_parameters)
 
+        self.n_observables = len(self.observables)
         self.n_parameters = len(self.parameters)
         self.n_benchmarks = len(self.benchmarks)
         self.n_benchmarks_phys = np.sum(np.logical_not(self.benchmark_nuisance_flags))
-        self.n_observables = 0 if self.observables is None else len(self.observables)
-
-        self.n_nuisance_parameters = 0
-        if self.nuisance_parameters is not None and include_nuisance_parameters:
-            self.n_nuisance_parameters = len(self.nuisance_parameters)
-        else:
-            self.nuisance_parameters = None
+        self.n_nuisance_parameters = len(self.nuisance_parameters)
 
         # Morphing
         self.morpher = None
@@ -69,17 +64,14 @@ class DataAnalyzer:
             self.morpher.set_basis(self.benchmarks, morphing_matrix=self.morphing_matrix)
 
         # Nuisance morphing
-        self.nuisance_morpher = None
-        if self.nuisance_parameters is not None:
-            self.nuisance_morpher = NuisanceMorpher(
-                self.nuisance_parameters, list(self.benchmarks.keys()), self.reference_benchmark
-            )
-        else:
-            self.include_nuisance_parameters = False
+        self.nuisance_morpher = NuisanceMorpher(
+            self.nuisance_parameters,
+            self.benchmarks.keys(),
+            self.reference_benchmark,
+        )
 
         # Check event numbers
         self._check_n_events()
-
         self._report_setup()
 
     def event_loader(
@@ -507,12 +499,9 @@ class DataAnalyzer:
         return xsec_gradients
 
     def _check_n_events(self):
-        if self.n_events_generated_per_benchmark is None:
-            return
-
-        n_events_check = sum(self.n_events_generated_per_benchmark)
-        if self.n_events_backgrounds is not None:
-            n_events_check += self.n_events_backgrounds
+        n_events_check = \
+            sum(self.n_events_generated_per_benchmark) \
+            + self.n_events_backgrounds
 
         if self.n_samples != n_events_check:
             logger.warning(
@@ -522,36 +511,31 @@ class DataAnalyzer:
 
     def _report_setup(self):
         logger.info(f"Found {self.n_parameters} parameters")
-        for i, (key, values) in enumerate(self.parameters.items()):
-            values_str = " / ".join(str(x) for x in values)
-            logger.info(f"  {i}: {key} ({values_str})")
+        for i, param in enumerate(self.parameters.values()):
+            logger.info("  %s: %s", i, param)
 
-        if self.nuisance_parameters is not None:
+        if self.n_nuisance_parameters > 0:
             logger.info(f"Found {self.n_nuisance_parameters} nuisance parameters")
-            for i, (key, values) in enumerate(self.systematics.items()):
-                values_str = " / ".join(str(x) for x in values)
-                logger.info(f"  {i}: {key} ({values_str})")
+            for i, param in enumerate(self.nuisance_parameters.values()):
+                logger.info("  %s: %s", i, param)
         else:
             logger.info("Did not find nuisance parameters")
-            self.include_nuisance_parameters = False
 
         logger.info(f"Found {self.n_benchmarks} benchmarks")
-        for (key, values), is_nuisance in zip(self.benchmarks.items(), self.benchmark_nuisance_flags):
-            if is_nuisance:
-                logger.debug("   %s: systematics", key)
+        for benchmark in self.benchmarks.values():
+            if benchmark.is_nuisance:
+                logger.debug("   %s: systematics", benchmark.name)
             else:
-                logger.debug("   %s: %s", key, format_benchmark(values))
+                logger.debug("   %s", benchmark)
 
         logger.info(f"Found {self.n_observables} observables")
-        if self.observables is not None:
-            for i, obs in enumerate(self.observables):
-                logger.debug("  %2.2s %s", i, obs)
+        for i, obs in enumerate(self.observables):
+            logger.debug("  %2.2s %s", i, obs)
 
         logger.info(f"Found {self.n_samples} events")
-        if self.n_events_generated_per_benchmark is not None:
+        if len(self.n_events_generated_per_benchmark) > 0:
             for events, name in zip(self.n_events_generated_per_benchmark, self.benchmarks.keys()):
-                if events > 0:
-                    logger.info("  %s signal events sampled from benchmark %s", events, name)
+                logger.info("  %s signal events sampled from benchmark %s", events, name)
             if self.n_events_backgrounds is not None and self.n_events_backgrounds > 0:
                 logger.info("  %s background events", self.n_events_backgrounds)
         else:
@@ -588,16 +572,17 @@ class DataAnalyzer:
 
         # We'll generally try to find the tuples p, i, j, k such that
         # matrix[i, p, j] = - 1 / eps and matrix[i, p, i] = 1 / eps
-        for i, benchmark in enumerate(self.benchmarks.keys()):
+        for i, b_name in enumerate(self.benchmarks.keys()):
             # For the FD-shifted benchmarks, we assume that the gradients are
             # the same as at the original point, and will just copy the matrix later
             copy_to = []
-            if benchmark not in self.finite_difference_benchmarks:
+            if b_name not in self.finite_difference_benchmarks.keys():
                 continue
 
-            for p, param in enumerate(self.parameters.keys()):
-                shifted_benchmark = self.finite_difference_benchmarks[benchmark][param]
-                j = benchmark_names.index(shifted_benchmark)
+            for p, p_name in enumerate(self.parameters.keys()):
+                shifted_benchmark_dict = self.finite_difference_benchmarks[b_name].shift_names
+                shifted_benchmark_name = shifted_benchmark_dict[p_name]
+                j = benchmark_names.index(shifted_benchmark_name)
                 copy_to.append(j)
 
                 matrix[i, p, j] = 1.0 / self.finite_difference_epsilon
@@ -967,7 +952,7 @@ class DataAnalyzer:
         distances = [np.linalg.norm(benchmark - theta) for benchmark in benchmarks]
 
         # Don't use benchmarks where we don't actually have events
-        if self.n_events_generated_per_benchmark is not None:
+        if len(self.n_events_generated_per_benchmark) > 0:
             distances = distances + 1.0e9 * (self.n_events_generated_per_benchmark == 0).astype(np.float)
 
         closest_idx = np.argmin(distances)
@@ -975,5 +960,5 @@ class DataAnalyzer:
 
     def _benchmark_array(self):
         return np.asarray([
-            list(benchmark.values()) for benchmark in self.benchmarks.values()
+            list(benchmark.values.values()) for benchmark in self.benchmarks.values()
         ])

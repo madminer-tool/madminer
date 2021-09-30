@@ -1,15 +1,24 @@
 import os
 import logging
 import tempfile
-from collections import OrderedDict
 
+from collections import OrderedDict
+from typing import Dict
+from typing import List
+from typing import Union
+
+from madminer.models import AnalysisParameter
+from madminer.models import Benchmark
+from madminer.models import Systematic
+from madminer.models import SystematicScale
+from madminer.models import SystematicType
 from madminer.utils.morphing import PhysicsMorpher
 from madminer.utils.interfaces.hdf5 import load_madminer_settings
 from madminer.utils.interfaces.hdf5 import save_madminer_settings
 from madminer.utils.interfaces.mg_cards import export_param_card, export_reweight_card, export_run_card
 from madminer.utils.interfaces.mg import generate_mg_process, setup_mg_with_scripts, run_mg, create_master_script
 from madminer.utils.interfaces.mg import setup_mg_reweighting_with_scripts, run_mg_reweighting
-from madminer.utils.various import create_missing_folders, format_benchmark, copy_file
+from madminer.utils.various import create_missing_folders, copy_file
 
 logger = logging.getLogger(__name__)
 
@@ -41,6 +50,17 @@ class MadMiner:
         self.systematics = OrderedDict()
         self.finite_difference_benchmarks = OrderedDict()
         self.finite_difference_epsilon = 0.0
+
+    def _reset_systematics(self):
+        self.systematics = OrderedDict()
+
+    def _reset_benchmarks(self):
+        self.benchmarks = OrderedDict()
+        self.default_benchmark = None
+
+    def _reset_morpher(self):
+        self.morpher = None
+        self.export_morphing = False
 
     def add_parameter(
         self,
@@ -91,7 +111,7 @@ class MadMiner:
         if parameter_name is None:
             parameter_name = f"parameter_{len(self.parameters)}"
         if param_card_transform is None:
-            param_card_transform = ""
+            param_card_transform = "_"
 
         # Check and sanitize input
         assert isinstance(lha_block, str), f"LHA block is not a string: {lha_block}"
@@ -104,8 +124,8 @@ class MadMiner:
 
         assert parameter_name not in self.parameters, f"Parameter already exists: {parameter_name}"
 
-        # Add parameter
-        self.parameters[parameter_name] = (
+        parameter = AnalysisParameter(
+            parameter_name,
             lha_block,
             lha_id,
             morphing_max_power,
@@ -113,96 +133,65 @@ class MadMiner:
             param_card_transform,
         )
 
-        # After manually adding parameters, the morphing information is not accurate anymore
-        self.morpher = None
+        # Add parameter
+        logger.info("Adding parameter: %s", parameter)
+        self.parameters[parameter_name] = parameter
 
-        logger.info(
-            "Added parameter %s (LHA: %s %s, maximal power in squared ME: %s, range: %s)",
-            parameter_name,
-            lha_block,
-            lha_id,
-            morphing_max_power,
-            parameter_range,
-        )
+        # The morphing information is not accurate anymore
+        logger.warning("Resetting benchmarks and morphing")
+        self._reset_benchmarks()
+        self._reset_morpher()
 
-        # Reset benchmarks
-        if len(self.benchmarks) > 0:
-            logger.warning("Resetting benchmarks and morphing")
-
-        self.benchmarks = OrderedDict()
-        self.default_benchmark = None
-        self.morpher = None
-        self.export_morphing = False
-
-    def set_parameters(self, parameters=None):
+    def set_parameters(self, parameters: Union[Dict[str, AnalysisParameter], List[tuple]]):
         """
         Manually sets all parameters, overwriting previously added parameters.
 
         Parameters
         ----------
-        parameters : dict or list or None, optional
-             If parameters is None, resets parameters. If parameters is an dict, the keys should be str and give the
-             parameter names, and the values are tuples of the form (LHA_block, LHA_ID, morphing_max_power, param_min,
-             param_max) or of the form (LHA_block, LHA_ID). If parameters is a list, the items should be tuples of the
-             form (LHA_block, LHA_ID). Default value: None.
+        parameters : dict or list
+             If parameters is an dict, the keys should be str and give the parameter names, and the values are
+             AnalysisParameter model instances. If parameters is a list, the items should be tuples of the
+             form (LHA_block, LHA_ID).
 
         Returns
         -------
             None
         """
 
-        if parameters is None:
-            parameters = OrderedDict()
-
         self.parameters = OrderedDict()
 
         if isinstance(parameters, dict):
-            for key, values in parameters.items():
-                if len(values) == 5:
-                    self.add_parameter(
-                        lha_block=values[0],
-                        lha_id=values[1],
-                        parameter_name=key,
-                        parameter_range=(values[3], values[4]),
-                        morphing_max_power=values[2],
-                    )
-                elif len(values) == 2:
-                    self.add_parameter(
-                        lha_block=values[0],
-                        lha_id=values[1],
-                        parameter_name=key,
-                    )
-                else:
-                    raise ValueError(f"Parameter properties has unexpected length: {values}")
-
-        else:
+            for param in parameters.values():
+                self.add_parameter(
+                    lha_block=param.lha_block,
+                    lha_id=param.lha_id,
+                    parameter_name=param.name,
+                    morphing_max_power=param.max_power,
+                    parameter_range=param.val_range,
+                )
+        elif isinstance(parameters, list):
             for values in parameters:
-                assert len(values) == 2, f"Parameter list entry does not have length 2: {values}"
                 self.add_parameter(values[0], values[1])
+        else:
+            raise RuntimeError(f"Invalid set of parameters: {parameters}")
 
-        # After manually adding parameters, the morphing information is not accurate anymore
-        if len(self.benchmarks) > 0:
-            logger.warning("Resetting benchmarks and morphing")
+        # The morphing information is not accurate anymore
+        logger.warning("Resetting benchmarks and morphing")
+        self._reset_benchmarks()
+        self._reset_morpher()
 
-        self.benchmarks = OrderedDict()
-        self.default_benchmark = None
-        self.morpher = None
-        self.export_morphing = False
-
-    def add_benchmark(self, parameter_values, benchmark_name=None, verbose=True):
+    def add_benchmark(
+        self, parameter_values: Dict[str, float], benchmark_name: str = None, verbose: float = True
+    ):
         """
         Manually adds an individual benchmark, that is, a parameter point that will be evaluated by MadGraph.
-
-        If this command is called before
 
         Parameters
         ----------
         parameter_values : dict
             The keys of this dict should be the parameter names and the values the corresponding parameter values.
-
         benchmark_name : str or None, optional
             Name of benchmark. If None, a default name is used. Default value: None.
-
         verbose : bool, optional
             If True, prints output about each benchmark. Default value: True.
 
@@ -215,7 +204,6 @@ class MadMiner:
         RuntimeError
             If a benchmark with the same name already exists, if parameter_values is not a dict, or if a key of
             parameter_values does not correspond to a defined parameter.
-
         """
 
         # Default names
@@ -226,36 +214,39 @@ class MadMiner:
         if not isinstance(parameter_values, dict):
             raise RuntimeError(f"Parameter values are not a dict: {parameter_values}")
 
-        for key, value in parameter_values.items():
-            if key not in self.parameters:
-                raise RuntimeError(f"Unknown parameter: {key}")
+        for p_name in parameter_values.keys():
+            if p_name not in self.parameters.keys():
+                raise RuntimeError(f"Unknown parameter: {p_name}")
 
-        if benchmark_name in self.benchmarks:
+        if benchmark_name in self.benchmarks.keys():
             raise RuntimeError(f"Benchmark {benchmark_name} exists already")
 
         # Add benchmark
-        self.benchmarks[benchmark_name] = parameter_values
+        self.benchmarks[benchmark_name] = Benchmark(
+            name=benchmark_name,
+            values=parameter_values,
+        )
 
         # If first benchmark, this will be the default for sampling
         if len(self.benchmarks) == 1:
             self.default_benchmark = benchmark_name
 
         if verbose:
-            logger.info("Added benchmark %s: %s)", benchmark_name, format_benchmark(parameter_values))
+            logger.info("Added benchmark %s", self.benchmarks[benchmark_name])
         else:
-            logger.debug("Added benchmark %s: %s)", benchmark_name, format_benchmark(parameter_values))
+            logger.debug("Added benchmark %s", self.benchmarks[benchmark_name])
 
-    def set_benchmarks(self, benchmarks=None, verbose=True):
+    def set_benchmarks(self, benchmarks: Union[Dict[str, dict], List[dict]], verbose: bool = True):
         """
         Manually sets all benchmarks, that is, parameter points that will be evaluated by MadGraph. Calling this
         function overwrites all previously defined benchmarks.
 
         Parameters
         ----------
-        benchmarks : dict or list or None, optional
+        benchmarks : dict or list
             Specifies all benchmarks. If None, all benchmarks are reset. If dict, the keys are the benchmark names and
-            the values are dicts of the form {parameter_name:value}. If list, the entries are dicts
-            {parameter_name:value} (and the benchmark names are chosen automatically). Default value: None.
+            the values the Benchmark instances. If list, the entries are dicts {parameter_name:value}
+            (and the benchmark names are chosen automatically). Default value: None.
 
         verbose : bool, optional
             If True, prints output about each benchmark. Default value: True.
@@ -263,11 +254,7 @@ class MadMiner:
         Returns
         -------
             None
-
         """
-
-        if benchmarks is None:
-            benchmarks = OrderedDict()
 
         self.benchmarks = OrderedDict()
         self.default_benchmark = None
@@ -275,9 +262,11 @@ class MadMiner:
         if isinstance(benchmarks, dict):
             for name, values in benchmarks.items():
                 self.add_benchmark(values, name, verbose=verbose)
-        else:
+        elif isinstance(benchmarks, list):
             for values in benchmarks:
                 self.add_benchmark(values)
+        else:
+            raise RuntimeError(f"Invalid set of benchmarks: {benchmarks}")
 
         # After manually adding benchmarks, the morphing information is not accurate anymore
         if self.morpher is not None:
@@ -349,7 +338,7 @@ class MadMiner:
             n_predefined_benchmarks = len(self.benchmarks)
             basis = morpher.optimize_basis(
                 n_bases=n_bases,
-                fixed_benchmarks_from_madminer=self.benchmarks,
+                benchmarks_from_madminer=self.benchmarks,
                 n_trials=n_trials,
                 n_test_thetas=n_test_thetas,
             )
@@ -357,7 +346,7 @@ class MadMiner:
             n_predefined_benchmarks = 0
             basis = morpher.optimize_basis(
                 n_bases=n_bases,
-                fixed_benchmarks_from_madminer=None,
+                benchmarks_from_madminer=None,
                 n_trials=n_trials,
                 n_test_thetas=n_test_thetas,
             )
@@ -389,21 +378,18 @@ class MadMiner:
         self.finite_difference_epsilon = epsilon
 
         # Copy is necessary to avoid endless loop :/
-        for benchmark_key, benchmark_spec in self.benchmarks.copy().items():
+        for b_name, benchmark in self.benchmarks.copy().items():
             fd_keys = {}
 
-            for param_key, param_value in benchmark_spec.items():
-                fd_key = benchmark_key + "_plus_" + param_key
-                fd_spec = benchmark_spec.copy()
-                fd_spec[param_key] += epsilon
+            for param_name, param_value in benchmark.values.items():
+                fd_key = f"{b_name}_plus_{param_name}"
+                fd_obj = benchmark.copy()
+                fd_obj.values[param_name] += epsilon
 
-                self.add_benchmark(fd_spec, fd_key)
-                fd_keys[param_key] = fd_key
+                self.add_benchmark(fd_obj, fd_key)
+                fd_keys[param_name] = fd_key
 
-            self.finite_difference_benchmarks[benchmark_key] = fd_keys
-
-    def reset_systematics(self):
-        self.systematics = OrderedDict()
+            self.finite_difference_benchmarks[b_name].shift_names = fd_keys
 
     def add_systematics(
         self,
@@ -428,8 +414,7 @@ class MadMiner:
 
         scale : {"mu", "mur", "muf"}, optional
             If type is "scale", this sets whether only the regularization scale ("mur"), only the factorization scale
-            ("muf"), or both simultaneously ("mu") are varied. Default value:
-            "mu".
+            ("muf"), or both simultaneously ("mu") are varied. Default value: "mu".
 
         norm_variation : float, optional
             If type is "norm", this sets the relative effect of the nuisance parameter on the cross section at the
@@ -438,19 +423,20 @@ class MadMiner:
 
         scale_variations : tuple of float, optional
             If type is "scale", this sets how the regularization and / or factorization scales are varied. A tuple
-            like (0.5,1.,2.) specifies the factors with which they are varied. Default value: (0.5,1.,2.0).
+            like (0.5, 1.0, 2.0) specifies the factors with which they are varied. Default value: (0.5, 1.0, 2.0).
 
         pdf_variation : str, optional
             If type is "pdf", defines the PDF set for the variation. The option is passed along to the `--pdf` option
             of MadGraph's systematics module. See https://cp3.irmp.ucl.ac.be/projects/madgraph/wiki/Systematics for a
-            list. The option "CT10" would, as an example, run over all the eigenvectors of the CTEQ10 set. Default
-            value: "CT10".
+            list. The option "CT10" would, as an example, run over all the eigenvectors of the CTEQ10 set.
+            Default value: "CT10".
 
         Returns
         -------
             None
-
         """
+
+        assert scale in ["mu", "mur", "muf"]
 
         # Default name
         if systematic_name is None:
@@ -458,24 +444,38 @@ class MadMiner:
             while f"{effect}_{i}" in list(self.systematics.keys()):
                 i += 1
             systematic_name = f"{type}_{i}"
+
         systematic_name = systematic_name.replace(" ", "_")
         systematic_name = systematic_name.replace("-", "_")
 
-        if effect == "pdf":
-            self.systematics[systematic_name] = ("pdf", pdf_variation)
-        elif effect == "scale":
-            scale_variation_string = ",".join([str(factor) for factor in scale_variations])
-            assert scale in ["mu", "mur", "muf"]
-            self.systematics[systematic_name] = ("scale", scale, scale_variation_string)
-        elif effect == "norm":
-            self.systematics[systematic_name] = ("norm", norm_variation)
-        else:
-            raise ValueError(f"Unknown systematic type: {effect}")
+        scale = SystematicScale.from_str(scale)
+        effect = SystematicType.from_str(effect)
+
+        if effect is SystematicType.PDF:
+            self.systematics[systematic_name] = Systematic(
+                systematic_name,
+                SystematicType.PDF,
+                pdf_variation,
+            )
+        elif effect is SystematicType.SCALE:
+            scale_variation_string = ",".join((str(factor) for factor in scale_variations))
+            self.systematics[systematic_name] = Systematic(
+                systematic_name,
+                SystematicType.SCALE,
+                scale_variation_string,
+                scale,
+            )
+        elif effect is SystematicType.NORM:
+            self.systematics[systematic_name] = Systematic(
+                systematic_name,
+                SystematicType.NORM,
+                norm_variation,
+            )
 
     def load(self, filename, disable_morphing=False):
         """
-        Loads MadMiner setup from a file. All parameters, benchmarks, and morphing settings are overwritten. See `save`
-        for more details.
+        Loads MadMiner setup from a file. All parameters, benchmarks, and morphing settings are overwritten.
+        See `save` for more details.
 
         Parameters
         ----------
@@ -488,7 +488,6 @@ class MadMiner:
         Returns
         -------
             None
-
         """
 
         # Load data
@@ -510,22 +509,15 @@ class MadMiner:
         ) = load_madminer_settings(filename, include_nuisance_benchmarks=False)
 
         logger.info("Found %s parameters:", len(self.parameters))
-        for key, values in self.parameters.items():
-            logger.info(
-                "   %s (LHA: %s %s, maximal power in squared ME: %s, range: %s)",
-                key,
-                values[0],
-                values[1],
-                values[2],
-                values[3],
-            )
+        for param in self.parameters.values():
+            logger.info("   %s", param)
 
         logger.info("Found %s benchmarks:", len(self.benchmarks))
-        for key, values in self.benchmarks.items():
-            logger.info("   %s: %s", key, format_benchmark(values))
+        for benchmark in self.benchmarks.values():
+            logger.info("   %s", benchmark)
 
             if self.default_benchmark is None:
-                self.default_benchmark = key
+                self.default_benchmark = benchmark.name
 
         # Morphing
         self.morpher = None
@@ -538,7 +530,6 @@ class MadMiner:
             self.export_morphing = True
 
             logger.info("Found morphing setup with %s components", len(morphing_components))
-
         else:
             logger.info("Did not find morphing setup.")
 
@@ -546,10 +537,9 @@ class MadMiner:
         if len(self.systematics) == 0:
             logger.info("Did not find systematics setup.")
         else:
-            logger.info("Found systematics setup with %s nuisance parameter groups", len(self.systematics))
-
-            for key, value in self.systematics.items():
-                logger.debug("  %s: %s", key, " / ".join(str(x) for x in value))
+            logger.info("Found systematics setup with %s groups", len(self.systematics))
+            for name, systematic in self.systematics.items():
+                logger.debug("  %s: %s", name, systematic)
 
     def save(self, filename):
         """
@@ -932,7 +922,7 @@ class MadMiner:
             log_directory = "./logs"
 
         if sample_benchmarks is None:
-            sample_benchmarks = [benchmark for benchmark in self.benchmarks]
+            sample_benchmarks = [benchmark for benchmark in self.benchmarks.keys()]
 
         # This snippet is useful when using virtual envs.
         # (Derives from a Python2 - Python3 issue).
@@ -1012,7 +1002,10 @@ class MadMiner:
                 logger.info("  Log file:                %s", log_file_run)
 
                 # Check input
-                if run_card_file is None and self._check_pdf_or_scale_variation(systematics_used):
+                if run_card_file is None and any(
+                    syst.type in {SystematicType.PDF, SystematicType.SCALE}
+                    for syst in systematics_used.values()
+                ):
                     logger.warning(
                         "Warning: No run card given, but PDF or scale variation set up. The correct systematics"
                         " settings are not set automatically. Make sure to set them correctly!"
@@ -1186,8 +1179,8 @@ class MadMiner:
 
         # Missing benchmarks
         missing_benchmarks = OrderedDict()
-        for benchmark in reweight_benchmarks:
-            missing_benchmarks[benchmark] = self.benchmarks[benchmark]
+        for benchmark_name in reweight_benchmarks:
+            missing_benchmarks[benchmark_name] = self.benchmarks[benchmark_name]
 
         # Inform user
         logger.info("Reweighting setup")
@@ -1234,9 +1227,3 @@ class MadMiner:
                 mg_process_directory,
                 run_name,
             )
-
-    def _check_pdf_or_scale_variation(self, systematics):
-        for value in systematics.values():
-            if value[0] in ["pdf", "scale"]:
-                return True
-        return False

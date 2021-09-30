@@ -2,6 +2,10 @@ import logging
 import numpy as np
 from collections import OrderedDict
 
+from madminer.models import Cut
+from madminer.models import Efficiency
+from madminer.models import Observable
+from madminer.models import NuisanceParameter
 from madminer.utils.interfaces.hdf5 import load_madminer_settings
 from madminer.utils.interfaces.hdf5 import save_events
 from madminer.utils.interfaces.hdf5 import save_nuisance_setup
@@ -59,16 +63,12 @@ class LHEReader:
 
         # Initialize observables
         self.observables = OrderedDict()
-        self.observables_required = OrderedDict()
-        self.observables_defaults = OrderedDict()
 
         # Initialize cuts
         self.cuts = []
-        self.cuts_default_pass = []
 
         # Initialize efficiencies
         self.efficiencies = []
-        self.efficiencies_default_pass = []
 
         # Smearing function parameters
         self.energy_resolution = {}
@@ -328,7 +328,6 @@ class LHEReader:
         Returns
         -------
             None
-
         """
 
         if required:
@@ -336,9 +335,12 @@ class LHEReader:
         else:
             logger.debug("Adding optional observable %s = %s with default %s", name, definition, default)
 
-        self.observables[name] = definition
-        self.observables_required[name] = required
-        self.observables_defaults[name] = default
+        self.observables[name] = Observable(
+            name=name,
+            val_expression=definition,
+            val_default=default,
+            is_required=required,
+        )
 
     def add_observable_from_function(self, name, fn, required=False, default=None):
         """
@@ -378,9 +380,12 @@ class LHEReader:
                 "Adding optional observable %s defined through external function with default %s", name, default
             )
 
-        self.observables[name] = fn
-        self.observables_required[name] = required
-        self.observables_defaults[name] = default
+        self.observables[name] = Observable(
+            name=name,
+            val_expression=fn,
+            val_default=default,
+            is_required=required,
+        )
 
     def add_default_observables(
         self,
@@ -464,8 +469,7 @@ class LHEReader:
                         default=0.0,
                     )
 
-    def add_cut(self, definition, pass_if_not_parsed=False):
-
+    def add_cut(self, definition, required=False):
         """
         Adds a cut as a string that can be parsed by Python's `eval()` function and returns a bool.
 
@@ -482,21 +486,23 @@ class LHEReader:
             PDG particle ID. For instance, `"len(e) >= 2"` requires at least two electrons passing the cuts,
             while `"mu[0].charge > 0."` specifies that the hardest muon is positively charged.
 
-        pass_if_not_parsed : bool, optional
+        required : bool, optional
             Whether the cut is passed if the observable cannot be parsed. Default value: False.
 
         Returns
         -------
             None
-
         """
+
         logger.debug("Adding cut %s", definition)
 
-        self.cuts.append(definition)
-        self.cuts_default_pass.append(pass_if_not_parsed)
+        self.cuts.append(Cut(
+            name="CUT",
+            val_expression=definition,
+            is_required=required,
+        ))
 
-    def add_efficiency(self, definition, value_if_not_parsed=1.0):
-
+    def add_efficiency(self, definition, default=1.0):
         """
         Adds an efficiency as a string that can be parsed by Python's `eval()` function and returns a bool.
 
@@ -511,43 +517,39 @@ class LHEReader:
             `MadMinerParticle` have  properties `charge` and `pdg_id`, which return the charge in units of elementary charges
             (i.e. an electron has `e[0].charge = -1.`), and the PDG particle ID.
 
-        value_if_not_parsed : float, optional
+        default : float, optional
             Value if te efficiency function cannot be parsed. Default value: 1.
 
         Returns
         -------
-        None
-
+            None
         """
+
         logger.debug("Adding efficiency %s", definition)
 
-        self.efficiencies.append(definition)
-        self.efficiencies_default_pass.append(value_if_not_parsed)
+        self.efficiencies.append(Efficiency(
+            name="EFFICIENCY",
+            val_expression=definition,
+            val_default=default,
+        ))
 
     def reset_observables(self):
         """ Resets all observables. """
 
         logger.debug("Resetting observables")
-
         self.observables = OrderedDict()
-        self.observables_required = OrderedDict()
-        self.observables_defaults = OrderedDict()
 
     def reset_cuts(self):
         """ Resets all cuts. """
 
         logger.debug("Resetting cuts")
-
         self.cuts = []
-        self.cuts_default_pass = []
 
     def reset_efficiencies(self):
         """ Resets all efficiencies. """
 
         logger.debug("Resetting efficiencies")
-
         self.efficiencies = []
-        self.efficiencies_default_pass = []
 
     def analyse_samples(self, reference_benchmark=None, parse_events_as_xml=True):
         """
@@ -701,18 +703,28 @@ class LHEReader:
 
         # Store nuisance parameters
         for systematics_name, nuisance_info in systematics_dict.items():
-            for nuisance_parameter_name, ((benchmark0, weight0), (benchmark1, weight1), _) in nuisance_info.items():
+            for nuisance_param_name, ((benchmark0, weight0), (benchmark1, weight1), _) in nuisance_info.items():
+                nuisance_param = self.nuisance_parameters.get(nuisance_param_name)
+
+                if nuisance_param is None:
+                    raise RuntimeError(f"Nuisance parameter {nuisance_param_name} does not exist")
                 if (
-                    self.nuisance_parameters is not None
-                    and nuisance_parameter_name in self.nuisance_parameters
-                    and (systematics_name, benchmark0, benchmark1) != self.nuisance_parameters[nuisance_parameter_name]
+                    nuisance_param.systematic != systematics_name
+                    or nuisance_param.benchmark_pos != benchmark0
+                    or nuisance_param.benchmark_neg != benchmark1
                 ):
                     raise RuntimeError(
-                        f"Inconsistent information for same nuisance parameter {nuisance_parameter_name}. "
-                        f"Old: {self.nuisance_parameters[nuisance_parameter_name]}. "
+                        f"Inconsistent information for same nuisance parameter {nuisance_param_name}. "
+                        f"Old: {nuisance_param}. "
                         f"New: {(systematics_name, benchmark0, benchmark1)}."
                     )
-                self.nuisance_parameters[nuisance_parameter_name] = (systematics_name, benchmark0, benchmark1)
+
+                self.nuisance_parameters[nuisance_param_name] = NuisanceParameter(
+                    name=nuisance_param_name,
+                    systematic=systematics_name,
+                    benchmark_pos=benchmark0,
+                    benchmark_neg=benchmark1,
+                )
 
         # Calculate observables and weights in LHE file
         this_observations, this_weights = parse_lhe_file(
@@ -721,12 +733,8 @@ class LHEReader:
             benchmark_names=self.benchmark_names_phys,
             is_background=is_background,
             observables=self.observables,
-            observables_required=self.observables_required,
-            observables_defaults=self.observables_defaults,
             cuts=self.cuts,
-            cuts_default_pass=self.cuts_default_pass,
             efficiencies=self.efficiencies,
-            efficiencies_default_pass=self.efficiencies_default_pass,
             energy_resolutions=self.energy_resolution,
             pt_resolutions=self.pt_resolution,
             eta_resolutions=self.eta_resolution,

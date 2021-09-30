@@ -12,9 +12,15 @@ from typing import List
 from typing import Tuple
 from typing import Union
 
-# Type aliases
-ParametersDict = Dict[str, Tuple[str, int, int, tuple, str]]
-SystematicValue = Union[Tuple[str], Tuple[str, str], Tuple[float]]
+from madminer.models import AnalysisParameter
+from madminer.models import NuisanceParameter
+from madminer.models import Benchmark
+from madminer.models import FiniteDiffBenchmark
+from madminer.models import Observable
+from madminer.models import Systematic
+from madminer.models import SystematicScale
+from madminer.models import SystematicType
+from madminer.models import SystematicValue
 
 
 logger = logging.getLogger(__name__)
@@ -87,9 +93,10 @@ def load_madminer_settings(file_name: str, include_nuisance_benchmarks: bool) ->
     ) = _load_samples(file_name)
 
     (
-        systematics_names,
-        systematics_types,
-        systematics_values,
+        syst_names,
+        syst_types,
+        syst_values,
+        syst_scales,
     ) = _load_systematics(file_name)
 
     # Build benchmarks dictionary
@@ -100,26 +107,24 @@ def load_madminer_settings(file_name: str, include_nuisance_benchmarks: bool) ->
         if include_nuisance_benchmarks is False and b_nuisance_flag is True:
             continue
 
-        benchmarks[b_name] = OrderedDict()
-        for p_name, p_value in zip(analysis_params.keys(), b_matrix):
-            benchmarks[b_name][p_name] = p_value
+        benchmarks[b_name] = Benchmark.from_params(b_name, analysis_params.keys(), b_matrix)
 
     # Build observables dictionary
     observables = OrderedDict()
     for o_name, o_def in zip(observable_names, observable_defs):
-        observables[o_name] = o_def
+        observables[o_name] = Observable(o_name, o_def)
 
     # Build systematics dictionary
     systematics = OrderedDict()
-    for s_name, s_type, s_values in zip(systematics_names, systematics_types, systematics_values):
-        systematics[s_name] = (s_type, *s_values)
+    for s_name, s_type, s_value, s_scale in zip(syst_names, syst_types, syst_values, syst_scales):
+        s_type = SystematicType.from_str(s_type)
+        s_scale = SystematicScale.from_str(s_scale)
+        systematics[s_name] = Systematic(s_name, s_type, s_value, s_scale)
 
     # Build finite differences dictionary
     fin_differences = OrderedDict()
     for base_name, matrix in zip(fin_diff_base_benchmark, fin_diff_shift_benchmark):
-        fin_differences[base_name] = OrderedDict()
-        for p_name, shift_name in zip(analysis_params.keys(), matrix):
-            fin_differences[base_name][p_name] = shift_name
+        fin_differences[base_name] = FiniteDiffBenchmark.from_params(base_name, analysis_params.keys(), matrix)
 
     # Compute concrete values
     num_samples = len(sample_observations)
@@ -147,12 +152,12 @@ def load_madminer_settings(file_name: str, include_nuisance_benchmarks: bool) ->
 def save_madminer_settings(
     file_name: str,
     file_override: bool,
-    parameters: Dict[str, Tuple],
-    benchmarks: Dict[str, Dict[str, float]],
+    parameters: Dict[str, AnalysisParameter],
+    benchmarks: Dict[str, Benchmark],
     morphing_components: np.ndarray = None,
     morphing_matrix: np.ndarray = None,
-    systematics: Dict[str, Tuple[str, SystematicValue]] = None,
-    finite_differences: Dict[str, Dict[str, str]] = None,
+    systematics: Dict[str, Systematic] = None,
+    finite_differences: Dict[str, FiniteDiffBenchmark] = None,
     finite_differences_epsilon: float = None,
 ) -> None:
     """
@@ -176,15 +181,16 @@ def save_madminer_settings(
     """
 
     # Unpack provided dictionaries
-    benchmark_names = [name for name in benchmarks.keys()]
-    benchmark_values = [[val for val in params.values()] for params in benchmarks.values()]
+    benchmark_names = [b.name for b in benchmarks.values()]
+    benchmark_values = [[val for val in b.values.values()] for b in benchmarks.values()]
 
-    fin_diffs_base_benchmarks = [name for name in finite_differences.keys()]
-    fin_diffs_shift_benchmarks = [[name for name in params.values()] for params in finite_differences.values()]
+    fin_diffs_base_benchmarks = [b.base_name for b in finite_differences.values()]
+    fin_diffs_shift_benchmarks = [[shift_name for shift_name in b.shift_names.values()] for b in finite_differences.values()]
 
-    systematics_names = [name for name in systematics.keys()]
-    systematics_types = [tup[0] for tup in systematics.values()]
-    systematics_values = [tup[1:] for tup in systematics.values()]
+    systematics_names = [s.name for s in systematics.values()]
+    systematics_types = [s.type.value for s in systematics.values()]
+    systematics_scales = [s.scale.value for s in systematics.values()]
+    systematics_values = [s.value for s in systematics.values()]
 
     # Save information within the HDF5 file
     _save_analysis_parameters(file_name, file_override, parameters)
@@ -203,6 +209,7 @@ def save_madminer_settings(
         systematics_names,
         systematics_types,
         systematics_values,
+        systematics_scales,
     )
 
 
@@ -210,7 +217,7 @@ def save_nuisance_setup(
     file_name: str,
     file_override: bool,
     nuisance_benchmarks: List[str],
-    nuisance_parameters: Dict[str, Tuple],
+    nuisance_parameters: Dict[str, NuisanceParameter],
     reference_benchmark: str,
     copy_from_path: str = None,
 ) -> None:
@@ -373,7 +380,7 @@ def load_events(
 def save_events(
     file_name: str,
     file_override: bool,
-    observables: dict,
+    observables: Dict[str, Observable],
     observations: dict,
     weights: dict,
     sampling_benchmarks: List[int] = None,
@@ -400,8 +407,8 @@ def save_events(
     """
 
     # Unpack provided dictionaries
-    observable_names = [tup[0] for tup in observables.items()]
-    observable_defs = [tup[1] for tup in observables.items()]
+    observable_names = [o.name for o in observables.values()]
+    observable_defs = [o.val_expression for o in observables.values()]
     observations = [val for val in observations.values()]
 
     _save_observables(file_name, file_override, observable_names, observable_defs)
@@ -738,7 +745,7 @@ def _save_morphing(
         file.create_dataset("morphing/morphing_matrix", data=morphing_matrix.astype(np.float))
 
 
-def _load_nuisance_params(file_name: str) -> Dict[str, Tuple[str, str, str]]:
+def _load_nuisance_params(file_name: str) -> Dict[str, NuisanceParameter]:
     """
     Load nuisance parameter properties from a HDF5 data file
 
@@ -779,7 +786,7 @@ def _load_nuisance_params(file_name: str) -> Dict[str, Tuple[str, str, str]]:
         param_benchmarks_pos,
         param_benchmarks_neg,
     ):
-        parameters[name] = (sys, benchmark_pos, benchmark_neg)
+        parameters[name] = NuisanceParameter(name, sys, benchmark_pos, benchmark_neg)
 
     # TODO: The dictionary has been preserved. Harmony with other loaders?
 
@@ -789,7 +796,7 @@ def _load_nuisance_params(file_name: str) -> Dict[str, Tuple[str, str, str]]:
 def _save_nuisance_params(
     file_name: str,
     file_override: bool,
-    parameters: Dict[str, Tuple[str, str, str]],
+    parameters: Dict[str, NuisanceParameter],
 ) -> None:
     """
     Save nuisance parameter properties into a HDF5 data file
@@ -808,11 +815,13 @@ def _save_nuisance_params(
         None
     """
 
-    param_names = _encode_strings([name for name in parameters.keys()])
-    param_systematics = _encode_strings([v[0] for v in parameters.values()])
+    param_names = [p.name for p in parameters.values()]
+    param_systematics = [p.systematic for p in parameters.values()]
+    param_benchmarks_pos = [p.benchmark_pos if p.benchmark_pos else "" for p in parameters.values()]
+    param_benchmarks_neg = [p.benchmark_neg if p.benchmark_neg else "" for p in parameters.values()]
 
-    param_benchmarks_pos = [v[1] if v[1] is not None else "" for v in parameters.values()]
-    param_benchmarks_neg = [v[2] if v[2] is not None else "" for v in parameters.values()]
+    param_names = _encode_strings(param_names)
+    param_systematics = _encode_strings(param_systematics)
     param_benchmarks_pos = _encode_strings(param_benchmarks_pos)
     param_benchmarks_neg = _encode_strings(param_benchmarks_neg)
 
@@ -839,7 +848,7 @@ def _save_nuisance_params(
         # TODO: The dictionary has been preserved. Harmony with other loaders?
 
 
-def _load_analysis_params(file_name: str) -> ParametersDict:
+def _load_analysis_params(file_name: str) -> Dict[str, AnalysisParameter]:
     """
     Load analysis parameter properties from a HDF5 data file
 
@@ -880,12 +889,21 @@ def _load_analysis_params(file_name: str) -> ParametersDict:
         param_val_ranges,
         param_transforms,
     ):
-        parameters[name] = (str(block), int(id), int(max_power), tuple(range), str(transform))
+        parameters[name] = AnalysisParameter(
+            str(name),
+            str(block),
+            int(id),
+            int(max_power),
+            tuple(range),
+            str(transform),
+        )
 
     return parameters
 
 
-def _save_analysis_parameters(file_name: str, file_override: bool, parameters: ParametersDict) -> None:
+def _save_analysis_parameters(
+    file_name: str, file_override: bool, parameters: Dict[str, AnalysisParameter]
+) -> None:
     """
     Save analysis parameter properties into a HDF5 data file
 
@@ -903,12 +921,16 @@ def _save_analysis_parameters(file_name: str, file_override: bool, parameters: P
         None
     """
 
-    param_names = _encode_strings([name for name in parameters.keys()])
-    param_lha_blocks = _encode_strings([v[0] for v in parameters.values()])
-    param_lha_ids = [v[1] for v in parameters.values()]
-    param_max_power = [v[2] for v in parameters.values()]
-    param_val_ranges = [v[3] for v in parameters.values()]
-    param_transforms = _encode_strings([v[4] for v in parameters.values()])
+    param_names = [p.name for p in parameters.values()]
+    param_lha_blocks = [p.lha_block for p in parameters.values()]
+    param_lha_ids = [p.lha_id for p in parameters.values()]
+    param_max_power = [p.max_power for p in parameters.values()]
+    param_val_ranges = [p.val_range for p in parameters.values()]
+    param_transforms = [p.transform for p in parameters.values()]
+
+    param_names = _encode_strings(param_names)
+    param_lha_blocks = _encode_strings(param_lha_blocks)
+    param_transforms = _encode_strings(param_transforms)
 
     # Append if file exists, otherwise create
     with h5py.File(file_name, "a") as file:
@@ -1155,7 +1177,7 @@ def _save_samples_summary(
         file.create_dataset("sample_summary/background_events", data=num_background_events)
 
 
-def _load_systematics(file_name: str) -> Tuple[List[str], List[str], List[SystematicValue]]:
+def _load_systematics(file_name: str) -> Tuple[List[str], List[str], List[SystematicValue], List[str]]:
     """
     Load systematics properties into a HDF5 data file.
 
@@ -1171,30 +1193,35 @@ def _load_systematics(file_name: str) -> Tuple[List[str], List[str], List[System
     systematics_types: list
         List of systematics types
     systematics_values: list
-        List of systematics values (tuples of variable length)
+        List of systematics values (str or float)
+    systematics_scales: list
+        List of systematics scales
     """
 
     systematics_names = []
     systematics_types = []
     systematics_values = []
+    systematics_scales = []
 
     with h5py.File(file_name, "r") as file:
         try:
             systematics_names = file["systematics/names"][()]
             systematics_types = file["systematics/types"][()]
             systematics_values = file["systematics/values"][()]
+            systematics_scales = file["systematics/scales"][()]
         except KeyError:
             logger.error("HDF5 file does not contain systematic information")
         else:
             systematics_names = _decode_strings(systematics_names)
             systematics_types = _decode_strings(systematics_types)
-            systematics_values = _decode_strings(systematics_values)
-            systematics_values = [eval(str_tuple) for str_tuple in systematics_values]
+            systematics_scales = _decode_strings(systematics_scales)
+            systematics_scales = [None if scale == "" else scale for scale in systematics_scales]
 
     return (
         systematics_names,
         systematics_types,
         systematics_values,
+        systematics_scales,
     )
 
 
@@ -1204,6 +1231,7 @@ def _save_systematics(
     systematics_names: List[str],
     systematics_types: List[str],
     systematics_values: List[SystematicValue],
+    systematics_scales: List[str],
 ) -> None:
     """
     Save systematics properties into a HDF5 data file.
@@ -1219,16 +1247,20 @@ def _save_systematics(
     systematics_types: list
         List of systematics types
     systematics_values: list
-        List of systematics values (tuples of variable length)
+        List of systematics values (str or float)
+    systematics_scales: list
+        List of systematics scales
 
     Returns
     -------
         None
     """
 
+    systematics_scales = [scale if scale else "" for scale in systematics_scales]
+
     systematics_names = _encode_strings(systematics_names)
     systematics_types = _encode_strings(systematics_types)
-    systematics_values = _encode_strings([str(tup) for tup in systematics_values])
+    systematics_scales = _encode_strings(systematics_scales)
 
     # Append if file exists, otherwise create
     with h5py.File(file_name, "a") as file:
@@ -1240,6 +1272,7 @@ def _save_systematics(
         file.create_dataset("systematics/names", data=systematics_names, dtype="S256")
         file.create_dataset("systematics/types", data=systematics_types, dtype="S256")
         file.create_dataset("systematics/values", data=systematics_values, dtype="S256")
+        file.create_dataset("systematics/scales", data=systematics_scales, dtype="S256")
 
 
 def _encode_strings(strings: List[str]) -> List[bytes]:

@@ -1,8 +1,11 @@
 import logging
 import numpy as np
 import os
+
 from collections import OrderedDict
-from particle import Particle
+from typing import Callable
+from typing import Dict
+from typing import List
 
 try:
     import xml.etree.cElementTree as ET
@@ -11,6 +14,13 @@ except ImportError:
     import xml.etree.ElementTree as ET
     use_celementtree = False
 
+from particle import Particle
+from madminer.models import Cut
+from madminer.models import Efficiency
+from madminer.models import Observable
+from madminer.models import Systematic
+from madminer.models import SystematicScale
+from madminer.models import SystematicType
 from madminer.utils.particle import MadMinerParticle
 from madminer.utils.various import unzip_file, approx_equal, math_commands
 
@@ -20,13 +30,9 @@ logger = logging.getLogger(__name__)
 def parse_lhe_file(
     filename,
     sampling_benchmark,
-    observables,
-    observables_required=None,
-    observables_defaults=None,
-    cuts=None,
-    cuts_default_pass=None,
-    efficiencies=None,
-    efficiencies_default_pass=None,
+    observables: Dict[str, Observable],
+    cuts: List[Cut] = None,
+    efficiencies: List[Efficiency] = None,
     benchmark_names=None,
     is_background=False,
     energy_resolutions=None,
@@ -49,22 +55,14 @@ def parse_lhe_file(
         )
 
     # Inputs
-    if k_factor is None:
-        k_factor = 1.0
-    if observables_required is None:
-        observables_required = {key: False for key in observables.keys()}
-    if observables_defaults is None:
-        observables_defaults = {key: None for key in observables.keys()}
-    if is_background and benchmark_names is None:
-        raise RuntimeError("Parsing background LHE files required benchmark names to be provided.")
     if cuts is None:
         cuts = OrderedDict()
-    if cuts_default_pass is None:
-        cuts_default_pass = {key: False for key in cuts.keys()}
     if efficiencies is None:
         efficiencies = OrderedDict()
-    if efficiencies_default_pass is None:
-        efficiencies_default_pass = {key: 1.0 for key in efficiencies.keys()}
+    if k_factor is None:
+        k_factor = 1.0
+    if is_background and benchmark_names is None:
+        raise RuntimeError("Parsing background LHE files required benchmark names to be provided.")
 
     # Unzip and open LHE file
     run_card = None
@@ -147,17 +145,13 @@ def parse_lhe_file(
             n_events_with_negative_weights, observations, pass_all, weight_names_all_events, weights = _parse_event(
                 avg_efficiencies,
                 cuts,
-                cuts_default_pass,
                 efficiencies,
-                efficiencies_default_pass,
                 energy_resolutions,
                 eta_resolutions,
                 fail_cuts,
                 fail_efficiencies,
                 n_events_with_negative_weights,
                 observables,
-                observables_defaults,
-                observables_required,
                 particles,
                 pass_cuts,
                 pass_efficiencies,
@@ -187,17 +181,13 @@ def parse_lhe_file(
             n_events_with_negative_weights, observations, pass_all, weight_names_all_events, weights = _parse_event(
                 avg_efficiencies,
                 cuts,
-                cuts_default_pass,
                 efficiencies,
-                efficiencies_default_pass,
                 energy_resolutions,
                 eta_resolutions,
                 fail_cuts,
                 fail_efficiencies,
                 n_events_with_negative_weights,
                 observables,
-                observables_defaults,
-                observables_required,
                 particles,
                 pass_cuts,
                 pass_efficiencies,
@@ -315,18 +305,14 @@ def _report_parse_results(
 
 def _parse_event(
     avg_efficiencies,
-    cuts,
-    cuts_default_pass,
-    efficiencies,
-    efficiencies_default_pass,
+    cuts: List[Cut],
+    efficiencies: List[Efficiency],
     energy_resolutions,
     eta_resolutions,
     fail_cuts,
     fail_efficiencies,
     n_events_with_negative_weights,
-    observables,
-    observables_defaults,
-    observables_required,
+    observables: Dict[str, Observable],
     particles,
     pass_cuts,
     pass_efficiencies,
@@ -357,16 +343,13 @@ def _parse_event(
         variables = _get_objects(particles_smeared, particles, met_resolution=None, global_event_data=global_event_data)
 
     # Observables
-    observations, pass_all_observation = _parse_observations(
-        observables, observables_defaults, observables_required, variables
-    )
+    observations, pass_all_observation = _parse_observations(observables, variables)
 
     # Cuts
     pass_all_cuts = True
     if pass_all_observation:
         pass_all_cuts = _parse_cuts(
             cuts,
-            cuts_default_pass,
             fail_cuts,
             observables,
             observations,
@@ -381,7 +364,6 @@ def _parse_event(
         pass_all_efficiencies, total_efficiency = _parse_efficiencies(
             avg_efficiencies,
             efficiencies,
-            efficiencies_default_pass,
             fail_efficiencies,
             pass_efficiencies,
             variables,
@@ -418,45 +400,39 @@ def _report_negative_weights(n_events_with_negative_weights, weights):
     return n_events_with_negative_weights
 
 
-def _parse_observations(observables, observables_defaults, observables_required, variables):
+def _parse_observations(observables: Dict[str, Observable], variables: Dict[str, list]):
     observations = []
-    pass_all_observation = True
+    passed_all = True
 
-    for obs_name, obs_definition in observables.items():
-        if isinstance(obs_definition, str):
-            try:
-                observations.append(eval(obs_definition, variables))
-            except (SyntaxError, NameError, TypeError, ZeroDivisionError, IndexError):
-                if observables_required[obs_name]:
-                    pass_all_observation = False
+    for name, observable in observables.items():
+        definition = observable.val_expression
+        default = observable.val_default
 
-                default = observables_defaults[obs_name]
-                if default is None:
-                    default = np.nan
-                observations.append(default)
-        else:
-            try:
-                observations.append(
-                    obs_definition(
-                        variables["p_truth"], variables["l"], variables["a"], variables["j"], variables["met"]
-                    )
+        try:
+            if isinstance(definition, str):
+                value = eval(definition, variables)
+            elif isinstance(definition, Callable):
+                value = definition(
+                    variables["p_truth"],
+                    variables["l"],
+                    variables["a"],
+                    variables["j"],
+                    variables["met"],
                 )
-            except RuntimeError:
-                if observables_required[obs_name]:
-                    pass_all_observation = False
+            else:
+                raise TypeError("Not a valid observable")
+        except (IndexError, NameError, RuntimeError, SyntaxError, TypeError, ZeroDivisionError):
+            passed_all = False
+            value = default if default is not None else np.nan
+        finally:
+            observations.append(value)
 
-                default = observables_defaults[obs_name]
-                if default is None:
-                    default = np.nan
-                observations.append(default)
-
-    return observations, pass_all_observation
+    return observations, passed_all
 
 
 def _parse_efficiencies(
     avg_efficiencies,
     efficiencies,
-    efficiencies_default_pass,
     fail_efficiencies,
     pass_efficiencies,
     variables,
@@ -465,9 +441,12 @@ def _parse_efficiencies(
     total_efficiency = 1.0
     pass_all_efficiencies = True
 
-    for i_efficiency, (efficiency, default_pass) in enumerate(zip(efficiencies, efficiencies_default_pass)):
+    for i_efficiency, efficiency in enumerate(efficiencies):
+        definition = efficiency.val_expression
+        default = efficiency.val_default
+
         try:
-            efficiency_result = eval(efficiency, variables)
+            efficiency_result = eval(definition, variables)
             if efficiency_result > 0.0:
                 pass_efficiencies[i_efficiency] += 1
                 total_efficiency *= efficiency_result
@@ -477,10 +456,10 @@ def _parse_efficiencies(
                 pass_all_efficiencies = False
 
         except (SyntaxError, NameError, TypeError, ZeroDivisionError, IndexError):
-            if default_pass > 0.0:
+            if default > 0.0:
                 pass_efficiencies[i_efficiency] += 1
-                total_efficiency *= default_pass
-                avg_efficiencies[i_efficiency] += default_pass
+                total_efficiency *= default
+                avg_efficiencies[i_efficiency] += default
             else:
                 fail_efficiencies[i_efficiency] += 1
                 pass_all_efficiencies = False
@@ -488,13 +467,13 @@ def _parse_efficiencies(
     return pass_all_efficiencies, total_efficiency
 
 
-def _parse_cuts(cuts, cuts_default_pass, fail_cuts, observables, observations, pass_all_cuts, pass_cuts, variables):
+def _parse_cuts(cuts, fail_cuts, observables, observations, pass_all_cuts, pass_cuts, variables):
     # Objects for cuts
     for obs_name, obs_value in zip(observables.keys(), observations):
         variables[obs_name] = obs_value
 
     # Check cuts
-    for i_cut, (cut, default_pass) in enumerate(zip(cuts, cuts_default_pass)):
+    for i_cut, cut in enumerate(cuts):
         try:
             cut_result = eval(cut, variables)
             if cut_result:
@@ -504,7 +483,7 @@ def _parse_cuts(cuts, cuts_default_pass, fail_cuts, observables, observations, p
                 pass_all_cuts = False
 
         except (SyntaxError, NameError, TypeError, ZeroDivisionError, IndexError):
-            if default_pass:
+            if cut.is_required:
                 pass_cuts[i_cut] += 1
             else:
                 fail_cuts[i_cut] += 1
@@ -513,9 +492,12 @@ def _parse_cuts(cuts, cuts_default_pass, fail_cuts, observables, observations, p
     return pass_all_cuts
 
 
-def extract_nuisance_parameters_from_lhe_file(filename, systematics):
-    """Extracts the definition of nuisance parameters from the LHE file and returns a systematics_dict with structure
-    {systematics_name : {nuisance_parameter_name : ((benchmark0, weight0), (benchmark1, weight1), processing) }"""
+def extract_nuisance_parameters_from_lhe_file(filename: str, systematics: Dict[str, Systematic]):
+    """
+    Extracts the definition of nuisance parameters from the LHE file
+    and returns a systematics_dict with structure:
+    {systematics_name: {nuisance_parameter_name: ((benchmark0, weight0), (benchmark1, weight1), processing) }
+    """
 
     logger.debug("Parsing nuisance parameter setup from LHE file at %s", filename)
 
@@ -544,33 +526,32 @@ def extract_nuisance_parameters_from_lhe_file(filename, systematics):
     logger.debug("%s weight groups", len(weight_groups))
 
     # Loop over systematics
-    for syst_name, syst_value in systematics.items():
-        nuisance_param_dict = _extract_nuisance_param_dict(weight_groups, syst_name, syst_value)
+    for syst_name, syst_obj in systematics.items():
+        nuisance_param_dict = _extract_nuisance_param_dict(weight_groups, syst_name, syst_obj)
         systematics_dict[syst_name] = nuisance_param_dict
 
     return systematics_dict
 
 
-def _extract_nuisance_param_dict(weight_groups, systematics_name, systematics_definition):
+def _extract_nuisance_param_dict(weight_groups: list, systematics_name: str, systematic: Systematic):
     logger.debug("Extracting nuisance parameter information for systematic %s", systematics_name)
 
-    syst_type = systematics_definition[0]
-
-    if syst_type == "norm":
+    if systematic.type == SystematicType.NORM:
         nuisance_param_name = f"{systematics_name}_nuisance_param_0"
         benchmark_name = f"{nuisance_param_name}_benchmark_0"
-        nuisance_param_definition = (benchmark_name, None), (None, None), systematics_definition[1]
+        nuisance_param_definition = (benchmark_name, None), (None, None), systematic.value
         return {nuisance_param_name: nuisance_param_definition}
 
-    elif syst_type == "scale":
+    elif systematic.type == SystematicType.SCALE:
         # Prepare output
         nuisance_param_definition_parts = []
 
         # Parse scale variations we need to find
-        scale_factors = systematics_definition[2].split(",")
+        scale_factors = systematic.value.split(",")
         scale_factors = [float(sf) for sf in scale_factors]
+
         if len(scale_factors) == 0:
-            raise RuntimeError("Cannot parse scale factor string %s", systematics_definition[2])
+            raise RuntimeError("Cannot parse scale factor string %s", systematic.value)
         elif len(scale_factors) == 1:
             scale_factors = (scale_factors[0],)
         else:
@@ -578,8 +559,8 @@ def _extract_nuisance_param_dict(weight_groups, systematics_name, systematics_de
 
         # Loop over scale factors
         for k, scale_factor in enumerate(scale_factors):
-            muf = scale_factor if systematics_definition[1] in ["mu", "muf"] else 1.0
-            mur = scale_factor if systematics_definition[1] in ["mu", "mur"] else 1.0
+            muf = scale_factor if systematic.scale in {SystematicScale.MU, SystematicScale.MUF} else 1.0
+            mur = scale_factor if systematic.scale in {SystematicScale.MU, SystematicScale.MUR} else 1.0
 
             # Loop over weight groups and weights and identify benchmarks
             for wg in weight_groups:
@@ -648,8 +629,9 @@ def _extract_nuisance_param_dict(weight_groups, systematics_name, systematics_de
                 nuisance_dict = {nuisance_param_name: (nuisance_param_definition_parts[0], (None, None), None)}
             return nuisance_dict
 
-    elif syst_type == "pdf":
+    elif systematic.type == SystematicType.PDF:
         nuisance_dict = OrderedDict()
+
         # Loop over weight groups and weights and identify benchmarks
         for wg in weight_groups:
             try:
@@ -659,8 +641,11 @@ def _extract_nuisance_param_dict(weight_groups, systematics_name, systematics_de
                 continue
             logger.debug("New weight group: %s", wg_name)
 
-            if "mg_reweighting" in wg_name.lower() or not (
-                systematics_definition[1] in wg_name.lower() or "pdf" in wg_name.lower() or "ct" in wg_name.lower()
+            if (
+                "mg_reweighting" in wg_name.lower()
+                or "pdf" not in wg_name.lower()
+                or "ct" not in wg_name.lower()
+                or systematic.value not in wg_name.lower()
             ):
                 continue
 
@@ -700,7 +685,7 @@ def _extract_nuisance_param_dict(weight_groups, systematics_name, systematics_de
         return nuisance_dict
 
     else:
-        raise RuntimeError("Unknown systematics type %s", syst_type)
+        raise RuntimeError("Unknown systematics type %s", systematic.type)
 
 
 def _parse_xml_event(event, sampling_benchmark):

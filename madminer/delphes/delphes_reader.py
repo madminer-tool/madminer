@@ -3,6 +3,9 @@ import numpy as np
 import os
 from collections import OrderedDict
 
+from madminer.models import Cut
+from madminer.models import Observable
+from madminer.models import NuisanceParameter
 from madminer.utils.interfaces.delphes import run_delphes
 from madminer.utils.interfaces.delphes_root import parse_delphes_root_file
 from madminer.utils.interfaces.hdf5 import load_madminer_settings
@@ -60,12 +63,9 @@ class DelphesReader:
 
         # Initialize observables
         self.observables = OrderedDict()
-        self.observables_required = OrderedDict()
-        self.observables_defaults = OrderedDict()
 
         # Initialize cuts
         self.cuts = []
-        self.cuts_default_pass = []
 
         # Initialize acceptance cuts
         self.acceptance_pt_min_e = None
@@ -112,28 +112,6 @@ class DelphesReader:
 
         # Initialize nuisance parameters
         self.nuisance_parameters = OrderedDict()
-
-    @staticmethod
-    def _check_python_syntax(expression):
-        """
-        Evaluates a Python expression to check for syntax errors
-
-        Parameters
-        ----------
-        expression : str
-            Python expression to be evaluated. The evaluation raises either SyntaxError or NameError
-
-        Returns
-        -------
-            None
-        """
-
-        try:
-            eval(expression)
-        except SyntaxError:
-            raise ValueError("The provided Python expression is invalid")
-        except NameError:
-            pass
 
     @staticmethod
     def _check_sample_elements(this_elements, n_events=None):
@@ -391,19 +369,19 @@ class DelphesReader:
         Returns
         -------
             None
-
         """
-
-        self._check_python_syntax(definition)
 
         if required:
             logger.debug("Adding required observable %s = %s", name, definition)
         else:
             logger.debug("Adding optional observable %s = %s with default %s", name, definition, default)
 
-        self.observables[name] = definition
-        self.observables_required[name] = required
-        self.observables_defaults[name] = default
+        self.observables[name] = Observable(
+            name=name,
+            val_expression=definition,
+            val_default=default,
+            is_required=required,
+        )
 
     def add_observable_from_function(self, name, fn, required=False, default=None):
         """
@@ -432,7 +410,6 @@ class DelphesReader:
         Returns
         -------
             None
-
         """
 
         if required:
@@ -442,9 +419,12 @@ class DelphesReader:
                 "Adding optional observable %s defined through external function with default %s", name, default
             )
 
-        self.observables[name] = fn
-        self.observables_required[name] = required
-        self.observables_defaults[name] = default
+        self.observables[name] = Observable(
+            name=name,
+            val_expression=fn,
+            val_default=default,
+            is_required=required,
+        )
 
     def add_default_observables(
         self,
@@ -486,8 +466,8 @@ class DelphesReader:
         Returns
         -------
             None
-
         """
+
         logger.debug("Adding default observables")
 
         # ETMiss
@@ -528,8 +508,7 @@ class DelphesReader:
                         default=0.0,
                     )
 
-    def add_cut(self, definition, pass_if_not_parsed=False):
-
+    def add_cut(self, definition, required=False):
         """
         Adds a cut as a string that can be parsed by Python's `eval()` function and returns a bool.
 
@@ -546,38 +525,33 @@ class DelphesReader:
             PDG particle ID. For instance, `"len(e) >= 2"` requires at least two electrons passing the acceptance cuts,
             while `"mu[0].charge > 0."` specifies that the hardest muon is positively charged.
 
-        pass_if_not_parsed : bool, optional
+        required : bool, optional
             Whether the cut is passed if the observable cannot be parsed. Default value: False.
 
         Returns
         -------
             None
-
         """
-
-        self._check_python_syntax(definition)
 
         logger.debug("Adding cut %s", definition)
 
-        self.cuts.append(definition)
-        self.cuts_default_pass.append(pass_if_not_parsed)
+        self.cuts.append(Cut(
+            name="CUT",
+            val_expression=definition,
+            is_required=required,
+        ))
 
     def reset_observables(self):
         """ Resets all observables. """
 
         logger.debug("Resetting observables")
-
         self.observables = OrderedDict()
-        self.observables_required = OrderedDict()
-        self.observables_defaults = OrderedDict()
 
     def reset_cuts(self):
         """ Resets all cuts. """
 
         logger.debug("Resetting cuts")
-
         self.cuts = []
-        self.cuts_default_pass = []
 
     def analyse_delphes_samples(
         self,
@@ -774,27 +748,34 @@ class DelphesReader:
 
         # Store nuisance parameters
         for systematics_name, nuisance_info in systematics_dict.items():
-            for nuisance_parameter_name, ((benchmark0, weight0), (benchmark1, weight1), _) in nuisance_info.items():
+            for nuisance_param_name, ((benchmark0, weight0), (benchmark1, weight1), _) in nuisance_info.items():
+                nuisance_param = self.nuisance_parameters.get(nuisance_param_name)
+
+                if nuisance_param is None:
+                    raise RuntimeError(f"Nuisance parameter {nuisance_param_name} does not exist")
                 if (
-                    self.nuisance_parameters is not None
-                    and nuisance_parameter_name in self.nuisance_parameters
-                    and (systematics_name, benchmark0, benchmark1) != self.nuisance_parameters[nuisance_parameter_name]
+                    nuisance_param.systematic != systematics_name
+                    or nuisance_param.benchmark_pos != benchmark0
+                    or nuisance_param.benchmark_neg != benchmark1
                 ):
                     raise RuntimeError(
-                        f"Inconsistent information for same nuisance parameter {nuisance_parameter_name}. "
-                        f"Old: {self.nuisance_parameters[nuisance_parameter_name]}. "
+                        f"Inconsistent information for same nuisance parameter {nuisance_param_name}. "
+                        f"Old: {nuisance_param}. "
                         f"New: {(systematics_name, benchmark0, benchmark1)}."
                     )
-                self.nuisance_parameters[nuisance_parameter_name] = (systematics_name, benchmark0, benchmark1)
+
+                self.nuisance_parameters[nuisance_param_name] = NuisanceParameter(
+                    name=nuisance_param_name,
+                    systematic=systematics_name,
+                    benchmark_pos=benchmark0,
+                    benchmark_neg=benchmark1,
+                )
 
         # Calculate observables and weights in Delphes ROOT file
         this_observations, this_weights, cut_filter = parse_delphes_root_file(
             delphes_file,
             self.observables,
-            self.observables_required,
-            self.observables_defaults,
             self.cuts,
-            self.cuts_default_pass,
             weight_labels,
             use_generator_truth=generator_truth,
             delete_delphes_sample_file=delete_delphes_files,
