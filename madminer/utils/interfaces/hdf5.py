@@ -705,7 +705,7 @@ def _load_morphing(file_name: str) -> Tuple[np.ndarray, np.ndarray]:
             logger.error("HDF5 file does not contain morphing information")
         else:
             morphing_components = np.asarray(morphing_components, dtype=int)
-            morphing_matrix = np.asarray(morphing_matrix, dtype=np.float)
+            morphing_matrix = np.asarray(morphing_matrix, dtype=np.float64)
 
     return morphing_components, morphing_matrix
 
