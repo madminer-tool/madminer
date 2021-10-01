@@ -28,7 +28,7 @@ VERSION = info['__version__']
 REQUIRED = [
     "h5py",
     "matplotlib>=2.0.0",
-    "numpy>=1.13.0",
+    "numpy>=1.20.0",
     "particle>=0.16.0",
     "scipy>=1.0.0",
     "torch>=1.0.0",
