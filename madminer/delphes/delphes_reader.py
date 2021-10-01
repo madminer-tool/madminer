@@ -657,7 +657,7 @@ class DelphesReader:
             else:
                 idx = self.benchmark_names_phys.index(sampling_benchmark)
                 self.signal_events_per_benchmark[idx] += this_n_events
-            this_events_sampling_benchmark_ids = np.array([idx] * this_n_events, dtype=np.int)
+            this_events_sampling_benchmark_ids = np.array([idx] * this_n_events, dtype=int)
 
             # First results
             if self.observations is None and self.weights is None:

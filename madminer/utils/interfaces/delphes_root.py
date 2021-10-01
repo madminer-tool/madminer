@@ -151,7 +151,7 @@ def parse_delphes_root_file(
             finally:
                 values_this_observable.append(value)
 
-        values_this_observable = np.array(values_this_observable, dtype=np.float)
+        values_this_observable = np.array(values_this_observable, dtype=np.float64)
         observable_values[name] = values_this_observable
 
         logger.debug("  First 10 values for observable %s:\n%s", name, values_this_observable[:10])
@@ -176,7 +176,7 @@ def parse_delphes_root_file(
             finally:
                 values_this_cut.append(value)
 
-        values_this_cut = np.array(values_this_cut, dtype=np.bool)
+        values_this_cut = np.array(values_this_cut, dtype=bool)
         cut_values.append(values_this_cut)
 
     # Check for existence of required observables
@@ -334,7 +334,7 @@ def _get_particles_leptons(tree, pt_min_e, eta_max_e, pt_min_mu, eta_max_mu):
         event_masses = np.concatenate((0.105 * np.ones_like(pt_mu[ievent]), 0.000511 * np.ones_like(pt_e[ievent])))
         event_charges = np.concatenate((charge_mu[ievent], charge_e[ievent]))
         event_pdgid_positive_charges = np.concatenate(
-            (-13 * np.ones_like(pt_mu[ievent], dtype=np.int), -11 * np.ones_like(pt_e[ievent], dtype=np.int))
+            (-13 * np.ones_like(pt_mu[ievent], dtype=int), -11 * np.ones_like(pt_e[ievent], dtype=int))
         )
 
         # Sort by descending pT

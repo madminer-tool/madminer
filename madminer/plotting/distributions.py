@@ -207,7 +207,7 @@ def plot_distributions(
     all_weights_benchmarks = all_weights_benchmarks[sane_event_filter]
     n_events_removed = n_events_before - all_weights_benchmarks.shape[0]
 
-    if int(np.sum(sane_event_filter, dtype=np.int)) < len(sane_event_filter):
+    if int(np.sum(sane_event_filter, dtype=int)) < len(sane_event_filter):
         logger.warning("Removed %s / %s events with negative weights", n_events_removed, n_events_before)
 
     for i, (x, weights) in enumerate(zip(indiv_x, indiv_weights_benchmarks)):

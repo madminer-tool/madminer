@@ -320,7 +320,7 @@ def load_events(
         include_nuisance_params = True
 
     elif include_nuisance_params is False and benchmark_nuisance_flags is not None:
-        benchmark_filter = np.logical_not(np.array(benchmark_nuisance_flags, dtype=np.bool))
+        benchmark_filter = np.logical_not(np.array(benchmark_nuisance_flags, dtype=bool))
 
     (
         observations,
@@ -424,7 +424,7 @@ def save_events(
 
     sample_observations = np.array(observations).T
     sample_weights = np.array(sorted_weights).T
-    sampling_ids = np.array(sampling_benchmarks, dtype=np.int)
+    sampling_ids = np.array(sampling_benchmarks, dtype=int)
 
     _save_samples(file_name, file_override, sample_observations, sample_weights, sampling_ids)
     _save_samples_summary(file_name, file_override, num_signal_events, num_background_events)
@@ -704,8 +704,8 @@ def _load_morphing(file_name: str) -> Tuple[np.ndarray, np.ndarray]:
         except KeyError:
             logger.error("HDF5 file does not contain morphing information")
         else:
-            morphing_components = np.asarray(morphing_components, dtype=np.int)
-            morphing_matrix = np.asarray(morphing_matrix, dtype=np.float)
+            morphing_components = np.asarray(morphing_components, dtype=int)
+            morphing_matrix = np.asarray(morphing_matrix, dtype=np.float64)
 
     return morphing_components, morphing_matrix
 

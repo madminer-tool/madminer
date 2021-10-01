@@ -938,7 +938,7 @@ class DataAnalyzer:
         return dtheta_matrix
 
     def _calculate_sampling_factors(self):
-        events = np.asarray(self.n_events_generated_per_benchmark, dtype=np.float)
+        events = np.asarray(self.n_events_generated_per_benchmark, dtype=np.float64)
         logger.debug(f"Events per benchmark: {events}")
         factors = events / np.sum(events)
         factors = np.hstack((factors, 1.0))  # background events
