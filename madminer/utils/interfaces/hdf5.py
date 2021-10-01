@@ -320,7 +320,7 @@ def load_events(
         include_nuisance_params = True
 
     elif include_nuisance_params is False and benchmark_nuisance_flags is not None:
-        benchmark_filter = np.logical_not(np.array(benchmark_nuisance_flags, dtype=np.bool))
+        benchmark_filter = np.logical_not(np.array(benchmark_nuisance_flags, dtype=bool))
 
     (
         observations,

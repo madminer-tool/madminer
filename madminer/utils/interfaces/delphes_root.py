@@ -176,7 +176,7 @@ def parse_delphes_root_file(
             finally:
                 values_this_cut.append(value)
 
-        values_this_cut = np.array(values_this_cut, dtype=np.bool)
+        values_this_cut = np.array(values_this_cut, dtype=bool)
         cut_values.append(values_this_cut)
 
     # Check for existence of required observables

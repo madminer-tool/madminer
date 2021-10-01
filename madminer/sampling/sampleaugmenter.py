@@ -1560,7 +1560,7 @@ class SampleAugmenter(DataAnalyzer):
                 )
 
         # Prepare output
-        done = np.zeros(n_samples, dtype=np.bool)
+        done = np.zeros(n_samples, dtype=bool)
         x = np.zeros((n_samples, self.n_observables), dtype=dtype)
         augmented_data = []
         for definition in augmented_data_definitions:
