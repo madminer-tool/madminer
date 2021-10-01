@@ -77,7 +77,7 @@ class PhysicsMorpher:
             self.parameter_max_power = [param.max_power for param in parameters_from_madminer.values()]
             self.parameter_range = [param.val_range for param in parameters_from_madminer.values()]
 
-            self.parameter_max_power = np.array(self.parameter_max_power, dtype=np.int)
+            self.parameter_max_power = np.array(self.parameter_max_power, dtype=int)
             self.parameter_range = np.array(self.parameter_range)
 
         # Generic interface
@@ -138,7 +138,7 @@ class PhysicsMorpher:
         # Go through regions and finds components for each
         components = []
         for powers in itertools.product(*powers_each_component):
-            powers = np.array(powers, dtype=np.int)
+            powers = np.array(powers, dtype=int)
 
             if np.sum(powers) > max_overall_power:
                 continue
@@ -149,7 +149,7 @@ class PhysicsMorpher:
             else:
                 logger.debug("  Not adding component %s again", powers)
 
-        self.components = np.array(components, dtype=np.int)
+        self.components = np.array(components, dtype=int)
         self.n_components = len(self.components)
 
         return self.components
