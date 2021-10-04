@@ -862,10 +862,10 @@ class DataAnalyzer:
     def _get_theta_value(self, theta):
         if isinstance(theta, str):
             benchmark = self.benchmarks[theta]
-            theta_value = np.array([benchmark[key] for key in benchmark])
+            theta_value = np.array([val for val in benchmark.values.values()])
         elif isinstance(theta, int):
             benchmark = self.benchmarks[list(self.benchmarks.keys())[theta]]
-            theta_value = np.array([benchmark[key] for key in benchmark])
+            theta_value = np.array([val for val in benchmark.values.values()])
         else:
             theta_value = np.asarray(theta)
         return theta_value
@@ -911,12 +911,12 @@ class DataAnalyzer:
 
         elif isinstance(theta, str) and mode == "morphing":
             benchmark = self.benchmarks[theta]
-            benchmark = np.array([value for _, value in benchmark.items()])
+            benchmark = np.array([val for val in benchmark.values.values()])
             dtheta_matrix = self._get_dtheta_benchmark_matrix(benchmark)
 
         elif isinstance(theta, int) and mode == "morphing":
             benchmark = self.benchmarks[list(self.benchmarks.keys())[theta]]
-            benchmark = np.array([value for _, value in benchmark.items()])
+            benchmark = np.array([val for val in benchmark.values.values()])
             dtheta_matrix = self._get_dtheta_benchmark_matrix(benchmark)
 
         elif isinstance(theta, str):
@@ -924,9 +924,8 @@ class DataAnalyzer:
             dtheta_matrix = self._get_dtheta_benchmark_matrix(benchmark_id)
 
         elif isinstance(theta, int):  # finite differences
-            dtheta_matrix = self._finite_differences_theta_gradient_matrices()[
-                theta
-            ]  # TODO: avoid constructing the full matrix every time
+            # TODO: avoid constructing the full matrix every time
+            dtheta_matrix = self._finite_differences_theta_gradient_matrices()[theta]
 
         else:
             if mode == "fd":
