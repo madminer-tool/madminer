@@ -266,11 +266,6 @@ def save_nuisance_setup(
     # Compute intermediate values
     benchmark_reference_flags = [name == reference_benchmark for name in benchmark_names]
 
-    _save_nuisance_params(
-        file_name,
-        file_override,
-        nuisance_parameters,
-    )
     _save_benchmarks(
         file_name,
         file_override,
@@ -279,6 +274,13 @@ def save_nuisance_setup(
         benchmark_nuisance_flags,
         benchmark_reference_flags,
     )
+
+    if len(nuisance_parameters) > 0:
+        _save_nuisance_params(
+            file_name,
+            file_override,
+            nuisance_parameters,
+        )
 
 
 def load_events(
@@ -835,8 +837,16 @@ def _save_nuisance_params(
             with suppress(KeyError):
                 del file["nuisance_parameters"]
 
-        file.create_dataset("nuisance_parameters/names", data=param_names, dtype="S256")
-        file.create_dataset("nuisance_parameters/systematics", data=param_systematics, dtype="S256")
+        file.create_dataset(
+            "nuisance_parameters/names",
+            data=param_names,
+            dtype="S256",
+        )
+        file.create_dataset(
+            "nuisance_parameters/systematics",
+            data=param_systematics,
+            dtype="S256",
+        )
         file.create_dataset(
             "nuisance_parameters/benchmark_positive",
             data=param_benchmarks_pos,
