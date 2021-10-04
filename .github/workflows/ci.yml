@@ -8,21 +8,38 @@ on:
     branches:
       - master
     paths-ignore:
-      - "**.ipynb"
       - "**.md"
       - "**.rst"
   pull_request:
     branches:
       - master
     paths-ignore:
-      - "**.ipynb"
       - "**.md"
       - "**.rst"
 
 jobs:
 
-  test:
+  lint:
     needs: []
+    runs-on: ubuntu-latest
+    steps:
+    - name: "Set up GitHub Actions"
+      uses: actions/checkout@v2
+    - name: "Set up Python 3.7"
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.7
+    - name: "Install Python dependencies"
+      run: |
+        pip install --no-cache-dir --upgrade pip setuptools wheel
+        pip install --no-cache-dir --quiet ".[lint]"
+        pip list
+    - name: "Check format"
+      run: |
+        black --check examples
+
+  test:
+    needs: [lint]
     runs-on: ubuntu-latest
     strategy:
       matrix:
