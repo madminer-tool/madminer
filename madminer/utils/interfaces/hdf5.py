@@ -196,21 +196,24 @@ def save_madminer_settings(
     _save_analysis_parameters(file_name, file_override, parameters)
     _save_benchmarks(file_name, file_override, benchmark_names, benchmark_values)
     _save_morphing(file_name, file_override, morphing_components, morphing_matrix)
-    _save_finite_diffs(
-        file_name,
-        file_override,
-        fin_diffs_base_benchmarks,
-        fin_diffs_shift_benchmarks,
-        finite_differences_epsilon,
-    )
-    _save_systematics(
-        file_name,
-        file_override,
-        systematics_names,
-        systematics_types,
-        systematics_values,
-        systematics_scales,
-    )
+
+    if len(finite_differences) > 0:
+        _save_finite_diffs(
+            file_name,
+            file_override,
+            fin_diffs_base_benchmarks,
+            fin_diffs_shift_benchmarks,
+            finite_differences_epsilon,
+        )
+    if len(systematics) > 0:
+        _save_systematics(
+            file_name,
+            file_override,
+            systematics_names,
+            systematics_types,
+            systematics_values,
+            systematics_scales,
+        )
 
 
 def save_nuisance_setup(
