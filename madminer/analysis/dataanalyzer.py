@@ -64,11 +64,13 @@ class DataAnalyzer:
             self.morpher.set_basis(self.benchmarks, morphing_matrix=self.morphing_matrix)
 
         # Nuisance morphing
-        self.nuisance_morpher = NuisanceMorpher(
-            self.nuisance_parameters,
-            self.benchmarks.keys(),
-            self.reference_benchmark,
-        )
+        self.nuisance_morpher = None
+        if self.n_nuisance_parameters > 0:
+            self.nuisance_morpher = NuisanceMorpher(
+                self.nuisance_parameters,
+                self.benchmarks.keys(),
+                self.reference_benchmark,
+            )
 
         # Check event numbers
         self._check_n_events()
