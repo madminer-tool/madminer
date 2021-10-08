@@ -19,5 +19,5 @@ authors:
   affiliation: "New York University"
 title: "MadMiner"
 doi: 10.5281/zenodo.1489147
-url: https://github.com/diana-hep/madminer
+url: https://github.com/madminer-tool/madminer
 license: "MIT"

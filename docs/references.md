@@ -26,7 +26,7 @@ The code itself can be cited as
       author         = "Brehmer, Johann and Kling, Felix and Espejo, Irina and Cranmer, Kyle",
       title          = "{MadMiner}",
       doi            = "10.5281/zenodo.1489147",
-      url            = {https://github.com/diana-hep/madminer}
+      url            = {https://github.com/madminer-tool/madminer}
 }
 ```
 
@@ -58,5 +58,5 @@ a PyTorch port of the original code by George Papamakarios, available at [this r
 [ref-arxiv-madminer-2]: https://arxiv.org/abs/1805.00020
 [ref-arxiv-madminer-3]: https://arxiv.org/abs/1805.12244
 [ref-arxiv-scandal]: https://arxiv.org/abs/1705.07057
-[repo-madminer-contrib]: https://github.com/diana-hep/madminer/graphs/contributors
+[repo-madminer-contrib]: https://github.com/madminer-tool/madminer/graphs/contributors
 [repo-maf-main-page]: https://github.com/gpapamak/maf

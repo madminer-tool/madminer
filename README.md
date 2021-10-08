@@ -89,7 +89,7 @@ The code itself can be cited as
       author         = "Brehmer, Johann and Kling, Felix and Espejo, Irina and Perez, Sinclert and Cranmer, Kyle",
       title          = "{MadMiner}",
       doi            = "10.5281/zenodo.1489147",
-      url            = {https://github.com/diana-hep/madminer}
+      url            = {https://github.com/madminer-tool/madminer}
 }
 ```
 
@@ -119,14 +119,14 @@ We are grateful for the support of [IRIS-HEP][web-iris-hep] and [DIANA-HEP][web-
 
 [chat-gitter-badge]: https://badges.gitter.im/madminer/community.svg
 [chat-gitter-link]: https://gitter.im/madminer/community
-[ci-status-badge]: https://github.com/diana-hep/madminer/actions/workflows/ci.yml/badge.svg?branch=master
-[ci-status-link]: https://github.com/diana-hep/madminer/actions/workflows/ci.yml?query=branch%3Amaster
+[ci-status-badge]: https://github.com/madminer-tool/madminer/actions/workflows/ci.yml/badge.svg?branch=master
+[ci-status-link]: https://github.com/madminer-tool/madminer/actions/workflows/ci.yml?query=branch%3Amaster
 [code-style-badge]: https://img.shields.io/badge/code%20style-black-000000.svg
 [code-style-link]: https://github.com/psf/black
 [docs-status-badge]: https://readthedocs.org/projects/madminer/badge/?version=latest
 [docs-status-link]: https://madminer.readthedocs.io/en/latest/?badge=latest
 [mit-license-badge]: https://img.shields.io/badge/License-MIT-blue.svg
-[mit-license-link]: https://github.com/diana-hep/madminer/blob/master/LICENSE.md
+[mit-license-link]: https://github.com/madminer-tool/madminer/blob/master/LICENSE.md
 [pypi-version-badge]: https://badge.fury.io/py/madminer.svg
 [pypi-version-link]: https://badge.fury.io/py/madminer
 [ref-arxiv-badge]: http://img.shields.io/badge/arXiv-1907.10621-B31B1B.svg
@@ -136,12 +136,12 @@ We are grateful for the support of [IRIS-HEP][web-iris-hep] and [DIANA-HEP][web-
 
 [docs-index]: https://madminer.readthedocs.io/en/latest/
 [docs-installation-guide ]: https://madminer.readthedocs.io/en/latest/installation.html
-[examples-folder-path]: https://github.com/diana-hep/madminer/tree/master/examples
-[examples-physics-path]: https://github.com/diana-hep/madminer/tree/master/examples/tutorial_particle_physics
-[examples-simulator-path]: https://github.com/diana-hep/madminer/tree/master/examples/tutorial_toy_simulator
+[examples-folder-path]: https://github.com/madminer-tool/madminer/tree/master/examples
+[examples-physics-path]: https://github.com/madminer-tool/madminer/tree/master/examples/tutorial_particle_physics
+[examples-simulator-path]: https://github.com/madminer-tool/madminer/tree/master/examples/tutorial_toy_simulator
 [image-iris-logo]: https://iris-hep.org/assets/logos/Iris-hep-4-no-long-name.png
-[image-rascal-diagram]: https://raw.githubusercontent.com/diana-hep/madminer/master/docs/img/rascal-explainer.png
-[jupyter-tutorial-link]: https://cranmer.github.io/madminer-tutorial/intro
+[image-rascal-diagram]: https://raw.githubusercontent.com/madminer-tool/madminer/master/docs/img/rascal-explainer.png
+[jupyter-tutorial-link]: https://madminer-tool.github.io/madminer-tutorial
 [ref-arxiv-alice]: https://arxiv.org/abs/1808.00973
 [ref-arxiv-carl]: https://arxiv.org/abs/1506.02169
 [ref-arxiv-maf]: https://arxiv.org/abs/1705.07057
@@ -149,7 +149,7 @@ We are grateful for the support of [IRIS-HEP][web-iris-hep] and [DIANA-HEP][web-
 [ref-arxiv-madminer-2]: https://arxiv.org/abs/1805.00020
 [ref-arxiv-madminer-3]: https://arxiv.org/abs/1805.12244
 [ref-arxiv-scandal]: https://arxiv.org/abs/1705.07057
-[repo-madminer-contrib]: https://github.com/diana-hep/madminer/graphs/contributors
+[repo-madminer-contrib]: https://github.com/madminer-tool/madminer/graphs/contributors
 [repo-maf-main-page]: https://github.com/gpapamak/maf
 [web-diana-hep]: https://diana-hep.org
 [web-iris-hep]: https://iris-hep.org
