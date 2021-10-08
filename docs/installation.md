@@ -32,6 +32,6 @@ To get the latest development version as well as the tutorials, clone the [GitHu
 and run `pip install -e .` from the repository main folder.
 
 
-[repo-madminer]: https://github.com/diana-hep/madminer
+[repo-madminer]: https://github.com/madminer-tool/madminer
 [web-madgraph-main-page]: https://launchpad.net/mg5amcnlo
 [web-madgraph-systematics]: https://cp3.irmp.ucl.ac.be/projects/madgraph/wiki/Systematics
