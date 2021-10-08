@@ -20,7 +20,7 @@ with open(project_dir.joinpath('madminer', '__info__.py')) as f:
 # Package meta-data.
 NAME = 'madminer'
 DESCRIPTION = 'Mining gold from MadGraph to improve limit setting in particle physics.'
-URL = 'https://github.com/diana-hep/madminer'
+URL = 'https://github.com/madminer-tool/madminer'
 EMAIL = 'johann.brehmer@nyu.edu'
 REQUIRES_PYTHON = '>=3.7, <4'
 AUTHORS = info['__authors__']
