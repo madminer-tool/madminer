@@ -926,7 +926,7 @@ class MadMiner:
 
         # This snippet is useful when using virtual envs.
         # (Derives from a Python2 - Python3 issue).
-        # Ref: https://github.com/diana-hep/madminer/issues/422
+        # Ref: https://github.com/madminer-tool/madminer/issues/422
         if python_executable and initial_command is None:
             logger.info(f"Adding {python_executable} bin folder to PATH")
             binary_path = os.popen(f"command -v {python_executable}").read().strip()
