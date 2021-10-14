@@ -363,8 +363,8 @@ class ParameterizedRatioEstimator(ConditionalEstimator):
         if test_all_combinations:
             logger.debug("Starting ratio evaluation for %s x-theta combinations", len(theta) * len(x))
 
-            for i, this_theta in enumerate(theta):
-                logger.debug("Starting ratio evaluation for thetas %s / %s: %s", i + 1, len(theta), this_theta)
+            for i, this_theta in enumerate(theta, start=1):
+                logger.debug("Starting ratio evaluation for thetas %s / %s: %s", i, len(theta), this_theta)
                 _, log_r_hat, t_hat, _ = evaluate_ratio_model(
                     model=self.model,
                     method_type="parameterized_ratio",

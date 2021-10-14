@@ -1392,11 +1392,11 @@ class SampleAugmenter(DataAnalyzer):
             logger.debug("Will print training progress every %s sets", n_sets_verbose)
 
             # Loop over sets
-            for i_set, set_ in enumerate(sets):
-                if (i_set + 1) % n_sets_verbose == 0:
-                    logger.info("Sampling from parameter point %s / %s", i_set + 1, n_sets)
+            for i_set, set_ in enumerate(sets, start=1):
+                if i_set % n_sets_verbose == 0:
+                    logger.info("Sampling from parameter point %s / %s", i_set, n_sets)
                 else:
-                    logger.debug("Sampling from parameter point %s / %s", i_set + 1, n_sets)
+                    logger.debug("Sampling from parameter point %s / %s", i_set, n_sets)
 
                 (
                     x,

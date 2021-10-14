@@ -200,7 +200,6 @@ class FisherInformation(DataAnalyzer):
             `(n_parameters, n_parameters, n_parameters, n_parameters)`. If more then one value
             ensemble_vote_expectation_weight is given, this is a list with results for all entries in
             ensemble_vote_expectation_weight.
-
         """
 
         # Check input
@@ -299,17 +298,17 @@ class FisherInformation(DataAnalyzer):
             n_batches = int(np.ceil((self.n_samples - start_event) / batch_size))
             n_batches_verbose = max(int(round(n_batches / 10, 0)), 1)
 
-            for i_batch, (observations, weights_benchmarks) in enumerate(
-                self.event_loader(
-                    batch_size=batch_size,
-                    start=start_event,
-                    include_nuisance_parameters=include_nuisance_parameters,
-                )
-            ):
-                if (i_batch + 1) % n_batches_verbose == 0:
-                    logger.info("Evaluating kinematic Fisher information on batch %s / %s", i_batch + 1, n_batches)
+            events = self.event_loader(
+                batch_size=batch_size,
+                start=start_event,
+                include_nuisance_parameters=include_nuisance_parameters,
+            )
+
+            for i_batch, (observations, weights_benchmarks) in enumerate(events, start=1):
+                if i_batch % n_batches_verbose == 0:
+                    logger.info("Evaluating kinematic Fisher information on batch %s / %s", i_batch, n_batches)
                 else:
-                    logger.debug("Evaluating kinematic Fisher information on batch %s / %s", i_batch + 1, n_batches)
+                    logger.debug("Evaluating kinematic Fisher information on batch %s / %s", i_batch, n_batches)
 
                 weights_theta = mdot(theta_matrix, weights_benchmarks)
 
@@ -905,16 +904,18 @@ class FisherInformation(DataAnalyzer):
             n_batches = int(np.ceil((self.n_samples - start_event) / batch_size))
             n_batches_verbose = max(int(round(n_batches / 10, 0)), 1)
 
+            events = self.event_loader(
+                batch_size=batch_size,
+                start=start_event,
+                include_nuisance_parameters=include_nuisance_parameters,
+            )
+
             # ML main loop
-            for i_batch, (observations, weights_benchmarks) in enumerate(
-                self.event_loader(
-                    batch_size=batch_size, start=start_event, include_nuisance_parameters=include_nuisance_parameters
-                )
-            ):
-                if (i_batch + 1) % n_batches_verbose == 0:
-                    logger.info("Evaluating kinematic Fisher information on batch %s / %s", i_batch + 1, n_batches)
+            for i_batch, (observations, weights_benchmarks) in enumerate(events, start=1):
+                if i_batch % n_batches_verbose == 0:
+                    logger.info("Evaluating kinematic Fisher information on batch %s / %s", i_batch, n_batches)
                 else:
-                    logger.debug("Evaluating kinematic Fisher information on batch %s / %s", i_batch + 1, n_batches)
+                    logger.debug("Evaluating kinematic Fisher information on batch %s / %s", i_batch, n_batches)
 
                 # Cuts
                 cut_filter = [self._pass_cuts(obs_event, cuts) for obs_event in observations]
@@ -929,7 +930,7 @@ class FisherInformation(DataAnalyzer):
 
                 # Rescale for test_split
                 if test_split is not None:
-                    correction = np.array([1.0 / test_split for obs_event in observations])
+                    correction = np.array([1.0 / test_split for _ in observations])
                     weights_benchmarks *= correction[:, np.newaxis]
 
                 weights_theta = mdot(theta_matrix, weights_benchmarks)

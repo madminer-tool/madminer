@@ -64,8 +64,8 @@ class MorphingAwareRatioEstimator(ParameterizedRatioEstimator):
             morpher.set_components(morphing_components)
             basis = morpher.optimize_basis(n_trials=1000, n_test_thetas=1000)
             logger.info("Found morphing basis:")
-            for i, theta in enumerate(basis):
-                logger.info("  Basis vector %s: %s", i + 1, theta)
+            for i, theta in enumerate(basis, start=1):
+                logger.info("  Basis vector %s: %s", i, theta)
             morphing_matrix = morpher.calculate_morphing_matrix(basis)
 
         return morphing_components, morphing_matrix

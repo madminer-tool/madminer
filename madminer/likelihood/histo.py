@@ -411,7 +411,7 @@ class HistoLikelihood(BaseLikelihood):
             weights = self._weights([theta], [nu], weights_benchmarks)[0]
             histo = Histo(data, weights=weights, bins=hist_bins, epsilon=1.0e-12)
         elif mode == "histo":
-            bin_centers = [np.array([(bins[i] + bins[i + 1]) / 2 for i in range(len(bins) - 1)]) for bins in hist_bins]
+            bin_centers = [np.array([(a + b) / 2 for a, b in zip(bins[0:], bins[1:])]) for bins in hist_bins]
             bin_centers = np.array(list(product(*bin_centers)))
             histo = self._histogram_morphing(theta, benchmark_histograms, hist_bins, bin_centers)
 
@@ -575,7 +575,7 @@ class HistoLikelihood(BaseLikelihood):
             histo_benchmarks.append(histo)
 
         # get bin centers
-        bin_centers = [np.array([(bins[i] + bins[i + 1]) / 2 for i in range(len(bins) - 1)]) for bins in hist_bins]
+        bin_centers = [np.array([(a + b) / 2 for a, b in zip(bins[0:], bins[1:])]) for bins in hist_bins]
         bin_centers = np.array(list(product(*bin_centers)))
         return histo_benchmarks, bin_centers
 

@@ -131,11 +131,11 @@ class Ensemble:
         -------
         result_list: list of ndarray
             List of training and validation losses from estimator training
-
         """
+
         logger.info("Training %s estimators in ensemble", self.n_estimators)
 
-        result_list=[]
+        result_list = []
 
         for key, value in kwargs.items():
             if not isinstance(value, list):
@@ -149,7 +149,7 @@ class Ensemble:
                 kwargs_this_estimator[key] = value[i]
 
             logger.info("Training estimator %s / %s in ensemble", i + 1, self.n_estimators)
-            result=estimator.train(**kwargs_this_estimator)
+            result = estimator.train(**kwargs_this_estimator)
             result_list.append(result)
 
         return result_list
@@ -190,9 +190,10 @@ class Ensemble:
 
         # Calculate estimator predictions
         predictions = []
-        for i, estimator in enumerate(self.estimators):
-            logger.debug("Starting evaluation for estimator %s / %s in ensemble", i + 1, self.n_estimators)
+        for i, estimator in enumerate(self.estimators, start=1):
+            logger.debug("Starting evaluation for estimator %s / %s in ensemble", i, self.n_estimators)
             predictions.append(estimator.evaluate_log_likelihood(**kwargs)[0])
+
         predictions = np.array(predictions)
 
         # Calculate weighted means and covariance matrices
@@ -243,9 +244,10 @@ class Ensemble:
 
         # Calculate estimator predictions
         predictions = []
-        for i, estimator in enumerate(self.estimators):
-            logger.debug("Starting evaluation for estimator %s / %s in ensemble", i + 1, self.n_estimators)
+        for i, estimator in enumerate(self.estimators, start=1):
+            logger.debug("Starting evaluation for estimator %s / %s in ensemble", i, self.n_estimators)
             predictions.append(estimator.evaluate_log_likelihood_ratio(**kwargs)[0])
+
         predictions = np.array(predictions)
 
         # Calculate weighted means and covariance matrices
@@ -296,9 +298,10 @@ class Ensemble:
 
         # Calculate estimator predictions
         predictions = []
-        for i, estimator in enumerate(self.estimators):
-            logger.info("Starting evaluation for estimator %s / %s in ensemble", i + 1, self.n_estimators)
+        for i, estimator in enumerate(self.estimators, start=1):
+            logger.info("Starting evaluation for estimator %s / %s in ensemble", i, self.n_estimators)
             predictions.append(estimator.evaluate_score(**kwargs))
+
         predictions = np.array(predictions)
 
         # Calculate weighted means and covariance matrices
@@ -411,6 +414,7 @@ class Ensemble:
         # Calculate estimator_weights of each estimator in vote
         if estimator_weights is None:
             estimator_weights = np.ones(self.n_estimators)
+
         assert len(estimator_weights) == self.n_estimators
         estimator_weights /= np.sum(estimator_weights)
         logger.debug("Estimator weights: %s", estimator_weights)
@@ -421,9 +425,8 @@ class Ensemble:
         if mode == "information":
             # Calculate estimator predictions
             predictions = []
-            for i, estimator in enumerate(self.estimators):
-                logger.debug("Starting evaluation for estimator %s / %s in ensemble", i + 1, self.n_estimators)
-
+            for i, estimator in enumerate(self.estimators, start=1):
+                logger.debug("Starting evaluation for estimator %s / %s in ensemble", i, self.n_estimators)
                 predictions.append(
                     estimator.calculate_fisher_information(x=x, theta=theta, weights=obs_weights, n_events=n_events)
                 )
@@ -453,11 +456,11 @@ class Ensemble:
 
             # Calculate score predictions
             score_predictions = []
-            for i, estimator in enumerate(self.estimators):
-                logger.debug("Starting evaluation for estimator %s / %s in ensemble", i + 1, self.n_estimators)
-
+            for i, estimator in enumerate(self.estimators, start=1):
+                logger.debug("Starting evaluation for estimator %s / %s in ensemble", i, self.n_estimators)
                 score_predictions.append(estimator.evaluate_score(x=x, theta=np.array([theta for _ in x])))
-                logger.debug("Estimator %s predicts t(x) = %s for first event", i + 1, score_predictions[-1][0, :])
+                logger.debug("Estimator %s predicts t(x) = %s for first event", i, score_predictions[-1][0, :])
+
             score_predictions = np.array(score_predictions)  # (n_estimators, n_events, n_parameters)
 
             # Get ensemble mean and ensemble covariance
@@ -516,11 +519,11 @@ class Ensemble:
 
             # Calculate score predictions
             score_predictions = []
-            for i, estimator in enumerate(self.estimators):
-                logger.debug("Starting evaluation for estimator %s / %s in ensemble", i + 1, self.n_estimators)
-
+            for i, estimator in enumerate(self.estimators, start=1):
+                logger.debug("Starting evaluation for estimator %s / %s in ensemble", i, self.n_estimators)
                 score_predictions.append(estimator.evaluate_score(x=x, theta=np.array([theta for _ in x])))
-                logger.debug("Estimator %s predicts t(x) = %s for first event", i + 1, score_predictions[-1][0, :])
+                logger.debug("Estimator %s predicts t(x) = %s for first event", i, score_predictions[-1][0, :])
+
             score_predictions = np.array(score_predictions)  # (n_estimators, n_events, n_parameters)
 
             # Get ensemble mean and ensemble covariance

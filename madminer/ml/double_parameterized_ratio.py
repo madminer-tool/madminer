@@ -415,10 +415,10 @@ class DoubleParameterizedRatioEstimator(ConditionalEstimator):
         if test_all_combinations:
             logger.debug("Starting ratio evaluation for %s x-theta combinations", len(theta0) * len(x))
 
-            for i, (this_theta0, this_theta1) in enumerate(zip(theta0, theta1)):
+            for i, (this_theta0, this_theta1) in enumerate(zip(theta0, theta1), start=1):
                 logger.debug(
                     "Starting ratio evaluation for thetas %s / %s: %s vs %s",
-                    i + 1,
+                    i,
                     len(theta0),
                     this_theta0,
                     this_theta1,
