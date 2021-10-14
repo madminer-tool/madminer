@@ -954,7 +954,7 @@ class DataAnalyzer:
 
         # Don't use benchmarks where we don't actually have events
         if len(self.n_events_generated_per_benchmark) > 0:
-            distances = distances + 1.0e9 * (self.n_events_generated_per_benchmark == 0).astype(np.float)
+            distances = distances + 1.0e9 * (self.n_events_generated_per_benchmark == 0).astype(np.float64)
 
         closest_idx = np.argmin(distances)
         return closest_idx
