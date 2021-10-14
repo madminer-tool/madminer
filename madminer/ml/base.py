@@ -4,13 +4,17 @@ import numpy as np
 import os
 import torch
 
-from ..utils.various import create_missing_folders, load_and_check
+from abc import ABC
+from abc import abstractmethod
+
+from ..utils.various import create_missing_folders
+from ..utils.various import load_and_check
 
 
 logger = logging.getLogger(__name__)
 
 
-class Estimator:
+class Estimator(ABC):
     """
     Abstract class for any ML estimator. Subclassed by ParameterizedRatioEstimator, DoubleParameterizedRatioEstimator,
     ScoreEstimator, and LikelihoodEstimator.
@@ -39,9 +43,19 @@ class Estimator:
         self.x_scaling_means = None
         self.x_scaling_stds = None
 
+    @abstractmethod
+    def _create_model(self):
+        raise NotImplementedError()
+
+    @abstractmethod
     def train(self, *args, **kwargs):
         raise NotImplementedError()
 
+    @abstractmethod
+    def evaluate(self, *args, **kwargs):
+        raise NotImplementedError()
+
+    @abstractmethod
     def evaluate_log_likelihood(self, *args, **kwargs):
         """
         Log likelihood estimation. Signature depends on the type of estimator. The first returned value is the log
@@ -49,6 +63,7 @@ class Estimator:
         """
         raise NotImplementedError()
 
+    @abstractmethod
     def evaluate_log_likelihood_ratio(self, *args, **kwargs):
         """
         Log likelihood ratio estimation. Signature depends on the type of estimator. The first returned value is the log
@@ -56,6 +71,7 @@ class Estimator:
         """
         raise NotImplementedError()
 
+    @abstractmethod
     def evaluate_score(self, *args, **kwargs):
         """
         Score estimation. Signature depends on the type of estimator. The only returned value is the score with shape
@@ -63,11 +79,7 @@ class Estimator:
         """
         raise NotImplementedError()
 
-    def evaluate(self, *args, **kwargs):
-        raise NotImplementedError()
-
     def save(self, filename, save_model=False):
-
         """
         Saves the trained model to four files: a JSON file with the settings, a pickled pyTorch state dict
         file, and numpy files for the mean and variance of the inputs (used for input scaling).
@@ -84,7 +96,6 @@ class Estimator:
         Returns
         -------
             None
-
         """
 
         logger.info("Saving model to %s", filename)
@@ -119,7 +130,6 @@ class Estimator:
             torch.save(self.model, f"{filename}_model.pt")
 
     def load(self, filename):
-
         """
         Loads a trained model from files.
 
@@ -131,7 +141,6 @@ class Estimator:
         Returns
         -------
             None
-
         """
 
         logger.info("Loading model from %s", filename)
@@ -227,9 +236,6 @@ class Estimator:
                 " dropout)."
             )
 
-    def _create_model(self):
-        raise NotImplementedError()
-
     def calculate_fisher_information(self, x, theta=None, weights=None, n_events=1, sum_events=True):
         """
         Calculates the expected Fisher information matrix based on the kinematic information in a given number of
@@ -259,7 +265,6 @@ class Estimator:
         fisher_information : ndarray
             Expected kinematic Fisher information matrix with shape `(n_events, n_parameters, n_parameters)` if
             sum_events is False or `(n_parameters, n_parameters)` if sum_events is True.
-
         """
 
         if self.model is None:
@@ -292,8 +297,7 @@ class Estimator:
         return fisher_information
 
 
-class ConditionalEstimator(Estimator):
-
+class ConditionalEstimator(Estimator, ABC):
     """
     Abstract class for estimator that is conditional on theta. Subclassed by ParameterizedRatioEstimator,
     DoubleParameterizedRatioEstimator, and LikelihoodEstimator (but not ScoreEstimator).
@@ -308,7 +312,6 @@ class ConditionalEstimator(Estimator):
         self.theta_scaling_stds = None
 
     def save(self, filename, save_model=False):
-
         """
         Saves the trained model to four files: a JSON file with the settings, a pickled pyTorch state dict
         file, and numpy files for the mean and variance of the inputs (used for input scaling).
@@ -325,7 +328,6 @@ class ConditionalEstimator(Estimator):
         Returns
         -------
             None
-
         """
 
         super().save(filename, save_model)
@@ -339,7 +341,6 @@ class ConditionalEstimator(Estimator):
             np.save(f"{filename}_theta_stds.npy", self.theta_scaling_stds)
 
     def load(self, filename):
-
         """
         Loads a trained model from files.
 
@@ -351,7 +352,6 @@ class ConditionalEstimator(Estimator):
         Returns
         -------
             None
-
         """
 
         super().load(filename)

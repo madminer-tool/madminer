@@ -1,5 +1,6 @@
 import logging
 import numpy as np
+
 from collections import OrderedDict
 
 from .base import ConditionalEstimator, TheresAGoodReasonThisDoesntWork
@@ -55,7 +56,6 @@ class DoubleParameterizedRatioEstimator(ConditionalEstimator):
         clip_gradient=None,
         early_stopping_patience=None,
     ):
-
         """
         Trains the network.
 
@@ -384,8 +384,8 @@ class DoubleParameterizedRatioEstimator(ConditionalEstimator):
             None if evaluate_score is False. Otherwise the derived estimated score at `theta1`. If test_all_combinations
             is True, the result has shape `(n_thetas, n_x, n_parameters)`. Otherwise, it has shape
             `(n_samples, n_parameters)`.
-
         """
+
         if self.model is None:
             raise ValueError("No model -- train or load model before evaluating it!")
 
@@ -456,7 +456,7 @@ class DoubleParameterizedRatioEstimator(ConditionalEstimator):
 
     def evaluate_log_likelihood(self, *args, **kwargs):
         raise TheresAGoodReasonThisDoesntWork(
-            "This estimator can only estimate likelihood ratios, not the likelihood " "itself!"
+            "This estimator can only estimate likelihood ratios, not the likelihood itself!"
         )
 
     def evaluate_score(self, *args, **kwargs):
