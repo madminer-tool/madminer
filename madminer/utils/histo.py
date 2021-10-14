@@ -189,8 +189,8 @@ class Histo:
 
     def _report_binning(self):
         logger.debug("Binning:")
-        for i, (n_bins, edges) in enumerate(zip(self.n_bins, self.edges)):
-            logger.debug("  Observable %s: %s bins with edges %s", i + 1, n_bins, edges)
+        for i, (n_bins, edges) in enumerate(zip(self.n_bins, self.edges), start=1):
+            logger.debug("  Observable %s: %s bins with edges %s", i, n_bins, edges)
 
     def _report_uncertainties(self):
         rel_uncertainties = np.where(
