@@ -710,7 +710,7 @@ def _load_morphing(file_name: str) -> Tuple[np.ndarray, np.ndarray]:
             logger.error("HDF5 file does not contain morphing information")
         else:
             morphing_components = np.asarray(morphing_components, dtype=int)
-            morphing_matrix = np.asarray(morphing_matrix, dtype=np.float64)
+            morphing_matrix = np.asarray(morphing_matrix, dtype=float)
 
     return morphing_components, morphing_matrix
 
@@ -746,8 +746,8 @@ def _save_morphing(
             with suppress(KeyError):
                 del file["morphing"]
 
-        file.create_dataset("morphing/components", data=morphing_components.astype(np.int))
-        file.create_dataset("morphing/morphing_matrix", data=morphing_matrix.astype(np.float))
+        file.create_dataset("morphing/components", data=morphing_components.astype(int))
+        file.create_dataset("morphing/morphing_matrix", data=morphing_matrix.astype(float))
 
 
 def _load_nuisance_params(file_name: str) -> Dict[str, NuisanceParameter]:
