@@ -1,5 +1,7 @@
 import logging
 import numpy as np
+
+from abc import abstractmethod
 from scipy.stats import poisson, norm
 
 from ..analysis import DataAnalyzer
@@ -10,10 +12,20 @@ logger = logging.getLogger(__name__)
 
 class BaseLikelihood(DataAnalyzer):
 
+    @abstractmethod
     def create_negative_log_likelihood(self, *args, **kwargs):
         raise NotImplementedError()
 
+    @abstractmethod
     def create_expected_negative_log_likelihood(self, *args, **kwargs):
+        raise NotImplementedError()
+
+    @abstractmethod
+    def _log_likelihood(self, *args, **kwargs):
+        raise NotImplementedError()
+
+    @abstractmethod
+    def _log_likelihood_kinematic(self, *args, **kwargs):
         raise NotImplementedError()
 
     def _asimov_data(
@@ -42,12 +54,6 @@ class BaseLikelihood(DataAnalyzer):
         weights_theta /= np.sum(weights_theta)
 
         return x, weights_theta
-
-    def _log_likelihood(self, *args, **kwargs):
-        raise NotImplementedError()
-
-    def _log_likelihood_kinematic(self, *args, **kwargs):
-        raise NotImplementedError()
 
     def _log_likelihood_poisson(
         self,

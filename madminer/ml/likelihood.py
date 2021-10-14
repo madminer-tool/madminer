@@ -1,5 +1,6 @@
 import logging
 import numpy as np
+
 from collections import OrderedDict
 
 from .base import ConditionalEstimator
@@ -31,7 +32,6 @@ class LikelihoodEstimator(ConditionalEstimator):
     n_mades : int, optional
         The number of MADE layers. Default value: 3.
 
-
     n_hidden : tuple of int, optional
         Units in each hidden layer in the neural networks. If method is 'nde' or 'scandal', this refers to the
         setup of each individual MADE layer. Default value: (100,).
@@ -42,8 +42,6 @@ class LikelihoodEstimator(ConditionalEstimator):
     batch_norm : None or float, optional
         If not None, batch normalization is used, where this value sets the alpha parameter in the calculation
         of the running average of the mean and variance. Default value: None.
-
-
     """
 
     def __init__(self, features=None, n_components=1, n_mades=5, n_hidden=(100,), activation="tanh", batch_norm=None):
@@ -81,7 +79,6 @@ class LikelihoodEstimator(ConditionalEstimator):
         clip_gradient=None,
         early_stopping_patience=None,
     ):
-
         """
         Trains the network.
 
@@ -310,7 +307,6 @@ class LikelihoodEstimator(ConditionalEstimator):
         return result
 
     def evaluate_log_likelihood(self, x, theta, test_all_combinations=True, evaluate_score=False):
-
         """
         Evaluates the log likelihood as a function of the observation x and the parameter point theta.
 
@@ -344,7 +340,6 @@ class LikelihoodEstimator(ConditionalEstimator):
             evaluate_score is False. Otherwise the derived estimated score at `theta`. If test_all_combinations is
             True, the result has shape `(n_thetas, n_x, n_parameters)`. Otherwise, it has shape
             `(n_samples, n_parameters)`.
-
         """
 
         if self.model is None:
@@ -397,7 +392,6 @@ class LikelihoodEstimator(ConditionalEstimator):
         return all_log_p_hat, all_t_hat
 
     def evaluate_log_likelihood_ratio(self, x, theta0, theta1, test_all_combinations, evaluate_score=False):
-
         """
         Evaluates the log likelihood ratio as a function of the observation x, the numerator parameter point theta0,
         and the denominator parameter point theta1.
@@ -435,7 +429,6 @@ class LikelihoodEstimator(ConditionalEstimator):
             evaluate_score is False. Otherwise the derived estimated score at `theta`. If test_all_combinations is
             True, the result has shape `(n_thetas, n_x, n_parameters)`. Otherwise, it has shape
             `(n_samples, n_parameters)`.
-
         """
 
         if self.model is None:
