@@ -100,10 +100,10 @@ def combine_and_shuffle(
     all_n_events_background = 0
     all_n_events_signal_per_benchmark = 0
 
-    for i, (filename, k_factor) in enumerate(zip(input_filenames, k_factors)):
+    for i, (filename, k_factor) in enumerate(zip(input_filenames, k_factors), start=1):
         logger.debug(
             "Loading samples from file %s / %s at %s, multiplying weights with k factor %s",
-            i + 1,
+            i,
             len(input_filenames),
             filename,
             k_factor,
