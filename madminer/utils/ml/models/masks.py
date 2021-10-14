@@ -87,11 +87,11 @@ def create_masks(degrees):
     ms = []
 
     for l, (d0, d1) in enumerate(zip(degrees[:-1], degrees[1:])):
-        m = (d0[:, np.newaxis] <= d1).astype(np.float)
+        m = (d0[:, np.newaxis] <= d1).astype(np.float64)
         m = tensor(m)
         ms.append(m)
 
-    mmp = (degrees[-1][:, np.newaxis] < degrees[0]).astype(np.float)
+    mmp = (degrees[-1][:, np.newaxis] < degrees[0]).astype(np.float64)
     mmp = tensor(mmp)
 
     return ms, mmp
