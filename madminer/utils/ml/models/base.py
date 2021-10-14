@@ -2,6 +2,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 
+from abc import abstractmethod
 from torch.autograd import grad
 
 
@@ -12,9 +13,11 @@ class BaseFlow(nn.Module):
         super().__init__()
         self.n_inputs = n_inputs
 
+    @abstractmethod
     def forward(self, x, **kwargs):
         raise NotImplementedError()
 
+    @abstractmethod
     def generate_samples(self, n_samples=1, u=None, **kwargs):
         raise NotImplementedError()
 
@@ -43,9 +46,11 @@ class BaseConditionalFlow(nn.Module):
         self.n_conditionals = n_conditionals
         self.n_inputs = n_inputs
 
+    @abstractmethod
     def forward(self, theta, x, **kwargs):
         raise NotImplementedError()
 
+    @abstractmethod
     def generate_samples(self, theta, u=None, **kwargs):
         raise NotImplementedError()
 
