@@ -370,11 +370,14 @@ class LikelihoodEstimator(ConditionalEstimator):
         if test_all_combinations:
             logger.debug("Starting ratio evaluation for %s x-theta combinations", len(theta) * len(x))
 
-            for i, this_theta in enumerate(theta):
-                logger.debug("Starting log likelihood evaluation for thetas %s / %s: %s", i + 1, len(theta), this_theta)
+            for i, this_theta in enumerate(theta, start=1):
+                logger.debug("Starting log likelihood evaluation for thetas %s / %s: %s", i, len(theta), this_theta)
 
                 log_p_hat, t_hat = evaluate_flow_model(
-                    model=self.model, thetas=[this_theta], xs=x, evaluate_score=evaluate_score
+                    model=self.model,
+                    thetas=[this_theta],
+                    xs=x,
+                    evaluate_score=evaluate_score,
                 )
 
                 all_log_p_hat.append(log_p_hat)
