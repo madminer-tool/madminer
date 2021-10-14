@@ -587,7 +587,7 @@ class DataAnalyzer:
                 j = benchmark_names.index(shifted_benchmark_name)
                 copy_to.append(j)
 
-                matrix[i, p, j] = 1.0 / self.finite_difference_epsilon
+                matrix[i, p, j] = +1.0 / self.finite_difference_epsilon
                 matrix[i, p, i] = -1.0 / self.finite_difference_epsilon
 
             for j in copy_to:
