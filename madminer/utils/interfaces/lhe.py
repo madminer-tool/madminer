@@ -475,8 +475,11 @@ def _parse_cuts(cuts, fail_cuts, observables, observations, pass_all_cuts, pass_
 
     # Check cuts
     for i_cut, cut in enumerate(cuts):
+        definition = cut.val_expression
+        required = cut.is_required
+
         try:
-            cut_result = eval(cut, variables)
+            cut_result = eval(definition, variables)
             if cut_result:
                 pass_cuts[i_cut] += 1
             else:
@@ -484,7 +487,7 @@ def _parse_cuts(cuts, fail_cuts, observables, observations, pass_all_cuts, pass_
                 pass_all_cuts = False
 
         except (SyntaxError, NameError, TypeError, ZeroDivisionError, IndexError):
-            if cut.is_required:
+            if required:
                 pass_cuts[i_cut] += 1
             else:
                 fail_cuts[i_cut] += 1
