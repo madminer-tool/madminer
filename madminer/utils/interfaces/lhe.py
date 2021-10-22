@@ -407,6 +407,7 @@ def _parse_observations(observables: Dict[str, Observable], variables: Dict[str,
     for name, observable in observables.items():
         definition = observable.val_expression
         default = observable.val_default
+        required = observable.is_required
 
         try:
             if isinstance(definition, str):
@@ -422,7 +423,7 @@ def _parse_observations(observables: Dict[str, Observable], variables: Dict[str,
             else:
                 raise TypeError("Not a valid observable")
         except (IndexError, NameError, RuntimeError, SyntaxError, TypeError, ZeroDivisionError):
-            passed_all = False
+            passed_all = False if required else True
             value = default if default is not None else np.nan
         finally:
             observations.append(value)
@@ -474,8 +475,11 @@ def _parse_cuts(cuts, fail_cuts, observables, observations, pass_all_cuts, pass_
 
     # Check cuts
     for i_cut, cut in enumerate(cuts):
+        definition = cut.val_expression
+        required = cut.is_required
+
         try:
-            cut_result = eval(cut, variables)
+            cut_result = eval(definition, variables)
             if cut_result:
                 pass_cuts[i_cut] += 1
             else:
@@ -483,7 +487,7 @@ def _parse_cuts(cuts, fail_cuts, observables, observations, pass_all_cuts, pass_
                 pass_all_cuts = False
 
         except (SyntaxError, NameError, TypeError, ZeroDivisionError, IndexError):
-            if cut.is_required:
+            if required:
                 pass_cuts[i_cut] += 1
             else:
                 fail_cuts[i_cut] += 1
