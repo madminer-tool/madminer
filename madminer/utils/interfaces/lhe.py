@@ -407,6 +407,7 @@ def _parse_observations(observables: Dict[str, Observable], variables: Dict[str,
     for name, observable in observables.items():
         definition = observable.val_expression
         default = observable.val_default
+        required = observable.is_required
 
         try:
             if isinstance(definition, str):
@@ -422,7 +423,7 @@ def _parse_observations(observables: Dict[str, Observable], variables: Dict[str,
             else:
                 raise TypeError("Not a valid observable")
         except (IndexError, NameError, RuntimeError, SyntaxError, TypeError, ZeroDivisionError):
-            passed_all = False
+            passed_all = False if required else True
             value = default if default is not None else np.nan
         finally:
             observations.append(value)
