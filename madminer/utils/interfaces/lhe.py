@@ -1,18 +1,12 @@
 import logging
 import numpy as np
 import os
+import xml.etree.ElementTree as ET
 
 from collections import OrderedDict
 from typing import Callable
 from typing import Dict
 from typing import List
-
-try:
-    import xml.etree.cElementTree as ET
-    use_celementtree = True
-except ImportError:
-    import xml.etree.ElementTree as ET
-    use_celementtree = False
 
 from particle import Particle
 from madminer.models import Cut
@@ -48,11 +42,9 @@ def parse_lhe_file(
     logger.debug("Parsing LHE file %s", filename)
 
     if parse_events_as_xml:
-        logger.debug("Parsing header and events as XML with %sElementTree", "c" if use_celementtree else "")
+        logger.debug("Parsing header and events as XML with ElementTree")
     else:
-        logger.debug(
-            "Parsing header as XML with %sElementTree and events as text file", "c" if use_celementtree else ""
-        )
+        logger.debug("Parsing header as XML with ElementTree and events as text file")
 
     # Inputs
     if cuts is None:
@@ -100,23 +92,25 @@ def parse_lhe_file(
             weight_norm_is_average = value == "average"
 
             logger.debug(
-                "Found entry event_norm = %s in LHE header. Interpreting this as weight_norm_is_average " "= %s.",
+                "Found entry event_norm = %s in LHE header. "
+                "Interpreting this as weight_norm_is_average = %s.",
                 value,
                 weight_norm_is_average,
             )
 
     if weight_norm_is_average is None:
         logger.warning(
-            "Cannot read weight normalization mode (entry 'event_norm') from LHE file header. MadMiner "
-            "will continue assuming that events are properly normalized. Please check this!"
+            "Cannot read weight normalization mode (entry 'event_norm') from LHE file header. "
+            "MadMiner will continue assuming that events are properly normalized. "
+            "Please check this!"
         )
 
     # If necessary, rescale by number of events
     if weight_norm_is_average:
         if n_events_runcard is None:
             raise RuntimeError(
-                "LHE weights have to be normalized, but MadMiner cannot read number of events (entry "
-                "'nevents') from LHE file header."
+                "LHE weights have to be normalized, "
+                "but MadMiner cannot read number of events (entry 'nevents') from LHE file header."
             )
 
         k_factor = k_factor / n_events_runcard
@@ -641,7 +635,7 @@ def _extract_nuisance_param_dict(weight_groups: list, systematics_name: str, sys
             try:
                 wg_name = wg.attrib["name"]
             except KeyError:
-                logger.warning("New wWeight group: does not have name attribute, skipping")
+                logger.warning("New weight group: does not have name attribute, skipping")
                 continue
             logger.debug("New weight group: %s", wg_name)
 
