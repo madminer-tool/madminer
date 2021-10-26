@@ -207,7 +207,7 @@ class FisherInformation(DataAnalyzer):
             raise ValueError(f"Unknown mode {mode}")
 
         # Load Estimator model
-        if os.path.isdir(model_file) and os.path.exists(model_file + "/ensemble.json"):
+        if os.path.isdir(model_file) and os.path.exists(f"{model_file}/ensemble.json"):
             model_is_ensemble = True
             model = Ensemble()
             model.load(model_file)
@@ -239,8 +239,8 @@ class FisherInformation(DataAnalyzer):
             include_nuisance_parameters = False
         elif model.n_parameters == self.n_parameters + self.n_nuisance_parameters:
             logger.info(
-                "Found %s parameters in %s model, matching %s physical parameters + %s nuisance parameters"
-                + " in MadMiner file",
+                "Found %s parameters in %s model, "
+                "matching %s physical parameters + %s nuisance parameters in MadMiner file",
                 model.n_parameters,
                 model_type,
                 self.n_parameters,
@@ -364,15 +364,17 @@ class FisherInformation(DataAnalyzer):
                     )
                 else:
                     fisher_info_kin = model.calculate_fisher_information(
-                        x=unweighted_x_sample_file, n_events=luminosity * total_xsec, theta=theta
+                        x=unweighted_x_sample_file,
+                        theta=theta,
+                        n_events=luminosity * total_xsec,
                     )
                     covariance = None
 
         # Returns
-        if model_is_ensemble:
+        if model_is_ensemble and calculate_covariance:
             return fisher_info_rate + fisher_info_kin, rate_covariance + covariance
-
-        return fisher_info_rate + fisher_info_kin, rate_covariance
+        else:
+            return fisher_info_rate + fisher_info_kin, rate_covariance
 
     def rate_information(
         self,
