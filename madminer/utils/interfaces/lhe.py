@@ -1,18 +1,12 @@
 import logging
 import numpy as np
 import os
+import xml.etree.ElementTree as ET
 
 from collections import OrderedDict
 from typing import Callable
 from typing import Dict
 from typing import List
-
-try:
-    import xml.etree.cElementTree as ET
-    use_celementtree = True
-except ImportError:
-    import xml.etree.ElementTree as ET
-    use_celementtree = False
 
 from particle import Particle
 from madminer.models import Cut
@@ -48,11 +42,9 @@ def parse_lhe_file(
     logger.debug("Parsing LHE file %s", filename)
 
     if parse_events_as_xml:
-        logger.debug("Parsing header and events as XML with %sElementTree", "c" if use_celementtree else "")
+        logger.debug("Parsing header and events as XML with ElementTree")
     else:
-        logger.debug(
-            "Parsing header as XML with %sElementTree and events as text file", "c" if use_celementtree else ""
-        )
+        logger.debug("Parsing header as XML with ElementTree and events as text file")
 
     # Inputs
     if cuts is None:
