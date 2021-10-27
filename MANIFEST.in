@@ -1,0 +1,9 @@
+### NOTE:
+###
+### This file is required when creating a "source distribution":
+###
+### Reference: https://packaging.python.org/guides/using-manifest-in/
+### Command: $ python -m build --sdist ...
+
+include README.md
+include VERSION
