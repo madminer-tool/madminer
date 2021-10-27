@@ -1,4 +1,3 @@
-from .__info__ import __authors__, __version__
 from .analysis import DataAnalyzer
 from .core import MadMiner
 from .delphes import DelphesReader
@@ -50,19 +49,3 @@ from .sampling import (
     iid_nuisance_parameters,
     nominal_nuisance_parameters,
 )
-
-
-import logging
-
-logging.getLogger("madminer").addHandler(logging.NullHandler())
-logger = logging.getLogger(__name__)
-
-logger.info("")
-logger.info("|{}|".format("-" * 74))
-logger.info("|{}|".format(" " * 74))
-logger.info("|{}|".format(" MadMiner v{}".format(__version__).ljust(74)))
-logger.info("|{}|".format(" " * 74))
-logger.info("|{}|".format(" {}".format(__authors__).ljust(74)))
-logger.info("|{}|".format(" " * 74))
-logger.info("|{}|".format("-" * 74))
-logger.info("")
