@@ -1,7 +1,8 @@
 import logging
 import numpy as np
-import os
+
 from collections import OrderedDict
+from pathlib import Path
 
 from madminer.models import Cut
 from madminer.models import Observable
@@ -195,10 +196,10 @@ class DelphesReader:
         """
 
         # Check inputs
-        if not os.path.exists(hepmc_filename):
+        if hepmc_filename and not Path(hepmc_filename).exists():
             raise ValueError("The specified hepmc file does not exist")
 
-        if lhe_filename and not os.path.exists(lhe_filename):
+        if lhe_filename and not Path(lhe_filename).exists():
             raise ValueError("The specified lhe file does not exist")
 
         if weights not in ["delphes", "lhe"]:
@@ -258,7 +259,7 @@ class DelphesReader:
         for i, (delphes_filename, hepmc_filename) in enumerate(
             zip(self.delphes_sample_filenames, self.hepmc_sample_filenames)
         ):
-            if delphes_filename is not None and os.path.isfile(delphes_filename):
+            if delphes_filename is not None and Path(delphes_filename).is_file():
                 logger.debug("Delphes already run for event sample %s", hepmc_filename)
                 continue
             elif delphes_filename is not None:
