@@ -3,6 +3,7 @@ import logging
 import tempfile
 
 from collections import OrderedDict
+from pathlib import Path
 from typing import Dict
 from typing import List
 from typing import Union
@@ -18,7 +19,7 @@ from madminer.utils.interfaces.hdf5 import save_madminer_settings
 from madminer.utils.interfaces.mg_cards import export_param_card, export_reweight_card, export_run_card
 from madminer.utils.interfaces.mg import generate_mg_process, setup_mg_with_scripts, run_mg, create_master_script
 from madminer.utils.interfaces.mg import setup_mg_reweighting_with_scripts, run_mg_reweighting
-from madminer.utils.various import create_missing_folders, copy_file
+from madminer.utils.various import copy_file
 
 logger = logging.getLogger(__name__)
 
@@ -568,7 +569,9 @@ class MadMiner:
 
         """
 
-        create_missing_folders([os.path.dirname(filename)])
+        Path(filename) \
+            .parent \
+            .mkdir(parents=True, exist_ok=True)
 
         if self.morpher is not None:
             logger.info("Saving setup (including morphing) to %s", filename)
@@ -930,7 +933,7 @@ class MadMiner:
         if python_executable and initial_command is None:
             logger.info(f"Adding {python_executable} bin folder to PATH")
             binary_path = os.popen(f"command -v {python_executable}").read().strip()
-            binary_folder = os.path.dirname(binary_path)
+            binary_folder = Path(binary_path).parent
 
             initial_command = f"export PATH={binary_folder}:$PATH"
             logger.info(f"Using Python executable {binary_path}")
@@ -950,13 +953,8 @@ class MadMiner:
         )
 
         # Make MadMiner folders
-        create_missing_folders(
-            [
-                f"{mg_process_directory}/madminer",
-                f"{mg_process_directory}/madminer/cards",
-                f"{mg_process_directory}/madminer/scripts",
-            ]
-        )
+        Path(mg_process_directory, "madminer", "cards").mkdir(parents=True, exist_ok=True)
+        Path(mg_process_directory, "madminer", "scripts").mkdir(parents=True, exist_ok=True)
 
         # Systematics
         if systematics is None:
@@ -1164,13 +1162,8 @@ class MadMiner:
             log_directory = "./logs"
 
         # Make MadMiner folders
-        create_missing_folders(
-            [
-                f"{mg_process_directory}/madminer",
-                f"{mg_process_directory}/madminer/cards",
-                f"{mg_process_directory}/madminer/scripts",
-            ]
-        )
+        Path(mg_process_directory, "madminer", "cards").mkdir(parents=True, exist_ok=True)
+        Path(mg_process_directory, "madminer", "scripts").mkdir(parents=True, exist_ok=True)
 
         # Files
         script_file = "madminer/scripts/run_reweight.sh"
