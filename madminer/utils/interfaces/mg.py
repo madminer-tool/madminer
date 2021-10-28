@@ -1,8 +1,9 @@
 import logging
-import os
 import shutil
 
-from madminer.utils.various import call_command, make_file_executable, create_missing_folders
+from pathlib import Path
+
+from madminer.utils.various import call_command, make_file_executable
 
 logger = logging.getLogger(__name__)
 
@@ -58,13 +59,17 @@ def generate_mg_process(
     # Preparations
     logger.info("Generating MadGraph process folder from %s at %s", proc_card_file, mg_process_directory)
 
-    create_missing_folders([temp_directory, mg_process_directory, os.path.dirname(log_file)])
+    Path(temp_directory).mkdir(parents=True, exist_ok=True)
+    Path(mg_process_directory).mkdir(parents=True, exist_ok=True)
+
+    if log_file is not None:
+        Path(log_file).parent.mkdir(parents=True, exist_ok=True)
 
     if ufo_model_directory is not None:
         copy_ufo_model(ufo_model_directory, mg_directory)
 
     # MG commands
-    temp_proc_card_file = f"{temp_directory}/generate.mg5"
+    temp_proc_card_file = Path(temp_directory, "generate.mg5")
     shutil.copyfile(proc_card_file, temp_proc_card_file)
 
     with open(temp_proc_card_file, "a") as myfile:
@@ -161,11 +166,14 @@ def setup_mg_with_scripts(
     """
 
     # Preparations
-    create_missing_folders([mg_process_directory])
+    Path(mg_process_directory).mkdir(parents=True, exist_ok=True)
+
     if log_dir is not None:
-        create_missing_folders([log_dir])
+        Path(log_dir).mkdir(parents=True, exist_ok=True)
+
     if proc_card_filename_from_mgprocdir is not None:
-        create_missing_folders([os.path.dirname(mg_process_directory + "/" + proc_card_filename_from_mgprocdir)])
+        proc_path = Path(mg_process_directory, proc_card_filename_from_mgprocdir)
+        proc_path.parent.mkdir(parents=True, exist_ok=True)
 
     # Prepare run...
     logger.info("Preparing script to run MadGraph and Pythia in %s", mg_process_directory)
@@ -179,21 +187,21 @@ def setup_mg_with_scripts(
     # Find filenames for process card and script
     if proc_card_filename_from_mgprocdir is None:
         for i in range(1000):
-            proc_card_filename_from_mgprocdir = f"/Cards/start_event_generation_{i}.mg5"
-            if not os.path.isfile(f"{mg_process_directory}/{proc_card_filename_from_mgprocdir}"):
+            proc_card_filename_from_mgprocdir = f"Cards/start_event_generation_{i}.mg5"
+            if not Path(mg_process_directory, proc_card_filename_from_mgprocdir).is_file():
                 break
     else:
-        proc_card_filename = mg_process_directory + "/" + proc_card_filename_from_mgprocdir
+        proc_card_filename = Path(mg_process_directory, proc_card_filename_from_mgprocdir)
 
     if script_file_from_mgprocdir is None:
         for i in range(1000):
             script_file = f"{mg_process_directory}/madminer/scripts/madminer_run_{i}.sh"
-            if not os.path.isfile(script_file):
+            if not Path(script_file).is_file():
                 break
     else:
         script_file = f"{mg_process_directory}/{script_file_from_mgprocdir}"
 
-    script_filename = os.path.basename(script_file)
+    script_filename = Path(script_file).name
 
     if log_file_from_logdir is None:
         log_file_from_logdir = "/log.log"
@@ -372,9 +380,12 @@ def run_mg(
     """
 
     # Preparations
-    create_missing_folders([mg_process_directory, os.path.dirname(log_file)])
+    Path(mg_process_directory).mkdir(parents=True, exist_ok=True)
+
+    if log_file is not None:
+        Path(log_file).parent.mkdir(parents=True, exist_ok=True)
     if proc_card_filename is not None:
-        create_missing_folders([os.path.dirname(proc_card_filename)])
+        Path(proc_card_filename).parent.mkdir(parents=True, exist_ok=True)
 
     # Just run it already
     logger.info("Starting MadGraph and Pythia in %s", mg_process_directory)
@@ -397,7 +408,7 @@ def run_mg(
     if proc_card_filename is None:
         for i in range(1000):
             proc_card_filename = f"{mg_process_directory}/Cards/start_event_generation_{i}.mg5"
-            if not os.path.isfile(proc_card_filename):
+            if not Path(proc_card_filename).is_file():
                 break
 
     # MG commands
@@ -474,7 +485,7 @@ def setup_mg_reweighting_with_scripts(
 
     # Preparations
     if log_dir is not None:
-        create_missing_folders([log_dir])
+        Path(log_dir).mkdir(parents=True, exist_ok=True)
 
     # Prepare run...
     logger.info("Preparing script to reweight an existing sample in %s", mg_process_directory)
@@ -490,7 +501,7 @@ def setup_mg_reweighting_with_scripts(
     else:
         script_file = f"{mg_process_directory}/{script_file_from_mgprocdir}"
 
-    script_filename = os.path.basename(script_file)
+    script_filename = Path(script_file).name
 
     if log_file_from_logdir is None:
         log_file_from_logdir = "/log.log"
@@ -568,14 +579,15 @@ def run_mg_reweighting(mg_process_directory, run_name, reweight_card_file=None, 
     """
 
     # Preparations
-    create_missing_folders([os.path.dirname(log_file)])
+    if log_file is not None:
+        Path(log_file).parent.mkdir(parents=True, exist_ok=True)
 
     # Prepare run...
     logger.info("Starting reweighting of an existing sample in %s", mg_process_directory)
 
     #  Copy cards
     if reweight_card_file is not None:
-        shutil.copyfile(reweight_card_file, mg_process_directory + "/Cards/reweight_card.dat")
+        shutil.copyfile(reweight_card_file, f"{mg_process_directory}/Cards/reweight_card.dat")
 
     # Call MG5 reweight feature
     initial_command = f"{initial_command}; " if initial_command else ""
@@ -587,10 +599,10 @@ def run_mg_reweighting(mg_process_directory, run_name, reweight_card_file=None, 
 
 
 def copy_ufo_model(ufo_directory, mg_directory):
-    _, model_name = os.path.split(ufo_directory)
-    destination = f"{mg_directory}/models/{model_name}"
+    model_name = Path(ufo_directory).name
+    destination = Path(mg_directory, "models", model_name)
 
-    if os.path.isdir(destination):
+    if destination.is_dir():
         return
 
     shutil.copytree(ufo_directory, destination)

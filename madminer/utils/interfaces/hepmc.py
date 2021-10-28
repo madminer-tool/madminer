@@ -1,5 +1,6 @@
 import logging
-import os
+
+from pathlib import Path
 
 from madminer.utils.various import unzip_file
 
@@ -7,10 +8,13 @@ logger = logging.getLogger(__name__)
 
 
 def extract_weight_order(filename, default_weight_label=None):
+
     # Unzip event file
-    new_filename, extension = os.path.splitext(filename)
+    new_filename = Path(filename).with_suffix("")
+    extension = Path(filename).suffix
+
     if extension == ".gz":
-        if not os.path.exists(new_filename):
+        if not new_filename.exists():
             unzip_file(filename, new_filename)
         filename = new_filename
 

@@ -1,9 +1,9 @@
 import logging
 import numpy as np
-import os
 import xml.etree.ElementTree as ET
 
 from collections import OrderedDict
+from pathlib import Path
 from typing import Callable
 from typing import Dict
 from typing import List
@@ -860,10 +860,13 @@ def _parse_lhe_file_with_bad_chars(filename):
 
 
 def _untar_and_parse_lhe_file(filename, tags=None):
+
     # Unzip event file
-    new_filename, extension = os.path.splitext(filename)
+    new_filename = Path(filename).with_suffix("")
+    extension = Path(filename).suffix
+
     if extension == ".gz":
-        if not os.path.exists(new_filename):
+        if not new_filename.exists():
             unzip_file(filename, new_filename)
         filename = new_filename
 
