@@ -2,10 +2,12 @@ import time
 import logging
 import numpy as np
 import multiprocessing
+
 from functools import partial
+from pathlib import Path
 
 from ..analysis import DataAnalyzer
-from ..utils.various import create_missing_folders, shuffle
+from ..utils.various import shuffle
 
 logger = logging.getLogger(__name__)
 
@@ -158,8 +160,6 @@ class SampleAugmenter(DataAnalyzer):
 
         logger.info("Extracting plain training sample. Sampling according to %s", self._format_sampling(theta))
 
-        create_missing_folders([folder])
-
         # Parameters
         parsed_thetas, n_samples_per_theta = self._parse_theta(theta, n_samples)
         parsed_nus = self._parse_nu(nu, len(parsed_thetas))
@@ -180,6 +180,7 @@ class SampleAugmenter(DataAnalyzer):
 
         # Save data
         if filename is not None and folder is not None:
+            Path(folder).mkdir(parents=True, exist_ok=True)
             np.save(f"{folder}/theta_{filename}.npy", theta)
             np.save(f"{folder}/x_{filename}.npy", x)
 
@@ -289,8 +290,6 @@ class SampleAugmenter(DataAnalyzer):
                 self._format_sampling(theta),
             )
 
-        create_missing_folders([folder])
-
         # Check setup
         if nuisance_score == "auto":
             nuisance_score = self.nuisance_morpher is not None
@@ -325,6 +324,7 @@ class SampleAugmenter(DataAnalyzer):
 
         # Save data
         if filename is not None and folder is not None:
+            Path(folder).mkdir(parents=True, exist_ok=True)
             np.save(f"{folder}/theta_{filename}.npy", theta)
             np.save(f"{folder}/x_{filename}.npy", x)
             np.save(f"{folder}/t_xz_{filename}.npy", t_xz)
@@ -577,8 +577,6 @@ class SampleAugmenter(DataAnalyzer):
             self._format_sampling(theta1),
         )
 
-        create_missing_folders([folder])
-
         # Check setup
         if nuisance_score == "auto":
             nuisance_score = self.nuisance_morpher is not None
@@ -698,6 +696,7 @@ class SampleAugmenter(DataAnalyzer):
 
         # Save data
         if filename is not None and folder is not None:
+            Path(folder).mkdir(parents=True, exist_ok=True)
             np.save(f"{folder}/theta0_{filename}.npy", theta0)
             np.save(f"{folder}/theta1_{filename}.npy", theta1)
             np.save(f"{folder}/x_{filename}.npy", x)
@@ -708,6 +707,7 @@ class SampleAugmenter(DataAnalyzer):
 
         if not return_individual_n_effective:
             n_effective = np.min(n_effective)
+
         return x, theta0, theta1, y, r_xz, t_xz, n_effective
 
     def sample_train_more_ratios(
@@ -848,8 +848,6 @@ class SampleAugmenter(DataAnalyzer):
             self._format_sampling(theta0),
             self._format_sampling(theta1),
         )
-
-        create_missing_folders([folder])
 
         # Check setup
         if nuisance_score == "auto":
@@ -1028,6 +1026,7 @@ class SampleAugmenter(DataAnalyzer):
 
         # Save data
         if filename is not None and folder is not None:
+            Path(folder).mkdir(parents=True, exist_ok=True)
             np.save(f"{folder}/theta0_{filename}.npy", theta0)
             np.save(f"{folder}/theta1_{filename}.npy", theta1)
             np.save(f"{folder}/x_{filename}.npy", x)
@@ -1123,8 +1122,6 @@ class SampleAugmenter(DataAnalyzer):
 
         logger.info("Extracting evaluation sample. Sampling according to %s", self._format_sampling(theta))
 
-        create_missing_folders([folder])
-
         # Thetas
         parsed_thetas, n_samples_per_theta = self._parse_theta(theta, n_samples)
         parsed_nus = self._parse_nu(nu, len(parsed_thetas))
@@ -1145,6 +1142,7 @@ class SampleAugmenter(DataAnalyzer):
 
         # Save data
         if filename is not None and folder is not None:
+            Path(folder).mkdir(parents=True, exist_ok=True)
             np.save(f"{folder}/theta_{filename}.npy", theta)
             np.save(f"{folder}/x_{filename}.npy", x)
 
