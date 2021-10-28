@@ -286,7 +286,8 @@ class SampleAugmenter(DataAnalyzer):
 
         if log_message:
             logger.info(
-                "Extracting training sample for local score regression. Sampling and score evaluation according to %s",
+                "Extracting training sample for local score regression. "
+                "Sampling and score evaluation according to %s",
                 self._format_sampling(theta),
             )
 
@@ -425,8 +426,8 @@ class SampleAugmenter(DataAnalyzer):
         """
 
         logger.info(
-            "Extracting training sample for non-local score-based methods. Sampling and score evaluation according "
-            "to %s",
+            "Extracting training sample for non-local score-based methods. "
+            "Sampling and score evaluation according to %s",
             theta,
         )
 
@@ -571,8 +572,8 @@ class SampleAugmenter(DataAnalyzer):
         """
 
         logger.info(
-            "Extracting training sample for ratio-based methods. Numerator hypothesis: %s, denominator "
-            "hypothesis: %s",
+            "Extracting training sample for ratio-based methods. "
+            "Numerator hypothesis: %s, denominator hypothesis: %s",
             self._format_sampling(theta0),
             self._format_sampling(theta1),
         )
@@ -843,8 +844,8 @@ class SampleAugmenter(DataAnalyzer):
         """
 
         logger.info(
-            "Extracting training sample for ratio-based methods. Numerator hypothesis: %s, denominator "
-            "hypothesis: %s",
+            "Extracting training sample for ratio-based methods. "
+            "Numerator hypothesis: %s, denominator hypothesis: %s",
             self._format_sampling(theta0),
             self._format_sampling(theta1),
         )
