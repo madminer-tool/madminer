@@ -1,5 +1,6 @@
 import json
-import os
+
+from pathlib import Path
 
 from .ensemble import Ensemble
 from .double_parameterized_ratio import DoubleParameterizedRatioEstimator
@@ -9,7 +10,7 @@ from .score import ScoreEstimator
 
 
 def load_estimator(filename):
-    if os.path.isdir(filename):
+    if Path(filename).is_dir():
         model = Ensemble()
         model.load(filename)
 
