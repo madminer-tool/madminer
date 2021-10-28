@@ -1,6 +1,7 @@
 import logging
 import numpy as np
-import os
+
+from pathlib import Path
 
 from madminer.analysis import DataAnalyzer
 from madminer.utils.various import math_commands, weighted_quantile, sanitize_array, mdot
@@ -207,7 +208,7 @@ class FisherInformation(DataAnalyzer):
             raise ValueError(f"Unknown mode {mode}")
 
         # Load Estimator model
-        if os.path.isdir(model_file) and os.path.exists(f"{model_file}/ensemble.json"):
+        if Path(model_file).is_dir() and Path(model_file, "ensemble.json").exists():
             model_is_ensemble = True
             model = Ensemble()
             model.load(model_file)
@@ -270,7 +271,9 @@ class FisherInformation(DataAnalyzer):
         if include_xsec_info:
             logger.info("Evaluating rate Fisher information")
             fisher_info_rate, rate_covariance = self.rate_information(
-                theta=theta, luminosity=luminosity, include_nuisance_parameters=include_nuisance_parameters
+                theta=theta,
+                luminosity=luminosity,
+                include_nuisance_parameters=include_nuisance_parameters,
             )
 
         # Evaluation from weighted events
@@ -858,7 +861,7 @@ class FisherInformation(DataAnalyzer):
         # ML case
         else:
             # Load SALLY model
-            if os.path.isdir(model_file) and os.path.exists(f"{model_file}/ensemble.json"):
+            if Path(model_file).is_dir() and Path(model_file, "ensemble.json").exists():
                 model_is_ensemble = True
                 model = Ensemble()
                 model.load(model_file)
