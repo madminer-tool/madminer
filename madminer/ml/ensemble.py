@@ -1,7 +1,9 @@
 import json
 import logging
 import numpy as np
-from madminer.utils.various import create_missing_folders, load_and_check
+
+from madminer.utils.various import load_and_check
+from pathlib import Path
 
 from .base import Estimator
 from .double_parameterized_ratio import DoubleParameterizedRatioEstimator
@@ -599,7 +601,7 @@ class Ensemble:
         """
 
         # Check paths
-        create_missing_folders([folder])
+        Path(folder).mkdir(parents=True, exist_ok=True)
 
         # Save ensemble settings
         logger.debug("Saving ensemble setup to %s/ensemble.json", folder)

@@ -1,13 +1,12 @@
 import json
 import logging
 import numpy as np
-import os
 import torch
 
 from abc import ABC
 from abc import abstractmethod
+from pathlib import Path
 
-from ..utils.various import create_missing_folders
 from ..utils.various import load_and_check
 
 
@@ -104,7 +103,7 @@ class Estimator(ABC):
             raise ValueError("No model -- train or load model before saving!")
 
         # Check paths
-        create_missing_folders([os.path.dirname(filename)])
+        Path(filename).parent.mkdir(parents=True, exist_ok=True)
 
         # Save settings
         logger.debug("Saving settings to %s_settings.json", filename)

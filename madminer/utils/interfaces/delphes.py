@@ -1,5 +1,6 @@
-import os
 import logging
+
+from pathlib import Path
 
 from madminer.utils.various import call_command, unzip_file
 
@@ -19,20 +20,22 @@ def run_delphes(
     """ Runs Delphes on a HepMC sample """
 
     # Unzip event file
-    filename, extension = os.path.splitext(hepmc_sample_filename)
+    filename = Path(hepmc_sample_filename).with_suffix("")
+    extension = Path(hepmc_sample_filename).suffix
     to_delete = None
+
     if extension == ".gz":
         logger.debug("Unzipping %s", hepmc_sample_filename)
-        if not os.path.exists(filename):
+        if not filename.exists():
             unzip_file(hepmc_sample_filename, filename)
         if delete_unzipped_file:
             to_delete = filename
-        hepmc_sample_filename = filename
+
+        hepmc_sample_filename = str(filename)
 
     # Where to put Delphes sample
     if delphes_sample_filename is None:
-        filename_prefix = hepmc_sample_filename.replace(".hepmc.gz", "")
-        filename_prefix = filename_prefix.replace(".hepmc", "")
+        filename_prefix = filename.with_suffix("")
 
         for i in range(1, 1000):
             if i == 1:
@@ -40,16 +43,16 @@ def run_delphes(
             else:
                 filename_candidate = f"{filename_prefix}_delphes_{i}.root"
 
-            if not os.path.exists(filename_candidate):
+            if not Path(filename_candidate).exists():
                 delphes_sample_filename = filename_candidate
                 break
             elif overwrite_existing_delphes_root_file:
                 delphes_sample_filename = filename_candidate
-                os.remove(delphes_sample_filename)
+                Path(delphes_sample_filename).unlink()
                 break
 
         assert delphes_sample_filename is not None, "Could not find filename for Delphes sample"
-        assert not os.path.exists(delphes_sample_filename), "Could not find filename for Delphes sample"
+        assert Path(delphes_sample_filename).exists() is not True, "Could not find filename for Delphes sample"
 
     # Initial commands
     if initial_command is None:
@@ -69,6 +72,6 @@ def run_delphes(
     # Delete unzipped file
     if to_delete is not None:
         logger.debug("Deleting %s", to_delete)
-        os.remove(to_delete)
+        Path(to_delete).unlink()
 
     return delphes_sample_filename
