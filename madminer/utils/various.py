@@ -51,21 +51,6 @@ def unzip_file(filename, new_filename, block_size=65536):
         shutil.copyfileobj(s_file, d_file, block_size)
 
 
-def create_missing_folders(folders):
-    if folders is None:
-        return
-
-    for folder in folders:
-        if folder is None or folder == "":
-            continue
-
-        if not os.path.exists(folder):
-            os.makedirs(folder)
-
-        elif not os.path.isdir(folder):
-            raise OSError(f"Path {folder} exists, but is no directory!")
-
-
 def shuffle(*arrays):
     """ Shuffles multiple arrays simultaneously """
 
