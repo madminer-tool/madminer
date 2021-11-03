@@ -641,6 +641,7 @@ def _extract_nuisance_param_dict(weight_groups: list, systematics_name: str, sys
 
             if (
                 "mg_reweighting" in wg_name.lower()
+                or "mwst" not in wg_name.lower()
                 or "pdf" not in wg_name.lower()
                 or "ct" not in wg_name.lower()
                 or systematic.value not in wg_name.lower()
