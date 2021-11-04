@@ -19,14 +19,12 @@ from pathlib import Path
 
 # -- Project information -----------------------------------------------------
 
-info = {}
 project_folder = Path(__file__).parent.parent
-with open(project_folder.joinpath('madminer', '__info__.py')) as f:
-    exec(f.read(), info)
+version_file = project_folder.joinpath("VERSION")
 
 project = 'MadMiner'
-authors = info['__authors__']
-version = info['__version__']
+authors = 'Johann Brehmer, Felix Kling, Irina Espejo, Sinclert Perez, Kyle Cranmer'
+version = open(version_file).read().strip()
 copyright = '{} 2018-2020'.format(authors)
 
 # The full version, including alpha/beta/rc tags
