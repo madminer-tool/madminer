@@ -393,7 +393,7 @@ def save_events(
     observables: Dict[str, Observable],
     observations: dict,
     weights: dict,
-    sampling_benchmarks: List[int] = None,
+    sampling_benchmarks: List[int],
     num_signal_events: List[int] = None,
     num_background_events: int = None,
 ) -> None:
