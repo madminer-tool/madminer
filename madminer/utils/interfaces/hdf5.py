@@ -25,6 +25,11 @@ from madminer.models import SystematicValue
 
 logger = logging.getLogger(__name__)
 
+# Python expression that can be evaluated with the `eval` built-in without any consequences.
+# Before this symbol, the empty string was used, but it is not evaluation-compatible.
+# Reference: https://github.com/madminer-tool/madminer/issues/501
+EMPTY_EXPR: str = str(None)
+
 
 def load_madminer_settings(file_name: str, include_nuisance_benchmarks: bool) -> tuple:
     """
