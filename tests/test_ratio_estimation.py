@@ -148,7 +148,3 @@ def test_ratio_estimation():
         print(" {:>6s}  |  {:11.3f}  |  {:11.3f} ".format(method, this_rmses[0], this_rmses[1]))
 
     assert np.max(rmses[:, -1]) < 100.0
-
-
-if __name__ == "__main__":
-    test_ratio_estimation()
