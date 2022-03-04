@@ -827,8 +827,8 @@ def _save_nuisance_params(
 
     param_names = [p.name for p in parameters.values()]
     param_systematics = [p.systematic for p in parameters.values()]
-    param_benchmarks_pos = [p.benchmark_pos if p.benchmark_pos else "" for p in parameters.values()]
-    param_benchmarks_neg = [p.benchmark_neg if p.benchmark_neg else "" for p in parameters.values()]
+    param_benchmarks_pos = [p.benchmark_pos if p.benchmark_pos else EMPTY_EXPR for p in parameters.values()]
+    param_benchmarks_neg = [p.benchmark_neg if p.benchmark_neg else EMPTY_EXPR for p in parameters.values()]
 
     param_names = _encode_strings(param_names)
     param_systematics = _encode_strings(param_systematics)
@@ -1027,7 +1027,7 @@ def _save_observables(
     observable_names = _encode_strings(observable_names)
 
     # Filter out callable definitions when saving into HDF5 file
-    observable_defs = [d if isinstance(d, str) else "" for d in observable_defs]
+    observable_defs = [d if isinstance(d, str) else EMPTY_EXPR for d in observable_defs]
     observable_defs = _encode_strings(observable_defs)
 
     # Append if file exists, otherwise create
@@ -1274,7 +1274,7 @@ def _save_systematics(
         None
     """
 
-    systematics_scales = [scale if scale else "" for scale in systematics_scales]
+    systematics_scales = [scale if scale else EMPTY_EXPR for scale in systematics_scales]
 
     systematics_names = _encode_strings(systematics_names)
     systematics_types = _encode_strings(systematics_types)
