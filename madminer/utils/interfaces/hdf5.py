@@ -799,7 +799,6 @@ def _load_nuisance_params(file_name: str) -> Dict[str, NuisanceParameter]:
         parameters[name] = NuisanceParameter(name, sys, benchmark_pos, benchmark_neg)
 
     # TODO: The dictionary has been preserved. Harmony with other loaders?
-
     return parameters
 
 
@@ -862,8 +861,6 @@ def _save_nuisance_params(
             data=param_benchmarks_neg,
             dtype="S256",
         )
-
-        # TODO: The dictionary has been preserved. Harmony with other loaders?
 
 
 def _load_analysis_params(file_name: str) -> Dict[str, AnalysisParameter]:
