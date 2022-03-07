@@ -25,6 +25,11 @@ from madminer.models import SystematicValue
 
 logger = logging.getLogger(__name__)
 
+# Python expression that can be evaluated with the `eval` built-in without any consequences.
+# Before this symbol, the empty string was used, but it is not evaluation-compatible.
+# Reference: https://github.com/madminer-tool/madminer/issues/501
+EMPTY_EXPR: str = str(None)
+
 
 def load_madminer_settings(file_name: str, include_nuisance_benchmarks: bool) -> tuple:
     """
@@ -388,7 +393,7 @@ def save_events(
     observables: Dict[str, Observable],
     observations: dict,
     weights: dict,
-    sampling_benchmarks: List[int] = None,
+    sampling_benchmarks: List[int],
     num_signal_events: List[int] = None,
     num_background_events: int = None,
 ) -> None:
@@ -794,7 +799,6 @@ def _load_nuisance_params(file_name: str) -> Dict[str, NuisanceParameter]:
         parameters[name] = NuisanceParameter(name, sys, benchmark_pos, benchmark_neg)
 
     # TODO: The dictionary has been preserved. Harmony with other loaders?
-
     return parameters
 
 
@@ -822,8 +826,8 @@ def _save_nuisance_params(
 
     param_names = [p.name for p in parameters.values()]
     param_systematics = [p.systematic for p in parameters.values()]
-    param_benchmarks_pos = [p.benchmark_pos if p.benchmark_pos else "" for p in parameters.values()]
-    param_benchmarks_neg = [p.benchmark_neg if p.benchmark_neg else "" for p in parameters.values()]
+    param_benchmarks_pos = [p.benchmark_pos if p.benchmark_pos else EMPTY_EXPR for p in parameters.values()]
+    param_benchmarks_neg = [p.benchmark_neg if p.benchmark_neg else EMPTY_EXPR for p in parameters.values()]
 
     param_names = _encode_strings(param_names)
     param_systematics = _encode_strings(param_systematics)
@@ -857,8 +861,6 @@ def _save_nuisance_params(
             data=param_benchmarks_neg,
             dtype="S256",
         )
-
-        # TODO: The dictionary has been preserved. Harmony with other loaders?
 
 
 def _load_analysis_params(file_name: str) -> Dict[str, AnalysisParameter]:
@@ -1022,7 +1024,7 @@ def _save_observables(
     observable_names = _encode_strings(observable_names)
 
     # Filter out callable definitions when saving into HDF5 file
-    observable_defs = [d if isinstance(d, str) else "" for d in observable_defs]
+    observable_defs = [d if isinstance(d, str) else EMPTY_EXPR for d in observable_defs]
     observable_defs = _encode_strings(observable_defs)
 
     # Append if file exists, otherwise create
@@ -1269,7 +1271,7 @@ def _save_systematics(
         None
     """
 
-    systematics_scales = [scale if scale else "" for scale in systematics_scales]
+    systematics_scales = [scale if scale else EMPTY_EXPR for scale in systematics_scales]
 
     systematics_names = _encode_strings(systematics_names)
     systematics_types = _encode_strings(systematics_types)
