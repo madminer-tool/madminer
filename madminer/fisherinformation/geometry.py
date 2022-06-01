@@ -351,6 +351,7 @@ class InformationGeometry:
         # determine trajectories
         thetas = []
         distances = []
+
         for i in range(ntrajectories):
             if continous_sampling:
                 angle = 2.0 * np.pi / float(ntrajectories) * i
@@ -360,10 +361,10 @@ class InformationGeometry:
 
             logger.debug(f"Calculate Trajectory Number {i} with dtheta0={dth0}")
             ths, ds = self.find_trajectory(theta0, dth0, limits, stepsize)
-            for th in ths:
-                thetas.append(th)
-            for d in ds:
-                distances.append(d)
+
+            thetas.extend(ths)
+            distances.extend(ds)
+
         thetas = np.array(thetas)
 
         # Create Theta Grid
