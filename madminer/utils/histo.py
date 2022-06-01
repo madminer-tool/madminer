@@ -86,17 +86,19 @@ class Histo:
             bins_in = [bins_in for _ in range(self.n_observables)]
 
         # Find binning along each observable direction
-        n_bins = []
+        num_bins = []
         bin_edges = []
 
         for this_bins, this_x in zip(bins_in, x.T):
             if isinstance(this_bins, int):
-                bin_edges.append(self._adaptive_binning(this_x, this_bins, weights=weights))
+                edges = self._adaptive_binning(this_x, this_bins, weights=weights)
             else:
-                bin_edges.append(this_bins)
-            n_bins.append(len(bin_edges[-1]) - 1)
+                edges = this_bins
 
-        return n_bins, bin_edges
+            num_bins.append(len(edges) - 1)
+            bin_edges.append(edges)
+
+        return num_bins, bin_edges
 
     @staticmethod
     def _adaptive_binning(x, n_bins, weights=None, lower_cutoff_percentile=0.1, upper_cutoff_percentile=99.9):
