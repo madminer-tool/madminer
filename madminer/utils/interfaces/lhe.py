@@ -48,9 +48,9 @@ def parse_lhe_file(
 
     # Inputs
     if cuts is None:
-        cuts = OrderedDict()
+        cuts = []
     if efficiencies is None:
-        efficiencies = OrderedDict()
+        efficiencies = []
     if k_factor is None:
         k_factor = 1.0
     if is_background and benchmark_names is None:
