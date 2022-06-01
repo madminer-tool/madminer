@@ -31,10 +31,7 @@ class Benchmark:
 
         return cls(
             name=name,
-            values=OrderedDict(
-                (p_name, p_value)
-                for p_name, p_value in zip(param_names, param_values)
-            ),
+            values=OrderedDict(zip(param_names, param_values)),
         )
 
     def __str__(self) -> str:
@@ -105,8 +102,5 @@ class FiniteDiffBenchmark:
 
         return cls(
             base_name=base_name,
-            shift_names=OrderedDict(
-                (p_name, shift_name)
-                for p_name, shift_name in zip(param_names, shift_names)
-            ),
+            shift_names=OrderedDict(zip(param_names, shift_names)),
         )
