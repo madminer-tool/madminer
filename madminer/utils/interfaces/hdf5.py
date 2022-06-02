@@ -394,8 +394,8 @@ def save_events(
     observations: dict,
     weights: dict,
     sampling_benchmarks: List[int],
-    num_signal_events: List[int] = None,
-    num_background_events: int = None,
+    num_signal_events: List[int],
+    num_background_events: int,
 ) -> None:
     """
     Saves generated events information into a HDF5 data file
@@ -1174,12 +1174,6 @@ def _save_samples_summary(
     -------
         None
     """
-
-    if num_signal_events is None:
-        num_signal_events = []
-
-    if num_background_events is None:
-        num_background_events = 0
 
     # Append if file exists, otherwise create
     with h5py.File(file_name, "a") as file:
