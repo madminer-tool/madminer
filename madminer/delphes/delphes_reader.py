@@ -85,8 +85,8 @@ class DelphesReader:
         self.events_sampling_benchmark_ids = []
 
         # Initialize event summary
-        self.signal_events_per_benchmark = None
-        self.background_events = None
+        self.signal_events_per_benchmark = []
+        self.background_events = 0
 
         # Information from .h5 file
         self.filename = filename

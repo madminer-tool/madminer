@@ -585,9 +585,7 @@ class HistoLikelihood(BaseLikelihood):
         """
 
         # get array of flattened histograms
-        flattened_histo_weights = []
-        for histo in histogram_benchmarks:
-            flattened_histo_weights.append(histo.flatten())
+        flattened_histo_weights = [histo.flatten() for histo in histogram_benchmarks]
         flattened_histo_weights = np.array(flattened_histo_weights).T
 
         # calculate dot product
@@ -595,5 +593,4 @@ class HistoLikelihood(BaseLikelihood):
         histo_weights_theta = mdot(theta_matrix, flattened_histo_weights)
 
         # create histogram
-        histo = Histo(bin_centers, weights=histo_weights_theta, bins=hist_bins, epsilon=1.0e-12)
-        return histo
+        return Histo(bin_centers, weights=histo_weights_theta, bins=hist_bins, epsilon=1.0e-12)
