@@ -1,3 +1,4 @@
+import itertools
 import logging
 import numpy as np
 
@@ -117,7 +118,7 @@ class PhysicsMorpher:
         self.components = components
         self.n_components = len(self.components)
 
-    def find_components(self, BSM_max_power = float('inf'), Nd = 0, Np = 0, Ns = 0):
+    def find_components(self, max_overall_power=0, BSM_max_power = float('inf'), Nd = 0, Np = 0, Ns = 0):
         """
         Finds the components, i.e. the individual terms contributing to the squared matrix element.
         Parameters
@@ -134,6 +135,31 @@ class PhysicsMorpher:
         -------
             None
         """
+        # To compatitle with previous version
+        if max_overall_power != 0:
+            logger.debug("Max overall power %s", max_overall_power)
+            logger.debug("Max individual power %s", [max_power for max_power in self.parameter_max_power])
+
+            powers_each_component = [range(max_power + 1) for max_power in self.parameter_max_power]
+
+            # Go through regions and finds components for each
+            components = []
+            for powers in itertools.product(*powers_each_component):
+                powers = np.array(powers, dtype=int)
+                
+                if np.sum(powers) > max_overall_power:
+                    continue
+
+                if not any((powers == x).all() for x in components):
+                    logger.debug("  Adding component %s", powers)
+                    components.append(np.copy(powers))
+                else:
+                    logger.debug("  Not adding component %s again", powers)
+
+            self.components = np.array(components, dtype=int)
+            self.n_components = len(self.components)
+            return self.components
+        
 
         lst = []
         # Check if any number of couplings were specified. 
@@ -200,6 +226,8 @@ class PhysicsMorpher:
         self.components = arr_pmax
         self.n_components = len_arr_pmax
 
+        return self.components
+
     def set_basis(self, basis_from_madminer: Dict[str, Benchmark] = None, basis_numpy=None, morphing_matrix=None, basis_p = None, basis_d = None, basis_s = None):
         """
         Manually sets the basis benchmarks.
@@ -224,7 +252,7 @@ class PhysicsMorpher:
         """
 
         # If no basis is provided
-        if basis_d is None and basis_p is None and basis_s is None:
+        if basis_d is None and basis_p is None and basis_s is None and basis_numpy is None and basis_from_madminer is None:
             raise RuntimeError("Basis not specified")
 
         if basis_from_madminer is not None:
@@ -232,10 +260,13 @@ class PhysicsMorpher:
             for benchmark in basis_from_madminer.values():
                 self.basis.append([benchmark.values[key] for key in self.parameter_names])
             self.gs = np.array(self.basis).T # The original basis from madminer should be gs only
+        elif basis_numpy is not None: # To compatible with previous version
+            self.basis = np.array(basis_numpy)
+            # Restrict basis to the first benchmarks
+            self.basis = self.basis[: self.n_components, :]
         else:
             # Set the values of basis, basis_p, basis_d, basis_s
             if basis_s is not None:  
-                self.basis = basis_s
                 self.gs = basis_s
                 self.n_benchmarks = len(basis_s[0])
 
@@ -246,7 +277,7 @@ class PhysicsMorpher:
             if basis_d is not None:
                 self.gd = basis_d
                 self.n_benchmarks = len(basis_d[0])
-
+            # Check the which inputs are provided, and set self.n_benchmarks coordinately. 
             if basis_s is not None and basis_p is not None and basis_d is not None:
                 assert len(basis_p[0]) == len(basis_d[0]) == len(basis_s[0]), "the number of basis points in production, decay and combine should be the same"
                 self.n_benchmarks = len(basis_p[0])
@@ -263,7 +294,7 @@ class PhysicsMorpher:
                 assert len(basis_p[0]) == len(basis_d[0]), "the number of each basis points in production and decay should be the same"
                 self.n_benchmarks = len(basis_p[0])
         
-
+        # assert self.basis is not None, self.basis
 
         if morphing_matrix is None:
             self.morphing_matrix = self.calculate_morphing_matrix()
@@ -372,7 +403,7 @@ class PhysicsMorpher:
         # Normal output
         return best_basis
 
-    def calculate_morphing_matrix(self):
+    def calculate_morphing_matrix(self, basis = None):
         """
         Calculates the morphing matrix that links the components to the basis benchmarks.
         Parameters
@@ -392,6 +423,52 @@ class PhysicsMorpher:
             raise RuntimeError(
                 "No components defined. Use morpher.set_components() or morpher.find_components() " "first!"
             )
+        
+        # To compatible with the old version
+        if self.basis is not None:
+                # Check all data is there
+            if basis is None:
+                basis = self.basis
+
+            if basis is None:
+                raise RuntimeError(
+                    "No basis defined or given. Use PhysicsMorpher.set_basis(), PhysicsMorpher.optimize_basis(), or the "
+                    "basis keyword."
+                )
+
+
+            n_benchmarks = len(basis)
+            n_bases = n_benchmarks // self.n_components
+
+
+            # Full morphing matrix. Will have shape (n_components, n_benchmarks_phys) (note transposition later)
+            morphing_matrix = np.zeros((n_benchmarks, self.n_components)) 
+
+            # Morphing submatrix for each basis
+            for i in range(n_bases):
+                n_benchmarks_this_basis = self.n_components
+                this_basis = basis[i * n_benchmarks_this_basis : (i + 1) * n_benchmarks_this_basis]
+
+                inv_morphing_submatrix = np.zeros((n_benchmarks_this_basis, self.n_components))
+
+                for b in range(n_benchmarks_this_basis):
+                    for c in range(self.n_components):
+                        factor = 1.0
+                        for p in range(self.n_parameters):
+                            factor *= float(this_basis[b, p] ** self.components[c, p]) # get value of g1^n * g2^n
+                        inv_morphing_submatrix[b, c] = factor
+
+                # Invert -? components expressed in basis points. Shape (n_components, n_benchmarks_this_basis)
+                morphing_submatrix = np.linalg.inv(inv_morphing_submatrix)
+
+                # For now, just use 1 / n_bases times the weights of each basis
+                morphing_submatrix = morphing_submatrix / float(n_bases)
+
+                # Write into full morphing matrix
+                morphing_submatrix = morphing_submatrix.T
+                morphing_matrix[i * n_benchmarks_this_basis : (i + 1) * n_benchmarks_this_basis] = morphing_submatrix
+
+            return morphing_matrix.T
 
         n_gp = 0
         n_gd = 0
