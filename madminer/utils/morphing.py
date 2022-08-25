@@ -13,7 +13,6 @@ from madminer.models import AnalysisParameter
 from madminer.models import NuisanceParameter
 from madminer.utils.various import sanitize_array
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -21,10 +20,13 @@ class PhysicsMorpher:
     """
     Morphing functionality for theory parameters. Morphing is a technique that allows MadMax to infer the full
     probability distribution `p(x_i | theta)` for each simulated event `x_i` and any `theta`, not just the benchmarks.
+
     For a typical MadMiner application, it is not necessary to use the morphing classes directly. The other MadMiner
     classes use the morphing functions "under the hood" when needed. Only for an isolated study of the morphing setup
     (e.g. to optimize the morphing basis), the PhysicsMorpher class itself may be of interest.
+
     A typical morphing basis setup involves the following steps:
+
     * The instance of the class is initialized with the parameter setup. The user can provide the parameters either
       in the format of `MadMiner.parameters`. Alternatively, human-friendly lists of the key properties can be provided.
     * The function `find_components` can be used to find the relevant components, i.e. individual terms
@@ -34,24 +36,30 @@ class PhysicsMorpher:
       element will be evaluated before interpolating to other parameter points. Again the user can pick this basis
       manually with `set_basis()`. Alternatively, this class provides a basic optimization routine for the basis choice
       in `optimize_basis()`.
+
     The class also provides helper functions that are important for working with morphing:
+
     * `calculate_morphing_matrix()` calculates the morphing matrix, i.e. the matrix that links the morphing basis to the
        components.
     * `calculate_morphing_weights()` calculates the morphing weights `w_b(theta)` for a given parameter point `theta`
       such that `p(theta) = sum_b w_b(theta) p(theta_b)`.
     * `calculate_morphing_weight_gradient()` calculates the gradient of the morphing weights, `grad_theta w_b(theta)`.
+
     Note that this class only implements the "theory morphing" (or, more specifically, "EFT morphing") of the physics
     parameters of interest. Nuisance parameter morphing is implemented in the NuisanceMorpher class.
+
     Parameters
     ----------
     parameters_from_madminer : OrderedDict or None, optional
         Parameters in the `MadMiner.parameters` convention. OrderedDict with keys equal to the parameter names and
         values equal to AnalysisParameter model instances.
+
     parameter_max_power : None or list of int, optional
         Only used if parameters_from_madminer is None. Maximal power with which each parameter contributes to
         the squared matrix element. Typically at tree level, this maximal number is 2 for parameters
         that affect one vertex (e.g. only production or only decay of a particle),
         and 4 for parameters that affect two vertices (e.g. production and decay).
+
     parameter_range : None or list of tuple of float, optional
         Only used if parameters_from_madminer is None. Parameter range (param_min, param_max) for each parameter.
     """
@@ -95,12 +103,14 @@ class PhysicsMorpher:
     def set_components(self, components):
         """
         Manually defines the components, i.e. the individual terms contributing to the squared matrix element.
+
         Parameters
         ----------
         components : ndarray
             Array with shape (n_components, n_parameters), where each entry gives the power with which a parameter
             scales a given component. For instance, a typical signal, interference, background situation with one
             parameter might be described by the components [[2], [1], [0]].
+
         Returns
         -------
             None
@@ -112,6 +122,7 @@ class PhysicsMorpher:
     def find_components(self, max_overall_power=0, BSM_max_power = float('inf'), Nd = 0, Np = 0, Ns = 0):
         """
         Finds the components, i.e. the individual terms contributing to the squared matrix element.
+        
         Parameters
         ----------
         BSM_max_power : int, optional, default = float('inf')
@@ -122,9 +133,12 @@ class PhysicsMorpher:
             Number of production couplings
         Ns : int, optional, default = 0
             Number of spin couplings
+
         Returns
         -------
-            None
+        components : ndarray
+            Array with shape (n_components, n_parameters), where each entry gives the power with which a parameter
+
         """
         # To compatitle with previous version
         if max_overall_power != 0:
@@ -219,7 +233,6 @@ class PhysicsMorpher:
 
         return self.components
 
-
     def set_basis(self, basis_from_madminer: Dict[str, Benchmark] = None, basis_numpy=None, morphing_matrix=None, basis_p = None, basis_d = None, basis_s = None):
         """
         Manually sets the basis benchmarks.
@@ -286,8 +299,6 @@ class PhysicsMorpher:
             elif basis_p is not None and basis_d is not None:
                 assert len(basis_p[0]) == len(basis_d[0]), "the number of each basis points in production and decay should be the same"
                 self.n_benchmarks = len(basis_p[0])
-        
-        # assert self.basis is not None, self.basis
 
         if morphing_matrix is None:
             self.morphing_matrix = self.calculate_morphing_matrix()
@@ -305,22 +316,28 @@ class PhysicsMorpher:
         """
         Optimizes the morphing basis. If either fixed_benchmarks_from_madminer or fixed_benchmarks_numpy are not
         None, then these will be used as fixed basis points and only the remaining part of the basis will be optimized.
+
         Parameters
         ----------
         n_bases : int, optional
             The number of morphing bases generated. If n_bases > 1, multiple bases are combined, and the
             weights for each basis are reduced by a factor 1 / n_bases. Currently only the default choice of 1 is
             fully implemented. Do not use any other value for now. Default value: 1.
+
         benchmarks_from_madminer : OrderedDict or None, optional
             Input basis vectors in the `MadMiner.benchmarks` conventions. Default value: None.
+
         benchmarks_numpy : ndarray or None, optional
             Input basis vectors as a ndarray with shape `(n_fixed_basis_points, n_parameters)`. Default value: None.
+
         n_trials : int, optional
             Number of random basis configurations tested in the optimization procedure. A larger number will increase
             the run time of the optimization, but lead to better results. Default value: 100.
+
         n_test_thetas : int, optional
             Number of random parameter points used to evaluate the expected mean squared morphing weights. A larger
             number will increase the run time of the optimization, but lead to better results. Default value: 100.
+
         Returns
         -------
         basis : OrderedDict or ndarray
@@ -399,12 +416,14 @@ class PhysicsMorpher:
     def calculate_morphing_matrix(self, basis = None):
         """
         Calculates the morphing matrix that links the components to the basis benchmarks.
+        
         Parameters
         ----------
         basis : ndarray or None, optional
              Manually specified morphing basis for which the morphing matrix is calculated. This array has shape
              `(n_basis_benchmarks, n_parameters)`. If None, the basis from the last call of `set_basis()` or
              `find_basis()` is used. Default value: None.
+
         Returns
         -------
         morphing_matrix : ndarray
@@ -528,18 +547,22 @@ class PhysicsMorpher:
     def calculate_morphing_weights(self, theta, basis=None, morphing_matrix=None):
         """
         Calculates the morphing weights `w_b(theta)` for a given morphing basis `{theta_b}`.
+
         Parameters
         ----------
         theta : ndarray
             Parameter point `theta` with shape `(n_parameters,)`.
+
         basis : ndarray or None, optional
              Manually specified morphing basis for which the weights are calculated. This array has shape
              `(n_basis_benchmarks, n_parameters)`. If None, the basis from the last call of `set_basis()` or
              `find_basis()` is used. Default value: None.
+
         morphing_matrix : ndarray or None, optional
              Manually specified morphing matrix for the given morphing basis. This array has shape
              `(n_basis_benchmarks, n_components)`. If None, the morphing matrix is calculated automatically. Default
              value: None.
+
         Returns
         -------
         morphing_weights : ndarray
@@ -580,18 +603,22 @@ class PhysicsMorpher:
     def calculate_morphing_weight_gradient(self, theta, basis=None, morphing_matrix=None):
         """
         Calculates the gradient of the morphing weights, `grad_i w_b(theta)`.
+
         Parameters
         ----------
         theta : ndarray
             Parameter point `theta` with shape `(n_parameters,)`.
+
         basis : ndarray or None, optional
              Manually specified morphing basis for which the weights are calculated. This array has shape
              `(n_basis_benchmarks, n_parameters)`. If None, the basis from the last call of `set_basis()` or
              `find_basis()` is used. Default value: None.
+
         morphing_matrix : ndarray or None, optional
              Manually specified morphing matrix for the given morphing basis. This array has shape
              `(n_basis_benchmarks, n_components)`. If None, the morphing matrix is calculated automatically. Default
              value: None.
+
         Returns
         -------
         morphing_weight_gradients : ndarray
@@ -641,29 +668,36 @@ class PhysicsMorpher:
     def evaluate_morphing(self, basis=None, morphing_matrix=None, n_test_thetas=100, return_weights_and_thetas=False):
         """
         Evaluates the expected sum of the squared morphing weights for a given basis.
+
         Parameters
         ----------
         basis : ndarray or None, optional
              Manually specified morphing basis for which the weights are calculated. This array has shape
              `(n_basis_benchmarks, n_parameters)`. If None, the basis from the last call of `set_basis()` or
              `find_basis()` is used. Default value: None.
+
         morphing_matrix : ndarray or None, optional
              Manually specified morphing matrix for the given morphing basis. This array has shape
              `(n_basis_benchmarks, n_components)`. If None, the morphing matrix is calculated automatically. Default
              value: None.
+
         n_test_thetas : int, optional
             Number of random parameter points used to evaluate the expected mean squared morphing weights. A larger
             number will increase the run time of the optimization, but lead to better results. Default value: 100.
+
         return_weights_and_thetas : bool, optional
              If True, results for each evaluation theta are returned, rather than taking their average. Default value:
              False.
+
         Returns
         -------
         thetas_test : ndarray
             Random parameter points used for evaluation. Only returned if `return_weights_and_thetas=True` is used.
+
         squared_weights : ndarray
             Squared summed morphing weights at each evaluation parameter point. Only returned if
             `return_weights_and_thetas=True` is used.
+
         negative_expected_sum_squared_weights : float
             Negative expected sum of the square of the morphing weights. Objective function in the optimization.
             Only returned with `return_weights_and_thetas=False`.
@@ -731,16 +765,20 @@ class PhysicsMorpher:
 class NuisanceMorpher:
     """
     Morphing functionality for nuisance parameters.
+
     For a typical MadMiner application, it is not necessary to use the morphing classes directly. The other MadMiner
     classes use the morphing functions "under the hood" when needed.
+
     Parameters
     ----------
     nuisance_parameters_from_madminer : OrderedDict
         Nuisance parameters defined in the form {name: (benchmark_name_pos, benchmark_name_neg)}. Here
         benchmark_name_pos refers to the name of the benchmark with nu_i = 1, while benchmark_name_neg is either None
         or refers to the name of the benchmark with nu_i = -1.
+
     benchmark_names : list
         The names of the benchmarks.
+
     reference_benchmark : str
         Name of the reference benchmark.
     """
@@ -787,6 +825,7 @@ class NuisanceMorpher:
         """
         Calculates the first-order coefficients a_i(x) in
         `dsigma(x |  theta, nu) / dsigma(x | theta, 0) = exp[ sum_i (a_i(x) nu_i + b_i(x) nu_i^2 )]`.
+
         Parameters
         ----------
         benchmark_weights : ndarray
@@ -794,6 +833,7 @@ class NuisanceMorpher:
             to be sorted in the same order as the keyword benchmark_names used during initialization, and the
             nuisance benchmarks are expected to be rescaled to have the same physics parameters theta as the
             reference_benchmark given during initialization.
+
         Returns
         -------
         a : ndarray
@@ -817,6 +857,7 @@ class NuisanceMorpher:
         """
         Calculates the second-order coefficients b_i(x) in
         `dsigma(x |  theta, nu) / dsigma(x | theta, 0) = exp[ sum_i (a_i(x) nu_i + b_i(x) nu_i^2 )]`.
+
         Parameters
         ----------
         benchmark_weights : ndarray
@@ -824,6 +865,7 @@ class NuisanceMorpher:
             to be sorted in the same order as the keyword benchmark_names used during initialization, and the
             nuisance benchmarks are expected to be rescaled to have the same physics parameters theta as the
             reference_benchmark given during initialization.
+
         Returns
         -------
         b : ndarray
@@ -852,15 +894,18 @@ class NuisanceMorpher:
     def calculate_nuisance_factors(self, nuisance_parameters, benchmark_weights):
         """
         Calculates the rescaling of the event weights from non-central values of nuisance parameters.
+
         Parameters
         ----------
         nuisance_parameters : ndarray
             Values of the nuisance parameters `nu`, with shape `(n_nuisance_parameters,)`.
+
         benchmark_weights : ndarray
             Event weights `dsigma(x | theta_i, nu_i)` with shape `(n_events, n_benchmarks)`. The benchmarks are expected
             to be sorted in the same order as the keyword benchmark_names used during initialization, and the
             nuisance benchmarks are expected to be rescaled to have the same physics parameters theta as the
             reference_benchmark given during initialization.
+
         Returns
         -------
         nuisance_factors : ndarray
@@ -881,15 +926,18 @@ class NuisanceMorpher:
     def calculate_log_nuisance_factor_gradients(self, nuisance_parameters, benchmark_weights):
         """
         Calculates the gradient of the log of the nuisance factors with respect to the nuisance parameters.
+
         Parameters
         ----------
         nuisance_parameters : ndarray
             Values of the nuisance parameters `nu`, with shape `(n_nuisance_parameters,)`.
+
         benchmark_weights : ndarray
             Event weights `dsigma(x | theta_i, nu_i)` with shape `(n_events, n_benchmarks)`. The benchmarks are expected
             to be sorted in the same order as the keyword benchmark_names used during initialization, and the
             nuisance benchmarks are expected to be rescaled to have the same physics parameters theta as the
             reference_benchmark given during initialization.
+
         Returns
         -------
         log_nuisance_factor_gradients : ndarray
@@ -910,15 +958,18 @@ class NuisanceMorpher:
     def calculate_nuisance_factor_gradients(self, nuisance_parameters, benchmark_weights):
         """
         Calculates the gradient of the nuisance factors with respect to the nuisance parameters.
+
         Parameters
         ----------
         nuisance_parameters : ndarray
             Values of the nuisance parameters `nu`, with shape `(n_nuisance_parameters,)`.
+
         benchmark_weights : ndarray
             Event weights `dsigma(x | theta_i, nu_i)` with shape `(n_events, n_benchmarks)`. The benchmarks are expected
             to be sorted in the same order as the keyword benchmark_names used during initialization, and the
             nuisance benchmarks are expected to be rescaled to have the same physics parameters theta as the
             reference_benchmark given during initialization.
+
         Returns
         -------
         nuisance_factor_gradients : ndarray
