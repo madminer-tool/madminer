@@ -2,18 +2,17 @@ import itertools
 import logging
 import numpy as np
 
-
 from collections import OrderedDict
 from typing import Dict
 from typing import Iterable
+from sympy import Poly, symbols, expand
+from numpy import Infinity, linalg as la
 
 from madminer.models import Benchmark
 from madminer.models import AnalysisParameter
 from madminer.models import NuisanceParameter
 from madminer.utils.various import sanitize_array
 
-from sympy import Poly, symbols, expand
-from numpy import Infinity, linalg as la
 
 logger = logging.getLogger(__name__)
 
@@ -62,7 +61,6 @@ class PhysicsMorpher:
         parameters_from_madminer: Dict[str, AnalysisParameter] = None,
         parameter_max_power=None,
         parameter_range=None,
-
     ):
 
         # MadMiner interface
@@ -93,13 +91,6 @@ class PhysicsMorpher:
         self.gd = None
         self.gs = None
         self.condition_number = None
-
-    # get the minimal number of indepedent samples
-    def get_Nmin(self, ns, np, nd):
-        res1 = (ns*(ns+1) * (ns+2) * ((ns+3) + 4 * (np+nd)))/24
-        res2 = (ns*(ns+1) * np*(np+1) + ns*(ns+1)*nd*(nd+1) + np*(np+1)*nd*(nd+1))/4 
-        res3 = ns*np*nd*(ns+np+nd+3)/2
-        return res1 + res2 + res3
 
     def set_components(self, components):
         """
@@ -228,6 +219,7 @@ class PhysicsMorpher:
 
         return self.components
 
+
     def set_basis(self, basis_from_madminer: Dict[str, Benchmark] = None, basis_numpy=None, morphing_matrix=None, basis_p = None, basis_d = None, basis_s = None):
         """
         Manually sets the basis benchmarks.
@@ -259,6 +251,7 @@ class PhysicsMorpher:
             self.basis = []
             for benchmark in basis_from_madminer.values():
                 self.basis.append([benchmark.values[key] for key in self.parameter_names])
+            self.basis = np.array(self.basis)
             self.gs = np.array(self.basis).T # The original basis from madminer should be gs only
         elif basis_numpy is not None: # To compatible with previous version
             self.basis = np.array(basis_numpy)
@@ -945,4 +938,3 @@ class NuisanceMorpher:
         gradients = log_gradients * nuisance_factors[np.newaxis, :]
 
         return gradients
-
