@@ -132,7 +132,7 @@ class PhysicsMorpher:
         Np : int, optional, default = 0
             Number of production couplings
         Ns : int, optional, default = 0
-            Number of spin couplings
+            Number of same couplings
 
         Returns
         -------
