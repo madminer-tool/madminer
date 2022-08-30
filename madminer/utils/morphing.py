@@ -158,9 +158,13 @@ class PhysicsMorpher:
             gd = symbols('gd:15')
             gs = symbols('gs:15')
 
-            prod = sum(gp[:Np] + gs[:Ns])  #sum of couplings in production
-            dec = sum(gd[:Nd] + gs[:Ns])   #sum of couplings in decay
-
+            if Ns != 0:
+                prod = sum(gp[:Np] + gs[:Ns])  #sum of couplings in production
+                dec = sum(gd[:Nd] + gs[:Ns])   #sum of couplings in decay
+            else:
+                prod = sum(gp[:Np])  #sum of couplings in production
+                dec = sum(gd[:Nd])   #sum of couplings in decay
+            
             if (Nd==0 and Ns==0):
                 dec = 1
             if (Np==0 and Ns==0):
@@ -212,7 +216,7 @@ class PhysicsMorpher:
             
             self.components = arr_pmax
             self.n_components = len_arr_pmax
-        else:
+        else: # backward compatible, using basis
             logger.debug("Max overall power %s", max_overall_power)
             logger.debug("Max individual power %s", [max_power for max_power in self.parameter_max_power])
 
@@ -264,6 +268,7 @@ class PhysicsMorpher:
         -------
             None
         """
+        # Set gp, gd, gs separately if not using the new method.
         if basis_p is not None or basis_d is not None or basis_s is not None:
             # Set the values of basis, basis_p, basis_d, basis_s
             if basis_s is not None:  
@@ -293,7 +298,7 @@ class PhysicsMorpher:
             elif basis_p is not None and basis_d is not None:
                 assert len(basis_p[0]) == len(basis_d[0]), "the number of each basis points in production and decay should be the same"
                 self.n_benchmarks = len(basis_p[0])
-        else:
+        else: # Backward compatible
             if basis_from_madminer is not None:
                 self.basis = []
                 for benchmark in basis_from_madminer.values():
@@ -454,7 +459,7 @@ class PhysicsMorpher:
             raise RuntimeError(
                 "No components defined. Use morpher.set_components() or morpher.find_components() " "first!"
             )
-        # To compatible with previous version, use basis.   
+        # To compatible with previous version, use self.basis.   
         if self.gd is None and self.gs is None and self.gp is None:
             if basis is None:
                 basis = self.basis
@@ -604,6 +609,7 @@ class PhysicsMorpher:
             raise RuntimeError(
                 "No components defined. Use morpher.set_components() or morpher.find_components() " "first!"
             )
+        # calculate matrix with previous method if gd, gp, gs are not given
         if self.gd is None and self.gp is None and self.gs is None:
             if basis is None:
                 basis = self.basis
@@ -629,7 +635,7 @@ class PhysicsMorpher:
 
             # Transform to basis weights
             return morphing_matrix.T.dot(component_weights)
-        else:
+        else: # calculate matrix with gd, gp, gs
             if gs is None:
                 gs = self.gs
             if gd is None:
@@ -689,6 +695,7 @@ class PhysicsMorpher:
             raise RuntimeError(
                 "No components defined. Use morpher.set_components() or morpher.find_components() " "first!"
             )
+        # Backward compatibile, only difference is calculate matrix differently with corresponding parameters    
         if self.gp is None and self.gd is None and self.gs is None:
             if basis is None:
                 basis = self.basis
@@ -794,6 +801,7 @@ class PhysicsMorpher:
             raise RuntimeError(
                 "No components defined. Use morpher.set_components() or morpher.find_components() " "first!"
             )
+        # Backward compatibile, only difference is calculate matrix differently    
         if self.gp is None and self.gd is None and self.gs is None:
             if basis is None:
                 basis = self.basis
