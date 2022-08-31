@@ -5,8 +5,6 @@ import numpy as np
 from collections import OrderedDict
 from typing import Dict
 from typing import Iterable
-from sympy import Poly, symbols, expand
-from numpy import Infinity, linalg as la
 
 from madminer.models import Benchmark
 from madminer.models import AnalysisParameter
@@ -95,10 +93,6 @@ class PhysicsMorpher:
         self.n_components = None
         self.basis = None
         self.morphing_matrix = None
-        self.gp = None
-        self.gd = None
-        self.gs = None
-        self.condition_number = None
 
     def set_components(self, components):
         """
@@ -119,7 +113,7 @@ class PhysicsMorpher:
         self.components = components
         self.n_components = len(self.components)
 
-    def find_components(self, max_overall_power=4, BSM_max_power = float('inf'), Nd = 0, Np = 0, Ns = 0):
+    def find_components(self, max_overall_power=4):
         """
         Finds the components, i.e. the individual terms contributing to the squared matrix element.
 
@@ -129,121 +123,41 @@ class PhysicsMorpher:
             The maximal sum of powers of all parameters contributing to the squared matrix element.
             Typically, if parameters can affect the couplings at n vertices, this number is 2n. Default value: 4.
 
-        BSM_max_power : int, optional
-            The maximal sum of powers of all parameters contributing to the squared matrix element for the BSM couplings.
-
-        Nd : int, optional
-            The number of decay vertices.
-
-        Np : int, optional
-            The number of production vertices.
-
-        Ns : int, optional
-            The number of couplings that works both for production and decay.
-
         Returns
         -------
         components : ndarray
             Array with shape (n_components, n_parameters), where each entry gives the power with which a parameter
             scales a given component.
         """
-        if Nd != 0 or Np != 0 or Ns != 0:
-            lst = []
-            # Check if any number of couplings were specified. 
-            if Nd == 0 and Np == 0 and Ns == 0:
-                raise RuntimeError("Coupling numbers not specified")
 
-            #number of couplings
-            gp = symbols('gp:15')
-            gd = symbols('gd:15')
-            gs = symbols('gs:15')
+        logger.debug("Max overall power %s", max_overall_power)
+        logger.debug("Max individual power %s", [max_power for max_power in self.parameter_max_power])
 
-            if Ns != 0:
-                prod = sum(gp[:Np] + gs[:Ns])  #sum of couplings in production
-                dec = sum(gd[:Nd] + gs[:Ns])   #sum of couplings in decay
+        powers_each_component = [range(max_power + 1) for max_power in self.parameter_max_power]
+
+        # Go through regions and finds components for each
+        components = []
+        for powers in itertools.product(*powers_each_component):
+            powers = np.array(powers, dtype=int)
+
+            if np.sum(powers) > max_overall_power:
+                continue
+
+            if not any((powers == x).all() for x in components):
+                logger.debug("  Adding component %s", powers)
+                components.append(np.copy(powers))
             else:
-                prod = sum(gp[:Np])  #sum of couplings in production
-                dec = sum(gd[:Nd])   #sum of couplings in decay
-            
-            if (Nd==0 and Ns==0):
-                dec = 1
-            if (Np==0 and Ns==0):
-                prod = 1
-            f = expand((prod)**2*(dec)**2)  #contribution to matrix element squared
-            mono=Poly(f).terms(); #list of tuples containing monomials
+                logger.debug("  Not adding component %s again", powers)
 
-            for i in range(0, len(mono)):
-                lst.append(mono[i][0])
-
-            #array of coupligs powers in the alphabetic order gd0, gd1, ..., gp0, gp1, ..., gs0, gs1, ...
-            arr = np.array(lst)
-            len_arr = len(arr)
-
-
-            #cut over power_max
-            power_max = BSM_max_power
-
-            lst_pos = []
-
-            # Find the positions of the subarray that has elements exceed power_max
-            for j in range(0, len_arr):
-                for k in range(1, Nd):
-                    if(arr[j, k] > power_max):
-                        lst_pos.append(j)
-                    break    
-
-                for k in range(Nd+1, Nd+Np):
-                    if(arr[j, k] > power_max):
-                        lst_pos.append(j)
-                    break
-                        
-                for k in range(Nd+Np+1, Nd+Np+Ns):
-                    if(arr[j, k] > power_max):
-                        lst_pos.append(j)
-                    break
-
-            # Remove duplicates of the position
-            lst_pos = np.unique(lst_pos)
-
-
-            # Check if there are any components exceeding the maximal power, if not arr_pmax = arr
-            if lst_pos.size != 0:
-                arr_pmax = np.delete(arr, lst_pos, axis=0)
-            else:
-                arr_pmax = arr
-
-            len_arr_pmax = len(arr_pmax)
-            
-            self.components = arr_pmax
-            self.n_components = len_arr_pmax
-        else: # backward compatible, using basis
-            logger.debug("Max overall power %s", max_overall_power)
-            logger.debug("Max individual power %s", [max_power for max_power in self.parameter_max_power])
-
-            powers_each_component = [range(max_power + 1) for max_power in self.parameter_max_power]
-
-            # Go through regions and finds components for each
-            components = []
-            for powers in itertools.product(*powers_each_component):
-                powers = np.array(powers, dtype=int)
-
-                if np.sum(powers) > max_overall_power:
-                    continue
-
-                if not any((powers == x).all() for x in components):
-                    logger.debug("  Adding component %s", powers)
-                    components.append(np.copy(powers))
-                else:
-                    logger.debug("  Not adding component %s again", powers)
-
-            self.components = np.array(components, dtype=int)
-            self.n_components = len(self.components)
+        self.components = np.array(components, dtype=int)
+        self.n_components = len(self.components)
 
         return self.components
 
-    def set_basis(self, basis_from_madminer: Dict[str, Benchmark] = None, basis_numpy=None, morphing_matrix=None, basis_p = None, basis_d = None, basis_s = None):
+    def set_basis(self, basis_from_madminer: Dict[str, Benchmark] = None, basis_numpy=None, morphing_matrix=None):
         """
         Manually sets the basis benchmarks.
+
         Parameters
         ----------
         basis_from_madminer : OrderedDict or None, optional
@@ -256,61 +170,23 @@ class PhysicsMorpher:
             Manually provided morphing matrix. If None, the morphing matrix is calculated automatically. Default value:
             None.
 
-        basis_p : ndarray or None, optional
-            production coupling basis. Default value: None.
-
-        basis_d : ndarray or None, optional
-            decay coupling basis. Default value: None.
-
-        basis_s : ndarray or None, optional
-            couplings that works for both decay and production. Default value: None.
         Returns
         -------
             None
         """
-        # Set gp, gd, gs separately if not using the new method.
-        if basis_p is not None or basis_d is not None or basis_s is not None:
-            # Set the values of basis, basis_p, basis_d, basis_s
-            if basis_s is not None:  
-                self.gs = basis_s
-                self.n_benchmarks = len(basis_s[0])
 
-            if basis_p is not None:
-                self.gp = basis_p
-                self.n_benchmarks = len(basis_p[0])
-            
-            if basis_d is not None:
-                self.gd = basis_d
-                self.n_benchmarks = len(basis_d[0])
-            # Check the which inputs are provided, and set self.n_benchmarks coordinately. 
-            if basis_s is not None and basis_p is not None and basis_d is not None:
-                assert len(basis_p[0]) == len(basis_d[0]) == len(basis_s[0]), "the number of basis points in production, decay and combine should be the same"
-                self.n_benchmarks = len(basis_p[0])
-                return
-            elif basis_s is not None and basis_p is not None:
-                assert len(basis_p[0]) == len(basis_s[0]), "the number of basis points in production and combine should be the same"
-                self.n_benchmarks = len(basis_p[0])
-                return
-            elif basis_s is not None and basis_d is not None:
-                assert len(basis_d[0]) == len(basis_s[0]), "the number of basis points in decay and combine should be the same"
-                self.n_benchmarks = len(basis_d[0])
-                return
-            elif basis_p is not None and basis_d is not None:
-                assert len(basis_p[0]) == len(basis_d[0]), "the number of each basis points in production and decay should be the same"
-                self.n_benchmarks = len(basis_p[0])
-        else: # Backward compatible
-            if basis_from_madminer is not None:
-                self.basis = []
-                for benchmark in basis_from_madminer.values():
-                    self.basis.append([benchmark.values[key] for key in self.parameter_names])
-                self.basis = np.array(self.basis)
-            elif basis_numpy is not None:
-                self.basis = np.array(basis_numpy)
-            else:
-                raise RuntimeError("No basis given")
+        if basis_from_madminer is not None:
+            self.basis = []
+            for benchmark in basis_from_madminer.values():
+                self.basis.append([benchmark.values[key] for key in self.parameter_names])
+            self.basis = np.array(self.basis)
+        elif basis_numpy is not None:
+            self.basis = np.array(basis_numpy)
+        else:
+            raise RuntimeError("No basis given")
 
-            # Restrict basis to the first benchmarks
-            self.basis = self.basis[: self.n_components, :]
+        # Restrict basis to the first benchmarks
+        self.basis = self.basis[: self.n_components, :]
 
         if morphing_matrix is None:
             self.morphing_matrix = self.calculate_morphing_matrix()
@@ -425,7 +301,7 @@ class PhysicsMorpher:
         # Normal output
         return best_basis
 
-    def calculate_morphing_matrix(self, basis=None, gd = None, gp = None, gs = None):
+    def calculate_morphing_matrix(self, basis=None):
         """
         Calculates the morphing matrix that links the components to the basis benchmarks.
 
@@ -435,142 +311,62 @@ class PhysicsMorpher:
              Manually specified morphing basis for which the morphing matrix is calculated. This array has shape
              `(n_basis_benchmarks, n_parameters)`. If None, the basis from the last call of `set_basis()` or
              `find_basis()` is used. Default value: None.
-             Will be used only when gd, gp, gs are None.
-
-        gd : ndarray or None, optional
-                Manually specified the morphing basis of decay basis for which morphing matrix is calculated. 
-                This array has shape `(n_d, n_benchmarks)'.
-
-        gp : ndarray or None, optional
-                Manually specified the morphing basis of production basis for which morphing matrix is calculated. 
-                This array has shape `(n_p, n_benchmarks)'.
-
-        gs : ndarray or None, optional
-                Manually specified the morphing basis of same/couplings that work both as production and decay basis for which morphing matrix is calculated. 
-                This array has shape `(n_s, n_benchmarks)'.
 
         Returns
         -------
         morphing_matrix : ndarray
             Morphing matrix with shape `(n_basis_benchmarks, n_components)`
         """
+
         # Check all data is there
         if self.components is None or self.n_components is None or self.n_components <= 0:
             raise RuntimeError(
                 "No components defined. Use morpher.set_components() or morpher.find_components() " "first!"
             )
-        # To compatible with previous version, use self.basis.   
-        if self.gd is None and self.gs is None and self.gp is None:
-            if basis is None:
-                basis = self.basis
 
-            if basis is None:
-                raise RuntimeError(
-                    "No basis defined or given. Use PhysicsMorpher.set_basis(), PhysicsMorpher.optimize_basis(), or the "
-                    "basis keyword."
-                )
+        if basis is None:
+            basis = self.basis
 
-            n_benchmarks = len(basis)
-            n_bases = n_benchmarks // self.n_components
-            assert n_bases * self.n_components == n_benchmarks, "Basis and number of components incompatible!"
+        if basis is None:
+            raise RuntimeError(
+                "No basis defined or given. Use PhysicsMorpher.set_basis(), PhysicsMorpher.optimize_basis(), or the "
+                "basis keyword."
+            )
 
-            # Full morphing matrix. Will have shape (n_components, n_benchmarks_phys) (note transposition later)
-            morphing_matrix = np.zeros((n_benchmarks, self.n_components))
+        n_benchmarks = len(basis)
+        n_bases = n_benchmarks // self.n_components
+        assert n_bases * self.n_components == n_benchmarks, "Basis and number of components incompatible!"
 
-            # Morphing submatrix for each basis
-            for i in range(n_bases):
-                n_benchmarks_this_basis = self.n_components
-                this_basis = basis[i * n_benchmarks_this_basis : (i + 1) * n_benchmarks_this_basis]
+        # Full morphing matrix. Will have shape (n_components, n_benchmarks_phys) (note transposition later)
+        morphing_matrix = np.zeros((n_benchmarks, self.n_components))
 
-                inv_morphing_submatrix = np.zeros((n_benchmarks_this_basis, self.n_components))
+        # Morphing submatrix for each basis
+        for i in range(n_bases):
+            n_benchmarks_this_basis = self.n_components
+            this_basis = basis[i * n_benchmarks_this_basis : (i + 1) * n_benchmarks_this_basis]
 
-                for b in range(n_benchmarks_this_basis):
-                    for c in range(self.n_components):
-                        factor = 1.0
-                        for p in range(self.n_parameters):
-                            factor *= float(this_basis[b, p] ** self.components[c, p])
-                        inv_morphing_submatrix[b, c] = factor
+            inv_morphing_submatrix = np.zeros((n_benchmarks_this_basis, self.n_components))
 
-                # Invert -? components expressed in basis points. Shape (n_components, n_benchmarks_this_basis)
-                morphing_submatrix = np.linalg.inv(inv_morphing_submatrix)
-
-                # For now, just use 1 / n_bases times the weights of each basis
-                morphing_submatrix = morphing_submatrix / float(n_bases)
-
-                # Write into full morphing matrix
-                morphing_submatrix = morphing_submatrix.T
-                morphing_matrix[i * n_benchmarks_this_basis : (i + 1) * n_benchmarks_this_basis] = morphing_submatrix
-
-            return morphing_matrix.T
-
-        # New version with inputs of gs, gd, gp    
-        else:
-            n_gp = 0
-            n_gd = 0
-            n_gs = 0
-
-
-            if self.gp is not None:
-                n_gp = len(self.gp) # n_gp == n for total of gp_1 ... gp_n
-                gp = self.gp
-            if self.gd is not None:
-                n_gd = len(self.gd)
-                gd = self.gd
-            if self.gs is not None:
-                n_gs = len(self.gs)
-                gs = self.gs
-            
-            if n_gp == 0 and n_gd == 0 and n_gs == 0:
-                raise RuntimeError(
-                    "No basis defined or given. Use PhysicsMorpher.set_basis(), PhysicsMorpher.optimize_basis(), or the "
-                    "basis keyword."
-                )
-
-            # the first n_gd components are for gd, the next n_gp components in self.compoents are for gp, the last n_gc components are for gc
-            assert (n_gp + n_gd + n_gs) == len(self.components[0]), "The number of coupling parameters in basis is not equal to the number of components"
-
-            inv_morphing_submatrix = np.zeros([self.n_benchmarks, self.n_components])
-
-            for b in range(self.n_benchmarks):
+            for b in range(n_benchmarks_this_basis):
                 for c in range(self.n_components):
                     factor = 1.0
-                    if n_gd != 0: # if gd coupling exists
-                        for j in range(n_gd):
-                            factor *= float(gd[j, b] ** self.components[c, j])
-                    if n_gp != 0: # if gp coupling exists
-                        for i in range(n_gp):
-                            if n_gd != 0:
-                                factor *= float(gp[i,b] ** self.components[c,i+n_gd] )
-                            else:
-                                factor *= float(gp[i,b] ** self.components[c,i])
-                    if n_gs != 0: # if gc coupling exists
-                        for k in range(n_gs):
-                            if n_gd != 0 and n_gp != 0: # add the length of gd and gp to index if they are not none
-                                factor *= float(gs[k,b] ** self.components[c,k+n_gd+n_gp])
-                            elif n_gd != 0:
-                                factor *= float(gs[k,b] ** self.components[c,k+n_gd])
-                            elif n_gp != 0:
-                                factor *= float(gs[k,b] ** self.components[c,k+n_gp])
-                            else:
-                                factor *= float(gs[k,b] ** self.components[c,k])
+                    for p in range(self.n_parameters):
+                        factor *= float(this_basis[b, p] ** self.components[c, p])
                     inv_morphing_submatrix[b, c] = factor
 
+            # Invert -? components expressed in basis points. Shape (n_components, n_benchmarks_this_basis)
+            morphing_submatrix = np.linalg.inv(inv_morphing_submatrix)
 
-            morphing_submatrix = inv_morphing_submatrix.T
-            self.matrix_before_invertion = morphing_submatrix
-            # QR factorization
-            q, r= np.linalg.qr(morphing_submatrix, 'reduced')
-            self.condition_number = la.cond(r)
+            # For now, just use 1 / n_bases times the weights of each basis
+            morphing_submatrix = morphing_submatrix / float(n_bases)
 
-            # Check if the condition number is too large
-            if self.condition_number >= 1e10:
-                print("Warning: the condition number of the morphing matrix is very large: {}".format(self.condition_number))
+            # Write into full morphing matrix
+            morphing_submatrix = morphing_submatrix.T
+            morphing_matrix[i * n_benchmarks_this_basis : (i + 1) * n_benchmarks_this_basis] = morphing_submatrix
 
-            self.morphing_matrix = np.dot(np.linalg.pinv(r), q.T)
+        return morphing_matrix.T
 
-        return self.morphing_matrix.T
-
-    def calculate_morphing_weights(self, theta, basis=None, morphing_matrix=None, gs=None, gd=None, gp=None):
+    def calculate_morphing_weights(self, theta, basis=None, morphing_matrix=None):
         """
         Calculates the morphing weights `w_b(theta)` for a given morphing basis `{theta_b}`.
 
@@ -588,15 +384,6 @@ class PhysicsMorpher:
              Manually specified morphing matrix for the given morphing basis. This array has shape
              `(n_basis_benchmarks, n_components)`. If None, the morphing matrix is calculated automatically. Default
              value: None.
-        
-        gd : ndarray or None, optional
-            Manually specified decay coupling for the given morphing basis. This array has shape(n_gd, n_basis_benchmarks).
-        
-        gp : ndarray or None, optional
-            Manually specified production coupling for the given morphing basis. This array has shape(n_gp, n_basis_benchmarks).
-
-        gs : ndarray or None, optional
-            Manually specified same coupling for the given morphing basis. This array has shape(n_gs, n_basis_benchmarks).
 
         Returns
         -------
@@ -609,62 +396,33 @@ class PhysicsMorpher:
             raise RuntimeError(
                 "No components defined. Use morpher.set_components() or morpher.find_components() " "first!"
             )
-        # calculate matrix with previous method if gd, gp, gs are not given
-        if self.gd is None and self.gp is None and self.gs is None:
-            if basis is None:
-                basis = self.basis
-                morphing_matrix = self.morphing_matrix
 
-            if basis is None:
-                raise RuntimeError(
-                    "No basis defined or given. Use PhysicsMorpher.set_basis(), PhysicsMorpher.optimize_basis(), or the "
-                    "basis keyword."
-                )
+        if basis is None:
+            basis = self.basis
+            morphing_matrix = self.morphing_matrix
 
-            if morphing_matrix is None:
-                morphing_matrix = self.calculate_morphing_matrix(basis)
+        if basis is None:
+            raise RuntimeError(
+                "No basis defined or given. Use PhysicsMorpher.set_basis(), PhysicsMorpher.optimize_basis(), or the "
+                "basis keyword."
+            )
 
-            # Calculate component weights
-            component_weights = np.zeros(self.n_components)
-            for c in range(self.n_components):
-                factor = 1.0
-                for p in range(self.n_parameters):
-                    factor *= float(theta[p] ** self.components[c, p])
-                component_weights[c] = factor
-            component_weights = np.array(component_weights)
+        if morphing_matrix is None:
+            morphing_matrix = self.calculate_morphing_matrix(basis)
 
-            # Transform to basis weights
-            return morphing_matrix.T.dot(component_weights)
-        else: # calculate matrix with gd, gp, gs
-            if gs is None:
-                gs = self.gs
-            if gd is None:
-                gd = self.gd
-            if gp is None:
-                gp = self.gp
-            
-            if gs is None and gd is None and gp is None:
-                raise RuntimeError(
-                    "No basis defined or given. Use PhysicsMorpher.set_basis(), PhysicsMorpher.optimize_basis(), or the "
-                    "basis keyword."
-                )
-            
-            if morphing_matrix is None:
-                morphing_matrix = self.calculate_morphing_matrix(basis, gs, gd, gp)
+        # Calculate component weights
+        component_weights = np.zeros(self.n_components)
+        for c in range(self.n_components):
+            factor = 1.0
+            for p in range(self.n_parameters):
+                factor *= float(theta[p] ** self.components[c, p])
+            component_weights[c] = factor
+        component_weights = np.array(component_weights)
 
-            component_weights = np.zeros(self.n_components)
-            for c in range(self.n_components):
-                factor = 1.0
-                for p in range(self.n_parameters):
-                    factor *= float(theta[p] ** self.components[c, p])
-                component_weights[c] = factor
+        # Transform to basis weights
+        return morphing_matrix.T.dot(component_weights)
 
-            component_weights = np.array(component_weights)
-
-
-            return np.dot(self.morphing_matrix, component_weights)
-
-    def calculate_morphing_weight_gradient(self, theta, basis=None, morphing_matrix=None, gp=None, gd=None, gs=None):
+    def calculate_morphing_weight_gradient(self, theta, basis=None, morphing_matrix=None):
         """
         Calculates the gradient of the morphing weights, `grad_i w_b(theta)`.
 
@@ -695,36 +453,19 @@ class PhysicsMorpher:
             raise RuntimeError(
                 "No components defined. Use morpher.set_components() or morpher.find_components() " "first!"
             )
-        # Backward compatibile, only difference is calculate matrix differently with corresponding parameters    
-        if self.gp is None and self.gd is None and self.gs is None:
-            if basis is None:
-                basis = self.basis
-                morphing_matrix = self.morphing_matrix
 
-            if basis is None:
-                raise RuntimeError(
-                    "No basis defined or given. Use PhysicsMorpher.set_basis(), PhysicsMorpher.optimize_basis(), or the "
-                    "basis keyword."
-                )
+        if basis is None:
+            basis = self.basis
+            morphing_matrix = self.morphing_matrix
 
-            if morphing_matrix is None:
-                morphing_matrix = self.calculate_morphing_matrix(basis)
-        else:
-            if gp is None:
-                gp = self.gp
-            if gd is None:
-                gd = self.gd
-            if gs is None:
-                gs = self.gs
+        if basis is None:
+            raise RuntimeError(
+                "No basis defined or given. Use PhysicsMorpher.set_basis(), PhysicsMorpher.optimize_basis(), or the "
+                "basis keyword."
+            )
 
-            if gp is None and gd is None and gs is None:
-                raise RuntimeError(
-                    "No basis defined or given. Use PhysicsMorpher.set_basis(), PhysicsMorpher.optimize_basis(), or the "
-                    "basis keyword."
-                )
-
-            if morphing_matrix is None:
-                morphing_matrix = self.calculate_morphing_matrix(gs= gs, gp=gp, gd=gd)
+        if morphing_matrix is None:
+            morphing_matrix = self.calculate_morphing_matrix(basis)
 
         # Calculate gradients of component weights wrt theta
         component_weight_gradients = np.zeros((self.n_components, self.n_parameters))
@@ -746,7 +487,7 @@ class PhysicsMorpher:
         # Shape (n_parameters, n_benchmarks_phys)
         return morphing_matrix.T.dot(component_weight_gradients).T
 
-    def evaluate_morphing(self, basis=None, morphing_matrix=None, n_test_thetas=100, return_weights_and_thetas=False, gp=None, gd=None, gs=None):
+    def evaluate_morphing(self, basis=None, morphing_matrix=None, n_test_thetas=100, return_weights_and_thetas=False):
         """
         Evaluates the expected sum of the squared morphing weights for a given basis.
 
@@ -769,18 +510,6 @@ class PhysicsMorpher:
         return_weights_and_thetas : bool, optional
              If True, results for each evaluation theta are returned, rather than taking their average. Default value:
              False.
-        
-        gp : ndarray or None, optional
-                Manually specified the production couplings. This array has shape
-                `(n_gp, n_basis_benchmarks)`. If None, the gp from the last call of `set_basis()` is used. Default value: None.
-        
-        gd : ndarray or None, optional
-                Manually specified the decay couplings. This array has shape
-                `(n_gd, n_basis_benchmarks)`. If None, the gd from the last call of `set_basis()` is used. Default value: None.
-        
-        gs : ndarray or None, optional
-                Manually specified the same couplings. This array has shape
-                `(n_gs, n_basis_benchmarks)`. If None, the gs from the last call of `set_basis()` is used. Default value: None.
 
         Returns
         -------
@@ -801,58 +530,30 @@ class PhysicsMorpher:
             raise RuntimeError(
                 "No components defined. Use morpher.set_components() or morpher.find_components() " "first!"
             )
-        # Backward compatibile, only difference is calculate matrix differently    
-        if self.gp is None and self.gd is None and self.gs is None:
-            if basis is None:
-                basis = self.basis
-                morphing_matrix = self.morphing_matrix
 
-            if basis is None:
-                raise RuntimeError(
-                    "No basis defined or given. Use PhysicsMorpher.set_basis(), PhysicsMorpher.optimize_basis(), or the "
-                    "basis keyword."
-                )
+        if basis is None:
+            basis = self.basis
+            morphing_matrix = self.morphing_matrix
 
-            if morphing_matrix is None:
-                morphing_matrix = self.calculate_morphing_matrix(basis)
+        if basis is None:
+            raise RuntimeError(
+                "No basis defined or given. Use PhysicsMorpher.set_basis(), PhysicsMorpher.optimize_basis(), or the "
+                "basis keyword."
+            )
 
-            thetas_test = self._draw_random_thetas(n_thetas=n_test_thetas)
-            squared_weights = 0.0
-            squared_weight_list = []
+        if morphing_matrix is None:
+            morphing_matrix = self.calculate_morphing_matrix(basis)
 
-            for theta in thetas_test:
-                weights = self.calculate_morphing_weights(theta, basis, morphing_matrix)
-                squared_weights += np.sum(weights * weights)
+        thetas_test = self._draw_random_thetas(n_thetas=n_test_thetas)
+        squared_weights = 0.0
+        squared_weight_list = []
 
-                if return_weights_and_thetas:
-                    squared_weight_list.append(np.sum(weights * weights))
-        else:
-            if gp is None:
-                gp = self.gp
-            if gd is None:
-                gd = self.gd
-            if gs is None:
-                gs = self.gs
+        for theta in thetas_test:
+            weights = self.calculate_morphing_weights(theta, basis, morphing_matrix)
+            squared_weights += np.sum(weights * weights)
 
-            if gp is None and gd is None and gs is None:
-                raise RuntimeError(
-                    "No basis defined or given. Use PhysicsMorpher.set_basis(), PhysicsMorpher.optimize_basis(), or the "
-                    "basis keyword."
-                )
-
-            if morphing_matrix is None:
-                morphing_matrix = self.calculate_morphing_matrix(gs=gs, gp=gp, gd=gd)
-
-            thetas_test = self._draw_random_thetas(n_thetas=n_test_thetas)
-            squared_weights = 0.0
-            squared_weight_list = []
-
-            for theta in thetas_test:
-                weights = self.calculate_morphing_weights(theta = theta, morphing_matrix = morphing_matrix, gs=gs, gp=gp, gd=gd)
-                squared_weights += np.sum(weights * weights)
-
-                if return_weights_and_thetas:
-                    squared_weight_list.append(np.sum(weights * weights))
+            if return_weights_and_thetas:
+                squared_weight_list.append(np.sum(weights * weights))
 
         if return_weights_and_thetas:
             return thetas_test, np.array(squared_weight_list)
