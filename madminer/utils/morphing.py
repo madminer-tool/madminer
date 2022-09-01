@@ -811,3 +811,4 @@ class NuisanceMorpher:
         gradients = log_gradients * nuisance_factors[np.newaxis, :]
 
         return gradients
+        
