@@ -56,7 +56,6 @@ def test_original_calculate_matrix(
     this_basis=np.array([[1, -5], [1, -4], [1, -3], [1, -2], [1, -1]]),
     this_components=np.array([[4, 0], [3, 1], [2, 2], [1, 3], [0, 4]]),
 ):
-
     morpher = m.PhysicsMorpher(parameter_max_power=[2, 2])
 
     # Set the powers of components and basis
