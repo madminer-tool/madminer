@@ -90,7 +90,6 @@ def test_original_weight_gradients(
     this_components=np.array([[4, 0], [3, 1], [2, 2], [1, 3], [0, 4]]),
     this_basis=np.array([[1, -5], [1, -4], [1, -3], [1, -2], [1, -1]]),
 ):
-
     # Morpher object with the initial format of inputs
     old_morpher = m.PhysicsMorpher(parameter_max_power=[2, 2])
     old_morpher.set_components(this_components)
