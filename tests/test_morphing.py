@@ -27,7 +27,6 @@ def test_original_set_basis(
     parameter_max_power=[2, 2],
     this_components=np.array([[4, 0], [3, 1], [2, 2], [1, 3], [0, 4]]),
 ):
-
     # test set basis with input of basis_numpy.
     morpher = m.PhysicsMorpher(parameter_max_power=parameter_max_power)
     morpher.set_components(this_components)
