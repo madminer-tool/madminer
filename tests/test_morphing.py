@@ -105,3 +105,256 @@ def test_original_weight_gradients(
     assert np.allclose(
         old_weight_gradient, expected_weight_gradient, rtol=10**-5
     ), "The weight gradient differs from expected value"
+
+
+def test_compare_weights(
+    gs=np.array([[1, 1, 1, 1, 1], [-5, -4, -3, -2, -1]]),
+    gp=None,
+    gd=None,
+    parameter_max_power=[2, 2],
+    this_components=np.array([[4, 0], [3, 1], [2, 2], [1, 3], [0, 4]]),
+    this_basis=np.array([[1, -5], [1, -4], [1, -3], [1, -2], [1, -1]]),
+    theta=np.array([1, 1]),
+):
+    # Test if the old and new inputs will output the same matrix with the same inputs.
+    old_morpher = m.PhysicsMorpher(
+        parameter_max_power=parameter_max_power,
+    )
+    old_morpher.set_components(this_components)
+    old_morpher.set_basis(basis_numpy=this_basis)
+
+    new_morpher = m.PhysicsMorpher(
+        parameter_max_power=parameter_max_power,
+    )
+    _ = new_morpher.find_components(Ns=2, Nd=0, Np=0)
+    new_morpher.set_basis(basis_d=gd, basis_p=gp, basis_s=gs)
+
+    # Both morphing matrix was calculated in set_basis procedure.
+    # Test if the output matrix is the same for both form of inputs
+    assert np.allclose(
+        new_morpher.morphing_matrix, old_morpher.morphing_matrix
+    ), " The morphing matrices calculated by the new and old method are different"
+
+    # Test if the weights for the given theta equals
+    assert np.allclose(
+        new_morpher.calculate_morphing_weights(theta), old_morpher.calculate_morphing_weights(theta)
+    ), " The output weights of two methods are different"
+
+
+def test_overdetermine(
+    gd=None, gp=None, gs=np.array([[1, 1, 1, 1, 1, 1, 1], [-5, -4, -3, -2, -1, 0, 1]])
+):
+    # Check if the improved method can do overdetermined morphing as expected with the new input format
+    new_morpher = m.PhysicsMorpher(parameter_max_power=[4, 4])
+    _ = new_morpher.find_components(Ns=2, Nd=0, Np=0)
+    new_morpher.set_basis(basis_d=gd, basis_p=gp, basis_s=gs)
+
+    expected = np.array(
+        [
+            [-0.04112554, -0.07936508, 0.05681818, 0.06313131, 0.01136364],
+            [0.15151515, 0.23412698, -0.21590909, -0.18434343, -0.02651515],
+            [-0.14069264, -0.06349206, 0.18560606, 0.05808081, 0.00378788],
+            [-0.12987013, -0.33333333, 0.28030303, 0.18181818, 0.02272727],
+            [0.33549784, -0.26984127, -0.14772727, 0.00252525, 0.00378788],
+            [0.77056277, 0.09920635, -0.54924242, -0.23989899, -0.02651515],
+            [0.05411255, 0.41269841, 0.39015152, 0.11868687, 0.01136364],
+        ]
+    ).T
+    assert np.allclose(
+        new_morpher.calculate_morphing_matrix(), expected
+    ), "The overdetermined matrix is different from expected"
+
+
+def test_new_find_components(Nd=0, Np=0, Ns=2):
+    # Test find components with respecting Nd, Np, Ns values
+    new_morpher = m.PhysicsMorpher(parameter_max_power=[4, 4])
+    assert np.allclose(
+        new_morpher.find_components(Ns=Ns, Nd=Nd, Np=Np),
+        np.array([[4, 0], [3, 1], [2, 2], [1, 3], [0, 4]]),
+    ), " The output differs from expected components"
+
+    Nd = 1
+    Np = 1
+    Ns = 0
+    assert np.allclose(
+        new_morpher.find_components(Ns=Ns, Nd=Nd, Np=Np), np.array([2, 2])
+    ), " The output differs from expected components"
+
+    Nd = 0
+    Np = 0
+    Ns = 1
+    assert np.allclose(
+        new_morpher.find_components(Ns=Ns, Nd=Nd, Np=Np), np.array([4])
+    ), " The output differs from expected components"
+
+    Nd = 2
+    Np = 1
+    Ns = 0
+    assert np.allclose(
+        new_morpher.find_components(Ns=Ns, Nd=Nd, Np=Np),
+        np.array([[2, 0, 2], [1, 1, 2], [0, 2, 2]]),
+    ), " The output differs from expected components"
+
+
+def test_compare_weight_gradients(
+    gs=np.array([[1, 1, 1, 1, 1], [-5, -4, -3, -2, -1]]),
+    gp=None,
+    gd=None,
+    parameter_max_power=[2, 2],
+    this_components=np.array([[4, 0], [3, 1], [2, 2], [1, 3], [0, 4]]),
+    this_basis=np.array([[1, -5], [1, -4], [1, -3], [1, -2], [1, -1]]),
+):
+
+    # Test if the weight gradients output the same with the new input format
+    # Morpher object with the new format of inputs
+    new_morpher = m.PhysicsMorpher(
+        parameter_max_power=parameter_max_power,
+    )
+
+    _ = new_morpher.find_components(Ns=2, Nd=0, Np=0)
+    new_morpher.set_basis(basis_d=gd, basis_p=gp, basis_s=gs)
+
+    # Morpher object with the initial format of inputs
+    old_morpher = m.PhysicsMorpher(parameter_max_power=[2, 2])
+    old_morpher.set_components(this_components)
+    old_morpher.set_basis(basis_numpy=this_basis)
+
+    # calculate and check the output values of the old and new mophing weights.
+    old_weight_gradient = old_morpher.calculate_morphing_weight_gradient(theta=[1, 1])
+    new_weight_gradient = new_morpher.calculate_morphing_weight_gradient(theta=[1, 1])
+
+    assert np.allclose(
+        new_weight_gradient, old_weight_gradient
+    ), "The weight gradient of old inputs and the new inputs are different."
+
+
+def test_evaluate_morphing():
+    # Check if the morpher object created with old and new inputs can execute evaluate_morphing() function
+    old_morpher = m.PhysicsMorpher(
+        parameter_max_power=[4, 4],
+        parameter_range=[
+            (
+                -1.0,
+                1.0,
+            ),
+            (-1.0, 1.0),
+        ],
+    )
+    this_components = np.array([[4, 0], [3, 1], [2, 2], [1, 3], [0, 4]])
+    this_basis = np.array([[1, -5], [1, -4], [1, -3], [1, -2], [1, -1]])
+
+    # Set the powers of components and basis
+    old_morpher.set_components(this_components)
+    old_morpher.set_basis(basis_numpy=this_basis)
+
+    old_value = old_morpher.evaluate_morphing(basis=this_basis)
+
+    # Morpher object with the new format of inputs
+    new_morpher = m.PhysicsMorpher(
+        parameter_max_power=[4, 4],
+        parameter_range=[
+            (
+                -1.0,
+                1.0,
+            ),
+            (-1.0, 1.0),
+        ],
+    )
+
+    gd = None
+    gp = None
+    gs = np.array([[1, 1, 1, 1, 1], [-5, -4, -3, -2, -1]])
+
+    _ = new_morpher.find_components(Ns=2, Nd=0, Np=0)
+    new_morpher.set_basis(basis_d=gd, basis_p=gp, basis_s=gs)
+
+    new_value = new_morpher.evaluate_morphing(basis=this_basis)
+
+    assert np.allclose(
+        new_value, old_value, rtol=10 ^ 3
+    ), "The output values of old and new evaluate_morphing with same inputs varies more than 10^3"
+
+
+def test_new_weights():
+    # In the order of gd, gp, gc, the code will determine the number of each coupling parameter based on gd, gp, gc...
+    n_d = 1
+    n_p = 3
+    n_s = 0
+
+    # specify gd, gp, gc separately
+    gd = np.array([[1, 1, 1, 1, 1, 1]])
+    gp = np.array(
+        [
+            [0.7071, 0.7071, 0.7071, 0.7071, 0.7071, 0.7071],
+            [0, 4.2426, 0, 4.2426, -4.2426, 0],
+            [0, 0, 4.2426, 4.2426, 0, -4.2426],
+        ]
+    )
+    gs = None  # np.array([[1,1,1,1,1], [-5, -4, -3, -2, -1]])
+
+    xsec = np.array(
+        [0.515, 0.732, 0.527, 0.742, 0.354, 0.527, 0.364, 0.742, 0.364, 0.621, 0.432, 0.621, 0.432]
+    )  # define once, the code will take the corresponding xsec values for the morphing weights
+
+    new_morpher = m.PhysicsMorpher(parameter_max_power=[4, 4])
+
+    new_morpher.find_components(Nd=n_d, Np=n_p, Ns=n_s)
+
+    new_morpher.set_basis(basis_d=gd, basis_p=gp, basis_s=gs)
+
+    weights = new_morpher.calculate_morphing_weights(theta_d=[1], theta_p=[0.7071, 0, 0])
+
+    predict_xsec = _calculate_predict_xsec(xsec=xsec, morphing_weights=weights)
+
+    assert np.allclose(
+        predict_xsec, xsec[0]
+    ), "The predict xsec value does not match the simulated value."
+
+
+def test_find_components_BSM():
+    # The BSM_max_power will limit the max_power other than gd_0, gp_0, gs_0
+    # Will eliminate the component group if the exceed the BSM_max_power
+
+    Nd = 2
+    Np = 1
+    Ns = 0
+
+    new_morpher = m.PhysicsMorpher(parameter_max_power=[4, 4])
+
+    # If no BSM_max_power is set, the output should be np.array([[2, 0, 2], [1, 1, 2], [0, 2, 2]]
+    # in this case, components[0] = gd_0, components[1] = gd_1, components_2 = gp_0
+    # Thus this max power should only keep the values gd_1 <= 0 (The only BSM coupling), which should be only [2,0,2]
+    components = new_morpher.find_components(Ns=Ns, Nd=Nd, Np=Np, BSM_max_power=0)
+
+    expected_components = np.array([[2, 0, 2]])
+    assert np.allclose(
+        components, expected_components
+    ), " The output differs from expected components with BSM_max"
+
+    Nd = 2
+    Np = 0
+    Ns = 2
+
+    new_morpher = m.PhysicsMorpher(parameter_max_power=[4, 4])
+
+    # in this case, components[0] = gd_0, components[1] = gd_1, components[2] = gs_0, components[3] = gs_1
+    # Thus this max power should only keep the values gd_1 and gs_1 <= 0 (The only BSM coupling), which should be only [2,0,2]
+    components = new_morpher.find_components(Ns=Ns, Nd=Nd, Np=Np, BSM_max_power=0)
+
+    expected_components = np.array([[2, 0, 2, 0], [1, 0, 3, 0], [0, 0, 4, 0]])
+
+    np.allclose(
+        components, expected_components
+    ), "The output differs from expected components with BSM_max"
+
+
+# helper method that calculate W_i and Neff/xsec with W_i = w_i*sigma_i and Neff = sum(W_i)
+def _calculate_predict_xsec(xsec, morphing_weights):
+    index = len(morphing_weights)
+    if len(xsec) < index:
+        raise Exception("The number of xsec values is smaller than the number of morphing weights")
+
+    # Get the corresponding xsec values for the morphing weights
+    this_xsec = xsec[:index]
+    W_i = np.multiply(this_xsec, morphing_weights, dtype=np.float32)
+    return sum(W_i)
