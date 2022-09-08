@@ -1,6 +1,5 @@
 import itertools
 import logging
-from multiprocessing.sharedctypes import Value
 import numpy as np
 import sympy as sp
 
