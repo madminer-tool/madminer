@@ -134,7 +134,7 @@ class PhysicsMorpher:
             The maximal sum of powers of all parameters contributing to the squared matrix element for the BSM couplings.
 
         Nd : int, optional
-            The number of decay vertices.
+            The number of parameters affecting the decay vertex.
 
         Np : int, optional
             The number of production vertices.
