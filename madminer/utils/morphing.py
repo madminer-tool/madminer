@@ -140,7 +140,7 @@ class PhysicsMorpher:
             The number of parameters affecting the production vertex.
 
         Ns : int, optional
-            The number of couplings that works both for production and decay.
+            The number of parameters that affect both the production and decay vertices.
 
         Returns
         -------
