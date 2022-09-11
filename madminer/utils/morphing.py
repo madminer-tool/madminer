@@ -467,7 +467,7 @@ class PhysicsMorpher:
              Will be used only when gd, gp, gs are None.
 
         gd : ndarray or None, optional
-                Manually specified the morphing basis of decay basis for which morphing matrix is calculated.
+                Manually specified morphing basis of decay basis for which morphing matrix is calculated.
                 This array has shape `(n_d, n_benchmarks)'.
 
         gp : ndarray or None, optional
