@@ -120,7 +120,7 @@ class PhysicsMorpher:
         self.components = components
         self.n_components = len(self.components)
 
-    def find_components(self, max_overall_power=4, BSM_max_power=float("inf"), Nd=0, Np=0, Ns=0):
+    def find_components(self, max_overall_power=4, BSM_max_power=float("inf"), Np=0, Nd=0, Ns=0):
         """
         Finds the components, i.e. the individual terms contributing to the squared matrix element.
 
@@ -133,11 +133,11 @@ class PhysicsMorpher:
         BSM_max_power : int, optional
             The maximal sum of powers of all parameters contributing to the squared matrix element for the BSM couplings.
 
-        Nd : int, optional
-            The number of parameters affecting the decay vertex.
-
         Np : int, optional
             The number of parameters affecting the production vertex.
+
+        Nd : int, optional
+            The number of parameters affecting the decay vertex.
 
         Ns : int, optional
             The number of parameters that affect both the production and decay vertices.
@@ -181,25 +181,22 @@ class PhysicsMorpher:
             non_pmax_components = np.array(components)
             len_non_pmax = len(non_pmax_components)
 
-            # cut over power_max
-            power_max = BSM_max_power
-
             exceed_pos = []
 
             # Find the positions of the subarray that has elements exceed power_max
             for j in range(0, len_non_pmax):
                 for k in range(1, Nd):
-                    if non_pmax_components[j, k] > power_max:
+                    if non_pmax_components[j, k] > BSM_max_power:
                         exceed_pos.append(j)
                         break
 
                 for k in range(Nd + 1, Nd + Np):
-                    if non_pmax_components[j, k] > power_max:
+                    if non_pmax_components[j, k] > BSM_max_power:
                         exceed_pos.append(j)
                         break
 
                 for k in range(Nd + Np + 1, Nd + Np + Ns):
-                    if non_pmax_components[j, k] > power_max:
+                    if non_pmax_components[j, k] > BSM_max_power:
                         exceed_pos.append(j)
                         break
 
@@ -454,7 +451,7 @@ class PhysicsMorpher:
         # Normal output
         return best_basis
 
-    def calculate_morphing_matrix(self, basis=None, gd=None, gp=None, gs=None):
+    def calculate_morphing_matrix(self, basis=None, gp=None, gd=None, gs=None):
         """
         Calculates the morphing matrix that links the components to the basis benchmarks.
 
@@ -471,11 +468,11 @@ class PhysicsMorpher:
                 This array has shape `(n_d, n_benchmarks)'.
 
         gp : ndarray or None, optional
-                Manually specified the morphing basis of production basis for which morphing matrix is calculated.
+                Manually specified morphing basis of production basis for which morphing matrix is calculated.
                 This array has shape `(n_p, n_benchmarks)'.
 
         gs : ndarray or None, optional
-                Manually specified the morphing basis of same/couplings that work both as production and decay basis for which morphing matrix is calculated.
+                Manually specified morphing basis of same/couplings that work both as production and decay basis for which morphing matrix is calculated.
                 This array has shape `(n_s, n_benchmarks)'.
 
         Returns
@@ -616,11 +613,11 @@ class PhysicsMorpher:
         theta=None,
         basis=None,
         morphing_matrix=None,
-        gs=None,
-        gd=None,
         gp=None,
-        theta_d=None,
+        gd=None,
+        gs=None,
         theta_p=None,
+        theta_d=None,
         theta_s=None,
     ):
         """
@@ -631,11 +628,11 @@ class PhysicsMorpher:
         theta : ndarray
             Parameter point `theta` with shape `(n_parameters,)`.
 
-        theta_d : ndarray or None, optional
-            Parameter point of decay coupling, with shape of n_gd
-
         theta_p : ndarray or None, optional
             Parameter point of production coupling, with shape of n_gp
+
+        theta_d : ndarray or None, optional
+            Parameter point of decay coupling, with shape of n_gd
 
         theta_s : ndarray or None, optional
             Parameter point that work both as decay and production coupling, with shape of n_gs
@@ -650,11 +647,11 @@ class PhysicsMorpher:
              `(n_basis_benchmarks, n_components)`. If None, the morphing matrix is calculated automatically. Default
              value: None.
 
-        gd : ndarray or None, optional
-            Manually specified decay coupling for the given morphing basis. This array has shape(n_gd, n_basis_benchmarks).
-
         gp : ndarray or None, optional
             Manually specified production coupling for the given morphing basis. This array has shape(n_gp, n_basis_benchmarks).
+
+        gd : ndarray or None, optional
+            Manually specified decay coupling for the given morphing basis. This array has shape(n_gd, n_basis_benchmarks).
 
         gs : ndarray or None, optional
             Manually specified same coupling for the given morphing basis. This array has shape(n_gs, n_basis_benchmarks).
@@ -776,6 +773,17 @@ class PhysicsMorpher:
              `(n_basis_benchmarks, n_components)`. If None, the morphing matrix is calculated automatically. Default
              value: None.
 
+        gp : ndarray or None, optional
+                Manually specified production coupling for the given morphing basis. This array has shape
+                `(n_gp, n_basis_benchmarks)`. If None, the gp from the last call of `set_basis()` is used. Default value: None.
+
+        gd : ndarray or None, optional
+               Manually specified decay coupling for the given morphing basis. This array has shape
+                `(n_gd, n_basis_benchmarks)`. If None, the gd from the last call of `set_basis()` is used. Default value: None.
+
+        gs : ndarray or None, optional
+                Manually specified same coupling for the given morphing basis. This array has shape
+                `(n_gs, n_basis_benchmarks)`. If None, the gs from the last call of `set_basis()` is used. Default value: None.
         Returns
         -------
         morphing_weight_gradients : ndarray
