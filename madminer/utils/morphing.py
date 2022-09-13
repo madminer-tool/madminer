@@ -184,7 +184,7 @@ class PhysicsMorpher:
             exceed_pos = []
 
             # Find the positions of the subarray that has elements exceed power_max
-            for j in range(0, len_non_pmax):
+            for j, _ in enumerate(non_pmax_components):
                 for k in range(1, Nd):
                     if non_pmax_components[j, k] > BSM_max_power:
                         exceed_pos.append(j)
