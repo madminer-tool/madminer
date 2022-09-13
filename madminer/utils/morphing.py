@@ -1010,7 +1010,7 @@ class PhysicsMorpher:
             component_weights[c] = factor
         component_weights = np.array(component_weights)
 
-        return component_weights
+        return np.array(component_weights)
 
 
 class NuisanceMorpher:
