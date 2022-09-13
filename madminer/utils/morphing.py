@@ -175,7 +175,7 @@ class PhysicsMorpher:
             # list of tuples containing monomials
 
             for i in range(0, len(mono)):
-                components.append(mono[i][0])
+            components = [mono_value[0] for mono_value in mono]
 
             # array of coupligs powers in the alphabetic order gd0, gd1, ..., gp0, gp1, ..., gs0, gs1, ...
             non_pmax_components = np.array(components)
