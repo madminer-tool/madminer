@@ -149,7 +149,6 @@ class PhysicsMorpher:
             scales a given component.
         """
         if Nd != 0 or Np != 0 or Ns != 0:
-            components = []
             # Check if any number of couplings were specified.
             if Nd == 0 and Np == 0 and Ns == 0:
                 raise RuntimeError("Coupling numbers not specified")
@@ -172,14 +171,13 @@ class PhysicsMorpher:
                 prod = 1
             f = sp.expand((prod) ** 2 * (dec) ** 2)  # contribution to matrix element squared
             mono = sp.Poly(f).terms()
-            # list of tuples containing monomials
 
-            for i in range(0, len(mono)):
+            # list of tuples containing monomials
+            components = []
             components = [mono_value[0] for mono_value in mono]
 
             # array of coupligs powers in the alphabetic order gd0, gd1, ..., gp0, gp1, ..., gs0, gs1, ...
             non_pmax_components = np.array(components)
-            len_non_pmax = len(non_pmax_components)
 
             exceed_pos = []
 
