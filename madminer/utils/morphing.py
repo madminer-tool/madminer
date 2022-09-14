@@ -1006,7 +1006,6 @@ class PhysicsMorpher:
             for p in range(self.n_parameters):
                 factor *= float(theta[p] ** self.components[c, p])
             component_weights[c] = factor
-        component_weights = np.array(component_weights)
 
         return np.array(component_weights)
 
