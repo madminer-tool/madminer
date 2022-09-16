@@ -347,6 +347,7 @@ def test_find_components_BSM():
         components, expected_components
     ), "The output differs from expected components with BSM_max"
 
+
 def test_get_min_basis():
     new_morpher = m.PhysicsMorpher(parameter_max_power=[4, 4])
 
@@ -363,7 +364,8 @@ def test_get_min_basis():
     np.allclose(
         calculated_value, expected_value
     ), "The generated minimum number of basis requires differs from expected"
-    
+
+
 # helper method that calculate W_i and Neff/xsec with W_i = w_i*sigma_i and Neff = sum(W_i)
 def _calculate_predict_xsec(xsec, morphing_weights):
     index = len(morphing_weights)
