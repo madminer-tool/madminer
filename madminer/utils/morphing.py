@@ -975,6 +975,38 @@ class PhysicsMorpher:
 
         return -squared_weights
 
+    def get_min_basis(self, Ns=0, Np=0, Nd=0):
+        """
+        Calculate the minimum number of basis points inputs requires
+
+        Parameters
+        ----------
+        Np : int, optional
+            The number of parameters affecting the production vertex.
+
+        Nd : int, optional
+            The number of parameters affecting the decay vertex.
+
+        Ns : int, optional
+            The number of parameters that affect both the production and decay vertices.
+
+        Returns
+        -------
+        components : int
+            The minimum number of known basis points tha requires to run
+        """
+
+        # Below is separating the formula into three parts and sum up to return
+        res1 = (Ns * (Ns + 1) * (Ns + 2) * ((Ns + 3) + 4 * (Np + Nd))) / 24
+        res2 = (
+            Ns * (Ns + 1) * Np * (Np + 1)
+            + Ns * (Ns + 1) * Nd * (Nd + 1)
+            + Np * (Np + 1) * Nd * (Nd + 1)
+        ) / 4
+        res3 = Ns * Np * Nd * (Ns + Np + Nd + 3) / 2
+
+        return res1 + res2 + res3
+
     def _propose_basis(self, fixed_benchmarks, n_missing_benchmarks):
         """Proposes a random basis."""
 

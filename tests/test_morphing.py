@@ -165,6 +165,39 @@ def test_overdetermine(
     ), "The overdetermined matrix is different from expected"
 
 
+"""
+def test_original_overdetermine(
+    this_basis=np.array([[1, -5], [1, -4], [1, -3], [1, -2], [1, -1], [1, 0], [1, 1]]),
+    this_components=np.array([[4, 0], [3, 1], [2, 2], [1, 3], [0, 4]]),
+):
+
+    # Test if the previous input format can do overdetermine morphing
+    morpher = m.PhysicsMorpher(parameter_max_power=[2, 2])
+
+    # Set the powers of components and basis
+    morpher.set_components(this_components)
+    # The matrix is calculated in set_basis
+    morpher.set_basis(basis_numpy=this_basis)
+
+    expected = np.array(
+        [
+            [-0.04112554, -0.07936508, 0.05681818, 0.06313131, 0.01136364],
+            [0.15151515, 0.23412698, -0.21590909, -0.18434343, -0.02651515],
+            [-0.14069264, -0.06349206, 0.18560606, 0.05808081, 0.00378788],
+            [-0.12987013, -0.33333333, 0.28030303, 0.18181818, 0.02272727],
+            [0.33549784, -0.26984127, -0.14772727, 0.00252525, 0.00378788],
+            [0.77056277, 0.09920635, -0.54924242, -0.23989899, -0.02651515],
+            [0.05411255, 0.41269841, 0.39015152, 0.11868687, 0.01136364],
+        ]
+    ).T
+
+    assert np.allclose(
+        morpher.calculate_morphing_matrix(), expected
+    ), "The overdetermined matrix is different from expected"
+
+"""
+
+
 def test_new_find_components(Nd=0, Np=0, Ns=2):
     # Test find components with respecting Nd, Np, Ns values
     new_morpher = m.PhysicsMorpher(parameter_max_power=[4, 4])
@@ -346,6 +379,25 @@ def test_find_components_BSM():
     np.allclose(
         components, expected_components
     ), "The output differs from expected components with BSM_max"
+
+
+def test_get_min_basis():
+    new_morpher = m.PhysicsMorpher(parameter_max_power=[4, 4])
+
+    expected_value = 3
+    calculated_value = new_morpher.get_min_basis(Nd=2, Np=1)
+
+    np.allclose(
+        calculated_value, expected_value
+    ), "The generated minimum number of basis requires differs from expected"
+
+    expected_value = 5
+    calculated_value = new_morpher.get_min_basis(Ns=2)
+
+    np.allclose(
+        calculated_value, expected_value
+    ), "The generated minimum number of basis requires differs from expected"
+    return
 
 
 # helper method that calculate W_i and Neff/xsec with W_i = w_i*sigma_i and Neff = sum(W_i)
