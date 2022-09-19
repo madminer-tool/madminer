@@ -729,21 +729,10 @@ class PhysicsMorpher:
                             factor *= float(theta_d[j] ** self.components[c, j])
                     if n_p != 0:
                         for i in range(n_p):
-                            if n_d != 0:
-                                factor *= float(theta_p[i] ** self.components[c, i + n_d])
-                            else:
-                                factor *= float(theta_p[i] ** self.components[c, i])
-                            # print(factor)
+                            factor *= float(theta_p[i] ** self.components[c, i + n_d])
                     if n_s != 0:
                         for k in range(n_s):
-                            if n_d != 0 and n_p != 0:
-                                factor *= float(theta_s[k] ** self.components[c, k + n_d + n_p])
-                            elif n_d != 0:
-                                factor *= float(theta_s[k] ** self.components[c, k + n_d])
-                            elif n_p != 0:
-                                factor *= float(theta_s[k] ** self.components[c, k + n_p])
-                            else:
-                                factor *= float(theta_s[k] ** self.components[c, k])
+                            factor *= float(theta_s[k] ** self.components[c, k + n_d + n_p])
                     component_weights[c] = factor
 
             component_weights = np.array(component_weights)

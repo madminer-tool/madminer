@@ -233,10 +233,7 @@ def test_evaluate_morphing():
     old_morpher = m.PhysicsMorpher(
         parameter_max_power=[4, 4],
         parameter_range=[
-            (
-                -1.0,
-                1.0,
-            ),
+            (-1.0, 1.0),
             (-1.0, 1.0),
         ],
     )
@@ -253,10 +250,7 @@ def test_evaluate_morphing():
     new_morpher = m.PhysicsMorpher(
         parameter_max_power=[4, 4],
         parameter_range=[
-            (
-                -1.0,
-                1.0,
-            ),
+            (-1.0, 1.0),
             (-1.0, 1.0),
         ],
     )
