@@ -1,6 +1,8 @@
 import logging
 import numpy as np
 
+from typing import Optional
+
 from madminer.utils.interfaces.hdf5 import load_events
 from madminer.utils.interfaces.hdf5 import load_madminer_settings
 from madminer.utils.morphing import PhysicsMorpher, NuisanceMorpher
@@ -764,16 +766,12 @@ class DataAnalyzer:
 
         if train:
             start_event = 0
+            end_event = self._calculate_end_event(test_split, train_split)
 
             if not self._is_split_valid(test_split):
-                end_event = None
                 correction_factor = 1.0
             else:
-                end_event = int(round(train_split * self.n_samples, 0))
                 correction_factor = 1.0 / train_split
-                if end_event < 0 or end_event > self.n_samples:
-                    raise ValueError(f"Irregular split: sample {end_event} / {self.n_samples}")
-
         else:
             start_event = self._calculate_start_event(test_split, train_split)
 
@@ -823,28 +821,21 @@ class DataAnalyzer:
 
         if partition == "train":
             start_event = 0
+            end_event = self._calculate_end_event(test_split, train_split)
 
             if not self._is_split_valid(test_split):
-                end_event = None
                 correction_factor = 1.0
             else:
-                end_event = int(round(train_split * self.n_samples, 0))
                 correction_factor = 1.0 / train_split
-
-                if end_event < 0 or end_event > self.n_samples:
-                    raise ValueError(f"Irregular split: sample {end_event} / {self.n_samples}")
 
         elif partition == "validation":
             start_event = self._calculate_start_event(test_split, train_split)
+            end_event = self._calculate_end_event(test_split, 1.0 - test_split)
 
             if not self._is_split_valid(validation_split):
-                end_event = None
                 correction_factor = 1.0
             else:
-                end_event = int(round((1.0 - test_split) * self.n_samples, 0))
                 correction_factor = 1.0 / validation_split
-                if end_event < 0 or end_event > self.n_samples:
-                    raise ValueError(f"Irregular split: sample {end_event} / {self.n_samples}")
 
         elif partition == "test":
             start_event = self._calculate_start_event(test_split, 1.0 - test_split)
@@ -955,6 +946,18 @@ class DataAnalyzer:
                 raise ValueError(f"Irregular split: sample {start_event} / {self.n_samples}")
 
         return start_event
+
+    def _calculate_end_event(self, test_split: float, train_split: float) -> Optional[int]:
+        """Calculates the end event considering the different splits"""
+
+        if not self._is_split_valid(test_split):
+            end_event = None
+        else:
+            end_event = int(round(train_split * self.n_samples, 0))
+            if end_event < 0 or end_event > self.n_samples:
+                raise ValueError(f"Irregular split: sample {end_event} / {self.n_samples}")
+
+        return end_event
 
     def _find_closest_benchmark(self, theta):
         if theta is None:
