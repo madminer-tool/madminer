@@ -40,7 +40,7 @@ def load_madminer_settings(file_name: str, include_nuisance_benchmarks: bool) ->
     file_name: str
         HDF5 file name to load the settings from
     include_nuisance_benchmarks: bool
-        Whether or not to filter out the nuisance benchmarks
+        Whether to filter out the nuisance benchmarks
 
     Returns
     -------
@@ -634,7 +634,7 @@ def _load_finite_diffs(file_name: str) -> Tuple[List[str], List[List[str]], floa
             fin_diff_shift_benchmarks = file["finite_differences/shifted_benchmarks"][()]
             fin_diff_epsilon = float(file["finite_differences/epsilon"][()])
         except KeyError:
-            logger.error("HDF5 file does not contain finite difference information")
+            logger.info("HDF5 file does not contain finite difference information")
         else:
             fin_diff_base_benchmarks = _decode_strings(fin_diff_base_benchmarks)
             fin_diff_shift_benchmarks = [_decode_strings(names) for names in fin_diff_shift_benchmarks]
@@ -712,7 +712,7 @@ def _load_morphing(file_name: str) -> Tuple[np.ndarray, np.ndarray]:
             morphing_components = file["morphing/components"][()]
             morphing_matrix = file["morphing/morphing_matrix"][()]
         except KeyError:
-            logger.error("HDF5 file does not contain morphing information")
+            logger.info("HDF5 file does not contain morphing information")
         else:
             morphing_components = np.asarray(morphing_components, dtype=int)
             morphing_matrix = np.asarray(morphing_matrix, dtype=float)
@@ -780,7 +780,7 @@ def _load_nuisance_params(file_name: str) -> Dict[str, NuisanceParameter]:
             param_benchmarks_pos = file["nuisance_parameters/benchmark_positive"][()]
             param_benchmarks_neg = file["nuisance_parameters/benchmark_negative"][()]
         except KeyError:
-            logger.error("HDF5 file does not contain nuisance parameters information")
+            logger.info("HDF5 file does not contain nuisance parameters information")
             return parameters
         else:
             param_names = _decode_strings(param_names)
@@ -988,7 +988,7 @@ def _load_observables(file_name: str) -> Tuple[List[str], List[str]]:
             observable_names = file["observables/names"][()]
             observable_defs = file["observables/definitions"][()]
         except KeyError:
-            logger.error("HDF5 file does not contain observables information")
+            logger.info("HDF5 file does not contain observables information")
         else:
             observable_names = _decode_strings(observable_names)
             observable_defs = _decode_strings(observable_defs)
@@ -1064,7 +1064,7 @@ def _load_samples(file_name: str) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
             sample_weights = file["samples/weights"][()]
             sampling_ids = file["samples/sampling_benchmarks"][()]
         except KeyError:
-            logger.error("HDF5 file does not contain sample information")
+            logger.info("HDF5 file does not contain sample information")
         else:
             assert sample_observations.shape[0] == sample_weights.shape[0], \
                 "The number of sample observations and sample weights do not match"
@@ -1142,7 +1142,7 @@ def _load_samples_summary(file_name: str) -> Tuple[np.ndarray, int]:
             num_signal_events = file["sample_summary/signal_events"][()]
             num_background_events = file["sample_summary/background_events"][()]
         except KeyError:
-            logger.error("HDF5 file does not contain sample summary information")
+            logger.info("HDF5 file does not contain sample summary information")
 
     return (
         num_signal_events,
@@ -1219,7 +1219,7 @@ def _load_systematics(file_name: str) -> Tuple[List[str], List[str], List[System
             systematics_values = file["systematics/values"][()]
             systematics_scales = file["systematics/scales"][()]
         except KeyError:
-            logger.error("HDF5 file does not contain systematic information")
+            logger.info("HDF5 file does not contain systematic information")
         else:
             systematics_names = _decode_strings(systematics_names)
             systematics_types = _decode_strings(systematics_types)
