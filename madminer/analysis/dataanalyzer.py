@@ -775,14 +775,12 @@ class DataAnalyzer:
                     raise ValueError(f"Irregular split: sample {end_event} / {self.n_samples}")
 
         else:
+            start_event = self._calculate_start_event(test_split, train_split)
+
             if not self._is_split_valid(test_split):
-                start_event = 0
                 correction_factor = 1.0
             else:
-                start_event = int(round(train_split * self.n_samples, 0)) + 1
                 correction_factor = 1.0 / test_split
-                if start_event < 0 or start_event > self.n_samples:
-                    raise ValueError(f"Irregular split: sample {start_event} / {self.n_samples}")
 
             end_event = None
 
@@ -837,31 +835,25 @@ class DataAnalyzer:
                     raise ValueError(f"Irregular split: sample {end_event} / {self.n_samples}")
 
         elif partition == "validation":
+            start_event = self._calculate_start_event(test_split, train_split)
+
             if not self._is_split_valid(validation_split):
-                start_event = 0
                 end_event = None
                 correction_factor = 1.0
             else:
-                start_event = int(round(train_split * self.n_samples, 0)) + 1
                 end_event = int(round((1.0 - test_split) * self.n_samples, 0))
                 correction_factor = 1.0 / validation_split
-
-                if start_event < 0 or start_event > self.n_samples:
-                    raise ValueError(f"Irregular split: sample {start_event} / {self.n_samples}")
                 if end_event < 0 or end_event > self.n_samples:
                     raise ValueError(f"Irregular split: sample {end_event} / {self.n_samples}")
 
         elif partition == "test":
+            start_event = self._calculate_start_event(test_split, 1.0 - test_split)
             end_event = None
 
             if not self._is_split_valid(test_split):
-                start_event = 0
                 correction_factor = 1.0
             else:
-                start_event = int(round((1.0 - test_split) * self.n_samples, 0)) + 1
                 correction_factor = 1.0 / test_split
-                if start_event < 0 or start_event > self.n_samples:
-                    raise ValueError(f"Irregular split: sample {start_event} / {self.n_samples}")
 
         else:
             raise RuntimeError(f"Unknown partition {partition}")
@@ -951,6 +943,18 @@ class DataAnalyzer:
         factors = events / np.sum(events)
         factors = np.hstack((factors, 1.0))  # background events
         return factors
+
+    def _calculate_start_event(self, test_split: float, train_split: float) -> int:
+        """Calculates the start event considering the different splits"""
+
+        if not self._is_split_valid(test_split):
+            start_event = 0
+        else:
+            start_event = int(round(train_split * self.n_samples, 0)) + 1
+            if start_event < 0 or start_event > self.n_samples:
+                raise ValueError(f"Irregular split: sample {start_event} / {self.n_samples}")
+
+        return start_event
 
     def _find_closest_benchmark(self, theta):
         if theta is None:
