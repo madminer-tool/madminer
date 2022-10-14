@@ -760,6 +760,8 @@ class DataAnalyzer:
             events.
         """
 
+        train_split = 1.0 - test_split
+
         if train:
             start_event = 0
 
@@ -767,8 +769,8 @@ class DataAnalyzer:
                 end_event = None
                 correction_factor = 1.0
             else:
-                end_event = int(round((1.0 - test_split) * self.n_samples, 0))
-                correction_factor = 1.0 / (1.0 - test_split)
+                end_event = int(round(train_split * self.n_samples, 0))
+                correction_factor = 1.0 / train_split
                 if end_event < 0 or end_event > self.n_samples:
                     raise ValueError(f"Irregular split: sample {end_event} / {self.n_samples}")
 
@@ -777,7 +779,7 @@ class DataAnalyzer:
                 start_event = 0
                 correction_factor = 1.0
             else:
-                start_event = int(round((1.0 - test_split) * self.n_samples, 0)) + 1
+                start_event = int(round(train_split * self.n_samples, 0)) + 1
                 correction_factor = 1.0 / test_split
                 if start_event < 0 or start_event > self.n_samples:
                     raise ValueError(f"Irregular split: sample {start_event} / {self.n_samples}")
