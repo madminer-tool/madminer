@@ -767,20 +767,11 @@ class DataAnalyzer:
         if train:
             start_event = 0
             end_event = self._calculate_end_event(test_split, train_split)
-
-            if not self._is_split_valid(test_split):
-                correction_factor = 1.0
-            else:
-                correction_factor = 1.0 / train_split
+            correction_factor = self._calculate_correction_factor(train_split)
         else:
             start_event = self._calculate_start_event(test_split, train_split)
-
-            if not self._is_split_valid(test_split):
-                correction_factor = 1.0
-            else:
-                correction_factor = 1.0 / test_split
-
             end_event = None
+            correction_factor = self._calculate_correction_factor(test_split)
 
         return start_event, end_event, correction_factor
 
@@ -822,29 +813,17 @@ class DataAnalyzer:
         if partition == "train":
             start_event = 0
             end_event = self._calculate_end_event(test_split, train_split)
-
-            if not self._is_split_valid(test_split):
-                correction_factor = 1.0
-            else:
-                correction_factor = 1.0 / train_split
+            correction_factor = self._calculate_correction_factor(train_split)
 
         elif partition == "validation":
             start_event = self._calculate_start_event(test_split, train_split)
             end_event = self._calculate_end_event(test_split, 1.0 - test_split)
-
-            if not self._is_split_valid(validation_split):
-                correction_factor = 1.0
-            else:
-                correction_factor = 1.0 / validation_split
+            correction_factor = self._calculate_correction_factor(validation_split)
 
         elif partition == "test":
             start_event = self._calculate_start_event(test_split, 1.0 - test_split)
             end_event = None
-
-            if not self._is_split_valid(test_split):
-                correction_factor = 1.0
-            else:
-                correction_factor = 1.0 / test_split
+            correction_factor = self._calculate_correction_factor(test_split)
 
         else:
             raise RuntimeError(f"Unknown partition {partition}")
@@ -958,6 +937,16 @@ class DataAnalyzer:
                 raise ValueError(f"Irregular split: sample {end_event} / {self.n_samples}")
 
         return end_event
+
+    def _calculate_correction_factor(self, split: float) -> float:
+        """Calculates the correction factor of a particular split"""
+
+        if not self._is_split_valid(split):
+            correction_factor = 1.0
+        else:
+            correction_factor = 1.0 / split
+
+        return correction_factor
 
     def _find_closest_benchmark(self, theta):
         if theta is None:
