@@ -1,8 +1,6 @@
 import logging
 import numpy as np
 
-from typing import Optional
-
 from madminer.utils.interfaces.hdf5 import load_events
 from madminer.utils.interfaces.hdf5 import load_madminer_settings
 from madminer.utils.morphing import PhysicsMorpher, NuisanceMorpher
@@ -764,20 +762,27 @@ class DataAnalyzer:
 
         train_split = 1.0 - test_split
 
+        if not all((
+            self._is_split_valid(test_split),
+            self._is_split_valid(train_split),
+        )):
+            return 0, None, 1.0
+
         if train:
             start_event = 0
-            end_event = self._calculate_end_event(test_split, train_split)
-            correction_factor = self._calculate_correction_factor(train_split)
+            end_event = self._calculate_end_event(train_split)
+            correction_factor = 1.0 / train_split
         else:
-            start_event = self._calculate_start_event(test_split, train_split)
+            start_event = self._calculate_start_event(train_split)
             end_event = None
-            correction_factor = self._calculate_correction_factor(test_split)
+            correction_factor = 1.0 / test_split
 
         return start_event, end_event, correction_factor
 
     def _train_validation_test_split(self, partition, test_split, validation_split):
         """
-        Returns the start and end event for train samples (train = True) or test samples (train = False).
+        Returns the start and end event for samples of the desired partition ("train", "test" or "validation")
+        given test and validation splits.
 
         Parameters
         ----------
@@ -798,33 +803,32 @@ class DataAnalyzer:
             Index (in the MadMiner file) of the last unweighted event to consider.
 
         correction_factor : float
-            Factor with which the weights and cross sections will have to be multiplied to make up for the missing
-            events.
+            Factor with which the weights and cross sections will have to be multiplied to make up
+            for the missing events.
         """
-
-        if test_split is None or test_split < 0.0:
-            test_split = 0.0
-        if validation_split is None or validation_split < 0.0:
-            validation_split = 0.0
 
         assert test_split + validation_split <= 1.0
         train_split = 1.0 - test_split - validation_split
 
+        if not all((
+            self._is_split_valid(test_split),
+            self._is_split_valid(train_split),
+            self._is_split_valid(validation_split),
+        )):
+            return 0, None, 1.0
+
         if partition == "train":
             start_event = 0
-            end_event = self._calculate_end_event(test_split, train_split)
-            correction_factor = self._calculate_correction_factor(train_split)
-
+            end_event = self._calculate_end_event(train_split)
+            correction_factor = 1.0 / train_split
         elif partition == "validation":
-            start_event = self._calculate_start_event(test_split, train_split)
-            end_event = self._calculate_end_event(test_split, 1.0 - test_split)
-            correction_factor = self._calculate_correction_factor(validation_split)
-
+            start_event = self._calculate_start_event(train_split)
+            end_event = self._calculate_end_event(1.0 - test_split)
+            correction_factor = 1.0 / validation_split
         elif partition == "test":
-            start_event = self._calculate_start_event(test_split, 1.0 - test_split)
+            start_event = self._calculate_start_event(1.0 - test_split)
             end_event = None
-            correction_factor = self._calculate_correction_factor(test_split)
-
+            correction_factor = 1.0 / test_split
         else:
             raise RuntimeError(f"Unknown partition {partition}")
 
@@ -914,39 +918,39 @@ class DataAnalyzer:
         factors = np.hstack((factors, 1.0))  # background events
         return factors
 
-    def _calculate_start_event(self, test_split: float, train_split: float) -> int:
-        """Calculates the start event considering the different splits"""
+    def _calculate_start_event(self, split: float) -> int:
+        """
+        Calculates the start event considering a particular split
 
-        if not self._is_split_valid(test_split):
-            start_event = 0
-        else:
-            start_event = int(round(train_split * self.n_samples, 0)) + 1
-            if start_event < 0 or start_event > self.n_samples:
-                raise ValueError(f"Irregular split: sample {start_event} / {self.n_samples}")
+        Returns
+        -------
+        start_event : int
+            Index (in the MadMiner file) of the first event to consider.
+        """
+
+        start_event = int(round(split * self.n_samples, 0)) + 1
+
+        if not 0 < start_event < self.n_samples:
+            raise ValueError(f"Irregular split: sample {start_event} / {self.n_samples}")
 
         return start_event
 
-    def _calculate_end_event(self, test_split: float, train_split: float) -> Optional[int]:
-        """Calculates the end event considering the different splits"""
+    def _calculate_end_event(self, split: float) -> int:
+        """
+        Calculates the end event considering a particular split
 
-        if not self._is_split_valid(test_split):
-            end_event = None
-        else:
-            end_event = int(round(train_split * self.n_samples, 0))
-            if end_event < 0 or end_event > self.n_samples:
-                raise ValueError(f"Irregular split: sample {end_event} / {self.n_samples}")
+        Returns
+        -------
+        end_event : int
+            Index (in the MadMiner file) of the last unweighted event to consider.
+        """
+
+        end_event = int(round(split * self.n_samples, 0))
+
+        if not 0 < end_event < self.n_samples:
+            raise ValueError(f"Irregular split: sample {end_event} / {self.n_samples}")
 
         return end_event
-
-    def _calculate_correction_factor(self, split: float) -> float:
-        """Calculates the correction factor of a particular split"""
-
-        if not self._is_split_valid(split):
-            correction_factor = 1.0
-        else:
-            correction_factor = 1.0 / split
-
-        return correction_factor
 
     def _find_closest_benchmark(self, theta):
         if theta is None:
