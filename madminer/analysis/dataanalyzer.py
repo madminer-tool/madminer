@@ -596,6 +596,12 @@ class DataAnalyzer:
         return matrix
 
     @staticmethod
+    def _is_split_valid(split: float) -> bool:
+        """Validates whether a train / test / validation split is a valid number"""
+
+        return split is not None and 0.0 <= split <= 1.0
+
+    @staticmethod
     def _any_nontrivial_nus(nus):
         if nus is None:
             return False
@@ -752,12 +758,12 @@ class DataAnalyzer:
         correction_factor : float
             Factor with which the weights and cross sections will have to be multiplied to make up for the missing
             events.
-
         """
+
         if train:
             start_event = 0
 
-            if test_split is None or test_split <= 0.0 or test_split >= 1.0:
+            if not self._is_split_valid(test_split):
                 end_event = None
                 correction_factor = 1.0
             else:
@@ -767,7 +773,7 @@ class DataAnalyzer:
                     raise ValueError(f"Irregular split: sample {end_event} / {self.n_samples}")
 
         else:
-            if test_split is None or test_split <= 0.0 or test_split >= 1.0:
+            if not self._is_split_valid(test_split):
                 start_event = 0
                 correction_factor = 1.0
             else:
@@ -805,19 +811,20 @@ class DataAnalyzer:
         correction_factor : float
             Factor with which the weights and cross sections will have to be multiplied to make up for the missing
             events.
-
         """
+
         if test_split is None or test_split < 0.0:
             test_split = 0.0
         if validation_split is None or validation_split < 0.0:
             validation_split = 0.0
+
         assert test_split + validation_split <= 1.0
         train_split = 1.0 - test_split - validation_split
 
         if partition == "train":
             start_event = 0
 
-            if test_split is None or test_split <= 0.0 or test_split >= 1.0:
+            if not self._is_split_valid(test_split):
                 end_event = None
                 correction_factor = 1.0
             else:
@@ -828,11 +835,10 @@ class DataAnalyzer:
                     raise ValueError(f"Irregular split: sample {end_event} / {self.n_samples}")
 
         elif partition == "validation":
-            if validation_split is None or validation_split <= 0.0 or validation_split >= 1.0:
+            if not self._is_split_valid(validation_split):
                 start_event = 0
                 end_event = None
                 correction_factor = 1.0
-
             else:
                 start_event = int(round(train_split * self.n_samples, 0)) + 1
                 end_event = int(round((1.0 - test_split) * self.n_samples, 0))
@@ -840,14 +846,13 @@ class DataAnalyzer:
 
                 if start_event < 0 or start_event > self.n_samples:
                     raise ValueError(f"Irregular split: sample {start_event} / {self.n_samples}")
-
                 if end_event < 0 or end_event > self.n_samples:
                     raise ValueError(f"Irregular split: sample {end_event} / {self.n_samples}")
 
         elif partition == "test":
             end_event = None
 
-            if test_split is None or test_split <= 0.0 or test_split >= 1.0:
+            if not self._is_split_valid(test_split):
                 start_event = 0
                 correction_factor = 1.0
             else:
