@@ -1216,7 +1216,6 @@ class FisherInformation(DataAnalyzer):
 
         # Get differential xsec per event, and the derivative wrt to theta
         sigma = mdot(theta_matrix, weights_benchmarks)  # Shape (n_events,)
-        total_xsec = np.sum(sigma)
         inv_sigma = sanitize_array(1.0 / sigma)  # Shape (n_events,)
         dsigma = mdot(dtheta_matrix, weights_benchmarks)  # Shape (n_parameters, n_events)
 
