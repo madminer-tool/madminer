@@ -1734,7 +1734,7 @@ class SampleAugmenter(DataAnalyzer):
                 add_nuisance_params = True
 
         # No nuisance params?
-        if not add_nuisance_params or self.nuisance_morpher is None or self.n_nuisance_parameters == 0:
+        if not add_nuisance_params or self.nuisance_morpher is None:
             return all_thetas
 
         all_combined = []
