@@ -306,7 +306,7 @@ class DataAnalyzer:
             start_event, end_event = None, None
             correction_factor = 1.0
         elif partition in ["train", "validation", "test"]:
-            start_event, end_event, correction_factor = self._train_validation_test_split(
+            start_event, end_event, correction_factor = self._calculate_partition_bounds(
                 partition, test_split, validation_split
             )
         else:
@@ -440,7 +440,7 @@ class DataAnalyzer:
             start_event, end_event = None, None
             correction_factor = 1.0
         elif partition in ["train", "validation", "test"]:
-            start_event, end_event, correction_factor = self._train_validation_test_split(
+            start_event, end_event, correction_factor = self._calculate_partition_bounds(
                 partition, test_split, validation_split
             )
         else:
@@ -596,6 +596,12 @@ class DataAnalyzer:
         return matrix
 
     @staticmethod
+    def _is_split_valid(split: float) -> bool:
+        """Validates whether a train / test / validation split is a valid number"""
+
+        return split is not None and 0.0 <= split <= 1.0
+
+    @staticmethod
     def _any_nontrivial_nus(nus):
         if nus is None:
             return False
@@ -729,60 +735,10 @@ class DataAnalyzer:
             return dweight_dnu
         return np.concatenate((dweight_dtheta, dweight_dnu), 1)
 
-    def _train_test_split(self, train, test_split):
+    def _calculate_partition_bounds(self, partition: str, test_split: float, validation_split: float = 0.0):
         """
-        Returns the start and end event for train samples (train = True) or test samples (train = False).
-
-        Parameters
-        ----------
-        train : bool
-            True if training data is generated, False if test data is generated.
-
-        test_split : float
-            Fraction of events reserved for testing.
-
-        Returns
-        -------
-        start_event : int
-            Index (in the MadMiner file) of the first event to consider.
-
-        end_event : int
-            Index (in the MadMiner file) of the last unweighted event to consider.
-
-        correction_factor : float
-            Factor with which the weights and cross sections will have to be multiplied to make up for the missing
-            events.
-
-        """
-        if train:
-            start_event = 0
-
-            if test_split is None or test_split <= 0.0 or test_split >= 1.0:
-                end_event = None
-                correction_factor = 1.0
-            else:
-                end_event = int(round((1.0 - test_split) * self.n_samples, 0))
-                correction_factor = 1.0 / (1.0 - test_split)
-                if end_event < 0 or end_event > self.n_samples:
-                    raise ValueError(f"Irregular split: sample {end_event} / {self.n_samples}")
-
-        else:
-            if test_split is None or test_split <= 0.0 or test_split >= 1.0:
-                start_event = 0
-                correction_factor = 1.0
-            else:
-                start_event = int(round((1.0 - test_split) * self.n_samples, 0)) + 1
-                correction_factor = 1.0 / test_split
-                if start_event < 0 or start_event > self.n_samples:
-                    raise ValueError(f"Irregular split: sample {start_event} / {self.n_samples}")
-
-            end_event = None
-
-        return start_event, end_event, correction_factor
-
-    def _train_validation_test_split(self, partition, test_split, validation_split):
-        """
-        Returns the start and end event for train samples (train = True) or test samples (train = False).
+        Returns the start and end event for samples of the desired partition ("train", "test" or "validation")
+        given test and validation splits.
 
         Parameters
         ----------
@@ -791,7 +747,7 @@ class DataAnalyzer:
         test_split : float
             Fraction of events reserved for testing.
 
-        validation_split : float
+        validation_split : float, optional
             Fraction of events reserved for testing.
 
         Returns
@@ -803,59 +759,32 @@ class DataAnalyzer:
             Index (in the MadMiner file) of the last unweighted event to consider.
 
         correction_factor : float
-            Factor with which the weights and cross sections will have to be multiplied to make up for the missing
-            events.
-
+            Factor with which the weights and cross sections will have to be multiplied to make up
+            for the missing events.
         """
-        if test_split is None or test_split < 0.0:
-            test_split = 0.0
-        if validation_split is None or validation_split < 0.0:
-            validation_split = 0.0
+
         assert test_split + validation_split <= 1.0
         train_split = 1.0 - test_split - validation_split
 
+        if not all((
+            self._is_split_valid(test_split),
+            self._is_split_valid(train_split),
+            self._is_split_valid(validation_split),
+        )):
+            return 0, None, 1.0
+
         if partition == "train":
             start_event = 0
-
-            if test_split is None or test_split <= 0.0 or test_split >= 1.0:
-                end_event = None
-                correction_factor = 1.0
-            else:
-                end_event = int(round(train_split * self.n_samples, 0))
-                correction_factor = 1.0 / train_split
-
-                if end_event < 0 or end_event > self.n_samples:
-                    raise ValueError(f"Irregular split: sample {end_event} / {self.n_samples}")
-
+            end_event = self._calculate_end_event(train_split)
+            correction_factor = 1.0 / train_split
         elif partition == "validation":
-            if validation_split is None or validation_split <= 0.0 or validation_split >= 1.0:
-                start_event = 0
-                end_event = None
-                correction_factor = 1.0
-
-            else:
-                start_event = int(round(train_split * self.n_samples, 0)) + 1
-                end_event = int(round((1.0 - test_split) * self.n_samples, 0))
-                correction_factor = 1.0 / validation_split
-
-                if start_event < 0 or start_event > self.n_samples:
-                    raise ValueError(f"Irregular split: sample {start_event} / {self.n_samples}")
-
-                if end_event < 0 or end_event > self.n_samples:
-                    raise ValueError(f"Irregular split: sample {end_event} / {self.n_samples}")
-
+            start_event = self._calculate_start_event(train_split)
+            end_event = self._calculate_end_event(1.0 - test_split)
+            correction_factor = 1.0 / validation_split
         elif partition == "test":
+            start_event = self._calculate_start_event(1.0 - test_split)
             end_event = None
-
-            if test_split is None or test_split <= 0.0 or test_split >= 1.0:
-                start_event = 0
-                correction_factor = 1.0
-            else:
-                start_event = int(round((1.0 - test_split) * self.n_samples, 0)) + 1
-                correction_factor = 1.0 / test_split
-                if start_event < 0 or start_event > self.n_samples:
-                    raise ValueError(f"Irregular split: sample {start_event} / {self.n_samples}")
-
+            correction_factor = 1.0 / test_split
         else:
             raise RuntimeError(f"Unknown partition {partition}")
 
@@ -944,6 +873,40 @@ class DataAnalyzer:
         factors = events / np.sum(events)
         factors = np.hstack((factors, 1.0))  # background events
         return factors
+
+    def _calculate_start_event(self, split: float) -> int:
+        """
+        Calculates the start event considering a particular split
+
+        Returns
+        -------
+        start_event : int
+            Index (in the MadMiner file) of the first event to consider.
+        """
+
+        start_event = int(round(split * self.n_samples, 0)) + 1
+
+        if not 0 < start_event < self.n_samples:
+            raise ValueError(f"Irregular split: sample {start_event} / {self.n_samples}")
+
+        return start_event
+
+    def _calculate_end_event(self, split: float) -> int:
+        """
+        Calculates the end event considering a particular split
+
+        Returns
+        -------
+        end_event : int
+            Index (in the MadMiner file) of the last unweighted event to consider.
+        """
+
+        end_event = int(round(split * self.n_samples, 0))
+
+        if not 0 < end_event < self.n_samples:
+            raise ValueError(f"Irregular split: sample {end_event} / {self.n_samples}")
+
+        return end_event
 
     def _find_closest_benchmark(self, theta):
         if theta is None:

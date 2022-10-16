@@ -1575,7 +1575,7 @@ class SampleAugmenter(DataAnalyzer):
         largest_event_probability = 0.0
 
         # Main sampling loop
-        start_event, end_event, correction_factor = self._train_validation_test_split(
+        start_event, end_event, correction_factor = self._calculate_partition_bounds(
             partition, test_split, validation_split
         )
         logger.debug(
