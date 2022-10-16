@@ -1208,10 +1208,7 @@ class FisherInformation(DataAnalyzer):
             does not take into account any uncertainty on the nuisance parameter part of the Fisher information, and
             correlations between events are neglected. Note that independent of sum_events, the covariance matrix is
             always summed over the events.
-
         """
-
-        include_nuisance_parameters = include_nuisance_parameters and self.include_nuisance_parameters
 
         # Get morphing matrices
         theta_matrix = self._get_theta_benchmark_matrix(theta, zero_pad=False)  # (n_benchmarks_phys,)
@@ -1219,15 +1216,17 @@ class FisherInformation(DataAnalyzer):
 
         # Get differential xsec per event, and the derivative wrt to theta
         sigma = mdot(theta_matrix, weights_benchmarks)  # Shape (n_events,)
-        total_xsec = np.sum(sigma)
         inv_sigma = sanitize_array(1.0 / sigma)  # Shape (n_events,)
         dsigma = mdot(dtheta_matrix, weights_benchmarks)  # Shape (n_parameters, n_events)
 
         # Calculate physics Fisher info for this event
         fisher_info_phys = luminosity * np.einsum("n,in,jn->nij", inv_sigma, dsigma, dsigma)
 
+        if include_nuisance_parameters and self.nuisance_morpher is None:
+            logger.warning("Cannot include nuisance parameters as none were found in the setup file")
+
         # Nuisance parameter Fisher info
-        if include_nuisance_parameters:
+        if include_nuisance_parameters and self.nuisance_morpher is not None:
             nuisance_a = self.nuisance_morpher.calculate_a(weights_benchmarks)  # Shape (n_nuisance_params, n_events)
             # grad_i dsigma(x), where i is a nuisance parameter, is given by
             # sigma[np.newaxis, :] * a
