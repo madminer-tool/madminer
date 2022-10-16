@@ -306,7 +306,7 @@ class DataAnalyzer:
             start_event, end_event = None, None
             correction_factor = 1.0
         elif partition in ["train", "validation", "test"]:
-            start_event, end_event, correction_factor = self._train_validation_test_split(
+            start_event, end_event, correction_factor = self._calculate_partition_bounds(
                 partition, test_split, validation_split
             )
         else:
@@ -440,7 +440,7 @@ class DataAnalyzer:
             start_event, end_event = None, None
             correction_factor = 1.0
         elif partition in ["train", "validation", "test"]:
-            start_event, end_event, correction_factor = self._train_validation_test_split(
+            start_event, end_event, correction_factor = self._calculate_partition_bounds(
                 partition, test_split, validation_split
             )
         else:
@@ -735,51 +735,7 @@ class DataAnalyzer:
             return dweight_dnu
         return np.concatenate((dweight_dtheta, dweight_dnu), 1)
 
-    def _train_test_split(self, train, test_split):
-        """
-        Returns the start and end event for train samples (train = True) or test samples (train = False).
-
-        Parameters
-        ----------
-        train : bool
-            True if training data is generated, False if test data is generated.
-
-        test_split : float
-            Fraction of events reserved for testing.
-
-        Returns
-        -------
-        start_event : int
-            Index (in the MadMiner file) of the first event to consider.
-
-        end_event : int
-            Index (in the MadMiner file) of the last unweighted event to consider.
-
-        correction_factor : float
-            Factor with which the weights and cross sections will have to be multiplied to make up for the missing
-            events.
-        """
-
-        train_split = 1.0 - test_split
-
-        if not all((
-            self._is_split_valid(test_split),
-            self._is_split_valid(train_split),
-        )):
-            return 0, None, 1.0
-
-        if train:
-            start_event = 0
-            end_event = self._calculate_end_event(train_split)
-            correction_factor = 1.0 / train_split
-        else:
-            start_event = self._calculate_start_event(train_split)
-            end_event = None
-            correction_factor = 1.0 / test_split
-
-        return start_event, end_event, correction_factor
-
-    def _train_validation_test_split(self, partition, test_split, validation_split):
+    def _calculate_partition_bounds(self, partition: str, test_split: float, validation_split: float = 0.0):
         """
         Returns the start and end event for samples of the desired partition ("train", "test" or "validation")
         given test and validation splits.
@@ -791,7 +747,7 @@ class DataAnalyzer:
         test_split : float
             Fraction of events reserved for testing.
 
-        validation_split : float
+        validation_split : float, optional
             Fraction of events reserved for testing.
 
         Returns

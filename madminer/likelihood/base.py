@@ -37,7 +37,7 @@ class BaseLikelihood(DataAnalyzer):
     ):
 
         # get data
-        start_event, end_event, correction_factor = self._train_test_split(False, test_split)
+        start_event, end_event, correction_factor = self._calculate_partition_bounds("test", test_split)
         x, weights_benchmarks = next(
             self.event_loader(
                 start=start_event,
