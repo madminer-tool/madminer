@@ -500,7 +500,7 @@ class HistoLikelihood(BaseLikelihood):
         Low-level function that creates weighted histogram data
         """
         # Get weighted events
-        start_event, end_event, correction_factor = self._calculate_partition_bound("train", test_split)
+        start_event, end_event, correction_factor = self._calculate_partition_bounds("train", test_split)
         x, weights_benchmarks = self.weighted_events(start_event=start_event, end_event=end_event, n_draws=n_toys)
         weights_benchmarks *= self.n_samples / n_toys
 
