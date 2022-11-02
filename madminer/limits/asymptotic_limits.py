@@ -862,7 +862,7 @@ class AsymptoticLimits(DataAnalyzer):
 
     def _calculate_xsecs(self, thetas, test_split=0.2):
         # Test split
-        start_event, end_event, correction_factor = self._calculate_partition_bound("test", test_split)
+        start_event, end_event, correction_factor = self._calculate_partition_bounds("test", test_split)
 
         # Total xsecs for benchmarks
         xsecs_benchmarks = 0.0
@@ -877,7 +877,7 @@ class AsymptoticLimits(DataAnalyzer):
         return np.asarray(xsecs)
 
     def _asimov_data(self, theta, test_split=0.2, sample_only_from_closest_benchmark=True, n_asimov=None):
-        start_event, end_event, correction_factor = self._calculate_partition_bound("test", test_split)
+        start_event, end_event, correction_factor = self._calculate_partition_bounds("test", test_split)
         x, weights_benchmarks = next(
             self.event_loader(
                 start=start_event,
@@ -1019,7 +1019,7 @@ class AsymptoticLimits(DataAnalyzer):
 
     def _make_weighted_histo_data(self, summary_function, thetas, n_toys, test_split=0.2):
         # Get weighted events
-        start_event, end_event, _ = self._calculate_partition_bound("train", test_split)
+        start_event, end_event, _ = self._calculate_partition_bounds("train", test_split)
         x, weights_benchmarks = self.weighted_events(start_event=start_event, end_event=end_event, n_draws=n_toys)
 
         # Calculate summary stats
