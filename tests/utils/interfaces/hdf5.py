@@ -4,11 +4,9 @@ from tempfile import mkstemp
 import pytest
 
 from madminer.models import Observable
-from madminer.utils.interfaces.hdf5 import (
-    EMPTY_EXPR,
-    _load_observables,
-    _save_observables,
-)
+from madminer.utils.interfaces.hdf5 import EMPTY_EXPR
+from madminer.utils.interfaces.hdf5 import _load_observables
+from madminer.utils.interfaces.hdf5 import _save_observables
 
 
 @pytest.fixture(scope="function")
