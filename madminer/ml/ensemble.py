@@ -1,16 +1,17 @@
 import json
 import logging
+
+from pathlib import Path
+
 import numpy as np
 
 from madminer.utils.various import load_and_check
-from pathlib import Path
 
 from .base import Estimator
 from .double_parameterized_ratio import DoubleParameterizedRatioEstimator
 from .likelihood import LikelihoodEstimator
 from .parameterized_ratio import ParameterizedRatioEstimator
 from .score import ScoreEstimator
-
 
 logger = logging.getLogger(__name__)
 

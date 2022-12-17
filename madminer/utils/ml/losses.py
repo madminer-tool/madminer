@@ -1,7 +1,9 @@
 import logging
+
 import numpy as np
 import torch
-from torch.nn import BCELoss, MSELoss
+from torch.nn import BCELoss
+from torch.nn import MSELoss
 
 logger = logging.getLogger(__name__)
 

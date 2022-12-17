@@ -1,9 +1,10 @@
 import logging
+
 import numpy.random as rng
 import torch
 
-from madminer.utils.ml.models.base import BaseFlow
 from torch import tensor
+from madminer.utils.ml.models.base import BaseFlow
 
 logger = logging.getLogger(__name__)
 

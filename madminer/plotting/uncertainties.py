@@ -1,10 +1,15 @@
 import logging
+
 import numpy as np
-from matplotlib import pyplot as plt, gridspec
+
+from matplotlib import pyplot as plt
+from matplotlib import gridspec
 
 from ..sampling import SampleAugmenter
 from ..utils.morphing import NuisanceMorpher
-from ..utils.various import mdot, shuffle, sanitize_array
+from ..utils.various import mdot
+from ..utils.various import shuffle
+from ..utils.various import sanitize_array
 
 logger = logging.getLogger(__name__)
 

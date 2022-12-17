@@ -1,12 +1,13 @@
 import logging
-import numpy as np
 import os
-import uproot3
 
 from collections import OrderedDict
 from typing import Callable
 from typing import Dict
 from typing import List
+
+import numpy as np
+import uproot3
 
 from particle import Particle
 from madminer.models import Cut

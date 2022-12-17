@@ -1,5 +1,4 @@
 import logging
-import numpy as np
 import xml.etree.ElementTree as ET
 
 from collections import OrderedDict
@@ -7,6 +6,8 @@ from pathlib import Path
 from typing import Callable
 from typing import Dict
 from typing import List
+
+import numpy as np
 
 from particle import Particle
 from madminer.models import Cut
@@ -16,7 +17,9 @@ from madminer.models import Systematic
 from madminer.models import SystematicScale
 from madminer.models import SystematicType
 from madminer.utils.particle import MadMinerParticle
-from madminer.utils.various import unzip_file, approx_equal, math_commands
+from madminer.utils.various import unzip_file
+from madminer.utils.various import approx_equal
+from madminer.utils.various import math_commands
 
 logger = logging.getLogger(__name__)
 

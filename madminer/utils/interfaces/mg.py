@@ -3,7 +3,8 @@ import shutil
 
 from pathlib import Path
 
-from madminer.utils.various import call_command, make_file_executable
+from madminer.utils.various import call_command
+from madminer.utils.various import make_file_executable
 
 logger = logging.getLogger(__name__)
 

@@ -1,8 +1,11 @@
 import logging
-import numpy as np
 import random
 
-from scipy.interpolate import griddata, LinearNDInterpolator, CloughTocher2DInterpolator
+import numpy as np
+
+from scipy.interpolate import griddata
+from scipy.interpolate import LinearNDInterpolator
+from scipy.interpolate import CloughTocher2DInterpolator
 from scipy.stats import chi2
 
 from ..utils.various import load_and_check

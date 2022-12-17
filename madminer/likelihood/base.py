@@ -1,8 +1,11 @@
 import logging
-import numpy as np
 
 from abc import abstractmethod
-from scipy.stats import poisson, norm
+
+import numpy as np
+
+from scipy.stats import poisson
+from scipy.stats import norm
 
 from ..analysis import DataAnalyzer
 from ..utils.various import mdot

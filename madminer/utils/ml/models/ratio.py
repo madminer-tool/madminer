@@ -1,10 +1,11 @@
 import logging
+
 import numpy as np
 import torch
 import torch.nn as nn
 
-from madminer.utils.ml.utils import get_activation_function, check_for_nan, check_for_nonpos, NanException
 from torch.autograd import grad
+from madminer.utils.ml.utils import get_activation_function
 
 logger = logging.getLogger(__name__)
 

@@ -1,12 +1,20 @@
 import logging
+
 import numpy as np
-from scipy.stats import chi2, poisson
+
+from scipy.stats import chi2
+from scipy.stats import poisson
 
 from madminer import sampling
 from madminer.analysis import DataAnalyzer
-from madminer.ml import ParameterizedRatioEstimator, Ensemble, ScoreEstimator, LikelihoodEstimator, load_estimator
+from madminer.ml import ParameterizedRatioEstimator
+from madminer.ml import Ensemble
+from madminer.ml import ScoreEstimator
+from madminer.ml import LikelihoodEstimator
+from madminer.ml import load_estimator
 from madminer.utils.histo import Histo
-from madminer.utils.various import mdot, less_logging
+from madminer.utils.various import mdot
+from madminer.utils.various import less_logging
 from madminer.sampling import SampleAugmenter
 
 logger = logging.getLogger(__name__)

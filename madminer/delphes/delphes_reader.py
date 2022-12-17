@@ -1,8 +1,9 @@
 import logging
-import numpy as np
 
 from collections import OrderedDict
 from pathlib import Path
+
+import numpy as np
 
 from madminer.models import Cut
 from madminer.models import Observable
@@ -13,7 +14,8 @@ from madminer.utils.interfaces.hdf5 import load_madminer_settings
 from madminer.utils.interfaces.hdf5 import save_events
 from madminer.utils.interfaces.hdf5 import save_nuisance_setup
 from madminer.utils.interfaces.hepmc import extract_weight_order
-from madminer.utils.interfaces.lhe import parse_lhe_file, extract_nuisance_parameters_from_lhe_file
+from madminer.utils.interfaces.lhe import parse_lhe_file
+from madminer.utils.interfaces.lhe import extract_nuisance_parameters_from_lhe_file
 from madminer.sampling import combine_and_shuffle
 
 logger = logging.getLogger(__name__)

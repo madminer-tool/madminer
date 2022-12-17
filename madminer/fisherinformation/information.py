@@ -1,12 +1,19 @@
 import logging
-import numpy as np
 
 from pathlib import Path
 
+import numpy as np
+
 from madminer.analysis import DataAnalyzer
-from madminer.utils.various import math_commands, weighted_quantile, sanitize_array, mdot
+from madminer.utils.various import math_commands
+from madminer.utils.various import weighted_quantile
+from madminer.utils.various import sanitize_array
+from madminer.utils.various import mdot
 from madminer.utils.various import less_logging
-from madminer.ml import ParameterizedRatioEstimator, ScoreEstimator, Ensemble, load_estimator
+from madminer.ml import ParameterizedRatioEstimator
+from madminer.ml import ScoreEstimator
+from madminer.ml import Ensemble
+from madminer.ml import load_estimator
 
 logger = logging.getLogger(__name__)
 

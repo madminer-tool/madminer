@@ -1,11 +1,16 @@
 import logging
+
 import matplotlib
 import numpy as np
+
 from matplotlib import pyplot as plt
 
 from ..sampling import SampleAugmenter
 from ..utils.morphing import NuisanceMorpher
-from ..utils.various import shuffle, sanitize_array, mdot, weighted_quantile
+from ..utils.various import shuffle
+from ..utils.various import sanitize_array
+from ..utils.various import mdot
+from ..utils.various import weighted_quantile
 
 logger = logging.getLogger(__name__)
 

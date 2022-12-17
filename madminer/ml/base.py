@@ -1,14 +1,14 @@
 import json
 import logging
-import numpy as np
-import torch
 
 from abc import ABC
 from abc import abstractmethod
 from pathlib import Path
 
-from ..utils.various import load_and_check
+import numpy as np
+import torch
 
+from ..utils.various import load_and_check
 
 logger = logging.getLogger(__name__)
 

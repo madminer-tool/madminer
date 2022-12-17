@@ -1,12 +1,11 @@
 import logging
+
 import numpy as np
 import torch
 from torch import tensor
 
-from madminer.utils.ml.models.ratio import (
-    DenseSingleParameterizedRatioModel,
-    DenseDoublyParameterizedRatioModel,
-)
+from madminer.utils.ml.models.ratio import DenseSingleParameterizedRatioModel
+from madminer.utils.ml.models.ratio import DenseDoublyParameterizedRatioModel
 
 logger = logging.getLogger(__name__)
 

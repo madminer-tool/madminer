@@ -1,6 +1,8 @@
 import logging
-import numpy as np
+
 from collections import OrderedDict
+
+import numpy as np
 
 from madminer.models import Cut
 from madminer.models import Efficiency
@@ -9,11 +11,9 @@ from madminer.models import NuisanceParameter
 from madminer.utils.interfaces.hdf5 import load_madminer_settings
 from madminer.utils.interfaces.hdf5 import save_events
 from madminer.utils.interfaces.hdf5 import save_nuisance_setup
-from madminer.utils.interfaces.lhe import (
-    parse_lhe_file,
-    extract_nuisance_parameters_from_lhe_file,
-    get_elementary_pdg_ids,
-)
+from madminer.utils.interfaces.lhe import parse_lhe_file
+from madminer.utils.interfaces.lhe import extract_nuisance_parameters_from_lhe_file
+from madminer.utils.interfaces.lhe import get_elementary_pdg_ids
 from madminer.sampling import combine_and_shuffle
 
 logger = logging.getLogger(__name__)
