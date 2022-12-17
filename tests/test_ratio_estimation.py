@@ -37,14 +37,14 @@ def simulate(theta, theta0=None, theta1=None, theta_score=None, npoints=None):
         r_xz = norm(loc=theta0, scale=z_std).pdf(z) / norm(loc=theta1, scale=z_std).pdf(z)
 
     if theta_score is not None:
-        t_xz = (x - theta_score) / z_std ** 2
+        t_xz = (x - theta_score) / z_std**2
 
     return x, r_xz, t_xz
 
 
 # True likelihood ratio function
 def calculate_likelihood_ratio(x, theta0, theta1=0.0):
-    combined_std = (z_std ** 2 + x_std ** 2) ** 0.5
+    combined_std = (z_std**2 + x_std**2) ** 0.5
     r_x = norm(loc=theta0, scale=combined_std).pdf(x) / norm(loc=theta1, scale=combined_std).pdf(x)
     return r_x
 
