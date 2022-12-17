@@ -33,7 +33,7 @@ def parse_delphes_root_file(
     acceptance_eta_max_j=None,
     delete_delphes_sample_file=False,
 ):
-    """ Extracts observables and weights from a Delphes ROOT file """
+    """Extracts observables and weights from a Delphes ROOT file"""
 
     logger.debug("Parsing Delphes file %s", delphes_sample_file)
 

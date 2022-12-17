@@ -190,7 +190,7 @@ def save_madminer_settings(
     benchmark_values = [[val for val in b.values.values()] for b in benchmarks.values()]
 
     fin_diffs_base_benchmarks = [b.base_name for b in finite_differences.values()]
-    fin_diffs_shift_benchmarks = [[shift_name for shift_name in b.shift_names.values()] for b in finite_differences.values()]
+    fin_diffs_shift_benchmarks = [[name for name in b.shift_names.values()] for b in finite_differences.values()]
 
     systematics_names = [s.name for s in systematics.values()]
     systematics_types = [s.type.value for s in systematics.values()]
@@ -257,11 +257,7 @@ def save_nuisance_setup(
         _,
     ) = _load_benchmarks(file_name)
 
-    (
-        benchmark_names,
-        benchmark_values,
-        benchmark_nuisance_flags,
-    ) = _add_benchmarks_custom(
+    (benchmark_names, benchmark_values, benchmark_nuisance_flags,) = _add_benchmarks_custom(
         benchmark_names,
         benchmark_values,
         benchmark_nuisance_flags,
@@ -298,11 +294,7 @@ def load_events(
     sampling_factors: np.ndarray = None,
     include_nuisance_params: bool = True,
     include_sampling_ids: bool = False,
-) -> Iterator[Union[
-        Tuple[np.ndarray, np.ndarray],
-        Tuple[np.ndarray, np.ndarray, np.ndarray]
-    ]
-]:
+) -> Iterator[Union[Tuple[np.ndarray, np.ndarray], Tuple[np.ndarray, np.ndarray, np.ndarray]]]:
     """
     Loads generated events information from a HDF5 data file
 
@@ -353,15 +345,15 @@ def load_events(
     while actual_index < final_index:
         batch_final_index = min(actual_index + batch_size, final_index)
 
-        batch_observations = observations[actual_index : batch_final_index]
-        batch_weights = weights[actual_index : batch_final_index]
+        batch_observations = observations[actual_index:batch_final_index]
+        batch_weights = weights[actual_index:batch_final_index]
         batch_sampling_ids = None
 
         if include_nuisance_params is False:
             batch_weights = batch_weights[:, benchmark_filter]
 
         if sampling_ids.size > 0:
-            batch_sampling_ids = sampling_ids[actual_index : batch_final_index]
+            batch_sampling_ids = sampling_ids[actual_index:batch_final_index]
 
             # Only return data matching sampling_benchmark
             if sampling_benchmark is not None:
@@ -445,11 +437,7 @@ def _add_benchmarks_custom(
     benchmark_values: List[np.ndarray],
     benchmark_nuisance_flags: List[bool],
     new_benchmark_names: List[str],
-) -> Tuple[
-    List[str],
-    List[np.ndarray],
-    List[bool]
-]:
+) -> Tuple[List[str], List[np.ndarray], List[bool]]:
     """
     Extend the lists of benchmark properties with new custom benchmarks
 
@@ -916,9 +904,7 @@ def _load_analysis_params(file_name: str) -> Dict[str, AnalysisParameter]:
     return parameters
 
 
-def _save_analysis_parameters(
-    file_name: str, file_override: bool, parameters: Dict[str, AnalysisParameter]
-) -> None:
+def _save_analysis_parameters(file_name: str, file_override: bool, parameters: Dict[str, AnalysisParameter]) -> None:
     """
     Save analysis parameter properties into a HDF5 data file
 
@@ -1066,8 +1052,9 @@ def _load_samples(file_name: str) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         except KeyError:
             logger.info("HDF5 file does not contain sample information")
         else:
-            assert sample_observations.shape[0] == sample_weights.shape[0], \
-                "The number of sample observations and sample weights do not match"
+            assert (
+                sample_observations.shape[0] == sample_weights.shape[0]
+            ), "The number of sample observations and sample weights do not match"
 
     return (
         sample_observations,

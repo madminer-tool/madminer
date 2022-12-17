@@ -181,9 +181,7 @@ class MadMiner:
         self._reset_benchmarks()
         self._reset_morpher()
 
-    def add_benchmark(
-        self, parameter_values: Dict[str, float], benchmark_name: str = None, verbose: float = True
-    ):
+    def add_benchmark(self, parameter_values: Dict[str, float], benchmark_name: str = None, verbose: float = True):
         """
         Manually adds an individual benchmark, that is, a parameter point that will be evaluated by MadGraph.
 
@@ -569,9 +567,7 @@ class MadMiner:
 
         """
 
-        Path(filename) \
-            .parent \
-            .mkdir(parents=True, exist_ok=True)
+        Path(filename).parent.mkdir(parents=True, exist_ok=True)
 
         if self.morpher is not None:
             logger.info("Saving setup (including morphing) to %s", filename)
@@ -1001,8 +997,7 @@ class MadMiner:
 
                 # Check input
                 if run_card_file is None and any(
-                    syst.type in {SystematicType.PDF, SystematicType.SCALE}
-                    for syst in systematics_used.values()
+                    syst.type in {SystematicType.PDF, SystematicType.SCALE} for syst in systematics_used.values()
                 ):
                     logger.warning(
                         "Warning: No run card given, but PDF or scale variation set up. The correct systematics"

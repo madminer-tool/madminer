@@ -102,7 +102,7 @@ class ConditionalMixtureMaskedAutoregressiveFlow(BaseConditionalFlow):
         return u, logdet_dudx
 
     def log_likelihood(self, theta, x, **kwargs):
-        """Calculates u(x) and log p(x) with a MADE MoG base density """
+        """Calculates u(x) and log p(x) with a MADE MoG base density"""
 
         # MADEs and BNs
         u, logdet_dudx = self.forward(theta, x, **kwargs)

@@ -158,7 +158,7 @@ class NanException(Exception):
 
 
 class NumpyDataset(Dataset):
-    """ Dataset for numpy arrays with explicit memmap support """
+    """Dataset for numpy arrays with explicit memmap support"""
 
     def __init__(self, *arrays, **kwargs):
 

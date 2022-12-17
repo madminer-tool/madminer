@@ -20,10 +20,7 @@ def call_command(cmd, log_file=None, return_std=False):
             exitcode = proc.returncode
 
         if exitcode != 0:
-            raise RuntimeError(
-                f"Calling command {cmd} returned exit code {exitcode}. "
-                f"Output in file {log_file}."
-            )
+            raise RuntimeError(f"Calling command {cmd} returned exit code {exitcode}. Output in file {log_file}.")
     else:
         proc = Popen(cmd, stdout=PIPE, stderr=PIPE, shell=True)
         out, err = proc.communicate()
@@ -52,7 +49,7 @@ def unzip_file(filename, new_filename, block_size=65536):
 
 
 def shuffle(*arrays):
-    """ Shuffles multiple arrays simultaneously """
+    """Shuffles multiple arrays simultaneously"""
 
     permutation = None
     n_samples = None
@@ -92,7 +89,7 @@ def restrict_samplesize(n, *arrays):
 
 
 def balance_thetas(theta_sets_types, theta_sets_values, n_sets=None):
-    """Repeats theta values such that all thetas lists have the same length """
+    """Repeats theta values such that all thetas lists have the same length"""
 
     if n_sets is None:
         n_sets = max([len(thetas) for thetas in theta_sets_types])
@@ -127,7 +124,7 @@ def load_and_check(filename, warning_threshold=1.0e9, memmap_files_larger_than_g
         data = filename
         memmap = False
     else:
-        filesize_gb = os.stat(filename).st_size / 1.0 * 1024 ** 3
+        filesize_gb = os.stat(filename).st_size / 1.0 * 1024**3
         if memmap_files_larger_than_gb is None or filesize_gb <= memmap_files_larger_than_gb:
             logger.info("  Loading %s into RAM", filename)
             data = np.load(filename)
@@ -149,7 +146,9 @@ def load_and_check(filename, warning_threshold=1.0e9, memmap_files_larger_than_g
         smallest = np.nanmin(data)
         largest = np.nanmax(data)
         if np.abs(smallest) > warning_threshold or np.abs(largest) > warning_threshold:
-            logger.warning("Warning: file %s has some large numbers, ranging from %s to %s", filename, smallest, largest)
+            logger.warning(
+                "Warning: file %s has some large numbers, ranging from %s to %s", filename, smallest, largest
+            )
 
     if len(data.shape) == 1:
         data = data.reshape(-1, 1)

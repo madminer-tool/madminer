@@ -60,9 +60,11 @@ class Benchmark:
             List of string formatted name - value pairs
         """
 
+        # fmt: off
         lower_limit = (10.00 ** -precision) * 2.0
-        upper_limit = (10.00 ** +precision)
+        upper_limit = (10.00 ** +precision) * 1.0
         formatted_pairs = []
+        # fmt: on
 
         for parameter_name, parameter_value in self.values.items():
             if lower_limit < parameter_value < upper_limit:
@@ -70,10 +72,7 @@ class Benchmark:
             else:
                 template = f"{{0:.{precision}e}}"
 
-            formatted_pairs.append(
-                f"{parameter_name} = "
-                f"{template.format(parameter_value)}"
-            )
+            formatted_pairs.append(f"{parameter_name} = {template.format(parameter_value)}")
 
         return formatted_pairs
 

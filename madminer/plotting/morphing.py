@@ -241,7 +241,7 @@ def plot_nd_morphing_basis_slices(morpher, crange=(1.0, 100.0), resolution=50):
             xx, yy = np.meshgrid(xi, yi)
             xx, yy = xx.flatten(), yy.flatten()
 
-            theta_test = np.zeros((resolution ** 2, n_parameters))
+            theta_test = np.zeros((resolution**2, n_parameters))
             theta_test[:, ix] = xx
             theta_test[:, iy] = yy
 
