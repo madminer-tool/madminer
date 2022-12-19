@@ -1,10 +1,11 @@
 import time
 import logging
-import numpy as np
 import multiprocessing
 
 from functools import partial
 from pathlib import Path
+
+import numpy as np
 
 from ..analysis import DataAnalyzer
 from ..utils.various import shuffle

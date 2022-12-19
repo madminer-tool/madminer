@@ -1,8 +1,12 @@
 import logging
+
 import numpy as np
 
 from .base import BaseLikelihood
-from ..ml import ParameterizedRatioEstimator, Ensemble, LikelihoodEstimator, load_estimator
+from ..ml import ParameterizedRatioEstimator
+from ..ml import Ensemble
+from ..ml import LikelihoodEstimator
+from ..ml import load_estimator
 from ..utils.various import less_logging
 
 logger = logging.getLogger(__name__)

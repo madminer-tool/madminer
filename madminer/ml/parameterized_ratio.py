@@ -1,16 +1,20 @@
 import logging
-import numpy as np
-import torch
 
 from collections import OrderedDict
 
-from .base import ConditionalEstimator, TheresAGoodReasonThisDoesntWork
+import numpy as np
+import torch
+
+from .base import ConditionalEstimator
+from .base import TheresAGoodReasonThisDoesntWork
 from ..utils.ml.eval import evaluate_ratio_model
 from ..utils.ml.models.ratio import DenseSingleParameterizedRatioModel
 from ..utils.ml.trainer import SingleParameterizedRatioTrainer
-from ..utils.ml.utils import get_optimizer, get_loss
-from ..utils.various import load_and_check, shuffle, restrict_samplesize
-
+from ..utils.ml.utils import get_optimizer
+from ..utils.ml.utils import get_loss
+from ..utils.various import load_and_check
+from ..utils.various import shuffle
+from ..utils.various import restrict_samplesize
 
 logger = logging.getLogger(__name__)
 

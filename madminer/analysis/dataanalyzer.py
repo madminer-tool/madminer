@@ -1,9 +1,11 @@
 import logging
+
 import numpy as np
 
 from madminer.utils.interfaces.hdf5 import load_events
 from madminer.utils.interfaces.hdf5 import load_madminer_settings
-from madminer.utils.morphing import PhysicsMorpher, NuisanceMorpher
+from madminer.utils.morphing import PhysicsMorpher
+from madminer.utils.morphing import NuisanceMorpher
 from madminer.utils.various import mdot
 
 logger = logging.getLogger(__name__)

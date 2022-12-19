@@ -1,14 +1,19 @@
 import logging
+
 import numpy as np
 import numpy.random as rng
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from madminer.utils.ml.models.base import BaseFlow, BaseConditionalFlow
-from madminer.utils.ml.models.masks import create_degrees, create_masks, create_weights, create_weights_conditional
-from madminer.utils.ml.utils import get_activation_function
 from torch import tensor
+from madminer.utils.ml.models.base import BaseFlow
+from madminer.utils.ml.models.base import BaseConditionalFlow
+from madminer.utils.ml.models.masks import create_degrees
+from madminer.utils.ml.models.masks import create_masks
+from madminer.utils.ml.models.masks import create_weights
+from madminer.utils.ml.models.masks import create_weights_conditional
+from madminer.utils.ml.utils import get_activation_function
 
 logger = logging.getLogger(__name__)
 

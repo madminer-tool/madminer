@@ -1,13 +1,15 @@
 import logging
 import gzip
 import math
-import numpy as np
 import os
 import shutil
 import stat
 
 from contextlib import contextmanager
-from subprocess import Popen, PIPE
+from subprocess import Popen
+from subprocess import PIPE
+
+import numpy as np
 
 logger = logging.getLogger(__name__)
 

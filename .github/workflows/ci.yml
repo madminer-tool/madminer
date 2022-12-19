@@ -42,6 +42,7 @@ jobs:
     - name: "Check format"
       run: |
         black --check madminer tests examples
+        isort --check madminer tests
 
   test:
     needs: [lint]

@@ -18,3 +18,9 @@ exclude = '''
   | mg_processes
 )
 '''
+
+[tool.isort]
+force_single_line = true
+ignore_whitespace = true
+only_sections = true
+profile = "black"

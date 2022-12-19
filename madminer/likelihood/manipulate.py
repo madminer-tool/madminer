@@ -1,6 +1,8 @@
 import logging
-import numpy as np
 import time
+
+import numpy as np
+
 from scipy.stats import chi2
 from scipy.optimize import minimize
 

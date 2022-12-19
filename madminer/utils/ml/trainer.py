@@ -1,19 +1,19 @@
 import logging
-import numpy as np
 import time
+
+from collections import OrderedDict
+
+import numpy as np
 import torch
 import torch.optim as optim
 
-from collections import OrderedDict
 from torch.nn.utils import clip_grad_norm_
 from torch.utils.data import DataLoader
 from torch.utils.data.sampler import SubsetRandomSampler
 
-from madminer.utils.ml.utils import (
-    EarlyStoppingException,
-    NanException,
-    NumpyDataset,
-)
+from madminer.utils.ml.utils import EarlyStoppingException
+from madminer.utils.ml.utils import NanException
+from madminer.utils.ml.utils import NumpyDataset
 
 logger = logging.getLogger(__name__)
 
