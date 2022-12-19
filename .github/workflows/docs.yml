@@ -40,4 +40,4 @@ jobs:
         pip list
     - name: "Build documentation"
       run: |
-        cd docs && make html
+        make docs

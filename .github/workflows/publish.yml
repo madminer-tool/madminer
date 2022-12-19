@@ -33,11 +33,7 @@ jobs:
         pip list
     - name: "Build Python package"
       run: |
-        python -m build \
-          --sdist \
-          --wheel \
-          --outdir dist \
-          .
+        make build
     - name: "Publish Python package"
       uses: pypa/gh-action-pypi-publish@v1.5.1
       with:

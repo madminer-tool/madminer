@@ -41,8 +41,7 @@ jobs:
         pip list
     - name: "Check format"
       run: |
-        black --check madminer tests examples
-        isort --check madminer tests
+        make check
 
   test:
     needs: [lint]
@@ -64,4 +63,4 @@ jobs:
         pip list
     - name: "Test with pytest"
       run: |
-        pytest -p no:cacheprovider
+        make test
