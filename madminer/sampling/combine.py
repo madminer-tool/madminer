@@ -1,10 +1,11 @@
 import logging
-import numpy as np
 import shutil
 
 from contextlib import suppress
 from typing import List
 from typing import Union
+
+import numpy as np
 
 from ..utils.interfaces.hdf5 import load_events
 from ..utils.interfaces.hdf5 import load_madminer_settings

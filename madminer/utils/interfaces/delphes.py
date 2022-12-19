@@ -2,7 +2,8 @@ import logging
 
 from pathlib import Path
 
-from madminer.utils.various import call_command, unzip_file
+from madminer.utils.various import call_command
+from madminer.utils.various import unzip_file
 
 logger = logging.getLogger(__name__)
 

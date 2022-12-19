@@ -1,11 +1,12 @@
 import logging
+
 import numpy as np
 
 from .parameterized_ratio import ParameterizedRatioEstimator
 from ..utils.interfaces.hdf5 import load_madminer_settings
-from ..utils.ml.models.ratio import DenseMorphingAwareRatioModel, DenseQuadraticMorphingAwareRatioModel
+from ..utils.ml.models.ratio import DenseMorphingAwareRatioModel
+from ..utils.ml.models.ratio import DenseQuadraticMorphingAwareRatioModel
 from ..utils.morphing import PhysicsMorpher
-
 
 logger = logging.getLogger(__name__)
 

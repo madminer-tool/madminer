@@ -16,9 +16,15 @@ from madminer.models import SystematicType
 from madminer.utils.morphing import PhysicsMorpher
 from madminer.utils.interfaces.hdf5 import load_madminer_settings
 from madminer.utils.interfaces.hdf5 import save_madminer_settings
-from madminer.utils.interfaces.mg_cards import export_param_card, export_reweight_card, export_run_card
-from madminer.utils.interfaces.mg import generate_mg_process, setup_mg_with_scripts, run_mg, create_master_script
-from madminer.utils.interfaces.mg import setup_mg_reweighting_with_scripts, run_mg_reweighting
+from madminer.utils.interfaces.mg_cards import export_param_card
+from madminer.utils.interfaces.mg_cards import export_reweight_card
+from madminer.utils.interfaces.mg_cards import export_run_card
+from madminer.utils.interfaces.mg import generate_mg_process
+from madminer.utils.interfaces.mg import setup_mg_with_scripts
+from madminer.utils.interfaces.mg import run_mg
+from madminer.utils.interfaces.mg import create_master_script
+from madminer.utils.interfaces.mg import setup_mg_reweighting_with_scripts
+from madminer.utils.interfaces.mg import run_mg_reweighting
 from madminer.utils.various import copy_file
 
 logger = logging.getLogger(__name__)

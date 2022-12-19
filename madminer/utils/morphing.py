@@ -1,11 +1,12 @@
 import itertools
 import logging
-import numpy as np
-import sympy as sp
 
 from collections import OrderedDict
 from typing import Dict
 from typing import Iterable
+
+import numpy as np
+import sympy as sp
 
 from madminer.models import Benchmark
 from madminer.models import AnalysisParameter

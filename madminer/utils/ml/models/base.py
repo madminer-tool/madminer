@@ -1,8 +1,9 @@
+from abc import abstractmethod
+
 import numpy as np
 import torch
 import torch.nn as nn
 
-from abc import abstractmethod
 from torch.autograd import grad
 
 

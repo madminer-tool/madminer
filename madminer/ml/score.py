@@ -1,14 +1,20 @@
 import logging
-import numpy as np
+
 from collections import OrderedDict
 
-from .base import Estimator, TheresAGoodReasonThisDoesntWork
+import numpy as np
+
+from .base import Estimator
+from .base import TheresAGoodReasonThisDoesntWork
 from ..utils.ml.eval import evaluate_local_score_model
 from ..utils.ml.models.score import DenseLocalScoreModel
 from ..utils.ml.trainer import LocalScoreTrainer
-from ..utils.ml.utils import get_optimizer, get_loss
-from ..utils.various import load_and_check, shuffle, restrict_samplesize, separate_information_blocks
-
+from ..utils.ml.utils import get_optimizer
+from ..utils.ml.utils import get_loss
+from ..utils.various import load_and_check
+from ..utils.various import shuffle
+from ..utils.various import restrict_samplesize
+from ..utils.various import separate_information_blocks
 
 logger = logging.getLogger(__name__)
 

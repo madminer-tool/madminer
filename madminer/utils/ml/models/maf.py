@@ -1,10 +1,13 @@
 import logging
+
 import numpy.random as rng
 import torch.nn as nn
 
 from torch import tensor
-from madminer.utils.ml.models.base import BaseFlow, BaseConditionalFlow
-from madminer.utils.ml.models.made import GaussianMADE, ConditionalGaussianMADE
+from madminer.utils.ml.models.base import BaseFlow
+from madminer.utils.ml.models.base import BaseConditionalFlow
+from madminer.utils.ml.models.made import GaussianMADE
+from madminer.utils.ml.models.made import ConditionalGaussianMADE
 from madminer.utils.ml.models.batch_norm import BatchNorm
 
 logger = logging.getLogger(__name__)

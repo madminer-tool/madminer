@@ -1,9 +1,14 @@
 import os
-import numpy as np
+
 from collections import OrderedDict
 
+import numpy as np
+
 from madminer.models import NuisanceParameter
-from madminer import MadMiner, LHEReader, FisherInformation, profile_information
+from madminer import MadMiner
+from madminer import LHEReader
+from madminer import FisherInformation
+from madminer import profile_information
 
 
 def theta_limit_madminer(xsec=0.001, lumi=1000000.0, effect_phys=0.1, effect_sys=0.1):

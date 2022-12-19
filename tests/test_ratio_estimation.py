@@ -1,10 +1,10 @@
 import os
-import numpy as np
 import logging
 
-from madminer import ParameterizedRatioEstimator
+import numpy as np
 from scipy.stats import norm
 
+from madminer import ParameterizedRatioEstimator
 
 # MadMiner output
 logging.basicConfig(

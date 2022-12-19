@@ -1,12 +1,18 @@
 import logging
-import numpy as np
+
 from itertools import product
+
+import numpy as np
 
 from .base import BaseLikelihood
 from .. import sampling
-from ..ml import ScoreEstimator, Ensemble, load_estimator
+from ..ml import ScoreEstimator
+from ..ml import Ensemble
+from ..ml import load_estimator
 from ..utils.histo import Histo
-from ..utils.various import mdot, less_logging, math_commands
+from ..utils.various import mdot
+from ..utils.various import less_logging
+from ..utils.various import math_commands
 from ..sampling import SampleAugmenter
 
 logger = logging.getLogger(__name__)

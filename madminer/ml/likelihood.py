@@ -1,16 +1,19 @@
 import logging
-import numpy as np
 
 from collections import OrderedDict
+
+import numpy as np
 
 from .base import ConditionalEstimator
 from ..utils.ml.eval import evaluate_flow_model
 from ..utils.ml.models.maf import ConditionalMaskedAutoregressiveFlow
 from ..utils.ml.models.maf_mog import ConditionalMixtureMaskedAutoregressiveFlow
 from ..utils.ml.trainer import FlowTrainer
-from ..utils.ml.utils import get_optimizer, get_loss
-from ..utils.various import load_and_check, shuffle, restrict_samplesize
-
+from ..utils.ml.utils import get_optimizer
+from ..utils.ml.utils import get_loss
+from ..utils.various import load_and_check
+from ..utils.various import shuffle
+from ..utils.various import restrict_samplesize
 
 logger = logging.getLogger(__name__)
 

@@ -1,6 +1,4 @@
-import h5py
 import logging
-import numpy as np
 import shutil
 
 from collections import OrderedDict
@@ -12,6 +10,9 @@ from typing import List
 from typing import Tuple
 from typing import Union
 
+import h5py
+import numpy as np
+
 from madminer.models import AnalysisParameter
 from madminer.models import NuisanceParameter
 from madminer.models import Benchmark
@@ -21,7 +22,6 @@ from madminer.models import Systematic
 from madminer.models import SystematicScale
 from madminer.models import SystematicType
 from madminer.models import SystematicValue
-
 
 logger = logging.getLogger(__name__)
 
