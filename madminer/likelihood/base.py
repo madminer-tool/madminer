@@ -11,7 +11,6 @@ logger = logging.getLogger(__name__)
 
 
 class BaseLikelihood(DataAnalyzer):
-
     @abstractmethod
     def create_negative_log_likelihood(self, *args, **kwargs):
         raise NotImplementedError()
@@ -88,7 +87,7 @@ class BaseLikelihood(DataAnalyzer):
         n_predicted = xsec * luminosity
         if xsec < 0:
             logger.warning("Total cross section is negative (%s pb) at theta=%s)", xsec, theta)
-            n_predicted = 10 ** -5
+            n_predicted = 10**-5
 
         n_observed_rounded = int(np.round(n_observed, 0))
         log_likelihood = poisson.logpmf(k=n_observed_rounded, mu=n_predicted)

@@ -17,7 +17,7 @@ def run_delphes(
     overwrite_existing_delphes_root_file=True,
     delete_unzipped_file=True,
 ):
-    """ Runs Delphes on a HepMC sample """
+    """Runs Delphes on a HepMC sample"""
 
     # Unzip event file
     filename = Path(hepmc_sample_filename).with_suffix("")

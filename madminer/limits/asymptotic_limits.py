@@ -738,10 +738,10 @@ class AsymptoticLimits(DataAnalyzer):
                 total_n_bins = 25
             elif n_summary_stats == 2:
                 hist_bins = (8, 8)
-                total_n_bins = 8 ** 2
+                total_n_bins = 8**2
             else:
                 hist_bins = tuple([5] * n_summary_stats)
-                total_n_bins = 5 ** n_summary_stats
+                total_n_bins = 5**n_summary_stats
             n_bins_each = hist_bins
         elif isinstance(hist_bins, int):
             hist_bins = tuple([hist_bins] * n_summary_stats)

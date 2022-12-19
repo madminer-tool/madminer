@@ -34,8 +34,9 @@ class Histo:
 
         if weights is not None:
             weights = weights.flatten()
-            assert weights.shape == (self.n_samples,), \
-                f"Inconsistent weight shape {weights.shape} should be {(self.n_samples,)}"
+            assert weights.shape == (
+                self.n_samples,
+            ), f"Inconsistent weight shape {weights.shape} should be {(self.n_samples,)}"
 
         logger.debug("Creating histogram:")
         logger.debug("  Samples:       %s", self.n_samples)
@@ -136,11 +137,11 @@ class Histo:
             bins=self.edges,
             range=ranges,
             normed=False,
-            weights=None if weights is None else weights ** 2,
+            weights=None if weights is None else weights**2,
         )
 
         # Uncertainties
-        histo_uncertainties = histo_w2 ** 0.5
+        histo_uncertainties = histo_w2**0.5
 
         # Normalize histograms to sum to 1
         histo_uncertainties /= np.sum(histo)

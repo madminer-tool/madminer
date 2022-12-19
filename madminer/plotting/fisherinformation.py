@@ -103,10 +103,7 @@ def plot_fisher_information_contours_2d(
     n_matrices = fisher_information_matrices.shape[0]
 
     if fisher_information_matrices.shape != (n_matrices, 2, 2):
-        raise RuntimeError(
-            f"Fisher information matrices have shape {fisher_information_matrices.shape}. "
-            f"Not (n, 2,2)!"
-        )
+        raise RuntimeError(f"Fisher information matrices have shape {fisher_information_matrices.shape}. Not (n, 2,2)!")
 
     if fisher_information_covariances is None:
         fisher_information_covariances = [None for _ in range(n_matrices)]
@@ -114,7 +111,7 @@ def plot_fisher_information_contours_2d(
     if reference_thetas is None:
         reference_thetas = [None for _ in range(n_matrices)]
 
-    d2_threshold = contour_distance ** 2.0
+    d2_threshold = contour_distance**2.0
 
     # Line formatting
     if colors is None:
@@ -165,7 +162,7 @@ def plot_fisher_information_contours_2d(
 
         var = np.einsum("ni,nj,ijkl,nk,nl->n", d_theta, d_theta, inf_cov, d_theta, d_theta)
 
-        uncertainties = (var ** 0.5).reshape((resolution, resolution))
+        uncertainties = (var**0.5).reshape((resolution, resolution))
         fisher_distances_squared_uncertainties.append(uncertainties)
 
         logger.debug("Std: %s", uncertainties)

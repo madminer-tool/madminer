@@ -112,11 +112,9 @@ class Ensemble:
         -------
         result: ndarray
             Training and validation losses from estimator training
-            
         """
 
-        result=self.estimators[i].train(**kwargs)
-        return result
+        return self.estimators[i].train(**kwargs)
 
     def train_all(self, **kwargs):
         """
@@ -470,7 +468,7 @@ class Ensemble:
 
             # For uncertainty calculation: calculate points between mean and original predictions with same mean and
             # variance / n compared to the original predictions
-            score_shifted_predictions = (score_predictions - score_mean[np.newaxis, :, :]) / self.n_estimators ** 0.5
+            score_shifted_predictions = (score_predictions - score_mean[np.newaxis, :, :]) / self.n_estimators**0.5
             score_shifted_predictions = score_mean[np.newaxis, :, :] + score_shifted_predictions
 
             # Event weights
@@ -504,7 +502,7 @@ class Ensemble:
                 )  # (n_estimators, n_parameters, n_parameters)
 
                 n_params = score_mean.shape[1]
-                informations_individual = informations_individual.reshape(-1, n_params ** 2)
+                informations_individual = informations_individual.reshape(-1, n_params**2)
                 covariance = np.cov(informations_individual.T)
                 covariance = covariance.reshape(n_params, n_params, n_params, n_params)
 
@@ -567,9 +565,9 @@ class Ensemble:
                 )  # (n_estimators, n_parameters, n_parameters)
 
                 n_params = score_mean.shape[1]
-                informations_individual = informations_individual.reshape(-1, n_params ** 2)
+                informations_individual = informations_individual.reshape(-1, n_params**2)
                 covariance = np.cov(informations_individual.T)
-                covariance /= epsilon_shift ** 2
+                covariance /= epsilon_shift**2
                 covariance = covariance.reshape(n_params, n_params, n_params, n_params)
 
             # Let's check the expected score
@@ -694,13 +692,11 @@ class Ensemble:
 
             if self.n_parameters is not None and self.n_parameters != estimator_n_parameters:
                 raise RuntimeError(
-                    f"Ensemble with inconsistent numbers of parameters for different estimators: "
-                    f"{all_n_parameters}"
+                    f"Ensemble with inconsistent numbers of parameters for different estimators: {all_n_parameters}"
                 )
             if self.n_observables is not None and self.n_observables != estimator_n_observables:
                 raise RuntimeError(
-                    f"Ensemble with inconsistent numbers of observables for different estimators: "
-                    f"{all_n_observables}"
+                    f"Ensemble with inconsistent numbers of observables for different estimators: {all_n_observables}"
                 )
 
     @staticmethod

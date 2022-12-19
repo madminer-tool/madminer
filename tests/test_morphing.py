@@ -7,9 +7,7 @@ def test_original_find_components(parameter_max_power=[2, 2]):
     # Test find_components with max_power = [2,2], without max_overall power
     morpher = m.PhysicsMorpher(parameter_max_power=parameter_max_power)
     components = morpher.find_components()
-    expected_components = np.array(
-        [[0, 0], [0, 1], [0, 2], [1, 0], [1, 1], [1, 2], [2, 0], [2, 1], [2, 2]]
-    )
+    expected_components = np.array([[0, 0], [0, 1], [0, 2], [1, 0], [1, 1], [1, 2], [2, 0], [2, 1], [2, 2]])
     assert np.allclose(
         components, expected_components
     ), "The output of original_find_components is different from expected"
@@ -33,9 +31,7 @@ def test_original_set_basis(
     morpher.set_basis(basis_numpy=basis_numpy)
 
     # Check if the basis is the same
-    assert np.allclose(
-        morpher.basis, basis_numpy, rtol=10**-5
-    ), "The set_basis does not set basis correctly"
+    assert np.allclose(morpher.basis, basis_numpy, rtol=10**-5), "The set_basis does not set basis correctly"
 
     expected_matrix = np.array(
         [
@@ -76,9 +72,7 @@ def test_original_calculate_matrix(
         ]
     ).T
 
-    assert np.allclose(
-        morphing_matrix, expected_matrix, rtol=10**-5
-    ), "The output matrix is different from expected"
+    assert np.allclose(morphing_matrix, expected_matrix, rtol=10**-5), "The output matrix is different from expected"
     output_weights = morpher.calculate_morphing_weights(theta=[1, 1])
 
     # Test the if the output weights are as expected
@@ -141,9 +135,7 @@ def test_compare_weights(
     ), " The output weights of two methods are different"
 
 
-def test_overdetermine(
-    gd=None, gp=None, gs=np.array([[1, 1, 1, 1, 1, 1, 1], [-5, -4, -3, -2, -1, 0, 1]])
-):
+def test_overdetermine(gd=None, gp=None, gs=np.array([[1, 1, 1, 1, 1, 1, 1], [-5, -4, -3, -2, -1, 0, 1]])):
     # Check if the improved method can do overdetermined morphing as expected with the new input format
     new_morpher = m.PhysicsMorpher(parameter_max_power=[4, 4])
     _ = new_morpher.find_components(Ns=2, Nd=0, Np=0)
@@ -300,9 +292,7 @@ def test_new_weights():
 
     predict_xsec = _calculate_predict_xsec(xsec=xsec, morphing_weights=weights)
 
-    assert np.allclose(
-        predict_xsec, xsec[0]
-    ), "The predict xsec value does not match the simulated value."
+    assert np.allclose(predict_xsec, xsec[0]), "The predict xsec value does not match the simulated value."
 
 
 def test_find_components_BSM():
@@ -321,9 +311,7 @@ def test_find_components_BSM():
     components = new_morpher.find_components(Ns=Ns, Nd=Nd, Np=Np, BSM_max_power=0)
 
     expected_components = np.array([[2, 0, 2]])
-    assert np.allclose(
-        components, expected_components
-    ), " The output differs from expected components with BSM_max"
+    assert np.allclose(components, expected_components), " The output differs from expected components with BSM_max"
 
     Nd = 2
     Np = 0
@@ -337,9 +325,7 @@ def test_find_components_BSM():
 
     expected_components = np.array([[2, 0, 2, 0], [1, 0, 3, 0], [0, 0, 4, 0]])
 
-    np.allclose(
-        components, expected_components
-    ), "The output differs from expected components with BSM_max"
+    np.allclose(components, expected_components), "The output differs from expected components with BSM_max"
 
 
 def test_get_min_basis():

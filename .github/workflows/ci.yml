@@ -41,7 +41,7 @@ jobs:
         pip list
     - name: "Check format"
       run: |
-        black --check examples
+        black --check madminer tests examples
 
   test:
     needs: [lint]

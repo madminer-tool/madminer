@@ -358,8 +358,7 @@ class DataAnalyzer:
 
         if n_events == 0:
             raise RuntimeError(
-                f"Did not find events with test_split = {test_split} "
-                f"and generated_close_to = {generated_close_to}"
+                f"Did not find events with test_split = {test_split} and generated_close_to = {generated_close_to}"
             )
 
         xsec_uncertainties = np.maximum(xsec_uncertainties, 0.0) ** 0.5
@@ -501,9 +500,7 @@ class DataAnalyzer:
         return xsec_gradients
 
     def _check_n_events(self):
-        n_events_check = \
-            sum(self.n_events_generated_per_benchmark) \
-            + self.n_events_backgrounds
+        n_events_check = sum(self.n_events_generated_per_benchmark) + self.n_events_backgrounds
 
         if self.n_samples != n_events_check:
             logger.warning(
@@ -562,7 +559,7 @@ class DataAnalyzer:
             return 1.0
 
     def _finite_differences_theta_gradient_matrices(self):
-        """ Constructs the matrix that translates benchmark weights to the gradient of the weight evaluated at the benchmarks """
+        """Constructs the matrix that translates benchmark weights to the gradient of the weight evaluated at the benchmarks"""
         assert self.finite_difference_benchmarks is not None
         assert self.finite_difference_epsilon is not None
 
@@ -766,11 +763,13 @@ class DataAnalyzer:
         assert test_split + validation_split <= 1.0
         train_split = 1.0 - test_split - validation_split
 
-        if not all((
-            self._is_split_valid(test_split),
-            self._is_split_valid(train_split),
-            self._is_split_valid(validation_split),
-        )):
+        if not all(
+            (
+                self._is_split_valid(test_split),
+                self._is_split_valid(train_split),
+                self._is_split_valid(validation_split),
+            )
+        ):
             return 0, None, 1.0
 
         if partition == "train":
@@ -923,6 +922,4 @@ class DataAnalyzer:
         return closest_idx
 
     def _benchmark_array(self):
-        return np.asarray([
-            list(benchmark.values.values()) for benchmark in self.benchmarks.values()
-        ])
+        return np.asarray([list(benchmark.values.values()) for benchmark in self.benchmarks.values()])

@@ -1,7 +1,7 @@
 # Black formatting options
 [tool.black]
-line-length = 100
-target-version = ['py37', 'py38', 'py39']
+line-length = 120
+target-version = ['py37', 'py38', 'py39', 'py310']
 include = '(\.py$|\.ipynb$)'
 exclude = '''
 (

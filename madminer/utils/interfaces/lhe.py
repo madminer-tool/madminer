@@ -37,7 +37,7 @@ def parse_lhe_file(
     parse_events_as_xml=True,
     systematics_dict=None,
 ):
-    """ Extracts observables and weights from a LHE file """
+    """Extracts observables and weights from a LHE file"""
 
     logger.debug("Parsing LHE file %s", filename)
 
@@ -92,8 +92,7 @@ def parse_lhe_file(
             weight_norm_is_average = value == "average"
 
             logger.debug(
-                "Found entry event_norm = %s in LHE header. "
-                "Interpreting this as weight_norm_is_average = %s.",
+                "Found entry event_norm = %s in LHE header. Interpreting this as weight_norm_is_average = %s.",
                 value,
                 weight_norm_is_average,
             )
@@ -933,10 +932,7 @@ def _get_objects(particles, particles_truth, met_resolution=None, global_event_d
     visible_sum = MadMinerParticle.from_xyzt(0.0, 0.0, 0.0, 0.0)
 
     standard_ids = set(get_elementary_pdg_ids())
-    neutrino_ids = set(
-        int(p.pdgid)
-        for p in Particle.findall(lambda p: p.pdgid.is_sm_lepton and p.charge == 0)
-    )
+    neutrino_ids = set(int(p.pdgid) for p in Particle.findall(lambda p: p.pdgid.is_sm_lepton and p.charge == 0))
 
     for particle in particles:
         if particle.pdgid in standard_ids and particle.pdgid not in neutrino_ids:
@@ -959,7 +955,7 @@ def _get_objects(particles, particles_truth, met_resolution=None, global_event_d
         x=met_x,
         y=met_y,
         z=0.0,
-        t=(met_x ** 2 + met_y ** 2) ** 0.5,
+        t=(met_x**2 + met_y**2) ** 0.5,
     )
 
     # Build objects
@@ -987,7 +983,8 @@ def _get_objects(particles, particles_truth, met_resolution=None, global_event_d
 
 
 def _smear_variable(true_value, resolutions, id):
-    """ Adds Gaussian nose to a variable """
+    """Adds Gaussian nose to a variable"""
+
     try:
         res = float(resolutions[id][0] + resolutions[id][1] * true_value)
 
@@ -1001,7 +998,7 @@ def _smear_variable(true_value, resolutions, id):
 
 
 def _smear_particles(particles, energy_resolutions, pt_resolutions, eta_resolutions, phi_resolutions):
-    """ Applies smearing function to particles of one event """
+    """Applies smearing function to particles of one event"""
 
     # No smearing if any argument is None
     if energy_resolutions is None or pt_resolutions is None or eta_resolutions is None or phi_resolutions is None:
@@ -1055,7 +1052,7 @@ def _smear_particles(particles, energy_resolutions, pt_resolutions, eta_resoluti
         elif None in pt_resolutions[pdgid]:
             # Calculate pT from on-shell conditions
             if e > m:
-                pt = (e ** 2 - m ** 2) ** 0.5 / np.cosh(eta)
+                pt = (e**2 - m**2) ** 0.5 / np.cosh(eta)
             else:
                 pt = 0.0
             smeared_particle = MadMinerParticle.from_rhophietat(pt, phi, eta, e)
@@ -1074,11 +1071,7 @@ def _smear_particles(particles, energy_resolutions, pt_resolutions, eta_resoluti
 def get_elementary_pdg_ids():
     """Get Standard Model elementary particle IDs"""
     pdg_ids = Particle.findall(
-        lambda p: (
-            p.pdgid.is_sm_quark
-            or p.pdgid.is_sm_lepton
-            or p.pdgid.is_sm_gauge_boson_or_higgs
-        )
+        lambda p: (p.pdgid.is_sm_quark or p.pdgid.is_sm_lepton or p.pdgid.is_sm_gauge_boson_or_higgs)
     )
 
     return [int(p.pdgid) for p in pdg_ids]

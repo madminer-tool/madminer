@@ -59,7 +59,7 @@ def theta_limit_gaussian(n_expected_events, systematic_uncertainty, dsigma_dthet
     var_sys = (systematic_uncertainty) ** 2
     var = var_phys + var_sys
 
-    theta_limit = (chi_squared_threshold * var / dsigma_dtheta ** 2) ** 0.5
+    theta_limit = (chi_squared_threshold * var / dsigma_dtheta**2) ** 0.5
 
     return theta_limit
 

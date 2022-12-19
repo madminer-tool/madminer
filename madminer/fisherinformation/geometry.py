@@ -174,7 +174,7 @@ class InformationGeometry:
             Derivative of Fisher information matrix with shape `(n_dimension, n_dimension, n_dimension)`.
         """
 
-        epsilon = 10 ** -3
+        epsilon = 10**-3
         dtheta = np.identity(len(theta)) * epsilon
         return np.array(
             [(self._information(theta + dtheta[k]) - self._information(theta)) / epsilon for k in range(len(theta))]

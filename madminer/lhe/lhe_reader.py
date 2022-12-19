@@ -121,7 +121,7 @@ class LHEReader:
 
     @staticmethod
     def _check_sample_elements(this_elements, n_events=None):
-        """ Sanity checks """
+        """Sanity checks"""
 
         # Check number of events in observables
         for key, elems in this_elements.items():
@@ -132,9 +132,7 @@ class LHEReader:
                 logger.debug(f"Found {n_events} events")
 
             if this_n_events != n_events:
-                raise RuntimeError(
-                    f"Mismatching number of events for {key}: "f"{n_events} vs {this_n_events}"
-                )
+                raise RuntimeError(f"Mismatching number of events for {key}: {n_events} vs {this_n_events}")
 
             if not np.issubdtype(elems.dtype, np.number):
                 logger.warning(f"For key {key} have non-numeric dtype {elems.dtype}.")
@@ -449,18 +447,11 @@ class LHEReader:
                 self.add_observable(f"n_{symbol}s", f"len({symbol})", required=True)
 
             for i in range(n):
-                self.add_observable(
-                    f"e_{symbol}{i+1}", f"{symbol}[{i}].e", required=False, default=0.0
-                )
-                self.add_observable(
-                    f"pt_{symbol}{i+1}", f"{symbol}[{i}].pt", required=False, default=0.0
-                )
-                self.add_observable(
-                    f"eta_{symbol}{i+1}", f"{symbol}[{i}].eta", required=False, default=0.0
-                )
-                self.add_observable(
-                    f"phi_{symbol}{i+1}", f"{symbol}[{i}].phi", required=False, default=0.0
-                )
+                self.add_observable(f"e_{symbol}{i+1}", f"{symbol}[{i}].e", required=False, default=0.0)
+                self.add_observable(f"pt_{symbol}{i+1}", f"{symbol}[{i}].pt", required=False, default=0.0)
+                self.add_observable(f"eta_{symbol}{i+1}", f"{symbol}[{i}].eta", required=False, default=0.0)
+                self.add_observable(f"phi_{symbol}{i+1}", f"{symbol}[{i}].phi", required=False, default=0.0)
+
                 if include_this_charge and symbol == "l":
                     self.add_observable(
                         f"charge_{symbol}{i+1}",
@@ -496,11 +487,13 @@ class LHEReader:
 
         logger.debug("Adding cut %s", definition)
 
-        self.cuts.append(Cut(
-            name="CUT",
-            val_expression=definition,
-            is_required=required,
-        ))
+        self.cuts.append(
+            Cut(
+                name="CUT",
+                val_expression=definition,
+                is_required=required,
+            )
+        )
 
     def add_efficiency(self, definition, default=1.0):
         """
@@ -527,26 +520,28 @@ class LHEReader:
 
         logger.debug("Adding efficiency %s", definition)
 
-        self.efficiencies.append(Efficiency(
-            name="EFFICIENCY",
-            val_expression=definition,
-            val_default=default,
-        ))
+        self.efficiencies.append(
+            Efficiency(
+                name="EFFICIENCY",
+                val_expression=definition,
+                val_default=default,
+            )
+        )
 
     def reset_observables(self):
-        """ Resets all observables. """
+        """Resets all observables."""
 
         logger.debug("Resetting observables")
         self.observables = OrderedDict()
 
     def reset_cuts(self):
-        """ Resets all cuts. """
+        """Resets all cuts."""
 
         logger.debug("Resetting cuts")
         self.cuts = []
 
     def reset_efficiencies(self):
-        """ Resets all efficiencies. """
+        """Resets all efficiencies."""
 
         logger.debug("Resetting efficiencies")
         self.efficiencies = []

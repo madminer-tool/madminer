@@ -117,7 +117,7 @@ def profile_information(
         # Draw toys
         information_toys = np.random.multivariate_normal(
             mean=fisher_information.reshape((-1,)),
-            cov=error_propagation_factor * covariance.reshape(n_components ** 2, n_components ** 2),
+            cov=error_propagation_factor * covariance.reshape(n_components**2, n_components**2),
             size=error_propagation_n_ensemble,
         )
         information_toys = information_toys.reshape(-1, n_components, n_components)
@@ -131,7 +131,7 @@ def profile_information(
         )
 
         # Calculate ensemble covariance
-        toy_covariance = np.cov(profiled_information_toys.reshape(-1, n_remaining_components ** 2).T)
+        toy_covariance = np.cov(profiled_information_toys.reshape(-1, n_remaining_components**2).T)
         toy_covariance = toy_covariance.reshape(
             (n_remaining_components, n_remaining_components, n_remaining_components, n_remaining_components)
         )

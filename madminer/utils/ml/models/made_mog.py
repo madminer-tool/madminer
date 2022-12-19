@@ -155,7 +155,7 @@ class ConditionalMixtureMADE(BaseConditionalFlow):
 
         constant = float(-0.5 * self.n_inputs * np.log(2.0 * np.pi))
         # log_likelihood = torch.log(torch.sum(torch.exp(log_a - 0.5 * u ** 2 + logdet_dudx), dim=2))
-        log_likelihood = torch.logsumexp(log_a - 0.5 * u ** 2 + logdet_dudx, dim=2)
+        log_likelihood = torch.logsumexp(log_a - 0.5 * u**2 + logdet_dudx, dim=2)
         log_likelihood = constant + torch.sum(log_likelihood, dim=1)
 
         return u, log_likelihood

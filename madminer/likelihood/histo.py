@@ -13,7 +13,6 @@ logger = logging.getLogger(__name__)
 
 
 class HistoLikelihood(BaseLikelihood):
-
     def create_negative_log_likelihood(
         self,
         x_observed,
@@ -145,9 +144,7 @@ class HistoLikelihood(BaseLikelihood):
 
         # find binning
         logger.info("Setting up binning")
-        if observables != [] and (
-            hist_bins is None or not all(hasattr(hist_bin, "__len__") for hist_bin in hist_bins)
-        ):
+        if observables != [] and (hist_bins is None or not all(hasattr(hist_bin, "__len__") for hist_bin in hist_bins)):
             if thetas_binning is None:
                 raise ValueError("Your input requires adaptive binning: thetas_binning can not be None.")
             hist_bins = self._find_bins(hist_bins=hist_bins, n_summary_stats=len(observables))

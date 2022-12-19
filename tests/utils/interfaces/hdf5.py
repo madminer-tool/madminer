@@ -49,6 +49,6 @@ def test_saving_observables_with_callable_expression(dummy_hdf5_file: str):
     ) = _load_observables(file_name=dummy_hdf5_file)
 
     assert all(
-        o.val_expression == EMPTY_EXPR
-        for o in (Observable(n, d) for n, d in zip(loaded_names, loaded_defs))
+        obs.val_expression == EMPTY_EXPR
+        for obs in (Observable(name, definition) for name, definition in zip(loaded_names, loaded_defs))
     )

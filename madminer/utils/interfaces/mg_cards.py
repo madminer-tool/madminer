@@ -220,7 +220,7 @@ def export_run_card(
 
 
 def create_systematics_arguments(systematics: Dict[str, Systematic]):
-    """ Put together systematics_arguments string for MadGraph run card """
+    """Put together systematics_arguments string for MadGraph run card"""
 
     if systematics is None:
         return ""

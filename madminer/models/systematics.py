@@ -67,14 +67,7 @@ class Systematic:
             Formatted systematic string
         """
 
-        return (
-            f"{self.name} "
-            f"("
-            f"Type: {self.type}, "
-            f"Value: {self.value}, "
-            f"Scale: {self.scale}"
-            f")"
-        )
+        return f"{self.name} (Type: {self.type}, Value: {self.value}, Scale: {self.scale})"
 
     def __post_init__(self):
         """Perform certain attribute quality assertions"""

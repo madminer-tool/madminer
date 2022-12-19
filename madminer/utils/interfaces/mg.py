@@ -540,10 +540,7 @@ def setup_mg_reweighting_with_scripts(
     make_file_executable(script_file)
 
     # How to call it from master script
-    call_instruction = (
-        f"{mg_process_directory}/{script_file_from_mgprocdir} "
-        f"[MG_process_directory] [log_directory]"
-    )
+    call_instruction = f"{mg_process_directory}/{script_file_from_mgprocdir} [MG_process_directory] [log_directory]"
 
     return call_instruction
 

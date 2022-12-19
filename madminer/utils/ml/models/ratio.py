@@ -38,7 +38,7 @@ class DenseSingleParameterizedRatioModel(nn.Module):
         self.append = self.layers.append(nn.Linear(n_last, 1))
 
     def forward(self, theta, x, track_score=True, return_grad_x=False, create_gradient_graph=True):
-        """ Calculates estimated log likelihood ratio and the derived score. """
+        """Calculates estimated log likelihood ratio and the derived score."""
 
         # Track gradient wrt theta
         if track_score and not theta.requires_grad:
@@ -124,7 +124,7 @@ class DenseDoublyParameterizedRatioModel(nn.Module):
         self.layers.append(nn.Linear(n_last, 1))
 
     def forward(self, theta0, theta1, x, track_score=True, return_grad_x=False, create_gradient_graph=True):
-        """ Calculates estimated log likelihood ratio and the derived score. """
+        """Calculates estimated log likelihood ratio and the derived score."""
 
         # Track gradient wrt thetas
         if track_score and not theta0.requires_grad:
@@ -253,7 +253,6 @@ class DenseComponentRatioModel(nn.Module):
 
 
 class DenseMorphingAwareRatioModel(nn.Module):
-
     def __init__(
         self,
         components,
@@ -291,7 +290,7 @@ class DenseMorphingAwareRatioModel(nn.Module):
         self.log_sigma_ratio_components = torch.nn.Parameter(torch.zeros((self.n_components, 1)))  # (n_components, 1)
 
     def forward(self, theta, x, track_score=True, return_grad_x=False, create_gradient_graph=True):
-        """ Calculates estimated log likelihood ratio and the derived score. """
+        """Calculates estimated log likelihood ratio and the derived score."""
 
         # Track gradient wrt theta
         if track_score and not theta.requires_grad:
@@ -398,7 +397,6 @@ class DenseMorphingAwareRatioModel(nn.Module):
 
 
 class DenseQuadraticMorphingAwareRatioModel(nn.Module):
-
     def __init__(self, n_observables, n_parameters, n_hidden, activation="tanh", dropout_prob=0.0):
         super().__init__()
 
@@ -416,7 +414,7 @@ class DenseQuadraticMorphingAwareRatioModel(nn.Module):
         self.sigma_b = torch.nn.Parameter(torch.ones((1,)))
 
     def forward(self, theta, x, track_score=True, return_grad_x=False, create_gradient_graph=True):
-        """ Calculates estimated log likelihood ratio and the derived score. """
+        """Calculates estimated log likelihood ratio and the derived score."""
 
         assert theta.size()[1] == 1
 

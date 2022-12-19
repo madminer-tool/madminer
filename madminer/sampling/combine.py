@@ -83,8 +83,7 @@ def combine_and_shuffle(
 
     if len(input_filenames) != len(k_factors):
         raise RuntimeError(
-            f"Inconsistent length of input filenames and k factors: "
-            f"{len(input_filenames)} vs {len(k_factors)}"
+            f"Inconsistent length of input filenames and k factors: {len(input_filenames)} vs {len(k_factors)}"
         )
 
     # Copy first file to output_filename

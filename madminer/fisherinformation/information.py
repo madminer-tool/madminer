@@ -549,7 +549,7 @@ class FisherInformation(DataAnalyzer):
                     weights_benchmarks[i] += np.sum(weights[i_bins == i], axis=0)
                     weights_squared_benchmarks[i] += np.sum(weights[i_bins == i] ** 2, axis=0)
 
-        weights_benchmark_uncertainties = weights_squared_benchmarks ** 0.5
+        weights_benchmark_uncertainties = weights_squared_benchmarks**0.5
 
         # Check cross sections per bin
         self._check_binning_stats(weights_benchmarks, weights_benchmark_uncertainties, theta)
@@ -710,7 +710,7 @@ class FisherInformation(DataAnalyzer):
                             weights[(i_bins1 == i) & (i_bins2 == j)] ** 2, axis=0
                         )
 
-        weights_benchmark_uncertainties = weights_squared_benchmarks ** 0.5
+        weights_benchmark_uncertainties = weights_squared_benchmarks**0.5
 
         # Calculate Fisher information in histogram
         weights_benchmarks = weights_benchmarks.reshape(-1, self.n_benchmarks)
@@ -1092,14 +1092,9 @@ class FisherInformation(DataAnalyzer):
         return bin_boundaries, sigma_bins, dsigma_bins
 
     def nuisance_constraint_information(self):
-        """ Builds the Fisher information term representing the Gaussian constraints on the nuisance parameters """
+        """Builds the Fisher information term representing the Gaussian constraints on the nuisance parameters"""
 
-        return np.diag(
-            np.array(
-                [0.0 for _ in range(self.n_parameters)] +
-                [1.0 for _ in range(self.n_nuisance_parameters)]
-            )
-        )
+        return np.diag([0.0] * self.n_parameters + [1.0] * self.n_nuisance_parameters)
 
     def _check_binning_stats(
         self,
@@ -1495,14 +1490,14 @@ class FisherInformation(DataAnalyzer):
             # xsecs
             if xsecs_benchmarks is None:
                 xsecs_benchmarks = np.sum(weights, axis=0)
-                xsecs_uncertainty_benchmarks = np.sum(weights ** 2, axis=0)
+                xsecs_uncertainty_benchmarks = np.sum(weights**2, axis=0)
             else:
                 xsecs_benchmarks += np.sum(weights, axis=0)
-                xsecs_uncertainty_benchmarks += np.sum(weights ** 2, axis=0)
+                xsecs_uncertainty_benchmarks += np.sum(weights**2, axis=0)
 
         assert xsecs_benchmarks is not None, "No events passed cuts"
 
-        xsecs_uncertainty_benchmarks = xsecs_uncertainty_benchmarks ** 0.5
+        xsecs_uncertainty_benchmarks = xsecs_uncertainty_benchmarks**0.5
 
         logger.debug("Benchmarks xsecs [pb]: %s", xsecs_benchmarks)
 
