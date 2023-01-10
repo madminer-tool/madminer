@@ -6,13 +6,13 @@ on:
     - cron: "00 00 * * 1"
   push:
     branches:
-      - master
+      - main
     paths-ignore:
       - "**.md"
       - "**.rst"
   pull_request:
     branches:
-      - master
+      - main
     paths-ignore:
       - "**.md"
       - "**.rst"
