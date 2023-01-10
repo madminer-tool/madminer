@@ -45,8 +45,8 @@ If you have any questions, please chat to us in our [Gitter community][chat-gitt
 
 
 [chat-gitter-link]: https://gitter.im/madminer/community
-[examples-folder-path]: https://github.com/madminer-tool/madminer/tree/master/examples
-[examples-physics-path]: https://github.com/madminer-tool/madminer/tree/master/examples/tutorial_particle_physics
-[examples-simulator-path]: https://github.com/madminer-tool/madminer/blob/master/examples/tutorial_toy_simulator/tutorial_toy_simulator.ipynb
+[examples-folder-path]: https://github.com/madminer-tool/madminer/tree/main/examples
+[examples-physics-path]: https://github.com/madminer-tool/madminer/tree/main/examples/tutorial_particle_physics
+[examples-simulator-path]: https://github.com/madminer-tool/madminer/blob/main/examples/tutorial_toy_simulator/tutorial_toy_simulator.ipynb
 [image-madminer-workflow]: img/workflow_combined.jpg
 [ref-arxiv-link]: https://arxiv.org/abs/1907.10621
