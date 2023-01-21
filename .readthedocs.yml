@@ -13,7 +13,7 @@ formats: all
 
 # Equivalent to: pip install .[docs]
 python:
-  version: "3.7"
+  version: "3.10"
   install:
     - method: pip
       path: .
