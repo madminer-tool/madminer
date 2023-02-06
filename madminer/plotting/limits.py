@@ -20,7 +20,6 @@ def plot_pvalue_limits(
     p_val_min=0.001,
     p_val_max=1,
 ):
-
     """
     Function that plots the limits obtained from the AsymptoticLimits, Likelihood,
     FisherInformation and Information Geometry class. Note that only 2 dimensional

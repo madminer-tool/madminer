@@ -37,7 +37,6 @@ class BaseLikelihood(DataAnalyzer):
         sample_only_from_closest_benchmark=True,
         n_asimov=None,
     ):
-
         # get data
         start_event, end_event, correction_factor = self._calculate_partition_bounds("test", test_split)
         x, weights_benchmarks = next(

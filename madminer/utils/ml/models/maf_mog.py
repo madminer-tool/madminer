@@ -25,7 +25,6 @@ class ConditionalMixtureMaskedAutoregressiveFlow(BaseConditionalFlow):
         mode="sequential",
         alpha=0.1,
     ):
-
         super().__init__(n_conditionals, n_inputs)
 
         # save input arguments

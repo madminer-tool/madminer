@@ -863,7 +863,6 @@ def _parse_lhe_file_with_bad_chars(filename):
 
 
 def _untar_and_parse_lhe_file(filename, tags=None):
-
     # Unzip event file
     new_filename = Path(filename).with_suffix("")
     extension = Path(filename).suffix

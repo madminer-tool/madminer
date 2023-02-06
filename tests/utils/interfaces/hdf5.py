@@ -11,7 +11,6 @@ from madminer.utils.interfaces.hdf5 import _save_observables
 
 @pytest.fixture(scope="function")
 def dummy_hdf5_file() -> str:
-
     _, file_path = mkstemp(suffix=".h5")
 
     try:

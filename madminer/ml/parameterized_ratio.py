@@ -58,7 +58,6 @@ class ParameterizedRatioEstimator(ConditionalEstimator):
         clip_gradient=None,
         early_stopping_patience=None,
     ):
-
         """
         Trains the network.
 

@@ -304,7 +304,6 @@ class AsymptoticLimits(DataAnalyzer):
         n_binning_toys=100000,
         thetas_eval=None,
     ):
-
         """
         Calculates expected p-values over a grid in parameter space.
 
@@ -935,7 +934,6 @@ class AsymptoticLimits(DataAnalyzer):
         theta_binning=None,
         n_binning_toys=1000,
     ):
-
         if fixed_adaptive_binning and (isinstance(x_bins, int) or any(isinstance(x, int) for x in x_bins)):
             if theta_binning is None:
                 logger.info("Determining fixed adaptive histogram binning for all points on grid")

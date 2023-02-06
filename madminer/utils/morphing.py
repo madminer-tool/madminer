@@ -70,7 +70,6 @@ class PhysicsMorpher:
         parameter_max_power=None,
         parameter_range=None,
     ):
-
         # MadMiner interface
         if parameters_from_madminer is not None:
             self.use_madminer_interface = True
@@ -1023,7 +1022,6 @@ class NuisanceMorpher:
         benchmark_names: Iterable[str],
         reference_benchmark: str,
     ):
-
         # Benchmarks
         self.benchmark_names = list(benchmark_names)
         self.i_benchmark_ref = list(benchmark_names).index(reference_benchmark)

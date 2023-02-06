@@ -285,7 +285,6 @@ class FisherInformation(DataAnalyzer):
 
         # Evaluation from weighted events
         if unweighted_x_sample_file is None:
-
             # Which events to sum over
             if test_split is None or test_split <= 0.0 or test_split >= 1.0:
                 start_event = 0
@@ -586,7 +585,6 @@ class FisherInformation(DataAnalyzer):
         efficiency_functions=None,
         n_events_dynamic_binning=None,
     ):
-
         """
         Calculates the Fisher information in a two-dimensional histogram of two (parton-level or detector-level,
         depending on how the observations in the MadMiner file were calculated) observables.
@@ -1064,7 +1062,6 @@ class FisherInformation(DataAnalyzer):
 
         # Main loop: truth-level case
         for observations, weights in self.event_loader():
-
             # Cuts
             cut_filter = [self._pass_cuts(obs_event, cuts) for obs_event in observations]
             observations = observations[cut_filter]
@@ -1267,7 +1264,6 @@ class FisherInformation(DataAnalyzer):
             for i in range(n_events):
                 for b1 in range(self.n_benchmarks_phys):
                     for b2 in range(self.n_benchmarks_phys):
-
                         if b1 == b2:  # Diagonal
                             covariance_inputs[i, b1, b2] = weights_benchmark_uncertainties[i, b1] ** 2
 
@@ -1534,7 +1530,6 @@ class FisherInformation(DataAnalyzer):
         cuts=None,
         efficiency_functions=None,
     ):
-
         if cuts is None:
             cuts = []
         if efficiency_functions is None:

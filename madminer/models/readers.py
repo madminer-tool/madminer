@@ -6,7 +6,6 @@ from typing import Union
 
 @dataclass
 class Cut:
-
     name: str
     val_expression: str
     is_required: bool = False
@@ -20,7 +19,6 @@ class Cut:
 
 @dataclass
 class Efficiency:
-
     name: str
     val_expression: str
     val_default: float = 1.0
@@ -34,7 +32,6 @@ class Efficiency:
 
 @dataclass
 class Observable:
-
     name: str
     val_expression: Union[str, Callable]
     val_default: float = None

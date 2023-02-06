@@ -1151,7 +1151,6 @@ class SampleAugmenter(DataAnalyzer):
         return x, theta, min(n_effective_samples)
 
     def cross_sections(self, theta, nu=None):
-
         """
         Calculates the total cross sections for all specified thetas.
 
@@ -1879,7 +1878,7 @@ class SampleAugmenter(DataAnalyzer):
         n_sets = max([len(param) for param in thetas + nus])
         sets = [[] for _ in range(n_sets)]
 
-        for (theta, nu) in zip(thetas, nus):
+        for theta, nu in zip(thetas, nus):
             n_theta_sets_before = len(theta)
             n_nu_sets_before = len(nu)
 

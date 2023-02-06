@@ -233,7 +233,6 @@ class DenseComponentRatioModel(nn.Module):
         self.layers.append(nn.Linear(n_last, 1))
 
     def forward(self, x):
-
         # log r estimator
         log_r_hat = x
 
@@ -265,7 +264,6 @@ class DenseMorphingAwareRatioModel(nn.Module):
         dropout_prob=0.0,
         clamp_component_ratios=5.0,
     ):
-
         super().__init__()
 
         # Save input

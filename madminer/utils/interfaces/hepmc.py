@@ -8,7 +8,6 @@ logger = logging.getLogger(__name__)
 
 
 def extract_weight_order(filename, default_weight_label=None):
-
     # Unzip event file
     new_filename = Path(filename).with_suffix("")
     extension = Path(filename).suffix
@@ -39,7 +38,6 @@ def extract_weight_order(filename, default_weight_label=None):
 
             weight_labels = []
             for term in terms[2:]:
-
                 if term.startswith("id="):
                     term = term[3:]
                     term = term.partition("_MERGING=")[0]

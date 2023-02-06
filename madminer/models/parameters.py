@@ -5,7 +5,6 @@ from typing import Tuple
 
 @dataclass
 class AnalysisParameter:
-
     name: str
     lha_block: str
     lha_id: int
@@ -40,7 +39,6 @@ class AnalysisParameter:
 
 @dataclass
 class NuisanceParameter:
-
     name: str
     systematic: str
     benchmark_pos: str = None
