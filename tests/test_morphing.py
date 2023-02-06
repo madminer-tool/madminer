@@ -196,7 +196,6 @@ def test_compare_weight_gradients(
     this_components=np.array([[4, 0], [3, 1], [2, 2], [1, 3], [0, 4]]),
     this_basis=np.array([[1, -5], [1, -4], [1, -3], [1, -2], [1, -1]]),
 ):
-
     # Test if the weight gradients output the same with the new input format
     # Morpher object with the new format of inputs
     new_morpher = m.PhysicsMorpher(
