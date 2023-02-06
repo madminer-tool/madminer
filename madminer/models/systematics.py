@@ -52,7 +52,6 @@ class SystematicScale(str, Enum):
 
 @dataclass
 class Systematic:
-
     name: str
     type: SystematicType
     value: SystematicValue

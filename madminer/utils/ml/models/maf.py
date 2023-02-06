@@ -27,7 +27,6 @@ class MaskedAutoregressiveFlow(BaseFlow):
         mode="sequential",
         alpha=0.1,
     ):
-
         super().__init__(n_inputs)
 
         # save input arguments
@@ -132,7 +131,6 @@ class ConditionalMaskedAutoregressiveFlow(BaseConditionalFlow):
         mode="sequential",
         alpha=0.1,
     ):
-
         super().__init__(n_conditionals, n_inputs)
 
         # save input arguments

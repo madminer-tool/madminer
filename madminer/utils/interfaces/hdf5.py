@@ -107,7 +107,6 @@ def load_madminer_settings(file_name: str, include_nuisance_benchmarks: bool) ->
     # Build benchmarks dictionary
     benchmarks = OrderedDict()
     for b_name, b_matrix, b_nuisance_flag in zip(benchmark_names, benchmark_values, benchmark_nuisance_flags):
-
         # Filter out the nuisance benchmarks
         if include_nuisance_benchmarks is False and b_nuisance_flag is True:
             continue
@@ -257,7 +256,11 @@ def save_nuisance_setup(
         _,
     ) = _load_benchmarks(file_name)
 
-    (benchmark_names, benchmark_values, benchmark_nuisance_flags,) = _add_benchmarks_custom(
+    (
+        benchmark_names,
+        benchmark_values,
+        benchmark_nuisance_flags,
+    ) = _add_benchmarks_custom(
         benchmark_names,
         benchmark_values,
         benchmark_nuisance_flags,
@@ -505,7 +508,6 @@ def _load_benchmarks(file_name: str) -> Tuple[List[str], List[List[float]], List
     """
 
     with h5py.File(file_name, "r") as file:
-
         # Mandatory properties
         try:
             benchmark_names = file["benchmarks/names"][()]
@@ -581,7 +583,6 @@ def _save_benchmarks(
 
     # Append if file exists, otherwise create
     with h5py.File(file_name, "a") as file:
-
         if file_override:
             with suppress(KeyError):
                 del file["benchmarks"]
@@ -667,7 +668,6 @@ def _save_finite_diffs(
 
     # Append if file exists, otherwise create
     with h5py.File(file_name, "a") as file:
-
         if file_override:
             with suppress(KeyError):
                 del file["finite_differences"]
@@ -734,7 +734,6 @@ def _save_morphing(
 
     # Append if file exists, otherwise create
     with h5py.File(file_name, "a") as file:
-
         if file_override:
             with suppress(KeyError):
                 del file["morphing"]
@@ -824,7 +823,6 @@ def _save_nuisance_params(
 
     # Append if file exists, otherwise create
     with h5py.File(file_name, "a") as file:
-
         if file_override:
             with suppress(KeyError):
                 del file["nuisance_parameters"]
@@ -935,7 +933,6 @@ def _save_analysis_parameters(file_name: str, file_override: bool, parameters: D
 
     # Append if file exists, otherwise create
     with h5py.File(file_name, "a") as file:
-
         if file_override:
             with suppress(KeyError):
                 del file["parameters"]
@@ -969,7 +966,6 @@ def _load_observables(file_name: str) -> Tuple[List[str], List[str]]:
     observable_defs = []
 
     with h5py.File(file_name, "r") as file:
-
         try:
             observable_names = file["observables/names"][()]
             observable_defs = file["observables/definitions"][()]
@@ -1015,7 +1011,6 @@ def _save_observables(
 
     # Append if file exists, otherwise create
     with h5py.File(file_name, "a") as file:
-
         if file_override:
             with suppress(KeyError):
                 del file["observables"]
@@ -1094,7 +1089,6 @@ def _save_samples(
 
     # Append if file exists, otherwise create
     with h5py.File(file_name, "a") as file:
-
         if file_override:
             with suppress(KeyError):
                 del file["samples"]
@@ -1164,7 +1158,6 @@ def _save_samples_summary(
 
     # Append if file exists, otherwise create
     with h5py.File(file_name, "a") as file:
-
         if file_override:
             with suppress(KeyError):
                 del file["sample_summary"]
@@ -1260,7 +1253,6 @@ def _save_systematics(
 
     # Append if file exists, otherwise create
     with h5py.File(file_name, "a") as file:
-
         if file_override:
             with suppress(KeyError):
                 del file["systematics"]

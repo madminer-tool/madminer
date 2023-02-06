@@ -19,7 +19,6 @@ def generate_mg_process(
     initial_command=None,
     python_executable=None,
 ):
-
     """
     Calls MadGraph to create the process folder.
 

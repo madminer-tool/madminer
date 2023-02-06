@@ -612,7 +612,6 @@ class MadMiner:
         include_param_card=True,
         benchmarks=None,
     ):
-
         """
         Writes out a param_card and reweight_card for MadGraph. Instead of this low-level function, it is recommended to
         use `run` or `run_multiple`.
@@ -704,7 +703,6 @@ class MadMiner:
         order="LO",
         python_executable=None,
     ):
-
         """
         High-level function that creates the the MadGraph process, all required cards, and prepares or runs the event
         generation for one combination of cards.
@@ -835,7 +833,6 @@ class MadMiner:
         order="LO",
         python_executable=None,
     ):
-
         """
         High-level function that creates the the MadGraph process, all required cards, and prepares or runs the event
         generation for multiple combinations of run_cards or importance samplings (`sample_benchmarks`).
@@ -972,7 +969,6 @@ class MadMiner:
 
         for run_card_file in run_card_files:
             for sample_benchmark in sample_benchmarks:
-
                 # Files
                 script_file = f"madminer/scripts/run_{i}.sh"
                 log_file_run = f"run_{i}.log"

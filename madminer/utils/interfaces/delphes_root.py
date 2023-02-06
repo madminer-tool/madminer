@@ -264,7 +264,6 @@ def _get_particles_truth(tree, pt_min, eta_max, included_pdgids=None):
         event_particles = []
 
         for e, pt, eta, phi, pdgid in zip(es[ievent], pts[ievent], etas[ievent], phis[ievent], pdgids[ievent]):
-
             if pt_min is not None and pt < pt_min:
                 continue
             if eta_max is not None and abs(eta) > eta_max:
@@ -293,7 +292,6 @@ def _get_particles_charged(tree, name, mass, pdgid_positive_charge, pt_min, eta_
         event_particles = []
 
         for pt, eta, phi, charge in zip(pts[ievent], etas[ievent], phis[ievent], charges[ievent]):
-
             if pt_min is not None and pt < pt_min:
                 continue
             if eta_max is not None and abs(eta) > eta_max:
@@ -348,7 +346,6 @@ def _get_particles_leptons(tree, pt_min_e, eta_max_e, pt_min_mu, eta_max_mu):
         for pt, eta, phi, mass, charge, pdgid_positive_charge in zip(
             event_pts, event_etas, event_phis, event_masses, event_charges, event_pdgid_positive_charges
         ):
-
             pdgid = pdgid_positive_charge if charge >= 0.0 else -pdgid_positive_charge
 
             if int(pdgid) in ids_e:
@@ -424,7 +421,6 @@ def _get_particles_photons(tree, pt_min, eta_max):
         event_particles = []
 
         for pt, eta, phi, e in zip(pts[ievent], etas[ievent], phis[ievent], es[ievent]):
-
             if pt_min is not None and pt < pt_min:
                 continue
             if eta_max is not None and abs(eta) > eta_max:
@@ -463,7 +459,6 @@ def _get_particles_jets(tree, pt_min, eta_max):
         for pt, eta, phi, mass, tau_tag, b_tag in zip(
             pts[ievent], etas[ievent], phis[ievent], masses[ievent], tau_tags[ievent], b_tags[ievent]
         ):
-
             if pt_min is not None and pt < pt_min:
                 continue
             if eta_max is not None and abs(eta) > eta_max:
@@ -503,7 +498,6 @@ def _get_particles_truth_jets(tree, pt_min, eta_max):
         for pt, eta, phi, mass, tau_tag, b_tag in zip(
             pts[ievent], etas[ievent], phis[ievent], masses[ievent], tau_tags[ievent], b_tags[ievent]
         ):
-
             if pt_min is not None and pt < pt_min:
                 continue
             if eta_max is not None and abs(eta) > eta_max:

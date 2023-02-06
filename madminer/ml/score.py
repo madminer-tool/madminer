@@ -69,7 +69,6 @@ class ScoreEstimator(Estimator):
         clip_gradient=None,
         early_stopping_patience=None,
     ):
-
         """
         Trains the network.
 

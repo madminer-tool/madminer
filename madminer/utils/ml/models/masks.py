@@ -34,7 +34,6 @@ def create_degrees(n_inputs, n_hiddens, input_order, mode):
 
     # create degrees for inputs
     if isinstance(input_order, str):
-
         if input_order == "random":
             degrees_0 = np.arange(1, n_inputs + 1)
             rng.shuffle(degrees_0)
@@ -135,7 +134,6 @@ def create_weights(n_inputs, n_hiddens, n_comps=None):
 
         return ws, bs, wm, bm, wp, bp
     else:
-
         wm = nn.Parameter(tensor((rng.randn(n_units[-1], n_inputs, n_comps) / np.sqrt(n_units[-1] + 1))))
         wp = nn.Parameter(tensor((rng.randn(n_units[-1], n_inputs, n_comps) / np.sqrt(n_units[-1] + 1))))
         wa = nn.Parameter(tensor((rng.randn(n_units[-1], n_inputs, n_comps) / np.sqrt(n_units[-1] + 1))))

@@ -7,7 +7,6 @@ from typing import Iterable
 
 @dataclass
 class Benchmark:
-
     name: str
     values: Dict[str, float]
     is_nuisance: bool = False
@@ -79,7 +78,6 @@ class Benchmark:
 
 @dataclass
 class FiniteDiffBenchmark:
-
     base_name: str
     shift_names: Dict[str, str]
 

@@ -42,7 +42,6 @@ def export_param_card(
         current_block = None
         changed_line = False
         for i, line in enumerate(lines):
-
             # Remove comment
             try:
                 line = line.split("#")[0]
@@ -232,7 +231,6 @@ def create_systematics_arguments(systematics: Dict[str, Systematic]):
     pdf_done = False
 
     for systematic in systematics.values():
-
         if systematic.type == SystematicType.SCALE and systematic.scale == SystematicScale.MU:
             if mur_done or muf_done:
                 raise ValueError("Multiple nuisance parameter for scale variation!")
