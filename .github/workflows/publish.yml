@@ -39,5 +39,5 @@ jobs:
       with:
         user: __token__
         password: ${{ secrets.PYPI_API_TOKEN }}
-        verify_metadata: true
-        print_hash: true
+        verify-metadata: true
+        print-hash: true
