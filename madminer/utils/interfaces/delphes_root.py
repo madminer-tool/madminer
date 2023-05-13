@@ -17,6 +17,10 @@ from madminer.utils.various import math_commands
 
 logger = logging.getLogger(__name__)
 
+# Sets uproot methods return types to be Numpy based
+# Ref: https://uproot.readthedocs.io/en/latest/uproot3-to-4.html#reading-arrays
+uproot.default_library = "np"
+
 
 def parse_delphes_root_file(
     delphes_sample_file,
