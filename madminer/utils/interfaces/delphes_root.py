@@ -7,7 +7,7 @@ from typing import Dict
 from typing import List
 
 import numpy as np
-import uproot3
+import uproot
 
 from particle import Particle
 from madminer.models import Cut
@@ -44,10 +44,8 @@ def parse_delphes_root_file(
         logger.debug("Extracting weights %s", weight_labels)
 
     # Delphes ROOT file
-    root_file = uproot3.open(delphes_sample_file)
-
-    # Delphes tree
-    tree = root_file["Delphes"]
+    with uproot.open(delphes_sample_file) as root_file:
+        tree = root_file["Delphes"]
 
     # Weights
     weights = None
