@@ -3,6 +3,7 @@
 **By Johann Brehmer, Felix Kling, Irina Espejo, Sinclert Pérez, and Kyle Cranmer**
 
 [![PyPI version][pypi-version-badge]][pypi-version-link]
+[![conda-forge version][conda-forge-version-badge]][conda-forge-version-link]
 [![CI/CD Status][ci-status-badge]][ci-status-link]
 [![Docs Status][docs-status-badge]][docs-status-link]
 [![Gitter chat][chat-gitter-badge]][chat-gitter-link]
@@ -10,7 +11,6 @@
 [![MIT license][mit-license-badge]][mit-license-link]
 [![DOI reference][ref-zenodo-badge]][ref-zenodo-link]
 [![ArXiv reference][ref-arxiv-badge]][ref-arxiv-link]
-
 
 ## Introduction
 
@@ -129,6 +129,9 @@ We are grateful for the support of [IRIS-HEP][web-iris-hep] and [DIANA-HEP][web-
 [mit-license-link]: https://github.com/madminer-tool/madminer/blob/main/LICENSE.md
 [pypi-version-badge]: https://badge.fury.io/py/madminer.svg
 [pypi-version-link]: https://badge.fury.io/py/madminer
+[conda-forge-version-badge]: https://img.shields.io/conda/vn/conda-forge/madminer.svg
+[conda-forge-version-link]: https://prefix.dev/channels/conda-forge/packages/madminer
+
 [ref-arxiv-badge]: http://img.shields.io/badge/arXiv-1907.10621-B31B1B.svg
 [ref-arxiv-link]: https://arxiv.org/abs/1907.10621
 [ref-zenodo-badge]: https://zenodo.org/badge/DOI/10.5281/zenodo.1489147.svg
