@@ -37,8 +37,7 @@ jobs:
     - name: "Install Python dependencies"
       run: |
         python -m pip install --upgrade uv
-        uv pip install --system --upgrade pip setuptools wheel
-        uv pip install --system ".[lint]"
+        uv pip install --system --upgrade black isort
         uv pip list --system
     - name: "Check format"
       run: |
@@ -49,7 +48,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.8", "3.9", "3.10"]
+        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
     steps:
     - name: "Set up GitHub Actions"
       uses: actions/checkout@v4
