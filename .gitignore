@@ -144,3 +144,6 @@ patches/
 black.sh
 run_sphinx.sh
 publish.sh
+
+# version information
+*_version.py
