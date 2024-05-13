@@ -7,7 +7,7 @@ TESTS_FOLDER  = "tests"
 .PHONY: build
 build:
 	@echo "Building package"
-	@python -m build --sdist --wheel --outdir dist .
+	@python -m build --installer uv .
 
 
 .PHONY: check

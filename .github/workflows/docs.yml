@@ -35,9 +35,10 @@ jobs:
         python-version: "3.10"
     - name: "Install Python dependencies"
       run: |
-        pip install --no-cache-dir --upgrade pip setuptools wheel
-        pip install --no-cache-dir --quiet ".[docs]"
-        pip list
+        python -m pip install --upgrade uv
+        uv pip install --system --upgrade pip setuptools wheel
+        uv pip install --system ".[docs]"
+        uv pip list --system
     - name: "Build documentation"
       run: |
         make docs

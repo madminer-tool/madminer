@@ -36,9 +36,10 @@ jobs:
         python-version: "3.10"
     - name: "Install Python dependencies"
       run: |
-        pip install --no-cache-dir --upgrade pip setuptools wheel
-        pip install --no-cache-dir --quiet ".[lint]"
-        pip list
+        python -m pip install --upgrade uv
+        uv pip install --system --upgrade pip setuptools wheel
+        uv pip install --system ".[lint]"
+        uv pip list --system
     - name: "Check format"
       run: |
         make check
@@ -58,9 +59,10 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: "Install Python dependencies"
       run: |
-        pip install --no-cache-dir --upgrade pip setuptools wheel
-        pip install --no-cache-dir --quiet ".[test]"
-        pip list
+        python -m pip install --upgrade uv
+        uv pip install --system --upgrade pip setuptools wheel
+        uv pip install --system ".[test]"
+        uv pip list --system
     - name: "Test with pytest"
       run: |
         make test
