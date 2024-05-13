@@ -7,14 +7,12 @@ on:
     paths:
       - "docs/**"
       - "madminer/**"
-      - "setup.py"
   pull_request:
     branches:
       - main
     paths:
       - "docs/**"
       - "madminer/**"
-      - "setup.py"
   workflow_dispatch:
 
 concurrency:
