@@ -16,19 +16,21 @@
 # sys.path.insert(0, os.path.abspath('.'))
 
 from pathlib import Path
+import importlib.metadata
 
 # -- Project information -----------------------------------------------------
 
-project_folder = Path(__file__).parent.parent
-version_file = project_folder.joinpath("VERSION")
-
 project = 'MadMiner'
 authors = 'Johann Brehmer, Felix Kling, Irina Espejo, Sinclert Perez, Kyle Cranmer'
-version = open(version_file).read().strip()
 copyright = '{} 2018-2020'.format(authors)
 
-# The full version, including alpha/beta/rc tags
-release = version
+# The version info for the project you're documenting, acts as replacement for
+# |version| and |release|, also used in various other places throughout the
+# built documents.
+# The full version, including alpha/beta/rc tags.
+release = importlib.metadata.version("madminer")
+# for example take major/minor/patch
+version = ".".join(release.split(".")[:3])
 
 
 # -- General configuration ---------------------------------------------------

@@ -1,21 +1,118 @@
-# Black formatting options
+[build-system]
+requires = [
+    "hatchling>=1.13.0",
+    "hatch-vcs>=0.3.0",
+]
+build-backend = "hatchling.build"
+
+[project]
+name = "madminer"
+dynamic = ["version"]
+description = "Mining gold from MadGraph to improve limit setting in particle physics"
+readme = "README.md"
+license = { text = "MIT" }  # SPDX short identifier
+requires-python = ">=3.8"
+authors = [
+    { name = "Johann Brehmer", email = "johann.brehmer@nyu.edu" },
+    { name = "Felix Kling" },
+    { name = "Irina Espejo" },
+    { name = "Sinclert Perez" },
+    { name = "Kyle Cranmer", email = "kyle.cranmer@wisc.edu" },
+]
+maintainers = [ {name = "Matthew Feickert", email = "matthew.feickert@cern.ch"} ]
+keywords = [
+    "physics",
+    "simulation based inference",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Scientific/Engineering :: Physics",
+]
+dependencies = [
+    "h5py",
+    "matplotlib>=2.0.0",
+    "particle>=0.16.0",
+    "scipy>=1.0.0",
+    "sympy>=0.7.4",
+    "torch>=1.0.0",
+    "uproot>=4.0.0",
+    "vector>=0.8.4",
+    "numpy",  # compatible versions controlled through scipy
+]
+
+[project.urls]
+Documentation = "https://madminer.readthedocs.io/"
+Homepage = "https://github.com/madminer-tool/madminer"
+"Issue Tracker" = "https://github.com/madminer-tool/madminer/issues"
+"Releases" = "https://github.com/madminer-tool/madminer/releases"
+"Source Code" = "https://github.com/madminer-tool/madminer"
+
+[project.optional-dependencies]
+examples = [
+    "bqplot",
+    "pandas",
+]
+
+# Developer extras
+lint = [
+    "black[jupyter]",
+    "isort",
+]
+test = [
+    "pytest>=6.0",
+]
+docs = [
+    "myst-parser",
+    "numpydoc",
+    "sphinx>=7.0.0",
+    "sphinx-rtd-theme>=1.3.0",
+]
+
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.version.raw-options]
+local_scheme = "no-local-version"
+
+[tool.hatch.build.hooks.vcs]
+version-file = "madminer/_version.py"
+
+[tool.hatch.build.targets.sdist]
+# hatchling always includes:
+# pyproject.toml, .gitignore, any README, any LICENSE, AUTHORS
+only-include = [
+    "/madminer",
+    "/CITATION.cff"
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["madminer"]
+
 [tool.black]
 line-length = 120
 target-version = ['py38', 'py39', 'py310']
-include = '(\.py$|\.ipynb$)'
+include = '(\.pyi?$|\.ipynb$)'
 exclude = '''
 (
     \.eggs
   | \.git
-  | \.hg
   | \.mypy_cache
   | \.tox
+  | \.nox
   | \.venv
-  | _build
-  | buck-out
   | build
   | dist
-  | mg_processes
 )
 '''
 
@@ -24,3 +121,16 @@ force_single_line = true
 ignore_whitespace = true
 only_sections = true
 profile = "black"
+
+[tool.coverage.run]
+source = ["madminer"]
+branch = true
+omit = ["*/madminer/typing.py"]
+
+[tool.coverage.report]
+precision = 1
+sort = "cover"
+show_missing = true
+exclude_also = [
+    "if TYPE_CHECKING:"
+]

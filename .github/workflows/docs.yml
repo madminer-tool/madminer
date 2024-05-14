@@ -7,14 +7,12 @@ on:
     paths:
       - "docs/**"
       - "madminer/**"
-      - "setup.py"
   pull_request:
     branches:
       - main
     paths:
       - "docs/**"
       - "madminer/**"
-      - "setup.py"
   workflow_dispatch:
 
 concurrency:
@@ -29,6 +27,8 @@ jobs:
     steps:
     - name: "Set up GitHub Actions"
       uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
     - name: "Set up Python"
       uses: actions/setup-python@v5
       with:

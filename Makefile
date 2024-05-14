@@ -1,8 +1,6 @@
-PKG_VERSION   = $(shell cat VERSION)
 DOCS_FOLDER   = "docs"
 SOURCE_FOLDER = "madminer"
 TESTS_FOLDER  = "tests"
-
 
 .PHONY: build
 build:
@@ -26,7 +24,8 @@ docs:
 .PHONY: tag
 tag:
 	@echo "Tagging current commit"
-	@git tag --annotate "v$(PKG_VERSION)" --message "Tag v$(PKG_VERSION)"
+	@git tag --annotate "v$(shell python -c 'from importlib.metadata import version; print(version("madminer"))')" \
+	--message "Tag v$(shell python -c 'from importlib.metadata import version; print(version("madminer"))')"
 	@git push --follow-tags
 
 
