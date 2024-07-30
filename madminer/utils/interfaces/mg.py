@@ -265,7 +265,7 @@ def setup_mg_with_scripts(
         )
 
     # Replace environment variable in proc card
-    replacement_command = """sed -e 's@\$mgprocdir@'"$mgprocdir"'@' {}/{} > {}/{}""".format(
+    replacement_command = r"""sed -e 's@\$mgprocdir@'"$mgprocdir"'@' {}/{} > {}/{}""".format(
         mg_process_directory_placeholder,
         proc_card_filename_from_mgprocdir,
         mg_process_directory_placeholder,

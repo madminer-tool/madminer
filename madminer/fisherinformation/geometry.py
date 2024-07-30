@@ -161,7 +161,7 @@ class InformationGeometry:
             return np.linalg.inv(self._information(theta))
 
     def _information_derivative(self, theta):
-        """
+        r"""
         Low level function that calculates the derivative of Fisher Information
         `\partial_k I_{ij}` at the theory parameter `theta`.
 
@@ -184,7 +184,7 @@ class InformationGeometry:
         )
 
     def _christoffel(self, theta):
-        """
+        r"""
         Low level function that calculates the Christoffel symbol (2nd kind) Gamma^i_jk at
         the theory parameter `theta`.  Here Gamma^i_jk=0.5*I^{im}(\partial_k I_{mj}
         + \partial_j I_{mk} - \partial_m I_{jk})
@@ -346,7 +346,7 @@ class InformationGeometry:
             stepsize = min([(limit[1] - limit[0]) / 20.0 for limit in grid_ranges])
         if ntrajectories is None:
             ntrajectories = 20 * self.dimension
-        if self.dimension is not 2:
+        if self.dimension != 2:
             continous_sampling = False
 
         limits = (1.0 + 2.0 * stepsize) * np.array(grid_ranges)
