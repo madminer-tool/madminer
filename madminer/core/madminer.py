@@ -611,6 +611,7 @@ class MadMiner:
         reweight_card_filename=None,
         include_param_card=True,
         benchmarks=None,
+        order="LO"
     ):
         """
         Writes out a param_card and reweight_card for MadGraph. Instead of this low-level function, it is recommended to
@@ -681,6 +682,7 @@ class MadMiner:
             parameters=self.parameters,
             mg_process_directory=mg_process_directory,
             reweight_card_filename=reweight_card_filename,
+            order=order
         )
 
     def run(
@@ -821,6 +823,7 @@ class MadMiner:
         run_card_files,
         mg_process_directory=None,
         pythia8_card_file=None,
+        madspin_card_file=None,
         configuration_file=None,
         sample_benchmarks=None,
         is_background=False,
@@ -978,6 +981,9 @@ class MadMiner:
                 new_pythia8_card_file = None
                 if pythia8_card_file is not None:
                     new_pythia8_card_file = f"madminer/cards/pythia8_card_{i}.dat"
+                new_madspin_card_file = None
+                if madspin_card_file is not None:
+                    new_madspin_card_file = f"madminer/cards/madspin_card_{i}.dat"
                 new_run_card_file = None
                 if run_card_file is not None:
                     new_run_card_file = f"madminer/cards/run_card_{i}.dat"
@@ -989,9 +995,11 @@ class MadMiner:
                 logger.info("  Sampling from benchmark: %s", sample_benchmark)
                 logger.info("  Original run card:       %s", run_card_file)
                 logger.info("  Original Pythia8 card:   %s", pythia8_card_file)
+                logger.info("  Original MadSpin card:   %s", madspin_card_file)
                 logger.info("  Original config card:    %s", configuration_file)
                 logger.info("  Copied run card:         %s", new_run_card_file)
                 logger.info("  Copied Pythia8 card:     %s", new_pythia8_card_file)
+                logger.info("  Copied MadSpin card:     %s", new_madspin_card_file)
                 logger.info("  Copied config card:      %s", new_configuration_file)
                 logger.info("  Param card:              %s", param_card_file)
                 logger.info("  Reweight card:           %s", reweight_card_file)
@@ -1013,6 +1021,7 @@ class MadMiner:
                     sample_benchmark=sample_benchmark,
                     param_card_filename=f"{mg_process_directory}/{param_card_file}",
                     reweight_card_filename=f"{mg_process_directory}/{reweight_card_file}",
+                    order=order,
                 )
 
                 # Create run card
@@ -1027,6 +1036,10 @@ class MadMiner:
                 # Copy Pythia card
                 if pythia8_card_file is not None:
                     copy_file(pythia8_card_file, f"{mg_process_directory}/{new_pythia8_card_file}")
+                    
+                # Copy MadSpin card
+                if madspin_card_file is not None:
+                    copy_file(madspin_card_file, f"{mg_process_directory}/{new_madspin_card_file}")
 
                 # Copy Configuration card
                 if configuration_file is not None:
@@ -1060,6 +1073,7 @@ class MadMiner:
                         f"{mg_process_directory}/{param_card_file}",
                         f"{mg_process_directory}/{reweight_card_file}",
                         None if new_pythia8_card_file is None else f"{mg_process_directory}/{new_pythia8_card_file}",
+                        None if new_madspin_card_file is None else f"{mg_process_directory}/{new_madspin_card_file}",
                         None if new_configuration_file is None else f"{mg_process_directory}/{new_configuration_file}",
                         is_background=is_background,
                         initial_command=initial_command,

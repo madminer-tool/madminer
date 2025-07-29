@@ -157,7 +157,7 @@ def parse_delphes_root_file(
         values_this_observable = np.array(values_this_observable, dtype=np.float64)
         observable_values[name] = values_this_observable
 
-        logger.debug("  First 10 values for observable %s:\n%s", name, values_this_observable[:10])
+        logger.debug("  First 10 values for observable %s:\n%s", name, values_this_observable[:20])
 
     # Cuts
     cut_values = []

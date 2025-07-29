@@ -97,6 +97,7 @@ def export_reweight_card(
     parameters: Dict[str, AnalysisParameter],
     mg_process_directory: str,
     reweight_card_filename: str = None,
+    order: str="LO"
 ):
     # Global setup
     lines = [
@@ -106,6 +107,8 @@ def export_reweight_card(
         "change output default",
         "change helicity False",
     ]
+    if order == "NLO":
+        lines.append("change mode NLO")
 
     for benchmark_name, benchmark in benchmarks.items():
         if benchmark_name == sample_benchmark:

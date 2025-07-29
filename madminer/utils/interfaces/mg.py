@@ -317,6 +317,7 @@ def run_mg(
     param_card_file=None,
     reweight_card_file=None,
     pythia8_card_file=None,
+    madspin_card_file=None,
     configuration_card_file=None,
     is_background=False,
     initial_command=None,
@@ -401,6 +402,8 @@ def run_mg(
         shutil.copyfile(pythia8_card_file, f"{mg_process_directory}/Cards/pythia8_card.dat")
     if pythia8_card_file is not None and order == "NLO":
         shutil.copyfile(pythia8_card_file, f"{mg_process_directory}/Cards/shower_card.dat")
+    if madspin_card_file is not None:
+        shutil.copyfile(madspin_card_file, f"{mg_process_directory}/Cards/madspin_card.dat")
     if configuration_card_file is not None:
         shutil.copyfile(configuration_card_file, f"{mg_process_directory}/Cards/me5_configuration.txt")
 
@@ -414,17 +417,20 @@ def run_mg(
     # MG commands
     shower_option = "OFF" if pythia8_card_file is None else "Pythia8"
     reweight_option = "OFF" if is_background else "ON"
+    madspin_option = "OFF" if madspin_card_file is None else "ON"
+    
 
     mg_commands = """
         launch {}
+        order={}
         shower={}
         detector=OFF
         analysis=OFF
-        madspin=OFF
+        madspin={}
         reweight={}
         done
         """.format(
-        mg_process_directory, shower_option, reweight_option
+        mg_process_directory, order, shower_option, madspin_option, reweight_option
     )
 
     with open(proc_card_filename, "w") as file:
